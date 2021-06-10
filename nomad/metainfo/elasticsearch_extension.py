@@ -496,9 +496,9 @@ class Elasticsearch(DefinitionAnnotation):
             will only return values that exist in the search results. This allows to
             create 0 statistic values and return consistent statistics. If the underlying
             quantity is an Enum, the values are determined automatically.
-        statistics_size:
-            The maximum number of values in a statistic. Default is 10 or the length of
-            values.
+        default_aggregation_size:
+            The of values to return by default if this quantity is used in aggregation.
+            If no value is given and there are not fixed value, 10 will be used.
         metrics:
             If the quantity is used as a metric for aggregating statistics, this has to
             be used to define a valid elasticsearch metrics aggregations, e.g.
@@ -533,7 +533,7 @@ class Elasticsearch(DefinitionAnnotation):
             field: str = None, es_field: str = None,
             value: Callable[[MSection], Any] = None,
             index: bool = True,
-            values: List[str] = None, statistics_size: int = None,
+            values: List[str] = None, default_aggregation_size: int = None,
             metrics: Dict[str, str] = None,
             many_all: bool = False,
             auto_include_subsections: bool = False,
@@ -552,15 +552,15 @@ class Elasticsearch(DefinitionAnnotation):
         self._mapping: Dict[str, Any] = None
 
         self.values = values
-        self.statistics_size = statistics_size
+        self.default_aggregation_size = default_aggregation_size
         self.metrics = metrics
         self.many_all = many_all
 
         self.auto_include_subsections = auto_include_subsections
         self.nested = nested
 
-        if self.statistics_size is None:
-            self.statistics_size = len(self.values) if values is not None else 10
+        if self.values is not None:
+            self.default_aggregation_size = len(self.values)
 
     @property
     def mapping(self) -> Dict[str, Any]:

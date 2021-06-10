@@ -236,13 +236,19 @@ class ExampleData:
         if entry_metadata is None:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
+        upload_time = None
+        if upload_id in self.uploads:
+            upload_time = self.uploads[upload_id].get('upload_time')
+        if upload_time is None:
+            upload_time = self._next_time_stamp()
+
         entry_metadata.m_update(
             calc_id=entry_id,
             upload_id=upload_id,
             mainfile=mainfile,
             calc_hash='dummy_hash_' + entry_id,
             domain='dft',
-            upload_time=self._next_time_stamp(),
+            upload_time=upload_time,
             published=True,
             processed=True,
             with_embargo=False,

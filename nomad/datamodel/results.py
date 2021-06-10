@@ -530,7 +530,7 @@ class Material(MSection):
         description="""
         Classification based on the functional properties.
         """,
-        a_elasticsearch=Elasticsearch(material_type, statistics_size=20)
+        a_elasticsearch=Elasticsearch(material_type, default_aggregation_size=20)
     )
     type_compound = Quantity(
         type=str,
@@ -538,7 +538,7 @@ class Material(MSection):
         description="""
         Classification based on the chemical formula.
         """,
-        a_elasticsearch=Elasticsearch(material_type, statistics_size=20)
+        a_elasticsearch=Elasticsearch(material_type, default_aggregation_size=20)
     )
     elements = Quantity(
         type=MEnum(chemical_symbols),
@@ -647,7 +647,7 @@ class DFT(MSection):
         type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
         default=not_processed,
         description="The libXC based xc functional classification used in the simulation.",
-        a_elasticsearch=Elasticsearch(material_entry_type, statistics_size=100)
+        a_elasticsearch=Elasticsearch(material_entry_type, default_aggregation_size=100)
     )
     xc_functional_names = Quantity(
         type=str,

@@ -111,7 +111,6 @@ async def post_entries_metadata_query(
         query=data.query,
         pagination=data.pagination,
         required=data.required,
-        statistics=data.statistics,
         aggregations=data.aggregations,
         user_id=user.user_id if user is not None else None)
 
