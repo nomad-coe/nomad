@@ -28,8 +28,10 @@ from nomad.metainfo.elasticsearch_extension import (
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
-    Statistic, StatisticResponse, AggregationOrderType, AggregationResponse, AggregationDataItem,
-    Value)
+    Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
+    DateHistogramAggregation, MinMaxAggregation, Bucket,
+    MixMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
+    DateHistogramAggregationResponse, AggregationResponse)
 
 from .common import SearchError, _es_to_entry_dict, _owner_es_query
 
@@ -216,158 +218,158 @@ def validate_pagination(pagination: Pagination, doc_type: DocumentType, loc: Lis
     return order_quantity, page_after_value
 
 
-def _api_to_es_statistic(
-        es_search: Search, name: str, statistic: Statistic, doc_type: DocumentType) -> A:
-    '''
-    Creates an ES aggregation based on the API's statistic model.
-    '''
-
-    quantity = validate_quantity(statistic.quantity, loc=['statistic', 'quantity'], doc_type=doc_type)
-
-    if not quantity.aggregateable:
-        raise QueryValidationError(
-            'the statistic quantity cannot be aggregated',
-            loc=['statistic', 'quantity'])
-
-    if statistic.size is None:
-        statistic.size = quantity.statistics_size
-
-    if quantity.values is not None:
-        statistic.size = len(quantity.values)
-
-    terms_kwargs = {}
-    if statistic.value_filter is not None:
-        terms_kwargs['include'] = '.*%s.*' % statistic.value_filter
-
-    aggs = es_search.aggs
-    for nested_key in doc_type.nested_object_keys:
-        if statistic.quantity.startswith(nested_key):
-            aggs = es_search.aggs.bucket('nested_statistic:%s' % name, 'nested', path=nested_key)
-
-    order_type = '_count' if statistic.order.type_ == AggregationOrderType.entries else '_key'
-    statistic_agg = aggs.bucket('statistic:%s' % name, A(
-        'terms',
-        field=quantity.search_field,
-        size=statistic.size,
-        order={order_type: statistic.order.direction.value},
-        **terms_kwargs))
-
-    for metric_name in statistic.metrics:
-        metrics = doc_type.metrics
-        if nested_key == 'entries':
-            metrics = material_entry_type.metrics
-        if metric_name not in metrics:
-            raise QueryValidationError(
-                'metric must be the qualified name of a suitable search quantity',
-                loc=['statistic', 'metrics'])
-        metric_aggregation, metric_quantity = metrics[metric_name]
-        statistic_agg.metric('metric:%s' % metric_name, A(
-            metric_aggregation,
-            field=metric_quantity.qualified_field))
-
-
-def _es_to_api_statistics(
-        es_response, name: str, statistic: Statistic, doc_type: DocumentType) -> StatisticResponse:
-    '''
-    Creates a StatisticResponse from elasticsearch response on a request executed with
-    the given statistics.
-    '''
-    quantity = validate_quantity(statistic.quantity, doc_type=doc_type)
-
-    es_aggs = es_response.aggs
-    for nested_key in doc_type.nested_object_keys:
-        if statistic.quantity.startswith(nested_key):
-            es_aggs = es_response.aggs[f'nested_statistic:{name}']
-
-    es_statistic = es_aggs['statistic:' + name]
-    statistic_data = {}
-    for bucket in es_statistic.buckets:
-        value_data = dict(entries=bucket.doc_count)
-        for metric in statistic.metrics:
-            value_data[metric] = bucket['metric:' + metric].value
-        statistic_data[bucket.key] = value_data
-
-    if quantity.values is not None:
-        for value in quantity.values:
-            if value not in statistic_data:
-                statistic_data[value] = dict(entries=0, **{
-                    metric: 0 for metric in statistic.metrics})
-
-    return StatisticResponse(data=statistic_data, **statistic.dict(by_alias=True))
-
-
 def _api_to_es_aggregation(
-        es_search: Search, name: str, agg: Aggregation, doc_type: DocumentType) -> A:
+        es_search: Search, name: str, agg: AggregationBase, doc_type: DocumentType) -> A:
     '''
     Creates an ES aggregation based on the API's aggregation model.
     '''
-    order_quantity, page_after_value = validate_pagination(
-        agg.pagination, doc_type=doc_type, loc=['aggration'])
 
+    agg_name = f'agg:{name}'
     quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
-    if not quantity.aggregateable:
-        raise QueryValidationError(
-            'the aggregation quantity cannot be aggregated',
-
-            loc=['aggregation', 'quantity'])
-
-    terms = A('terms', field=quantity.search_field, order=agg.pagination.order.value)
-
-    # We are using elastic searchs 'composite aggregations' here. We do not really
-    # compose aggregations, but only those pseudo composites allow us to use the
-    # 'after' feature that allows to scan through all aggregation values.
-    if order_quantity is None:
-        composite = {
-            'sources': {
-                name: terms
-            },
-            'size': agg.pagination.page_size
-        }
-    else:
-        sort_terms = A('terms', field=order_quantity.search_field, order=agg.pagination.order.value)
-        composite = {
-            'sources': [
-                {order_quantity.search_field: sort_terms},
-                {quantity.search_field: terms}
-            ],
-            'size': agg.pagination.page_size
-        }
-
-    if page_after_value is not None:
-        if order_quantity is None:
-            composite['after'] = {name: page_after_value}
-        else:
-            order_value, quantity_value = page_after_value.split(':')
-            composite['after'] = {quantity.search_field: quantity_value, order_quantity.search_field: order_value}
-
-    aggs = es_search.aggs
+    es_aggs = es_search.aggs
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
-            aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
+            es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
 
-    composite_agg = aggs.bucket('agg:%s' % name, 'composite', **composite)
+    es_agg = None
+    if isinstance(agg, TermsAggregation):
+        if not quantity.aggregateable:
+            raise QueryValidationError(
+                'The aggregation quantity cannot be used in a terms aggregation.',
+                loc=['aggregation', name, 'terms', 'quantity'])
 
-    if agg.entries is not None and agg.entries.size > 0:
-        kwargs: Dict[str, Any] = {}
-        if agg.entries.required is not None:
-            if agg.entries.required.include is not None:
-                kwargs.update(_source=dict(includes=agg.entries.required.include))
+        if agg.pagination is not None:
+            if agg.size is not None:
+                raise QueryValidationError(
+                    f'You cannot paginate and provide an extra size parameter.',
+                    loc=['aggregations', name, 'terms', 'pagination'])
+
+            order_quantity, page_after_value = validate_pagination(
+                agg.pagination, doc_type=doc_type, loc=['aggregation'])
+
+            # We are using elastic searchs 'composite aggregations' here. We do not really
+            # compose aggregations, but only those pseudo composites allow us to use the
+            # 'after' feature that allows to scan through all aggregation values.
+            terms = A('terms', field=quantity.search_field, order=agg.pagination.order.value)
+
+            if order_quantity is None:
+                composite = {
+                    'sources': {
+                        name: terms
+                    },
+                    'size': agg.pagination.page_size
+                }
+
             else:
-                kwargs.update(_source=dict(excludes=agg.entries.required.exclude))
+                sort_terms = A(
+                    'terms',
+                    field=order_quantity.search_field,
+                    order=agg.pagination.order.value)
 
-        composite_agg.metric('entries', A('top_hits', size=agg.entries.size, **kwargs))
+                composite = {
+                    'sources': [
+                        {order_quantity.search_field: sort_terms},
+                        {quantity.search_field: terms}
+                    ],
+                    'size': agg.pagination.page_size
+                }
 
-    # additional cardinality to get total
-    aggs.metric('agg:%s:total' % name, 'cardinality', field=quantity.search_field)
+            if page_after_value is not None:
+                if order_quantity is None:
+                    composite['after'] = {name: page_after_value}
+                else:
+                    try:
+                        order_value, quantity_value = page_after_value.split(':')
+                        composite['after'] = {quantity.search_field: quantity_value, order_quantity.search_field: order_value}
+                    except Exception:
+                        raise QueryValidationError(
+                            f'The pager_after_value has not the right format.',
+                            loc=['aggregations', name, 'terms', 'pagination', 'page_after_value'])
+
+            es_agg = es_aggs.bucket(agg_name, 'composite', **composite)
+
+            # additional cardinality to get total
+            es_aggs.metric('agg:%s:total' % name, 'cardinality', field=quantity.search_field)
+        else:
+            if agg.size is None:
+                if quantity.default_aggregation_size is not None:
+                    agg.size = quantity.default_aggregation_size
+
+                elif quantity.values is not None:
+                    agg.size = len(quantity.values)
+
+                else:
+                    agg.size = 10
+
+            terms_kwargs = {}
+            if agg.value_filter is not None:
+                terms_kwargs['include'] = '.*%s.*' % agg.value_filter
+
+            terms = A('terms', field=quantity.search_field, size=agg.size, **terms_kwargs)
+            es_agg = es_aggs.bucket(agg_name, terms)
+
+        if agg.entries is not None and agg.entries.size > 0:
+            kwargs: Dict[str, Any] = {}
+            if agg.entries.required is not None:
+                if agg.entries.required.include is not None:
+                    kwargs.update(_source=dict(includes=agg.entries.required.include))
+                else:
+                    kwargs.update(_source=dict(excludes=agg.entries.required.exclude))
+
+            es_agg.metric('entries', A('top_hits', size=agg.entries.size, **kwargs))
+
+    elif isinstance(agg, DateHistogramAggregation):
+        if not quantity.annotation.mapping['type'] in ['date']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a date histogram aggregation',
+                loc=['aggregations', name, 'histogram', 'quantity'])
+
+        es_agg = es_aggs.bucket(agg_name, A(
+            'date_histogram', field=quantity.search_field, interval=agg.interval,
+            format='yyyy-MM-dd'))
+
+    elif isinstance(agg, HistogramAggregation):
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a histogram aggregation',
+                loc=['aggregations', name, 'histogram', 'quantity'])
+
+        es_agg = es_aggs.bucket(agg_name, A(
+            'histogram', field=quantity.search_field, interval=agg.interval))
+
+    elif isinstance(agg, MinMaxAggregation):
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a mix-max aggregation',
+                loc=['aggregations', name, 'min_max', 'quantity'])
+
+        es_aggs.metric(agg_name + ':min', A('min', field=quantity.search_field))
+        es_aggs.metric(agg_name + ':max', A('max', field=quantity.search_field))
+
+    else:
+        raise NotImplementedError()
+
+    if isinstance(agg, BucketAggregation):
+        for metric_name in agg.metrics:
+            metrics = doc_type.metrics
+            if nested_key == 'entries':
+                metrics = material_entry_type.metrics
+            if metric_name not in metrics:
+                raise QueryValidationError(
+                    'metric must be the qualified name of a suitable search quantity',
+                    loc=['statistic', 'metrics'])
+            metric_aggregation, metric_quantity = metrics[metric_name]
+            es_agg.metric('metric:%s' % metric_name, A(
+                metric_aggregation,
+                field=metric_quantity.qualified_field))
 
 
 def _es_to_api_aggregation(
-        es_response, name: str, agg: Aggregation, doc_type: DocumentType) -> AggregationResponse:
+        es_response, name: str, agg: AggregationBase, doc_type: DocumentType):
     '''
     Creates a AggregationResponse from elasticsearch response on a request executed with
     the given aggregation.
     '''
-    order_by = agg.pagination.order_by
     quantity = validate_quantity(agg.quantity, doc_type=doc_type)
 
     nested = False
@@ -377,40 +379,108 @@ def _es_to_api_aggregation(
             es_aggs = es_response.aggs[f'nested_agg:{name}']
             nested = True
 
-    es_agg = es_aggs['agg:' + name]
-
-    def get_entries(agg):
-        if 'entries' in agg:
-            if nested:
-                return [{nested_key: item['_source']} for item in agg.entries.hits.hits]
-            else:
-                return [item['_source'] for item in agg.entries.hits.hits]
-        else:
-            return None
-
-    if agg.pagination.order_by is None:
-        agg_data = {
-            bucket.key[name]: AggregationDataItem(size=bucket.doc_count, data=get_entries(bucket))
-            for bucket in es_agg.buckets}
-    else:
-        agg_data = {
-            bucket.key[quantity.search_field]: AggregationDataItem(size=bucket.doc_count, data=get_entries(bucket))
-            for bucket in es_agg.buckets}
-
     aggregation_dict = agg.dict(by_alias=True)
-    pagination = PaginationResponse(
-        total=es_aggs['agg:%s:total' % name]['value'],
-        **aggregation_dict.pop('pagination'))
+    has_no_pagination = getattr(agg, 'pagination', None) is None
 
-    if 'after_key' in es_agg:
-        after_key = es_agg['after_key']
-        if order_by is None:
-            pagination.next_page_after_value = after_key[name]
+    if isinstance(agg, BucketAggregation):
+        es_agg = es_aggs['agg:' + name]
+        values = set()
+
+        def get_bucket(es_bucket) -> Bucket:
+            if has_no_pagination:
+                if isinstance(agg, DateHistogramAggregation):
+                    value = es_bucket['key_as_string']
+                else:
+                    value = es_bucket['key']
+            elif agg.pagination.order_by is None:  # type: ignore
+                value = es_bucket.key[name]
+            else:
+                value = es_bucket.key[quantity.search_field]
+
+            count = es_bucket.doc_count
+            metrics = {}
+            for metric in agg.metrics:  # type: ignore
+                metrics[metric] = es_bucket['metric:' + metric].value
+
+            entries = None
+            if 'entries' in es_bucket:
+                if nested:
+                    entries = [{nested_key: item['_source']} for item in es_bucket.entries.hits.hits]
+                else:
+                    entries = [item['_source'] for item in es_bucket.entries.hits.hits]
+
+            values.add(value)
+            if len(metrics) == 0:
+                metrics = None
+            return Bucket(value=value, entries=entries, count=count, metrics=metrics)
+
+        data = [get_bucket(es_bucket) for es_bucket in es_agg.buckets]
+
+        if has_no_pagination:
+            # fill "empty" values
+            if quantity.values is not None:
+                for value in quantity.values:
+                    if value not in values:
+                        metrics = {metric: 0 for metric in agg.metrics}
+                        if len(metrics) == 0:
+                            metrics = None
+                        data.append(Bucket(value=value, count=0, metrics=metrics))
+
         else:
-            str_values = [str(v) for v in after_key.to_dict().values()]
-            pagination.next_page_after_value = ':'.join(str_values)
+            total = es_aggs['agg:%s:total' % name]['value']
+            pagination = PaginationResponse(total=total, **aggregation_dict['pagination'])
+            if pagination.page_after_value is not None and pagination.page_after_value.endswith(':'):
+                pagination.page_after_value = pagination.page_after_value[0:-1]
 
-    return AggregationResponse(data=agg_data, pagination=pagination, **aggregation_dict)
+            if 'after_key' in es_agg:
+                after_key = es_agg['after_key']
+                if pagination.order_by is None:
+                    pagination.next_page_after_value = after_key[name]
+                else:
+                    str_values = [str(v) for v in after_key.to_dict().values()]
+                    pagination.next_page_after_value = ':'.join(str_values)
+            else:
+                pagination.next_page_after_value = None
+
+            aggregation_dict['pagination'] = pagination
+
+        if isinstance(agg, TermsAggregation):
+            return AggregationResponse(
+                terms=TermsAggregationResponse(data=data, **aggregation_dict))
+        elif isinstance(agg, HistogramAggregation):
+            return AggregationResponse(
+                histogram=HistogramAggregationResponse(data=data, **aggregation_dict))
+        elif isinstance(agg, DateHistogramAggregation):
+            return AggregationResponse(
+                date_histogram=DateHistogramAggregationResponse(data=data, **aggregation_dict))
+        else:
+            raise NotImplementedError()
+
+    elif isinstance(agg, MinMaxAggregation):
+        min_value = es_aggs['agg:%s:min' % name]['value']
+        max_value = es_aggs['agg:%s:min' % name]['value']
+
+        return AggregationResponse(
+            min_max=MixMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
+
+    else:
+        raise NotImplementedError()
+
+
+def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation]:
+    if agg.terms is not None:
+        return agg.terms
+
+    if agg.histogram is not None:
+        return agg.histogram
+
+    if agg.date_histogram is not None:
+        return agg.date_histogram
+
+    if agg.min_max is not None:
+        return agg.min_max
+
+    raise NotImplementedError()
 
 
 def search(
@@ -419,7 +489,6 @@ def search(
         pagination: Pagination = None,
         required: MetadataRequired = None,
         aggregations: Dict[str, Aggregation] = {},
-        statistics: Dict[str, Statistic] = {},
         user_id: str = None,
         index: Index = entry_index) -> MetadataResponse:
 
@@ -489,13 +558,9 @@ def search(
 
         search = search.source(includes=required.include, excludes=required.exclude)
 
-    # statistics
-    for name, statistic in statistics.items():
-        _api_to_es_statistic(search, name, statistic, doc_type=doc_type)
-
     # aggregations
     for name, agg in aggregations.items():
-        _api_to_es_aggregation(search, name, agg, doc_type=doc_type)
+        _api_to_es_aggregation(search, name, _specific_agg(agg), doc_type=doc_type)
 
     # execute
     try:
@@ -521,17 +586,11 @@ def search(
         next_page_after_value=next_page_after_value,
         **pagination.dict())
 
-    # statistics
-    if len(statistics) > 0:
-        more_response_data['statistics'] = cast(Dict[str, Any], {
-            name: _es_to_api_statistics(es_response, name, statistic, doc_type=doc_type)
-            for name, statistic in statistics.items()})
-
     # aggregations
     if len(aggregations) > 0:
         more_response_data['aggregations'] = cast(Dict[str, Any], {
-            name: _es_to_api_aggregation(es_response, name, aggregation, doc_type=doc_type)
-            for name, aggregation in aggregations.items()})
+            name: _es_to_api_aggregation(es_response, name, _specific_agg(agg), doc_type=doc_type)
+            for name, agg in aggregations.items()})
 
     more_response_data['es_query'] = es_query.to_dict()
 

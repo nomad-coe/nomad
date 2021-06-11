@@ -41,15 +41,6 @@ Value = Union[bool, int, float, datetime.datetime, str]
 ComparableValue = Union[int, float, datetime.datetime, str]
 
 
-class AggregationOrderType(str, enum.Enum):
-    '''
-    Allows to order statistics or aggregations by either quantity values (`values`) or number
-    of entries (`entries`).
-    '''
-    values = 'values'
-    entries = 'entries'
-
-
 class HTTPExceptionModel(BaseModel):
     detail: str
 
@@ -186,8 +177,8 @@ class WithQuery(BaseModel):
             **and** *Chris Wolverton*.
             ```
             {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
+                "results.material.elements": ["Na", "Cl"],
+                "results.method.simulation.program_name": "VASP",
                 "authors": ["Stefano Curtarolo", "Chris Wolverton"]
             }
             ```
@@ -196,8 +187,8 @@ class WithQuery(BaseModel):
             add a suffix to the quantity `:any`:
             ```
             {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
+                "results.material.elements": ["Na", "Cl"],
+                "results.method.simulation.program_name": "VASP",
                 "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
             }
             ```
@@ -209,16 +200,16 @@ class WithQuery(BaseModel):
                     {
                         "or": [
                             {
-                                "atoms": ["Cl", "Na"]
+                                "results.material.elements": ["Cl", "Na"]
                             },
                             {
-                                "atoms": ["H", "O"]
+                                "results.material.elements": ["H", "O"]
                             }
                         ]
                     },
                     {
                         "not": {
-                            "dft.crystal": "cubic"
+                            "results.material.symmetry.crystal_system": "cubic"
                         }
                     }
                 ]
@@ -234,7 +225,7 @@ class WithQuery(BaseModel):
                     "gt": "2020-01-01",
                     "lt": "2020-08-01"
                 },
-                "dft.workflow.section_geometry_optimization.final_energy_difference": {
+                "results.properties.geometry_optimization.final_energy_difference": {
                     "lte": 1.23e-18
                 }
             }
@@ -245,7 +236,7 @@ class WithQuery(BaseModel):
             {
                 "upload_time:gt": "2020-01-01",
                 "upload_time:lt": "2020-08-01",
-                "dft.workflow.section_geometry_optimization.final_energy_difference:lte" 1.23e-18
+                "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
             }
             ```
 
@@ -254,11 +245,11 @@ class WithQuery(BaseModel):
         '''),  # TODO custom documentation for entry and material API
         example={
             'upload_time:gt': '2020-01-01',
-            'atoms': ['Ti', 'O'],
-            'dft.code_name': 'VASP',
-            'dft.workflow.section_geometry_optimization.final_energy_difference:lte': 1.23e-18,
-            'dft.quantities': 'section_dos',
-            'dft.system:any': ['bulk', '2d']
+            'results.material.elements': ['Ti', 'O'],
+            'results.method.simulation.program_name': 'VASP',
+            'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
+            'results.properties.available_properties': 'section_dos',
+            'results.material.type_structural:any': ['bulk', '2d']
         })
 
     @validator('query')
@@ -665,8 +656,18 @@ class AggregationPagination(MetadataBasedPagination):
     order_by: Optional[str] = Field(
         None,  # type: ignore
         description=strip('''
-            The results are ordered by the values of this field. If omitted, default
-            ordering is applied.
+            Either the string "count", "value", or the name of a quantity. If omitted the buckets
+            will be ordered by the item "count".
+
+            If you provide a quantity, all items
+            in a bucket must have the same value for this quantity. For example, aggregating
+            entries on `upload_id` and ordering with the buckets by `upload_time` is fine,
+            because all entries in an upload have the same `upload_time`. The API cannot
+            check this rule and the results will be unpredictable.
+
+            If you want to order by the bucket values, you can either use "value" or use
+            the aggregation quantity to `order_by`. The result will be the same, because
+            the bucket values are the quantity values.
         '''))
 
     @validator('page')
@@ -674,11 +675,16 @@ class AggregationPagination(MetadataBasedPagination):
         assert page is None, 'Pagination by `page` is not possible for aggregations, use `page_after_value`'
         return page
 
+    @validator('page_size')
+    def validate_page_size(cls, page_size, values):  # pylint: disable=no-self-argument
+        assert page_size > 0, '0 or smaller page sizes are not allowed for aggregations.'
+        return page_size
+
 
 class AggregatedEntities(BaseModel):
     size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
         1, description=strip('''
-        The maximum number of entries that should be returned for each value in the
+        The number of entries that should be returned for each value in the
         aggregation.
         '''))
     required: Optional[MetadataRequired] = Field(
@@ -687,70 +693,170 @@ class AggregatedEntities(BaseModel):
         '''))
 
 
-class Aggregation(BaseModel):
+class AggregationBase(BaseModel):
     quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity for the aggregation. Aggregations
         can only be computed for those search metadata that have discrete values;
         an aggregation buckets entries that have the same value for this quantity.'''))
-    pagination: Optional[AggregationPagination] = Field(
-        AggregationPagination(), description=strip('''
-        Only the data few values are returned for each API call. Pagination allows to
-        get the next set of values based on the last value in the last call.
-        '''))
-    entries: Optional[AggregatedEntities] = Field(
-        None, description=strip('''
-        Optionally, a set of entries can be returned for each value.
-        '''))
 
 
-class StatisticsOrder(BaseModel):
-    type_: Optional[AggregationOrderType] = Field(AggregationOrderType.entries, alias='type')
-    direction: Optional[Direction] = Field(Direction.desc)
-
-
-class Statistic(BaseModel):
-    quantity: str = Field(
-        ..., description=strip('''
-        The manatory name of the quantity that the statistic is calculated for. Statistics
-        can only be computed for those search metadata that have discrete values; a statistics
-        aggregates a certain metric (e.g. the number of entries) over all entries were
-        this quantity has the same value (bucket aggregation, think historgam here).
-
-        There is one except and these are date/time values quantities (most notably `upload_time`).
-        Here each statistic value represents an time interval. The interval can
-        be determined via `datetime_interval`.'''))
+class BucketAggregation(AggregationBase):
     metrics: Optional[List[str]] = Field(
         [], description=strip('''
-        By default the returned statistics will provide the number of entries for each
+        By default the returned aggregations will provide the number of entries for each
         value. You can add more metrics. For each metric an additional number will be
         provided for each value. Metrics are also based on search metadata. Depending on
         the metric the number will represent either a sum (`calculations` for the number
         of individual calculation in each code run) or an amount of different values
         (i.e. `materials` for the amount of different material hashes).'''))
-    datetime_interval: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
-        None, description=strip('''
-        While statistics in general are only possible for quantities with discrete values,
-        these is one exception. These are date/time values quantities (most notably `upload_time`).
-        Here each statistic value represents an time interval.
 
-        A date/time interval is a number of seconds greater than 0. This will only be used for
-        date/time valued quantities (e.g. `upload_time`).
+
+class TermsAggregation(BucketAggregation):
+    pagination: Optional[AggregationPagination] = Field(
+        None, description=strip('''
+        Only the data few values are returned for each API call. Aggregation
+        pagination allows to get all available values by pagination. It also allows to
+        order values.
+
+        You can only use pagination (to page through all available values) or size (to
+        get the size number of values with the most available data).
+        '''))
+    size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
+        None, description=strip('''
+        Only the data few values are returned for each API call. Pagination allows to
+        get the next set of values based on the last value in the last call.
         '''))
     value_filter: Optional[pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')] = Field(  # type: ignore
         None, description=strip('''
         An optional filter for values. Only values that contain the filter as substring
         will be part of the statistics.
+
+        This is only available for non paginated aggregations.
         '''))
-    size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
+    entries: Optional[AggregatedEntities] = Field(
         None, description=strip('''
-        An optional maximum size of values in the statistics. The default depends on the
-        quantity.
+        Optionally, a set of entries can be returned for each value. These are basically
+        example entries that have the respective bucket value.
         '''))
-    order: Optional[StatisticsOrder] = Field(
-        StatisticsOrder(), description=strip('''
-        The values in the statistics are either ordered by the entry count or by the
-        natural ordering of the values.
+
+
+class HistogramAggregation(BucketAggregation):
+    interval: pydantic.confloat(gt=0)  # type: ignore
+
+
+class DateHistogramAggregation(BucketAggregation):
+    interval: str = Field('1M')  # type: ignore
+
+
+class MinMaxAggregation(AggregationBase):
+    pass
+
+
+class Aggregation(BaseModel):
+    terms: Optional[TermsAggregation] = Body(
+        None,
+        description=strip('''
+            A `terms` aggregation allows to get the values of a quantity that occur in
+            the search query result data. For each value, a bucket is created with
+            information about how many entries have the value (or additional metrics).
+            For example to get all entries that use a certain code, you can use:
+            ```json
+            {
+                "aggregations": {
+                    "all_codes": {
+                        "terms": {
+                            "quantity": "results.method.simulation.program_name"
+                        }
+                    }
+                }
+            }
+            ```
+
+            Terms aggregations can also be used to paginate though all values of a certain
+            quantities. Each page will be companied with a `page_after_value` that
+            can be used to retrieve the next value. For example to go through all datasets
+            available in the search query:
+            ```json
+            {
+                "aggregations": {
+                    "all_datasets": {
+                        "terms": {
+                            "quantity": "datasets",
+                            "pagination": {
+                                "page_size": 100
+                            }
+                        }
+                    }
+                }
+            }
+            ```
+        '''))
+
+    histogram: Optional[HistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `histogram` aggregation allows to get the ranges quantity values and
+            how many (or another metrics) entries exhibit values in those ranges:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "histogram": {
+                            "quantity": "properties.n_calculations",
+                            "interval": 10
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity. An interval is
+            mandatory and determines the bucket size.
+        '''))
+
+    date_histogram: Optional[DateHistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `date_histogram` aggregation is like a normal `histogram` but for date valued
+            quantities.:
+
+            ```json
+            {
+                "aggregations": {
+                    "upload_times": {
+                        "histogram": {
+                            "quantity": "upload_time",
+                            "interval": "1M"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a datetime typed quantity. Intervals are strings
+            that determine a time period. The default is one month, `1M`.
+        '''))
+
+    min_max: Optional[MinMaxAggregation] = Body(
+        None,
+        description=strip('''
+            A `min_max` aggregation allows to get the minumum and maximum quantity values:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "min_max": {
+                            "quantity": "results.properties.n_calculations"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity.
         '''))
 
 
@@ -769,41 +875,49 @@ class Metadata(WithQueryAndPagination):
         example={
             'include': ['entry_id', 'mainfile', 'upload_id', 'authors', 'upload_time']
         })
-    statistics: Optional[Dict[str, Statistic]] = Body(
-        {},
-        description=strip('''
-            This allows to define additional statistics that should be returned.
-            Statistics aggregate entries that show the same quantity values for a given quantity.
-            A simple example is the number of entries for each `dft.code_name`. These statistics
-            will be computed only over the query results. This allows to get an overview about
-            query results.
-        '''),
-        example={
-            'by_code_name': {
-                'metrics': ['uploads', 'datasets'],
-                'quantity': 'dft.code_name'
-            }
-        })
     aggregations: Optional[Dict[str, Aggregation]] = Body(
         {},
         example={
-            'uploads': {
-                'quantity': 'upload_id',
-                'pagination': {
-                    'page_size': 10,
-                    'order_by': 'upload_time'
-                },
-                'entries': {
-                    'size': 1,
-                    'required': {
-                        'include': ['mainfile']
+            'all_codes': {
+                'terms': {
+                    'quantity': 'results.method.simulation.program_name',
+                    'entries': {
+                        'size': 1,
+                        'required': {
+                            'include': ['mainfile']
+                        }
                     }
+                },
+            },
+            'all_datasets': {
+                'terms': {
+                    'quantity': 'datasets.name',
+                    'pagination': {
+                        'page_size': 100
+                    }
+                }
+            },
+            'system_size': {
+                'min_max': {
+                    'quantity': 'results.properties.structures.structure_conventional.n_sites'
+                }
+            },
+            'upload_times': {
+                'date_histogram': {
+                    'quantity': 'upload_time',
+                    'interval': '1M'
+                }
+            },
+            'calculations_per_entry': {
+                'histogram': {
+                    'quantity': 'results.properties.n_calculations',
+                    'interval': 5
                 }
             }
         },
         description=strip('''
-            Defines additional aggregations to return. An aggregation list entries
-            for the values of a quantity, e.g. to get all uploads and their entries.
+            Defines additional aggregations to return. There are different types of
+            aggregations: `terms`, `histogram`, `data_histogram`, `min_max`.
         '''))
 
 
@@ -860,30 +974,45 @@ files_parameters = parameter_dependency_from_model(
     'files_parameters', Files)
 
 
-class StatisticResponse(Statistic):
-    data: Dict[str, Dict[str, int]] = Field(
-        None, description=strip('''
-        The returned statistics data as dictionary. The key is a string representation of the values.
-        The concrete type depends on the quantity that was used to create the statistics.
-        Each dictionary value is a dictionary itself. The keys are the metric names the
-        values the metric values. The key `entries` that gives the amount of entries with
-        this value is always returned.'''))
-
-
-class AggregationDataItem(BaseModel):
-    data: Optional[List[Dict[str, Any]]] = Field(
+class Bucket(BaseModel):
+    entries: Optional[List[Dict[str, Any]]] = Field(
         None, description=strip('''The entries that were requested for each value.'''))
-    size: int = Field(
+    count: int = Field(
         None, description=strip('''The amount of entries with this value.'''))
+    metrics: Optional[Dict[str, int]]
+
+    value: Union[float, str]
 
 
-class AggregationResponse(Aggregation):
-    pagination: PaginationResponse  # type: ignore
-    data: Dict[str, AggregationDataItem] = Field(
+class BucketAggregationResponse(BaseModel):
+    data: List[Bucket] = Field(
         None, description=strip('''
         The aggregation data as a dictionary. The key is a string representation of the values.
         The dictionary values contain the aggregated data depending if `entries` where
         requested.'''))
+
+
+class TermsAggregationResponse(BucketAggregationResponse, TermsAggregation):
+    pagination: Optional[PaginationResponse]  # type: ignore
+
+
+class HistogramAggregationResponse(BucketAggregationResponse, HistogramAggregation):
+    pass
+
+
+class DateHistogramAggregationResponse(BucketAggregationResponse, DateHistogramAggregation):
+    pass
+
+
+class MixMaxAggregationResponse(MinMaxAggregation):
+    data: List[Union[float, None]]
+
+
+class AggregationResponse(Aggregation):
+    terms: Optional[TermsAggregationResponse]
+    histogram: Optional[HistogramAggregationResponse]
+    date_histogram: Optional[DateHistogramAggregationResponse]
+    min_max: Optional[MixMaxAggregationResponse]
 
 
 class CodeResponse(BaseModel):
@@ -894,7 +1023,6 @@ class CodeResponse(BaseModel):
 
 class MetadataResponse(Metadata):
     pagination: PaginationResponse = None  # type: ignore
-    statistics: Optional[Dict[str, StatisticResponse]]  # type: ignore
     aggregations: Optional[Dict[str, AggregationResponse]]  # type: ignore
 
     data: List[Dict[str, Any]] = Field(

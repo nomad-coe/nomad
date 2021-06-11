@@ -22,7 +22,6 @@ import re
 from devtools import debug
 from urllib.parse import urlencode
 
-from nomad.metainfo.elasticsearch_extension import DocumentType
 from nomad.datamodel import results
 
 from tests.utils import assert_at_least, assert_url_query_args
@@ -153,37 +152,163 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
     ]
 
 
-def aggregation_test_parameters(material_prefix: str, entry_prefix: str):
-    return [
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}}, 3, 3, 200, id='order-str'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}upload_time'}}, 3, 3, 200, id='order-date'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}}, 3, 3, 200, id='order-int'),
-        pytest.param({'quantity': f'{material_prefix}symmetry.structure_name'}, 0, 0, 200, id='no-results'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'page_after_value': 'id_published'}}, 3, 1, 200, id='after'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'pagination': {'order_by': f'{entry_prefix}uploader.name', 'page_after_value': 'Sheldon Cooper:id_published'}}, 3, 1, 200, id='after-order'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}, 3, 3, 200, id='entries'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}, 3, 3, 200, id='entries-size'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}, -1, -1, 422, id='bad-entries'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10, 'required': {'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']}}}, 3, 3, 200, id='entries-include')
-    ]
-
-
-def statistic_test_parameters(entity_id: str, entry_prefix: str, total: int):
-    n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
+def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_prefix: str, total: int):
+    n_code_names = results.Simulation.program_name.a_elasticsearch.default_aggregation_size
     program_name = f'{entry_prefix}results.method.simulation.program_name'
+    n_calculations = f'{entry_prefix}results.properties.n_calculations'
+    upload_time = f'{entry_prefix}upload_time'
 
     return [
-        pytest.param({'quantity': program_name}, n_code_names, 200, None, id='fixed-values'),
-        pytest.param({'quantity': program_name, 'metrics': ['uploads']}, n_code_names, 200, None, id='metrics'),
-        pytest.param({'quantity': program_name, 'metrics': ['does not exist']}, -1, 422, None, id='bad-metric'),
-        pytest.param({'quantity': entity_id, 'size': 1000}, total, 200, None, id='size-to-large'),
-        pytest.param({'quantity': entity_id, 'size': 5}, 5, 200, None, id='size'),
-        pytest.param({'quantity': entity_id, 'size': -1}, -1, 422, None, id='bad-size-1'),
-        pytest.param({'quantity': entity_id, 'size': 0}, -1, 422, None, id='bad-size-2'),
-        pytest.param({'quantity': entity_id}, 10 if total > 10 else total, 200, None, id='size-default'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'order': {'type': 'values'}}, 3, 200, 'test_user', id='order-type'),
-        pytest.param({'quantity': f'{entry_prefix}upload_id', 'order': {'direction': 'asc'}}, 3, 200, 'test_user', id='order-direction'),
-        pytest.param({'quantity': 'does not exist'}, -1, 422, None, id='bad-quantity')
+        pytest.param(
+            {'terms': {'quantity': f'{entry_prefix}upload_id'}},
+            3, 3, 200, 'test_user', id='default'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}
+                }
+            },
+            3, 3, 200, 'test_user', id='order-str'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': upload_time}
+                }
+            },
+            3, 3, 200, 'test_user', id='order-date'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
+                }
+            },
+            3, 3, 200, 'test_user', id='order-int'),
+        pytest.param(
+            {'terms': {'quantity': f'{material_prefix}symmetry.structure_name'}},
+            0, 0, 200, 'test_user', id='no-results'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'page_after_value': 'id_published'}
+                }
+            },
+            3, 1, 200, 'test_user', id='after'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {
+                        'order_by': f'{entry_prefix}uploader.name',
+                        'page_after_value': 'Sheldon Cooper:id_published'
+                    }
+                }
+            },
+            3, 1, 200, 'test_user', id='after-order'),
+        pytest.param(
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
+            3, 3, 200, 'test_user', id='entries'),
+        pytest.param(
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}},
+            3, 3, 200, 'test_user', id='entries-size'),
+        pytest.param(
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}},
+            -1, -1, 422, 'test_user', id='bad-entries'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'entries': {
+                        'size': 10,
+                        'required': {
+                            'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']
+                        }
+                    }
+                }
+            },
+            3, 3, 200, 'test_user', id='entries-include'),
+        pytest.param(
+            {'terms': {'quantity': program_name}},
+            n_code_names, n_code_names, 200, None, id='fixed-values'),
+        pytest.param(
+            {'terms': {'quantity': program_name, 'metrics': ['uploads']}},
+            n_code_names, n_code_names, 200, None, id='metrics'),
+        pytest.param(
+            {'terms': {'quantity': program_name, 'metrics': ['does not exist']}},
+            -1, -1, 422, None, id='bad-metric'),
+        pytest.param(
+            {'terms': {'quantity': entity_id, 'size': 1000}},
+            total, total, 200, None, id='size-to-large'),
+        pytest.param(
+            {'terms': {'quantity': entity_id, 'size': 5}},
+            total, 5, 200, None, id='size'),
+        pytest.param(
+            {'terms': {'quantity': entity_id, 'size': -1}},
+            -1, -1, 422, None, id='bad-size-1'),
+        pytest.param(
+            {'terms': {'quantity': entity_id, 'size': 0}},
+            -1, -1, 422, None, id='bad-size-2'),
+        pytest.param(
+            {'terms': {'quantity': entity_id}},
+            total, 10 if total > 10 else total, 200, None, id='size-default'),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order': 'asc'}
+                }
+            },
+            3, 3, 200, 'test_user', id='order-direction'),
+        pytest.param(
+            {'terms': {'quantity': 'does not exist'}},
+            -1, -1, 422, None, id='bad-quantity'),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time}},
+            1, 1, 200, 'test-user', id='date-histogram'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time, 'metrics': ['uploads']}},
+            1, 1, 200, 'test-user', id='date-histogram-metrics'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time, 'interval': '1s'}},
+            1, 1, 200, 'test-user', id='date-histogram-interval'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': 'upload_id'}},
+            -1, -1, 422, 'test-user', id='date-histogram-no-date'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': 'upload_id', 'interval': '1xy'}},
+            -1, -1, 422, 'test-user', id='date-histogram-bad-interval'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations, 'interval': 1}},
+            1, 1, 200, None, id='histogram'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['uploads']}},
+            1, 1, 200, None, id='histogram-metric'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations}},
+            -1, -1, 422, None, id='histogram-no-interval'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': 'upload_id'}},
+            -1, -1, 422, None, id='histogram-no-number'
+        ),
+        pytest.param(
+            {'min_max': {'quantity': n_calculations}},
+            1, 1, 200, None, id='min-max'
+        ),
+        pytest.param(
+            {'min_max': {'quantity': 'upload_id'}},
+            -1, -1, 422, None, id='min-max-no-number'
+        ),
     ]
 
 
@@ -244,46 +369,6 @@ def assert_metadata_response(response, status_code=None):
     return response_json
 
 
-def assert_statistic(response_json, name, statistic, doc_type: DocumentType, size=-1):
-    assert 'statistics' in response_json
-    assert name in response_json['statistics']
-    statistic_response = response_json['statistics'][name]
-    for key in ['data', 'size', 'order', 'quantity']:
-        assert key in statistic_response
-
-    assert_at_least(statistic, statistic_response)
-
-    default_size = doc_type.quantities[statistic['quantity']].statistics_size
-    assert statistic.get('size', default_size) >= len(statistic_response['data'])
-
-    if size != -1:
-        assert len(statistic_response['data']) == size
-
-    values = list(statistic_response['data'].keys())
-    for index, value in enumerate(values):
-        data = statistic_response['data'][value]
-        assert 'entries' in data
-        for metric in statistic.get('metrics', []):
-            assert metric in data
-
-        if index < len(values) - 1:
-
-            def order_value(value, data):
-                if statistic_response['order']['type'] == 'entries':
-                    return data['entries']
-                else:
-                    return value
-
-            if statistic_response['order']['direction'] == 'asc':
-                assert order_value(value, data) <= order_value(values[index + 1], statistic_response['data'][values[index + 1]])
-            else:
-                assert order_value(value, data) >= order_value(values[index + 1], statistic_response['data'][values[index + 1]])
-
-    if 'order' in statistic:
-        assert statistic_response['order']['type'] == statistic['order'].get('type', 'entries')
-        assert statistic_response['order']['direction'] == statistic['order'].get('direction', 'desc')
-
-
 def assert_required(data, required, default_key: str):
     # We flat out all keys in data and then make sure that the full qualified keys in the
     # data are consistent with the keys given in the required include and exclude.
@@ -323,44 +408,64 @@ def assert_required(data, required, default_key: str):
             assert found_exclude is None, f'{exclude} excluded but found {found_exclude}'
 
 
-def assert_aggregations(response_json, name, agg, total: int, size: int, default_key: str):
+def assert_aggregations(
+        response_json, name, agg,
+        total: int = -1, size: int = -1, default_key: str = None):
     assert 'aggregations' in response_json
     assert name in response_json['aggregations']
-    agg_response = response_json['aggregations'][name]
+    agg_response_obj = response_json['aggregations'][name]
+    assert len(agg_response_obj) == 1
+    agg_type = next(iter(agg_response_obj.keys()))
+    agg_response = agg_response_obj[agg_type]
 
-    for key in ['data', 'pagination', 'quantity']:
+    for key in ['data', 'quantity']:
         assert key in agg_response
 
     assert_at_least(agg, agg_response)
 
-    n_data = len(agg_response['data'])
-    assert agg.get('pagination', {}).get('page_size', 10) >= n_data
-    assert agg_response['pagination']['total'] >= n_data
-    for item in agg_response['data'].values():
-        for key in ['size']:
-            assert key in item
-            assert item['size'] > 0
-    if size >= 0:
-        assert n_data == size
-    if total >= 0:
-        assert agg_response['pagination']['total'] == total
-
-    if 'entries' in agg:
-        agg_data = [item['data'][0] for item in agg_response['data'].values()]
-    else:
-        agg_data = [{agg['quantity']: value} for value in agg_response['data']]
+    data = agg_response['data']
+    n_data = len(data)
 
     if 'pagination' in agg:
-        assert_pagination(agg['pagination'], agg_response['pagination'], agg_data, is_get=False)
+        assert agg_response['pagination']['total'] >= n_data
+        if size >= 0:
+            assert n_data == size
+        if total >= 0:
+            assert agg_response['pagination']['total'] == total
+
+        assert_pagination(agg.get('pagination', {}), agg_response['pagination'], data, is_get=False)
+
+    if agg_type == 'min_max':
+        assert len(data) == 2
+        assert isinstance(data[0], (float, int))
+        assert isinstance(data[1], (float, int))
     else:
-        assert_pagination({}, agg_response['pagination'], agg_data, order_by=agg['quantity'], is_get=False)
+        assert total == -1 or total >= n_data
+        assert size == -1 or size == n_data
+
+        for bucket in data:
+            assert 'value' in bucket
+            if len(agg.get('metrics', [])) > 0:
+                assert 'metrics' in bucket
+            else:
+                assert 'metrics' not in bucket
+            assert 'count' in bucket
+
+            value = bucket['value']
+            if agg_type == 'date_histogram': assert re.match(r'\d{4}\-\d{2}\-\d{2}', value)
+            elif agg_type == 'histogram': assert isinstance(value, (float, int))
+            else: assert isinstance(value, str)
+
+            for metric in agg.get('metrics', []):
+                assert metric in bucket['metrics']
+                assert isinstance(bucket['metrics'][metric], (float, int))
 
     if 'entries' in agg:
-        for item in agg_response['data'].values():
-            assert 'data' in item
-            assert agg['entries'].get(size, 10) >= len(item['data']) > 0
+        for bucket in data:
+            assert 'entries' in bucket
+            assert agg['entries'].get('size', 10) >= len(bucket['entries']) > 0
             if 'required' in agg['entries']:
-                for entry in item['data']:
+                for entry in bucket['entries']:
                     assert_required(entry, agg['entries']['required'], default_key=default_key)
 
 

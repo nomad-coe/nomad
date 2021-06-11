@@ -402,5 +402,5 @@ datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
 results.Simulation.program_name.a_elasticsearch.values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]
-results.Simulation.program_name.a_elasticsearch.statistics_size = len(
+results.Simulation.program_name.a_elasticsearch.default_aggregation_size = len(
     results.Simulation.program_name.a_elasticsearch.values)

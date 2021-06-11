@@ -19,16 +19,15 @@
 import pytest
 from urllib.parse import urlencode
 
-from nomad.metainfo.elasticsearch_extension import material_entry_type, material_type
+from nomad.metainfo.elasticsearch_extension import material_entry_type
 
 from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import (
     assert_pagination, assert_metadata_response, assert_required, assert_aggregations,
-    assert_statistic,
     perform_metadata_test, perform_owner_test, owner_test_parameters,
     post_query_test_parameters, get_query_test_parameters, pagination_test_parameters,
-    aggregation_test_parameters, statistic_test_parameters)
+    aggregation_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -50,32 +49,17 @@ def perform_materials_metadata_test(*args, **kwargs):
 program_name = 'entries.results.method.simulation.program_name'
 
 
-# # TODO is this really the desired behavior
-# def test_entries_statistics_ignore_size(client, data):
-#     statistic = {'quantity': program_name, 'size': 10}
-#     statistics = {'test_statistic': statistic}
-#     response_json = perform_materials_metadata_test(
-#         client, statistics=statistics, status_code=200, http_method='post')
-#     statistic.update(size=n_code_names)
-#     assert_statistic(response_json, 'test_statistic', statistic, size=n_code_names)
-
-
-# def test_entries_all_statistics(client, data):
-#     statistics = {
-#         quantity: {'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]}
-#         for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregateable}
-#     response_json = perform_materials_metadata_test(
-#         client, statistics=statistics, status_code=200, http_method='post')
-#     for name, statistic in statistics.items():
-#         assert_statistic(response_json, name, statistic)
-
-
 @pytest.mark.parametrize(
-    'aggregation, total, size, status_code',
-    aggregation_test_parameters(material_prefix='', entry_prefix='entries.'))
-def test_materials_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
-    headers = test_user_auth
+    'aggregation, total, size, status_code, user',
+    aggregation_test_parameters(
+        entity_id='material_id', material_prefix='', entry_prefix='entries.', total=6))
+def test_materials_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):
+    headers = {}
+    if user == 'test_user':
+        headers = test_user_auth
+
     aggregations = {'test_agg_name': aggregation}
+
     response_json = perform_materials_metadata_test(
         client, headers=headers, owner='visible', aggregations=aggregations,
         pagination=dict(page_size=0),
@@ -84,31 +68,10 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
     if response_json is None:
         return
 
-    assert_aggregations(
-        response_json, 'test_agg_name', aggregation, total=total, size=size, default_key='material_id')
-
-
-@pytest.mark.parametrize(
-    'statistic, size, status_code, user',
-    statistic_test_parameters(entity_id='material_id', entry_prefix='entries.', total=6))
-def test_materials_statistics(client, data, test_user_auth, statistic, size, status_code, user):
-    statistics = {'test_statistic': statistic}
-    headers = {}
-    if user == 'test_user':
-        headers = test_user_auth
-
-    response_json = perform_materials_metadata_test(
-        client, headers=headers, owner='visible', statistics=statistics,
-        pagination=dict(page_size=0), status_code=status_code, http_method='post')
-
-    if response_json is None:
-        return
-
-    if statistic['quantity'].startswith('entries.'):
-        doc_type = material_entry_type
-    else:
-        doc_type = material_type
-    assert_statistic(response_json, 'test_statistic', statistic, size=size, doc_type=doc_type)
+    for aggregation_obj in aggregation.values():
+        assert_aggregations(
+            response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
+            default_key='material_id')
 
 
 @pytest.mark.parametrize('required, status_code', [

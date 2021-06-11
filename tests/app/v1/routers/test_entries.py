@@ -30,10 +30,10 @@ from tests.test_files import example_mainfile_contents, append_raw_files  # pyli
 
 from .common import (
     assert_response, assert_base_metadata_response, assert_metadata_response,
-    assert_statistic, assert_required, assert_aggregations, assert_pagination,
+    assert_required, assert_aggregations, assert_pagination,
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
     perform_owner_test, owner_test_parameters, pagination_test_parameters,
-    aggregation_test_parameters, statistic_test_parameters)
+    aggregation_test_parameters)
 from ..conftest import example_data as data  # pylint: disable=unused-import
 
 '''
@@ -308,59 +308,52 @@ def assert_archive(archive, required=None):
         assert key in archive
 
 
-n_code_names = results.Simulation.program_name.a_elasticsearch.statistics_size
+n_code_names = results.Simulation.program_name.a_elasticsearch.default_aggregation_size
 program_name = 'results.method.simulation.program_name'
 
 
+def test_entries_all_statistics(client, data):
+    aggregations = {
+        quantity: {
+            'terms': {
+                'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]
+            }
+        }
+        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregateable}
+    response_json = perform_entries_metadata_test(
+        client, aggregations=aggregations, status_code=200, http_method='post')
+    for name, agg in aggregations.items():
+        assert_aggregations(response_json, name, agg['terms'])
+
+
 @pytest.mark.parametrize(
-    'statistic, size, status_code, user',
-    statistic_test_parameters(entity_id='entry_id', entry_prefix='', total=23) + [
-        pytest.param({'quantity': 'entry_id', 'value_filter': '_0'}, 9, 200, None, id='filter'),
-        pytest.param({'quantity': 'entry_id', 'value_filter': '.*_0.*'}, -1, 422, None, id='bad-filter')])
-def test_entries_statistics(client, data, test_user_auth, statistic, size, status_code, user):
-    statistics = {'test_statistic': statistic}
+    'aggregation, total, size, status_code, user',
+    aggregation_test_parameters(entity_id='entry_id', material_prefix='results.material.', entry_prefix='', total=23) + [
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': 'upload_id',
+                    'entries': {
+                        'size': 10,
+                        'required': {'exclude': ['files', 'mainfile']}
+                    }
+                }
+            },
+            3, 3, 200, 'test_user', id='entries-exclude'),
+        pytest.param(
+            {'terms': {'quantity': 'entry_id', 'value_filter': '_0'}},
+            9, 9, 200, None, id='filter'),
+        pytest.param(
+            {'terms': {'quantity': 'entry_id', 'value_filter': '.*_0.*'}},
+            -1, -1, 422, None, id='bad-filter')
+    ])
+def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):
     headers = {}
     if user == 'test_user':
         headers = test_user_auth
 
-    response_json = perform_entries_metadata_test(
-        client, headers=headers, owner='visible', statistics=statistics,
-        status_code=status_code, http_method='post')
-
-    if response_json is None:
-        return
-
-    assert_statistic(response_json, 'test_statistic', statistic, size=size, doc_type=entry_type)
-
-
-# TODO is this really the desired behavior
-def test_entries_statistics_ignore_size(client, data):
-    statistic = {'quantity': program_name, 'size': 10}
-    statistics = {'test_statistic': statistic}
-    response_json = perform_entries_metadata_test(
-        client, statistics=statistics, status_code=200, http_method='post')
-    statistic.update(size=n_code_names)
-    assert_statistic(response_json, 'test_statistic', statistic, size=n_code_names, doc_type=entry_type)
-
-
-def test_entries_all_statistics(client, data):
-    statistics = {
-        quantity: {'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]}
-        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregateable}
-    response_json = perform_entries_metadata_test(
-        client, statistics=statistics, status_code=200, http_method='post')
-    for name, statistic in statistics.items():
-        assert_statistic(response_json, name, statistic, doc_type=entry_type)
-
-
-@pytest.mark.parametrize(
-    'aggregation, total, size, status_code',
-    aggregation_test_parameters(material_prefix='results.material.', entry_prefix='') + [
-        pytest.param({'quantity': 'upload_id', 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile']}}}, 3, 3, 200, id='entries-exclude')
-    ])
-def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code):
-    headers = test_user_auth
     aggregations = {'test_agg_name': aggregation}
+
     response_json = perform_entries_metadata_test(
         client, headers=headers, owner='visible', aggregations=aggregations,
         pagination=dict(page_size=0),
@@ -369,7 +362,10 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
     if response_json is None:
         return
 
-    assert_aggregations(response_json, 'test_agg_name', aggregation, total=total, size=size, default_key='entry_id')
+    for aggregation_obj in aggregation.values():
+        assert_aggregations(
+            response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
+            default_key='entry_id')
 
 
 @pytest.mark.parametrize('required, status_code', [
