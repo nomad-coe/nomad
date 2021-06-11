@@ -491,16 +491,16 @@ class Elasticsearch(DefinitionAnnotation):
             A boolean that indicates if this quantity should be indexed or merely be
             part of the elastic document ``_source`` without being indexed for search.
         values:
-            If the quantity is used to aggregate statistics for a fixed set of values,
+            If the quantity is used in aggregations for a fixed set of values,
             use this parameter to preset these values. On aggregation, elasticsearch
             will only return values that exist in the search results. This allows to
-            create 0 statistic values and return consistent statistics. If the underlying
+            create 0 statistic values and return consistent set of values. If the underlying
             quantity is an Enum, the values are determined automatically.
         default_aggregation_size:
             The of values to return by default if this quantity is used in aggregation.
             If no value is given and there are not fixed value, 10 will be used.
         metrics:
-            If the quantity is used as a metric for aggregating statistics, this has to
+            If the quantity is used as a metric for aggregating, this has to
             be used to define a valid elasticsearch metrics aggregations, e.g.
             'sum' or 'cardinality'. It is a dictionary with metric name as key,
             and elasticsearch aggregation name as values.

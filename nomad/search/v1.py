@@ -28,8 +28,10 @@ from nomad.metainfo.elasticsearch_extension import (
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
-    Value, AggregationBase, TermsAggregation, BucketAggregation,
-    TermsAggregationResponse, TermsBucket)
+    Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
+    DateHistogramAggregation, MinMaxAggregation, Bucket,
+    MixMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
+    DateHistogramAggregationResponse, AggregationResponse)
 
 from .common import SearchError, _es_to_entry_dict, _owner_es_query
 
@@ -222,23 +224,20 @@ def _api_to_es_aggregation(
     Creates an ES aggregation based on the API's aggregation model.
     '''
 
+    agg_name = f'agg:{name}'
     quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
     es_aggs = es_search.aggs
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
 
-    # check if quantity and agg type are compatible
+    es_agg = None
     if isinstance(agg, TermsAggregation):
         if not quantity.aggregateable:
             raise QueryValidationError(
-                'the aggregation quantity cannot be terms aggregated',
+                'The aggregation quantity cannot be used in a terms aggregation.',
                 loc=['aggregation', name, 'terms', 'quantity'])
-    else:
-        raise NotImplementedError()
 
-    es_agg = None
-    if isinstance(agg, TermsAggregation):
         if agg.pagination is not None:
             if agg.size is not None:
                 raise QueryValidationError(
@@ -287,7 +286,7 @@ def _api_to_es_aggregation(
                             f'The pager_after_value has not the right format.',
                             loc=['aggregations', name, 'terms', 'pagination', 'page_after_value'])
 
-            es_agg = es_aggs.bucket('agg:%s' % name, 'composite', **composite)
+            es_agg = es_aggs.bucket(agg_name, 'composite', **composite)
 
             # additional cardinality to get total
             es_aggs.metric('agg:%s:total' % name, 'cardinality', field=quantity.search_field)
@@ -307,7 +306,7 @@ def _api_to_es_aggregation(
                 terms_kwargs['include'] = '.*%s.*' % agg.value_filter
 
             terms = A('terms', field=quantity.search_field, size=agg.size, **terms_kwargs)
-            es_agg = es_aggs.bucket('agg:%s' % name, terms)
+            es_agg = es_aggs.bucket(agg_name, terms)
 
         if agg.entries is not None and agg.entries.size > 0:
             kwargs: Dict[str, Any] = {}
@@ -318,6 +317,34 @@ def _api_to_es_aggregation(
                     kwargs.update(_source=dict(excludes=agg.entries.required.exclude))
 
             es_agg.metric('entries', A('top_hits', size=agg.entries.size, **kwargs))
+
+    elif isinstance(agg, DateHistogramAggregation):
+        if not quantity.annotation.mapping['type'] in ['date']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a date histogram aggregation',
+                loc=['aggregations', name, 'histogram', 'quantity'])
+
+        es_agg = es_aggs.bucket(agg_name, A(
+            'date_histogram', field=quantity.search_field, interval=agg.interval,
+            format='yyyy-MM-dd'))
+
+    elif isinstance(agg, HistogramAggregation):
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a histogram aggregation',
+                loc=['aggregations', name, 'histogram', 'quantity'])
+
+        es_agg = es_aggs.bucket(agg_name, A(
+            'histogram', field=quantity.search_field, interval=agg.interval))
+
+    elif isinstance(agg, MinMaxAggregation):
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+            raise QueryValidationError(
+                f'The quantity {quantity} cannot be used in a mix-max aggregation',
+                loc=['aggregations', name, 'min_max', 'quantity'])
+
+        es_aggs.metric(agg_name + ':min', A('min', field=quantity.search_field))
+        es_aggs.metric(agg_name + ':max', A('max', field=quantity.search_field))
 
     else:
         raise NotImplementedError()
@@ -352,22 +379,27 @@ def _es_to_api_aggregation(
             es_aggs = es_response.aggs[f'nested_agg:{name}']
             nested = True
 
-    es_agg = es_aggs['agg:' + name]
+    aggregation_dict = agg.dict(by_alias=True)
+    has_no_pagination = getattr(agg, 'pagination', None) is None
 
-    if isinstance(agg, TermsAggregation):
+    if isinstance(agg, BucketAggregation):
+        es_agg = es_aggs['agg:' + name]
         values = set()
 
-        def get_bucket(es_bucket):
-            if agg.pagination is None:
-                value = es_bucket['key']
-            elif agg.pagination.order_by is None:
+        def get_bucket(es_bucket) -> Bucket:
+            if has_no_pagination:
+                if isinstance(agg, DateHistogramAggregation):
+                    value = es_bucket['key_as_string']
+                else:
+                    value = es_bucket['key']
+            elif agg.pagination.order_by is None:  # type: ignore
                 value = es_bucket.key[name]
             else:
                 value = es_bucket.key[quantity.search_field]
 
             count = es_bucket.doc_count
             metrics = {}
-            for metric in agg.metrics:
+            for metric in agg.metrics:  # type: ignore
                 metrics[metric] = es_bucket['metric:' + metric].value
 
             entries = None
@@ -378,19 +410,21 @@ def _es_to_api_aggregation(
                     entries = [item['_source'] for item in es_bucket.entries.hits.hits]
 
             values.add(value)
-            return TermsBucket(value=value, entries=entries, count=count, metrics=metrics)
+            if len(metrics) == 0:
+                metrics = None
+            return Bucket(value=value, entries=entries, count=count, metrics=metrics)
 
         data = [get_bucket(es_bucket) for es_bucket in es_agg.buckets]
-        aggregation_dict = agg.dict(by_alias=True)
 
-        if agg.pagination is None:
+        if has_no_pagination:
             # fill "empty" values
             if quantity.values is not None:
                 for value in quantity.values:
                     if value not in values:
-                        data.append(TermsBucket(
-                            value=value, count=0,
-                            metrics={metric: 0 for metric in agg.metrics}))
+                        metrics = {metric: 0 for metric in agg.metrics}
+                        if len(metrics) == 0:
+                            metrics = None
+                        data.append(Bucket(value=value, count=0, metrics=metrics))
 
         else:
             total = es_aggs['agg:%s:total' % name]['value']
@@ -410,14 +444,41 @@ def _es_to_api_aggregation(
 
             aggregation_dict['pagination'] = pagination
 
-        return TermsAggregationResponse(data=data, **aggregation_dict)
+        if isinstance(agg, TermsAggregation):
+            return AggregationResponse(
+                terms=TermsAggregationResponse(data=data, **aggregation_dict))
+        elif isinstance(agg, HistogramAggregation):
+            return AggregationResponse(
+                histogram=HistogramAggregationResponse(data=data, **aggregation_dict))
+        elif isinstance(agg, DateHistogramAggregation):
+            return AggregationResponse(
+                date_histogram=DateHistogramAggregationResponse(data=data, **aggregation_dict))
+        else:
+            raise NotImplementedError()
+
+    elif isinstance(agg, MinMaxAggregation):
+        min_value = es_aggs['agg:%s:min' % name]['value']
+        max_value = es_aggs['agg:%s:min' % name]['value']
+
+        return AggregationResponse(
+            min_max=MixMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
+
     else:
         raise NotImplementedError()
 
 
-def _specific_agg(agg: Aggregation) -> Union[TermsAggregation]:
+def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation]:
     if agg.terms is not None:
         return agg.terms
+
+    if agg.histogram is not None:
+        return agg.histogram
+
+    if agg.date_histogram is not None:
+        return agg.date_histogram
+
+    if agg.min_max is not None:
+        return agg.min_max
 
     raise NotImplementedError()
 

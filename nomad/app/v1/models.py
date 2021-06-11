@@ -177,8 +177,8 @@ class WithQuery(BaseModel):
             **and** *Chris Wolverton*.
             ```
             {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
+                "results.material.elements": ["Na", "Cl"],
+                "results.method.simulation.program_name": "VASP",
                 "authors": ["Stefano Curtarolo", "Chris Wolverton"]
             }
             ```
@@ -187,8 +187,8 @@ class WithQuery(BaseModel):
             add a suffix to the quantity `:any`:
             ```
             {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
+                "results.material.elements": ["Na", "Cl"],
+                "results.method.simulation.program_name": "VASP",
                 "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
             }
             ```
@@ -200,16 +200,16 @@ class WithQuery(BaseModel):
                     {
                         "or": [
                             {
-                                "atoms": ["Cl", "Na"]
+                                "results.material.elements": ["Cl", "Na"]
                             },
                             {
-                                "atoms": ["H", "O"]
+                                "results.material.elements": ["H", "O"]
                             }
                         ]
                     },
                     {
                         "not": {
-                            "dft.crystal": "cubic"
+                            "results.material.symmetry.crystal_system": "cubic"
                         }
                     }
                 ]
@@ -225,7 +225,7 @@ class WithQuery(BaseModel):
                     "gt": "2020-01-01",
                     "lt": "2020-08-01"
                 },
-                "dft.workflow.section_geometry_optimization.final_energy_difference": {
+                "results.properties.geometry_optimization.final_energy_difference": {
                     "lte": 1.23e-18
                 }
             }
@@ -236,7 +236,7 @@ class WithQuery(BaseModel):
             {
                 "upload_time:gt": "2020-01-01",
                 "upload_time:lt": "2020-08-01",
-                "dft.workflow.section_geometry_optimization.final_energy_difference:lte" 1.23e-18
+                "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
             }
             ```
 
@@ -245,11 +245,11 @@ class WithQuery(BaseModel):
         '''),  # TODO custom documentation for entry and material API
         example={
             'upload_time:gt': '2020-01-01',
-            'atoms': ['Ti', 'O'],
-            'dft.code_name': 'VASP',
-            'dft.workflow.section_geometry_optimization.final_energy_difference:lte': 1.23e-18,
-            'dft.quantities': 'section_dos',
-            'dft.system:any': ['bulk', '2d']
+            'results.material.elements': ['Ti', 'O'],
+            'results.method.simulation.program_name': 'VASP',
+            'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
+            'results.properties.available_properties': 'section_dos',
+            'results.material.type_structural:any': ['bulk', '2d']
         })
 
     @validator('query')
@@ -742,7 +742,11 @@ class TermsAggregation(BucketAggregation):
 
 
 class HistogramAggregation(BucketAggregation):
-    interval: pydantic.conint(gt=0)  # type: ignore
+    interval: pydantic.confloat(gt=0)  # type: ignore
+
+
+class DateHistogramAggregation(BucketAggregation):
+    interval: str = Field('1M')  # type: ignore
 
 
 class MinMaxAggregation(AggregationBase):
@@ -750,10 +754,110 @@ class MinMaxAggregation(AggregationBase):
 
 
 class Aggregation(BaseModel):
-    terms: Optional[TermsAggregation]
-    histogram: Optional[HistogramAggregation]
-    date_histogram: Optional[HistogramAggregation]
-    min_max: Optional[MinMaxAggregation]
+    terms: Optional[TermsAggregation] = Body(
+        None,
+        description=strip('''
+            A `terms` aggregation allows to get the values of a quantity that occur in
+            the search query result data. For each value, a bucket is created with
+            information about how many entries have the value (or additional metrics).
+            For example to get all entries that use a certain code, you can use:
+            ```json
+            {
+                "aggregations": {
+                    "all_codes": {
+                        "terms": {
+                            "quantity": "results.method.simulation.program_name"
+                        }
+                    }
+                }
+            }
+            ```
+
+            Terms aggregations can also be used to paginate though all values of a certain
+            quantities. Each page will be companied with a `page_after_value` that
+            can be used to retrieve the next value. For example to go through all datasets
+            available in the search query:
+            ```json
+            {
+                "aggregations": {
+                    "all_datasets": {
+                        "terms": {
+                            "quantity": "datasets",
+                            "pagination": {
+                                "page_size": 100
+                            }
+                        }
+                    }
+                }
+            }
+            ```
+        '''))
+
+    histogram: Optional[HistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `histogram` aggregation allows to get the ranges quantity values and
+            how many (or another metrics) entries exhibit values in those ranges:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "histogram": {
+                            "quantity": "properties.n_calculations",
+                            "interval": 10
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity. An interval is
+            mandatory and determines the bucket size.
+        '''))
+
+    date_histogram: Optional[DateHistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `date_histogram` aggregation is like a normal `histogram` but for date valued
+            quantities.:
+
+            ```json
+            {
+                "aggregations": {
+                    "upload_times": {
+                        "histogram": {
+                            "quantity": "upload_time",
+                            "interval": "1M"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a datetime typed quantity. Intervals are strings
+            that determine a time period. The default is one month, `1M`.
+        '''))
+
+    min_max: Optional[MinMaxAggregation] = Body(
+        None,
+        description=strip('''
+            A `min_max` aggregation allows to get the minumum and maximum quantity values:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "min_max": {
+                            "quantity": "results.properties.n_calculations"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity.
+        '''))
 
 
 class WithQueryAndPagination(WithQuery):
@@ -787,58 +891,33 @@ class Metadata(WithQueryAndPagination):
             },
             'all_datasets': {
                 'terms': {
-                    'quantity': 'datasets',
+                    'quantity': 'datasets.name',
                     'pagination': {
-                        'page_size': 100,
-                        'page_after_value': '<the next_pager_after_value from the last request>'
+                        'page_size': 100
                     }
+                }
+            },
+            'system_size': {
+                'min_max': {
+                    'quantity': 'results.properties.structures.structure_conventional.n_sites'
+                }
+            },
+            'upload_times': {
+                'date_histogram': {
+                    'quantity': 'upload_time',
+                    'interval': '1M'
+                }
+            },
+            'calculations_per_entry': {
+                'histogram': {
+                    'quantity': 'results.properties.n_calculations',
+                    'interval': 5
                 }
             }
         },
         description=strip('''
             Defines additional aggregations to return. There are different types of
-            aggregations.
-
-            A `terms` aggregation allows to get the values of a quantity that occur in
-            the search query result data. For each value, a bucket is created with
-            information about how many entries have the value (or additional metrics).
-            For example to get all entries that use a certain code, you can use:
-            ```json
-            {
-                "aggregations": {
-                    "all_codes": {
-                        "terms": {
-                            "quantity": "results.method.simulation.program_name"
-                        }
-                    }
-                }
-            }
-            ```
-
-            Terms aggregations can also be used to paginate though all values of a certain
-            quantities. Each page will be companied with a `page_after_value` that
-            can be used to retrieve the next value. For example to go through all datasets
-            available in the search query:
-            ```json
-            {
-                "aggregations": {
-                    "all_datasets": {
-                        "terms": {
-                            "quantity": "datasets",
-                            "pagination": {
-                                "page_size": 100,
-                                "page_after_value": "<the next_pager_after_value from the last request>"
-                            }
-                        }
-                    }
-                }
-            }
-            ```
-
-            Other aggregation types are `histogram` and `minmax` (comming soon).
-
-            Multiple aggregations can be used by using different user defined names
-            (`all_codes`, `all_datasets`).
+            aggregations: `terms`, `histogram`, `data_histogram`, `min_max`.
         '''))
 
 
@@ -902,35 +981,38 @@ class Bucket(BaseModel):
         None, description=strip('''The amount of entries with this value.'''))
     metrics: Optional[Dict[str, int]]
 
-
-class HistogramBucket(Bucket):
-    value: float
-    start: float
-    end: float
-
-
-class TermsBucket(Bucket):
-    value: str
+    value: Union[float, str]
 
 
 class BucketAggregationResponse(BaseModel):
-    data: List[TermsBucket] = Field(
+    data: List[Bucket] = Field(
         None, description=strip('''
         The aggregation data as a dictionary. The key is a string representation of the values.
         The dictionary values contain the aggregated data depending if `entries` where
         requested.'''))
 
 
-class TermsAggregationResponse(TermsAggregation, BucketAggregationResponse):
+class TermsAggregationResponse(BucketAggregationResponse, TermsAggregation):
     pagination: Optional[PaginationResponse]  # type: ignore
 
 
-class HistogramAggregationResponse(HistogramAggregation, BucketAggregationResponse):
+class HistogramAggregationResponse(BucketAggregationResponse, HistogramAggregation):
+    pass
+
+
+class DateHistogramAggregationResponse(BucketAggregationResponse, DateHistogramAggregation):
     pass
 
 
 class MixMaxAggregationResponse(MinMaxAggregation):
-    data: List[float]
+    data: List[Union[float, None]]
+
+
+class AggregationResponse(Aggregation):
+    terms: Optional[TermsAggregationResponse]
+    histogram: Optional[HistogramAggregationResponse]
+    date_histogram: Optional[DateHistogramAggregationResponse]
+    min_max: Optional[MixMaxAggregationResponse]
 
 
 class CodeResponse(BaseModel):
@@ -941,7 +1023,7 @@ class CodeResponse(BaseModel):
 
 class MetadataResponse(Metadata):
     pagination: PaginationResponse = None  # type: ignore
-    aggregations: Optional[Dict[str, Union[TermsAggregationResponse]]]  # type: ignore
+    aggregations: Optional[Dict[str, AggregationResponse]]  # type: ignore
 
     data: List[Dict[str, Any]] = Field(
         None, description=strip('''

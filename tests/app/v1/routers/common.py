@@ -155,97 +155,160 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
 def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_prefix: str, total: int):
     n_code_names = results.Simulation.program_name.a_elasticsearch.default_aggregation_size
     program_name = f'{entry_prefix}results.method.simulation.program_name'
+    n_calculations = f'{entry_prefix}results.properties.n_calculations'
+    upload_time = f'{entry_prefix}upload_time'
 
     return [
         pytest.param(
-            {'quantity': f'{entry_prefix}upload_id'},
+            {'terms': {'quantity': f'{entry_prefix}upload_id'}},
             3, 3, 200, 'test_user', id='default'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}
+                }
             },
             3, 3, 200, 'test_user', id='order-str'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'pagination': {'order_by': f'{entry_prefix}upload_time'}
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': upload_time}
+                }
             },
             3, 3, 200, 'test_user', id='order-date'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
+                }
             },
             3, 3, 200, 'test_user', id='order-int'),
         pytest.param(
-            {'quantity': f'{material_prefix}symmetry.structure_name'},
+            {'terms': {'quantity': f'{material_prefix}symmetry.structure_name'}},
             0, 0, 200, 'test_user', id='no-results'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'pagination': {'page_after_value': 'id_published'}
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'page_after_value': 'id_published'}
+                }
             },
             3, 1, 200, 'test_user', id='after'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'pagination': {
-                    'order_by': f'{entry_prefix}uploader.name',
-                    'page_after_value': 'Sheldon Cooper:id_published'
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {
+                        'order_by': f'{entry_prefix}uploader.name',
+                        'page_after_value': 'Sheldon Cooper:id_published'
+                    }
                 }
             },
             3, 1, 200, 'test_user', id='after-order'),
         pytest.param(
-            {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}},
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
             3, 3, 200, 'test_user', id='entries'),
         pytest.param(
-            {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}},
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}},
             3, 3, 200, 'test_user', id='entries-size'),
         pytest.param(
-            {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}},
+            {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}},
             -1, -1, 422, 'test_user', id='bad-entries'),
         pytest.param(
             {
-                'quantity': f'{entry_prefix}upload_id',
-                'entries': {
-                    'size': 10,
-                    'required': {
-                        'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'entries': {
+                        'size': 10,
+                        'required': {
+                            'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']
+                        }
                     }
                 }
             },
             3, 3, 200, 'test_user', id='entries-include'),
         pytest.param(
-            {'quantity': program_name},
+            {'terms': {'quantity': program_name}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
         pytest.param(
-            {'quantity': program_name, 'metrics': ['uploads']},
+            {'terms': {'quantity': program_name, 'metrics': ['uploads']}},
             n_code_names, n_code_names, 200, None, id='metrics'),
         pytest.param(
-            {'quantity': program_name, 'metrics': ['does not exist']},
+            {'terms': {'quantity': program_name, 'metrics': ['does not exist']}},
             -1, -1, 422, None, id='bad-metric'),
         pytest.param(
-            {'quantity': entity_id, 'size': 1000},
+            {'terms': {'quantity': entity_id, 'size': 1000}},
             total, total, 200, None, id='size-to-large'),
         pytest.param(
-            {'quantity': entity_id, 'size': 5},
+            {'terms': {'quantity': entity_id, 'size': 5}},
             total, 5, 200, None, id='size'),
         pytest.param(
-            {'quantity': entity_id, 'size': -1},
+            {'terms': {'quantity': entity_id, 'size': -1}},
             -1, -1, 422, None, id='bad-size-1'),
         pytest.param(
-            {'quantity': entity_id, 'size': 0},
+            {'terms': {'quantity': entity_id, 'size': 0}},
             -1, -1, 422, None, id='bad-size-2'),
         pytest.param(
-            {'quantity': entity_id},
+            {'terms': {'quantity': entity_id}},
             total, 10 if total > 10 else total, 200, None, id='size-default'),
         pytest.param(
-            {'quantity': f'{entry_prefix}upload_id', 'pagination': {'order': 'asc'}},
+            {
+                'terms': {
+                    'quantity': f'{entry_prefix}upload_id',
+                    'pagination': {'order': 'asc'}
+                }
+            },
             3, 3, 200, 'test_user', id='order-direction'),
         pytest.param(
-            {'quantity': 'does not exist'},
-            -1, -1, 422, None, id='bad-quantity')
+            {'terms': {'quantity': 'does not exist'}},
+            -1, -1, 422, None, id='bad-quantity'),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time}},
+            1, 1, 200, 'test-user', id='date-histogram'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time, 'metrics': ['uploads']}},
+            1, 1, 200, 'test-user', id='date-histogram-metrics'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': upload_time, 'interval': '1s'}},
+            1, 1, 200, 'test-user', id='date-histogram-interval'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': 'upload_id'}},
+            -1, -1, 422, 'test-user', id='date-histogram-no-date'
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': 'upload_id', 'interval': '1xy'}},
+            -1, -1, 422, 'test-user', id='date-histogram-bad-interval'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations, 'interval': 1}},
+            1, 1, 200, None, id='histogram'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['uploads']}},
+            1, 1, 200, None, id='histogram-metric'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': n_calculations}},
+            -1, -1, 422, None, id='histogram-no-interval'
+        ),
+        pytest.param(
+            {'histogram': {'quantity': 'upload_id'}},
+            -1, -1, 422, None, id='histogram-no-number'
+        ),
+        pytest.param(
+            {'min_max': {'quantity': n_calculations}},
+            1, 1, 200, None, id='min-max'
+        ),
+        pytest.param(
+            {'min_max': {'quantity': 'upload_id'}},
+            -1, -1, 422, None, id='min-max-no-number'
+        ),
     ]
 
 
@@ -350,15 +413,18 @@ def assert_aggregations(
         total: int = -1, size: int = -1, default_key: str = None):
     assert 'aggregations' in response_json
     assert name in response_json['aggregations']
-    agg_response = response_json['aggregations'][name]
+    agg_response_obj = response_json['aggregations'][name]
+    assert len(agg_response_obj) == 1
+    agg_type = next(iter(agg_response_obj.keys()))
+    agg_response = agg_response_obj[agg_type]
 
     for key in ['data', 'quantity']:
         assert key in agg_response
 
     assert_at_least(agg, agg_response)
 
-    buckets = agg_response['data']
-    n_data = len(buckets)
+    data = agg_response['data']
+    n_data = len(data)
 
     if 'pagination' in agg:
         assert agg_response['pagination']['total'] >= n_data
@@ -367,13 +433,35 @@ def assert_aggregations(
         if total >= 0:
             assert agg_response['pagination']['total'] == total
 
-        assert_pagination(agg.get('pagination', {}), agg_response['pagination'], buckets, is_get=False)
+        assert_pagination(agg.get('pagination', {}), agg_response['pagination'], data, is_get=False)
+
+    if agg_type == 'min_max':
+        assert len(data) == 2
+        assert isinstance(data[0], (float, int))
+        assert isinstance(data[1], (float, int))
     else:
         assert total == -1 or total >= n_data
         assert size == -1 or size == n_data
 
+        for bucket in data:
+            assert 'value' in bucket
+            if len(agg.get('metrics', [])) > 0:
+                assert 'metrics' in bucket
+            else:
+                assert 'metrics' not in bucket
+            assert 'count' in bucket
+
+            value = bucket['value']
+            if agg_type == 'date_histogram': assert re.match(r'\d{4}\-\d{2}\-\d{2}', value)
+            elif agg_type == 'histogram': assert isinstance(value, (float, int))
+            else: assert isinstance(value, str)
+
+            for metric in agg.get('metrics', []):
+                assert metric in bucket['metrics']
+                assert isinstance(bucket['metrics'][metric], (float, int))
+
     if 'entries' in agg:
-        for bucket in agg_response['data']:
+        for bucket in data:
             assert 'entries' in bucket
             assert agg['entries'].get('size', 10) >= len(bucket['entries']) > 0
             if 'required' in agg['entries']:

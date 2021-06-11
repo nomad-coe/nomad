@@ -58,7 +58,7 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
     if user == 'test_user':
         headers = test_user_auth
 
-    aggregations = {'test_agg_name': {'terms': aggregation}}
+    aggregations = {'test_agg_name': aggregation}
 
     response_json = perform_materials_metadata_test(
         client, headers=headers, owner='visible', aggregations=aggregations,
@@ -68,9 +68,10 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
     if response_json is None:
         return
 
-    assert_aggregations(
-        response_json, 'test_agg_name', aggregation, total=total, size=size,
-        default_key='material_id')
+    for aggregation_obj in aggregation.values():
+        assert_aggregations(
+            response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
+            default_key='material_id')
 
 
 @pytest.mark.parametrize('required, status_code', [
