@@ -88,12 +88,16 @@ async def get_suggestions(
     search = search.extra(_source='suggest')
 
     try:
-        es_response = search.execute()
+        # For some reason calling the search.extra()-method messes up the type
+        # information for the Search-object. This is why linting is disabled
+        # here.
+        es_response = search.execute()  # pylint: disable=no-member
     except RequestError as e:
         raise SuggestionError(e)
 
     response: Dict[str, List[Suggestion]] = defaultdict(list)
     for quantity, quantity_es in zip(data.quantities, quantities_es):
+        print(es_response.suggest[quantity_es][0].options)
         for option in es_response.suggest[quantity_es][0].options:
             response[quantity].append(Suggestion(value=option.text, weight=option._score))
 

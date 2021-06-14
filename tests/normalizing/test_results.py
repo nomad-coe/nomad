@@ -233,8 +233,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 0
 
     # Unpolarized DOS with gap:
     efermi = 1.5
@@ -243,11 +241,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 1
-    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Polarized DOS
     efermi = 1.5
@@ -256,14 +249,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is True
     assert dos.densities.shape == (2, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 2
-    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
-    assert channel_info[1].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[1].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[1].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Vibrational instead of electronic
     archive = get_template_dos(type="vibrational")
