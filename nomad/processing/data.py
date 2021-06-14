@@ -173,15 +173,6 @@ class Calc(Proc):
             self._upload.worker_hostname = self.worker_hostname
         return self._upload
 
-    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        '''
-        Applies the given user and system metadata to the mongo document, i.e. to
-        `self.metadata`.
-        '''
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
-
     def _initialize_metadata_for_processing(self):
         '''
         Initializes self._entry_metadata and self._parser_results in preparation for processing.
@@ -216,6 +207,65 @@ class Calc(Proc):
         entry_metadata.uploader = self.upload.user_id
         entry_metadata.upload_time = self.upload.upload_time
         entry_metadata.upload_name = self.upload.name
+
+    def _read_metadata_from_file(self, logger):
+        # metadata file name defined in nomad.config nomad_metadata.yaml/json
+        # which can be placed in the directory containing the mainfile or somewhere up
+        # highest priority is directory with mainfile
+        metadata_file = config.metadata_file_name
+        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
+        upload_raw_dir = self.upload_files._raw_dir.os_path
+
+        metadata = {}
+        metadata_part = None
+        # apply the nomad files of the current directory and parent directories
+        while True:
+            metadata_part = self.upload.metadata_file_cached(
+                os.path.join(metadata_dir, metadata_file))
+            for key, val in metadata_part.items():
+                if key in ['entries', 'oasis_datasets']:
+                    continue
+                metadata.setdefault(key, val)
+
+            if metadata_dir == upload_raw_dir:
+                break
+
+            metadata_dir = os.path.dirname(metadata_dir)
+
+        # Top-level nomad file can also contain an entries dict with entry
+        # metadata per mainfile as key. This takes precedence of the other files.
+        entries = metadata_part.get('entries', {})
+        metadata_part = entries.get(self.mainfile, {})
+        for key, val in metadata_part.items():
+            metadata[key] = val
+
+        if len(metadata) > 0:
+            logger.info('Apply user metadata from nomad.yaml/json file')
+
+        for key, val in metadata.items():
+            if key == 'entries':
+                continue
+
+            definition = _editable_metadata.get(key, None)
+            if definition is None and self.upload.from_oasis:
+                definition = _oasis_metadata.get(key, None)
+
+            if key == 'uploader':
+                if datamodel.User.get(self.upload.user_id).is_admin:
+                    definition = datamodel.EntryMetadata.uploader
+
+            if definition is None:
+                logger.warn('Users cannot set metadata', quantity=key)
+                continue
+
+            try:
+                self._entry_metadata.m_set(definition, val)
+                if definition == datamodel.EntryMetadata.calc_id:
+                    self.calc_id = val
+            except Exception as e:
+                logger.error(
+                    'Could not apply user metadata from nomad.yaml/json file',
+                    quantitiy=definition.name, exc_info=e)
 
     def full_entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
         '''
@@ -260,6 +310,15 @@ class Calc(Proc):
         entry_metadata.m_update_from_dict(self.metadata)  # Apply any values stored in self.metadata
 
         return entry_metadata
+
+    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
+        '''
+        Applies the given user and system metadata to the mongo document, i.e. to
+        `self.metadata`.
+        '''
+        self.metadata = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
 
     @property
     def upload_files(self) -> StagingUploadFiles:
@@ -346,25 +405,8 @@ class Calc(Proc):
                         self.parser = parser.name  # Parser changed or renamed
 
         # 2. Either parse the entry, or preserve it as it is.
-        if not should_parse:
-            # Keep published entry as it is
-            try:
-                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                with upload_files.read_archive(self.calc_id) as archive:
-                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
-
-            except Exception as e:
-                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
-                raise
-
-            # mock the steps of actual processing
-            self._continue_with('parsing')
-            self._continue_with('normalizing')
-            self._continue_with('archiving')
-            self._complete()
-            return
-        else:
-            # Parse (or reparse) it
+        if should_parse:
+            # 2a. Parse (or reparse) it
             try:
                 self._initialize_metadata_for_processing()
 
@@ -384,6 +426,22 @@ class Calc(Proc):
                         self._parser_results.m_resource.unload()
                 except Exception as e:
                     logger.error('could not unload processing results', exc_info=e)
+        else:
+            # 2b. Keep published entry as it is
+            try:
+                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                with upload_files.read_archive(self.calc_id) as archive:
+                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
+
+            except Exception as e:
+                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
+                raise
+
+            # mock the steps of actual processing
+            self._continue_with('parsing')
+            self._continue_with('normalizing')
+            self._continue_with('archiving')
+            self._complete()
         return
 
     def on_fail(self):
@@ -563,65 +621,6 @@ class Calc(Proc):
                     logger.info('normalizer completed successfull', **context)
                 except Exception as e:
                     self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
-
-    def _read_metadata_from_file(self, logger):
-        # metadata file name defined in nomad.config nomad_metadata.yaml/json
-        # which can be placed in the directory containing the mainfile or somewhere up
-        # highest priority is directory with mainfile
-        metadata_file = config.metadata_file_name
-        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
-        upload_raw_dir = self.upload_files._raw_dir.os_path
-
-        metadata = {}
-        metadata_part = None
-        # apply the nomad files of the current directory and parent directories
-        while True:
-            metadata_part = self.upload.metadata_file_cached(
-                os.path.join(metadata_dir, metadata_file))
-            for key, val in metadata_part.items():
-                if key in ['entries', 'oasis_datasets']:
-                    continue
-                metadata.setdefault(key, val)
-
-            if metadata_dir == upload_raw_dir:
-                break
-
-            metadata_dir = os.path.dirname(metadata_dir)
-
-        # Top-level nomad file can also contain an entries dict with entry
-        # metadata per mainfile as key. This takes precedence of the other files.
-        entries = metadata_part.get('entries', {})
-        metadata_part = entries.get(self.mainfile, {})
-        for key, val in metadata_part.items():
-            metadata[key] = val
-
-        if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file')
-
-        for key, val in metadata.items():
-            if key == 'entries':
-                continue
-
-            definition = _editable_metadata.get(key, None)
-            if definition is None and self.upload.from_oasis:
-                definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
-
-            if definition is None:
-                logger.warn('Users cannot set metadata', quantity=key)
-                continue
-
-            try:
-                self._entry_metadata.m_set(definition, val)
-                if definition == datamodel.EntryMetadata.calc_id:
-                    self.calc_id = val
-            except Exception as e:
-                logger.error(
-                    'Could not apply user metadata from nomad.yaml/json file',
-                    quantitiy=definition.name, exc_info=e)
 
     @task
     def archiving(self):
