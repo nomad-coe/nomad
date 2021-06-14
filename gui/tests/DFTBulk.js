@@ -97,7 +97,7 @@ const resultsDftBulk = {
   material: {
     material_id: 'Mock material id',
     material_name: materialName,
-    type_structural: materialType,
+    structural_type: materialType,
     chemical_formula_reduced: 'Si2',
     chemical_formula_hill: 'Si2',
     chemical_formula_anonymous: 'A2',

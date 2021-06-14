@@ -772,7 +772,7 @@ const DFTEntryOverview = ({data}) => {
                   {hasResults
                     ? <>
                       <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap {...quantityProps}/>
-                      <Quantity quantity="results.material.type_structural" label='structural type' noWrap {...quantityProps}/>
+                      <Quantity quantity="results.material.structural_type" label='structural type' noWrap {...quantityProps}/>
                       <Quantity quantity="results.material.material_name" label='material name' noWrap {...quantityProps}/>
                       {data?.results?.material?.symmetry &&
                       <Quantity row>
@@ -805,7 +805,7 @@ const DFTEntryOverview = ({data}) => {
                       />
                       <Quantity
                         quantity="dft.system"
-                        description={searchQuantities['results.material.type_structural']?.description || ''}
+                        description={searchQuantities['results.material.structural_type']?.description || ''}
                         label='structural type'
                         noWrap
                         {...quantityProps}
@@ -861,7 +861,7 @@ const DFTEntryOverview = ({data}) => {
             <Grid item xs={7} style={{marginTop: '-2rem'}}>
               <Structure
                 data={structures}
-                materialType={data?.results?.material?.type_structural || data?.dft?.system}
+                materialType={data?.results?.material?.structural_type || data?.dft?.system}
                 aspectRatio={1.5}
                 data-testid="viewer-material"
               />
