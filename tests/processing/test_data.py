@@ -117,7 +117,7 @@ def assert_processing(upload: Upload, published: bool = False):
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
 
-        entry_metadata = calc.entry_metadata(upload_files)
+        entry_metadata = calc.full_entry_metadata(upload_files)
 
         for path in entry_metadata.files:
             with upload_files.raw_file(path) as f:
@@ -434,7 +434,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
     # assert changed calc metadata (mongo)
-    entry_metadata = first_calc.entry_metadata(published.upload_files)
+    entry_metadata = first_calc.full_entry_metadata(published.upload_files)
     if with_failure not in ['after', 'not-matched']:
         assert entry_metadata.atoms[0] == 'H'
     elif with_failure == 'not-matched':
@@ -692,7 +692,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
-        entry_metadata = calcs[i].entry_metadata(upload.upload_files)
+        entry_metadata = calcs[i].full_entry_metadata(upload.upload_files)
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.with_embargo == with_embargo[i]
         assert entry_metadata.references == references[i]

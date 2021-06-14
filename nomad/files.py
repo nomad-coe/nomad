@@ -79,8 +79,6 @@ else:
 zip_file_extensions = ('.zip',)
 tar_file_extensions = ('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
 
-user_metadata_filename = 'user_metadata.pickle'
-
 
 def always_restricted(path: str):
     '''
