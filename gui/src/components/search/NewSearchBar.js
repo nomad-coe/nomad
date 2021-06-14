@@ -110,6 +110,7 @@ const NewSearchBar = React.memo(({
       return
     }
     const reString = '[^\\s=<>](?:[^=<>]*[^\\s=<>])?'
+    const op = '(?:<|>)=?'
     let valid = false
     let quantityFullname
     let queryValue
@@ -129,7 +130,7 @@ const NewSearchBar = React.memo(({
 
     // Simple LTE/GTE query
     if (!valid) {
-      const ltegte = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*$`))
+      const ltegte = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
       if (ltegte) {
         const a = ltegte[1]
         const op = ltegte[2]
@@ -161,7 +162,7 @@ const NewSearchBar = React.memo(({
 
     // Sandwiched LTE/GTE query
     if (!valid) {
-      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*(<|>=?)\\s*(${reString})\\s*$`))
+      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
       if (ltegteSandwich) {
         const a = ltegteSandwich[1]
         const op1 = ltegteSandwich[2]

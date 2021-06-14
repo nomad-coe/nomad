@@ -145,6 +145,14 @@ def validate_api_query(
             field = quantity.search_field
             return Q('range', **{field: {type(value).__name__.lower(): value.op}})
 
+        elif isinstance(value, api_models.Range):
+            quantity = validate_quantity(name, None, doc_type=doc_type)
+            field = quantity.search_field
+            return Q('range', **{field: value.dict(
+                include={'lt', 'lte', 'gt', 'gte'},
+                exclude_unset=True,
+            )})
+
         elif isinstance(value, (api_models.And, api_models.Or, api_models.Not)):
             return validate_query(value)
 
@@ -506,6 +514,7 @@ def search(
     if isinstance(query, EsQuery):
         es_query = cast(EsQuery, query)
     else:
+        print(query)
         es_query = validate_api_query(
             cast(Query, query), doc_type=doc_type, owner_query=owner_query)
 
@@ -523,6 +532,7 @@ def search(
 
     search = Search(index=index.index_name)
 
+    print(es_query)
     search = search.query(es_query)
     # TODO this depends on doc_type
     if pagination.order_by is None:

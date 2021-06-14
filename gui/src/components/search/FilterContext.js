@@ -282,7 +282,9 @@ const queryState = selector({
     // const filters = get(registeredFilters)
     for (let key of filtersAll) {
       const filter = get(queryFamily(key))
-      query[key] = filter
+      if (filter !== undefined) {
+        query[key] = filter
+      }
     }
     return query
   }
@@ -368,6 +370,7 @@ export function useResults(delay = 400) {
       return newObj
     }
     finalSearch.query = transform(finalSearch.query)
+    console.log(finalSearch)
 
     api.queryEntry(finalSearch)
       .then(data => {

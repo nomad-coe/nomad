@@ -97,7 +97,6 @@ async def get_suggestions(
 
     response: Dict[str, List[Suggestion]] = defaultdict(list)
     for quantity, quantity_es in zip(data.quantities, quantities_es):
-        print(es_response.suggest[quantity_es][0].options)
         for option in es_response.suggest[quantity_es][0].options:
             response[quantity].append(Suggestion(value=option.text, weight=option._score))
 

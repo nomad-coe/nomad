@@ -84,6 +84,25 @@ class Gt(ComparisonOperator):
     op: ComparableValue = Field(None, alias='gt')
 
 
+class Range(BaseModel):
+    """Represents a finite range which can have open or closed ends.
+    """
+    @root_validator
+    def check_range_is_valid(cls, values):  # pylint: disable=no-self-argument
+        lt = values.get('lt')
+        lte = values.get('lte')
+        assert (lt is None and lte is not None) or (lt is not None and lte is None)
+        gt = values.get('gt')
+        gte = values.get('gte')
+        assert (gt is None and gte is not None) or (gt is not None and gte is None)
+        return values
+
+    lt: Optional[ComparableValue] = Field(None)
+    lte: Optional[ComparableValue] = Field(None)
+    gt: Optional[ComparableValue] = Field(None)
+    gte: Optional[ComparableValue] = Field(None)
+
+
 class LogicalOperator(NoneEmptyBaseModel):
     @validator('op', check_fields=False)
     def validate_query(cls, query):  # pylint: disable=no-self-argument
@@ -123,7 +142,7 @@ ops = {
     'any': Any_
 }
 
-QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
+QueryParameterValue = Union[Value, List[Value], Range, Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
 
 Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
 

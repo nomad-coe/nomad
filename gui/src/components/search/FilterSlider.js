@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
@@ -28,7 +28,7 @@ import clsx from 'clsx'
 import FilterLabel from './FilterLabel'
 import { Quantity, Unit } from '../../units'
 import searchQuantities from '../../searchQuantities'
-import { useSetFilter } from './FilterContext'
+import { useSetFilter, useAggregation } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -84,23 +84,22 @@ const FilterText = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const setFilter = useSetFilter(quantity)
-  // const {stats, subscribe, unsubscribe} = useStatistics(quantity)
-  // console.log(stats)
+  const {aggregation, subscribe, unsubscribe} = useAggregation(quantity)
 
-  // Subscribe to stats on mount, unsubscribe on unmounting
-  // useEffect(() => {
-  //   subscribe({quantity: quantity})
-  //   return () => unsubscribe()
-  // // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [quantity])
+  // Subscribe to aggregation on mount, unsubscribe on unmounting
+  useEffect(() => {
+    subscribe({min_max: {quantity: quantity}})
+    return () => unsubscribe()
+  }, [subscribe, unsubscribe, quantity])
 
   // TODO: get the minimum and maximum from aggregations
   const {trueMin, trueMax} = useMemo(() => {
+    console.log(aggregation)
     return {
       trueMin: 1,
       trueMax: 10
     }
-  }, [])
+  }, [aggregation])
   const [trueStart, setTrueStart] = useState(start || trueMin)
   const [trueEnd, setTrueEnd] = useState(end || trueMax)
   const [range, setRange] = useState({gte: trueStart, lte: trueEnd})
