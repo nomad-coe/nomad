@@ -186,13 +186,17 @@ class Api {
   }
 
   /**
-   * Returns a list of suggestions for the given metainfo quantity.
+   * Returns a list of suggestions for the given metainfo quantities.
    *
-   * @param {string} quantity
-   * @returns List of suggested values as dictionaries containing both the
-   * suggestion and its weight. The items are ordered by weight.
+   * @param {string} quantity The quantity names for which suggestions are
+   * returned.
+   * @param {string} input Input used to filter the responses. Must be provided
+   * in order to return suggestions.
+   *
+   * @returns List of suggested values. The items are ordered by how well they
+   * match the input.
    */
-  async suggestions(quantities, input) {
+  async suggestions(quantities, input, query) {
     this.onStartLoading()
     const auth = await this.authHeaders()
     try {
@@ -201,6 +205,41 @@ class Api {
         {
           input: input,
           quantities: quantities
+        },
+        auth
+      )
+      return suggestions.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
+
+  /**
+   * Returns a list of suggestions for the given metainfo quantity. Unlike the
+   * "global" suggestions, this function accepts only a single quantity name and
+   * also accepts a query object that can be used to restrict the suggestions to
+   * a specific search context.
+   *
+   * @param {string} quantity The quantity name for which suggestions are
+   * returned.
+   * @param {string} input Optional input used to select the most relevant results.
+   * @param {object} query Optional query that is used to limit the suggestions to a
+   * certain context.
+   *
+   * @returns List of suggested values. The items are ordered by how well they
+   * match the input.
+   */
+  async suggestions_aggregate(quantity, input, query) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const suggestions = await this.axios.post(
+        `/suggestions/${quantity}`,
+        {
+          input: input,
+          query: query
         },
         auth
       )

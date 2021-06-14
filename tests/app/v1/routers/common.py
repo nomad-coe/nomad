@@ -153,7 +153,7 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
 
 
 def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_prefix: str, total: int):
-    n_code_names = results.Simulation.program_name.a_elasticsearch.default_aggregation_size
+    n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
     program_name = f'{entry_prefix}results.method.simulation.program_name'
     n_calculations = f'{entry_prefix}results.properties.n_calculations'
     upload_time = f'{entry_prefix}upload_time'

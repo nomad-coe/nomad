@@ -20,7 +20,6 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import { useUnits } from '../../units'
 import FilterText from './FilterText'
 
 export const labelSymmetry = 'Symmetry / Prototypes'
@@ -38,56 +37,55 @@ const FilterSymmetry = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const units = useUnits()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.bravais_lattice"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.crystal_system"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.hall_symbol"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.point_group"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.space_group_symbol"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.prototype_aflow_id"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.structure_name"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.symmetry.strukturbericht_designation"
-          units={units}
+          suggest
         />
       </Grid>
     </Grid>

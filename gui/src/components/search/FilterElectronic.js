@@ -52,7 +52,7 @@ const FilterElectronic = React.memo(({
       <Grid item xs={6}>
         <FilterText
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap_type"
-          units={units}
+          suggest
         />
       </Grid>
     </Grid>

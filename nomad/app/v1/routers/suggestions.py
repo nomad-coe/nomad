@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from pydantic import BaseModel, Field
 from fastapi import (
-    APIRouter, Depends, status, Request
+    APIRouter, Depends, status, Request, Path
 )
 from elasticsearch_dsl import Search
 from elasticsearch.exceptions import RequestError
@@ -30,7 +30,8 @@ from nomad.metainfo.elasticsearch_extension import entry_index
 
 from .auth import create_user_dependency
 from ..utils import create_responses
-from ..models import User, HTTPExceptionModel
+from ..models import User, HTTPExceptionModel, Statistic, MetadataRequired
+from .entries import perform_search
 
 
 router = APIRouter()
@@ -41,11 +42,16 @@ class SuggestionError(Exception): pass
 
 class Suggestion(BaseModel):
     value: str = Field(None, description='The returned suggestion.')
-    weight: float = Field(None, description='The suggestion weight.')
+    weight: Optional[float] = Field(None, description='The suggestion weight.')
 
 
-class SuggestionRequest(BaseModel):
+class SuggestionsRequest(BaseModel):
     quantities: List[str] = Field(None, description='List of quantities from which the suggestions are retrieved.')
+    input: str = Field(None, description='The input that is used as a basis for returning a suggestion.')
+
+
+class SuggestionsQuantityRequest(BaseModel):
+    query: Any = Field(None, description='The query that is used to restrict the suggestion context.')
     input: str = Field(None, description='The input that is used as a basis for returning a suggestion.')
 
 
@@ -67,7 +73,7 @@ _bad_quantity_response = status.HTTP_404_NOT_FOUND, {
     response_model_exclude_none=True)
 async def get_suggestions(
         request: Request,
-        data: SuggestionRequest,
+        data: SuggestionsRequest,
         user: User = Depends(create_user_dependency())):
 
     search = Search(index=entry_index.index_name)
@@ -91,4 +97,39 @@ async def get_suggestions(
         for option in es_response.suggest[quantity_es][0].options:
             response[quantity].append(Suggestion(value=option.text, weight=option._score))
 
+    return response
+
+
+@router.post(
+    '/{quantity}',
+    tags=['suggestions_quantity'],
+    summary='''Get a list of suggestions for the given quantity, in the context
+    of the given query. In order to give meaningful suggestions, the targeted
+    quanitity should be of MEnum type.''',
+    response_model=List[Suggestion],
+    responses=create_responses(_bad_quantity_response),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_suggestion_quantity(
+        data: SuggestionsQuantityRequest,
+        request: Request,
+        quantity: str = Path(..., description='Name of the the quantity for which suggestions are retrieved for.'),
+        user: User = Depends(create_user_dependency())):
+
+    # If there is no input based on which to filter the values, we simply
+    # provide a set of options that may not cover all values.
+    if not data.input:
+        statistic = Statistic(quantity=quantity)
+        statistics = {}
+        statistics[quantity] = statistic
+        response_es = perform_search(
+            owner="visible",
+            query=data.query,
+            required=MetadataRequired(include=[]),
+            statistics=statistics,
+            user_id=user.user_id if user is not None else None)
+
+    # TODO: Perform match_phrase_prefix query if an input is given
+
+    response = [Suggestion(value=x) for x in response_es.statistics[quantity].data.keys()]  # pylint: disable=no-member
     return response

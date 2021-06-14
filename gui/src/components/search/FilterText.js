@@ -18,22 +18,21 @@
  */
 import React, { useCallback, useMemo, useState } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { TextField, CircularProgress } from '@material-ui/core'
-import Autocomplete, { createFilterOptions } from '@material-ui/lab/Autocomplete'
-import parse from 'autosuggest-highlight/parse'
-import match from 'autosuggest-highlight/match'
+import {
+  TextField,
+  CircularProgress,
+  Tooltip,
+  IconButton
+} from '@material-ui/core'
+import Autocomplete from '@material-ui/lab/Autocomplete'
+import CloseIcon from '@material-ui/icons/Close'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { Unit } from '../../units'
 import { useApi } from '../apiV1'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-import { useFilterState } from './FilterContext'
-
-const filterOptions = createFilterOptions({
-  stringify: option => option,
-  trim: true
-})
+import { useSetFilter, useQueryValue } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -48,24 +47,28 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(1)
   },
   input: {
-    padding: '16px 12px'
+    // padding: '16px 12px'
   }
 }))
 const FilterText = React.memo(({
   label,
   quantity,
   description,
+  autocomplete,
+  suggest,
   className,
   classes,
   units,
-  set,
   'data-testid': testID
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const hasSuggestions = true
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const [highlighted, setHighlighted] = useState({value: ''})
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState(false)
   const api = useApi()
 
   // Determine the description and units
@@ -80,85 +83,181 @@ const FilterText = React.memo(({
   const title = unitLabel ? `${name} (${unitLabel})` : name
 
   // Attach the filter hook
-  const [filter, setFilter] = useFilterState(quantity, set)
+  const setFilter = useSetFilter(quantity)
+  const query = useQueryValue()
 
-  // Triggered when a value is picked by the user either by clicking a value or
-  // pressing enter.
-  const handleChange = useCallback((event, value, reason) => {
-    value = value?.trim()
-    setFilter(value)
-  }, [setFilter])
+  const filterOptions = useCallback((options, {inputValue}) => {
+    const trimmed = inputValue.trim().toLowerCase()
+    return options.filter(option => {
+      // If suggestionMode = suggestions, the results do not need to be filtered
+      // (especially important because of fuzzy matches)
+      if (autocomplete === 'suggestions') {
+        return true
+      }
+      // Underscore can be replaced by a whitespace
+      const optionClean = option.value.trim().toLowerCase()
+      const matchUnderscore = optionClean.includes(trimmed)
+      const matchNoUnderscore = optionClean.replaceAll('_', ' ').includes(trimmed)
+      return matchUnderscore || matchNoUnderscore
+    })
+  }, [autocomplete])
 
-  // When focus is lost on the element, the current input value is set as the
-  // filter value. Notice that the 'autoSelect' property is not working to
-  // achieve this: it will select the most recently highlighted value even if it
-  // was not clicked.
-  const handleClose = useCallback((event, reason) => {
-    const value = event.target.value
-    if (value) {
-      setFilter(value.trim())
+  // Triggered when a value is submitted by pressing enter or clicking the
+  // search icon.
+  const handleSubmit = useCallback(() => {
+    if (inputValue.trim().length === 0) {
+      return
     }
-  }, [setFilter])
+    let valid = true
+    if (valid) {
+      // Submit to search context on successful validation.
+      setFilter(inputValue)
+      setInputValue('')
+      setOpen(false)
+    } else {
+      setError(`Invalid query`)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue])
+
+  const handleHighlight = useCallback((event, value, reason) => {
+    setHighlighted(value)
+  }, [])
+
+  // Used to retrieve suggestions for this field.
+  const fetchSuggestions = useCallback((input) => {
+    input = input?.trim()
+    if (input?.length > 0) {
+      if (autocomplete === 'suggestions') {
+        setLoading(true)
+        api.suggestions([quantity], input)
+          .then(data => {
+            let res = []
+            const esSuggestions = data[quantity]
+            if (esSuggestions) {
+              res = res.concat(esSuggestions.map(suggestion => ({
+                value: suggestion.value
+              })))
+            }
+            setSuggestions(res)
+            setOpen(true)
+          })
+          .finally(() => setLoading(false))
+      } else if (autocomplete === 'aggregations') {
+      }
+    } else if (suggest) {
+      setLoading(true)
+      api.suggestions_aggregate(quantity, input, query)
+        .then(data => {
+          setSuggestions(data)
+          setOpen(true)
+        })
+        .finally(() => setLoading(false))
+    }
+  }, [api, autocomplete, suggest, query, quantity])
+
+  // When the field is (re)-focused, clear out old suggestions, and fetch new
+  // ones
+  const handleFocus = useCallback(() => {
+    setSuggestions([])
+    fetchSuggestions(inputValue)
+  }, [inputValue, fetchSuggestions])
+
+  // Submit the input value upon the element losing focus. This ensures that any
+  // filters that are typed and not manually submitted (using enter) will still
+  // either raise an error or be applied.
+  const handleBlur = useCallback(() => {
+    handleSubmit()
+  }, [handleSubmit])
+
+  // Handle clear button
+  const handleClose = useCallback(() => {
+    setInputValue('')
+  }, [])
+
+  // When enter is pressed, select currently highlighted value and close menu,
+  // or if menu is not open submit the value.
+  const handleEnter = useCallback((event) => {
+    if (event.key === 'Enter') {
+      if (open && highlighted?.value) {
+        setInputValue(highlighted.value)
+        setOpen(false)
+      } else {
+        handleSubmit()
+      }
+      event.stopPropagation()
+      event.preventDefault()
+    }
+  }, [open, highlighted, handleSubmit])
 
   // Handle typing events. After a debounce time has expired, a list of
   // suggestion will be retrieved if they are available for this metainfo and
   // the input is deemed meaningful.
   const handleInputChange = useCallback((event, value, reason) => {
-    if (!hasSuggestions) {
-      return
+    setError(error => error ? undefined : null)
+    setInputValue(value)
+
+    // Suggestions are only retrieved in user input, not on clearing or
+    // selecting a value
+    if (reason === 'input') {
+      fetchSuggestions(value)
     }
-    value = value?.trim()
-    if (!value || value.length < 2 || reason !== 'input') {
-      setSuggestions([])
-      return
-    }
-    setLoading(true)
-    api.suggestions([quantity], value)
-      .then(data => {
-        setSuggestions(data)
-      })
-      .finally(() => setLoading(false))
-  }, [quantity, api, hasSuggestions])
+  }, [fetchSuggestions])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <FilterLabel label={title} description={desc}/>
     <Autocomplete
+      className={styles.input}
       freeSolo
+      // autoSelect
+      clearOnBlur={false}
+      inputValue={inputValue}
+      value={null}
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
       fullWidth
-      value={filter === undefined ? null : filter}
+      disableClearable
+      classes={{endAdornment: styles.endAdornment}}
       filterOptions={filterOptions}
-      options={suggestions.map(option => option.value)}
+      options={suggestions}
+      onFocus={suggest ? handleFocus : undefined}
+      onBlur={handleBlur}
       onInputChange={handleInputChange}
-      onClose={handleClose}
-      onChange={handleChange}
+      onHighlightChange={handleHighlight}
+      getOptionLabel={option => option.value}
       getOptionSelected={(option, value) => false}
-      renderOption={(option, { inputValue }) => {
-        const matches = match(option, inputValue)
-        const parts = parse(option, matches)
-        return (
-          <div>
-            {parts.map((part, index) => (
-              <span key={index} style={{ fontWeight: part.highlight ? 700 : 400 }}>
-                {part.text}
-              </span>
-            ))}
-          </div>
-        )
-      }}
       renderInput={(params) => (
         <TextField
           {...params}
           className={styles.textField}
           variant="outlined"
+          placeholder=""
+          label={error || undefined}
+          error={!!error}
+          onKeyDown={handleEnter}
+          InputLabelProps={{ shrink: true }}
           InputProps={{
             ...params.InputProps,
-            classes: {input: styles.input},
-            endAdornment: (
-              <React.Fragment>
-                {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                {params.InputProps.endAdornment}
-              </React.Fragment>
-            )
+            classes: {
+              input: styles.input,
+              notchedOutline: styles.notchedOutline
+            },
+            endAdornment: (<>
+              {loading ? <CircularProgress color="inherit" size={20} /> : null}
+              {(inputValue?.length || null) && <>
+                <Tooltip title="Clear">
+                  <IconButton
+                    size="small"
+                    onClick={handleClose}
+                    className={styles.iconButton}
+                    aria-label="clear"
+                  >
+                    <CloseIcon/>
+                  </IconButton>
+                </Tooltip>
+              </>}
+            </>)
           }}
         />
       )}
@@ -173,8 +272,14 @@ FilterText.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
-  'data-testid': PropTypes.string,
-  set: PropTypes.object
+  autocomplete: PropTypes.string, // Determines the autocompletion mode: either 'aggregations', 'suggestions', or 'off'
+  suggest: PropTypes.bool, // Whether values are suggested even without any input
+  'data-testid': PropTypes.string
+}
+
+FilterText.defaultProps = {
+  autocomplete: 'suggestions',
+  suggest: false
 }
 
 export default FilterText

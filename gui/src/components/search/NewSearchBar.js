@@ -32,6 +32,12 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
 import { useFiltersState } from './FilterContext'
+import {
+  quantityFullnames,
+  quantityAbbreviations,
+  opMap,
+  opMapReverse
+} from './Complete'
 import searchQuantities from '../../searchQuantities'
 
 // Decides which options are shown
@@ -70,41 +76,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const quantityAbbreviations = new Map()
-const quantityFullnames = new Map()
-const nonUniques = new Set()
-const quantityNames = Object.keys(searchQuantities).filter(q => q.startsWith('results'))
-const abbreviationList = quantityNames.map(name => name.split('.').pop())
-const abbreviationSet = new Set()
-for (let abbr of abbreviationList) {
-  if (abbreviationSet.has(abbr)) {
-    nonUniques.add(abbr)
-  }
-  abbreviationSet.add(abbr)
-}
-for (let i = 0; i < quantityNames.length; ++i) {
-  const abbr = abbreviationList[i]
-  const name = quantityNames[i]
-  const unique = !nonUniques.has(abbr)
-  if (unique) {
-    quantityAbbreviations.set(name, abbr)
-    quantityFullnames.set(abbr, name)
-  }
-}
-
-const opMap = {
-  '<=': 'lte',
-  '>=': 'gte',
-  '>': 'gt',
-  '<': 'lt'
-}
-const opMapReverse = {
-  '<=': 'gte',
-  '>=': 'lte',
-  '>': 'lt',
-  '<': 'gt'
-}
-
 /**
  * This searchbar component shows a searchbar with autocomplete functionality. The
  * searchbar also includes a status line about the current results. It uses the
@@ -122,7 +93,6 @@ const NewSearchBar = React.memo(({
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  // const [value, setValue] = useState({value: 'moi', category: 'moi'})
   const api = useApi()
   const setFilter = useFiltersState(quantities)[1]
   const quantitySet = useMemo(() => new Set(quantities), [quantities])
@@ -139,7 +109,7 @@ const NewSearchBar = React.memo(({
     if (inputValue.trim().length === 0) {
       return
     }
-    const reString = '\\S(?:.*\\S)?'
+    const reString = '[^\\s=<>](?:[^=<>]*[^\\s=<>])?'
     let valid = false
     let quantityFullname
     let queryValue

@@ -21,7 +21,6 @@ import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
 import FilterText from './FilterText'
-import { useUnits } from '../../units'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
@@ -38,44 +37,43 @@ const FilterDFT = React.memo(({
   className
 }) => {
   const styles = useFiltersElementStyles()
-  const units = useUnits()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.basis_set_type"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.basis_set_name"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.core_electron_treatment"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.van_der_Waals_method"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.relativity_method"
-          units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.method.simulation.dft.smearing_type"
-          units={units}
+          suggest
         />
       </Grid>
     </Grid>

@@ -46,18 +46,21 @@ const FilterMaterial = React.memo(({
         <FilterText
           quantity="results.material.structural_type"
           units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.functional_type"
           units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
         <FilterText
           quantity="results.material.compound_type"
           units={units}
+          suggest
         />
       </Grid>
       <Grid item xs={6}>
