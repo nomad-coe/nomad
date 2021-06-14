@@ -22,7 +22,7 @@ import datetime
 
 from nomad import processing, files
 from nomad.datamodel import EntryMetadata, MongoMetadata, EntryArchive
-from nomad.parsing import Backend
+from nomad.datamodel.metainfo.common_dft import Run, System
 
 from tests.normalizing.conftest import run_normalize
 
@@ -81,22 +81,13 @@ class Upload():
         test_vector = np.array([0, 0, 0])
 
         archive = EntryArchive()
-        backend = Backend('public', entry_archive=archive)
-        backend.openSection('section_run')
-        backend.addValue('program_name', 'test_code')
-        backend.openSection('section_system')
-
-        backend.addArrayValues('atom_labels', np.array(atom_labels))
-        backend.addArrayValues(
-            'atom_positions', np.array([test_vector for i in range(0, len(atom_labels))]))
-        backend.addArrayValues(
-            'lattice_vectors', np.array([test_vector, test_vector, test_vector]))
-        backend.addArrayValues(
-            'configuration_periodic_dimensions',
-            np.array([True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)]))
-
-        backend.closeSection('section_system', 0)
-        backend.closeSection('section_run', 0)
+        run = archive.m_create(Run)
+        run.program_name = 'test_code'
+        system = run.m_create(System)
+        system.atom_labels = atom_labels
+        system.atom_positions = [test_vector for i in range(0, len(atom_labels))]
+        system.lattice_vectors = [test_vector, test_vector, test_vector]
+        system.configuration_periodic_dimensions = [True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)]
 
         run_normalize(archive)
         entry_metadata = archive.section_metadata

@@ -34,6 +34,7 @@ import json
 import logging
 import warnings
 import zipfile
+import os.path
 
 from nomad import config, infrastructure, processing, utils
 from nomad.datamodel import EntryArchive
@@ -43,10 +44,10 @@ from nomad.datamodel import User
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
-from tests.test_files import example_file, empty_file
+from tests.test_files import empty_file, example_file_vasp_with_binary
+from tests.utils import create_template_upload_file
 
 test_log_level = logging.CRITICAL
-example_files = [empty_file, example_file]
 
 elastic_test_calc_index = 'nomad_fairdi_calcs_test'
 elastic_test_material_index = 'nomad_fairdi_materials_test'
@@ -56,6 +57,16 @@ warnings.simplefilter("ignore")
 
 structlogging.ConsoleFormatter.short_format = True
 setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
+
+
+@pytest.fixture(scope='function')
+def tmp():
+    directory = '.volumes/test_tmp'
+    if os.path.exists(directory):
+        shutil.rmtree(directory)
+    os.mkdir(directory)
+    yield directory
+    shutil.rmtree(directory)
 
 
 @pytest.fixture(scope="session")
@@ -514,14 +525,24 @@ def example_mainfile() -> Tuple[str, str]:
     return ('parsers/template', 'tests/data/parsers/template.json')
 
 
-@pytest.fixture(scope='session', params=example_files)
-def example_upload(request) -> str:
-    return request.param
+@pytest.fixture(scope='function', params=['empty_file', 'example_file'])
+def example_upload(request, tmp) -> str:
+    if request.param == 'empty_file':
+        return create_template_upload_file(tmp, mainfiles=[], auxfiles=0)
+
+    return create_template_upload_file(
+        tmp, mainfiles=['tests/data/proc/templates/template.json'])
+
+
+@pytest.fixture(scope='function')
+def non_empty_example_upload(tmp):
+    return create_template_upload_file(
+        tmp, mainfiles=['tests/data/proc/templates/template.json'])
 
 
 @pytest.fixture(scope='session')
-def non_empty_example_upload():
-    return example_file
+def non_empty_example_upload_vasp_with_binary():
+    return example_file_vasp_with_binary
 
 
 @pytest.fixture(scope='session')

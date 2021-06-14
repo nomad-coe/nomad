@@ -2,9 +2,11 @@
 
 Originally, NOMAD Central Repository is a service run at Max-Planck's computing facility in Garching, Germany.
 However, the NOMAD software is Open-Source, and everybody can run it. Any service that
-uses NOMAD software independently is called a *NOMAD OASIS*.
+uses NOMAD software independently is called a *NOMAD OASIS*. A *NOMAD OASIS* does not
+need to be fully isolated. For example, you can publish uploads from your OASIS to the
+central NOMAD installation.
 
-While several use cases require different setups, this documentation
+While different use cases require different setups, this documentation
 describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for
 local research data management, while using NOMAD's central user-management and its users.
 There are several environment in which you can run a NOMAD OASIS: base-metal linux,
@@ -193,6 +195,11 @@ keycloak:
   password: '<your admin user password>'
   oasis: true
 
+meta:
+  release: 'oasis'
+  deployment_id: '<your-host>'
+  maintainer_email: '<oasis admin email>'
+
 mongo:
     db_name: nomad_v0_8
 
@@ -203,9 +210,13 @@ elastic:
 You need to change:
 - Replace `your-host` and admin credentials respectively.
 - `api_base_path` defines the path under with the app is run. It needs to be changed, if you use a different base path.
+- The admin user credentials (id, username, password, email).
 
 A few things to notice:
 - Be secretive about your admin credentials; make sure this file is not publicly readable.
+- We will use your hostname as `deployment_id`. When you publish uploads from your Oasis to the
+central NOMAD, this will be added as upload metadata and allow to see where the upload came
+from.
 
 ### nginx.conf
 

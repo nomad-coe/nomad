@@ -24,7 +24,7 @@ definitions.
 import numpy as np
 
 from nomad import utils
-from nomad.metainfo import Definition, SubSection, Package, Quantity, Section, Reference, MEnum
+from nomad.metainfo import Definition, Package, Reference, MEnum
 
 logger = utils.get_logger(__name__)
 
@@ -120,7 +120,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
         format_aliases=format_aliases)
 
     with open(python_package_path, 'wt') as f:
-        code = env.get_template('package_new.j2').render(pkg=metainfo_pkg)
+        code = env.get_template('package.j2').render(pkg=metainfo_pkg)
         code = '\n'.join([
             line.rstrip() if line.strip() != '' else ''
             for line in code.split('\n')])
@@ -128,51 +128,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
 
 
 if __name__ == '__main__':
-    # Simple use case that merges old common/public defs
-    import json
-
-    from nomad.metainfo import Category
-    from nomad.datamodel.metainfo.public_old import m_package
-    from nomad.datamodel.metainfo.common_old import m_package as common_pkg
-
-    for section in common_pkg.section_definitions:  # pylint: disable=not-an-iterable
-        if section.extends_base_section:
-            base_section = section.base_sections[0]
-            for name, attr in section.section_cls.__dict__.items():
-                if isinstance(attr, Quantity):
-                    base_section.m_add_sub_section(Section.quantities, attr.m_copy(deep=True))
-                elif isinstance(attr, SubSection):
-                    base_section.m_add_sub_section(Section.sub_sections, attr.m_copy(deep=True))
-        else:
-            m_package.m_add_sub_section(Package.section_definitions, section)
-
-    for category in common_pkg.category_definitions:  # pylint: disable=not-an-iterable
-        m_package.m_add_sub_section(Package.category_definitions, category)
-
-    for definition in m_package.section_definitions + m_package.category_definitions:
-        old_name = definition.name
-        new_name = ''.join([item[0].title() + item[1:] for item in old_name.split('_')])
-        if new_name.startswith('Section'):
-            new_name = new_name[7:]
-        if new_name != old_name:
-            definition.aliases = [old_name]
-            definition.name = new_name
-
-    unused_category = m_package.m_create(Category)
-    unused_category.name = 'Unused'
-    unused_category.description = 'This metainfo definition is not used by NOMAD data.'
-
-    with open('local/metainfostats.json', 'rt') as f:
-        stats = json.load(f)
-
-    unused = []
-    for (definition, _, _) in m_package.m_traverse():
-        if isinstance(definition, (SubSection, Quantity)):
-            if definition.name not in stats:
-                unused.append(definition)
-
-    for definition in unused:
-        if unused_category not in definition.categories:
-            definition.categories += [unused_category]
+    # Simple use case that re-generates the common_dft package
+    from nomad.datamodel.metainfo.common_dft import m_package
 
     generate_metainfo_code(m_package, 'nomad/datamodel/metainfo/common_dft.py')

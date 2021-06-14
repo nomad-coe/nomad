@@ -796,7 +796,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if isinstance(attr, Property):
                 attr.name = name
                 if attr.description is not None:
-                    attr.description = inspect.cleandoc(attr.description).strip()
+                    description = inspect.cleandoc(attr.description)
+                    description = description.strip()
+                    description = re.sub(
+                        r'\(https?://[^\)]*\)',
+                        lambda m: re.sub(r'\n', '', m.group(0)),
+                        description)
+                    attr.description = description
                     attr.__doc__ = attr.description
 
                 if isinstance(attr, Quantity):

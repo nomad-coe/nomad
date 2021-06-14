@@ -46,6 +46,11 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.4
+- new "basic" parser to cover codes without proper parser
+- removed old nomad-coe parser dependencies
+- many minor parser fixes and improvements
+
 ### v0.10.3
 - fixes in the VASP parser
 - new turbemole parser

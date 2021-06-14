@@ -301,7 +301,7 @@ export default function DFTEntryOverview({data}) {
           const scc = resolveRef(scc_ref, archive)
           let v_dos = null
           let v_bs = null
-          if (scc) {
+          if (scc && scc.section_k_band && scc.section_dos) {
             v_bs = {
               section_system: scc.single_configuration_calculation_to_system_ref,
               section_method: scc.single_configuration_calculation_to_system_ref,

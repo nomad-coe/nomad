@@ -2,19 +2,19 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference
-)
+    Reference, MEnum)
 from nomad.metainfo.legacy import LegacyDefinition
+from nomad.metainfo.search_extension import Search
 {% for dependency in pkg.dependencies %}
 {{ fromat_package_import(dependency) }}
 {%- endfor %}
 
 m_package = Package(
     name='{{ pkg.name }}',
-    description='{{ pkg.description }}',
-    {% if pkg.a_legacy is defined -%}
+    description='{{ pkg.description }}'
+    {%- if pkg.a_legacy is defined %},
     a_legacy=LegacyDefinition(name='{{pkg.a_legacy.name}}')
-    {% endif -%})
+    {%- endif %})
 {% for category in order_categories(pkg.category_definitions) %}
 
 class {{ category.name }}(MCategory):
@@ -25,12 +25,15 @@ class {{ category.name }}(MCategory):
     {%- endif %}
 
     m_def = Category(
-        {% if category.categories | length > 0 -%}
+        {%- if category.aliases | length > 0 %}
+        aliases=['{{ category.aliases[0] }}'],
+        {%- endif -%}
+        {%- if category.categories | length > 0 %}
         categories=[{{ format_definition_refs(pkg, category.categories) }}],
-        {% endif -%}
-        {% if category.a_legacy is defined -%}
+        {%- endif -%}
+        {%- if category.a_legacy is defined %}
         a_legacy=LegacyDefinition(name='{{category.a_legacy.name}}')
-        {% endif -%})
+        {%- endif %})
 {% endfor -%}
 
 {% for section in pkg.section_definitions %}
@@ -42,11 +45,14 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
     '''
     {% endif %}
     m_def = Section(
+        {%- if section.aliases | length > 0 %}
+        aliases=['{{ section.aliases[0] }}'],
+        {%- endif %}
         validate=False{%- if section.extends_base_section -%},
         extends_base_section=True{%- endif -%},
         {% if section.a_legacy is defined -%}
         a_legacy=LegacyDefinition(name='{{section.a_legacy.name}}')
-        {% endif -%})
+        {%- endif -%})
     {% for quantity in section.quantities %}
     {{ quantity.name }} = Quantity(
         type={{ format_type(pkg, quantity.type) }},
@@ -61,9 +67,12 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
         {%- if quantity.categories | length > 0 -%},
         categories=[{{ format_definition_refs(pkg, quantity.categories) }}]
         {%- endif -%},
-        {% if quantity.a_legacy is defined -%}
+        {%- if quantity.a_search is defined %}
+        a_search=Search(),
+        {%- endif -%}
+        {%- if quantity.a_legacy is defined %}
         a_legacy=LegacyDefinition(name='{{quantity.a_legacy.name}}')
-        {% endif -%})
+        {%- endif -%})
     {% endfor -%}
 
     {%- for sub_section in section.sub_sections %}
@@ -74,11 +83,14 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
         description='''
         {{ format_description(sub_section.description, indent=2) }}
         '''{%- endif -%},
+        {%- if sub_section.categories | length > 0 %}
+        categories=[{{ format_definition_refs(pkg, sub_section.categories) }}],
+        {%- endif %}
         {% if sub_section.a_legacy is defined -%}
         a_legacy=LegacyDefinition(name='{{sub_section.a_legacy.name}}')
-        {% endif -%})
+        {%- endif -%})
     {% endfor -%}
 {%- endfor %}
 
 m_package.__init_metainfo__()
-
+{{- format_aliases(pkg) -}}

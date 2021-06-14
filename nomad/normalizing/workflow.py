@@ -24,16 +24,16 @@ from nomad.datamodel.metainfo.public import Workflow, GeometryOptimization, Phon
     MolecularDynamics, SinglePoint
 
 
-def resolve_energy_difference(energies):
-    delta_energy = None
+def resolve_difference(values):
+    delta_values = None
 
-    energies = [e for e in energies if e is not None]
-    for n in range(-1, -len(energies), -1):
-        delta_energy = abs(energies[n] - energies[n - 1])
-        if delta_energy != 0.0:
+    values = [v for v in values if v is not None]
+    for n in range(-1, -len(values), -1):
+        delta_values = abs(values[n] - values[n - 1])
+        if delta_values != 0.0:
             break
 
-    return delta_energy
+    return delta_values
 
 
 class SinglePointNormalizer(Normalizer):
@@ -60,15 +60,14 @@ class SinglePointNormalizer(Normalizer):
             self.section.number_of_scf_steps = len(scc[-1].section_scf_iteration)
 
         energies = [scf.energy_total_scf_iteration for scf in scc[-1].section_scf_iteration]
-        delta_energy = resolve_energy_difference(energies)
+        delta_energy = resolve_difference(energies)
         if not self.section.final_scf_energy_difference and delta_energy is not None:
             self.section.final_scf_energy_difference = delta_energy
 
         if not self.section.is_converged and delta_energy is not None:
             try:
-                threshold = self.section.section_method[-1].scf_threshold_energy_change
-                if threshold <= delta_energy:
-                    self.section.is_converged = True
+                threshold = self.section_run.section_method[-1].scf_threshold_energy_change
+                self.section.is_converged = bool(delta_energy <= threshold)
             except Exception:
                 pass
 
@@ -154,13 +153,34 @@ class GeometryOptimizationNormalizer(Normalizer):
             scc = self.section_run.section_single_configuration_calculation
             self.section.optimization_steps = len(scc)
 
+        if not self.section.input_energy_difference_tolerance:
+            try:
+                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_energy_change
+                self.section.input_energy_difference_tolerance = tolerance
+            except Exception:
+                pass
+
+        if not self.section.input_force_maximum_tolerance:
+            try:
+                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_threshold_force
+                self.section.input_force_maximum_tolerance = tolerance
+            except Exception:
+                pass
+
+        if not self.section.input_displacement_maximum_tolerance:
+            try:
+                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_geometry_change
+                self.section.input_displacement_maximum_tolerance = tolerance
+            except Exception:
+                pass
+
         if not self.section.final_energy_difference:
             energies = []
             for scc in self.section_run.section_single_configuration_calculation:
-                if scc.energy_total_T0:
-                    energies.append(scc.energy_total_T0)
+                if scc.energy_total:
+                    energies.append(scc.energy_total)
 
-            delta_energy = resolve_energy_difference(energies)
+            delta_energy = resolve_difference(energies)
             if delta_energy is not None:
                 self.section.final_energy_difference = delta_energy
 
@@ -173,6 +193,37 @@ class GeometryOptimizationNormalizer(Normalizer):
                     max_force = np.max(np.linalg.norm(forces, axis=1))
             if max_force is not None:
                 self.section.final_force_maximum = max_force
+
+        if not self.section.final_displacement_maximum:
+            try:
+                system = self.section_run.system
+                displacements = [np.max(np.abs(
+                    system[n].atom_positions - system[n - 1].atom_positions)) for n in range(1, len(system))]
+                self.section.final_displacement_maximum = resolve_difference(displacements)
+            except Exception:
+                pass
+
+        if not self.section.is_converged_geometry:
+            # we can have several criteria for convergence: energy, force, displacement
+            criteria = []
+            try:
+                criteria.append(self.section.final_energy_difference <= self.section.input_energy_difference_tolerance)
+            except Exception:
+                pass
+
+            try:
+                criteria.append(self.section.final_force_maximum <= self.section.input_force_maximum_tolerance)
+            except Exception:
+                pass
+
+            try:
+                criteria.append(self.section.final_displacement_maximum <= self.section.input_displacement_maximum_tolerance)
+            except Exception:
+                pass
+
+            # converged when either criterion is met
+            if criteria:
+                self.section.is_converged_geometry = True in criteria
 
 
 class PhononNormalizer(Normalizer):

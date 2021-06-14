@@ -22,12 +22,11 @@ import zipfile
 import io
 import json
 
-from nomad import files
 from nomad.metainfo.search_extension import search_quantities
 from nomad.app.v1.models import AggregateableQuantity, Metric
 
 from tests.utils import assert_at_least, assert_url_query_args
-from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
+from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import assert_response
 from tests.app.conftest import example_data as data  # pylint: disable=unused-import
@@ -676,16 +675,12 @@ def test_entry_raw_download(client, data, entry_id, files, files_per_entry, stat
             compressed=files.get('compress', False))
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def data_with_compressed_files(data):
-    upload_files = files.UploadFiles.get('id_published')
-    upload_files.add_rawfiles('tests/data/api/mainfile.xz', prefix='test_content/subdir/test_entry_01')
-    upload_files.add_rawfiles('tests/data/api/mainfile.gz', prefix='test_content/subdir/test_entry_01')
-
-    yield
-
-    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.xz').delete()
-    upload_files.raw_file_object('test_content/subdir/test_entry_01/mainfile.gz').delete()
+    append_raw_files(
+        'id_published', 'tests/data/api/mainfile.xz', 'test_content/subdir/test_entry_02/mainfile.xz')
+    append_raw_files(
+        'id_published', 'tests/data/api/mainfile.gz', 'test_content/subdir/test_entry_02/mainfile.gz')
 
 
 @pytest.mark.parametrize('entry_id, path, params, status_code', [
@@ -698,8 +693,8 @@ def data_with_compressed_files(data):
     pytest.param('id_01', 'mainfile.json', {'offset': -1}, 422, id='bad-offset'),
     pytest.param('id_01', 'mainfile.json', {'length': -1}, 422, id='bad-length'),
     pytest.param('id_01', 'mainfile.json', {'decompress': True}, 200, id='decompress-json'),
-    pytest.param('id_01', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz'),
-    pytest.param('id_01', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz'),
+    pytest.param('id_02', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz'),
+    pytest.param('id_02', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz'),
     pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
     pytest.param('id_embargo', 'mainfile.json', {}, 404, id='404-embargo'),
     pytest.param('id_embargo', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo'),

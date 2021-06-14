@@ -267,7 +267,7 @@ class UploadListResource(Resource):
         user = g.user
         from_oasis = oasis_upload_id is not None
         if from_oasis:
-            if not g.user.is_oasis_admin:
+            if not g.user.full_user().is_oasis_admin:
                 abort(401, 'Only an oasis admin can perform an oasis upload.')
             if oasis_uploader_id is None:
                 abort(400, 'You must provide the original uploader for an oasis upload.')
@@ -281,7 +281,7 @@ class UploadListResource(Resource):
 
         uploader_id = request.args.get('uploader_id')
         if uploader_id is not None:
-            if not g.user.is_admin:
+            if not g.user.full_user().is_admin:
                 abort(401, 'Only an admins can upload for other users.')
 
             user = datamodel.User.get(user_id=uploader_id)
@@ -615,10 +615,10 @@ class UploadCommandResource(Resource):
 
         upload_command_form = 'curl "%s" -X PUT -F file=@<local_file>' % upload_url
 
-        upload_command_with_name = 'curl "%s" -X PUT -T <local_file>' % upload_url_with_name
+        upload_command_with_name = 'curl "%s" -T <local_file>' % upload_url_with_name
 
         upload_progress_command = upload_command + ' | xargs echo'
-        upload_tar_command = 'tar -cf - <local_folder> | curl -# -H "%s" -T - | xargs echo' % upload_url
+        upload_tar_command = 'tar -cf - <local_folder> | curl "%s" -T - | xargs echo' % upload_url
 
         return dict(
             upload_url=upload_url,

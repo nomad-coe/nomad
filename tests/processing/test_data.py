@@ -22,6 +22,9 @@ from datetime import datetime
 import os.path
 import re
 import shutil
+import zipfile
+import json
+import yaml
 
 from nomad import utils, infrastructure, config, datamodel
 from nomad.archive import read_partial_archive_from_mongo
@@ -33,6 +36,7 @@ from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
+from tests.utils import create_template_upload_file
 
 
 def test_send_mail(mails, monkeypatch):
@@ -135,14 +139,16 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
 
 
-def test_processing_two_runs(test_user, proc_infra):
-    processed = run_processing(
-        ('test_upload_id', 'tests/data/proc/examples_template_tworuns.zip',), test_user)
+def test_processing_two_runs(test_user, proc_infra, tmp):
+    upload_file = create_template_upload_file(
+        tmp, mainfiles=['tests/data/proc/templates/template_tworuns.json'])
+    processed = run_processing(('test_upload_id', upload_file,), test_user)
     assert_processing(processed)
 
 
-def test_processing_with_large_dir(test_user, proc_infra):
-    upload_path = 'tests/data/proc/examples_large_dir.zip'
+def test_processing_with_large_dir(test_user, proc_infra, tmp):
+    upload_path = create_template_upload_file(
+        tmp, mainfiles=['tests/data/proc/templates/template.json'], auxfiles=150)
     upload_id = upload_path[:-4]
     upload = run_processing((upload_id, upload_path), test_user)
     for calc in upload.calcs:
@@ -314,8 +320,10 @@ def test_publish_from_oasis(oasis_publishable_upload, other_test_user, no_warn):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_processing_with_warning(proc_infra, test_user, with_warn):
-    example_file = 'tests/data/proc/examples_with_warning_template.zip'
+def test_processing_with_warning(proc_infra, test_user, with_warn, tmp):
+
+    example_file = create_template_upload_file(
+        tmp, 'tests/data/proc/templates/with_warning_template.json')
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
 
     upload = run_processing((example_upload_id, example_file), test_user)
@@ -334,7 +342,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
-def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, with_failure):
+def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure):
     if with_failure == 'not-matched':
         monkeypatch.setattr('nomad.config.reprocess_unmatched', False)
 
@@ -369,12 +377,13 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
                 f.write('')
 
     if with_failure == 'after':
-        raw_files = 'tests/data/proc/examples_template_unparsable.zip'
+        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/unparsable/template.json')
     elif with_failure == 'not-matched':
         monkeypatch.setattr('nomad.parsing.artificial.TemplateParser.is_mainfile', lambda *args, **kwargs: False)
-        raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
+        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/different_atoms/template.json')
     else:
-        raw_files = 'tests/data/proc/examples_template_different_atoms.zip'
+        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/different_atoms/template.json')
+
     shutil.copyfile(
         raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
 
@@ -456,6 +465,45 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
         StagingUploadFiles(upload.upload_id)
 
 
+@pytest.mark.parametrize('published', [False, True])
+def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
+    upload: Upload = non_empty_processed
+
+    if published:
+        upload.embargo_length = 0
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+    upload.reset()
+    assert upload.total_calcs == 1, upload.total_calcs
+
+    monkeypatch.setattr('nomad.config.reprocess_match', True)
+    if published:
+        import zipfile
+
+        upload_files = UploadFiles.get(upload.upload_id)
+        zip_path = upload_files._raw_file_object(access='public').os_path
+        with zipfile.ZipFile(zip_path, mode='a') as zf:
+            zf.write('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
+    else:
+        upload_files = UploadFiles.get(upload.upload_id).to_staging_upload_files()
+        upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
+
+    upload.re_process_upload()
+    try:
+        upload.block_until_complete(interval=.01)
+    except Exception:
+        pass
+
+    assert upload.total_calcs == 2
+    for calc in upload.calcs:
+        assert calc.metadata['published'] == published
+        assert not calc.metadata['with_embargo']
+
+
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
 def test_re_pack(published: Upload, monkeypatch, with_failure):
@@ -479,6 +527,9 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
     for calc in Calc.objects(upload_id=upload_id):
         with upload_files.read_archive(calc.calc_id) as archive:
             archive[calc.calc_id].to_dict()
+
+    published.reload()
+    assert published.tasks_status == SUCCESS
 
 
 def mock_failure(cls, task, monkeypatch):
@@ -540,12 +591,14 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
                 assert 'section_run' in calc_archive
 
 
-# TODO timeout
 # consume_ram, segfault, and exit are not testable with the celery test worker
 @pytest.mark.parametrize('failure', ['exception'])
-def test_malicious_parser_task_failure(proc_infra, failure, test_user):
-    example_file = 'tests/data/proc/chaos_%s.zip' % failure
-    example_upload_id = os.path.basename(example_file).replace('.zip', '')
+def test_malicious_parser_task_failure(proc_infra, failure, test_user, tmp):
+    example_file = os.path.join(tmp, 'upload.zip')
+    with zipfile.ZipFile(example_file, mode='w') as zf:
+        with zf.open('chaos.json', 'w') as f:
+            f.write(f'"{failure}"'.encode())
+    example_upload_id = f'chaos_{failure}'
 
     upload = run_processing((example_upload_id, example_file), test_user)
 
@@ -587,9 +640,39 @@ def test_qcms_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
-def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
-    upload = run_processing(
-        ('test_upload', 'tests/data/proc/examples_with_metadata_file.zip'), test_user)
+def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
+    upload_file = os.path.join(tmp, 'upload.zip')
+    with zipfile.ZipFile(upload_file, 'w') as zf:
+        calc_1 = dict(
+            comment='Calculation 1 of 3',
+            coauthors=other_test_user.user_id,
+            references=['http://test'],
+            external_id='external_id_1')
+        with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
+        zf.write('tests/data/proc/templates/template.json', 'examples/calc_1/template.json')
+        calc_2 = dict(
+            comment='Calculation 2 of 3',
+            references=['http://ttest'],
+            with_embargo=False,
+            external_id='external_id_2')
+        with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
+        zf.write('tests/data/proc/templates/template.json', 'examples/calc_2/template.json')
+        zf.write('tests/data/proc/templates/template.json', 'examples/calc_3/template.json')
+        zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
+        metadata = {
+            'with_embargo': True,
+            'entries': {
+                'examples/calc_3/template.json': {
+                    'comment': 'Calculation 3 of 3',
+                    'references': ['http://ttest'],
+                    'with_embargo': False,
+                    'external_id': 'external_id_3'
+                }
+            }
+        }
+        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
+
+    upload = run_processing(('test_upload', upload_file), test_user)
 
     calcs = Calc.objects(upload_id=upload.upload_id)
     calcs = sorted(calcs, key=lambda calc: calc.mainfile)
@@ -619,7 +702,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user):
     ('admin_user', 'other_test_user'),
     ('test_user', 'test_user')
 ])
-def test_read_adminmetadata_from_file(proc_infra, test_user, other_test_user, admin_user, user, uploader):
+def test_read_adminmetadata_from_file(proc_infra, tmp, test_user, other_test_user, admin_user, user, uploader):
     def user_from_name(user_name):
         if user_name == 'test_user':
             return test_user
@@ -631,8 +714,13 @@ def test_read_adminmetadata_from_file(proc_infra, test_user, other_test_user, ad
     user = user_from_name(user)
     uploader = user_from_name(uploader)
 
-    upload = run_processing(
-        ('test_upload', 'tests/data/proc/examples_with_adminmetadata.zip'), user)
+    upload_file = create_template_upload_file(
+        tmp, 'tests/data/proc/templates/template.json')
+    metadata = dict(uploader=other_test_user.user_id)
+    with zipfile.ZipFile(upload_file, 'a') as zf:
+        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
+
+    upload = run_processing(('test_upload', upload_file), user)
 
     calc = Calc.objects(upload_id=upload.upload_id).first()
     assert calc.metadata['uploader'] == uploader.user_id

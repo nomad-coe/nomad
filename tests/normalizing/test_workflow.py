@@ -53,6 +53,7 @@ def test_single_point_workflow(workflow_archive):
     assert sec_workflow.section_single_point.with_eigenvalues
     assert not sec_workflow.section_single_point.with_volumetric_data
     assert not sec_workflow.section_single_point.with_excited_states
+    assert sec_workflow.section_single_point.is_converged
 
 
 def test_geometry_optimization_workflow(workflow_archive):
@@ -67,6 +68,7 @@ def test_geometry_optimization_workflow(workflow_archive):
     assert sec_workflow.section_geometry_optimization.final_energy_difference > 0.0
     assert sec_workflow.section_geometry_optimization.optimization_steps == 3
     assert sec_workflow.section_geometry_optimization.final_force_maximum > 0.0
+    assert sec_workflow.section_geometry_optimization.is_converged_geometry
 
 
 def test_elastic_workflow(workflow_archive):

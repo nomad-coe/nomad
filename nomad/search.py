@@ -1080,7 +1080,8 @@ def search(
     if query is None:
         query = {}
     es_query = _api_to_es_query(query)
-    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+    if owner is not None:
+        es_query &= _owner_es_query(owner=owner, user_id=user_id)
 
     # pagination
     if pagination is None:

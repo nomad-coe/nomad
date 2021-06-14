@@ -37,10 +37,10 @@ panedr==0.2
 parmed==3.0.0
 mdtraj
 mdanalysis
-nomadcore
 nomad_dos_fingerprints
 lxml
 xarray
+phonopy
 
 # [infrastructure]
 optimade==0.14.0

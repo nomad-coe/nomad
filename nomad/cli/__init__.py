@@ -48,8 +48,6 @@ lazy_import.lazy_module('nomad.metainfo')
 lazy_import.lazy_module('nomad.atomutils')
 lazy_import.lazy_module('nomad.processing')
 lazy_import.lazy_module('nomad.client')
-lazy_import.lazy_module('nomadcore')
-lazy_import.lazy_module('nomadcore.simple_parser')
 
 from . import dev, admin, parse, client  # noqa
 from .cli import run_cli, cli  # noqa

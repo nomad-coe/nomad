@@ -175,12 +175,12 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True, api: str = 'api'):
-    base_url = '%s://%s/%s' % (
-        'https' if services.https and ssl else 'http',
-        services.api_host.strip('/'),
-        services.api_base_path.strip('/'))
-
-    return '%s/%s' % (base_url.strip('/'), api)
+    protocol = 'https' if services.https and ssl else 'http'
+    host_and_port = services.api_host.strip('/')
+    if services.api_port not in [80, 443]:
+        host_and_port += ':' + str(services.api_port)
+    base_path = services.api_base_path.strip('/')
+    return f'{protocol}://{host_and_port}/{base_path}/{api}'
 
 
 def gui_url(page: str = None):
@@ -284,7 +284,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.3',
+    version='0.10.4',
     commit=gitinfo.commit,
     release='devel',
     deployment='standard',
@@ -309,6 +309,7 @@ max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
 use_empty_parsers = False
+reprocess_match = False
 reprocess_unmatched = True
 reprocess_rematch = True
 process_reuse_parser = True
