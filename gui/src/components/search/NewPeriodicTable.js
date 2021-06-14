@@ -18,9 +18,14 @@
 import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import periodicTableData from './PeriodicTableData'
-import { makeStyles, Typography, Button, Tooltip, FormControlLabel, Checkbox } from '@material-ui/core'
-import chroma from 'chroma-js'
-import { nomadSecondaryColor } from '../../config.js'
+import {
+  Typography,
+  Button,
+  Tooltip,
+  FormControlLabel,
+  Checkbox
+} from '@material-ui/core'
+import { useTheme, makeStyles } from '@material-ui/core/styles'
 
 const elements = []
 for (var i = 0; i < 10; i++) {
@@ -78,8 +83,7 @@ const useElementStyles = makeStyles(theme => ({
 const Element = React.memo(({
   element,
   selected,
-  count,
-  heatmapScale,
+  disabled,
   onClick
 }) => {
   const styles = useElementStyles()
@@ -87,10 +91,10 @@ const Element = React.memo(({
     root: styles.button,
     containedPrimary: styles.containedPrimary
   }
-  const disabled = count <= 0
+  const theme = useTheme()
 
-  const style = (count > 0) ? {
-    backgroundColor: !selected ? heatmapScale(count).hex() : undefined,
+  const style = (!disabled) ? {
+    backgroundColor: !selected ? theme.palette.secondary.light : undefined,
     borderColor: '#555'
   } : undefined
 
@@ -114,11 +118,10 @@ const Element = React.memo(({
         style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
         {element.number}
       </Typography>
-      {count >= 0
+      {!disabled >= 0
         ? <Typography
           classes={{root: styles.count}} variant="caption"
           style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
-          {count.toLocaleString()}
         </Typography> : ''
       }
     </div>
@@ -129,8 +132,7 @@ Element.propTypes = {
   element: PropTypes.object.isRequired,
   onClick: PropTypes.func,
   selected: PropTypes.bool,
-  count: PropTypes.number.isRequired,
-  heatmapScale: PropTypes.func.isRequired
+  disabled: PropTypes.bool
 }
 
 const useTableStyles = makeStyles(theme => ({
@@ -154,8 +156,7 @@ const useTableStyles = makeStyles(theme => ({
 }))
 
 const NewPeriodicTable = React.memo(({
-  statistics,
-  metric,
+  availableValues,
   values,
   exclusive,
   onExclusiveChanged,
@@ -176,15 +177,6 @@ const NewPeriodicTable = React.memo(({
     onChanged(newValues)
   }, [values, onChanged])
 
-  const unSelectedAggregations = useCallback(() => {
-    return Object.keys(statistics)
-      .filter(key => !values?.has(key))
-      .map(key => statistics[key][metric])
-  }, [statistics, metric, values])
-
-  const max = statistics ? Math.max(...unSelectedAggregations()) || 1 : 1
-  const heatmapScale = chroma.scale([nomadSecondaryColor.veryLight, nomadSecondaryColor.main]).domain([1, max], 10, 'log')
-
   return (
     <div className={styles.root}>
       <table className={styles.table}>
@@ -196,9 +188,7 @@ const NewPeriodicTable = React.memo(({
                   {element
                     ? <Element
                       element={element}
-                      count={statistics ? (statistics[element.symbol] || {})[metric] || 0 : 0}
-                      heatmapScale={heatmapScale}
-                      relativeCount={statistics ? ((statistics[element.symbol] || {})[metric] || 0) / max : 0}
+                      disabled={!availableValues[element.symbol]}
                       onClick={() => onElementClicked(element.symbol)}
                       selected={values?.has(element.symbol)}
                     /> : ''}
@@ -224,8 +214,7 @@ const NewPeriodicTable = React.memo(({
 })
 
 NewPeriodicTable.propTypes = {
-  statistics: PropTypes.object,
-  metric: PropTypes.string.isRequired,
+  availableValues: PropTypes.object,
   values: PropTypes.object,
   onChanged: PropTypes.func.isRequired,
   exclusive: PropTypes.bool,

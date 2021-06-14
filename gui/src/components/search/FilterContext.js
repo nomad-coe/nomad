@@ -110,13 +110,13 @@ export const queryFamily = atomFamily({
   default: undefined
 })
 
-export const statisticsFamily = atomFamily({
-  key: 'statisticsFamily',
+export const aggregationFamily = atomFamily({
+  key: 'aggregationFamily',
   default: undefined
 })
 
-export const statisticsRequestState = atom({
-  key: 'statistics',
+export const aggregationRequestState = atom({
+  key: 'aggregations',
   default: {}
 })
 
@@ -142,26 +142,26 @@ export function useResetFilters() {
  * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
  * @returns currently set filter value.
  */
-export function useStatistics(name) {
-  const setStatsRequest = useSetRecoilState(statisticsRequestState)
-  const statistics = useRecoilValue(statisticsFamily(name))
+export function useAggregation(name) {
+  const setAggregationRequest = useSetRecoilState(aggregationRequestState)
+  const aggregation = useRecoilValue(aggregationFamily(name))
   const subscribe = useCallback(stat => {
-    setStatsRequest(old => {
+    setAggregationRequest(old => {
       const newStat = {...old}
       newStat[name] = stat
       return newStat
     })
-  }, [name, setStatsRequest])
+  }, [name, setAggregationRequest])
   const unsubscribe = useCallback(() => {
-    setStatsRequest(old => {
+    setAggregationRequest(old => {
       const newStat = {...old}
       delete newStat[name]
       return newStat
     })
-  }, [name, setStatsRequest])
+  }, [name, setAggregationRequest])
 
   return {
-    statistics: statistics,
+    aggregation: aggregation,
     subscribe: subscribe,
     unsubscribe: unsubscribe
   }
@@ -272,19 +272,6 @@ export function useLoading() {
   return useRecoilValue(loadingState)
 }
 /**
- * Contains the currently chosen metric for e.g. building histograms.
- */
-export const metricState = atom({
-  key: 'metric',
-  default: 'entries'
-})
-/**
- * Convenience hook for reading the loading state.
- */
-export function useMetric() {
-  return useRecoilValue(metricState)
-}
-/**
  * This selector aggregates all the currently set filters into a single query
  * object used by the API.
  */
@@ -304,21 +291,13 @@ export function useQueryValue() {
   return useRecoilValue(queryState)
 }
 
-// This atom holds the shared statistics that is controllled by
-// adding/modifying/removing filters.
-export const aggregationsState = atom({
-  key: 'aggregations',
-  default: []
-})
-
 /**
  * Hook for returning the current search object.
  *
  * @returns {object} Object containing the search object.
  */
 export function useSearch() {
-  const stats = useRecoilValue(statisticsRequestState)
-  const aggs = useRecoilValue(aggregationsState)
+  const aggs = useRecoilValue(aggregationRequestState)
   const query = useRecoilValue(queryState)
   const result = useMemo(() => {
     return {
@@ -330,10 +309,9 @@ export function useSearch() {
         order: 'desc',
         order_by: 'upload_time'
       },
-      statistics: stats,
       aggregations: aggs
     }
-  }, [query, stats, aggs])
+  }, [query, aggs])
   return result
 }
 
@@ -354,16 +332,16 @@ export function useResults(delay = 400) {
   // We dynamically create a Recoil.js selector that is subscribed to the
   // filters specified in the input. This way only the specified filters will
   // cause a render.
-  const statisticsState = useMemo(() => {
+  const aggregationState = useMemo(() => {
     return selector({
-      key: 'statisticsResult',
+      key: 'aggregationResult',
       set: ({set}, [key, value]) => {
-        set(statisticsFamily(key), value)
+        set(aggregationFamily(key), value)
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const setStats = useSetRecoilState(statisticsState)
+  const setAggregation = useSetRecoilState(aggregationState)
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
@@ -394,14 +372,14 @@ export function useResults(delay = 400) {
     api.queryEntry(finalSearch)
       .then(data => {
         setResults(data)
-        if (data.statistics) {
-          for (const [key, value] of Object.entries(data.statistics)) {
-            setStats([key, value])
+        if (data.aggregations) {
+          for (const [key, value] of Object.entries(data.aggregations)) {
+            setAggregation([key, value])
           }
         }
       })
       .finally(() => setLoading(false))
-  }, [api, setLoading, setStats])
+  }, [api, setLoading, setAggregation])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(_.debounce(apiCall, delay), [])

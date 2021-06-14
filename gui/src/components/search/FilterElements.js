@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,7 +23,7 @@ import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import FilterSlider from './FilterSlider'
-import { useFilterState, useStatistics, useMetric } from './FilterContext'
+import { useFilterState, useAggregation } from './FilterContext'
 
 export const labelElements = 'Elements / Formula'
 
@@ -47,15 +47,22 @@ const FilterElements = React.memo(({
   // eslint-disable-next-line no-unused-vars
   const [exclusive, setExclusive] = useState(false)
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const {statistics, subscribe, unsubscribe} = useStatistics('results.material.elements')
-  const metric = useMetric()
+  const {aggregation, subscribe, unsubscribe} = useAggregation('results.material.elements')
+  const availableValues = useMemo(() => {
+    const elementCountMap = {}
+    if (aggregation?.terms?.data) {
+      for (let value of aggregation.terms.data) {
+        elementCountMap[value.value] = value.count
+      }
+    }
+    return elementCountMap
+  }, [aggregation])
 
-  // Subscribe to stats on mount, unsubscribe on unmounting
+  // Subscribe to aggregation on mount, unsubscribe on unmounting
   useEffect(() => {
-    subscribe({quantity: 'results.material.elements'})
+    subscribe({terms: {quantity: 'results.material.elements'}})
     return () => unsubscribe()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [subscribe, unsubscribe])
 
   const handleExclusiveChanged = () => {
     // const newExclusive = !exclusive
@@ -74,10 +81,9 @@ const FilterElements = React.memo(({
 
   return <div className={clsx(className, styles.root)}>
     <NewPeriodicTable
-      statistics={statistics?.data}
-      metric={metric}
-      exclusive={exclusive}
+      availableValues={availableValues}
       values={filter}
+      exclusive={exclusive}
       onChanged={handleElementsChanged}
       onExclusiveChanged={handleExclusiveChanged}
     />

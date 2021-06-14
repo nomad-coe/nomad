@@ -30,7 +30,7 @@ from nomad.metainfo.elasticsearch_extension import entry_index
 
 from .auth import create_user_dependency
 from ..utils import create_responses
-from ..models import User, HTTPExceptionModel, Statistic, MetadataRequired
+from ..models import User, HTTPExceptionModel, Aggregation, TermsAggregation, MetadataRequired
 from .entries import perform_search
 
 
@@ -119,17 +119,16 @@ async def get_suggestion_quantity(
     # If there is no input based on which to filter the values, we simply
     # provide a set of options that may not cover all values.
     if not data.input:
-        statistic = Statistic(quantity=quantity)
-        statistics = {}
-        statistics[quantity] = statistic
+        aggs = {}
+        aggs[quantity] = Aggregation(terms=TermsAggregation(quantity=quantity, size=100))
         response_es = perform_search(
             owner="visible",
             query=data.query,
             required=MetadataRequired(include=[]),
-            statistics=statistics,
+            aggregations=aggs,
             user_id=user.user_id if user is not None else None)
 
     # TODO: Perform match_phrase_prefix query if an input is given
 
-    response = [Suggestion(value=x) for x in response_es.statistics[quantity].data.keys()]  # pylint: disable=no-member
+    response = [Suggestion(value=x.value) for x in response_es.aggregations[quantity].terms.data]  # pylint: disable=no-member
     return response
