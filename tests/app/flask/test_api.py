@@ -46,7 +46,7 @@ from tests.search import assert_search_upload
 from tests.processing import test_data as test_processing
 from tests.processing.test_data import oasis_publishable_upload  # pylint: disable=unused-import
 from tests.conftest import clear_elastic, clear_raw_files
-from tests.utils import ExampleData
+from tests.utils import create_template_upload_file, ExampleData
 
 from ..conftest import create_auth_headers
 from .test_app import BlueprintClient
@@ -513,13 +513,11 @@ class TestUploads:
     #         content_type='application/json')
     #     assert rv.status_code == 400
 
-    @pytest.mark.parametrize('upload_file, ending', [
-        ('examples_potcar.zip', ''),
-        ('examples_potcar_gz.tgz', '.gz'),
-        ('examples_potcar_xz.tgz', '.xz')])
-    def test_potcar(self, api, proc_infra, test_user_auth, upload_file, ending):
+    @pytest.mark.parametrize('ending', ['', '.gz', '.xz'])
+    def test_potcar(self, api, proc_infra, test_user_auth, tmp, ending):
         # only the owner, shared with people are supposed to download the original potcar file
-        example_file = 'tests/data/proc/%s' % upload_file
+        example_file = create_template_upload_file(
+            tmp, directory='examples_potcar', more_files=f'tests/data/proc/POTCAR{ending}')
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
 
         upload = self.assert_upload(rv.data)
@@ -923,39 +921,18 @@ class TestArchive(UploadFilesBasedTests):
 
 
 class TestMetainfo():
-    @pytest.mark.parametrize('package', ['common', 'vasp'])
-    def test_regular(self, api, package):
-        rv = api.get('/metainfo/%s' % package)
+    @pytest.mark.parametrize('package', [
+        'nomad.datamodel.metainfo.common_dft',
+        'vaspparser.metainfo.vasp'])
+    def test_get_package(self, api, package):
+        rv = api.get(f'/metainfo/{package}')
         assert rv.status_code == 200
-        assert len(rv.get_json()) > 0
-
-    def test_full_name(self, api):
-        rv = api.get('/metainfo/nomad.datamodel.metainfo.common')
-        assert rv.status_code == 200
-
-    def test_extension(self, api):
-        rv = api.get('/metainfo/common.json')
-        assert rv.status_code == 200
-
-        rv = api.get('/metainfo/legacy/common.json')
-        assert rv.status_code == 200
-
-        rv = api.get('/metainfo/legacy/common.nomadmetainfo.json')
-        assert rv.status_code == 200
-
-    @pytest.mark.parametrize('package', ['common', 'vasp'])
-    def test_legacy(self, api, package):
-        rv = api.get('/metainfo/legacy/%s' % package)
-        assert rv.status_code == 200
-        assert len(rv.get_json().get('metaInfos')) > 0
 
     def test_does_not_exist(self, api):
         rv = api.get('/metainfo/doesnotexist')
         assert rv.status_code == 404
-        rv = api.get('/metainfo/legacy/doesnotexist')
-        assert rv.status_code == 404
 
-    def test_all(self, api):
+    def test_get_all(self, api):
         rv = api.get('/metainfo/')
         rv.status_code == 200
         assert len(rv.get_json()) > 0
@@ -1533,17 +1510,6 @@ class TestEditRepo():
             upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
 
         example_data.save()
-
-        # for i, entry in enumerate(entries):
-        #     upload = uploads[entry.pop('upload_id')]
-        #     user = entry.pop('user')
-        #     metadata = dict(uploader=user.user_id, **entry)
-        #     upload.create_test_structure(i + 1, 2, 1, [], 0, metadata=metadata)
-
-        # for upload in uploads.values():
-        #     upload.create_upload_files()
-
-        # search_refresh()
 
     @pytest.fixture(autouse=True)
     def auth(self, test_user_auth):

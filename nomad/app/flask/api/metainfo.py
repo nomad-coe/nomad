@@ -24,9 +24,7 @@ The archive API of the nomad@FAIRDI APIs. This API is about serving processed
 from flask_restplus import abort, Resource
 import importlib
 
-from nomad.metainfo.legacy import python_package_mapping, LegacyMetainfoEnvironment
 from nomad.metainfo import Package
-from nomad.parsing.parsers import parsers
 
 from .api import api
 
@@ -44,10 +42,7 @@ class AllMetainfoResource(Resource):
         '''
         Returns all metainfo packages.
         '''
-        # Ensure all metainfo is loaded
-        for parser in parsers:
-            _ = parser.metainfo_env
-
+        from nomad.parsing.parsers import parsers  # pylint: disable=unused-import
         return {
             key: value.m_to_dict()
             for key, value in Package.registry.items()}
@@ -60,25 +55,16 @@ class MetainfoResource(Resource):
     @api.response(200, 'Metainfo send')
     def get(self, metainfo_package_name):
         '''
-        Get a JSON representation of the NOMAD Metainfo.
-
-        You can get the metainfo for 'common', and parser/code metainfo packages.
-        Parser/code packages constain the necessary definitions that the respective
-        parser/code might use. 'Common' contains all non specific general definitions.
-        Other required packages might also be returned, e.g. a parser might organize its
-        definitions in multiple packages.
+        Get a JSON representation of a NOMAD Metainfo package. The package name is
+        the qualified Python name of the respective module that contains the definitions.
+        Examples are `nomad.datamodel.metainfo.common_dft` or `vaspparser.metainfo`.
+        If the desired package depends on other packages, these will also be contain in
+        the results.
         '''
         package = metainfo_package_name
-        if package.endswith('.json'):
-            package = package[:-5]
 
         try:
-            try:
-                python_module = importlib.import_module(package)
-            except ImportError:
-                python_package_name, _ = python_package_mapping(package)
-                python_module = importlib.import_module(python_package_name)
-
+            python_module = importlib.import_module(package)
             metainfo_package = getattr(python_module, 'm_package')
         except (ImportError, KeyError, FileNotFoundError, AttributeError):
             abort(404, message='Metainfo package %s does not exist.' % package)
@@ -89,29 +75,3 @@ class MetainfoResource(Resource):
             result[dependency.name] = dependency.m_to_dict()
 
         return result
-
-
-@ns.route('/legacy/<string:metainfo_package_name>')
-class LegacyMetainfoResource(Resource):
-    @api.doc('get_legacy_metainfo')
-    @api.response(404, 'Package (e.g. code, parser, converter) does not exist')
-    @api.response(200, 'Metainfo send')
-    def get(self, metainfo_package_name):
-        '''
-        Get a JSON representation of the NOMAD Metainfo in its old legacy JSON format.
-
-        You can get the metainfo for 'common', and parser/code metainfo packages.
-        Parser/code packages constain the necessary definitions that the respective
-        parser/code might use. 'Common' contains all non specific general definitions.
-        Other required packages might also be returned, e.g. a parser might organize its
-        definitions in multiple packages.
-        '''
-        try:
-            metainfo = LegacyMetainfoEnvironment.from_legacy_package_path(metainfo_package_name)
-        except (ImportError, KeyError, FileNotFoundError, AttributeError):
-            abort(404, message='Metainfo package %s does not exist.' % metainfo_package_name)
-
-        if isinstance(metainfo, LegacyMetainfoEnvironment):
-            return metainfo.to_legacy_dict(metainfo.packages)
-        else:
-            abort(404, message='Metainfo package %s is not a legacy package.' % metainfo_package_name)

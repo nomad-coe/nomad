@@ -18,8 +18,7 @@
 
 import sys
 from nomad.metainfo import Environment
-from nomad.metainfo.legacy import LegacyMetainfoEnvironment
 import nomad.datamodel.metainfo.common_dft
 
-m_env = LegacyMetainfoEnvironment()
+m_env = Environment()
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.common_dft'].m_package)  # type: ignore

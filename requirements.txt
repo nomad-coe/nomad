@@ -37,7 +37,6 @@ panedr==0.2
 parmed==3.0.0
 mdtraj
 mdanalysis
-nomadcore
 nomad_dos_fingerprints
 lxml
 xarray

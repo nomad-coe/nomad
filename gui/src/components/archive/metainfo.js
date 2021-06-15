@@ -167,13 +167,17 @@ export function isReference(property) {
 export function path(nameOrDef) {
   let def
   if (typeof nameOrDef === 'string') {
-    def = defsByName[nameOrDef] && defsByName[nameOrDef].find(def => def.m_def !== 'SubSection')
+    def = defsByName[nameOrDef] && defsByName[nameOrDef].find(def => true)
   } else {
     def = nameOrDef
   }
 
   if (!def) {
     return null
+  }
+
+  if (def.m_def === 'SubSection') {
+    def = resolveRef(def.sub_section)
   }
 
   if (def.m_def === 'Category') {

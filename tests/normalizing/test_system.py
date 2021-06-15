@@ -61,13 +61,19 @@ parser_exceptions = {
     'parsers/dl-poly': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/lib-atoms': ['dft.basis_set', 'dft.xc_functional'],
     'parsers/phonopy': ['dft.basis_set', 'dft.xc_functional'],
-    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional'],
+    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional', 'dft.basis_set'],
     'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
     'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/dmol': ['dft.system'],
+    'parsers/elk': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    # TODO why rename parsers?
+    'parser/fleur': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parser/molcas': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
+    'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/band': ['dft.system'],
-    'parsers/qbox': ['dft.xc_functional'],
-    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system']
+    'parsers/qbox': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this

@@ -18,16 +18,17 @@
 
 ''' Methods to help with testing of nomad@FAIRDI.'''
 
+from typing import List, Union, Dict, Any
 import urllib.parse
-from typing import List, Dict, Union, Any
 import json
 from logging import LogRecord
 from datetime import datetime, timedelta
+import zipfile
+import os.path
 
 from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, DFTMetadata, Results
 from nomad.datamodel.metainfo.common_dft import Run, System
-
 from tests.normalizing.conftest import run_normalize
 
 
@@ -382,3 +383,39 @@ class ExampleData:
             entry_archive=archive,
             domain='dft', calc_id='test_calc_id_%d' % id, upload_id='test_upload',
             published=True, processed=True, with_embargo=False, **kwargs)
+
+
+def create_template_upload_file(
+        tmp, mainfiles: Union[str, List[str]] = None, auxfiles: int = 4,
+        directory: str = 'examples_template', name: str = 'examples_template.zip',
+        more_files: Union[str, List[str]] = None):
+
+    '''
+    Creates a temporary upload.zip file based on template.json (for the artificial test
+    parser) that can be used for test processings.
+    '''
+
+    if mainfiles is None:
+        mainfiles = 'tests/data/proc/templates/template.json'
+
+    if isinstance(mainfiles, str):
+        mainfiles = [mainfiles]
+
+    if more_files is None:
+        more_files = []
+
+    if isinstance(more_files, str):
+        more_files = [more_files]
+
+    upload_path = os.path.join(tmp, name)
+    with zipfile.ZipFile(upload_path, 'w') as zf:
+        for i in range(0, auxfiles):
+            with zf.open(f'{directory}/{i}.aux', 'w') as f:
+                f.write(b'content')
+            for mainfile in mainfiles:
+                zf.write(mainfile, f'{directory}/{os.path.basename(mainfile)}')
+
+        for additional_file in more_files:
+            zf.write(additional_file, f'{directory}/{os.path.basename(additional_file)}')
+
+    return upload_path

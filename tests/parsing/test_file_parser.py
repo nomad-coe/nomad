@@ -1,10 +1,12 @@
 import pytest
 import numpy as np
 import pint
+from nomad.units import ureg
 
 from nomad.parsing.file_parser import TextParser, Quantity, ParsePattern,\
-    XMLParser
+    XMLParser, BasicParser
 from nomad.datamodel.metainfo.public import section_system
+from nomad.datamodel import EntryArchive
 
 
 class TestTextParser:
@@ -306,3 +308,30 @@ class TestXMLParser:
         parser.convert = True
         assert (parser.get('structure[1]/crystal[1]/varray[1]/v[1]') == np.array([
             4.00419668, 0.0, 0.0])).all()
+
+
+class TestBasicParser:
+    @pytest.fixture(scope='class')
+    def onetep_parser(self):
+        re_f = r'\-*\d+\.\d+E*\-*\+*\d+'
+        return BasicParser(
+            specifications=dict(
+                name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/',
+                domain='dft', mainfile_contents_re=r'####### #     # ####### ####### ####### ######'),
+            units_mapping=dict(energy=ureg.hartree, length=ureg.bohr),
+            auxilliary_files=r'([\w\-]+\.dat)',
+            program_version=r'Version\s*([\d\.]+)',
+            lattice_vectors=r'\%block lattice_cart\s*([\s\S]+?)\%endblock lattice_cart',
+            atom_labels_atom_positions=rf'\%block positions\_abs\s*(\w+\s+{re_f}\s+{re_f}\s+{re_f}[\s\S]+?)\%endblock positions\_abs',
+            XC_functional=r'xc\_functional\s*\:\s*(\w+)',
+            energy_total=rf'Total energy\s*=\s*({re_f})\s*Eh')
+
+    def test_onetep_parser(self, onetep_parser):
+        archive = EntryArchive()
+        onetep_parser.parse('tests/data/parsers/onetep/fluor/12-difluoroethane.out', archive, None)
+
+        assert archive.section_run[0].program_version == '4.5.3.32'
+        assert len(archive.section_run[0].section_single_configuration_calculation) == 4
+        sec_system = archive.section_run[0].section_system[0]
+        assert sec_system.atom_labels[7] == 'H'
+        assert np.shape(sec_system.atom_positions) == (8, 3)

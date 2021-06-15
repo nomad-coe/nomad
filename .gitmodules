@@ -1,7 +1,3 @@
-[submodule "dependencies/python_common"]
-	path = dependencies/python_common
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/python-common.git
-	branch = nomad-fair
 [submodule "dependencies/parsers/vasp"]
 	path = dependencies/parsers/vasp
 	url = https://github.com/nomad-coe/nomad-parser-vasp.git
@@ -205,3 +201,6 @@
 [submodule "dependencies/parsers/fhi-vibes"]
 	path = dependencies/parsers/fhi-vibes
 	url = https://github.com/nomad-coe/nomad-parser-fhi-vibes.git
+[submodule "dependencies/parsers/lobster"]
+	path = dependencies/parsers/lobster
+	url = https://github.com/ondracka/nomad_parser_lobster.git

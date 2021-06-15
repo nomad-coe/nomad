@@ -25,9 +25,11 @@ import time
 
 from nomad import utils, processing as proc, files
 from nomad.search import v0 as search
+import nomad.search.v1
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
+from nomad.processing.base import SUCCESS
 
 from tests.app.flask.test_app import BlueprintClient
 from tests.app.flask.conftest import (  # pylint: disable=unused-import
@@ -262,6 +264,9 @@ class TestAdminUploads:
             with upload_files.read_archive(calc.calc_id) as archive:
                 assert calc.calc_id in archive
 
+        published.reload()
+        assert published.tasks_status == SUCCESS
+
     def test_chown(self, published, test_user, other_test_user):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -279,19 +284,72 @@ class TestAdminUploads:
         assert upload.user_id == test_user.user_id
         assert calc.metadata['uploader'] == test_user.user_id
 
-    def test_reset(self, non_empty_processed):
+    def test_edit(self, published):
+        upload_id = published.upload_id
+
+        def assert_calcs(publish, with_embargo):
+            calcs = Calc.objects(upload_id=upload_id)
+            for calc in calcs:
+                assert calc.metadata['published'] == publish
+                assert calc.metadata['with_embargo'] == with_embargo
+
+            for calc in nomad.search.v1.search(owner=None, query=dict(upload_id=upload_id)).data:
+                assert calc['published'] == publish
+                assert calc['with_embargo'] == with_embargo
+
+        assert_calcs(True, True)
+
+        def perform_test(publish, with_embargo):
+            if publish:
+                params = ['--publish', 'with-embargo' if with_embargo else 'no-embargo']
+            else:
+                assert not with_embargo
+                params = ['--unpublish']
+
+            result = click.testing.CliRunner().invoke(
+                cli, ['admin', 'uploads', 'edit'] + params, catch_exceptions=False)
+
+            assert result.exit_code == 0
+            assert 'editing' in result.stdout
+            assert_calcs(publish, with_embargo)
+
+        perform_test(False, False)
+        perform_test(True, False)
+        perform_test(True, True)
+
+    @pytest.mark.parametrize('with_calcs,success,failure', [
+        (True, False, False),
+        (False, False, False),
+        (True, True, False),
+        (False, False, True)])
+    def test_reset(self, non_empty_processed, with_calcs, success, failure):
         upload_id = non_empty_processed.upload_id
 
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'reset', '--with-calcs', upload_id], catch_exceptions=False)
+        upload = Upload.objects(upload_id=upload_id).first()
+        calc = Calc.objects(upload_id=upload_id).first()
+        assert upload.tasks_status == proc.SUCCESS
+        assert calc.tasks_status == proc.SUCCESS
+
+        args = ['admin', 'uploads', 'reset']
+        if with_calcs: args.append('--with-calcs')
+        if success: args.append('--success')
+        if failure: args.append('--failure')
+        args.append(upload_id)
+        result = click.testing.CliRunner().invoke(cli, args, catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'reset' in result.stdout
         upload = Upload.objects(upload_id=upload_id).first()
         calc = Calc.objects(upload_id=upload_id).first()
 
-        assert upload.tasks_status == proc.PENDING
-        assert calc.tasks_status == proc.PENDING
+        expected_state = proc.PENDING
+        if success: expected_state = proc.SUCCESS
+        if failure: expected_state = proc.FAILURE
+        assert upload.tasks_status == expected_state
+        if not with_calcs:
+            assert calc.tasks_status == proc.SUCCESS
+        else:
+            assert calc.tasks_status == expected_state
 
 
 @pytest.mark.usefixtures('reset_config')

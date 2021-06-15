@@ -22,7 +22,6 @@ Parser for creating artificial test, brenchmark, and demonstration data.
 
 import json
 import os.path
-import numpy as np
 import random
 from ase.data import chemical_symbols
 import numpy
@@ -31,22 +30,10 @@ import time
 import os
 import signal
 
-from nomad import metainfo
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.common_dft import Run
 
-from .legacy import Backend
 from .parser import Parser, MatchingParser
-
-
-class ArtificalParser(Parser):
-    ''' Base class for artifical parsers based on VASP metainfo. '''
-    def __init__(self):
-        super().__init__()
-        self.backend = None
-
-    def init_backend(self, **kwargs):
-        self.backend = Backend(metainfo='vasp', **kwargs)
 
 
 class EmptyParser(MatchingParser):
@@ -60,7 +47,7 @@ class EmptyParser(MatchingParser):
         run.program_name = self.code_name
 
 
-class TemplateParser(ArtificalParser):
+class TemplateParser(Parser):
     '''
     A parser that generates data based on a template given via the
     mainfile. The template is basically some archive json. Only
@@ -76,59 +63,23 @@ class TemplateParser(ArtificalParser):
             compression: str = None) -> bool:
         return filename.endswith('template.json')
 
-    def transform_value(self, name, value):
-        ''' allow subclasses to modify values '''
-        return value
-
-    def transform_section(self, name, section):
-        ''' allow subclasses to modify sections '''
-        return section
-
-    def add_section(self, section):
-        name = section['_name']
-        index = self.backend.openSection(name)
-
-        for key, value in section.items():
-            if key.startswith('x_') or key.startswith('_'):
-                continue
-
-            if key.startswith('section_'):
-                values = value if isinstance(value, list) else [value]
-                for value in values:
-                    self.add_section(self.transform_section(key, value))
-            else:
-                value = self.transform_value(key, value)
-                if isinstance(value, list):
-                    quantity_def = self.backend.env.resolve_definition(key, metainfo.Quantity)
-                    if quantity_def.is_scalar:
-                        for single_value in value:
-                            self.backend.addValue(key, single_value, index)
-                    else:
-                        self.backend.addArrayValues(key, np.asarray(value), index)
-                else:
-                    self.backend.addValue(key, value, index)
-
-        self.backend.closeSection(name, index)
-
     def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
 
-        self.init_backend(entry_archive=archive)
+        template_json = json.load(open(mainfile, 'r'))
+        loaded_archive = EntryArchive.m_from_dict(template_json)
+        archive.m_add_sub_section(EntryArchive.section_run, loaded_archive.section_run[0])
+        archive.m_add_sub_section(EntryArchive.section_workflow, loaded_archive.section_workflow)
 
         if 'warning' in mainfile:
-            self.backend.pwarn('A test warning.')
+            logger.warn('a test warning.')
 
-        template_json = json.load(open(mainfile, 'r'))
-        self.add_section(template_json['section_run'][0])
-        if 'section_workflow' in template_json:
-            self.add_section(template_json['section_workflow'])
-        self.backend.finishedParsingSession('ParseSuccess', [])
         logger.debug('a test log entry')
 
 
-class ChaosParser(ArtificalParser):
+class ChaosParser(Parser):
     '''
     Parser that emulates typical error situations. Files can contain a json string (or
     object with key `chaos`) with one of the following string values:
@@ -147,8 +98,6 @@ class ChaosParser(ArtificalParser):
         return filename.endswith('chaos.json')
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
-        self.init_backend(entry_archive=archive)
-
         chaos_json = json.load(open(mainfile, 'r'))
         if isinstance(chaos_json, str):
             chaos = chaos_json
@@ -197,22 +146,25 @@ class GenerateRandomParser(TemplateParser):
 
     low_numbers = [1, 1, 2, 2, 2, 2, 2, 3, 3, 4]
 
-    def __init__(self):
-        super(GenerateRandomParser, self).__init__()
-        file_dir = os.path.dirname(os.path.abspath(__file__))
-        relative_template_file = "random_template.json"
-        template_file = os.path.normpath(os.path.join(file_dir, relative_template_file))
-        self.template = json.load(open(template_file, 'r'))
-        self.random = None
-
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
             compression: str = None) -> bool:
         return os.path.basename(filename).startswith('random_')
 
-    def transform_section(self, name, section):
-        ''' allow subclasses to modify sections '''
-        if name == 'section_system':
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+        relative_template_file = "random_template.json"
+        template_file = os.path.normpath(os.path.join(file_dir, relative_template_file))
+
+        super().parse(template_file, archive, logger)
+
+        seed = int(os.path.basename(mainfile).split('_')[1])
+        random.seed(seed)
+        numpy.random.seed(seed)
+
+        run = archive.section_run[0]
+
+        for system in run.section_system:
             atoms = []
             atom_positions = []
             # different atoms
@@ -224,33 +176,11 @@ class GenerateRandomParser(TemplateParser):
                     atoms.append(atom)
                     atom_positions.append([.0, .0, .0])
 
-            section['atom_labels'] = atoms
-            section['atom_positions'] = atom_positions
-            return section
-        else:
-            return section
+            system.atom_labels = atoms
+            system.atom_positions = atom_positions
 
-    def transform_value(self, name, value):
-        if name == 'program_basis_set_type':
-            return random.choice(GenerateRandomParser.basis_set_types)
-        elif name == 'electronic_structure_method':
-            return random.choice(GenerateRandomParser.electronic_structure_methods)
-        elif name == 'XC_functional_name':
-            return random.choice(GenerateRandomParser.XC_functional_names)
-        elif name == 'atom_positions':
-            return [numpy.random.uniform(0e-10, 1e-9, 3) for _ in value]
-        else:
-            return value
+        run.program_basis_set_type = random.choice(GenerateRandomParser.basis_set_types)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
-        # tell tests about received logger
-        if logger is not None:
-            logger.debug('received logger')
-
-        self.init_backend(entry_archive=archive)
-        seed = int(os.path.basename(mainfile).split('_')[1])
-        random.seed(seed)
-        numpy.random.seed(seed)
-        section = self.template['section_run'][0]
-        self.add_section(section)
-        self.backend.finishedParsingSession('ParseSuccess', [])
+        for method in run.section_method:
+            method.electronic_structure_method = random.choice(GenerateRandomParser.electronic_structure_methods)
+            method.XC_functional_name = random.choice(GenerateRandomParser.XC_functional_names)

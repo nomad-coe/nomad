@@ -18,7 +18,6 @@
 
 from typing import Any, Dict
 from nptyping import NDArray
-from collections import Counter
 import ase
 from ase import Atoms
 import numpy as np
@@ -60,8 +59,7 @@ def formula_normalizer(atoms):
     e.g., Tc ->  Tc100, SZn -> S50Zn50, Co2Nb -> Co67Nb33
     '''
     #
-    chem_symb = atoms.get_chemical_symbols()
-    atoms_counter = Counter(chem_symb)  # dictionary
+    atoms_counter = atoms.symbols.formula.count()  # dictionary
     atoms_total = sum(atoms_counter.values())
 
     atoms_normed = []

@@ -67,5 +67,5 @@ class Catalog(Resource):
         es_response = es_search.execute()
 
         mapping = Mapping()
-        mapping.map_catalog(es_response.hits, after, modified_since)
+        mapping.map_catalog(es_response.hits, after, modified_since, slim=False)
         return rdf_respose(mapping.g)

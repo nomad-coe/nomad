@@ -257,28 +257,25 @@ function Markdown(props) {
     // - turn metainfo names into links into the metainfo
     let word = ''
     content = children.replace(/^ +/gm, '').split('').map((c, i) => {
-      if (c === '$') {
-        if (state[state.length - 1] === 'math') {
+      if (c === '`' || c === '$') {
+        if (state.peek === c) {
           state.pop()
         } else {
-          state.push('math')
-        }
-      } else if (c === '`' || c === '(' || c === ')') {
-        if (state[state.length - 1] === 'code') {
-          state.pop()
-        } else {
-          state.push('code')
-        }
-      } else {
-        if (state.peek === 'escape') {
-          state.pop()
+          state.push(c)
         }
       }
 
-      if (!state[state.length - 1] && c.match(/[a-zA-Z0-9_]/)) {
+      if (c === '[') {
+        state.push(c)
+      }
+      if (c === ']' && state.peek === '[') {
+        state.pop()
+      }
+
+      if (c.match(/[a-zA-Z0-9_]/)) {
         word += c
       } else {
-        if (word.match(/_/g)) {
+        if (state.length === 0 && (word.match(/_/g) || word.match(/[a-z]+[A-Z]/g)) && word.match(/^[a-zA-Z0-9_]+$/g) && c !== ']') {
           const path = metainfoPath(word)
           if (path) {
             word = `[\`${word}\`](/metainfo/${metainfoPath(word)})`
