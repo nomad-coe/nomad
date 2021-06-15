@@ -457,33 +457,32 @@ class TestUploads:
 
     def test_post_metadata(
             self, api, proc_infra, admin_user_auth, test_user_auth, test_user,
-            other_test_user, no_warn, example_user_metadata):
+            other_test_user, no_warn):
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
+        metadata = dict(embargo_length=12, with_embargo=True)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
-    def test_post_metadata_forbidden(self, api, proc_infra, test_user_auth, no_warn):
+    @pytest.mark.parametrize('user', ['test_user', 'admin_user'])
+    def test_post_metadata_forbidden(self, api, proc_infra, test_user_auth, test_auth_dict, no_warn, user):
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
         rv = api.post(
             '/uploads/%s' % upload['upload_id'],
-            headers=test_user_auth,
-            data=json.dumps(dict(operation='publish', metadata=dict(_pid='256'))),
+            headers=test_auth_dict[user][0],
+            data=json.dumps(dict(operation='publish', metadata=dict(comment='test'))),
             content_type='application/json')
-        assert rv.status_code == 401
+        assert rv.status_code == 400
 
     def test_post_metadata_and_republish(
             self, api, proc_infra, admin_user_auth, test_user_auth, test_user,
-            other_test_user, no_warn, example_user_metadata):
+            other_test_user, no_warn):
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(**example_user_metadata)
-        metadata['_upload_time'] = datetime.datetime.utcnow().isoformat()
+        metadata = dict(with_embargo=True)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {})
 
