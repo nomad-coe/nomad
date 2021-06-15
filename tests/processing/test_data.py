@@ -37,7 +37,7 @@ from tests.search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
-from tests.utils import create_template_upload_file
+from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
 def test_send_mail(mails, monkeypatch):
@@ -164,7 +164,7 @@ def test_processing_with_large_dir(test_user, proc_infra, tmp):
 
 def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(internal_example_user_metadata)
+    set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -193,7 +193,7 @@ def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, mo
 
 def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
     processed = non_empty_processed
-    processed.compress_and_set_metadata(internal_example_user_metadata)
+    set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 
@@ -216,7 +216,7 @@ def test_publish_failed(
     mock_failure(Calc, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
-    processed.compress_and_set_metadata(internal_example_user_metadata)
+    set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
 

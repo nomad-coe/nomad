@@ -938,6 +938,8 @@ class Upload(Proc):
                     with utils.timer(logger, 'upload staging files deleted'):
                         if embargo_length is not None:
                             self.embargo_length = embargo_length
+                        if self.embargo_length is None:
+                            self.embargo_length = 36  # Default
                         self.upload_files.delete()
                         self.published = True
                         self.publish_time = datetime.utcnow()
@@ -1540,38 +1542,6 @@ class Upload(Proc):
 
     def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
         return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
-        '''
-        Stores the given user metadata in the upload document. This is the metadata
-        adhering to the API model (``UploadMetaData``). Most quantities can be stored
-        for the upload and for each calculation. This method will try to move same values
-        from the calculation to the upload to "compress" the data.
-        '''
-        self.embargo_length = min(metadata.get('embargo_length', 36), 36)
-
-        compressed = {
-            key: value for key, value in metadata.items() if key != 'calculations'}
-        calculations: List[Dict[str, Any]] = []
-        compressed['calculations'] = calculations
-
-        for calc in metadata.get('calculations', []):
-            compressed_calc: Dict[str, Any] = {}
-            calculations.append(compressed_calc)
-            for key, value in calc.items():
-                if key in ['pid', 'mainfile', 'external_id']:
-                    # these quantities are explicitly calc specific and have to stay with
-                    # the calc
-                    compressed_calc[key] = value
-                else:
-                    if key not in compressed:
-                        compressed[key] = value
-                    elif compressed[key].__repr__ != value.__repr__:
-                        compressed_calc[key] = value
-                    else:
-                        compressed[key] = value
-
-        self.metadata = compressed
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

@@ -22,7 +22,8 @@ import os
 import time
 import zipfile
 from typing import List, Dict, Any, Iterable
-from tests.utils import build_url
+from tests.utils import build_url, set_upload_entry_metadata
+
 from tests.test_files import (
     example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
     assert_upload_files)
@@ -1180,7 +1181,7 @@ def test_post_upload_action_process(
         upload_id, publish, user, expected_status_code):
 
     if publish:
-        non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
+        set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
         non_empty_processed.publish_upload()
         try:
             non_empty_processed.block_until_complete(interval=.01)
