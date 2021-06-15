@@ -84,9 +84,15 @@ class Gt(ComparisonOperator):
     op: ComparableValue = Field(None, alias='gt')
 
 
-class Range(BaseModel):
-    """Represents a finite range which can have open or closed ends.
+class RangeNumber(BaseModel):
+    """Represents a finite numeric range which can have open or closed
+    ends.
     """
+    @validator('lte', 'lt', 'gte', 'gt', pre=True)
+    def split_str(cls, v):  # pylint: disable=no-self-argument
+        assert isinstance(v, (float, int))
+        return v
+
     @root_validator
     def check_range_is_valid(cls, values):  # pylint: disable=no-self-argument
         lt = values.get('lt')
@@ -97,10 +103,10 @@ class Range(BaseModel):
         assert (gt is None and gte is not None) or (gt is not None and gte is None)
         return values
 
-    lt: Optional[ComparableValue] = Field(None)
-    lte: Optional[ComparableValue] = Field(None)
-    gt: Optional[ComparableValue] = Field(None)
-    gte: Optional[ComparableValue] = Field(None)
+    lt: Optional[Union[float, int]] = Field(None)
+    lte: Optional[Union[float, int]] = Field(None)
+    gt: Optional[Union[float, int]] = Field(None)
+    gte: Optional[Union[float, int]] = Field(None)
 
 
 class LogicalOperator(NoneEmptyBaseModel):
@@ -142,7 +148,7 @@ ops = {
     'any': Any_
 }
 
-QueryParameterValue = Union[Value, List[Value], Range, Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
+QueryParameterValue = Union[Value, List[Value], RangeNumber, Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
 
 Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
 

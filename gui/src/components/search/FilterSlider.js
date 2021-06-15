@@ -26,9 +26,10 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import FilterLabel from './FilterLabel'
-import { Quantity, Unit } from '../../units'
+import { Quantity, Unit, toUnitSystem } from '../../units'
 import searchQuantities from '../../searchQuantities'
-import { useSetFilter, useAggregation } from './FilterContext'
+import { useFilterState, useAgg } from './FilterContext'
+import { formatNumber } from '../../utils'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -42,7 +43,7 @@ const useStyles = makeStyles(theme => ({
   textField: {
     marginTop: theme.spacing(1),
     flexGrow: 1,
-    width: '6rem'
+    width: '7rem'
   },
   spacer: {
     flex: '2 1 100%',
@@ -72,10 +73,6 @@ const FilterText = React.memo(({
   quantity,
   description,
   step,
-  min,
-  max,
-  start,
-  end,
   className,
   classes,
   units,
@@ -83,26 +80,14 @@ const FilterText = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const setFilter = useSetFilter(quantity)
-  const {aggregation, subscribe, unsubscribe} = useAggregation(quantity)
-
-  // Subscribe to aggregation on mount, unsubscribe on unmounting
-  useEffect(() => {
-    subscribe({min_max: {quantity: quantity}})
-    return () => unsubscribe()
-  }, [subscribe, unsubscribe, quantity])
-
-  // TODO: get the minimum and maximum from aggregations
-  const {trueMin, trueMax} = useMemo(() => {
-    console.log(aggregation)
-    return {
-      trueMin: 1,
-      trueMax: 10
-    }
-  }, [aggregation])
-  const [trueStart, setTrueStart] = useState(start || trueMin)
-  const [trueEnd, setTrueEnd] = useState(end || trueMax)
-  const [range, setRange] = useState({gte: trueStart, lte: trueEnd})
+  const [filter, setFilter] = useFilterState(quantity)
+  const agg = useAgg(quantity, 'min_max', true)
+  const [minGlobal, maxGlobal] = agg || [undefined, undefined]
+  const [minText, setMinText] = useState()
+  const [maxText, setMaxText] = useState()
+  const [minLocal, setMinLocal] = useState()
+  const [maxLocal, setMaxLocal] = useState()
+  const [range, setRange] = useState()
   const [error, setError] = useState()
 
   // Determine the description and units
@@ -115,6 +100,23 @@ const FilterText = React.memo(({
   }, [unitSI, units])
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
+  const stepConverted = step instanceof Quantity ? step.toSystem(units) : step
+  let minConverted = (minGlobal !== undefined && unitSI) ? toUnitSystem(minGlobal, unitSI, units) : minGlobal
+  let maxConverted = (maxGlobal !== undefined && unitSI) ? toUnitSystem(maxGlobal, unitSI, units) : maxGlobal
+
+  // If not manual range has been specified, the range is automatically adjusted
+  // according to global min/max of the field
+  useEffect(() => {
+    if (maxConverted !== undefined && minConverted !== undefined) {
+      setMaxLocal(maxConverted)
+      setMinLocal(minConverted)
+      if (filter === undefined) {
+        setMaxText(formatNumber(maxConverted))
+        setMinText(formatNumber(minConverted))
+        setRange({gte: minConverted, lte: maxConverted})
+      }
+    }
+  }, [maxConverted, minConverted, filter])
 
   // Function for converting search values and sending them to the search
   // context.
@@ -128,47 +130,55 @@ const FilterText = React.memo(({
     setFilter(range)
   }, [unit, setFilter])
 
-  // Handle start change: whenever a valid number is set, the value is committed
-  // to the hook.
   const handleStartChange = useCallback((event) => {
+    setError()
     const value = event.target?.value
-    setTrueStart(value)
+    setMinText(value)
+  }, [])
+
+  const handleEndChange = useCallback((event) => {
+    setError()
+    const value = event.target?.value
+    setMaxText(value)
+  }, [])
+
+  const handleStartSubmit = useCallback(() => {
+    const value = minText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const outOfRange = number < trueMin
+      const outOfRange = number < minConverted
       if (outOfRange) {
-        setError(`Minimum value cannot be below ${trueMin}.`)
+        setError(`Minimum value cannot be below ${minConverted}.`)
         return
       }
-      setError()
       setRange(old => {
         const newRange = {...old, gte: number}
         sendFilter(newRange)
         return newRange
       })
+    } else {
+      setError(`Invalid value.`)
     }
-  }, [sendFilter, trueMin])
+  }, [minText, minConverted, sendFilter])
 
-  // Handle end change: whenever a valid number is set, the value is committed
-  // to the hook.
-  const handleEndChange = useCallback((event) => {
-    const value = event.target?.value
-    setTrueEnd(value)
+  const handleEndSubmit = useCallback(() => {
+    const value = maxText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const outOfRange = number > trueMax
+      const outOfRange = number > maxConverted
       if (outOfRange) {
-        setError(`Maximum value cannot be below ${trueMax}.`)
+        setError(`Maximum value cannot be above ${maxConverted}.`)
         return
       }
-      setError()
       setRange(old => {
-        const newRange = {...old, lte: number}
+        const newRange = {...old, gte: number}
         sendFilter(newRange)
         return newRange
       })
+    } else {
+      setError(`Invalid value.`)
     }
-  }, [sendFilter, trueMax])
+  }, [maxText, maxConverted, sendFilter])
 
   // Handle range commit: Set the filter when mouse is released on a slider
   const handleRangeCommit = useCallback((event, value) => {
@@ -178,11 +188,17 @@ const FilterText = React.memo(({
   // Handle range change: only change the rendered values, send to the filter
   // hook only after mouseup
   const handleRangeChange = useCallback((event, value) => {
-    setTrueStart(value[0])
-    setTrueEnd(value[1])
+    setMinText(value[0])
+    setMaxText(value[1])
     setRange({gte: value[0], lte: value[1]})
     setError()
   }, [])
+
+  // Until an initial min/max range is available, we do not display the
+  // component
+  if (range === undefined) {
+    return
+  }
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <FilterLabel label={title} description={desc}/>
@@ -191,16 +207,18 @@ const FilterText = React.memo(({
         variant="outlined"
         label="min"
         className={styles.textField}
-        value={trueStart}
+        value={minText}
         margin="normal"
         onChange={handleStartChange}
+        onBlur={handleStartSubmit}
+        onKeyDown={(event) => { if (event.key === 'Enter') { handleStartSubmit() } }}
         InputProps={{classes: {input: styles.input}}}
       />
       <div className={styles.spacer}>
         <Slider
-          min={trueMin}
-          max={trueMax}
-          step={1}
+          min={minLocal}
+          max={maxLocal}
+          step={stepConverted}
           value={[range.gte, range.lte]}
           onChange={handleRangeChange}
           onChangeCommitted={handleRangeCommit}
@@ -212,9 +230,11 @@ const FilterText = React.memo(({
         variant="outlined"
         label="max"
         className={styles.textField}
-        value={trueEnd}
+        value={maxText}
         margin="normal"
         onChange={handleEndChange}
+        onBlur={handleEndSubmit}
+        onKeyDown={(event) => { if (event.key === 'Enter') { handleEndSubmit() } }}
         InputProps={{classes: {input: styles.input}}}
       />
     </div>
@@ -226,13 +246,9 @@ const FilterText = React.memo(({
 
 FilterText.propTypes = {
   label: PropTypes.string,
-  quantity: PropTypes.string,
+  quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
-  min: PropTypes.number,
-  max: PropTypes.number,
-  start: PropTypes.number,
-  end: PropTypes.number,
-  step: PropTypes.number,
+  step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]).isRequired,
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,

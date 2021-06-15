@@ -110,11 +110,6 @@ export const queryFamily = atomFamily({
   default: undefined
 })
 
-export const aggregationFamily = atomFamily({
-  key: 'aggregationFamily',
-  default: undefined
-})
-
 export const aggregationRequestState = atom({
   key: 'aggregations',
   default: {}
@@ -134,38 +129,6 @@ export function useResetFilters() {
   return reset
 }
 
-/**
- * This hook will expose a function for reading filter values for a specific
- * quantity. Use this hook if you intend to only view the filter values and are
- * not interested in setting the filter.
- *
- * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
- * @returns currently set filter value.
- */
-export function useAggregation(name) {
-  const setAggregationRequest = useSetRecoilState(aggregationRequestState)
-  const aggregation = useRecoilValue(aggregationFamily(name))
-  const subscribe = useCallback(stat => {
-    setAggregationRequest(old => {
-      const newStat = {...old}
-      newStat[name] = stat
-      return newStat
-    })
-  }, [name, setAggregationRequest])
-  const unsubscribe = useCallback(() => {
-    setAggregationRequest(old => {
-      const newStat = {...old}
-      delete newStat[name]
-      return newStat
-    })
-  }, [name, setAggregationRequest])
-
-  return {
-    aggregation: aggregation,
-    subscribe: subscribe,
-    unsubscribe: unsubscribe
-  }
-}
 /**
  * This hook will expose a function for reading filter values for a specific
  * quantity. Use this hook if you intend to only view the filter values and are
@@ -279,7 +242,6 @@ const queryState = selector({
   key: 'query',
   get: ({get}) => {
     const query = {}
-    // const filters = get(registeredFilters)
     for (let key of filtersAll) {
       const filter = get(queryFamily(key))
       if (filter !== undefined) {
@@ -299,7 +261,6 @@ export function useQueryValue() {
  * @returns {object} Object containing the search object.
  */
 export function useSearch() {
-  const aggs = useRecoilValue(aggregationRequestState)
   const query = useRecoilValue(queryState)
   const result = useMemo(() => {
     return {
@@ -310,11 +271,45 @@ export function useSearch() {
         page_size: 10,
         order: 'desc',
         order_by: 'upload_time'
-      },
-      aggregations: aggs
+      }
     }
-  }, [query, aggs])
+  }, [query])
   return result
+}
+
+export function useAgg(quantity, type, restrict = false) {
+  const query = useRecoilValue(queryState)
+  const api = useApi()
+  const [results, setResults] = useState()
+
+  // We need to delete any query filters that target the quantity: this way all
+  // options are correctly returned.
+
+  useEffect(() => {
+    const queryCopy = {...query}
+    if (restrict && query && quantity in query) {
+      queryCopy[quantity] = undefined
+    }
+    const aggs = {}
+    const agg = {}
+    agg[type] = {quantity: quantity}
+    aggs[quantity] = agg
+    const search = {
+      owner: 'visible',
+      query: transform(queryCopy),
+      aggregations: aggs,
+      pagination: {page_size: 0},
+      required: {
+        include: []
+      }
+    }
+    api.queryEntry(search)
+      .then(data => {
+        setResults(data)
+      })
+  }, [api, quantity, query, restrict, type])
+
+  return results && results.aggregations[quantity][type].data
 }
 
 /**
@@ -334,55 +329,29 @@ export function useResults(delay = 400) {
   // We dynamically create a Recoil.js selector that is subscribed to the
   // filters specified in the input. This way only the specified filters will
   // cause a render.
-  const aggregationState = useMemo(() => {
-    return selector({
-      key: 'aggregationResult',
-      set: ({set}, [key, value]) => {
-        set(aggregationFamily(key), value)
-      }
-    })
+  // const aggregationState = useMemo(() => {
+  //   return selector({
+  //     key: 'aggregationResult',
+  //     set: ({set}, [key, value]) => {
+  //       set(aggregationFamily(key), value)
+  //     }
+  //   })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  const setAggregation = useSetRecoilState(aggregationState)
+  // }, [])
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
   const apiCall = useCallback(search => {
     const finalSearch = {...search}
-
-    // Convert all sets to arrays and convert all Quantities into their SI unit values
-    function transform(obj) {
-      let newObj = {}
-      for (let [k, v] of Object.entries(obj)) {
-        let newValue
-        if (v instanceof Set) {
-          newValue = setToArray(v)
-        } else if (v instanceof Quantity) {
-          newValue = v.toSI()
-        } else if (typeof v === 'object' && v !== null) {
-          newValue = transform(v)
-        } else {
-          newValue = v
-        }
-        newObj[k] = newValue
-      }
-      return newObj
-    }
     finalSearch.query = transform(finalSearch.query)
-    console.log(finalSearch)
 
     api.queryEntry(finalSearch)
       .then(data => {
         setResults(data)
-        if (data.aggregations) {
-          for (const [key, value] of Object.entries(data.aggregations)) {
-            setAggregation([key, value])
-          }
-        }
       })
       .finally(() => setLoading(false))
-  }, [api, setLoading, setAggregation])
+  }, [api, setLoading])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(_.debounce(apiCall, delay), [])
@@ -403,4 +372,24 @@ export function useResults(delay = 400) {
     results: results,
     search: search
   }
+}
+
+// Converts all sets to arrays and convert all Quantities into their SI unit
+// values
+function transform(obj) {
+  let newObj = {}
+  for (let [k, v] of Object.entries(obj)) {
+    let newValue
+    if (v instanceof Set) {
+      newValue = setToArray(v)
+    } else if (v instanceof Quantity) {
+      newValue = v.toSI()
+    } else if (typeof v === 'object' && v !== null) {
+      newValue = transform(v)
+    } else {
+      newValue = v
+    }
+    newObj[k] = newValue
+  }
+  return newObj
 }

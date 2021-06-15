@@ -132,6 +132,12 @@ export class Quantity {
  * @returns
  */
 export function toUnitSystem(value, unit, system) {
+  // If value given as Quantity, extract unit and value from it
+  if (value instanceof Quantity) {
+    value = value.value
+    unit = value.unit
+  }
+
   // If unit is given as a string, create a Unit from for it.
   if (!(unit instanceof Unit)) {
     unit = new Unit(unit)

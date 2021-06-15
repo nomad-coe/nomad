@@ -47,6 +47,7 @@ const FilterElectronic = React.memo(({
         <FilterSlider
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
           units={units}
+          step={0.1}
         />
       </Grid>
       <Grid item xs={6}>

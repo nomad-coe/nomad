@@ -145,7 +145,7 @@ def validate_api_query(
             field = quantity.search_field
             return Q('range', **{field: {type(value).__name__.lower(): value.op}})
 
-        elif isinstance(value, api_models.Range):
+        elif isinstance(value, api_models.RangeNumber):
             quantity = validate_quantity(name, None, doc_type=doc_type)
             field = quantity.search_field
             return Q('range', **{field: value.dict(
@@ -466,7 +466,7 @@ def _es_to_api_aggregation(
 
     elif isinstance(agg, MinMaxAggregation):
         min_value = es_aggs['agg:%s:min' % name]['value']
-        max_value = es_aggs['agg:%s:min' % name]['value']
+        max_value = es_aggs['agg:%s:max' % name]['value']
 
         return AggregationResponse(
             min_max=MixMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
@@ -503,6 +503,7 @@ def search(
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a MetadataResponse.
 
+    print(query)
     doc_type = index.doc_type
 
     # owner and query
@@ -514,7 +515,6 @@ def search(
     if isinstance(query, EsQuery):
         es_query = cast(EsQuery, query)
     else:
-        print(query)
         es_query = validate_api_query(
             cast(Query, query), doc_type=doc_type, owner_query=owner_query)
 
@@ -522,6 +522,8 @@ def search(
         es_query &= Q('nested', path='entries', query=owner_query)
     else:
         es_query &= owner_query
+
+    print(es_query)
 
     # pagination
     if pagination is None:
@@ -532,7 +534,6 @@ def search(
 
     search = Search(index=index.index_name)
 
-    print(es_query)
     search = search.query(es_query)
     # TODO this depends on doc_type
     if pagination.order_by is None:

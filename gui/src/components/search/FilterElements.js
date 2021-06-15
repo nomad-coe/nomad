@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,7 +23,8 @@ import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import FilterSlider from './FilterSlider'
-import { useFilterState, useAggregation } from './FilterContext'
+import { useFilterState, useAgg } from './FilterContext'
+import { useUnits } from '../../units'
 
 export const labelElements = 'Elements / Formula'
 
@@ -47,22 +48,17 @@ const FilterElements = React.memo(({
   // eslint-disable-next-line no-unused-vars
   const [exclusive, setExclusive] = useState(false)
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const {aggregation, subscribe, unsubscribe} = useAggregation('results.material.elements')
+  const data = useAgg('results.material.elements', 'terms')
+  const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}
-    if (aggregation?.terms?.data) {
-      for (let value of aggregation.terms.data) {
+    if (data) {
+      for (let value of data) {
         elementCountMap[value.value] = value.count
       }
     }
     return elementCountMap
-  }, [aggregation])
-
-  // Subscribe to aggregation on mount, unsubscribe on unmounting
-  useEffect(() => {
-    subscribe({terms: {quantity: 'results.material.elements'}})
-    return () => unsubscribe()
-  }, [subscribe, unsubscribe])
+  }, [data])
 
   const handleExclusiveChanged = () => {
     // const newExclusive = !exclusive
@@ -101,6 +97,8 @@ const FilterElements = React.memo(({
       <Grid item xs={12}>
         <FilterSlider
           quantity="results.material.n_elements"
+          step={1}
+          units={units}
         />
       </Grid>
     </Grid>
