@@ -113,7 +113,7 @@ const useStyles = makeStyles(theme => {
   // this seems to be quite a bit less responsive compared to hardcoding the
   // values.
   const padding = theme.spacing(2)
-  const widthMedium = 30
+  const widthMedium = 25
   const widthLarge = 42
   return {
     root: {

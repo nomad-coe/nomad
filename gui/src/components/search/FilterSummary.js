@@ -90,11 +90,13 @@ const FilterSummary = React.memo(({
             label={value}
             onDelete={() => {
               if (isSet) {
-                filterValue.delete(value)
-                setFilter([quantity, new Set(filterValue)])
+                const newSet = new Set(filterValue)
+                newSet.delete(value)
+                setFilter([quantity, newSet])
               } else if (isArray) {
-                filterValue.splice(index, 1)
-                setFilter([quantity, [...filterValue]])
+                const newArray = [...filterValue]
+                newArray.splice(index, 1)
+                setFilter([quantity, newArray])
               }
             }}
             color="primary"

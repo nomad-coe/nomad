@@ -21,6 +21,7 @@ import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
 import FilterText from './FilterText'
+import FilterEnum from './FilterEnum'
 import { useUnits } from '../../units'
 
 const useFiltersElementStyles = makeStyles(theme => ({
@@ -42,34 +43,32 @@ const FilterMaterial = React.memo(({
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
-      <Grid item xs={6}>
-        <FilterText
+      <Grid item xs={12}>
+        <FilterEnum
           quantity="results.material.structural_type"
-          units={units}
-          suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.functional_type"
           units={units}
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.compound_type"
           units={units}
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.material_id"
           units={units}
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.material_name"
           units={units}

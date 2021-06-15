@@ -296,7 +296,7 @@ export function useAgg(quantity, type, restrict = false) {
     aggs[quantity] = agg
     const search = {
       owner: 'visible',
-      query: transform(queryCopy),
+      query: cleanQuery(queryCopy),
       aggregations: aggs,
       pagination: {page_size: 0},
       required: {
@@ -344,7 +344,7 @@ export function useResults(delay = 400) {
   // one with the data.
   const apiCall = useCallback(search => {
     const finalSearch = {...search}
-    finalSearch.query = transform(finalSearch.query)
+    finalSearch.query = cleanQuery(finalSearch.query)
 
     api.queryEntry(finalSearch)
       .then(data => {
@@ -376,7 +376,7 @@ export function useResults(delay = 400) {
 
 // Converts all sets to arrays and convert all Quantities into their SI unit
 // values
-function transform(obj) {
+function cleanQuery(obj) {
   let newObj = {}
   for (let [k, v] of Object.entries(obj)) {
     let newValue
@@ -384,8 +384,11 @@ function transform(obj) {
       newValue = setToArray(v)
     } else if (v instanceof Quantity) {
       newValue = v.toSI()
+    } else if (Array.isArray(v)) {
+      newValue = v
+      k = `${k}:any`
     } else if (typeof v === 'object' && v !== null) {
-      newValue = transform(v)
+      newValue = cleanQuery(v)
     } else {
       newValue = v
     }
