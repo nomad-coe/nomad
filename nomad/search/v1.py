@@ -503,7 +503,6 @@ def search(
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a MetadataResponse.
 
-    print(query)
     doc_type = index.doc_type
 
     # owner and query
@@ -522,8 +521,6 @@ def search(
         es_query &= Q('nested', path='entries', query=owner_query)
     else:
         es_query &= owner_query
-
-    print(es_query)
 
     # pagination
     if pagination is None:

@@ -34,6 +34,7 @@ export const labelMethod = 'Method'
  * Displays the filter options for electronic properties.
  */
 const FilterMethod = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -61,6 +62,7 @@ const FilterMethod = React.memo(({
   </div>
 })
 FilterMethod.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

@@ -197,7 +197,7 @@ export function useFiltersState(quantities) {
   // cause a render.
 
   // Recoil.js requires that each selector/atom has an unique id. Because this
-  // hook can be called dynamically, we simply generate the ID randomly.
+  // hook can be called dynamically, we simply generate the ID sequentially.
   const id = `dynamic_selector${index}`
   index += 1
   const filterState = useMemo(() => {
@@ -221,19 +221,6 @@ export function useFiltersState(quantities) {
   return useRecoilState(filterState)
 }
 
-/**
- * This atom holds a boolean indicating whether results are being loaded.
- */
-export const loadingState = atom({
-  key: 'loading',
-  default: false
-})
-/**
- * Convenience hook for reading the loading state.
- */
-export function useLoading() {
-  return useRecoilValue(loadingState)
-}
 /**
  * This selector aggregates all the currently set filters into a single query
  * object used by the API.
@@ -277,16 +264,45 @@ export function useSearch() {
   return result
 }
 
-export function useAgg(quantity, type, restrict = false) {
-  const query = useRecoilValue(queryState)
+/**
+ * Hook for retrieving the most up-to-date aggreagtion results for a specific
+ * quantity, taking into account the current search context.
+ *
+ * @param {string} quantity
+ * @param {string} type
+ * @param {bool} restrict
+ * @param {bool} update Whether the hook needs to react to changes in the
+ * current query context. E.g. if the component showing the data is not visible,
+ * this can be set to false.
+ * @returns {array} The data-array returned by the API.
+ */
+export function useAgg(quantity, type, restrict = false, update = true, delay = 400) {
   const api = useApi()
   const [results, setResults] = useState()
+  // const quantities = filtersAll
+  // const query = useFiltersState(quantities)
+  const query = useQueryValue()
+  const firstRender = useRef(true)
 
-  // We need to delete any query filters that target the quantity: this way all
-  // options are correctly returned.
+  const apiCall = useCallback(search => {
+    api.queryEntry(search)
+      .then(data => {
+        setResults(data)
+      })
+  }, [api])
+
+  // This is a debounced version of apiCall.
+  const debounced = useCallback(_.debounce(apiCall, delay), [])
 
   useEffect(() => {
+    if (!update) {
+      return
+    }
     const queryCopy = {...query}
+
+    // If the restrict option is enabled, the filters targeting the specified
+    // quantity will be removed. This way all possible options pre-selection can
+    // be returned.
     if (restrict && query && quantity in query) {
       queryCopy[quantity] = undefined
     }
@@ -303,11 +319,19 @@ export function useAgg(quantity, type, restrict = false) {
         include: []
       }
     }
-    api.queryEntry(search)
-      .then(data => {
-        setResults(data)
-      })
-  }, [api, quantity, query, restrict, type])
+
+    if (firstRender.current) {
+      apiCall(search)
+      firstRender.current = false
+    } else {
+      debounced(search)
+    }
+
+    // api.queryEntry(search)
+    //   .then(data => {
+    //     setResults(data)
+    //   })
+  }, [api, apiCall, debounced, quantity, query, restrict, type, update])
 
   return results && results.aggregations[quantity][type].data
 }
@@ -324,20 +348,6 @@ export function useResults(delay = 400) {
   const firstRender = useRef(true)
   const search = useSearch()
   const [results, setResults] = useState()
-  const setLoading = useSetRecoilState(loadingState)
-
-  // We dynamically create a Recoil.js selector that is subscribed to the
-  // filters specified in the input. This way only the specified filters will
-  // cause a render.
-  // const aggregationState = useMemo(() => {
-  //   return selector({
-  //     key: 'aggregationResult',
-  //     set: ({set}, [key, value]) => {
-  //       set(aggregationFamily(key), value)
-  //     }
-  //   })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [])
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
@@ -350,8 +360,7 @@ export function useResults(delay = 400) {
       .then(data => {
         setResults(data)
       })
-      .finally(() => setLoading(false))
-  }, [api, setLoading])
+  }, [api])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(_.debounce(apiCall, delay), [])
@@ -363,10 +372,9 @@ export function useResults(delay = 400) {
       apiCall(search)
       firstRender.current = false
     } else {
-      setLoading(true)
       debounced(search)
     }
-  }, [apiCall, debounced, search, setLoading])
+  }, [apiCall, debounced, search])
 
   return {
     results: results,

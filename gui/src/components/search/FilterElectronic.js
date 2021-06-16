@@ -36,6 +36,7 @@ export const labelElectronic = 'Electronic'
  * Displays the filter options for electronic properties.
  */
 const FilterElectronic = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -48,6 +49,7 @@ const FilterElectronic = React.memo(({
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
           units={units}
           step={0.1}
+          visible={visible}
         />
       </Grid>
       <Grid item xs={6}>
@@ -59,6 +61,7 @@ const FilterElectronic = React.memo(({
   </div>
 })
 FilterElectronic.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

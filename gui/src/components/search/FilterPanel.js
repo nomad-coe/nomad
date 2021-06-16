@@ -195,8 +195,14 @@ const useStyles = makeStyles(theme => {
       right: 0,
       top: 0,
       bottom: 0,
-      padding: `${theme.spacing(1.5)}px ${padding}px`,
       boxSizing: 'border-box'
+    },
+    paddingPrimary: {
+      paddingTop: `${theme.spacing(1.5)}px`,
+      paddingBottom: `${theme.spacing(1.5)}px`
+    },
+    paddingSecondary: {
+      padding: `${theme.spacing(1.5)}px ${padding}px`
     },
     menuLarge: {
       width: `${widthLarge}rem`
@@ -227,6 +233,7 @@ const FilterPanel = React.memo(({
       if (item.component) {
         viewList.push(<item.component
           key={viewList.length}
+          visible={view === item.name}
           className={clsx(view !== item.name && styles.menuHidden)}
         ></item.component>)
       }
@@ -271,34 +278,40 @@ const FilterPanel = React.memo(({
   return <ClickAwayListener onClickAway={() => onIsMenuOpenChange(false)}>
     <div className={clsx(className, styles.root)}>
       <Scrollable className={clsx(styles.menuPrimary, isMenuOpen && styles.menuPrimaryBorder)}>
-        <Actions
-          header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
-          variant="icon"
-          actions={actionsPrimary}
-          className={styles.header}
-        />
-        <FilterTree
-          filterTree={filterTree}
-          view={view}
-          isMenuOpen={isMenuOpen}
-          resultType={resultType}
-          onResultTypeChange={onResultTypeChange}
-          onViewChange={setView}
-          onIsMenuOpenChange={onIsMenuOpenChange}
-        />
+        <div className={styles.paddingPrimary}>
+          <Actions
+            header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
+            variant="icon"
+            actions={actionsPrimary}
+            className={styles.header}
+          />
+          <FilterTree
+            filterTree={filterTree}
+            view={view}
+            isMenuOpen={isMenuOpen}
+            resultType={resultType}
+            onResultTypeChange={onResultTypeChange}
+            onViewChange={setView}
+            onIsMenuOpenChange={onIsMenuOpenChange}
+          />
+        </div>
       </Scrollable>
       <Paper
         elevation={4}
         className={clsx(styles.container, isMenuOpen && (view !== labelElements ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
       >
         <div className={clsx(styles.menuSecondary, view !== labelElements ? styles.menuMedium : styles.menuLarge)}>
-          <Actions
-            header={<Typography className={styles.headerText} variant="button">{view}</Typography>}
-            variant="icon"
-            actions={actionsSecondary}
-            className={clsx(styles.header, styles.headerSecondary)}
-          />
-          {views}
+          <Scrollable>
+            <div className={styles.paddingSecondary}>
+              <Actions
+                header={<Typography className={styles.headerText} variant="button">{view}</Typography>}
+                variant="icon"
+                actions={actionsSecondary}
+                className={clsx(styles.header, styles.headerSecondary)}
+              />
+              {views}
+            </div>
+          </Scrollable>
         </div>
       </Paper>
     </div>

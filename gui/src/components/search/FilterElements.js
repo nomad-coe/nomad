@@ -42,13 +42,14 @@ const useFiltersElementStyles = makeStyles(theme => ({
  * Displays the filter options for chemical elements.
  */
 const FilterElements = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
   // eslint-disable-next-line no-unused-vars
   const [exclusive, setExclusive] = useState(false)
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const data = useAgg('results.material.elements', 'terms')
+  const data = useAgg('results.material.elements', 'terms', false, visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}
@@ -99,12 +100,14 @@ const FilterElements = React.memo(({
           quantity="results.material.n_elements"
           step={1}
           units={units}
+          visible={visible}
         />
       </Grid>
     </Grid>
   </div>
 })
 FilterElements.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

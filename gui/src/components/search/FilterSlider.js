@@ -68,11 +68,12 @@ const useStyles = makeStyles(theme => ({
     padding: '16px 12px'
   }
 }))
-const FilterText = React.memo(({
+const FilterSlider = React.memo(({
   label,
   quantity,
   description,
   step,
+  visible,
   className,
   classes,
   units,
@@ -81,7 +82,7 @@ const FilterText = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
-  const agg = useAgg(quantity, 'min_max', true)
+  const agg = useAgg(quantity, 'min_max', true, visible)
   const [minGlobal, maxGlobal] = agg || [undefined, undefined]
   const [minText, setMinText] = useState()
   const [maxText, setMaxText] = useState()
@@ -244,15 +245,16 @@ const FilterText = React.memo(({
   </div>
 })
 
-FilterText.propTypes = {
+FilterSlider.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
   step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]).isRequired,
+  visible: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
-export default FilterText
+export default FilterSlider

@@ -34,43 +34,44 @@ export const labelDFT = 'DFT'
  * Displays the filter options for electronic properties.
  */
 const FilterDFT = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.basis_set_type"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.basis_set_name"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.core_electron_treatment"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.van_der_Waals_method"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.relativity_method"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.dft.smearing_type"
           suggest
@@ -80,6 +81,7 @@ const FilterDFT = React.memo(({
   </div>
 })
 FilterDFT.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

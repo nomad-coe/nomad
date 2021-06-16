@@ -35,6 +35,7 @@ export const labelGW = 'GW'
  * Displays the filter options for electronic properties.
  */
 const FilterGW = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -42,7 +43,7 @@ const FilterGW = React.memo(({
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.method.simulation.gw.gw_type"
           units={units}
@@ -52,6 +53,7 @@ const FilterGW = React.memo(({
   </div>
 })
 FilterGW.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

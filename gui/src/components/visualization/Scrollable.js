@@ -46,8 +46,8 @@ const useStyles = makeStyles(theme => ({
     },
     '-ms-overflow-style': 'none',
     scrollbarWidth: 'none',
-    paddingTop: theme.spacing(1.5),
-    paddingBottom: theme.spacing(1.5),
+    // paddingTop: theme.spacing(1.5),
+    // paddingBottom: theme.spacing(1.5),
     boxSizing: 'border-box'
   },
   scrollHint: {

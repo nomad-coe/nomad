@@ -36,6 +36,7 @@ export const labelMaterial = 'Material'
  * Displays the filter options for material.
  */
 const FilterMaterial = React.memo(({
+  visible,
   className
 }) => {
   const styles = useFiltersElementStyles()
@@ -78,6 +79,7 @@ const FilterMaterial = React.memo(({
   </div>
 })
 FilterMaterial.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 

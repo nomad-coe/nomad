@@ -102,15 +102,6 @@ const FilterEnum = React.memo(({
   }, [filter])
 
   const handleChange = useCallback((event) => {
-    // setOptions(old => {
-    //   const newOptions = { ...old, [event.target.name]: event.target.checked }
-    //   const checked = Object.entries(newOptions)
-    //     .filter(([key, value]) => value)
-    //     .map(([key, value]) => key)
-    //   setFilter(checked)
-    //   return newOptions
-    // })
-
     const newOptions = { ...options, [event.target.name]: event.target.checked }
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value)

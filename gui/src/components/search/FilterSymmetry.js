@@ -34,55 +34,56 @@ const useStyles = makeStyles(theme => ({
  * Displays the filter options for symmetry properties.
  */
 const FilterSymmetry = React.memo(({
+  visible,
   className
 }) => {
   const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.bravais_lattice"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.crystal_system"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.hall_symbol"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.point_group"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.space_group_symbol"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.prototype_aflow_id"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.structure_name"
           suggest
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.strukturbericht_designation"
           suggest
@@ -92,6 +93,7 @@ const FilterSymmetry = React.memo(({
   </div>
 })
 FilterSymmetry.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 
