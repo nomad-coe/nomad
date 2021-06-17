@@ -38,6 +38,7 @@ import FilterDFT, { labelDFT } from './FilterDFT'
 import FilterGW, { labelGW } from './FilterGW'
 import FilterMethod, { labelMethod } from './FilterMethod'
 import FilterMaterial, { labelMaterial } from './FilterMaterial'
+import FilterMetadata, { labelMetadata } from './FilterMetadata'
 import FilterSummary from './FilterSummary'
 import {
   useResetFilters,
@@ -47,7 +48,8 @@ import {
   filtersDFT,
   filtersGW,
   filtersSymmetry,
-  filtersMethod
+  filtersMethod,
+  filtersMetadata
 } from './FilterContext'
 
 /**
@@ -96,14 +98,13 @@ const filterTree = [
         name: labelElectronic,
         filters: <FilterSummary quantities={filtersElectronic}/>,
         component: FilterElectronic
-      },
-      {name: 'Vibrational'},
-      {name: 'Optical'}
+      }
     ]
   },
   {
-    name: 'Metainfo',
-    filters: <FilterSummary quantities={filtersDFT}/>
+    name: labelMetadata,
+    filters: <FilterSummary quantities={filtersMetadata}/>,
+    component: FilterMetadata
   }
 ]
 
@@ -256,16 +257,18 @@ const FilterPanel = React.memo(({
 
   // Primary menu actions
   const actionsPrimary = useMemo(() => (
-    [{
-      tooltip: 'View the API call for the selected filters',
-      content: <CodeIcon/>,
-      onClick: () => {}
-    },
-    {
-      tooltip: 'Clear filters',
-      content: <ClearIcon/>,
-      onClick: () => resetFilters()
-    }]
+    [
+    // {
+    //   tooltip: 'View the API call for the selected filters',
+    //   content: <CodeIcon/>,
+    //   onClick: () => {}
+    // },
+      {
+        tooltip: 'Clear filters',
+        content: <ClearIcon/>,
+        onClick: () => resetFilters()
+      }
+    ]
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [])
 

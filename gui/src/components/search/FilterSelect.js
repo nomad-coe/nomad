@@ -99,7 +99,7 @@ const FilterSelect = React.memo(({
     setFilter(new Set(event.target.value))
   }, [setFilter])
 
-  return <Tooltip title={disabled ? 'Now values available with current query.' : ''}>
+  return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <FilterLabel label={title} description={desc}/>
       <Select
@@ -117,12 +117,7 @@ const FilterSelect = React.memo(({
           </div>
         )}
       >
-        {options && options.length > 0
-          ? menuItems
-          : <MenuItem disabled>
-            <ListItemText primary="No values available for current query"/>
-          </MenuItem>
-        }
+        {menuItems}
       </Select>
     </div>
   </Tooltip>

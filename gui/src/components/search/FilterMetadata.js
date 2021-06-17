@@ -21,8 +21,6 @@ import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
 import FilterText from './FilterText'
-import FilterCheckboxes from './FilterCheckboxes'
-import FilterSelect from './FilterSelect'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -30,12 +28,12 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelMethod = 'Method'
+export const labelMetadata = 'User metadata'
 
 /**
  * Displays the filter options for electronic properties.
  */
-const FilterMethod = React.memo(({
+const FilterMetadata = React.memo(({
   visible,
   className
 }) => {
@@ -44,29 +42,22 @@ const FilterMethod = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.method_name"
-          visible={visible}
-          xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterSelect
-          quantity="results.method.simulation.program_name"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
         <FilterText
-          quantity="results.method.simulation.program_version"
+          quantity="authors.name"
+          visible={visible}
         />
+        {/* <FilterText
+          quantity=""
+          visible={visible}
+          autocomplete="off"
+        /> */}
       </Grid>
     </Grid>
   </div>
 })
-FilterMethod.propTypes = {
+FilterMetadata.propTypes = {
   visible: PropTypes.bool,
   className: PropTypes.string
 }
 
-export default FilterMethod
+export default FilterMetadata

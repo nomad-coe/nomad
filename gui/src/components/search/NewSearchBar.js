@@ -27,7 +27,8 @@ import {
   CircularProgress,
   Paper,
   Divider,
-  Tooltip
+  Tooltip,
+  Typography
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
@@ -57,10 +58,16 @@ const filterOptions = (options, {inputValue}) => {
   })
 }
 
+// Customized paper component for the autocompletion options
+const CustomPaper = (props) => {
+  return <Paper elevation={3} {...props} />
+}
+
 const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    position: 'relative'
   },
   notchedOutline: {
     borderColor: 'rgba(0, 0, 0, 0.0)'
@@ -73,6 +80,15 @@ const useStyles = makeStyles(theme => ({
   },
   endAdornment: {
     position: 'static'
+  },
+  examples: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 'calc(100% + 4px)',
+    padding: theme.spacing(2),
+    zIndex: 5,
+    fontStyle: 'italic'
   }
 }))
 
@@ -93,6 +109,7 @@ const NewSearchBar = React.memo(({
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
+  const [showExamples, setShowExamples] = useState(false)
   const api = useApi()
   const setFilter = useFiltersState(quantities)[1]
   const quantitySet = useMemo(() => new Set(quantities), [quantities])
@@ -207,6 +224,9 @@ const NewSearchBar = React.memo(({
   // Handle clear button
   const handleClose = useCallback(() => {
     setInputValue('')
+    setSuggestions([])
+    setOpen(false)
+    setShowExamples(true)
   }, [])
 
   const handleHighlight = useCallback((event, value, reason) => {
@@ -232,12 +252,23 @@ const NewSearchBar = React.memo(({
   // suggestion will be retrieved if they are available for this metainfo and
   // the input is deemed meaningful.
   const handleInputChange = useCallback((event, value, reason) => {
+    console.log(reason)
     setError(error => error ? undefined : null)
     setInputValue(value)
     value = value?.trim()
-    if (!value || reason !== 'input') {
+    setShowExamples(!value)
+    if (!value) {
       setSuggestions([])
+      setOpen(false)
+      setShowExamples(true)
       return
+    } else {
+      setOpen(true)
+      setShowExamples(false)
+    }
+    if (reason !== 'input') {
+      setSuggestions([])
+      setOpen(false)
     }
     // If the input is prefixed with a proper quantity name and an equals-sign,
     // we extract the quantity name and the typed input
@@ -282,6 +313,12 @@ const NewSearchBar = React.memo(({
     }
   }, [quantities, api, quantitySet])
 
+  // This determines the order: notice that items should be sorted by group
+  // first in order for the grouping to work correctly.
+  const options = useMemo(() => {
+    return suggestions.concat(quantitySuggestions)
+  }, [quantitySuggestions, suggestions])
+
   return <Paper className={clsx(className, styles.root)}>
     <Autocomplete
       className={styles.input}
@@ -290,14 +327,17 @@ const NewSearchBar = React.memo(({
       inputValue={inputValue}
       value={null}
       open={open}
-      onOpen={() => setOpen(true)}
+      onFocus={() => setShowExamples(true)}
+      onBlur={() => setShowExamples(false)}
+      onOpen={() => { if (inputValue.trim() !== '') { setOpen(true) } }}
       onClose={() => setOpen(false)}
       fullWidth
       disableClearable
+      PaperComponent={CustomPaper}
       classes={{endAdornment: styles.endAdornment}}
-      groupBy={(option) => option.category}
+      groupBy={(option) => option.dategory}
       filterOptions={filterOptions}
-      options={quantitySuggestions.concat(suggestions)}
+      options={options}
       onInputChange={handleInputChange}
       onHighlightChange={handleHighlight}
       getOptionLabel={option => option.value}
@@ -337,6 +377,9 @@ const NewSearchBar = React.memo(({
         />
       )}
     />
+    {showExamples && <CustomPaper className={styles.examples}>
+      <Typography>{'Start typing a query to show relevant suggestions.'}</Typography>
+    </CustomPaper>}
   </Paper>
 })
 

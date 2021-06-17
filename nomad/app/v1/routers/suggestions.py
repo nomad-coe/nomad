@@ -101,37 +101,3 @@ async def get_suggestions(
             response[quantity].append(Suggestion(value=option.text, weight=option._score))
 
     return response
-
-
-@router.post(
-    '/{quantity}',
-    tags=['suggestions_quantity'],
-    summary='''Get a list of suggestions for the given quantity, in the context
-    of the given query. In order to give meaningful suggestions, the targeted
-    quanitity should be of MEnum type.''',
-    response_model=List[Suggestion],
-    responses=create_responses(_bad_quantity_response),
-    response_model_exclude_unset=True,
-    response_model_exclude_none=True)
-async def get_suggestion_quantity(
-        data: SuggestionsQuantityRequest,
-        request: Request,
-        quantity: str = Path(..., description='Name of the the quantity for which suggestions are retrieved for.'),
-        user: User = Depends(create_user_dependency())):
-
-    # If there is no input based on which to filter the values, we simply
-    # provide a set of options that may not cover all values.
-    if not data.input:
-        aggs = {}
-        aggs[quantity] = Aggregation(terms=TermsAggregation(quantity=quantity, size=100))
-        response_es = perform_search(
-            owner="visible",
-            query=data.query,
-            required=MetadataRequired(include=[]),
-            aggregations=aggs,
-            user_id=user.user_id if user is not None else None)
-
-    # TODO: Perform match_phrase_prefix query if an input is given
-
-    response = [Suggestion(value=x.value) for x in response_es.aggregations[quantity].terms.data]  # pylint: disable=no-member
-    return response

@@ -588,7 +588,10 @@ class Material(MSection):
         description="""
         Names of the different elements present in the structure.
         """,
-        a_elasticsearch=Elasticsearch(material_type, many_all=True)
+        a_elasticsearch=[
+            Elasticsearch(material_type, many_all=True),
+            Elasticsearch(material_type, suggestion=True)
+        ]
     )
     n_elements = Quantity(
         type=int,

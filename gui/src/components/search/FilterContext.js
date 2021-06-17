@@ -92,13 +92,19 @@ export const filtersGW = [
   'results.method.simulation.gw.gw_type'
 ]
 
+export const filtersMetadata = [
+  'authors.name'
+]
+
 export let filtersAll = []
 filtersAll = filtersAll.concat(filtersElements)
 filtersAll = filtersAll.concat(filtersMaterial)
 filtersAll = filtersAll.concat(filtersElectronic)
 filtersAll = filtersAll.concat(filtersSymmetry)
+filtersAll = filtersAll.concat(filtersMethod)
 filtersAll = filtersAll.concat(filtersDFT)
 filtersAll = filtersAll.concat(filtersGW)
+filtersAll = filtersAll.concat(filtersMetadata)
 
 export const registeredFilters = atom({
   key: 'registeredFilters',
@@ -258,7 +264,7 @@ export function useSearch() {
  * this can be set to false.
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(quantity, type, restrict = false, update = true, delay = 400) {
+export function useAgg(quantity, type, restrict = false, update = true, delay = 200) {
   const api = useApi()
   const [results, setResults] = useState()
   const query = useQueryValue()
@@ -275,7 +281,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   const debounced = useCallback(_.debounce(apiCall, delay), [])
 
   useEffect(() => {
-    if (!update) {
+    if (!update && !firstRender.current) {
       return
     }
     const queryCopy = {...query}

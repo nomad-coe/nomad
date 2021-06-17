@@ -76,19 +76,22 @@ const FilterCheckboxes = React.memo(({
 
   // React to changing filters
   useEffect(() => {
-    if (filter) {
-      setOptions(old => {
-        const newOptions = {}
-        for (let key of Object.keys(old)) {
-          newOptions[key] = old[key]
-          newOptions[key].checked = false
-        }
+    setOptions(old => {
+      const newOptions = {}
+      if (old === undefined) {
+        return old
+      }
+      for (let key of Object.keys(old)) {
+        newOptions[key] = old[key]
+        newOptions[key].checked = false
+      }
+      if (filter) {
         for (let value of filter) {
           newOptions[value].checked = true
         }
-        return newOptions
-      })
-    }
+      }
+      return newOptions
+    })
   }, [filter])
 
   // React to changing options. Unselected ones will be disabled/enabled
@@ -96,8 +99,6 @@ const FilterCheckboxes = React.memo(({
   useEffect(() => {
     if (availableOptions) {
       setOptions(old => {
-        console.log(old)
-        console.log(availableOptions)
         const newOptions = {}
         for (let key of Object.keys(old)) {
           newOptions[key] = old[key]

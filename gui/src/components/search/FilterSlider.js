@@ -204,7 +204,7 @@ const FilterSlider = React.memo(({
     return
   }
 
-  return <Tooltip title={disabled ? 'Now values available with current query.' : ''}>
+  return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <FilterLabel label={title} description={desc}/>
       <div className={styles.inputRow}>

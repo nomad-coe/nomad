@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
+import FilterCheckboxes from './FilterCheckboxes'
 
 const useFiltersElementStyles = makeStyles(theme => ({
   root: {
@@ -42,41 +42,42 @@ const FilterDFT = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterText
+        <FilterCheckboxes
           quantity="results.method.simulation.dft.basis_set_type"
-          suggest
+          visible={visible}
+          xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.method.simulation.dft.basis_set_name"
-          suggest
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
+        <FilterCheckboxes
           quantity="results.method.simulation.dft.core_electron_treatment"
-          suggest
+          visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.method.simulation.dft.van_der_Waals_method"
-          suggest
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
+        <FilterCheckboxes
           quantity="results.method.simulation.dft.relativity_method"
-          suggest
+          visible={visible}
+        />
+      </Grid>
+      {/* <Grid item xs={12}>
+        <FilterSelect
+          quantity="results.method.simulation.dft.basis_set_name"
+          visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.method.simulation.dft.smearing_type"
-          suggest
+        <FilterCheckboxes
+          quantity="results.method.simulation.dft.van_der_Waals_method"
+          visible={visible}
         />
       </Grid>
+      <Grid item xs={12}>
+        <FilterCheckboxes
+          quantity="results.method.simulation.dft.smearing_type"
+          visible={visible}
+        />
+      </Grid> */}
     </Grid>
   </div>
 })
