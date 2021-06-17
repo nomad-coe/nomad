@@ -67,7 +67,9 @@ const FilterCheckboxes = React.memo(({
     if (availableOptions && firstFetch.current) {
       const opt = {}
       for (let option of availableOptions) {
-        opt[option.value] = {checked: false, disabled: false}
+        if (option.count > 0) {
+          opt[option.value] = {checked: false, disabled: false}
+        }
       }
       setOptions(opt)
       firstFetch.current = false
@@ -107,7 +109,9 @@ const FilterCheckboxes = React.memo(({
           }
         }
         for (let option of availableOptions) {
-          newOptions[option.value].disabled = false
+          if (option.count > 0) {
+            newOptions[option.value].disabled = false
+          }
         }
         return newOptions
       })

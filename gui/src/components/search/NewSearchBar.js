@@ -18,6 +18,7 @@
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isPlainObject, debounce } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
@@ -87,7 +88,6 @@ const useStyles = makeStyles(theme => ({
     right: 0,
     top: 'calc(100% + 4px)',
     padding: theme.spacing(2),
-    zIndex: 5,
     fontStyle: 'italic'
   }
 }))
@@ -211,8 +211,26 @@ const NewSearchBar = React.memo(({
     }
 
     if (valid) {
-      // Submit to search context on successful validation.
-      setFilter([quantityFullname, queryValue])
+      // Submit to search context on successful validation. Ranges simply
+      // override any previous value, scalar values are added to the current
+      // filter array/set
+      if (isPlainObject(queryValue)) {
+        setFilter([quantityFullname, queryValue])
+      } else {
+        setFilter([quantityFullname, old => {
+          let newValue
+          if (Array.isArray(old)) {
+            newValue = [...old]
+            newValue.push(queryValue)
+          } else if (old instanceof Set) {
+            newValue = new Set(old)
+            newValue.add(queryValue)
+          } else {
+            return [queryValue]
+          }
+          return newValue
+        }])
+      }
       setInputValue('')
       setOpen(false)
     } else {
@@ -248,11 +266,34 @@ const NewSearchBar = React.memo(({
     }
   }, [open, highlighted, handleSubmit])
 
+  const suggestionCall = useCallback((quantityList, value) => {
+    setLoading(true)
+    // If some input is given, and the quantity supports suggestions, we use
+    // input suggester to suggest values
+    const filteredList = quantityList.filter(q => searchQuantities[q].suggestion)
+    api.suggestions(filteredList, value)
+      .then(data => {
+        let res = []
+        for (let q of filteredList) {
+          const name = quantityAbbreviations.get(q) || q
+          const esSuggestions = data[q]
+          if (esSuggestions) {
+            res = res.concat(esSuggestions.map(suggestion => ({
+              value: `${name}=${suggestion.value}`,
+              category: name
+            })))
+          }
+        }
+        setSuggestions(res)
+      })
+      .finally(() => setLoading(false))
+  }, [api])
+  const suggestionDebounced = useCallback(debounce(suggestionCall, 150), [])
+
   // Handle typing events. After a debounce time has expired, a list of
   // suggestion will be retrieved if they are available for this metainfo and
   // the input is deemed meaningful.
   const handleInputChange = useCallback((event, value, reason) => {
-    console.log(reason)
     setError(error => error ? undefined : null)
     setInputValue(value)
     value = value?.trim()
@@ -290,28 +331,12 @@ const NewSearchBar = React.memo(({
     // If some input is given, and the quantity supports suggestions, we use
     // input suggester to suggest values
     if (value.length > 0) {
-      const filteredList = quantityList.filter(q => searchQuantities[q].suggestion)
-      api.suggestions(filteredList, value)
-        .then(data => {
-          let res = []
-          for (let q of filteredList) {
-            const name = quantityAbbreviations.get(q) || q
-            const esSuggestions = data[q]
-            if (esSuggestions) {
-              res = res.concat(esSuggestions.map(suggestion => ({
-                value: `${name}=${suggestion.value}`,
-                category: name
-              })))
-            }
-          }
-          setSuggestions(res)
-        })
-        .finally(() => setLoading(false))
+      suggestionDebounced(quantityList, value)
     // If no input is given, we suggest Enum values, or for non-enum quantities
     // use terms aggregation.
     } else {
     }
-  }, [quantities, api, quantitySet])
+  }, [quantities, quantitySet, suggestionDebounced])
 
   // This determines the order: notice that items should be sorted by group
   // first in order for the grouping to work correctly.
@@ -378,7 +403,7 @@ const NewSearchBar = React.memo(({
       )}
     />
     {showExamples && <CustomPaper className={styles.examples}>
-      <Typography>{'Start typing a query to show relevant suggestions.'}</Typography>
+      <Typography>{'Start typing a query to get relevant suggestions.'}</Typography>
     </CustomPaper>}
   </Paper>
 })

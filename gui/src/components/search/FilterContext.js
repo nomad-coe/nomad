@@ -292,21 +292,20 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     if (restrict && query && quantity in query) {
       queryCopy[quantity] = undefined
     }
-    const aggs = {}
-    const agg = {}
-    agg[type] = {
-      quantity: quantity,
-      size: 50
+    const aggs = {
+      [quantity]: {
+        [type]: {
+          quantity: quantity,
+          size: 50
+        }
+      }
     }
-    aggs[quantity] = agg
     const search = {
       owner: 'visible',
       query: cleanQuery(queryCopy),
       aggregations: aggs,
       pagination: {page_size: 0},
-      required: {
-        include: []
-      }
+      required: { include: [] }
     }
 
     if (firstRender.current) {

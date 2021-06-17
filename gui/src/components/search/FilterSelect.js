@@ -87,13 +87,15 @@ const FilterSelect = React.memo(({
   const title = label || def?.name
 
   // Create a list of options
-  const menuItems = options && options.map((option) => {
-    const value = option.value
-    return <MenuItem key={value} value={value}>
-      <Checkbox checked={filter ? filter.has(value) : false} />
-      <ListItemText primary={value} />
-    </MenuItem>
-  })
+  const menuItems = options && options
+    .filter((option) => option.count !== 0)
+    .map((option) => {
+      const value = option.value
+      return <MenuItem key={value} value={value}>
+        <Checkbox checked={filter ? filter.has(value) : false} />
+        <ListItemText primary={value} />
+      </MenuItem>
+    })
 
   const handleChange = useCallback((event) => {
     setFilter(new Set(event.target.value))

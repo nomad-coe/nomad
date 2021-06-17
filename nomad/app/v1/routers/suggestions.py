@@ -20,7 +20,7 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from pydantic import BaseModel, Field
 from fastapi import (
-    APIRouter, Depends, status, Request, Path
+    APIRouter, Depends, status, Request
 )
 from elasticsearch_dsl import Search
 from elasticsearch.exceptions import RequestError
@@ -30,8 +30,7 @@ from nomad.metainfo.elasticsearch_extension import entry_index
 
 from .auth import create_user_dependency
 from ..utils import create_responses
-from ..models import User, HTTPExceptionModel, Aggregation, TermsAggregation, MetadataRequired
-from .entries import perform_search
+from ..models import User, HTTPExceptionModel
 
 
 router = APIRouter()
@@ -83,7 +82,7 @@ async def get_suggestions(
             'field': '{}.suggestion'.format(quantity),
             'size': 5,
             'skip_duplicates': True,
-            # 'fuzziness': {},
+            'fuzzy': {},
         })
     search = search.extra(_source='suggest')
 

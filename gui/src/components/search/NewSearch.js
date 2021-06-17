@@ -63,7 +63,8 @@ const useNewSearchStyles = makeStyles(theme => {
       marginBottom: theme.spacing(3)
     },
     searchBar: {
-      flexGrow: 1
+      flexGrow: 1,
+      zIndex: 1
     },
     spacerBar: {
       flex: `0 0 ${theme.spacing(3)}px`
@@ -81,7 +82,8 @@ const useNewSearchStyles = makeStyles(theme => {
     shadow: {
       backgroundColor: 'black',
       transition: 'opacity 200ms',
-      willChange: 'opacity'
+      willChange: 'opacity',
+      zIndex: 1
     },
     hidden: {
       display: 'none'

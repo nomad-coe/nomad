@@ -25,7 +25,6 @@ import {
   ClickAwayListener
 } from '@material-ui/core'
 import ClearIcon from '@material-ui/icons/Clear'
-import CodeIcon from '@material-ui/icons/Code'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import FilterTree from './FilterTree'
 import Scrollable from '../visualization/Scrollable'
