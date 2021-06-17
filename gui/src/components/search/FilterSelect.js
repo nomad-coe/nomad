@@ -16,89 +16,126 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useCallback } from 'react'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Tooltip, Typography, TextField, MenuItem } from '@material-ui/core'
+import React, { useCallback } from 'react'
+import { makeStyles, useTheme, withStyles } from '@material-ui/core/styles'
+import {
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
+  Tooltip
+} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../searchQuantities'
+import FilterLabel from './FilterLabel'
+import FilterChip from './FilterChip'
+import { useFilterState, useAgg } from './FilterContext'
 
-const useStaticStyles = makeStyles(theme => ({
+// This forces the menu to have a fixed anchor instead of jumping around
+const MenuProps = {
+  getContentAnchorEl: null
+}
+
+// Customized input component
+const CustomInput = withStyles((theme) => ({
+  input: {
+    padding: theme.spacing(1),
+    minHeight: '2.5rem'
+  }
+}))(OutlinedInput)
+
+const useStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
     display: 'flex',
-    alignItems: 'center',
-    margin: `${theme.spacing(1)}px 0`
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    boxSizing: 'border-box'
   },
   select: {
-    margin: '0 0.5rem',
-    flex: '0 0 12rem',
-    minWidth: '12rem'
+    width: '100%'
   },
-  name: {
-    marginLeft: theme.spacing(1),
-    minWidth: '6rem'
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap'
   },
-  textField: {
-    marginTop: theme.spacing(1)
+  icon: {
+    right: theme.spacing(1)
   }
 }))
-const SelectQuery = React.memo(({
+const FilterSelect = React.memo(({
   label,
   quantity,
   description,
-  options,
+  visible,
   className,
   classes,
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const styles = useStaticStyles({classes: classes, theme: theme})
+  const styles = useStyles({classes: classes, theme: theme})
+  const options = useAgg(quantity, 'terms', true, visible)
+  const [filter, setFilter] = useFilterState(quantity)
+  const disabled = !(options && options.length > 0)
 
-  // Determine the description and options
-  const [finalDescription, finalOptions] = useMemo(() => {
-    const def = searchQuantities[quantity]
-    const desc = description || def?.description || ''
-    const opt = options || def?.type?.type_data || []
-    return [desc, opt]
-  }, [quantity, description, options])
+  // Determine the description and units
+  const def = searchQuantities[quantity]
+  const desc = description || def?.description || ''
+  const title = label || def?.name
 
-  // Callback for handling input change
+  // Create a list of options
+  const menuItems = options && options.map((option) => {
+    const value = option.value
+    return <MenuItem key={value} value={value}>
+      <Checkbox checked={filter ? filter.has(value) : false} />
+      <ListItemText primary={value} />
+    </MenuItem>
+  })
+
   const handleChange = useCallback((event) => {
-  }, [])
+    setFilter(new Set(event.target.value))
+  }, [setFilter])
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <Tooltip title={finalDescription}>
-      <Typography className={styles.name} variant="body1">
-        {`${label}:`}
-      </Typography>
-    </Tooltip>
-    <TextField
-      select
-      defaultValue={finalOptions[0]}
-      className={styles.select}
-      margin='dense'
-      size='small'
-      variant='outlined'
-      onChange={handleChange}
-    >
-      {finalOptions.map((option) => (
-        <MenuItem key={option} value={option}>
-          {option}
-        </MenuItem>
-      ))}
-    </TextField>
-  </div>
+  return <Tooltip title={disabled ? 'Now values available with current query.' : ''}>
+    <div className={clsx(className, styles.root)} data-testid={testID}>
+      <FilterLabel label={title} description={desc}/>
+      <Select
+        disabled={disabled}
+        multiple
+        value={filter ? [...filter] : []}
+        onChange={handleChange}
+        className={styles.select}
+        classes={{icon: styles.icon}}
+        input={<CustomInput/>}
+        MenuProps={MenuProps}
+        renderValue={(selected) => (
+          <div className={styles.chips}>
+            {selected.map((value) => <FilterChip key={value} label={value}/>)}
+          </div>
+        )}
+      >
+        {options && options.length > 0
+          ? menuItems
+          : <MenuItem disabled>
+            <ListItemText primary="No values available for current query"/>
+          </MenuItem>
+        }
+      </Select>
+    </div>
+  </Tooltip>
 })
 
-SelectQuery.propTypes = {
+FilterSelect.propTypes = {
   label: PropTypes.string,
-  quantity: PropTypes.string,
+  quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
-  options: PropTypes.arrayOf(PropTypes.string),
+  visible: PropTypes.bool.isRequired,
   className: PropTypes.string,
   classes: PropTypes.object,
-  units: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
-export default SelectQuery
+export default FilterSelect

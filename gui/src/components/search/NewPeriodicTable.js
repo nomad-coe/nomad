@@ -188,7 +188,7 @@ const NewPeriodicTable = React.memo(({
                   {element
                     ? <Element
                       element={element}
-                      disabled={!availableValues[element.symbol]}
+                      disabled={!availableValues[element.symbol] && !values?.has(element.symbol)}
                       onClick={() => onElementClicked(element.symbol)}
                       selected={values?.has(element.symbol)}
                     /> : ''}

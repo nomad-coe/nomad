@@ -76,14 +76,17 @@ const FilterElements = React.memo(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // If this panel is not visible, we hide the periodic table as it is very
+  // expensive to re-render (it is rerendered always when the query changes).
   return <div className={clsx(className, styles.root)}>
+    {visible &&
     <NewPeriodicTable
       availableValues={availableValues}
       values={filter}
       exclusive={exclusive}
       onChanged={handleElementsChanged}
       onExclusiveChanged={handleExclusiveChanged}
-    />
+    />}
     <Grid container spacing={2} className={styles.grid}>
       <Grid item xs={6}>
         <FilterText

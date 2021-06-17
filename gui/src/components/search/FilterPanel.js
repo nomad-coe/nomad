@@ -230,6 +230,10 @@ const FilterPanel = React.memo(({
   const views = useMemo(() => {
     const viewList = []
     function addView(item) {
+      // We keep all views active and keep rendering them even if they are not
+      // visible. This way the application feels more responsive when switching
+      // between panels, with the cost of the application being less responsive
+      // on changing individual values due to renders on hidden components.
       if (item.component) {
         viewList.push(<item.component
           key={viewList.length}
@@ -275,7 +279,8 @@ const FilterPanel = React.memo(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [])
 
-  return <ClickAwayListener onClickAway={() => onIsMenuOpenChange(false)}>
+  // return <ClickAwayListener onClickAway={() => onIsMenuOpenChange(false)}>
+  return <ClickAwayListener onClickAway={() => {}}>
     <div className={clsx(className, styles.root)}>
       <Scrollable className={clsx(styles.menuPrimary, isMenuOpen && styles.menuPrimaryBorder)}>
         <div className={styles.paddingPrimary}>

@@ -26,6 +26,7 @@ import clsx from 'clsx'
  */
 const useStaticStyles = makeStyles(theme => ({
   root: {
+    marginBottom: theme.spacing(1)
   }
 }))
 const FilterLabel = React.memo(({

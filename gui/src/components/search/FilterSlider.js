@@ -21,10 +21,12 @@ import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
   TextField,
-  FormHelperText
+  FormHelperText,
+  Tooltip
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil } from 'lodash'
 import FilterLabel from './FilterLabel'
 import { Quantity, Unit, toUnitSystem } from '../../units'
 import searchQuantities from '../../searchQuantities'
@@ -104,11 +106,12 @@ const FilterSlider = React.memo(({
   const stepConverted = step instanceof Quantity ? step.toSystem(units) : step
   let minConverted = (minGlobal !== undefined && unitSI) ? toUnitSystem(minGlobal, unitSI, units) : minGlobal
   let maxConverted = (maxGlobal !== undefined && unitSI) ? toUnitSystem(maxGlobal, unitSI, units) : maxGlobal
+  const disabled = minConverted === null || maxConverted === null
 
   // If not manual range has been specified, the range is automatically adjusted
   // according to global min/max of the field
   useEffect(() => {
-    if (maxConverted !== undefined && minConverted !== undefined) {
+    if (!isNil(maxConverted) && !isNil(minConverted)) {
       setMaxLocal(maxConverted)
       setMinLocal(minConverted)
       if (filter === undefined) {
@@ -201,48 +204,53 @@ const FilterSlider = React.memo(({
     return
   }
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <FilterLabel label={title} description={desc}/>
-    <div className={styles.inputRow}>
-      <TextField
-        variant="outlined"
-        label="min"
-        className={styles.textField}
-        value={minText}
-        margin="normal"
-        onChange={handleStartChange}
-        onBlur={handleStartSubmit}
-        onKeyDown={(event) => { if (event.key === 'Enter') { handleStartSubmit() } }}
-        InputProps={{classes: {input: styles.input}}}
-      />
-      <div className={styles.spacer}>
-        <Slider
-          min={minLocal}
-          max={maxLocal}
-          step={stepConverted}
-          value={[range.gte, range.lte]}
-          onChange={handleRangeChange}
-          onChangeCommitted={handleRangeCommit}
-          valueLabelDisplay="off"
-          classes={{thumb: styles.thumb, active: styles.active}}
+  return <Tooltip title={disabled ? 'Now values available with current query.' : ''}>
+    <div className={clsx(className, styles.root)} data-testid={testID}>
+      <FilterLabel label={title} description={desc}/>
+      <div className={styles.inputRow}>
+        <TextField
+          disabled={disabled}
+          variant="outlined"
+          label="min"
+          className={styles.textField}
+          value={minText}
+          margin="normal"
+          onChange={handleStartChange}
+          onBlur={handleStartSubmit}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleStartSubmit() } }}
+          InputProps={{classes: {input: styles.input}}}
+        />
+        <div className={styles.spacer}>
+          <Slider
+            disabled={disabled}
+            min={minLocal}
+            max={maxLocal}
+            step={stepConverted}
+            value={[range.gte, range.lte]}
+            onChange={handleRangeChange}
+            onChangeCommitted={handleRangeCommit}
+            valueLabelDisplay="off"
+            classes={{thumb: styles.thumb, active: styles.active}}
+          />
+        </div>
+        <TextField
+          disabled={disabled}
+          variant="outlined"
+          label="max"
+          className={styles.textField}
+          value={maxText}
+          margin="normal"
+          onChange={handleEndChange}
+          onBlur={handleEndSubmit}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleEndSubmit() } }}
+          InputProps={{classes: {input: styles.input}}}
         />
       </div>
-      <TextField
-        variant="outlined"
-        label="max"
-        className={styles.textField}
-        value={maxText}
-        margin="normal"
-        onChange={handleEndChange}
-        onBlur={handleEndSubmit}
-        onKeyDown={(event) => { if (event.key === 'Enter') { handleEndSubmit() } }}
-        InputProps={{classes: {input: styles.input}}}
-      />
+      {error && <FormHelperText error>
+        {error}
+      </FormHelperText>}
     </div>
-    {error && <FormHelperText error>
-      {error}
-    </FormHelperText>}
-  </div>
+  </Tooltip>
 })
 
 FilterSlider.propTypes = {

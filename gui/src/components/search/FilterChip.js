@@ -16,42 +16,37 @@
  * limitations under the License.
  */
 import React from 'react'
-import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
-import { Grid } from '@material-ui/core'
-import FilterCheckboxes from './FilterCheckboxes'
+import { Chip } from '@material-ui/core'
+import PropTypes from 'prop-types'
 
-const useFiltersElementStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
-    width: '100%'
+    padding: theme.spacing(0.5)
   }
 }))
-
-export const labelGW = 'GW'
-
-/**
- * Displays the filter options for electronic properties.
- */
-const FilterGW = React.memo(({
-  visible,
+const FilterChip = React.memo(({
+  label,
+  onDelete,
   className
 }) => {
-  const styles = useFiltersElementStyles()
+  const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.gw.gw_type"
-        />
-      </Grid>
-    </Grid>
+    <Chip
+      label={label}
+      onDelete={onDelete}
+      color="primary"
+      className={styles.root}
+    />
   </div>
 })
-FilterGW.propTypes = {
-  visible: PropTypes.bool,
+
+FilterChip.propTypes = {
+  label: PropTypes.string,
+  onDelete: PropTypes.func,
   className: PropTypes.string
 }
 
-export default FilterGW
+export default FilterChip

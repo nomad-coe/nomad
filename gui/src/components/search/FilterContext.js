@@ -118,7 +118,7 @@ export const aggregationRequestState = atom({
 let index = 0
 
 /**
- * Returns a function that can be caleld to reset all current filters.
+ * Returns a function that can be called to reset all current filters.
  */
 export function useResetFilters() {
   const reset = useRecoilCallback(({reset}) => () => {
@@ -138,15 +138,6 @@ export function useResetFilters() {
  * @returns currently set filter value.
  */
 export function useFilterValue(quantity) {
-  // const setRegisteredFilters = useSetRecoilState(registeredFilters)
-  // setRegisteredFilters(old => {
-  //   if (old.has(quantity)) {
-  //     return old
-  //   }
-  //   const newValue = new Set(old)
-  //   newValue.add(quantity)
-  //   return newValue
-  // })
   return useRecoilValue(queryFamily(quantity))
 }
 /**
@@ -170,15 +161,6 @@ export function useSetFilter(quantity) {
  * @returns array containing the filter value and setter function for it.
  */
 export function useFilterState(quantity) {
-  // const setRegisteredFilters = useSetRecoilState(registeredFilters)
-  // setRegisteredFilters(old => {
-  //   if (old.has(quantity)) {
-  //     return old
-  //   }
-  //   const newValue = new Set(old)
-  //   newValue.add(quantity)
-  //   return newValue
-  // })
   return useRecoilState(queryFamily(quantity))
 }
 
@@ -279,8 +261,6 @@ export function useSearch() {
 export function useAgg(quantity, type, restrict = false, update = true, delay = 400) {
   const api = useApi()
   const [results, setResults] = useState()
-  // const quantities = filtersAll
-  // const query = useFiltersState(quantities)
   const query = useQueryValue()
   const firstRender = useRef(true)
 
@@ -308,7 +288,10 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     }
     const aggs = {}
     const agg = {}
-    agg[type] = {quantity: quantity}
+    agg[type] = {
+      quantity: quantity,
+      size: 50
+    }
     aggs[quantity] = agg
     const search = {
       owner: 'visible',
@@ -326,11 +309,6 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     } else {
       debounced(search)
     }
-
-    // api.queryEntry(search)
-    //   .then(data => {
-    //     setResults(data)
-    //   })
   }, [api, apiCall, debounced, quantity, query, restrict, type, update])
 
   return results && results.aggregations[quantity][type].data

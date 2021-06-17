@@ -18,10 +18,10 @@
  */
 import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
+import FilterChip from './FilterChip'
 import { useFiltersState } from './FilterContext'
 import { formatNumber } from '../../utils'
 import { Quantity, useUnits } from '../../units'
@@ -82,26 +82,21 @@ const FilterSummary = React.memo(({
     const isObj = typeof filterValue === 'object' && filterValue !== null
     if (isArray || isSet) {
       filterValue.forEach((value, index) => {
-        const item = <div
+        const item = <FilterChip
           key={chips.length}
-          className={styles.chip}
-        >
-          <Chip
-            label={value}
-            onDelete={() => {
-              if (isSet) {
-                const newSet = new Set(filterValue)
-                newSet.delete(value)
-                setFilter([quantity, newSet])
-              } else if (isArray) {
-                const newArray = [...filterValue]
-                newArray.splice(index, 1)
-                setFilter([quantity, newArray])
-              }
-            }}
-            color="primary"
-          />
-        </div>
+          label={value}
+          onDelete={() => {
+            if (isSet) {
+              const newSet = new Set(filterValue)
+              newSet.delete(value)
+              setFilter([quantity, newSet])
+            } else if (isArray) {
+              const newArray = [...filterValue]
+              newArray.splice(index, 1)
+              setFilter([quantity, newArray])
+            }
+          }}
+        />
         chips.push(item)
       })
     // Is query is an object, we display a customized view based on its contents.
@@ -118,34 +113,24 @@ const FilterSummary = React.memo(({
       } else {
         label = `${!isNil(gte) ? `${gte}<=` : ''}${!isNil(gt) ? `${gt}<` : ''}${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}${!isNil(lt) ? `<${lt}` : ''}`
       }
-      const item = <div
+      const item = <FilterChip
         key={chips.length}
-        className={styles.chip}
-      >
-        <Chip
-          label={label}
-          onDelete={() => {
-            setFilter([quantity, undefined])
-          }}
-          color="primary"
-        />
-      </div>
+        label={label}
+        onDelete={() => {
+          setFilter([quantity, undefined])
+        }}
+      />
       chips.push(item)
     // If query is scalar-like, we show the quantity name together with the
     // value
     } else {
-      const item = <div
+      const item = <FilterChip
         key={chips.length}
-        className={styles.chip}
-      >
-        <Chip
-          label={`${filterAbbr}=${filterValue}`}
-          onDelete={() => {
-            setFilter([quantity, undefined])
-          }}
-          color="primary"
-        />
-      </div>
+        label={`${filterAbbr}=${filterValue}`}
+        onDelete={() => {
+          setFilter([quantity, undefined])
+        }}
+      />
       chips.push(item)
     }
   }

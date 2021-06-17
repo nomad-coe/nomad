@@ -21,6 +21,8 @@ import clsx from 'clsx'
 import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterText from './FilterText'
+import FilterCheckboxes from './FilterCheckboxes'
+import FilterSelect from './FilterSelect'
 
 export const labelSymmetry = 'Symmetry / Prototypes'
 
@@ -42,51 +44,49 @@ const FilterSymmetry = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterText
+        <FilterCheckboxes
           quantity="results.material.symmetry.bravais_lattice"
-          suggest
+          visible={visible}
+          xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <FilterCheckboxes
           quantity="results.material.symmetry.crystal_system"
-          suggest
+          visible={visible}
+          xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.symmetry.hall_symbol"
-          suggest
+        <FilterSelect
+          quantity="results.material.symmetry.structure_name"
+          visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.symmetry.point_group"
-          suggest
+        <FilterSelect
+          quantity="results.material.symmetry.strukturbericht_designation"
+          visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.space_group_symbol"
-          suggest
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterText
+          quantity="results.material.symmetry.point_group"
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterText
+          quantity="results.material.symmetry.hall_symbol"
         />
       </Grid>
       <Grid item xs={12}>
         <FilterText
           quantity="results.material.symmetry.prototype_aflow_id"
-          suggest
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.symmetry.structure_name"
-          suggest
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.symmetry.strukturbericht_designation"
-          suggest
         />
       </Grid>
     </Grid>

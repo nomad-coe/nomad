@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Grid,
@@ -24,10 +24,9 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { useApi } from '../apiV1'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-import { useFilterState } from './FilterContext'
+import { useFilterState, useAgg } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -37,18 +36,14 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
-  },
-  textField: {
-    marginTop: theme.spacing(1)
-  },
-  input: {
-    // padding: '16px 12px'
   }
 }))
-const FilterEnum = React.memo(({
+const FilterCheckboxes = React.memo(({
   label,
   quantity,
   description,
+  visible,
+  xs,
   className,
   classes,
   'data-testid': testID
@@ -56,7 +51,9 @@ const FilterEnum = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [options, setOptions] = useState()
-  const api = useApi()
+  const availableOptions = useAgg(quantity, 'terms', true, visible)
+  const [filter, setFilter] = useFilterState(quantity)
+  const firstFetch = useRef(true)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -64,26 +61,18 @@ const FilterEnum = React.memo(({
   const name = label || def?.name
   const title = name
 
-  // Attach the filter hook
-  const [filter, setFilter] = useFilterState(quantity)
-
-  // Fetch all possible values
+  // Save the available options when retrieved for the first time (without any
+  // filters)
   useEffect(() => {
-    const search = {
-      owner: 'visible',
-      aggregations: {[quantity]: {terms: {quantity: quantity, size: 10}}},
-      pagination: {page_size: 0},
-      required: {include: []}
+    if (availableOptions && firstFetch.current) {
+      const opt = {}
+      for (let option of availableOptions) {
+        opt[option.value] = {checked: false, disabled: false}
+      }
+      setOptions(opt)
+      firstFetch.current = false
     }
-    api.queryEntry(search)
-      .then(data => {
-        const opt = {}
-        for (let value of data.aggregations[quantity].terms.data) {
-          opt[value.value] = false
-        }
-        setOptions(opt)
-      })
-  }, [api, quantity])
+  }, [availableOptions])
 
   // React to changing filters
   useEffect(() => {
@@ -91,29 +80,54 @@ const FilterEnum = React.memo(({
       setOptions(old => {
         const newOptions = {}
         for (let key of Object.keys(old)) {
-          newOptions[key] = false
+          newOptions[key] = old[key]
+          newOptions[key].checked = false
         }
         for (let value of filter) {
-          newOptions[value] = true
+          newOptions[value].checked = true
         }
         return newOptions
       })
     }
   }, [filter])
 
+  // React to changing options. Unselected ones will be disabled/enabled
+  // accordingly.
+  useEffect(() => {
+    if (availableOptions) {
+      setOptions(old => {
+        console.log(old)
+        console.log(availableOptions)
+        const newOptions = {}
+        for (let key of Object.keys(old)) {
+          newOptions[key] = old[key]
+          if (!newOptions[key].checked) {
+            newOptions[key].disabled = true
+          }
+        }
+        for (let option of availableOptions) {
+          newOptions[option.value].disabled = false
+        }
+        return newOptions
+      })
+    }
+  }, [availableOptions])
+
   const handleChange = useCallback((event) => {
-    const newOptions = { ...options, [event.target.name]: event.target.checked }
+    const newOptions = {...options}
+    newOptions[event.target.name].checked = event.target.checked
     const checked = Object.entries(newOptions)
-      .filter(([key, value]) => value)
+      .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
     setFilter(checked)
   }, [setFilter, options])
 
   const checkboxes = options && Object.entries(options).map(([key, value]) => {
-    return <Grid item xs={12} key={key}>
+    return <Grid item xs={xs} key={key}>
       <FormControlLabel
-        control={<Checkbox checked={value} onChange={handleChange} name={key}/>}
+        control={<Checkbox checked={value.checked} onChange={handleChange} name={key}/>}
         label={key}
+        disabled={value.disabled}
       />
     </Grid>
   })
@@ -126,13 +140,19 @@ const FilterEnum = React.memo(({
   </div>
 })
 
-FilterEnum.propTypes = {
+FilterCheckboxes.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string,
+  visible: PropTypes.bool,
+  xs: PropTypes.number,
   description: PropTypes.string,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
-export default FilterEnum
+FilterCheckboxes.defaultProps = {
+  xs: 12
+}
+
+export default FilterCheckboxes

@@ -43,11 +43,9 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'column',
     boxSizing: 'border-box'
   },
-  textField: {
-    marginTop: theme.spacing(1)
-  },
   input: {
-    // padding: '16px 12px'
+    padding: theme.spacing(1),
+    height: '2.5rem'
   }
 }))
 const FilterText = React.memo(({
@@ -207,9 +205,7 @@ const FilterText = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <FilterLabel label={title} description={desc}/>
     <Autocomplete
-      className={styles.input}
       freeSolo
-      // autoSelect
       clearOnBlur={false}
       inputValue={inputValue}
       value={null}
@@ -230,7 +226,6 @@ const FilterText = React.memo(({
       renderInput={(params) => (
         <TextField
           {...params}
-          className={styles.textField}
           variant="outlined"
           placeholder=""
           label={error || undefined}
@@ -239,10 +234,9 @@ const FilterText = React.memo(({
           InputLabelProps={{ shrink: true }}
           InputProps={{
             ...params.InputProps,
-            classes: {
-              input: styles.input,
-              notchedOutline: styles.notchedOutline
-            },
+            // classes: {
+            //   input: styles.input
+            // },
             endAdornment: (<>
               {loading ? <CircularProgress color="inherit" size={20} /> : null}
               {(inputValue?.length || null) && <>
