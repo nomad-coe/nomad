@@ -85,12 +85,7 @@ const FilterCheckboxes = React.memo(({
       }
       for (let key of Object.keys(old)) {
         newOptions[key] = old[key]
-        newOptions[key].checked = false
-      }
-      if (filter) {
-        for (let value of filter) {
-          newOptions[value].checked = true
-        }
+        newOptions[key].checked = (filter && filter.has(key))
       }
       return newOptions
     })
@@ -124,7 +119,7 @@ const FilterCheckboxes = React.memo(({
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
-    setFilter(checked)
+    setFilter(new Set(checked))
   }, [setFilter, options])
 
   const checkboxes = options && Object.entries(options).map(([key, value]) => {

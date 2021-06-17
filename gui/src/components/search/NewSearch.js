@@ -23,7 +23,7 @@ import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
 import SearchContext from './SearchContext'
-import { filtersAll } from './FilterContext'
+import { filtersAll, useMenuOpenState } from './FilterContext'
 
 const useNewSearchStyles = makeStyles(theme => {
   const filterWidth = 26
@@ -113,7 +113,7 @@ const NewSearch = React.memo(({
 }) => {
   const styles = useNewSearchStyles()
   const [resultType, setResultType] = useState('entries')
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useMenuOpenState()
   return <SearchContext query={query} initialQuery={initialQuery}>
     <div className={styles.root} {...rest}>
       <div className={styles.leftColumn}>
@@ -124,7 +124,7 @@ const NewSearch = React.memo(({
           onIsMenuOpenChange={setIsMenuOpen}
         />
       </div>
-      <div className={styles.center}>
+      <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
         <div className={styles.bar}>
           <NewSearchBar
             quantities={filtersAll}

@@ -226,7 +226,7 @@ const NewSearchBar = React.memo(({
             newValue = new Set(old)
             newValue.add(queryValue)
           } else {
-            return [queryValue]
+            return new Set(queryValue)
           }
           return newValue
         }])

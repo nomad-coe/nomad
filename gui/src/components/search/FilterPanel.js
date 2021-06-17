@@ -21,8 +21,7 @@ import clsx from 'clsx'
 import { makeStyles, fade } from '@material-ui/core/styles'
 import {
   Paper,
-  Typography,
-  ClickAwayListener
+  Typography
 } from '@material-ui/core'
 import ClearIcon from '@material-ui/icons/Clear'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
@@ -281,48 +280,51 @@ const FilterPanel = React.memo(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [])
 
-  // return <ClickAwayListener onClickAway={() => onIsMenuOpenChange(false)}>
-  return <ClickAwayListener onClickAway={() => {}}>
-    <div className={clsx(className, styles.root)}>
-      <Scrollable className={clsx(styles.menuPrimary, isMenuOpen && styles.menuPrimaryBorder)}>
-        <div className={styles.paddingPrimary}>
-          <Actions
-            header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
-            variant="icon"
-            actions={actionsPrimary}
-            className={styles.header}
-          />
-          <FilterTree
-            filterTree={filterTree}
-            view={view}
-            isMenuOpen={isMenuOpen}
-            resultType={resultType}
-            onResultTypeChange={onResultTypeChange}
-            onViewChange={setView}
-            onIsMenuOpenChange={onIsMenuOpenChange}
-          />
-        </div>
-      </Scrollable>
-      <Paper
-        elevation={4}
-        className={clsx(styles.container, isMenuOpen && (view !== labelElements ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
-      >
-        <div className={clsx(styles.menuSecondary, view !== labelElements ? styles.menuMedium : styles.menuLarge)}>
-          <Scrollable>
-            <div className={styles.paddingSecondary}>
-              <Actions
-                header={<Typography className={styles.headerText} variant="button">{view}</Typography>}
-                variant="icon"
-                actions={actionsSecondary}
-                className={clsx(styles.header, styles.headerSecondary)}
-              />
-              {views}
-            </div>
-          </Scrollable>
-        </div>
-      </Paper>
-    </div>
-  </ClickAwayListener>
+  // Unfortunately the ClickAwayListener does not play nicely together with
+  // Menus/Select/Popper. When using Portals, the clicks are registered wrong.
+  // When Portals are disabled (disablePortal), their positioning goes haywire.
+  // The clicks outside are thus detected by individual event listeners that
+  // toggle a global menu state.
+  // return <ClickAwayListener disableReactTree onClickAway={() => onIsMenuOpenChange(false)}>
+  return <div className={clsx(className, styles.root)}>
+    <Scrollable className={clsx(styles.menuPrimary, isMenuOpen && styles.menuPrimaryBorder)}>
+      <div className={styles.paddingPrimary}>
+        <Actions
+          header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
+          variant="icon"
+          actions={actionsPrimary}
+          className={styles.header}
+        />
+        <FilterTree
+          filterTree={filterTree}
+          view={view}
+          isMenuOpen={isMenuOpen}
+          resultType={resultType}
+          onResultTypeChange={onResultTypeChange}
+          onViewChange={setView}
+          onIsMenuOpenChange={onIsMenuOpenChange}
+        />
+      </div>
+    </Scrollable>
+    <Paper
+      elevation={4}
+      className={clsx(styles.container, isMenuOpen && (view !== labelElements ? styles.containerVisibleMedium : styles.containerVisibleLarge))}
+    >
+      <div className={clsx(styles.menuSecondary, view !== labelElements ? styles.menuMedium : styles.menuLarge)}>
+        <Scrollable>
+          <div className={styles.paddingSecondary}>
+            <Actions
+              header={<Typography className={styles.headerText} variant="button">{view}</Typography>}
+              variant="icon"
+              actions={actionsSecondary}
+              className={clsx(styles.header, styles.headerSecondary)}
+            />
+            {views}
+          </div>
+        </Scrollable>
+      </div>
+    </Paper>
+  </div>
 })
 FilterPanel.propTypes = {
   isMenuOpen: PropTypes.bool,

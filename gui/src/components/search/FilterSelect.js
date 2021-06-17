@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { makeStyles, useTheme, withStyles } from '@material-ui/core/styles'
 import {
   Select,
@@ -87,15 +87,21 @@ const FilterSelect = React.memo(({
   const title = label || def?.name
 
   // Create a list of options
-  const menuItems = options && options
-    .filter((option) => option.count !== 0)
-    .map((option) => {
-      const value = option.value
-      return <MenuItem key={value} value={value}>
-        <Checkbox checked={filter ? filter.has(value) : false} />
-        <ListItemText primary={value} />
-      </MenuItem>
-    })
+  const menuItems = useMemo(() => {
+    const items = []
+    if (options) {
+      for (let option of options) {
+        const value = option.value
+        if (option.count > 0) {
+          items.push(<MenuItem key={value} value={value}>
+            <Checkbox checked={filter ? filter.has(value) : false} />
+            <ListItemText primary={value} />
+          </MenuItem>)
+        }
+      }
+    }
+    return items
+  }, [options, filter])
 
   const handleChange = useCallback((event) => {
     setFilter(new Set(event.target.value))

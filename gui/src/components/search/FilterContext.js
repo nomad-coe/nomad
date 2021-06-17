@@ -111,6 +111,11 @@ export const registeredFilters = atom({
   default: new Set()
 })
 
+export const menuOpen = atom({
+  key: 'isMenuOpen',
+  default: false
+})
+
 export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
@@ -122,6 +127,13 @@ export const aggregationRequestState = atom({
 })
 
 let index = 0
+
+export function useMenuOpenState() {
+  return useRecoilState(menuOpen)
+}
+export function useSetMenuOpen() {
+  return useSetRecoilState(menuOpen)
+}
 
 /**
  * Returns a function that can be called to reset all current filters.
@@ -373,6 +385,7 @@ function cleanQuery(obj) {
     let newValue
     if (v instanceof Set) {
       newValue = setToArray(v)
+      k = `${k}:any`
     } else if (v instanceof Quantity) {
       newValue = v.toSI()
     } else if (Array.isArray(v)) {
