@@ -419,9 +419,8 @@ class TestClient:
 
         new_search_results = utils.flat(new_search['results'][0])
         for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing', 'dft.labels.label', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
+            if key not in ['upload_time', 'last_processing', 'dft.labels', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
                 # There is a sub second change due to date conversions (?).
-                # Labels have arbitrary order.
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key]), key
 
         published.upload_files.exists

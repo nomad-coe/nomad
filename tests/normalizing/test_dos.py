@@ -39,7 +39,7 @@ def test_fingerprint(dos_si_vasp):
         '''
         section_run[*].section_single_configuration_calculation[*].
         section_dos[*].section_dos_fingerprint
-        ''')[0][0][0]
+        ''')[-1][-1][0]
     dos_fingerprint = DOSFingerprint().from_dict(dos_fingerprint_dict)
     assert dos_fingerprint.get_similarity(dos_fingerprint) == 1
     assert dos_fingerprint.filling_factor != 0
@@ -97,7 +97,7 @@ def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive,
     """
     def get_dos_values_normalized(archive):
         return archive.section_run[0].m_xpath(
-            'section_single_configuration_calculation[*].section_dos[*].dos_values_normalized')[0][0]
+            'section_single_configuration_calculation[*].section_dos[*].dos_values_normalized')[-1][0]
 
     dos_vasp = get_dos_values_normalized(dos_si_vasp)
     dos_exciting = get_dos_values_normalized(dos_si_exciting)
