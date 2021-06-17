@@ -41,12 +41,9 @@ const useElementStyles = makeStyles(theme => ({
     position: 'relative'
   },
   button: {
-    border: '1px solid',
-    paddingTop: theme.spacing(1),
-    paddingBottom: theme.spacing(1),
-    paddingLeft: 0,
-    paddingRight: 0,
     width: '100%',
+    height: '100%',
+    border: '1px solid',
     textAlign: 'center',
     fontSize: '1rem',
     fontWeight: 700,
@@ -59,6 +56,33 @@ const useElementStyles = makeStyles(theme => ({
   containedPrimary: {
     backgroundColor: theme.palette.primary.dark,
     color: 'white'
+  },
+  containerOuter: {
+    width: '100%',
+    paddingBottom: '100%',
+    position: 'relative'
+  },
+  containerInner: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%'
+  },
+  buttonRoot: {
+    padding: 16,
+    paddingTop: 18,
+    paddingBottom: 14,
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+    minWidth: 0,
+    border: '1px solid',
+    textAlign: 'center',
+    fontSize: '1rem',
+    fontWeight: 700,
+    textTransform: 'none',
+    minHeight: 0,
+    borderRadius: 0,
+    boxShadow: 'none'
   },
   number: {
     position: 'absolute',
@@ -88,7 +112,7 @@ const Element = React.memo(({
 }) => {
   const styles = useElementStyles()
   const buttonClasses = {
-    root: styles.button,
+    // root: styles.button,
     containedPrimary: styles.containedPrimary
   }
   const theme = useTheme()
@@ -101,16 +125,19 @@ const Element = React.memo(({
   return (
     <div className={styles.root}>
       <Tooltip title={element.name}>
-        <div>
-          <Button
-            disabled={disabled}
-            classes={buttonClasses}
-            style={style}
-            onClick={onClick} variant="contained"
-            color={selected ? 'primary' : 'default'}
-          >
-            {element.symbol}
-          </Button>
+        <div className={styles.containerOuter}>
+          <div className={styles.containerInner}>
+            <Button
+              className={styles.buttonRoot}
+              disabled={disabled}
+              classes={buttonClasses}
+              style={style}
+              onClick={onClick} variant="contained"
+              color={selected ? 'primary' : 'default'}
+            >
+              {element.symbol}
+            </Button>
+          </div>
         </div>
       </Tooltip>
       <Typography

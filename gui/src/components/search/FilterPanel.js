@@ -113,7 +113,7 @@ const useStyles = makeStyles(theme => {
   // values.
   const padding = theme.spacing(2)
   const widthMedium = 25
-  const widthLarge = 42
+  const widthLarge = 43
   return {
     root: {
       boxSizing: 'border-box',
