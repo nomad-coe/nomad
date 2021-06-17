@@ -36,7 +36,7 @@ from nomad.search.v1 import search
 from tests.search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
-from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
+from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -139,6 +139,14 @@ def assert_processing(upload: Upload, published: bool = False):
         assert entry['upload_id'] == upload.upload_id
 
 
+def assert_user_metadata(entries_metadata, user_metadata):
+    for entry_metadata in entries_metadata:
+        entry_metadata_dict = entry_metadata.m_to_dict()
+        for k, value_expected in user_metadata.items():
+            value_actual = entry_metadata_dict[k]
+            assert value_actual == value_expected, f'Mismatch {k}: {value_expected} != {value_actual}'
+
+
 def test_processing(processed, no_warn, mails, monkeypatch):
     assert_processing(processed)
 
@@ -174,7 +182,8 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
     except Exception:
         pass
 
-    with processed.entries_metadata(internal_example_user_metadata) as entries:
+    with processed.entries_metadata() as entries:
+        assert_user_metadata(entries, internal_example_user_metadata)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -204,7 +213,8 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     processed.publish_upload()
     processed.block_until_complete(interval=.01)
 
-    with processed.entries_metadata(internal_example_user_metadata) as entries:
+    with processed.entries_metadata() as entries:
+        assert_user_metadata(entries, internal_example_user_metadata)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -226,7 +236,8 @@ def test_publish_failed(
     except Exception:
         pass
 
-    with processed.entries_metadata(internal_example_user_metadata) as entries:
+    with processed.entries_metadata() as entries:
+        assert_user_metadata(entries, internal_example_user_metadata)
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
@@ -376,8 +387,9 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
 
-    with published.entries_metadata(internal_example_user_metadata) as entries_generator:
+    with published.entries_metadata() as entries_generator:
         entries = list(entries_generator)
+        assert_user_metadata(entries, internal_example_user_metadata)
 
     if with_failure != 'not-matched':
         for archive_file in old_archive_files:
@@ -706,29 +718,38 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
             assert entry_coauthors[j].last_name == coauthors[i][j].last_name
 
 
-@pytest.mark.parametrize('user,uploader', [
-    ('admin_user', 'other_test_user'),
-    ('test_user', 'test_user')
-])
-def test_read_adminmetadata_from_file(proc_infra, tmp, test_user, other_test_user, admin_user, user, uploader):
-    def user_from_name(user_name):
-        if user_name == 'test_user':
-            return test_user
-        if user_name == 'other_test_user':
-            return other_test_user
-        if user_name == 'admin_user':
-            return admin_user
+@pytest.mark.parametrize('user, metadata_to_set, should_succeed', [
+    pytest.param(
+        'test_user', dict(upload_name='hello', embargo_length=13),
+        True, id='unprotected-attributes'),
+    pytest.param(
+        'test_user', dict(uploader='other_test_user', upload_time=datetime(2021, 5, 4, 11)),
+        True, id='protected-attributes')])
+def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
 
-    user = user_from_name(user)
-    uploader = user_from_name(uploader)
-
-    upload_file = create_template_upload_file(
-        tmp, 'tests/data/proc/templates/template.json')
-    metadata = dict(uploader=other_test_user.user_id)
-    with zipfile.ZipFile(upload_file, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
-
-    upload = run_processing(('test_upload', upload_file), user)
-
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    assert calc.metadata['uploader'] == uploader.user_id
+    upload_id = 'test_ems_upload'
+    user = test_users_dict[user]
+    upload = run_processing((upload_id, 'tests/data/proc/examples_ems.zip'), user)
+    if 'uploader' in metadata_to_set:
+        metadata_to_set['uploader'] = test_users_dict[metadata_to_set['uploader']].user_id
+    upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
+    try:
+        upload.set_upload_metadata(upload_metadata)
+    except Exception:
+        assert not should_succeed
+        return
+    upload = Upload.get(upload_id)
+    with upload.entries_metadata() as entries_metadata:
+        for entry_metadata in entries_metadata:
+            expected_name = metadata_to_set.get('upload_name')
+            if expected_name is not None:
+                assert upload.name == (expected_name or None)
+                assert entry_metadata.upload_name == upload.name
+            if 'uploader' in metadata_to_set:
+                assert upload.user_id == metadata_to_set['uploader']
+                assert entry_metadata.uploader.user_id == upload.user_id
+            if 'upload_time' in metadata_to_set:
+                assert upload.upload_time == metadata_to_set['upload_time']
+                assert entry_metadata.upload_time == upload.upload_time
+            if 'embargo_length' in metadata_to_set:
+                assert upload.embargo_length == metadata_to_set['embargo_length']

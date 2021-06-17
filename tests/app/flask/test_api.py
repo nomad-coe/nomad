@@ -287,7 +287,6 @@ class TestUploads:
                         'with_embargo': lambda e: e.with_embargo,
                         'references': lambda e: e.references,
                         'coauthors': lambda e: [u.user_id for u in e.coauthors],
-                        '_uploader': lambda e: e.uploader.user_id,
                         '_pid': lambda e: str(e.pid),
                         'external_id': lambda e: e.external_id}.items():
                     if key in metadata:
@@ -1751,7 +1750,7 @@ class TestEditRepo():
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
+def test_edit_lift_embargo(api, published, test_user_auth, no_warn):
     example_calc = Calc.objects(upload_id=published.upload_id).first()
     assert example_calc.metadata['with_embargo']
     elastic_calc = next(
@@ -1762,7 +1761,7 @@ def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
             archive[example_calc.calc_id].to_dict()
 
     rv = api.post(
-        '/repo/edit', headers=other_test_user_auth, content_type='application/json',
+        '/repo/edit', headers=test_user_auth, content_type='application/json',
         data=json.dumps({
             'actions': {
                 'with_embargo': {}

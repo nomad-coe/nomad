@@ -52,7 +52,7 @@ from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
-    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
+    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -249,10 +249,6 @@ class Calc(Proc):
             definition = _editable_metadata.get(key, None)
             if definition is None and self.upload.from_oasis:
                 definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
 
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
@@ -911,7 +907,7 @@ class Upload(Proc):
         logger.info('started to publish')
 
         with utils.lnr(logger, 'publish failed'):
-            with self.entries_metadata(self.metadata) as calcs:
+            with self.entries_metadata() as calcs:
 
                 with utils.timer(logger, 'upload metadata updated'):
                     def create_update(calc):
@@ -1536,6 +1532,49 @@ class Upload(Proc):
 
         finally:
             upload_files.close()
+
+    def set_upload_metadata(self, upload_metadata: UploadMetadata):
+        '''
+        Sets upload level metadata (metadata that is only stored on the upload, or
+        stored on the upload and mirrored to the entries).
+
+        Arguments:
+            upload_metadata: a :class:`datamodel.UploadMetadata` object with metadata to set.
+        '''
+        logger = self.get_logger()
+
+        new_entry_metadata = {}
+        if upload_metadata.upload_name is not None:
+            self.name = upload_metadata.upload_name or None
+            new_entry_metadata['upload_name'] = upload_metadata.upload_name or None
+        if upload_metadata.embargo_length is not None:
+            assert 1 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 1 and 36 months'
+            self.embargo_length = upload_metadata.embargo_length
+        if upload_metadata.uploader is not None:
+            self.user_id = upload_metadata.uploader.user_id
+            new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
+        if upload_metadata.upload_time is not None:
+            self.upload_time = upload_metadata.upload_time
+            new_entry_metadata['upload_time'] = upload_metadata.upload_time
+
+        self.save()
+
+        if new_entry_metadata:
+            # Update entries and elastic search
+            with self.entries_metadata() as entries_metadata:
+                with utils.timer(logger, 'upload metadata updated'):
+                    def create_update(entry_metadata):
+                        entry_metadata.m_update_from_dict(new_entry_metadata)
+                        return UpdateOne(
+                            {'_id': entry_metadata.calc_id},
+                            {'$set': {'metadata': entry_metadata.m_to_dict(
+                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
+
+                    Calc._get_collection().bulk_write([
+                        create_update(entry_metadata) for entry_metadata in entries_metadata])
+
+                with utils.timer(logger, 'index updated'):
+                    search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
     def entry_ids(self) -> Iterable[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]

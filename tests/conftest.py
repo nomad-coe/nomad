@@ -26,7 +26,6 @@ import asyncore
 import time
 import shutil
 import os.path
-import datetime
 from flask import request, g
 import elasticsearch.exceptions
 from typing import List
@@ -565,11 +564,8 @@ def example_user_metadata(other_test_user, test_user) -> dict:
     return {
         'comment': 'test comment',
         'with_embargo': True,
-        'embargo_length': 12,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
-        '_uploader': other_test_user.user_id,
-        'coauthors': [test_user.user_id],
-        '_upload_time': datetime.datetime.utcnow(),
+        'coauthors': [other_test_user.user_id],
         '_pid': '256',
         'external_id': 'external_test_id'
     }

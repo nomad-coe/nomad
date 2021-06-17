@@ -92,7 +92,7 @@ from .ems import EMSMetadata
 from .qcms import QCMSMetadata
 from .datamodel import (
     Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, OasisMetadata,
-    MongoMetadata, EntryMetadata, EntryArchive)
+    UploadMetadata, MongoMetadata, EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results

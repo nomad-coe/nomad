@@ -59,7 +59,6 @@ def test_index_normalized_calc_with_metadata(
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
-    internal_example_user_metadata.pop('embargo_length')  # is for uploads only
     entry_metadata.apply_user_metadata(internal_example_user_metadata)
 
     entry = create_entry(entry_metadata)

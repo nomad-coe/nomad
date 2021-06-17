@@ -39,7 +39,7 @@ from nomad.app.optimade import filterparser
 from nomad.files import Restricted
 from nomad.search import v0 as search
 
-from ..common import RFC3339DateTime, rfc3339DateTime
+from ..common import rfc3339DateTime
 from .api import api
 
 
@@ -55,8 +55,6 @@ metadata_model = api.model('MetaData', {
     'references': fields.List(fields.String, descriptions='References allow to link calculations to external source, e.g. URLs.'),
     'coauthors': fields.List(fields.String, description='A list of co-authors given by user_id.'),
     'shared_with': fields.List(fields.String, description='A list of users to share calculations with given by user_id.'),
-    '_upload_time': RFC3339DateTime(description='Overrride the upload time.'),
-    '_uploader': fields.String(description='Override the uploader with the given user id.'),
     'datasets': fields.List(fields.String, description='A list of dataset ids.')
 })
 
