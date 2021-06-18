@@ -69,8 +69,8 @@ const useElementStyles = makeStyles(theme => ({
   },
   buttonRoot: {
     padding: 16,
-    paddingTop: 18,
-    paddingBottom: 14,
+    paddingTop: 17,
+    paddingBottom: 15,
     width: '100%',
     height: '100%',
     boxSizing: 'border-box',
@@ -78,7 +78,7 @@ const useElementStyles = makeStyles(theme => ({
     border: '1px solid',
     textAlign: 'center',
     fontSize: '1rem',
-    fontWeight: 700,
+    fontWeight: 600,
     textTransform: 'none',
     minHeight: 0,
     borderRadius: 0,
@@ -86,17 +86,8 @@ const useElementStyles = makeStyles(theme => ({
   },
   number: {
     position: 'absolute',
-    top: 2,
+    top: 0,
     left: 2,
-    margin: 0,
-    padding: 0,
-    fontSize: 8,
-    pointerEvents: 'none'
-  },
-  count: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
     margin: 0,
     padding: 0,
     fontSize: 8,
@@ -112,7 +103,7 @@ const Element = React.memo(({
 }) => {
   const styles = useElementStyles()
   const buttonClasses = {
-    // root: styles.button,
+    root: styles.buttonRoot,
     containedPrimary: styles.containedPrimary
   }
   const theme = useTheme()
@@ -128,7 +119,6 @@ const Element = React.memo(({
         <div className={styles.containerOuter}>
           <div className={styles.containerInner}>
             <Button
-              className={styles.buttonRoot}
               disabled={disabled}
               classes={buttonClasses}
               style={style}
@@ -231,7 +221,10 @@ const NewPeriodicTable = React.memo(({
           'selected atoms. The default is to return all entries that have at least ' +
           '(inclusively) the selected atoms.'}>
           <FormControlLabel
-            control={<Checkbox checked={exclusive} onChange={onExclusiveChanged} />}
+            control={<Checkbox
+              checked={exclusive}
+              onChange={(event) => { onExclusiveChanged(event.target.checked) }}
+            />}
             label={'only composition that exclusively contain these atoms'}
           />
         </Tooltip>

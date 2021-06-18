@@ -21,6 +21,19 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Tooltip, IconButton, Button } from '@material-ui/core'
 import clsx from 'clsx'
 
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: 'flex',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  spacer: {
+    flexGrow: 1
+  },
+  iconButton: {
+    marginRight: theme.spacing(1)
+  }
+}))
 const Actions = React.memo(({
   header,
   actions,
@@ -31,21 +44,13 @@ const Actions = React.memo(({
   className,
   classes
 }) => {
-  const actionsStyles = makeStyles((theme) => ({
+  const useDynamicStyles = makeStyles((theme) => ({
     root: {
-      display: 'flex',
-      width: '100%',
-      justifyContent: justifyContent,
-      boxSizing: 'border-box'
-    },
-    spacer: {
-      flexGrow: 1
-    },
-    iconButton: {
-      marginRight: theme.spacing(1)
+      justifyContent: justifyContent
     }
   }))
-  const styles = actionsStyles(classes)
+  const styles = useStyles({classes: classes})
+  const dynamicStyles = useDynamicStyles()
   const buttonList = actions && actions.map((value, idx) => {
     return <Tooltip key={idx} title={value.tooltip}>
       {variant === 'icon'
@@ -75,7 +80,7 @@ const Actions = React.memo(({
       }
     </Tooltip>
   })
-  return <div className={clsx(className, styles.root)}>
+  return <div className={clsx(className, styles.root, dynamicStyles.root)}>
     {header}
     {header && <div className={styles.spacer}></div>}
     {buttonList}
@@ -98,7 +103,7 @@ Actions.propTypes = {
   size: PropTypes.string, // Size of the MUI buttons
   justifyContent: PropTypes.string, // The flexbox justification of buttons
   className: PropTypes.string,
-  classes: PropTypes.string
+  classes: PropTypes.object
 }
 
 Actions.defaultProps = {

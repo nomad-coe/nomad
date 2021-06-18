@@ -211,6 +211,9 @@ const useStyles = makeStyles(theme => {
     },
     menuHidden: {
       display: 'none'
+    },
+    iconButton: {
+      marginRight: 0
     }
   }
 })
@@ -294,6 +297,7 @@ const FilterPanel = React.memo(({
           variant="icon"
           actions={actionsPrimary}
           className={styles.header}
+          classes={{iconButton: styles.iconButton}}
         />
         <FilterTree
           filterTree={filterTree}
@@ -318,6 +322,7 @@ const FilterPanel = React.memo(({
               variant="icon"
               actions={actionsSecondary}
               className={clsx(styles.header, styles.headerSecondary)}
+              classes={{iconButton: styles.iconButton}}
             />
             {views}
           </div>

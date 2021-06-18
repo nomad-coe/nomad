@@ -106,33 +106,35 @@ filtersAll = filtersAll.concat(filtersDFT)
 filtersAll = filtersAll.concat(filtersGW)
 filtersAll = filtersAll.concat(filtersMetadata)
 
-export const registeredFilters = atom({
-  key: 'registeredFilters',
-  default: new Set()
-})
-
-export const menuOpen = atom({
-  key: 'isMenuOpen',
-  default: false
-})
-
 export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
 
-export const aggregationRequestState = atom({
-  key: 'aggregations',
-  default: {}
-})
-
 let index = 0
 
+// Menu open state
+export const menuOpen = atom({
+  key: 'isMenuOpen',
+  default: false
+})
 export function useMenuOpenState() {
   return useRecoilState(menuOpen)
 }
 export function useSetMenuOpen() {
   return useSetRecoilState(menuOpen)
+}
+
+// Exclusive search state
+export const exclusive = atom({
+  key: 'exclusive',
+  default: false
+})
+export function useExclusiveState() {
+  return useRecoilState(exclusive)
+}
+export function useSetExclusive() {
+  return useSetRecoilState(exclusive)
 }
 
 /**
@@ -228,7 +230,7 @@ export function useFiltersState(quantities) {
 const queryState = selector({
   key: 'query',
   get: ({get}) => {
-    const query = {}
+    let query = {}
     for (let key of filtersAll) {
       const filter = get(queryFamily(key))
       if (filter !== undefined) {
@@ -296,14 +298,16 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     if (!update && !firstRender.current) {
       return
     }
-    const queryCopy = {...query}
 
     // If the restrict option is enabled, the filters targeting the specified
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
+    let queryCleaned = {...query}
     if (restrict && query && quantity in query) {
-      queryCopy[quantity] = undefined
+      queryCleaned[quantity] = undefined
     }
+    queryCleaned = cleanQuery(queryCleaned)
+
     const aggs = {
       [quantity]: {
         [type]: {
@@ -314,7 +318,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     }
     const search = {
       owner: 'visible',
-      query: cleanQuery(queryCopy),
+      query: queryCleaned,
       aggregations: aggs,
       pagination: {page_size: 0},
       required: { include: [] }
@@ -379,22 +383,30 @@ export function useResults(delay = 400) {
 
 // Converts all sets to arrays and convert all Quantities into their SI unit
 // values
-function cleanQuery(obj) {
+function cleanQuery(obj, exclusive) {
   let newObj = {}
   for (let [k, v] of Object.entries(obj)) {
     let newValue
-    if (v instanceof Set) {
+
+    // Special handling for elements. There are two search modes: exclusive and
+    // inclusive.
+    if (k === 'results.material.elements') {
+      k = exclusive ? `${k}` : `${k}:any`
       newValue = setToArray(v)
-      k = `${k}:any`
-    } else if (v instanceof Quantity) {
-      newValue = v.toSI()
-    } else if (Array.isArray(v)) {
-      newValue = v
-      k = `${k}:any`
-    } else if (typeof v === 'object' && v !== null) {
-      newValue = cleanQuery(v)
     } else {
-      newValue = v
+      if (v instanceof Set) {
+        newValue = setToArray(v)
+        k = `${k}:any`
+      } else if (v instanceof Quantity) {
+        newValue = v.toSI()
+      } else if (Array.isArray(v)) {
+        newValue = v
+        k = `${k}:any`
+      } else if (typeof v === 'object' && v !== null) {
+        newValue = cleanQuery(v)
+      } else {
+        newValue = v
+      }
     }
     newObj[k] = newValue
   }

@@ -106,7 +106,7 @@ const FilterSlider = React.memo(({
   const stepConverted = step instanceof Quantity ? step.toSystem(units) : step
   let minConverted = (minGlobal !== undefined && unitSI) ? toUnitSystem(minGlobal, unitSI, units) : minGlobal
   let maxConverted = (maxGlobal !== undefined && unitSI) ? toUnitSystem(maxGlobal, unitSI, units) : maxGlobal
-  const disabled = minConverted === null || maxConverted === null
+  const disabled = minGlobal === null || maxGlobal === null
 
   // If not manual range has been specified, the range is automatically adjusted
   // according to global min/max of the field

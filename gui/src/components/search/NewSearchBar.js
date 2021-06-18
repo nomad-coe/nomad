@@ -226,7 +226,7 @@ const NewSearchBar = React.memo(({
             newValue = new Set(old)
             newValue.add(queryValue)
           } else {
-            return new Set(queryValue)
+            return new Set([queryValue])
           }
           return newValue
         }])
@@ -360,7 +360,7 @@ const NewSearchBar = React.memo(({
       disableClearable
       PaperComponent={CustomPaper}
       classes={{endAdornment: styles.endAdornment}}
-      groupBy={(option) => option.dategory}
+      groupBy={(option) => option.category}
       filterOptions={filterOptions}
       options={options}
       onInputChange={handleInputChange}
