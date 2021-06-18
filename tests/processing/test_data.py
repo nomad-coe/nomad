@@ -36,7 +36,7 @@ from nomad.search.v1 import search
 from tests.search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
-from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
+from tests.app.conftest import test_users_dict, test_user_auth  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 

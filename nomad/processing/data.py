@@ -1013,7 +1013,7 @@ class Upload(Proc):
     def re_pack(self):
         ''' A *process* that repacks the raw and archive data based on the current embargo data. '''
         assert self.published
-        self.upload_files.re_pack(self.user_metadata())
+        self.upload_files.re_pack(self.entries_user_and_system_metadata())
 
     @process
     def process_upload(self):
@@ -1351,7 +1351,7 @@ class Upload(Proc):
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                self.staging_upload_files.pack(self.user_metadata(), create=False, include_raw=False)
+                self.staging_upload_files.pack(self.entries_user_and_system_metadata(), create=False, include_raw=False)
 
             self._cleanup_staging_files()
             self.last_update = datetime.utcnow()
@@ -1472,7 +1472,11 @@ class Upload(Proc):
         finally:
             upload_files.close()
 
-    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+    def entries_user_and_system_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+        '''
+        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the user and
+        system metadata only, for all entries of this upload.
+        '''
         return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
 
     def set_upload_metadata(self, upload_metadata: UploadMetadata):
