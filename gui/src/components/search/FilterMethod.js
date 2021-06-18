@@ -32,9 +32,6 @@ const useStyles = makeStyles(theme => ({
 
 export const labelMethod = 'Method'
 
-/**
- * Displays the filter options for electronic properties.
- */
 const FilterMethod = React.memo(({
   visible,
   className

@@ -73,7 +73,8 @@ class Author(metainfo.MSection):
         a_search=Search(mapping=Text(fields={'keyword': Keyword()})),
         a_elasticsearch=[
             Elasticsearch(material_entry_type, _es_field='keyword'),
-            Elasticsearch(material_entry_type, mapping='text', field='text', _es_field='')
+            Elasticsearch(material_entry_type, mapping='text', field='text', _es_field=''),
+            Elasticsearch(material_entry_type, suggestion=True)
         ])
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)

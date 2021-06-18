@@ -53,7 +53,6 @@ export const filtersMaterial = [
   'results.material.structural_type',
   'results.material.functional_type',
   'results.material.compound_type',
-  'results.material.material_id',
   'results.material.material_name'
 ]
 
@@ -93,7 +92,16 @@ export const filtersGW = [
 ]
 
 export const filtersMetadata = [
-  'authors.name'
+  'authors.name',
+  'datasets.name',
+  'datasets.doi'
+]
+
+export const filtersIDs = [
+  'results.material.material_id',
+  'upload_id',
+  'entry_id',
+  'datasets.dataset_id'
 ]
 
 export let filtersAll = []
@@ -105,6 +113,7 @@ filtersAll = filtersAll.concat(filtersMethod)
 filtersAll = filtersAll.concat(filtersDFT)
 filtersAll = filtersAll.concat(filtersGW)
 filtersAll = filtersAll.concat(filtersMetadata)
+filtersAll = filtersAll.concat(filtersIDs)
 
 export const queryFamily = atomFamily({
   key: 'queryFamily',

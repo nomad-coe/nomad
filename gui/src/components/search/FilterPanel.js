@@ -37,6 +37,7 @@ import FilterGW, { labelGW } from './FilterGW'
 import FilterMethod, { labelMethod } from './FilterMethod'
 import FilterMaterial, { labelMaterial } from './FilterMaterial'
 import FilterMetadata, { labelMetadata } from './FilterMetadata'
+import FilterIDs, { labelIDs } from './FilterIDs'
 import FilterSummary from './FilterSummary'
 import {
   useResetFilters,
@@ -47,7 +48,8 @@ import {
   filtersGW,
   filtersSymmetry,
   filtersMethod,
-  filtersMetadata
+  filtersMetadata,
+  filtersIDs
 } from './FilterContext'
 
 /**
@@ -103,6 +105,11 @@ const filterTree = [
     name: labelMetadata,
     filters: <FilterSummary quantities={filtersMetadata}/>,
     component: FilterMetadata
+  },
+  {
+    name: labelIDs,
+    filters: <FilterSummary quantities={filtersIDs}/>,
+    component: FilterIDs
   }
 ]
 

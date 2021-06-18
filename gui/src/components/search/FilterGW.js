@@ -30,9 +30,6 @@ const useFiltersElementStyles = makeStyles(theme => ({
 
 export const labelGW = 'GW'
 
-/**
- * Displays the filter options for electronic properties.
- */
 const FilterGW = React.memo(({
   visible,
   className

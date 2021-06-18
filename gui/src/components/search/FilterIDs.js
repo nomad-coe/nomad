@@ -20,67 +20,58 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterCheckboxes from './FilterCheckboxes'
+import FilterText from './FilterText'
 
-const useFiltersElementStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
     width: '100%'
   }
 }))
 
-export const labelDFT = 'DFT'
+export const labelIDs = 'IDs'
 
-const FilterDFT = React.memo(({
+const FilterIDs = React.memo(({
   visible,
   className
 }) => {
-  const styles = useFiltersElementStyles()
+  const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.basis_set_type"
+        <FilterText
+          quantity="entry_id"
           visible={visible}
-          xs={6}
+          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.core_electron_treatment"
+        <FilterText
+          quantity="upload_id"
           visible={visible}
+          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.relativity_method"
+        <FilterText
+          quantity="results.material.material_id"
           visible={visible}
-        />
-      </Grid>
-      {/* <Grid item xs={12}>
-        <FilterSelect
-          quantity="results.method.simulation.dft.basis_set_name"
-          visible={visible}
+          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.van_der_Waals_method"
+        <FilterText
+          quantity="datasets.dataset_id"
           visible={visible}
+          autocomplete='off'
         />
       </Grid>
-      <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.smearing_type"
-          visible={visible}
-        />
-      </Grid> */}
     </Grid>
   </div>
 })
-FilterDFT.propTypes = {
+FilterIDs.propTypes = {
   visible: PropTypes.bool,
   className: PropTypes.string
 }
 
-export default FilterDFT
+export default FilterIDs

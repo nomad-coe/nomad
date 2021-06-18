@@ -32,9 +32,6 @@ const useFiltersElementStyles = makeStyles(theme => ({
 
 export const labelElectronic = 'Electronic'
 
-/**
- * Displays the filter options for electronic properties.
- */
 const FilterElectronic = React.memo(({
   visible,
   className

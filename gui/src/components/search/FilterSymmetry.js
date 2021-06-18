@@ -32,9 +32,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-/**
- * Displays the filter options for symmetry properties.
- */
 const FilterSymmetry = React.memo(({
   visible,
   className

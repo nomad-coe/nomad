@@ -30,9 +30,6 @@ const useStyles = makeStyles(theme => ({
 
 export const labelMetadata = 'User metadata'
 
-/**
- * Displays the filter options for electronic properties.
- */
 const FilterMetadata = React.memo(({
   visible,
   className
@@ -43,14 +40,26 @@ const FilterMetadata = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <FilterText
+          label="author name"
           quantity="authors.name"
           visible={visible}
         />
-        {/* <FilterText
-          quantity=""
+      </Grid>
+      <Grid item xs={12}>
+        <FilterText
+          label="dataset name"
+          quantity="datasets.name"
           visible={visible}
           autocomplete="off"
-        /> */}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterText
+          label="dataset DOI"
+          quantity="datasets.doi"
+          visible={visible}
+          autocomplete="off"
+        />
       </Grid>
     </Grid>
   </div>

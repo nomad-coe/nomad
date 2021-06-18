@@ -38,9 +38,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-/**
- * Displays the filter options for chemical elements.
- */
 const FilterElements = React.memo(({
   visible,
   className

@@ -535,10 +535,7 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_elasticsearch=[
-            Elasticsearch(material_type),
-            Elasticsearch(material_type, suggestion=True)
-        ],
+        a_elasticsearch=Elasticsearch(material_type)
     )
     material_name = Quantity(
         type=str,

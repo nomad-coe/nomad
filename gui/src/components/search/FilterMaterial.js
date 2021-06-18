@@ -33,9 +33,6 @@ const useFiltersElementStyles = makeStyles(theme => ({
 
 export const labelMaterial = 'Material'
 
-/**
- * Displays the filter options for material.
- */
 const FilterMaterial = React.memo(({
   visible,
   className
@@ -61,12 +58,6 @@ const FilterMaterial = React.memo(({
         <FilterSelect
           quantity="results.material.compound_type"
           visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.material_id"
-          units={units}
         />
       </Grid>
       <Grid item xs={12}>
