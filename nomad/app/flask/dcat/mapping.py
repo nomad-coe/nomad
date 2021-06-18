@@ -92,7 +92,7 @@ class Mapping():
         if slim:
             return dataset
 
-        self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
+        self.g.add((dataset, DCAT.landingPage, URIRef('%s/entry/id/%s/%s' % (
             config.gui_url(), entry.upload_id, entry.calc_id))))
 
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
@@ -138,7 +138,7 @@ class Mapping():
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
-        self.g.add((person, VCARD.organizationName, Literal('unavailable' if user.affiliation is None else user.affiliation)))
+        self.g.add((person, VCARD.organization, Literal('unavailable' if user.affiliation is None else user.affiliation)))
         # address = BNode()
         # self.g.add((address, RDF.type, VCARD.Address))
         # self.g.add((address, VCARD.street_address, )) # affiliation_address?
