@@ -1037,46 +1037,62 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         # TODO
         raise NotImplementedError()
 
-    def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
-        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+    def _get_sub_sections(self, sub_section_def: 'SubSection'):
+        sub_section_lst = self.__dict__.get(sub_section_def.name)
+        if sub_section_lst is None:
+            sub_section_lst = MSubSectionList(self, sub_section_def)
+            self.__dict__[sub_section_def.name] = sub_section_lst
+        return sub_section_lst
 
+    def _on_add_sub_section(
+            self, sub_section_def: 'SubSection', sub_section: 'MSection', parent_index: int) -> None:
         self.m_mod_count += 1
-        parent_index = -1
-        if sub_section_def.repeats:
-            parent_index = self.m_sub_section_count(sub_section_def)
 
-        else:
-            old_sub_section = self.__dict__.get(sub_section_def.name)
-            if old_sub_section is not None:
-                old_sub_section.m_parent = None
-                old_sub_section.m_parent_sub_section = None
-                old_sub_section.m_parent_index = -1
-                if self.m_resource is not None:
-                    self.m_resource.remove(sub_section)
+        sub_section.m_parent = self
+        sub_section.m_parent_sub_section = sub_section_def
+        sub_section.m_parent_index = parent_index
 
-        if sub_section is not None:
-            sub_section.m_parent = self
-            sub_section.m_parent_sub_section = sub_section_def
-            sub_section.m_parent_index = parent_index
-            if sub_section.m_resource is not None:
-                sub_section.m_resource.remove(sub_section)
-            if self.m_resource is not None:
-                self.m_resource.add(sub_section)
+        if sub_section.m_resource is not None:
+            sub_section.m_resource.remove(sub_section)
 
-        sub_section_name = sub_section_def.name
-        if sub_section_def.repeats:
-            sub_section_lst = self.__dict__.get(sub_section_name)
-            if sub_section_lst is None:
-                sub_section_lst = self.__dict__.setdefault(sub_section_name, [])
-
-            sub_section_lst.append(sub_section)
-
-        else:
-            self.__dict__[sub_section_name] = sub_section
+        if self.m_resource is not None:
+            self.m_resource.add(sub_section)
 
         for handler in self.m_def.event_handlers:
             if handler.__name__.startswith('on_add_sub_section'):
                 handler(self, sub_section_def, sub_section)
+
+    def _on_remove_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
+        self.m_mod_count += 1
+
+        sub_section.m_parent = None
+        sub_section.m_parent_index = -1
+
+        if sub_section.m_resource is not None:
+            sub_section.m_resource.remove(sub_section)
+
+    def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection', index: int = -1) -> None:
+        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+
+        sub_section_name = sub_section_def.name
+        if sub_section_def.repeats:
+            sub_section_lst = self._get_sub_sections(sub_section_def)
+            if index == -1:
+                sub_section_lst.append(sub_section)
+            else:
+                raise NotImplementedError('You can only append sub sections.')
+
+            if sub_section_lst.__class__ != MSubSectionList:
+                self._on_add_sub_section(
+                    sub_section_def, sub_section, len(sub_section_lst) - 1)
+
+        else:
+            old_sub_section = self.__dict__.get(sub_section_name, None)
+            self.__dict__[sub_section_name] = sub_section
+            if sub_section is not None:
+                self._on_add_sub_section(sub_section_def, sub_section, -1)
+            if old_sub_section is not None:
+                self._on_remove_sub_section(sub_section_def, old_sub_section)
 
     def m_remove_sub_section(self, sub_section_def: 'SubSection', index: int) -> None:
         ''' Removes the exiting section for a non repeatable sub section '''
@@ -1089,9 +1105,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         elif sub_section_def.name in self.__dict__:
             sub_section = self.__dict__[sub_section_def.name]
             del(self.__dict__[sub_section_def.name])
-
-        if sub_section.m_resource is not None:
-            sub_section.m_resource.remove(sub_section)
+            self._on_remove_sub_section(sub_section_def, sub_section)
 
     def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
         ''' Retrieves a single sub section of the given sub section definition. '''
@@ -1103,13 +1117,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_get_sub_sections(self, sub_section_def: 'SubSection') -> List['MSection']:
         ''' Retrieves  all sub sections of the given sub section definition. '''
-        try:
-            if sub_section_def.repeats:
-                return self.__dict__[sub_section_def.name]
-            else:
+        if sub_section_def.repeats:
+            return self._get_sub_sections(sub_section_def)
+        else:
+            try:
                 return [self.__dict__[sub_section_def.name]]
-        except KeyError:
-            return []
+            except KeyError:
+                return []
 
     def m_sub_section_count(self, sub_section_def: 'SubSection') -> int:
         ''' Returns the number of sub sections for the given sub section definition. '''
@@ -1887,6 +1901,64 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return to_dict(result)
 
 
+# TODO implement and test the NotImplementErrors
+class MSubSectionList(list):
+    def __init__(self, section: 'MSection', sub_section_def: 'SubSection'):
+        self.section = section
+        self.sub_section_def = sub_section_def
+        super().__init__()
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def __delitem__(self, key):
+        old_value = self[key]
+        list.__delitem__(self, key)
+        for index in range(key, len(self)):
+            self[index].m_parent_index = index
+
+        self.section._on_remove_sub_section(self.sub_section_def, old_value)
+
+    def __setslice__(self, i, j, sequence):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def __delslice__(self, i, j):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def append(self, value):
+        list.append(self, value)
+        if value is not None:
+            self.section._on_add_sub_section(self.sub_section_def, value, len(self) - 1)
+
+    def pop(self):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def extend(self, newvalue):
+        start_index = len(self)
+        list.extend(self, newvalue)
+        for index, value in enumerate(newvalue):
+            self.section._on_add_sub_section(
+                self.sub_section_def, value, start_index + index)
+
+    def insert(self, i, element):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def remove(self, element):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def reverse(self):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def sort(self, cmpfunc=None):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def clear(self):
+        old_values = list(self)
+        list.clear(self)
+        for old_value in old_values:
+            self.section._on_remove_sub_section(self.sub_section_def, old_value)
+
+
 class MCategory(metaclass=MObjectMeta):
 
     m_def: 'Category' = None
@@ -2362,11 +2434,16 @@ class SubSection(Property):
         if obj is None:
             raise NotImplementedError()
 
-        if value is None:
+        if self.repeats:
+            if value is not None:
+                raise NotImplementedError('Cannot set a repeating sub section directly, modify the list, e.a. via append.')
+
+            obj.m_get_sub_sections(self).clear()
+
+        elif value is None:
             obj.m_remove_sub_section(self, -1)
+
         else:
-            if self.repeats:
-                raise NotImplementedError('Cannot set a repeating sub section use m_create or m_add_sub_section.')
             obj.m_add_sub_section(self, value)
 
     def __delete__(self, obj):

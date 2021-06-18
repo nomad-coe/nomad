@@ -59,14 +59,16 @@ def parse(
 
     entry_archive = datamodel.EntryArchive()
     metadata = entry_archive.m_create(datamodel.EntryMetadata)
+    cwd = os.getcwd()
     try:
-        cwd = os.getcwd()
         mainfile_path = os.path.abspath(mainfile_path)
         os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
         parser.parse(mainfile_path, entry_archive, logger=logger)
-        os.chdir(cwd)
     except Exception as e:
         logger.error('parsing was not successful', exc_info=e)
+        raise e
+    finally:
+        os.chdir(cwd)
 
     if metadata.domain is None:
         metadata.domain = parser.domain

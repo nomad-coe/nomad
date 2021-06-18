@@ -374,6 +374,25 @@ class TestM1:
         run.parsing = None
         assert run.parsing is None
 
+    def test_sub_section_lst(self):
+        run = Run()
+        assert run.systems == []
+        run.systems.append(System())
+
+        assert len(run.systems) == 1
+        assert run.systems[0].m_parent == run
+        assert run.systems[0].m_parent_index == 0
+        assert run.systems[0].m_parent_sub_section == Run.systems
+
+        with pytest.raises(NotImplementedError):
+            run.systems[0] = System()
+
+        run.systems.append(System())
+        first = run.systems[0]
+        del(run.systems[0])
+        assert first.m_parent is None
+        assert run.systems[0].m_parent_index == 0
+
     def test_defaults(self):
         assert len(System().periodic_dimensions) == 3
         assert System().atom_labels is None
