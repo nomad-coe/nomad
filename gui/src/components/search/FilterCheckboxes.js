@@ -85,7 +85,7 @@ const FilterCheckboxes = React.memo(({
       }
       for (let key of Object.keys(old)) {
         newOptions[key] = old[key]
-        newOptions[key].checked = (filter && filter.has(key))
+        newOptions[key].checked = filter ? filter.has(key) : false
       }
       return newOptions
     })
