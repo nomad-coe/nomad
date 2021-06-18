@@ -771,24 +771,6 @@ class Upload(Proc):
                     pass
         return {}
 
-    @property
-    def metadata(self) -> dict:
-        '''
-        Getter, setter for user metadata. Metadata is pickled to and from the public
-        bucket to allow sharing among all processes. Usually uploads do not have (much)
-        user defined metadata, but users provide all metadata per upload as part of
-        the publish process. This will change, when we introduce editing functionality
-        and metadata will be provided through different means.
-        '''
-        if PublicUploadFiles.exists_for(self.upload_id):
-            return PublicUploadFiles(self.upload_id, is_authorized=lambda: True).user_metadata
-        return None
-
-    @metadata.setter
-    def metadata(self, data: dict) -> None:
-        upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
-        upload_files.user_metadata = data
-
     @classmethod
     def get(cls, id: str, include_published: bool = True) -> 'Upload':
         return cls.get_by_id(id, 'upload_id')
@@ -1380,7 +1362,7 @@ class Upload(Proc):
             logger.info('started to publish upload directly')
 
             with utils.lnr(logger, 'publish failed'):
-                with self.entries_metadata(self.metadata) as calcs:
+                with self.entries_metadata() as calcs:
                     with utils.timer(logger, 'upload staging files packed'):
                         self.staging_upload_files.pack(calcs)
 
@@ -1475,63 +1457,23 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
     @contextmanager
-    def entries_metadata(
-            self, user_metadata: dict = None) -> Iterator[Iterable[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[Iterable[datamodel.EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
-
-        Arguments:
-            user_metadata: A dict of user metadata that is applied to the resulting
-                datamodel data and the respective calculations.
         '''
         upload_files = self.upload_files
-
-        # prepare user metadata per upload and per calc
-        if user_metadata is not None:
-            entries_metadata_dict: Dict[str, Any] = dict()
-            upload_metadata: Dict[str, Any] = dict()
-
-            upload_metadata.update(user_metadata)
-            if 'calculations' in upload_metadata:
-                del(upload_metadata['calculations'])
-
-            for calc in user_metadata.get('calculations', []):  # pylint: disable=no-member
-                entries_metadata_dict[calc['mainfile']] = calc
-
-            user_upload_time = upload_metadata.get('upload_time', None)
-            user_upload_name = upload_metadata.get('upload_name', None)
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.full_entry_metadata(upload_files)
-                entry_user_metadata = dict(upload_metadata)
-                entry_user_metadata.pop('embargo_length', None)  # this is for uploads only
-                entry_user_metadata.update(entries_metadata_dict.get(calc.mainfile, {}))
-                entry_metadata.apply_user_metadata(entry_user_metadata)
-                if entry_metadata.upload_time is None:
-                    entry_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
-                if entry_metadata.upload_name is None:
-                    entry_metadata.upload_name = self.name if user_upload_name is None else user_upload_name
-
-                return entry_metadata
-        else:
-            user_upload_time = None
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.full_entry_metadata(upload_files)
-                entry_metadata.upload_time = self.upload_time
-                entry_metadata.upload_name = self.name
-
-                return entry_metadata
-
         try:
             # read all calc objects first to avoid missing curser errors
             yield [
-                get_metadata(calc)
+                calc.full_entry_metadata(upload_files)
                 for calc in list(Calc.objects(upload_id=self.upload_id))]
 
         finally:
             upload_files.close()
+
+    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+        return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
 
     def set_upload_metadata(self, upload_metadata: UploadMetadata):
         '''
@@ -1545,8 +1487,8 @@ class Upload(Proc):
 
         new_entry_metadata = {}
         if upload_metadata.upload_name is not None:
-            self.name = upload_metadata.upload_name or None
-            new_entry_metadata['upload_name'] = upload_metadata.upload_name or None
+            self.name = upload_metadata.upload_name
+            new_entry_metadata['upload_name'] = upload_metadata.upload_name
         if upload_metadata.embargo_length is not None:
             assert 1 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 1 and 36 months'
             self.embargo_length = upload_metadata.embargo_length
@@ -1578,9 +1520,6 @@ class Upload(Proc):
 
     def entry_ids(self) -> Iterable[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
-        return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

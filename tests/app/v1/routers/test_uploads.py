@@ -955,7 +955,6 @@ def test_delete_upload_raw_path(
 
 @pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
     pytest.param('test_user', 'id_unpublished_w', dict(name='test_name', embargo_length=13), False, 200, id='ok'),
-    pytest.param('test_user', 'id_unpublished_w', dict(name=''), False, 200, id='clear-name'),
     pytest.param('admin_user', 'id_unpublished_w', 'PROTECTED', False, 200, id='protected-admin'),
     pytest.param('test_user', 'id_unpublished_w', 'PROTECTED', False, 401, id='protected-not-admin'),
     pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), True, 200, id='use-token'),
@@ -999,9 +998,8 @@ def test_put_upload_metadata(
         upload = Upload.get(upload_id)
         with upload.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
-                expected_name = query_args.get('name')
-                if expected_name is not None:
-                    assert upload.name == (expected_name or None)
+                if 'name' in query_args:
+                    assert upload.name == query_args.get('name')
                     assert entry_metadata.upload_name == upload.name
                 if 'uploader' in query_args:
                     assert upload.user_id == query_args['uploader']
