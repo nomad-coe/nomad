@@ -294,7 +294,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   const firstRender = useRef(true)
 
   const apiCall = useCallback(search => {
-    api.queryEntry(search)
+    api.queryEntry(search, false)
       .then(data => {
         setResults(data)
       })

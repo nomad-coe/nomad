@@ -16,6 +16,12 @@
  * limitations under the License.
  */
 import React from 'react'
+import {
+  atom,
+  useSetRecoilState,
+  useRecoilValue,
+  useRecoilState
+} from 'recoil'
 import PropTypes from 'prop-types'
 import { apiBase } from '../config'
 import { makeStyles, Typography } from '@material-ui/core'
@@ -78,22 +84,30 @@ function handleApiError(e) {
 }
 
 class Api {
-  constructor(keycloak) {
+  constructor(keycloak, setLoading) {
     this.keycloak = keycloak
+    this.setLoading = setLoading
     this.axios = axios.create({
       baseURL: `${apiBase}/v1`
     })
 
-    this.loadingHandler = []
-    this.loading = 0
+    this.nLoading = 0
 
-    this.onFinishLoading = () => {
-      this.loading--
-      this.loadingHandler.forEach(handler => handler(this.loading))
+    this.onFinishLoading = (show) => {
+      if (show) {
+        this.nLoading--
+        if (this.nLoading === 0) {
+          setLoading(false)
+        }
+      }
     }
-    this.onStartLoading = () => {
-      this.loading++
-      this.loadingHandler.forEach(handler => handler(this.loading))
+    this.onStartLoading = (show) => {
+      if (show) {
+        this.nLoading++
+        if (this.nLoading > 0) {
+          setLoading(true)
+        }
+      }
     }
   }
 
@@ -196,8 +210,7 @@ class Api {
    * @returns List of suggested values. The items are ordered by how well they
    * match the input.
    */
-  async suggestions(quantities, input, query) {
-    this.onStartLoading()
+  async suggestions(quantities, input) {
     const auth = await this.authHeaders()
     try {
       const suggestions = await this.axios.post(
@@ -211,43 +224,6 @@ class Api {
       return suggestions.data
     } catch (errors) {
       handleApiError(errors)
-    } finally {
-      this.onFinishLoading()
-    }
-  }
-
-  /**
-   * Returns a list of suggestions for the given metainfo quantity. Unlike the
-   * "global" suggestions, this function accepts only a single quantity name and
-   * also accepts a query object that can be used to restrict the suggestions to
-   * a specific search context.
-   *
-   * @param {string} quantity The quantity name for which suggestions are
-   * returned.
-   * @param {string} input Optional input used to select the most relevant results.
-   * @param {object} query Optional query that is used to limit the suggestions to a
-   * certain context.
-   *
-   * @returns List of suggested values. The items are ordered by how well they
-   * match the input.
-   */
-  async suggestions_aggregate(quantity, input, query) {
-    this.onStartLoading()
-    const auth = await this.authHeaders()
-    try {
-      const suggestions = await this.axios.post(
-        `/suggestions/${quantity}`,
-        {
-          input: input,
-          query: query
-        },
-        auth
-      )
-      return suggestions.data
-    } catch (errors) {
-      handleApiError(errors)
-    } finally {
-      this.onFinishLoading()
     }
   }
 
@@ -274,8 +250,8 @@ class Api {
    * @param {object} query contains the query
    * @returns Object containing the raw file metadata.
    */
-  async queryEntry(search) {
-    this.onStartLoading()
+  async queryEntry(search, show = true) {
+    this.onStartLoading(show)
     const auth = await this.authHeaders()
     try {
       const result = await this.axios.post(
@@ -290,7 +266,7 @@ class Api {
     } catch (errors) {
       handleApiError(errors)
     } finally {
-      this.onFinishLoading()
+      this.onFinishLoading(show)
     }
   }
 }
@@ -317,14 +293,35 @@ function parse(result) {
 
 let api = null
 
+/**
+ * Hook that returns a shared instance of the API class.
+*/
 export function useApi() {
   const [keycloak] = useKeycloak()
+  const setLoading = useSetLoading()
 
   if (!api || api.keycloak !== keycloak) {
-    api = new Api(keycloak)
+    api = new Api(keycloak, setLoading)
   }
 
   return api
+}
+
+/**
+ * Hooks/state for reading/writing whether the API is loading something.
+*/
+const apiLoading = atom({
+  key: 'apiLoading',
+  default: false
+})
+export function useLoading() {
+  return useRecoilValue(apiLoading)
+}
+export function useLoadingState() {
+  return useRecoilState(apiLoading)
+}
+export function useSetLoading() {
+  return useSetRecoilState(apiLoading)
 }
 
 const useLoginRequiredStyles = makeStyles(theme => ({

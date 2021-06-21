@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React from 'react'
+import PropTypes from 'prop-types'
 import { Link as RouterLink } from 'react-router-dom'
 import { Typography,
   AppBar as MuiAppBar, Toolbar, Link, LinearProgress, makeStyles } from '@material-ui/core'
@@ -24,19 +25,16 @@ import { useRoute } from './Routes'
 import LoginLogout from '../LoginLogout'
 import HelpDialog from '../Help'
 import MainMenu from './MainMenu'
-import { apiContext } from '../api'
+import { useLoading } from '../apiV1'
 import { guiBase } from '../../config'
 
-function LoadingIndicator() {
-  const {api} = useContext(apiContext)
-  const [loading, setLoading] = useState(0)
-  const handleOnLoading = useCallback(loading => setLoading(loading), [setLoading])
-  useEffect(() => {
-    api.onLoading(handleOnLoading)
-    return () => api.removeOnLoading(handleOnLoading)
-  }, [api, handleOnLoading])
+function LoadingIndicator({className}) {
+  const loading = useLoading()
+  return loading && <LinearProgress className={className} color="secondary" />
+}
 
-  return loading ? <LinearProgress color="secondary" /> : ''
+LoadingIndicator.propTypes = {
+  className: PropTypes.string
 }
 
 const useAppBarStyles = makeStyles(theme => ({
@@ -72,6 +70,12 @@ const useAppBarStyles = makeStyles(theme => ({
   },
   mainMenu: {
     marginLeft: theme.spacing(1)
+  },
+  progress: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0
   }
 }))
 
@@ -102,6 +106,6 @@ export default function AppBar() {
     <div className={classes.mainMenu} >
       <MainMenu />
     </div>
-    <LoadingIndicator />
+    <LoadingIndicator className={classes.progress}/>
   </MuiAppBar>
 }
