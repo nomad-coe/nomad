@@ -155,7 +155,6 @@ def publish_upload(upload, calc_metadata):
         # these metadata are applied to all calcs in the upload
         'comment': 'Data from a cool external project',
         'references': ['http://external.project.eu'],
-        # '_uploader': <nomad_user_id>,  # only works if the admin user is publishing
         # 'coauthors': [<nomad_user_id>, <nomad_user_id>, <nomad_user_id>]
         # these are calc specific metadata that supercede any upload metadata
         'calculations': calc_metadata}

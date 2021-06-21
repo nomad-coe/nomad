@@ -20,7 +20,6 @@ import typing
 import click
 import tabulate
 import mongoengine
-import pymongo
 import json
 import elasticsearch_dsl as es
 
@@ -242,26 +241,12 @@ def edit(ctx, uploads, publish: str, unpublish: bool):
 def chown(ctx, username, uploads):
     _, uploads = query_uploads(ctx, uploads)
 
-    print('%d uploads selected, changing its owner ...' % uploads.count())
+    print('%d uploads selected, changing owner ...' % uploads.count())
 
     user = datamodel.User.get(username=username)
-
+    upload_metadata = datamodel.UploadMetadata(uploader=user)
     for upload in uploads:
-        upload.user_id = user.user_id
-
-        def create_update(calc_id):
-            return pymongo.UpdateOne(
-                {'_id': calc_id},
-                {'$set': {'metadata.uploader': user.user_id}})
-
-        proc.Calc._get_collection().bulk_write(
-            [create_update(calc_id) for calc_id in upload.entry_ids()])
-        upload.save()
-
-        entries = [
-            datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata)
-            for calc in proc.Calc.objects(upload_id=upload.upload_id)]
-        search.update_metadata(entries, update_materials=True, refresh=True)
+        upload.set_upload_metadata(upload_metadata)
 
 
 @uploads.command(help='Reset the processing state.')

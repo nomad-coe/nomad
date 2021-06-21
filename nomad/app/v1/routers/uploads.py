@@ -49,6 +49,12 @@ logger = utils.get_logger(__name__)
 class UploadMetadata(BaseModel):
     name: Optional[str] = Field(None, description=strip('''
         A user-firendly name of the upload. Does not need to be unique'''))
+    embargo_length: Optional[int] = Field(None, description=strip('''
+        The embargo length in months (max 36).'''))
+    uploader: Optional[str] = Field(None, description=strip('''
+        The uploader (owner) of the upload. **Note! Can only be updated by admin users.**'''))
+    upload_time: Optional[datetime] = Field(None, description=strip('''
+        The time of the initial upload. **Note! Can only be updated by admin users.**'''))
 
 
 upload_metadata_parameters = parameter_dependency_from_model(
@@ -900,23 +906,40 @@ async def put_upload_metadata(
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
     Updates the metadata of the specified upload. Only admins can update the metadata of
-    published uploads.
+    published uploads. Moreover, some of the system generated metadata fields can only ever
+    be changed by admins.
     '''
     upload = _get_upload_with_write_access(
         upload_id, user, include_published=True, published_requires_admin=True)
+
     _check_upload_not_processing(upload)
 
-    has_changed = False
+    upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
     if metadata.name is not None:
-        upload.name = metadata.name or None
-        has_changed = True
+        upload_metadata.upload_name = metadata.name
+    if metadata.embargo_length is not None:
+        if not 1 <= metadata.embargo_length <= 36:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='`embargo_length` must be between 1 and 36 months.')
+        upload_metadata.embargo_length = metadata.embargo_length
+    if metadata.uploader is not None or metadata.upload_time is not None:
+        if not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='`uploader` and `upload_time` can only be updated by an admin user.')
+    if metadata.uploader is not None:
+        try:
+            uploader = datamodel.User.get(user_id=metadata.uploader)
+        except KeyError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='`uploader` is not a valid user id.')
+        upload_metadata.uploader = uploader
+    if metadata.upload_time is not None:
+        upload_metadata.upload_time = metadata.upload_time
 
-    if has_changed:
-        upload.save()
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='No metadata values provided.')
+    upload.set_upload_metadata(upload_metadata)
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
@@ -1021,7 +1044,7 @@ async def post_upload_action_publish(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload is already published.')
-        if not 1 <= embargo_length <= 36 and not (embargo_length == 0 and not with_embargo):
+        if not 1 <= embargo_length <= 36 and not (embargo_length == 0 and with_embargo is False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Invalid embargo_length. Must be between 1 and 36 months.')

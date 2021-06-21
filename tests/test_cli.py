@@ -270,10 +270,10 @@ class TestAdminUploads:
     def test_chown(self, published, test_user, other_test_user):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        assert calc.metadata['uploader'] == other_test_user.user_id
+        assert calc.metadata['uploader'] == test_user.user_id
 
         result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads', 'chown', test_user.username, upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'changing' in result.stdout
@@ -281,8 +281,8 @@ class TestAdminUploads:
         upload = Upload.objects(upload_id=upload_id).first()
         calc.reload()
 
-        assert upload.user_id == test_user.user_id
-        assert calc.metadata['uploader'] == test_user.user_id
+        assert upload.user_id == other_test_user.user_id
+        assert calc.metadata['uploader'] == other_test_user.user_id
 
     def test_edit(self, published):
         upload_id = published.upload_id

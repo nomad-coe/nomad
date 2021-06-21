@@ -28,7 +28,6 @@ import re
 import subprocess
 from urllib import parse as urllib_parse
 import os
-import datetime
 import click
 import tarfile
 import threading
@@ -367,7 +366,6 @@ class DbUpdater:
         return status, upload_id
 
     def get_payload(self, uid: int) -> typing.Dict[str, typing.Any]:
-        timenow = datetime.datetime.utcnow()
         if self.db_name == 'aflowlib':
             return dict(
                 operation='publish',
@@ -393,9 +391,7 @@ class DbUpdater:
                         'd2621bc7-c45a-4d35-9dc1-5c05fa8326cb',
                         'ecba0e68-65ee-4b40-8fbf-a42714b1072b',
                         '81b96683-7170-49d7-8c4e-e9f34906b3ea'],
-                    shared_with=[],
-                    _upload_time=timenow,
-                    _uploader='81b96683-7170-49d7-8c4e-e9f34906b3ea'))
+                    shared_with=[]))
         else:
             raise NotImplementedError('%s not yet supported.' % self.db_name)
 

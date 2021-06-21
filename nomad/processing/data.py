@@ -52,7 +52,7 @@ from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
-    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
+    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -123,7 +123,7 @@ class Calc(Proc):
     mainfile = StringField()
     parser = StringField()
 
-    metadata = DictField()
+    metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
     meta: Any = {
         'strict': False,
@@ -151,7 +151,7 @@ class Calc(Proc):
         self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
-        self._entry_metadata = None
+        self._entry_metadata: datamodel.EntryMetadata = None
 
     @classmethod
     def get(cls, id):
@@ -173,19 +173,29 @@ class Calc(Proc):
             self._upload.worker_hostname = self.worker_hostname
         return self._upload
 
-    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
+    def _initialize_metadata_for_processing(self):
+        '''
+        Initializes self._entry_metadata and self._parser_results in preparation for processing.
+        Existing values in self.metadata are loaded first, then generated system values are
+        applied.
+        '''
+        self._entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
+        self._set_system_metadata(self._entry_metadata)
+        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+        self._entry_metadata.last_processing = datetime.utcnow()
+        self._entry_metadata.processing_errors = []
 
-    def create_metadata(self) -> datamodel.EntryMetadata:
+        self._parser_results = EntryArchive()
+        self._parser_results.section_metadata = self._entry_metadata
+
+    def _set_system_metadata(self, entry_metadata: datamodel.EntryMetadata):
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object, not necessarily the user metadata nor the metadata from
-        the archive.
+        Sets the system metadata on the given :class:`nomad.datamodel.EntryMetadata`, except
+        for some metadata values that are only set when an Entry starts processing.
         '''
-        entry_metadata = datamodel.EntryMetadata()
         if self.parser is not None:
+            entry_metadata.parser_name = self.parser
             parser = parser_dict[self.parser]
             if parser.domain:
                 entry_metadata.domain = parser_dict[self.parser].domain
@@ -198,19 +208,69 @@ class Calc(Proc):
         entry_metadata.upload_time = self.upload.upload_time
         entry_metadata.upload_name = self.upload.name
 
-        return entry_metadata
+    def _read_metadata_from_file(self, logger):
+        # metadata file name defined in nomad.config nomad_metadata.yaml/json
+        # which can be placed in the directory containing the mainfile or somewhere up
+        # highest priority is directory with mainfile
+        metadata_file = config.metadata_file_name
+        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
+        upload_raw_dir = self.upload_files._raw_dir.os_path
 
-    def entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
+        metadata = {}
+        metadata_part = None
+        # apply the nomad files of the current directory and parent directories
+        while True:
+            metadata_part = self.upload.metadata_file_cached(
+                os.path.join(metadata_dir, metadata_file))
+            for key, val in metadata_part.items():
+                if key in ['entries', 'oasis_datasets']:
+                    continue
+                metadata.setdefault(key, val)
+
+            if metadata_dir == upload_raw_dir:
+                break
+
+            metadata_dir = os.path.dirname(metadata_dir)
+
+        # Top-level nomad file can also contain an entries dict with entry
+        # metadata per mainfile as key. This takes precedence of the other files.
+        entries = metadata_part.get('entries', {})
+        metadata_part = entries.get(self.mainfile, {})
+        for key, val in metadata_part.items():
+            metadata[key] = val
+
+        if len(metadata) > 0:
+            logger.info('Apply user metadata from nomad.yaml/json file')
+
+        for key, val in metadata.items():
+            if key == 'entries':
+                continue
+
+            definition = _editable_metadata.get(key, None)
+            if definition is None and self.upload.from_oasis:
+                definition = _oasis_metadata.get(key, None)
+
+            if definition is None:
+                logger.warn('Users cannot set metadata', quantity=key)
+                continue
+
+            try:
+                self._entry_metadata.m_set(definition, val)
+                if definition == datamodel.EntryMetadata.calc_id:
+                    self.calc_id = val
+            except Exception as e:
+                logger.error(
+                    'Could not apply user metadata from nomad.yaml/json file',
+                    quantitiy=definition.name, exc_info=e)
+
+    def full_entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
         '''
         Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
-        the user metadata and metadata from the archive.
+        the user metadata, system metadata, and metadata from the archive.
 
         Arguments:
             upload_files:
                 The :class:`nomad.files.UploadFiles` instance to read the archive from.
-            cache:
-                A boolean that indicates if the archive file should be left unclosed,
-                e.g. if this method is called for many entries of the same upload.
         '''
         archive = upload_files.read_archive(self.calc_id)
         try:
@@ -224,30 +284,37 @@ class Calc(Proc):
                 if addtional_section in calc_archive:
                     entry_archive_dict[addtional_section] = calc_archive[addtional_section].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
-
+            entry_metadata.m_update_from_dict(self.metadata)
+            return entry_metadata
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not
-            # have an archive
+            # have an archive. Return the metadata that is available.
             if self._entry_metadata is not None:
-                entry_metadata = self._entry_metadata
-
+                return self._entry_metadata
             else:
-                entry_metadata = self.create_metadata()
+                return self.user_and_system_metadata()
 
-        entry_metadata.m_update_from_dict(self.metadata)
+    def user_and_system_metadata(self) -> datamodel.EntryMetadata:
+        '''
+        Returns a :class:`nomad.datamodel.EntryMetadata` with user metadata and system
+        metadata only, no archive metadata. That is: the metadata that is stored on this
+        Mongo document, i.e. in the `self.metadata` dictionary. Generated system values
+        are also included if not set yet.
+        '''
+        entry_metadata = datamodel.EntryMetadata()
+        self._set_system_metadata(entry_metadata)  # Apply standard system generated values.
+        entry_metadata.m_update_from_dict(self.metadata)  # Apply any values stored in self.metadata
 
         return entry_metadata
 
-    def user_metadata(self) -> datamodel.EntryMetadata:
+    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object and the user metadata, not necessarily the metadata from
-        the archive.
+        Applies the given user and system metadata to the mongo document, i.e. to
+        `self.metadata`.
         '''
-        entry_metadata = self.create_metadata()
-        entry_metadata.m_update_from_dict(self.metadata)
-
-        return entry_metadata
+        self.metadata = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
 
     @property
     def upload_files(self) -> StagingUploadFiles:
@@ -298,6 +365,7 @@ class Calc(Proc):
 
         has_previous_metadata = bool(self.metadata)
 
+        # 1. Determine if we should parse or not
         if not self.upload.published or not has_previous_metadata:
             should_parse = True
         else:
@@ -332,36 +400,11 @@ class Calc(Proc):
                                 parser=parser.name)
                         self.parser = parser.name  # Parser changed or renamed
 
-        if not should_parse:
-            # Keep published entry as it is
+        # 2. Either parse the entry, or preserve it as it is.
+        if should_parse:
+            # 2a. Parse (or reparse) it
             try:
-                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                with upload_files.read_archive(self.calc_id) as archive:
-                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
-
-            except Exception as e:
-                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
-                raise
-
-            # mock the steps of actual processing
-            self._continue_with('parsing')
-            self._continue_with('normalizing')
-            self._continue_with('archiving')
-            self._complete()
-            return
-        else:
-            # Parse (or reparse) it
-            try:
-                if has_previous_metadata:
-                    self._entry_metadata = self.user_metadata()
-                    self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-                    self._entry_metadata.nomad_version = config.meta.version
-                    self._entry_metadata.nomad_commit = config.meta.commit
-                    self._entry_metadata.last_processing = datetime.utcnow()
-                    self._entry_metadata.processing_errors = []
-                    self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-
-                self._setup_fallback_metadata(overwrite=not has_previous_metadata)
+                self._initialize_metadata_for_processing()
 
                 if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                     self.warning(
@@ -379,27 +422,30 @@ class Calc(Proc):
                         self._parser_results.m_resource.unload()
                 except Exception as e:
                     logger.error('could not unload processing results', exc_info=e)
+        else:
+            # 2b. Keep published entry as it is
+            try:
+                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                with upload_files.read_archive(self.calc_id) as archive:
+                    self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
 
-    def _setup_fallback_metadata(self, overwrite: bool = False):
-        if self._entry_metadata is None or overwrite:
-            self._entry_metadata = self.create_metadata()
-            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.processing_errors = []
-            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-            self._entry_metadata.parser_name = self.parser
+            except Exception as e:
+                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
+                raise
 
-        if self._parser_results is None or overwrite:
-            self._parser_results = EntryArchive()
-        if self._parser_results.section_metadata != self._entry_metadata:
-            self._parser_results.section_metadata = self._entry_metadata
+            # mock the steps of actual processing
+            self._continue_with('parsing')
+            self._continue_with('normalizing')
+            self._continue_with('archiving')
+            self._complete()
+        return
 
     def on_fail(self):
         # in case of failure, index a minimum set of metadata and mark
         # processing failure
         try:
-            self._setup_fallback_metadata()
-
+            if self._entry_metadata is None:
+                self._initialize_metadata_for_processing()
             self._entry_metadata.processed = False
 
             try:
@@ -519,7 +565,8 @@ class Calc(Proc):
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
-            self._setup_fallback_metadata()
+            if self._entry_metadata is None:
+                self._initialize_metadata_for_processing()
             self._entry_metadata.processed = False
 
             try:
@@ -570,65 +617,6 @@ class Calc(Proc):
                     logger.info('normalizer completed successfull', **context)
                 except Exception as e:
                     self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
-
-    def _read_metadata_from_file(self, logger):
-        # metadata file name defined in nomad.config nomad_metadata.yaml/json
-        # which can be placed in the directory containing the mainfile or somewhere up
-        # highest priority is directory with mainfile
-        metadata_file = config.metadata_file_name
-        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
-        upload_raw_dir = self.upload_files._raw_dir.os_path
-
-        metadata = {}
-        metadata_part = None
-        # apply the nomad files of the current directory and parent directories
-        while True:
-            metadata_part = self.upload.metadata_file_cached(
-                os.path.join(metadata_dir, metadata_file))
-            for key, val in metadata_part.items():
-                if key in ['entries', 'oasis_datasets']:
-                    continue
-                metadata.setdefault(key, val)
-
-            if metadata_dir == upload_raw_dir:
-                break
-
-            metadata_dir = os.path.dirname(metadata_dir)
-
-        # Top-level nomad file can also contain an entries dict with entry
-        # metadata per mainfile as key. This takes precedence of the other files.
-        entries = metadata_part.get('entries', {})
-        metadata_part = entries.get(self.mainfile, {})
-        for key, val in metadata_part.items():
-            metadata[key] = val
-
-        if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file')
-
-        for key, val in metadata.items():
-            if key == 'entries':
-                continue
-
-            definition = _editable_metadata.get(key, None)
-            if definition is None and self.upload.from_oasis:
-                definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
-
-            if definition is None:
-                logger.warn('Users cannot set metadata', quantity=key)
-                continue
-
-            try:
-                self._entry_metadata.m_set(definition, val)
-                if definition == datamodel.EntryMetadata.calc_id:
-                    self.calc_id = val
-            except Exception as e:
-                logger.error(
-                    'Could not apply user metadata from nomad.yaml/json file',
-                    quantitiy=definition.name, exc_info=e)
 
     @task
     def archiving(self):
@@ -783,24 +771,6 @@ class Upload(Proc):
                     pass
         return {}
 
-    @property
-    def metadata(self) -> dict:
-        '''
-        Getter, setter for user metadata. Metadata is pickled to and from the public
-        bucket to allow sharing among all processes. Usually uploads do not have (much)
-        user defined metadata, but users provide all metadata per upload as part of
-        the publish process. This will change, when we introduce editing functionality
-        and metadata will be provided through different means.
-        '''
-        if PublicUploadFiles.exists_for(self.upload_id):
-            return PublicUploadFiles(self.upload_id, is_authorized=lambda: True).user_metadata
-        return None
-
-    @metadata.setter
-    def metadata(self, data: dict) -> None:
-        upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
-        upload_files.user_metadata = data
-
     @classmethod
     def get(cls, id: str, include_published: bool = True) -> 'Upload':
         return cls.get_by_id(id, 'upload_id')
@@ -919,7 +889,7 @@ class Upload(Proc):
         logger.info('started to publish')
 
         with utils.lnr(logger, 'publish failed'):
-            with self.entries_metadata(self.metadata) as calcs:
+            with self.entries_metadata() as calcs:
 
                 with utils.timer(logger, 'upload metadata updated'):
                     def create_update(calc):
@@ -946,6 +916,8 @@ class Upload(Proc):
                     with utils.timer(logger, 'upload staging files deleted'):
                         if embargo_length is not None:
                             self.embargo_length = embargo_length
+                        if self.embargo_length is None:
+                            self.embargo_length = 36  # Default
                         self.upload_files.delete()
                         self.published = True
                         self.publish_time = datetime.utcnow()
@@ -1041,7 +1013,7 @@ class Upload(Proc):
     def re_pack(self):
         ''' A *process* that repacks the raw and archive data based on the current embargo data. '''
         assert self.published
-        self.upload_files.re_pack(self.user_metadata())
+        self.upload_files.re_pack(self.entries_user_and_system_metadata())
 
     @process
     def process_upload(self):
@@ -1379,7 +1351,7 @@ class Upload(Proc):
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                self.staging_upload_files.pack(self.user_metadata(), create=False, include_raw=False)
+                self.staging_upload_files.pack(self.entries_user_and_system_metadata(), create=False, include_raw=False)
 
             self._cleanup_staging_files()
             self.last_update = datetime.utcnow()
@@ -1390,10 +1362,7 @@ class Upload(Proc):
             logger.info('started to publish upload directly')
 
             with utils.lnr(logger, 'publish failed'):
-                metadata = self.metadata_file_cached(
-                    os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
-
-                with self.entries_metadata(self.metadata) as calcs:
+                with self.entries_metadata() as calcs:
                     with utils.timer(logger, 'upload staging files packed'):
                         self.staging_upload_files.pack(calcs)
 
@@ -1401,6 +1370,8 @@ class Upload(Proc):
                     self.staging_upload_files.delete()
 
                 if self.from_oasis:
+                    metadata = self.metadata_file_cached(
+                        os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
                     if metadata is not None:
                         self.upload_time = metadata.get('upload_time')
 
@@ -1486,101 +1457,73 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
 
     @contextmanager
-    def entries_metadata(
-            self, user_metadata: dict = None) -> Iterator[Iterable[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[Iterable[datamodel.EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
-
-        Arguments:
-            user_metadata: A dict of user metadata that is applied to the resulting
-                datamodel data and the respective calculations.
         '''
         upload_files = self.upload_files
-
-        # prepare user metadata per upload and per calc
-        if user_metadata is not None:
-            entries_metadata_dict: Dict[str, Any] = dict()
-            upload_metadata: Dict[str, Any] = dict()
-
-            upload_metadata.update(user_metadata)
-            if 'calculations' in upload_metadata:
-                del(upload_metadata['calculations'])
-
-            for calc in user_metadata.get('calculations', []):  # pylint: disable=no-member
-                entries_metadata_dict[calc['mainfile']] = calc
-
-            user_upload_time = upload_metadata.get('upload_time', None)
-            user_upload_name = upload_metadata.get('upload_name', None)
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.entry_metadata(upload_files)
-                entry_user_metadata = dict(upload_metadata)
-                entry_user_metadata.pop('embargo_length', None)  # this is for uploads only
-                entry_user_metadata.update(entries_metadata_dict.get(calc.mainfile, {}))
-                entry_metadata.apply_user_metadata(entry_user_metadata)
-                if entry_metadata.upload_time is None:
-                    entry_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
-                if entry_metadata.upload_name is None:
-                    entry_metadata.upload_name = self.name if user_upload_name is None else user_upload_name
-
-                return entry_metadata
-        else:
-            user_upload_time = None
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.entry_metadata(upload_files)
-                entry_metadata.upload_time = self.upload_time
-                entry_metadata.upload_name = self.name
-
-                return entry_metadata
-
         try:
             # read all calc objects first to avoid missing curser errors
             yield [
-                get_metadata(calc)
+                calc.full_entry_metadata(upload_files)
                 for calc in list(Calc.objects(upload_id=self.upload_id))]
 
         finally:
             upload_files.close()
 
+    def entries_user_and_system_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+        '''
+        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the user and
+        system metadata only, for all entries of this upload.
+        '''
+        return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
+
+    def set_upload_metadata(self, upload_metadata: UploadMetadata):
+        '''
+        Sets upload level metadata (metadata that is only stored on the upload, or
+        stored on the upload and mirrored to the entries).
+
+        Arguments:
+            upload_metadata: a :class:`datamodel.UploadMetadata` object with metadata to set.
+        '''
+        logger = self.get_logger()
+
+        new_entry_metadata = {}
+        if upload_metadata.upload_name is not None:
+            self.name = upload_metadata.upload_name
+            new_entry_metadata['upload_name'] = upload_metadata.upload_name
+        if upload_metadata.embargo_length is not None:
+            assert 1 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 1 and 36 months'
+            self.embargo_length = upload_metadata.embargo_length
+        if upload_metadata.uploader is not None:
+            self.user_id = upload_metadata.uploader.user_id
+            new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
+        if upload_metadata.upload_time is not None:
+            self.upload_time = upload_metadata.upload_time
+            new_entry_metadata['upload_time'] = upload_metadata.upload_time
+
+        self.save()
+
+        if new_entry_metadata:
+            # Update entries and elastic search
+            with self.entries_metadata() as entries_metadata:
+                with utils.timer(logger, 'upload metadata updated'):
+                    def create_update(entry_metadata):
+                        entry_metadata.m_update_from_dict(new_entry_metadata)
+                        return UpdateOne(
+                            {'_id': entry_metadata.calc_id},
+                            {'$set': {'metadata': entry_metadata.m_to_dict(
+                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
+
+                    Calc._get_collection().bulk_write([
+                        create_update(entry_metadata) for entry_metadata in entries_metadata])
+
+                with utils.timer(logger, 'index updated'):
+                    search.update_metadata(entries_metadata, update_materials=True, refresh=True)
+
     def entry_ids(self) -> Iterable[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
-        return [calc.user_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
-        '''
-        Stores the given user metadata in the upload document. This is the metadata
-        adhering to the API model (``UploadMetaData``). Most quantities can be stored
-        for the upload and for each calculation. This method will try to move same values
-        from the calculation to the upload to "compress" the data.
-        '''
-        self.embargo_length = min(metadata.get('embargo_length', 36), 36)
-
-        compressed = {
-            key: value for key, value in metadata.items() if key != 'calculations'}
-        calculations: List[Dict[str, Any]] = []
-        compressed['calculations'] = calculations
-
-        for calc in metadata.get('calculations', []):
-            compressed_calc: Dict[str, Any] = {}
-            calculations.append(compressed_calc)
-            for key, value in calc.items():
-                if key in ['pid', 'mainfile', 'external_id']:
-                    # these quantities are explicitly calc specific and have to stay with
-                    # the calc
-                    compressed_calc[key] = value
-                else:
-                    if key not in compressed:
-                        compressed[key] = value
-                    elif compressed[key].__repr__ != value.__repr__:
-                        compressed_calc[key] = value
-                    else:
-                        compressed[key] = value
-
-        self.metadata = compressed
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

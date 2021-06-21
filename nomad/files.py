@@ -61,7 +61,6 @@ import shutil
 import tarfile
 import hashlib
 import io
-import pickle
 import json
 import magic
 
@@ -78,8 +77,6 @@ else:
 
 zip_file_extensions = ('.zip',)
 tar_file_extensions = ('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
-
-user_metadata_filename = 'user_metadata.pickle'
 
 
 def always_restricted(path: str):
@@ -267,24 +264,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         If an UploadFiles object (of this class) has been created for this upload_id.
         '''
         return os.path.exists(cls.base_folder_for(upload_id))
-
-    @property
-    def _user_metadata_file(self):
-        return self.join_file('user_metadata.pickle')
-
-    @property
-    def user_metadata(self) -> dict:
-        if self._user_metadata_file.exists():
-            with open(self._user_metadata_file.os_path, 'rb') as f:
-                return pickle.load(f)
-
-        else:
-            return {}
-
-    @user_metadata.setter
-    def user_metadata(self, data: dict) -> None:
-        with open(self._user_metadata_file.os_path, 'wb') as f:
-            pickle.dump(data, f)
 
     def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
         ''' Casts to or creates corresponding staging upload files or returns None. '''

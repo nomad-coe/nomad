@@ -21,8 +21,10 @@ import io
 import os
 import time
 import zipfile
+from datetime import timedelta
 from typing import List, Dict, Any, Iterable
-from tests.utils import build_url
+from tests.utils import build_url, set_upload_entry_metadata
+
 from tests.test_files import (
     example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
     assert_upload_files)
@@ -952,8 +954,9 @@ def test_delete_upload_raw_path(
 
 
 @pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
-    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), False, 200, id='ok'),
-    pytest.param('test_user', 'id_unpublished_w', dict(name=''), False, 200, id='clear-name'),
+    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name', embargo_length=13), False, 200, id='ok'),
+    pytest.param('admin_user', 'id_unpublished_w', 'PROTECTED', False, 200, id='protected-admin'),
+    pytest.param('test_user', 'id_unpublished_w', 'PROTECTED', False, 401, id='protected-not-admin'),
     pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), True, 200, id='use-token'),
     pytest.param('test_user', 'silly_value', dict(name='test_name'), True, 404, id='bad-upload_id'),
     pytest.param('admin_user', 'id_published_w', dict(name='test_name'), False, 200, id='published-admin'),
@@ -964,9 +967,21 @@ def test_delete_upload_raw_path(
     pytest.param('other_test_user', 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-access'),
     pytest.param('test_user', 'id_processing_w', dict(name='test_name'), False, 400, id='processing')])
 def test_put_upload_metadata(
-        client, proc_infra, example_data_writeable, test_auth_dict,
+        client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
         user, upload_id, query_args, use_upload_token, expected_status_code):
 
+    try:
+        upload = Upload.get(upload_id)
+        upload.name = 'old_value'
+        upload.save()
+    except KeyError:
+        pass
+
+    if query_args == 'PROTECTED':
+        # Arguments for testing changing protected fields
+        query_args = dict(
+            upload_time=upload.upload_time - timedelta(hours=3, seconds=14),
+            uploader=test_users_dict['other_test_user'].user_id)
     user_auth, token = test_auth_dict[user]
     if use_upload_token:
         user_auth = None
@@ -976,21 +991,24 @@ def test_put_upload_metadata(
     if token:
         query_args['token'] = token
 
-    try:
-        upload = Upload.get(upload_id)
-        upload.name = 'old_value'
-        upload.save()
-    except KeyError:
-        pass
-
     url = build_url(f'uploads/{upload_id}/metadata', query_args)
     response = client.put(url, headers=user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         upload = Upload.get(upload_id)
-        expected_name = query_args.get('name')
-        if expected_name is not None:
-            assert upload.name == (expected_name or None)
+        with upload.entries_metadata() as entries_metadata:
+            for entry_metadata in entries_metadata:
+                if 'name' in query_args:
+                    assert upload.name == query_args.get('name')
+                    assert entry_metadata.upload_name == upload.name
+                if 'uploader' in query_args:
+                    assert upload.user_id == query_args['uploader']
+                    assert entry_metadata.uploader.user_id == upload.user_id
+                if 'upload_time' in query_args:
+                    assert upload.upload_time == query_args['upload_time']
+                    assert entry_metadata.upload_time == upload.upload_time
+                if 'embargo_length' in query_args:
+                    assert upload.embargo_length == query_args['embargo_length']
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
@@ -1180,7 +1198,7 @@ def test_post_upload_action_process(
         upload_id, publish, user, expected_status_code):
 
     if publish:
-        non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
+        set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
         non_empty_processed.publish_upload()
         try:
             non_empty_processed.block_until_complete(interval=.01)

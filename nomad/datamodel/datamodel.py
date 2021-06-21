@@ -272,11 +272,14 @@ dataset_reference = DatasetReference()
 
 
 class UserProvidableMetadata(metainfo.MCategory):
-    ''' NOMAD entry metadata quantities that can be determined by the user, e.g. via nomad.yaml. '''
+    '''
+    NOMAD entry metadata quantities that can be edited by the user before publish,
+    i.e. via metadata files or api/ui.
+    '''
 
 
 class EditableUserMetadata(metainfo.MCategory):
-    ''' NOMAD entry metadata quantities that can be edited by the user after publish. '''
+    ''' NOMAD entry metadata quantities that can be edited by the user before or after publish. '''
     m_def = metainfo.Category(categories=[UserProvidableMetadata])
 
 
@@ -312,6 +315,24 @@ def derive_authors(entry):
     return uploaders + entry.coauthors
 
 
+class UploadMetadata(metainfo.MSection):
+    '''
+    Metadata that is set on the upload level. Some of the fields are also mirrored to the entries.
+    '''
+    upload_name = metainfo.Quantity(
+        type=str,
+        description='The user provided upload name')
+    upload_time = metainfo.Quantity(
+        type=metainfo.Datetime,
+        description='The date and time this entry was uploaded to nomad')
+    uploader = metainfo.Quantity(
+        type=user_reference,
+        description='The uploader of the entry')
+    embargo_length = metainfo.Quantity(
+        type=int,
+        description='The length of the embargo period in months')
+
+
 class EntryMetadata(metainfo.MSection):
     '''
     Attributes:
@@ -324,14 +345,11 @@ class EntryMetadata(metainfo.MSection):
             subclass is instantiated.
 
         files: A list of all files, relative to upload.
-        upload_time: The time when the calc was uploaded.
-        uploader: An object describing the uploading user, has at least ``user_id``
         processed: Boolean indicating if this calc was successfully processed and archive
             data and calc metadata is available.
         last_processing: A datatime with the time of the last successful processing.
         nomad_version: A string that describes the version of the nomad software that was
             used to do the last successful processing.
-
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
         uploader: Id of the uploader of this entry.

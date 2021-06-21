@@ -105,6 +105,16 @@ def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
     return base_url + '?' + urllib.parse.urlencode(query_args_clean, doseq=True)
 
 
+def set_upload_entry_metadata(upload, metadata: Dict[str, Any]):
+    '''
+    Sets the provided metadata values on all entries of the given upload.
+    '''
+    from nomad import processing as proc
+    for entry in proc.Calc.objects(upload_id=upload.upload_id):
+        entry.metadata.update(metadata)
+        entry.save()
+
+
 class ExampleData:
     '''
     Allows to define, create, and manage a set of example data. Will create respective

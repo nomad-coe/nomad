@@ -555,9 +555,18 @@ class UploadResource(Resource):
                 abort(400, message='Cannot publish an upload that failed processing')
             if upload.processed_calcs == 0:
                 abort(400, message='Cannot publish an upload without calculations')
+            for key in metadata:
+                if key not in ('with_embargo', 'embargo_length'):
+                    abort(400, message=(
+                        'The only metadata fields that can be set on publish are '
+                        '`with_embargo` and `embargo_length`.'))
+            with_embargo = metadata.get('with_embargo')
+            embargo_length = metadata.get('embargo_length')
+            if embargo_length is not None:
+                if not 1 <= embargo_length <= 36 and not (embargo_length == 0 and with_embargo is False):
+                    abort(400, message='Invalid embargo_length. Must be between 1 and 36 months.')
             try:
-                upload.compress_and_set_metadata(metadata)
-                upload.publish_upload()
+                upload.publish_upload(with_embargo=with_embargo, embargo_length=embargo_length)
             except ProcessAlreadyRunning:
                 abort(400, message='The upload is still/already processed')
 

@@ -92,7 +92,7 @@ def enc_upload(test_user_bravado_client, proc_infra, test_user_auth, api, mongo_
 
     # Place upload entries on embargo in ES
     embargoed = proc.Upload.get(upload_id)
-    with embargoed.entries_metadata(embargoed.metadata) as calcs:
+    with embargoed.entries_metadata() as calcs:
         def elastic_updates():
             for calc in calcs:
                 entry = calc.a_elastic.create_index_entry()

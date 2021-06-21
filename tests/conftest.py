@@ -26,7 +26,6 @@ import asyncore
 import time
 import shutil
 import os.path
-import datetime
 from flask import request, g
 import elasticsearch.exceptions
 from typing import List
@@ -45,7 +44,7 @@ from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file
+from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 test_log_level = logging.CRITICAL
 
@@ -565,11 +564,8 @@ def example_user_metadata(other_test_user, test_user) -> dict:
     return {
         'comment': 'test comment',
         'with_embargo': True,
-        'embargo_length': 12,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
-        '_uploader': other_test_user.user_id,
-        'coauthors': [test_user.user_id],
-        '_upload_time': datetime.datetime.utcnow(),
+        'coauthors': [other_test_user.user_id],
         '_pid': '256',
         'external_id': 'external_test_id'
     }
@@ -698,7 +694,7 @@ def published(non_empty_processed: processing.Upload, internal_example_user_meta
     '''
     Provides a processed upload. Upload was uploaded with test_user.
     '''
-    non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
     non_empty_processed.publish_upload()
     try:
         non_empty_processed.block_until_complete(interval=.01)
