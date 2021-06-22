@@ -74,7 +74,7 @@ class Author(metainfo.MSection):
         a_elasticsearch=[
             Elasticsearch(material_entry_type, _es_field='keyword'),
             Elasticsearch(material_entry_type, mapping='text', field='text', _es_field=''),
-            Elasticsearch(material_entry_type, suggestion=True)
+            Elasticsearch(suggestion=True)
         ])
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
@@ -82,7 +82,8 @@ class Author(metainfo.MSection):
     email = metainfo.Quantity(
         type=str,
         a_elastic=dict(mapping=Keyword),  # TODO remove?
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
 
     affiliation = metainfo.Quantity(type=str)
     affiliation_address = metainfo.Quantity(type=str)
@@ -111,7 +112,8 @@ class User(Author):
 
     user_id = metainfo.Quantity(
         type=str,
-        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     username = metainfo.Quantity(type=str)
 
@@ -220,34 +222,41 @@ class Dataset(metainfo.MSection):
         type=str,
         a_mongo=Mongo(primary_key=True),
         a_search=Search(),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
     name = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
         a_search=Search(),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion=True),
+        ])
     user_id = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True))
     doi = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_entry_type))
     pid = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True))
     created = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
     modified = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
     dataset_type = metainfo.Quantity(
         type=metainfo.MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
 
 
 class DatasetReference(metainfo.Reference):
@@ -379,7 +388,7 @@ class EntryMetadata(metainfo.MSection):
         description='A persistent and globally unique identifier for the entry',
         categories=[OasisMetadata],
         a_search=Search(many_or='append'),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     calc_hash = metainfo.Quantity(
         type=str,
@@ -440,7 +449,8 @@ class EntryMetadata(metainfo.MSection):
         type=metainfo.MEnum('dft', 'ems', 'qcms'),
         description='The material science domain',
         categories=[MongoMetadata, UserProvidableMetadata],
-        a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     published = metainfo.Quantity(
         type=bool, default=False,
@@ -494,12 +504,14 @@ class EntryMetadata(metainfo.MSection):
     references = metainfo.Quantity(
         type=str, shape=['0..*'], categories=[MongoMetadata, EditableUserMetadata],
         description='User provided references (URLs) for this entry',
-        a_search=Search(), a_elasticsearch=Elasticsearch())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoMetadata, UserProvidableMetadata],
         description='The repository or external database where the original data resides',
-        a_search=Search())
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     uploader = metainfo.Quantity(
         type=user_reference, categories=[MongoMetadata],
@@ -525,7 +537,8 @@ class EntryMetadata(metainfo.MSection):
             handle of an external database/repository or the name of the uploader.
         ''',
         derived=derive_origin,
-        a_search=Search(statistic_size=10, statistic_order='_count'))
+        a_search=Search(statistic_size=10, statistic_order='_count'),
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],

@@ -12,6 +12,7 @@
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",
     "@material-ui/lab": "^4.0.0-alpha.49",
+    "@material-ui/pickers": "^3.3.10",
     "@navjobs/upload": "^3.1.3",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^10.0.0",

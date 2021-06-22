@@ -36,7 +36,8 @@ import FilterDFT, { labelDFT } from './FilterDFT'
 import FilterGW, { labelGW } from './FilterGW'
 import FilterMethod, { labelMethod } from './FilterMethod'
 import FilterMaterial, { labelMaterial } from './FilterMaterial'
-import FilterMetadata, { labelMetadata } from './FilterMetadata'
+import FilterAuthor, { labelAuthor } from './FilterAuthor'
+import FilterDataset, { labelDataset } from './FilterDataset'
 import FilterIDs, { labelIDs } from './FilterIDs'
 import FilterSummary from './FilterSummary'
 import {
@@ -48,7 +49,8 @@ import {
   filtersGW,
   filtersSymmetry,
   filtersMethod,
-  filtersMetadata,
+  filtersAuthor,
+  filtersDataset,
   filtersIDs
 } from './FilterContext'
 
@@ -102,9 +104,14 @@ const filterTree = [
     ]
   },
   {
-    name: labelMetadata,
-    filters: <FilterSummary quantities={filtersMetadata}/>,
-    component: FilterMetadata
+    name: labelAuthor,
+    filters: <FilterSummary quantities={filtersAuthor}/>,
+    component: FilterAuthor
+  },
+  {
+    name: labelDataset,
+    filters: <FilterSummary quantities={filtersDataset}/>,
+    component: FilterDataset
   },
   {
     name: labelIDs,

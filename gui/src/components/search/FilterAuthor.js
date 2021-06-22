@@ -19,42 +19,53 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
-import {
-  Paper
-} from '@material-ui/core'
-import NewEntryList from './NewEntryList'
-import { useResults } from './FilterContext'
+import { Grid } from '@material-ui/core'
+import FilterText from './FilterText'
+import FilterCheckboxes from './FilterCheckboxes'
+import FilterDate from './FilterDate'
 
-/**
- * Displays the list of search results
- */
 const useStyles = makeStyles(theme => ({
-  root: {}
+  root: {
+    width: '100%'
+  }
 }))
-const SearchResults = React.memo(({
+
+export const labelAuthor = 'Author / Origin'
+
+const FilterAuthor = React.memo(({
+  visible,
   className
 }) => {
   const styles = useStyles()
-  const results = useResults()
 
   return <div className={clsx(className, styles.root)}>
-    <Paper>
-      {results && <NewEntryList
-        query={results.query}
-        editable={results.query.owner === 'staging' || results.query.owner === 'user'}
-        data={results}
-        page={results?.pagination?.page}
-        per_page={results?.pagination?.page_size}
-        order={results?.pagination?.order}
-        order_by={results?.pagination?.order_by}
-      />}
-    </Paper>
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <FilterText
+          label="author name"
+          quantity="authors.name"
+          visible={visible}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterCheckboxes
+          label="external database"
+          quantity="external_db"
+          visible={visible}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterDate
+          quantity="upload_time"
+          visible={visible}
+        />
+      </Grid>
+    </Grid>
   </div>
 })
-SearchResults.propTypes = {
-  initialTab: PropTypes.string,
-  resultListProps: PropTypes.object,
+FilterAuthor.propTypes = {
+  visible: PropTypes.bool,
   className: PropTypes.string
 }
 
-export default SearchResults
+export default FilterAuthor

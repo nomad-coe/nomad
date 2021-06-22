@@ -28,9 +28,9 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelMetadata = 'User metadata'
+export const labelDataset = 'Dataset'
 
-const FilterMetadata = React.memo(({
+const FilterDataset = React.memo(({
   visible,
   className
 }) => {
@@ -40,17 +40,9 @@ const FilterMetadata = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <FilterText
-          label="author name"
-          quantity="authors.name"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
           label="dataset name"
           quantity="datasets.name"
           visible={visible}
-          autocomplete="off"
         />
       </Grid>
       <Grid item xs={12}>
@@ -64,9 +56,9 @@ const FilterMetadata = React.memo(({
     </Grid>
   </div>
 })
-FilterMetadata.propTypes = {
+FilterDataset.propTypes = {
   visible: PropTypes.bool,
   className: PropTypes.string
 }
 
-export default FilterMetadata
+export default FilterDataset

@@ -91,8 +91,12 @@ export const filtersGW = [
   'results.method.simulation.gw.gw_type'
 ]
 
-export const filtersMetadata = [
+export const filtersAuthor = [
   'authors.name',
+  'external_db'
+]
+
+export const filtersDataset = [
   'datasets.name',
   'datasets.doi'
 ]
@@ -112,7 +116,8 @@ filtersAll = filtersAll.concat(filtersSymmetry)
 filtersAll = filtersAll.concat(filtersMethod)
 filtersAll = filtersAll.concat(filtersDFT)
 filtersAll = filtersAll.concat(filtersGW)
-filtersAll = filtersAll.concat(filtersMetadata)
+filtersAll = filtersAll.concat(filtersAuthor)
+filtersAll = filtersAll.concat(filtersDataset)
 filtersAll = filtersAll.concat(filtersIDs)
 
 export const queryFamily = atomFamily({
@@ -139,6 +144,9 @@ export const exclusive = atom({
   key: 'exclusive',
   default: false
 })
+export function useExclusive() {
+  return useRecoilValue(exclusive)
+}
 export function useExclusiveState() {
   return useRecoilState(exclusive)
 }
@@ -291,23 +299,13 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   const api = useApi()
   const [results, setResults] = useState()
   const query = useQueryValue()
+  const exclusive = useExclusive()
   const firstRender = useRef(true)
 
-  const apiCall = useCallback(search => {
-    api.queryEntry(search, false)
-      .then(data => {
-        setResults(data)
-      })
-  }, [api])
-
-  // This is a debounced version of apiCall.
-  const debounced = useCallback(_.debounce(apiCall, delay), [])
-
-  useEffect(() => {
-    if (!update && !firstRender.current) {
-      return
-    }
-
+  // Pretty much all of the required pre-processing etc. should be done in this
+  // function, as it is the final one that gets called after the debounce
+  // interval.
+  const apiCall = useCallback((query, exclusive) => {
     // If the restrict option is enabled, the filters targeting the specified
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
@@ -315,7 +313,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     if (restrict && query && quantity in query) {
       queryCleaned[quantity] = undefined
     }
-    queryCleaned = cleanQuery(queryCleaned)
+    queryCleaned = cleanQuery(queryCleaned, exclusive)
 
     const aggs = {
       [quantity]: {
@@ -333,13 +331,28 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       required: { include: [] }
     }
 
+    api.queryEntry(search, false)
+      .then(data => {
+        setResults(data)
+      })
+  }, [api, quantity, restrict, type])
+
+  // This is a debounced version of apiCall.
+  const debounced = useCallback(_.debounce(apiCall, delay), [])
+
+  // The API call is made immediately on first render. On subsequent renders it
+  // will be debounced.
+  useEffect(() => {
+    if (!update && !firstRender.current) {
+      return
+    }
     if (firstRender.current) {
-      apiCall(search)
+      apiCall(query, exclusive)
       firstRender.current = false
     } else {
-      debounced(search)
+      debounced(query, exclusive)
     }
-  }, [api, apiCall, debounced, quantity, query, restrict, type, update])
+  }, [apiCall, debounced, query, exclusive, update])
 
   return results && results.aggregations[quantity][type].data
 }
@@ -355,14 +368,15 @@ export function useResults(delay = 400) {
   const api = useApi()
   const firstRender = useRef(true)
   const search = useSearch()
+  const exclusive = useExclusive()
   const [results, setResults] = useState()
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback(search => {
+  const apiCall = useCallback((search, exclusive) => {
     const finalSearch = {...search}
-    finalSearch.query = cleanQuery(finalSearch.query)
+    finalSearch.query = cleanQuery(finalSearch.query, exclusive)
 
     api.queryEntry(finalSearch)
       .then(data => {
@@ -377,17 +391,14 @@ export function useResults(delay = 400) {
   // will be debounced.
   useEffect(() => {
     if (firstRender.current) {
-      apiCall(search)
+      apiCall(search, exclusive)
       firstRender.current = false
     } else {
-      debounced(search)
+      debounced(search, exclusive)
     }
-  }, [apiCall, debounced, search])
+  }, [apiCall, debounced, search, exclusive])
 
-  return {
-    results: results,
-    search: search
-  }
+  return results
 }
 
 // Converts all sets to arrays and convert all Quantities into their SI unit
@@ -400,8 +411,16 @@ function cleanQuery(obj, exclusive) {
     // Special handling for elements. There are two search modes: exclusive and
     // inclusive.
     if (k === 'results.material.elements') {
-      k = exclusive ? `${k}` : `${k}:any`
-      newValue = setToArray(v)
+      if (v.size === 0) {
+        continue
+      }
+      if (exclusive) {
+        k = `${k}.exclusive`
+        newValue = setToArray(v).sort().join(' ')
+      } else {
+        k = `${k}:any`
+        newValue = setToArray(v)
+      }
     } else {
       if (v instanceof Set) {
         newValue = setToArray(v)
@@ -412,7 +431,7 @@ function cleanQuery(obj, exclusive) {
         newValue = v
         k = `${k}:any`
       } else if (typeof v === 'object' && v !== null) {
-        newValue = cleanQuery(v)
+        newValue = cleanQuery(v, exclusive)
       } else {
         newValue = v
       }

@@ -21,6 +21,8 @@ import { QueryParamProvider } from 'use-query-params'
 import { RecoilRoot } from 'recoil'
 import history from '../history'
 import PiwikReactRouter from 'piwik-react-router'
+// import DateFnsUtils from '@date-io/date-fns'
+// import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 import { nomadTheme, matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm,
   keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
@@ -48,6 +50,7 @@ const keycloak = Keycloak({
 export default function App() {
   return (
     <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false }} LoadingComponent={<div />}>
+      {/* <MuiPickersUtilsProvider utils={DateFnsUtils}> */}
       <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
         <QueryParamProvider ReactRouterRoute={Route}>
           <MuiThemeProvider theme={nomadTheme}>
@@ -63,6 +66,7 @@ export default function App() {
           </MuiThemeProvider>
         </QueryParamProvider>
       </Router>
+      {/* </MuiPickersUtilsProvider> */}
     </KeycloakProvider>
   )
 }
