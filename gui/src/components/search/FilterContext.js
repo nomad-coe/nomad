@@ -324,7 +324,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       }
     }
     const search = {
-      owner: 'visible',
+      owner: 'all',
       query: queryCleaned,
       aggregations: aggs,
       pagination: {page_size: 0},
@@ -415,10 +415,10 @@ function cleanQuery(obj, exclusive) {
         continue
       }
       if (exclusive) {
-        k = `${k}.exclusive`
+        k = 'results.material.elements_exclusive'
         newValue = setToArray(v).sort().join(' ')
       } else {
-        k = `${k}:any`
+        k = `${k}:all`
         newValue = setToArray(v)
       }
     } else {

@@ -30,7 +30,7 @@ from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
     DateHistogramAggregation, MinMaxAggregation, Bucket,
-    MixMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
+    MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
     DateHistogramAggregationResponse, AggregationResponse)
 
 from .common import SearchError, _es_to_entry_dict, _owner_es_query
@@ -134,22 +134,14 @@ def validate_api_query(
             return Q('bool', must=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.Any_):
-            return Q('bool', should=[match(name, item)for item in value.op])
+            return Q('bool', should=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.None_):
             return Q('bool', must_not=[match(name, item) for item in value.op])
 
-        elif isinstance(value, api_models.ComparisonOperator):
-            # TODO typecheck?
+        elif isinstance(value, api_models.Range):
             quantity = validate_quantity(name, None, doc_type=doc_type)
-            field = quantity.search_field
-            return Q('range', **{field: {type(value).__name__.lower(): value.op}})
-
-        elif isinstance(value, api_models.RangeNumber):
-            quantity = validate_quantity(name, None, doc_type=doc_type)
-            field = quantity.search_field
-            return Q('range', **{field: value.dict(
-                include={'lt', 'lte', 'gt', 'gte'},
+            return Q('range', **{quantity.search_field: value.dict(
                 exclude_unset=True,
             )})
 
@@ -469,7 +461,7 @@ def _es_to_api_aggregation(
         max_value = es_aggs['agg:%s:max' % name]['value']
 
         return AggregationResponse(
-            min_max=MixMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
+            min_max=MinMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
 
     else:
         raise NotImplementedError()
@@ -521,6 +513,8 @@ def search(
         es_query &= Q('nested', path='entries', query=owner_query)
     else:
         es_query &= owner_query
+
+    print(es_query.to_dict())
 
     # pagination
     if pagination is None:

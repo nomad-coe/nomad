@@ -89,10 +89,11 @@ def _api_to_es_query(query: api_models.Query) -> Q:
                 quantity_to_es(name, item)
                 for item in value.op])
 
-        if isinstance(value, api_models.ComparisonOperator):
+        if isinstance(value, api_models.Range):
             quantity = entry_type.quantities[name]
-            return Q('range', **{quantity.search_field: {
-                type(value).__name__.lower(): value.op}})
+            return Q('range', **{quantity.search_field: value.dict(
+                exclude_unset=True,
+            )})
 
         # list of values is treated as an "all" over the items
         if isinstance(value, list):

@@ -587,18 +587,28 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type, many_all=True),
-            Elasticsearch(material_type, field='exclusive', value=lambda e: " ".join(sorted(e))),
             Elasticsearch(suggestion=True)
         ]
     )
     n_elements = Quantity(
         type=int,
         default=0,
-        derived=lambda a: len(a.elements),
+        derived=lambda s: len(s.elements),
         description="""
         Number of different elements in the structure as an integer.
         """,
         a_elasticsearch=Elasticsearch(material_type),
+    )
+    elements_exclusive = Quantity(
+        type=str,
+        derived=lambda s: " ".join(sorted(s.elements)),
+        description="""
+        String containing the chemical elements in alphabetical order and
+        separated by a single whitespace. This quantity can be used for
+        exclusive element searches where you want to find entries/materials
+        with only certain given elements.
+        """,
+        a_elasticsearch=Elasticsearch(material_type)
     )
     chemical_formula_descriptive = Quantity(
         type=str,
