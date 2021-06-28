@@ -31,6 +31,10 @@ const useFiltersElementStyles = makeStyles(theme => ({
 }))
 
 export const labelElectronic = 'Electronic'
+const options = {
+  band_structure_electronic: {label: 'band structure'},
+  dos_electronic: {label: 'density of states'}
+}
 
 const FilterElectronic = React.memo(({
   visible,
@@ -49,9 +53,18 @@ const FilterElectronic = React.memo(({
           visible={visible}
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={12}>
         <FilterCheckboxes
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap_type"
+          visible={visible}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <FilterCheckboxes
+          label="available electronic properties"
+          description="The electronic properties that are present in an entry."
+          quantity="results.properties.available_properties"
+          options={options}
           visible={visible}
         />
       </Grid>

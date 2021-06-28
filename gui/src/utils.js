@@ -56,28 +56,30 @@ export const capitalize = (s) => {
  * as a relatively simple for loop for performance. If conversion times become
  * an issue, it might be worthwhile to look at vectorization with WebAssembly.
  *
- * @param {*} value The values to convert
- * @param {number} factor Scaling factor to apply.
+ * @param {*} value The original values.
+ * @param {number} addition Number to add.
  *
  * @return {*} A copy of the original data with numbers scaled.
  */
 export function scale(value, factor) {
-  // Convert arrays
+  // Function for recursively scaling the values
   function scaleRecursive(list, newList) {
-    let isScalarArray = !Array.isArray(list[0])
+    const isScalarArray = !Array.isArray(list[0])
     if (isScalarArray) {
       for (let i = 0, size = list.length; i < size; ++i) {
         newList.push(list[i] * factor)
       }
     } else {
       for (let i = 0, size = list.length; i < size; ++i) {
-        let iList = []
+        const iList = []
         newList.push(iList)
         scaleRecursive(list[i], iList)
       }
     }
   }
-  let isArray = Array.isArray(value)
+  // If given a scalar variable, simply try to scale it. If a list is given,
+  // perform the scaling recursively.
+  const isArray = Array.isArray(value)
   let newValue
   if (!isArray) {
     newValue = value * factor
@@ -91,34 +93,37 @@ export function scale(value, factor) {
 /**
  * Used to add a single scalar value to an n-dimensional array.
  *
- * @param {*} value The values to convert
- * @param {number} addition Value to add.
+ * @param {*} value The original values.
+ * @param {number} addition Number to add.
  *
- * @return {*} A copy of the original data with numbers scaled.
+ * @return {*} A copy of the original data with the addition made for each
+ * number.
  */
 export function add(value, addition) {
-  // Convert arrays
-  function scaleRecursive(list, newList) {
-    let isScalarArray = !Array.isArray(list[0])
+  // Function for recursively adding the value
+  function addRecursive(list, newList) {
+    const isScalarArray = !Array.isArray(list[0])
     if (isScalarArray) {
       for (let i = 0, size = list.length; i < size; ++i) {
         newList.push(list[i] + addition)
       }
     } else {
       for (let i = 0, size = list.length; i < size; ++i) {
-        let iList = []
+        const iList = []
         newList.push(iList)
-        scaleRecursive(list[i], iList)
+        addRecursive(list[i], iList)
       }
     }
   }
-  let isArray = Array.isArray(value)
+  // If given a scalar variable, simply try to make the addition. If a list is
+  // given, perform the addition recursively.
+  const isArray = Array.isArray(value)
   let newValue
   if (!isArray) {
     newValue = value + addition
   } else {
     newValue = []
-    scaleRecursive(value, newValue)
+    addRecursive(value, newValue)
   }
   return newValue
 }

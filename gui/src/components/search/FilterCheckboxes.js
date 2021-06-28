@@ -42,6 +42,7 @@ const FilterCheckboxes = React.memo(({
   label,
   quantity,
   description,
+  options,
   visible,
   xs,
   className,
@@ -50,7 +51,7 @@ const FilterCheckboxes = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const [options, setOptions] = useState()
+  const [visibleOptions, setVisibleOptions] = useState()
   const availableOptions = useAgg(quantity, 'terms', true, visible)
   const [filter, setFilter] = useFilterState(quantity)
   const firstFetch = useRef(true)
@@ -68,17 +69,23 @@ const FilterCheckboxes = React.memo(({
       const opt = {}
       for (let option of availableOptions) {
         if (option.count > 0) {
-          opt[option.value] = {checked: false, disabled: false}
+          if (!options || options[option.value]) {
+            opt[option.value] = {
+              checked: false,
+              disabled: false,
+              label: options && options[option.value].label
+            }
+          }
         }
       }
-      setOptions(opt)
+      setVisibleOptions(opt)
       firstFetch.current = false
     }
-  }, [availableOptions])
+  }, [availableOptions, options])
 
   // React to changing filters
   useEffect(() => {
-    setOptions(old => {
+    setVisibleOptions(old => {
       const newOptions = {}
       if (old === undefined) {
         return old
@@ -95,17 +102,12 @@ const FilterCheckboxes = React.memo(({
   // accordingly.
   useEffect(() => {
     if (availableOptions) {
-      setOptions(old => {
+      setVisibleOptions(old => {
         const newOptions = {}
         for (let key of Object.keys(old)) {
           newOptions[key] = old[key]
           if (!newOptions[key].checked) {
-            newOptions[key].disabled = true
-          }
-        }
-        for (let option of availableOptions) {
-          if (option.count > 0) {
-            newOptions[option.value].disabled = false
+            newOptions[key].disabled = availableOptions[key]?.count > 0
           }
         }
         return newOptions
@@ -114,19 +116,19 @@ const FilterCheckboxes = React.memo(({
   }, [availableOptions])
 
   const handleChange = useCallback((event) => {
-    const newOptions = {...options}
+    const newOptions = {...visibleOptions}
     newOptions[event.target.name].checked = event.target.checked
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
     setFilter(new Set(checked))
-  }, [setFilter, options])
+  }, [setFilter, visibleOptions])
 
-  const checkboxes = options && Object.entries(options).map(([key, value]) => {
+  const checkboxes = visibleOptions && Object.entries(visibleOptions).map(([key, value]) => {
     return <Grid item xs={xs} key={key}>
       <FormControlLabel
         control={<Checkbox checked={value.checked} onChange={handleChange} name={key}/>}
-        label={key}
+        label={value.label || key}
         disabled={value.disabled}
       />
     </Grid>
@@ -143,6 +145,9 @@ const FilterCheckboxes = React.memo(({
 FilterCheckboxes.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string,
+  // Optional information about the options. Can also be used to enable/disable
+  // options.
+  options: PropTypes.object,
   visible: PropTypes.bool,
   xs: PropTypes.number,
   description: PropTypes.string,

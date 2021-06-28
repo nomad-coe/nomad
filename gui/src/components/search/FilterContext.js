@@ -58,7 +58,8 @@ export const filtersMaterial = [
 
 export const filtersElectronic = [
   'results.properties.electronic.band_structure_electronic.channel_info.band_gap',
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type'
+  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type',
+  'results.properties.available_properties'
 ]
 
 export const filtersSymmetry = [
@@ -319,7 +320,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       [quantity]: {
         [type]: {
           quantity: quantity,
-          size: 50
+          size: 500
         }
       }
     }
