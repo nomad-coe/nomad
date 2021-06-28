@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 
 from nomad.archive import write_partial_archive_to_mongo
 from nomad.app.main import app
+from nomad.processing import ProcessStatus
 
 from tests.utils import ExampleData
 
@@ -116,8 +117,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_upload(
         upload_id='id_processing',
         published=False,
-        tasks_status='RUNNING',
-        process_status='RUNNING')
+        process_status=ProcessStatus.RUNNING)
 
     # one upload, no calcs, unpublished
     data.create_upload(
@@ -160,8 +160,7 @@ def example_data_writeable(mongo, test_user, normalized):
     data.create_upload(
         upload_id='id_processing_w',
         published=False,
-        tasks_status='RUNNING',
-        process_status='RUNNING')
+        process_status=ProcessStatus.RUNNING)
 
     # one upload, no entries, unpublished
     data.create_upload(

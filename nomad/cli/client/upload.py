@@ -23,7 +23,7 @@ import urllib.parse
 import requests
 
 from nomad import config
-from nomad import processing
+from nomad.processing import ProcessStatus
 
 from .client import client
 
@@ -71,7 +71,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
             click.echo('could not upload the file: %s' % str(e))
             return
 
-    while upload is not None and upload.tasks_status not in [processing.SUCCESS, processing.FAILURE]:
+    while upload is not None and upload.process_status not in [ProcessStatus.SUCCESS, ProcessStatus.FAILURE]:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         calcs = upload.calcs.pagination
         if calcs is None:
@@ -79,15 +79,15 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         else:
             total, successes, failures = (calcs.total, calcs.successes, calcs.failures)
 
-        ret = '\n' if upload.tasks_status in (processing.SUCCESS, processing.FAILURE) else '\r'
+        ret = '\n' if upload.process_status in (ProcessStatus.SUCCESS, ProcessStatus.FAILURE) else '\r'
 
         print(
-            'status: %s; task: %s; parsing: %d/%d/%d                %s' %
-            (upload.tasks_status, upload.current_task, successes, failures, total, ret), end='')
+            'status: %s; process: %s; parsing: %d/%d/%d                %s' %
+            (upload.process_status, upload.current_process, successes, failures, total, ret), end='')
 
         time.sleep(1)
 
-    if upload.tasks_status == processing.FAILURE:
+    if upload.process_status == ProcessStatus.FAILURE:
         click.echo('There have been errors:')
         for error in upload.errors:
             click.echo('    %s' % error)

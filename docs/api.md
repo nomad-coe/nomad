@@ -279,22 +279,23 @@ upload = client.uploads.upload(local_path='/nomad/my_files/example.zip').respons
 
 #### Supervising the processing
 
-Once uploaded, nomad will extract the file, identify code data, parse and normalize the
-data. We call this *processing* and *processing* consists of *tasks* (uploading, extracting, parsing).
-You can consistently pull the API, to get an update on the processing and check if all
-tasks have completed.
+When files are added to an upload, nomad will initiate a *process* to extract/update the
+files, identify code data, parse and normalize the data.
+
+You can continuously pull the API, to get an update on the processing and check if the
+processing has been completed.
 
 ```python
-while upload.tasks_running:
+while upload.process_running:
     upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
     time.sleep(5)
     print('processed: %d, failures: %d' % (upload.processed_calcs, upload.failed_calcs))
 ```
 
-Once there are no more tasks running, you can check if your upload was a success. If it
+Once the process completes, you can check if your upload was a success. If it
 was not successful, you can also delete the upload again:
 ```python
-if upload.tasks_status != 'SUCCESS':
+if upload.process_status != 'SUCCESS':
     print('something went wrong')
     print('errors: %s' % str(upload.errors))
 

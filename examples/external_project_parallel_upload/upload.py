@@ -183,10 +183,10 @@ if __name__ == '__main__':
                     continue
 
                 if not upload.process_running:
-                    if upload.tasks_status == 'SUCCESS':
+                    if upload.process_status == 'SUCCESS':
                         print('publish %s(%s)' % (upload.name, upload.upload_id))
                         publish_upload(upload, calc_metadata)
-                    elif upload.tasks_status == 'FAILURE':
+                    elif upload.process_status == 'FAILURE':
                         print('could not process %s(%s)' % (upload.name, upload.upload_id))
                         client.uploads.delete_upload(upload_id=upload.upload_id).response().result
 

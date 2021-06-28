@@ -156,7 +156,7 @@ class ExampleData:
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser='parsers/vasp',
-                    tasks_status='SUCCESS')
+                    process_status=proc.ProcessStatus.SUCCESS)
                 mongo_entry.apply_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
@@ -197,10 +197,8 @@ class ExampleData:
         '''
         upload_dict = {
             'upload_id': upload_id,
-            'current_task': 'cleanup',
-            'tasks_status': 'SUCCESS',
             'current_process': 'process_upload',
-            'process_status': 'COMPLETED',
+            'process_status': 'SUCCESS',
             'errors': [],
             'warnings': [],
             'create_time': self._next_time_stamp(),

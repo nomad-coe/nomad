@@ -31,7 +31,7 @@ from tests.test_files import (
 from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
-from nomad.processing import Upload, Calc, SUCCESS, FAILURE
+from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.files import StagingUploadFiles, UploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 
@@ -166,9 +166,9 @@ def assert_expected_mainfiles(upload_id, expected_mainfiles):
         assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
         for entry in Calc.objects(upload_id=upload_id):
             if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
-                assert entry.tasks_status == SUCCESS
+                assert entry.process_status == ProcessStatus.SUCCESS
             else:
-                assert entry.tasks_status == FAILURE
+                assert entry.process_status == ProcessStatus.FAILURE
 
 
 def assert_upload(response_json, **kwargs):
@@ -204,9 +204,7 @@ def assert_processing(
         all_entries_should_succeed=True):
     response_data = block_until_completed(client, upload_id, user_auth)
 
-    assert len(response_data['tasks']) == 4
-    assert response_data['tasks_status'] == SUCCESS
-    assert response_data['current_task'] == 'cleanup'
+    assert response_data['process_status'] == ProcessStatus.SUCCESS
     assert not response_data['process_running']
 
     response_entries = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
@@ -215,12 +213,11 @@ def assert_processing(
     response_entries_data = response_entries_json['data']
     all_entries_succesful = True
     for entry in response_entries_data:
-        entry_succeeded = entry['tasks_status'] == SUCCESS and entry['current_task'] == 'archiving'
+        entry_succeeded = entry['process_status'] == ProcessStatus.SUCCESS
         if not entry_succeeded:
             all_entries_succesful = False
             if all_entries_should_succeed:
                 assert False, 'One or more entries failed to process'
-        assert len(entry['tasks']) == 3
         pagination = response_entries_json['pagination']
         assert pagination['total'] < pagination['page_size']
 
@@ -236,8 +233,7 @@ def assert_processing(
 def assert_processing_fails(client, upload_id, user_auth):
     response_data = block_until_completed(client, upload_id, user_auth)
 
-    assert len(response_data['tasks']) == 4
-    assert response_data['tasks_status'] == FAILURE
+    assert response_data['process_status'] == ProcessStatus.FAILURE
     return response_data
 
 
@@ -267,7 +263,7 @@ def assert_entry(entry, **kwargs):
     assert 'entry_id' in entry
     assert 'calc_id' not in entry
     assert 'create_time' in entry
-    assert not entry['process_running'] and not entry['tasks_running']
+    assert not entry['process_running']
     for key, value in kwargs.items():
         assert entry.get(key, None) == value
 
@@ -293,7 +289,7 @@ def block_until_completed(client, upload_id: str, user_auth):
             response_json = response.json()
             assert_upload(response_json)
             response_data = response_json['data']
-            if not response_data['process_running'] and not response_data['tasks_running']:
+            if not response_data['process_running']:
                 return response_data
         elif response.status_code == 404:
             return None

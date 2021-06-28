@@ -37,7 +37,7 @@ from nomad.search.v0 import SearchRequest
 from nomad.search.v1 import search
 from nomad.metainfo import search_extension
 from nomad.files import UploadFiles, PublicUploadFiles
-from nomad.processing import Upload, Calc, SUCCESS
+from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.datamodel import EntryMetadata, User, Dataset
 
 from tests.test_files import example_file, example_file_mainfile, example_file_contents
@@ -231,22 +231,20 @@ class TestUploads:
         # poll until completed
         upload = self.block_until_completed(api, upload_id, test_user_auth)
 
-        assert len(upload['tasks']) == 4
-        assert upload['tasks_status'] == SUCCESS
-        assert upload['current_task'] == 'cleanup'
+        assert upload['process_status'] == ProcessStatus.SUCCESS
+        assert upload['current_process'] == 'process_upload'
         assert not upload['process_running']
 
         calcs = upload['calcs']['results']
         for calc in calcs:
-            assert calc['tasks_status'] == SUCCESS
-            assert calc['current_task'] == 'archiving'
-            assert len(calc['tasks']) == 3
+            assert calc['process_status'] == ProcessStatus.SUCCESS
+            assert calc['current_process'] == 'process_calc'
 
             assert 'atoms' in calc['metadata']
             assert api.get('/archive/logs/%s/%s' % (calc['upload_id'], calc['calc_id']), headers=test_user_auth).status_code == 200
 
         if upload['calcs']['pagination']['total'] > 1:
-            rv = api.get('%s?page=2&per_page=1&order_by=tasks_status' % upload_endpoint, headers=test_user_auth)
+            rv = api.get('%s?page=2&per_page=1&order_by=process_status' % upload_endpoint, headers=test_user_auth)
             assert rv.status_code == 200
             upload = self.assert_upload(rv.data)
             assert len(upload['calcs']['results']) == 1
@@ -301,7 +299,7 @@ class TestUploads:
             rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
             if rv.status_code == 200:
                 upload = self.assert_upload(rv.data)
-                if not upload['process_running'] and not upload['tasks_running']:
+                if not upload['process_running']:
                     return upload
             elif rv.status_code == 404:
                 return None
@@ -377,7 +375,7 @@ class TestUploads:
 
         assert rv.status_code == 200
         upload = self.assert_upload(rv.data, name=name)
-        assert upload['tasks_running']
+        assert upload['process_running']
 
         self.assert_processing(api, test_user_auth, upload['upload_id'])
 
@@ -540,9 +538,8 @@ class TestUploads:
         # poll until completed
         upload = self.block_until_completed(api, upload_id, test_user_auth)
 
-        assert len(upload['tasks']) == 4
-        assert upload['tasks_status'] == SUCCESS
-        assert upload['current_task'] == 'cleanup'
+        assert upload['process_status'] == ProcessStatus.SUCCESS
+        assert upload['current_process'] == 'process_upload'
         assert not upload['process_running']
 
         upload_proc = Upload.objects(upload_id=upload_id).first()
@@ -595,9 +592,8 @@ class TestUploads:
         # poll until completed
         upload = self.block_until_completed(api, upload_id, test_user_auth)
 
-        assert len(upload['tasks']) == 4
-        assert upload['tasks_status'] == SUCCESS
-        assert upload['current_task'] == 'cleanup'
+        assert upload['process_status'] == ProcessStatus.SUCCESS
+        assert upload['current_process'] == 'process_upload'
         assert not upload['process_running']
 
         upload_proc = Upload.objects(upload_id=upload_id).first()

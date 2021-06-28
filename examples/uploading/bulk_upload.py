@@ -72,13 +72,13 @@ def upload(
             upload = client.uploads.upload(file=f, **kwargs).response().result
 
     print(f'processing {path}')
-    while upload.tasks_running:
+    while upload.process_running:
         upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
         time.sleep(3)
         print('processed: %d, failures: %d' % (upload.processed_calcs, upload.failed_calcs))
 
     # check if processing was a success
-    if upload.tasks_status != 'SUCCESS':
+    if upload.process_status != 'SUCCESS':
         print('something went wrong')
         print('errors: %s' % str(upload.errors))
         # try to delete the unsuccessful upload

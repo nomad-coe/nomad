@@ -29,8 +29,7 @@ import yaml
 from nomad import utils, infrastructure, config, datamodel
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
-from nomad.processing import Upload, Calc
-from nomad.processing.base import task as task_decorator, FAILURE, SUCCESS
+from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.search.v1 import search
 
 from tests.search import assert_search_upload
@@ -66,8 +65,6 @@ def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
         upload_id=uploaded_id, user=test_user, **kwargs)
     upload.upload_time = datetime.utcnow()
 
-    assert upload.tasks_status == 'RUNNING'
-    assert upload.current_task == 'uploading'
     upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)
@@ -75,12 +72,12 @@ def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     return upload
 
 
-def assert_processing(upload: Upload, published: bool = False):
-    assert not upload.tasks_running
-    assert upload.current_task == 'cleanup'
+def assert_processing(upload: Upload, published: bool = False, process='process_upload'):
+    assert not upload.process_running
+    assert upload.current_process == process
     assert upload.upload_id is not None
     assert len(upload.errors) == 0
-    assert upload.tasks_status == SUCCESS
+    assert upload.process_status == ProcessStatus.SUCCESS
 
     upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
     if published:
@@ -91,7 +88,7 @@ def assert_processing(upload: Upload, published: bool = False):
     for calc in Calc.objects(upload_id=upload.upload_id):
         assert calc.parser is not None
         assert calc.mainfile is not None
-        assert calc.tasks_status == SUCCESS
+        assert calc.process_status == ProcessStatus.SUCCESS
         assert calc.metadata['published'] == published
 
         with upload_files.read_archive(calc.calc_id) as archive:
@@ -187,7 +184,7 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
-    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
+    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True, process='publish_upload')
 
 
 def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
@@ -256,8 +253,8 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     upload.from_oasis = True
     upload.oasis_deployment_id = 'an_oasis_id'
 
-    assert upload.tasks_status == 'RUNNING'
-    assert upload.current_task == 'uploading'
+    assert upload.process_status == ProcessStatus.READY
+    assert upload.current_process is None
 
     upload.schedule_operation_add_files(uploaded_path, '', temporary=False)
     upload.process_upload()  # pylint: disable=E1101
@@ -321,7 +318,7 @@ def test_publish_from_oasis(oasis_publishable_upload, other_test_user, no_warn):
 
     upload.publish_from_oasis()
     upload.block_until_complete()
-    assert_processing(upload, published=True)
+    assert_processing(upload, published=True, process='publish_from_oasis')
 
     cn_upload = Upload.objects(upload_id=cn_upload_id).first()
     cn_upload.block_until_complete()
@@ -353,9 +350,8 @@ def test_processing_with_warning(proc_infra, test_user, with_warn, tmp):
 def test_process_non_existing(proc_infra, test_user, with_error):
     upload = run_processing(('__does_not_exist', '__does_not_exist'), test_user)
 
-    assert not upload.tasks_running
-    assert upload.current_task == 'extracting'
-    assert upload.tasks_status == FAILURE
+    assert not upload.process_running
+    assert upload.process_status == ProcessStatus.FAILURE
     assert len(upload.errors) > 0
 
 
@@ -367,7 +363,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()
-        calc.tasks_status = FAILURE
+        calc.process_status = ProcessStatus.FAILURE
         calc.errors = ['example error']
         calc.save()
         assert published.failed_calcs > 0
@@ -549,52 +545,52 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
             archive[calc.calc_id].to_dict()
 
     published.reload()
-    assert published.tasks_status == SUCCESS
+    assert published.process_status == ProcessStatus.SUCCESS
 
 
-def mock_failure(cls, task, monkeypatch):
+def mock_failure(cls, function_name, monkeypatch):
     def mock(self):
+        self.set_process_step(function_name)
         raise Exception('fail for test')
 
-    mock.__name__ = task
-    mock = task_decorator(mock)
+    mock.__name__ = function_name
 
-    monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, task), mock)
+    monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
 
 
-@pytest.mark.parametrize('task', ['extracting', 'parse_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize('function', ['extracting', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_error):
+def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
     upload_id, _ = uploaded
-    # mock the task method to through exceptions
-    if hasattr(Upload, task):
+    # mock the function to throw exceptions
+    if hasattr(Upload, function):
         cls = Upload
-    elif hasattr(Calc, task):
+    elif hasattr(Calc, function):
         cls = Calc
     else:
         assert False
 
-    mock_failure(cls, task, monkeypatch)
+    mock_failure(cls, function, monkeypatch)
 
     # run the test
     upload = run_processing(uploaded, test_user)
 
-    assert not upload.tasks_running
+    assert not upload.process_running
 
-    if task != 'parsing':
-        assert upload.tasks_status == FAILURE
-        assert upload.current_task == task
+    if function != 'parsing':
+        assert upload.process_status == ProcessStatus.FAILURE
+        assert upload.current_process_step == function
         assert len(upload.errors) > 0
     else:
-        # there is an empty example with no calcs, even if past parsing_all task
+        # there is an empty example with no calcs, even if past parsing_all step
         utils.get_logger(__name__).error('fake')
         if upload.total_calcs > 0:  # pylint: disable=E1101
-            assert upload.tasks_status == SUCCESS
-            assert upload.current_task == 'cleanup'
+            assert upload.process_status == ProcessStatus.SUCCESS
+            assert upload.current_process_step == 'cleanup'
             assert len(upload.errors) == 0
             for calc in upload.all_calcs(0, 100):  # pylint: disable=E1101
-                assert calc.tasks_status == FAILURE
-                assert calc.current_task == 'parsing'
+                assert calc.process_status == ProcessStatus.FAILURE
+                assert calc.current_process_step == 'parsing'
                 assert len(calc.errors) > 0
 
     calc = Calc.objects(upload_id=upload_id).first()
@@ -604,16 +600,16 @@ def test_task_failure(monkeypatch, uploaded, task, proc_infra, test_user, with_e
             assert 'section_metadata' in calc_archive
             assert calc_archive['section_metadata']['dft']['code_name'] not in [
                 config.services.unavailable_value, config.services.not_processed_value]
-            if task != 'cleanup':
+            if function != 'cleanup':
                 assert len(calc_archive['section_metadata']['processing_errors']) > 0
             assert 'processing_logs' in calc_archive
-            if task != 'parsing':
+            if function != 'parsing':
                 assert 'section_run' in calc_archive
 
 
 # consume_ram, segfault, and exit are not testable with the celery test worker
 @pytest.mark.parametrize('failure', ['exception'])
-def test_malicious_parser_task_failure(proc_infra, failure, test_user, tmp):
+def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     example_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(example_file, mode='w') as zf:
         with zf.open('chaos.json', 'w') as f:
@@ -622,16 +618,16 @@ def test_malicious_parser_task_failure(proc_infra, failure, test_user, tmp):
 
     upload = run_processing((example_upload_id, example_file), test_user)
 
-    assert not upload.tasks_running
-    assert upload.current_task == 'cleanup'
+    assert not upload.process_running
+    assert upload.current_process_step == 'cleanup'
     assert len(upload.errors) == 0
-    assert upload.tasks_status == SUCCESS
+    assert upload.process_status == ProcessStatus.SUCCESS
 
     calcs = Calc.objects(upload_id=upload.upload_id)
     assert calcs.count() == 1
     calc = next(calcs)
-    assert not calc.tasks_running
-    assert calc.tasks_status == FAILURE
+    assert not calc.process_running
+    assert calc.process_status == ProcessStatus.FAILURE
     assert len(calc.errors) == 1
 
 

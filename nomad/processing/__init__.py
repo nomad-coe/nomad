@@ -60,6 +60,6 @@ classes do represent the processing state, as well as the respective entity.
     :members:
 '''
 
-from nomad.processing.base import app, InvalidId, ProcNotRegistered, SUCCESS, FAILURE, \
-    RUNNING, PENDING, PROCESS_COMPLETED, PROCESS_RUNNING, ProcessAlreadyRunning
+from nomad.processing.base import (
+    app, InvalidId, ProcNotRegistered, ProcessStatus, ProcessAlreadyRunning)
 from nomad.processing.data import Upload, Calc

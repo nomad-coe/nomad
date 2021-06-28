@@ -76,5 +76,5 @@ def migrate(mongo_db: str):
         upload.process_upload()
         upload.block_until_complete(interval=.5)
 
-        if upload.tasks_status == proc.FAILURE:
+        if upload.process_status == proc.ProcessStatus.FAILURE:
             print('upload processed with failure')

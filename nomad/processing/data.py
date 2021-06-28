@@ -31,7 +31,6 @@ calculations, and files
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable
 from mongoengine import (
     StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
-import logging
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
@@ -48,7 +47,7 @@ import requests
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles)
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
+from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
@@ -132,8 +131,6 @@ class Calc(Proc):
             'parser',
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser'),
-            ('upload_id', 'tasks_status'),
-            ('upload_id', 'current_task'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'metadata.processed',
@@ -366,6 +363,7 @@ class Calc(Proc):
         has_previous_metadata = bool(self.metadata)
 
         # 1. Determine if we should parse or not
+        self.set_process_step('Determining action')
         if not self.upload.published or not has_previous_metadata:
             should_parse = True
         else:
@@ -404,6 +402,7 @@ class Calc(Proc):
         if should_parse:
             # 2a. Parse (or reparse) it
             try:
+                self.set_process_step('Initializing metadata')
                 self._initialize_metadata_for_processing()
 
                 if len(self._entry_metadata.files) >= config.auxfile_cutoff:
@@ -424,6 +423,7 @@ class Calc(Proc):
                     logger.error('could not unload processing results', exc_info=e)
         else:
             # 2b. Keep published entry as it is
+            self.set_process_step('Preserving entry data')
             try:
                 upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
                 with upload_files.read_archive(self.calc_id) as archive:
@@ -432,12 +432,6 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
-
-            # mock the steps of actual processing
-            self._continue_with('parsing')
-            self._continue_with('normalizing')
-            self._continue_with('archiving')
-            self._complete()
         return
 
     def on_fail(self):
@@ -471,17 +465,21 @@ class Calc(Proc):
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
 
-    def on_process_complete(self, process_name):
-        # the save might be necessary to correctly read the join condition from the db
-        self.save()
-        # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name is None:
-            self.upload.reload()
-            self.upload.check_join()
+        self._check_join()
 
-    @task
+    def on_success(self):
+        # the save might be necessary to correctly read the join condition from the db
+        self._check_join()
+
+    def _check_join(self):
+        ''' To be called when processing is done, regardless of success or failure. '''
+        self.save()
+        self.upload.reload()
+        self.upload.check_join()
+
     def parsing(self):
-        ''' The *task* that encapsulates all parsing related actions. '''
+        ''' The process step that encapsulates all parsing related actions. '''
+        self.set_process_step('parsing')
         context = dict(parser=self.parser, step=self.parser)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser]
@@ -493,21 +491,18 @@ class Calc(Proc):
                     try:
                         parser = parser.__class__()
                     except Exception as e:
-                        self.fail(
+                        raise ProcessFailure(
                             'could not re-create parser instance',
                             exc_info=e, error=str(e), **context)
-                        return
             try:
                 parser.parse(
                     self.upload_files.raw_file_object(self.mainfile).os_path,
                     self._parser_results, logger=logger)
 
             except Exception as e:
-                self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
-                return
+                raise ProcessFailure('parser failed with exception', exc_info=e, error=str(e), **context)
             except SystemExit:
-                self.fail('parser raised system exit', error='system exit', **context)
-                return
+                raise ProcessFailure('parser raised system exit', error='system exit', **context)
 
     def process_phonon(self):
         """Function that is run for phonon calculation before cleanup.
@@ -594,10 +589,9 @@ class Calc(Proc):
                 archive_size = self.write_archive(self._parser_results)
                 log_data.update(archive_size=archive_size)
 
-    @task
     def normalizing(self):
-        ''' The *task* that encapsulates all normalizing related actions. '''
-
+        ''' The process step that encapsulates all normalizing related actions. '''
+        self.set_process_step('normalizing')
         # allow normalizer to access and add data to the entry metadata
         if self._parser_results.section_metadata is None:
             self._parser_results.m_add_sub_section(
@@ -616,11 +610,11 @@ class Calc(Proc):
                     normalizer(self._parser_results).normalize(logger=logger)
                     logger.info('normalizer completed successfull', **context)
                 except Exception as e:
-                    self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
+                    raise ProcessFailure('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
-    @task
     def archiving(self):
-        ''' The *task* that encapsulates all archival related actions. '''
+        ''' The process step that encapsulates all archival related actions. '''
+        self.set_process_step('archiving')
         logger = self.get_logger()
 
         self._entry_metadata.apply_domain_metadata(self._parser_results)
@@ -689,7 +683,7 @@ class Calc(Proc):
             archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
             archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
             self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
-            raise e
+            raise
 
     def __str__(self):
         return 'calc %s calc_id=%s upload_id%s' % (super().__str__(), self.calc_id, self.upload_id)
@@ -743,7 +737,7 @@ class Upload(Proc):
     meta: Any = {
         'strict': False,
         'indexes': [
-            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time', 'create_time'
+            'user_id', 'process_status', 'published', 'upload_time', 'create_time'
         ]
     }
 
@@ -813,8 +807,6 @@ class Upload(Proc):
         kwargs.update(user_id=user.user_id)
         self = super().create(**kwargs)
 
-        self._continue_with('uploading')
-
         return self
 
     def delete(self):
@@ -875,7 +867,7 @@ class Upload(Proc):
         '''
         self.delete_upload_local()
 
-        return True  # do not save the process status on the delete upload
+        return ProcessStatus.DELETED  # Signal deletion to the process framework
 
     @process
     def publish_upload(self, with_embargo: bool = None, embargo_length: int = None):
@@ -1028,10 +1020,6 @@ class Upload(Proc):
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
-        # mock the initial task of needed
-        if self.current_task is None:
-            self._continue_with('uploading')
-
         self.extracting()
 
         if self.from_oasis:
@@ -1068,11 +1056,13 @@ class Upload(Proc):
                     json.dump(oasis_metadata, f)
 
         self.parse_all()
+        self.set_process_step('collecting entry results')
+        return ProcessStatus.WAITING_FOR_RESULT
 
-    @task
-    def uploading(self):
-        ''' A no-op *task* as a stand-in for receiving upload data. '''
-        pass
+    def on_waiting_for_result(self):
+        # Called when the upload has transitioned to status waiting
+        self.save()
+        self.check_join()
 
     @property
     def upload_files(self) -> UploadFiles:
@@ -1088,12 +1078,12 @@ class Upload(Proc):
     def staging_upload_files(self) -> StagingUploadFiles:
         return self.upload_files.to_staging_upload_files()
 
-    @task
     def extracting(self):
         '''
-        The *task* performed before the actual parsing/normalizing: executes the pending
+        The process step performed before the actual parsing/normalizing: executes the pending
         file operations.
         '''
+        self.set_process_step('updating files')
         logger = self.get_logger()
 
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
@@ -1121,8 +1111,7 @@ class Upload(Proc):
                 with utils.timer(logger, 'Deleting files or folders from upload'):
                     staging_upload_files.delete_rawfiles(operation['path'])
             else:
-                self.fail(f'Unknown operation {op}', log_level=logging.ERROR)
-                return
+                raise ValueError(f'Unknown operation {op}')
 
     def _preprocess_files(self, path):
         '''
@@ -1173,12 +1162,12 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=path_info.path, exc_info=e)
 
-    @task
     def parse_all(self):
         '''
-        The *task* used to identify mainfile/parser combinations among the upload's files, creates
-        respective :class:`Calc` instances, and triggers their processing.
+        The process step used to identify mainfile/parser combinations among the upload's files,
+        creates respective :class:`Calc` instances, and triggers their processing.
         '''
+        self.set_process_step('parse all')
         logger = self.get_logger()
 
         with utils.timer(logger, 'calcs processing called'):
@@ -1271,45 +1260,42 @@ class Upload(Proc):
                     self._cleanup_staging_files()
                 raise
 
-    def on_process_complete(self, process_name):
-        if process_name == 'process_upload':
-            self.check_join()
-
     def check_join(self):
         '''
         Performs an evaluation of the join condition and triggers the :func:`cleanup`
-        task if necessary. The join condition allows to run the ``cleanup`` after
-        all calculations have been processed. The upload processing stops after all
-        calculation processing have been triggered (:func:`parse_all` or
-        :func:`process_upload`). The cleanup task is then run within the last
+        if necessary. The join condition allows to run the ``cleanup`` after
+        all calculations have been processed. The cleanup is then run within the last
         calculation process (the one that triggered the join by calling this method).
         '''
-        total_calcs = self.total_calcs
-        processed_calcs = self.processed_calcs
+        try:
+            total_calcs = self.total_calcs
+            processed_calcs = self.processed_calcs
 
-        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
-        # check if process is not running anymore, i.e. not still spawining new processes to join
-        # check the join condition, i.e. all calcs have been processed
-        if not self.process_running and processed_calcs >= total_calcs:
-            # this can easily be called multiple times, e.g. upload finished after all calcs finished
-            modified_upload = self._get_collection().find_one_and_update(
-                {'_id': self.upload_id, 'joined': {'$ne': True}},
-                {'$set': {'joined': True}})
-            if modified_upload is None or modified_upload['joined'] is False:
-                self.get_logger().info('join')
+            self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
+            # check the join condition, i.e. all calcs have been processed
+            if self.process_status == ProcessStatus.WAITING_FOR_RESULT and processed_calcs >= total_calcs:
+                # this can easily be called multiple times, e.g. upload finished after all calcs finished
+                modified_upload = self._get_collection().find_one_and_update(
+                    {'_id': self.upload_id, 'joined': {'$ne': True}},
+                    {'$set': {'joined': True}})
+                if modified_upload is None or modified_upload['joined'] is False:
+                    self.get_logger().info('join')
 
-                # Before cleaning up, run an additional normalizer on phonon
-                # calculations. TODO: This should be replaced by a more
-                # extensive mechanism that supports more complex dependencies
-                # between calculations.
-                phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
-                for calc in phonon_calculations:
-                    calc.process_phonon()
+                    # Before cleaning up, run an additional normalizer on phonon
+                    # calculations. TODO: This should be replaced by a more
+                    # extensive mechanism that supports more complex dependencies
+                    # between calculations.
+                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
+                    for calc in phonon_calculations:
+                        calc.process_phonon()
 
-                self.cleanup()
-            else:
-                # the join was already done due to a prior call
-                pass
+                    self.cleanup()
+                    self.succeed()
+                else:
+                    # the join was already done due to a prior call
+                    pass
+        except Exception as e:
+            self.fail('Failed to join: ' + str(e), exc_info=e, error=str(e))
 
     def reset(self, force=False):
         self.joined = False
@@ -1391,12 +1377,12 @@ class Upload(Proc):
                 with utils.timer(self.get_logger(), 'upload staging files deleted'):
                     staging_upload_files.delete()
 
-    @task
     def cleanup(self):
         '''
-        The *task* that "cleans" the processing, i.e. removed obsolete files and performs
+        The process step that "cleans" the processing, i.e. removed obsolete files and performs
         pending archival operations. Depends on the type of processing.
         '''
+        self.set_process_step('cleanup')
         search.refresh()
         self._cleanup_after_processing()
 
@@ -1410,7 +1396,9 @@ class Upload(Proc):
         The number of successfully or not successfully processed calculations. I.e.
         calculations that have finished processing.
         '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status__in=[SUCCESS, FAILURE]).count()
+        return Calc.objects(
+            upload_id=self.upload_id, process_status__in=[
+                ProcessStatus.SUCCESS, ProcessStatus.FAILURE]).count()
 
     @property
     def total_calcs(self):
@@ -1420,12 +1408,13 @@ class Upload(Proc):
     @property
     def failed_calcs(self):
         ''' The number of calculations with failed processing. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=FAILURE).count()
+        return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
 
     @property
-    def pending_calcs(self) -> int:
-        ''' The number of calculations with pending processing. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=PENDING).count()
+    def processing_calcs(self) -> int:
+        ''' The number of calculations currently processing. '''
+        return Calc.objects(
+            upload_id=self.upload_id, process_status__in=ProcessStatus.STATUSES_PROCESSING).count()
 
     def all_calcs(self, start, end, order_by=None):
         '''
@@ -1448,13 +1437,13 @@ class Upload(Proc):
     def outdated_calcs(self):
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
-            upload_id=self.upload_id, tasks_status=SUCCESS,
+            upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS,
             metadata__nomad_version__ne=config.meta.version)
 
     @property
     def calcs(self):
         ''' All successfully processed calculations. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
+        return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
     def entries_metadata(self) -> Iterator[Iterable[datamodel.EntryMetadata]]:

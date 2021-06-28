@@ -19,90 +19,84 @@ import pytest
 import json
 import random
 
-from nomad.processing.base import Proc, process, task, SUCCESS, FAILURE, RUNNING, PENDING
+from nomad.processing.base import Proc, process, ProcessStatus
 
 random.seed(0)
 
 
-def assert_proc(proc, current_task, tasks_status=SUCCESS, errors=0, warnings=0):
-    assert proc.current_task == current_task
-    assert proc.tasks_status == tasks_status
+def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, errors=0, warnings=0):
+    assert proc.current_process == current_process
+    assert proc.process_status == process_status
     assert len(proc.errors) == errors
     assert len(proc.warnings) == warnings
     assert not proc.process_running
 
 
-class Tasks(Proc):
-    @task
-    def a(self):
+class SimpleProc(Proc):
+    @process
+    def a_process(self):
         pass
 
-    @task
-    def b(self):
-        pass
+    @process
+    def a_process_with_arguments(self, a_string, a_int, a_float, a_bool, a_list, a_tuple, a_dict, **kwargs):
+        assert a_string == 'a string'
+        assert a_int == 7
+        assert a_float == 3.14
+        assert a_bool is True
+        assert a_list == [1, 2]
+        assert a_tuple == [3, 4]  # Apparently, tuples become unmarshalled as lists...
+        assert a_dict == {'1': 'one', '2': 2}  # ... and dictionary keys are converted to strings.
+        assert kwargs == {'kwarg': 'kwarg_value'}
 
 
-class SingleTask(Proc):
-    @task
-    def single(self):
-        pass
+@pytest.mark.parametrize('with_args', [
+    pytest.param(False, id='no-args'),
+    pytest.param(True, id='with-args')])
+def test_simple_process(worker, mongo, no_warn, with_args):
+    p = SimpleProc.create()
+    if with_args:
+        process = 'a_process_with_arguments'
+        p.a_process_with_arguments(
+            'a string', 7, 3.14, True, [1, 2], (3, 4), {1: 'one', 2: 2}, kwarg='kwarg_value')
+    else:
+        process = 'a_process'
+        p.a_process()
+    p.block_until_complete()
+    assert_proc(p, process)
 
 
-def test_tasks(mongo):
-    p = Tasks.create()
-    assert p.tasks == ['a', 'b']
-    assert_proc(p, None, PENDING)
-
-    p.a()
-    assert_proc(p, 'a', RUNNING)
-
-    p.b()
-    assert_proc(p, 'b')
-
-    p = SingleTask.create()
-    p.single()
-    assert_proc(p, 'single')
-
-
-class FailTasks(Proc):
-    @task
+class FailingProc(Proc):
+    @process
     def will_fail(self):
-        self.fail('fail fail fail')
+        self.fail('fail fail fail!')
+
+    @process
+    def will_fail_with_exception(self):
+        _x = 1 / 0
 
 
-def test_fail(mongo, with_error):
-    p = FailTasks.create()
-    p.will_fail()
+@pytest.mark.parametrize('with_exception', [
+    pytest.param(False, id='no-exception'),
+    pytest.param(True, id='with-exception')])
+def test_failing_process(worker, mongo, with_error, with_exception):
+    p = FailingProc.create()
+    if with_exception:
+        event = 'process failed with exception'
+        process = 'will_fail_with_exception'
+        p.will_fail_with_exception()
+    else:
+        event = 'process failed'
+        process = 'will_fail'
+        p.will_fail()
+    p.block_until_complete()
+    assert_proc(p, process, ProcessStatus.FAILURE, errors=1)
 
-    assert_proc(p, 'will_fail', FAILURE, errors=1)
     has_log = False
     for record in with_error.get_records(when='call'):
         if record.levelname == 'ERROR':
             has_log = True
-            assert json.loads(record.msg)['event'] == 'task failed'
+            assert json.loads(record.msg)['event'] == event
     assert has_log
-
-
-class SimpleProc(Proc):
-    @process
-    def process(self):
-        self.one()
-        self.two()
-
-    @task
-    def one(self):
-        pass
-
-    @task
-    def two(self):
-        pass
-
-
-def test_simple_process(worker, mongo, no_warn):
-    p = SimpleProc.create()
-    p.process()
-    p.block_until_complete()
-    assert_proc(p, 'two')
 
 
 class ProcTwice(Proc):
@@ -117,38 +111,4 @@ def test_process_twice(worker, mongo, no_warn):
     p.block_until_complete()
     p.process()
     p.block_until_complete()
-    assert_proc(p, None)
-
-
-class TaskInProc(Proc):
-    @process
-    @task
-    def process(self):
-        pass
-
-
-@pytest.mark.timeout(5)
-def test_task_as_proc(worker, mongo, no_warn):
-    p = TaskInProc.create()
-    p.process()
-    p.block_until_complete()
-    assert_proc(p, 'process')
-
-
-class ProcInProc(Proc):
-    @process
-    @task
-    def one(self):
-        self.two()
-
-    @process
-    @task
-    def two(self):
-        pass
-
-
-def test_fail_on_proc_in_proc(worker, mongo):
-    p = ProcInProc.create()
-    p.one()
-    p.block_until_complete()
-    assert_proc(p, 'one', FAILURE, 1)
+    assert_proc(p, 'process', ProcessStatus.SUCCESS)

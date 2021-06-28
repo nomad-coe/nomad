@@ -28,8 +28,7 @@ from nomad.search import v0 as search
 import nomad.search.v1
 from nomad.cli import cli
 from nomad.cli.cli import POPO
-from nomad.processing import Upload, Calc
-from nomad.processing.base import SUCCESS
+from nomad.processing import Upload, Calc, ProcessStatus
 
 from tests.app.flask.test_app import BlueprintClient
 from tests.app.flask.conftest import (  # pylint: disable=unused-import
@@ -265,7 +264,7 @@ class TestAdminUploads:
                 assert calc.calc_id in archive
 
         published.reload()
-        assert published.tasks_status == SUCCESS
+        assert published.process_status == ProcessStatus.SUCCESS
 
     def test_chown(self, published, test_user, other_test_user):
         upload_id = published.upload_id
@@ -327,8 +326,8 @@ class TestAdminUploads:
 
         upload = Upload.objects(upload_id=upload_id).first()
         calc = Calc.objects(upload_id=upload_id).first()
-        assert upload.tasks_status == proc.SUCCESS
-        assert calc.tasks_status == proc.SUCCESS
+        assert upload.process_status == ProcessStatus.SUCCESS
+        assert calc.process_status == ProcessStatus.SUCCESS
 
         args = ['admin', 'uploads', 'reset']
         if with_calcs: args.append('--with-calcs')
@@ -342,14 +341,14 @@ class TestAdminUploads:
         upload = Upload.objects(upload_id=upload_id).first()
         calc = Calc.objects(upload_id=upload_id).first()
 
-        expected_state = proc.PENDING
-        if success: expected_state = proc.SUCCESS
-        if failure: expected_state = proc.FAILURE
-        assert upload.tasks_status == expected_state
+        expected_state = ProcessStatus.READY
+        if success: expected_state = ProcessStatus.SUCCESS
+        if failure: expected_state = ProcessStatus.FAILURE
+        assert upload.process_status == expected_state
         if not with_calcs:
-            assert calc.tasks_status == proc.SUCCESS
+            assert calc.process_status == ProcessStatus.SUCCESS
         else:
-            assert calc.tasks_status == expected_state
+            assert calc.process_status == expected_state
 
 
 @pytest.mark.usefixtures('reset_config')

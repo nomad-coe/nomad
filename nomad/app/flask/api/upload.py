@@ -34,8 +34,7 @@ from functools import wraps
 
 from nomad import config, utils, files, datamodel
 from nomad.search import v0 as search
-from nomad.processing import Upload, FAILURE
-from nomad.processing import ProcessAlreadyRunning
+from nomad.processing import Upload, ProcessStatus, ProcessAlreadyRunning
 
 from .. import common
 from ..common import RFC3339DateTime
@@ -49,15 +48,13 @@ ns = api.namespace(
     description='Uploading data and tracing uploaded data and its processing.')
 
 proc_model = api.model('Processing', {
-    'tasks': fields.List(fields.String),
-    'current_task': fields.String,
-    'tasks_running': fields.Boolean,
-    'tasks_status': fields.String,
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
     'create_time': RFC3339DateTime,
     'complete_time': RFC3339DateTime,
     'current_process': fields.String,
+    'current_process_step': fields.String,
+    'process_status': fields.String,
     'process_running': fields.Boolean,
 })
 
@@ -103,10 +100,10 @@ calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
 })
 
 upload_with_calcs_model = api.inherit('UploadWithPaginatedCalculations', upload_model, {
-    'processed_calcs': fields.Integer,
     'total_calcs': fields.Integer,
+    'processed_calcs': fields.Integer,
     'failed_calcs': fields.Integer,
-    'pending_calcs': fields.Integer,
+    'processing_calcs': fields.Integer,
     'calcs': fields.Nested(model=api.model('UploadPaginatedCalculations', {
         'pagination': fields.Nested(model=api.inherit('UploadCalculationPagination', pagination_model, {
             'successes': fields.Integer,
@@ -431,7 +428,7 @@ class UploadResource(Resource):
 
         if order_by is not None:
             order_by = str(order_by)
-            if order_by not in ['mainfile', 'tasks_status', 'parser']:
+            if order_by not in ['mainfile', 'process_status', 'parser']:
                 abort(400, message='invalid order_by field %s' % order_by)
 
             order_by = ('-%s' if order == -1 else '+%s') % order_by
@@ -482,7 +479,7 @@ class UploadResource(Resource):
         if upload.published and not g.user.is_admin:
             abort(400, message='The upload is already published')
 
-        if upload.tasks_running:
+        if upload.process_running:
             abort(400, message='The upload is not processed yet')
 
         try:
@@ -549,9 +546,9 @@ class UploadResource(Resource):
             metadata[key] = user_metadata[user_key]
 
         if operation == 'publish':
-            if upload.tasks_running:
+            if upload.process_running:
                 abort(400, message='The upload is not processed yet')
-            if upload.tasks_status == FAILURE:
+            if upload.process_status == ProcessStatus.FAILURE:
                 abort(400, message='Cannot publish an upload that failed processing')
             if upload.processed_calcs == 0:
                 abort(400, message='Cannot publish an upload without calculations')
@@ -572,7 +569,7 @@ class UploadResource(Resource):
 
             return upload, 200
         elif operation == 're-process':
-            if upload.tasks_running or upload.process_running or not upload.published:
+            if upload.process_running or not upload.published:
                 abort(400, message='Can only re-process on non processing and published uploads')
 
             if len(metadata) > 0:
@@ -585,7 +582,7 @@ class UploadResource(Resource):
             upload.process_upload()
             return upload, 200
         elif operation == 'publish-to-central-nomad':
-            if upload.tasks_running or upload.process_running or not upload.published:
+            if upload.process_running or not upload.published:
                 abort(400, message='Can only upload non processing and published uploads to central NOMAD.')
 
             if len(metadata) > 0:
