@@ -338,7 +338,7 @@ def _api_to_es_aggregation(
             'histogram', field=quantity.search_field, interval=agg.interval))
 
     elif isinstance(agg, MinMaxAggregation):
-        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a mix-max aggregation',
                 loc=['aggregations', name, 'min_max', 'quantity'])

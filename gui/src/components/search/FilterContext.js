@@ -355,7 +355,11 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     }
   }, [apiCall, debounced, query, exclusive, update])
 
-  return results && results.aggregations[quantity][type].data
+  let data = results && results.aggregations[quantity][type].data
+  if (type === 'min_max' && !data) {
+    data = [undefined, undefined]
+  }
+  return data
 }
 
 /**

@@ -1,4 +1,3 @@
-
 /*
  * Copyright The NOMAD Authors.
  *
@@ -16,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Tooltip
 } from '@material-ui/core'
-// import {
-//   KeyboardDatePicker
-// } from '@material-ui/pickers'
+import {
+  KeyboardDatePicker
+} from '@material-ui/pickers'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil } from 'lodash'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-// import { useFilterState } from './FilterContext'
+import { useAgg, useFilterState } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -39,15 +39,18 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'column',
     boxSizing: 'border-box'
   },
-  select: {
-    width: '100%'
-  },
-  chips: {
+  row: {
+    width: '100%',
     display: 'flex',
-    flexWrap: 'wrap'
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start'
   },
-  icon: {
-    right: theme.spacing(1)
+  dash: {
+    padding: theme.spacing(1)
+  },
+  date: {
+    flex: 1
   }
 }))
 const FilterDate = React.memo(({
@@ -61,29 +64,64 @@ const FilterDate = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  // const [startDate, setStartDate] = useState(new Date())
-  // const [endDate, setEndDate] = useState(new Date())
-  // const [filter, setFilter] = useFilterState(quantity)
+  const [startDate, setStartDate] = useState(new Date())
+  const [endDate, setEndDate] = useState(new Date())
+  // eslint-disable-next-line no-unused-vars
+  const [filter, setFilter] = useFilterState(quantity)
+  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible)
   const disabled = false
+
+  // The range is automatically adjusted according to global min/max of the
+  // field
+  useEffect(() => {
+    if (!isNil(endGlobal) && !isNil(startGlobal)) {
+      console.log(startGlobal, endGlobal)
+      console.log(typeof startGlobal)
+      if (filter === undefined) {
+        setStartDate(new Date(startGlobal))
+        setEndDate(new Date(endGlobal))
+      }
+    }
+  }, [startGlobal, endGlobal, filter])
 
   // Determine the description and units
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const title = label || def?.name
 
+  const handleDateChange = useCallback((date) => {
+  }, [])
+
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <FilterLabel label={title} description={desc}/>
-      {/* <KeyboardDatePicker
-        autoOk
-        variant="inline"
-        inputVariant="outlined"
-        label="With keyboard"
-        format="MM/dd/yyyy"
-        value={startDate}
-        InputAdornmentProps={{ position: 'start' }}
-        onChange={date => handleDateChange(date)}
-      /> */}
+      <div className={styles.row}>
+        <KeyboardDatePicker
+          className={styles.date}
+          autoOk
+          disabled={disabled}
+          variant="inline"
+          inputVariant="outlined"
+          label="Start date"
+          format="dd/MM/yyyy"
+          value={startDate}
+          InputAdornmentProps={{ position: 'start' }}
+          onChange={date => handleDateChange(date)}
+        />
+        <div className={styles.dash}>-</div>
+        <KeyboardDatePicker
+          className={styles.date}
+          autoOk
+          disabled={disabled}
+          variant="inline"
+          inputVariant="outlined"
+          label="End date"
+          format="dd/MM/yyyy"
+          value={endDate}
+          InputAdornmentProps={{ position: 'start' }}
+          onChange={date => handleDateChange(date)}
+        />
+      </div>
     </div>
   </Tooltip>
 })
