@@ -84,7 +84,7 @@ const FilterSlider = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
-  const [minGlobal, maxGlobal] = useAgg(quantity, 'min_max', true, visible)
+  const [minGlobal, maxGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
   const [minText, setMinText] = useState()
   const [maxText, setMaxText] = useState()
   const [minLocal, setMinLocal] = useState()
@@ -107,8 +107,8 @@ const FilterSlider = React.memo(({
   let maxConverted = (maxGlobal !== undefined && unitSI) ? toUnitSystem(maxGlobal, unitSI, units) : maxGlobal
   const disabled = minGlobal === null || maxGlobal === null
 
-  // If not manual range has been specified, the range is automatically adjusted
-  // according to global min/max of the field
+  // If no range has been specified by the user, the range is automatically
+  // adjusted according to global min/max of the field.
   useEffect(() => {
     if (!isNil(maxConverted) && !isNil(minConverted)) {
       setMaxLocal(maxConverted)

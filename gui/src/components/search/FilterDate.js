@@ -18,7 +18,8 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
-  Tooltip
+  Tooltip,
+  FormHelperText
 } from '@material-ui/core'
 import {
   KeyboardDatePicker
@@ -29,7 +30,9 @@ import { isNil } from 'lodash'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
 import { useAgg, useFilterState } from './FilterContext'
+import { getTime } from 'date-fns'
 
+const invalidDateMessage = 'Invalid date format.'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -43,11 +46,15 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'flex-start'
   },
   dash: {
-    padding: theme.spacing(1)
+    height: '56px',
+    lineHeight: '56px',
+    textAlign: 'center',
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1)
   },
   date: {
     flex: 1
@@ -66,17 +73,18 @@ const FilterDate = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
+  // const [startError, setStartError] = useState()
+  // const [endError, setEndError] = useState()
+  const [error, setError] = useState()
   // eslint-disable-next-line no-unused-vars
   const [filter, setFilter] = useFilterState(quantity)
-  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible)
-  const disabled = false
+  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
+  const disabled = startGlobal === null || endGlobal === null
 
-  // The range is automatically adjusted according to global min/max of the
-  // field
+  // If no range has been specified by the user, the range is automatically
+  // adjusted according to global min/max of the field.
   useEffect(() => {
     if (!isNil(endGlobal) && !isNil(startGlobal)) {
-      console.log(startGlobal, endGlobal)
-      console.log(typeof startGlobal)
       if (filter === undefined) {
         setStartDate(new Date(startGlobal))
         setEndDate(new Date(endGlobal))
@@ -89,39 +97,84 @@ const FilterDate = React.memo(({
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleDateChange = useCallback((date) => {
-  }, [])
+  const handleStartChange = useCallback((date) => {
+    setStartDate(date)
+    const start = getTime(date)
+    const end = getTime(endDate)
+    if (checkError(start, end)) {
+      return
+    }
+    setFilter({
+      gte: getTime(date),
+      lte: getTime(endDate)
+    })
+  }, [endDate, setFilter])
+
+  const handleEndChange = useCallback((date) => {
+    setEndDate(date)
+    const start = getTime(startDate)
+    const end = getTime(date)
+    if (checkError(start, end)) {
+      return
+    }
+    setFilter({
+      gte: start,
+      lte: end
+    })
+  }, [startDate, setFilter])
+
+  const checkError = (start, end) => {
+    let error
+    if (start > end) {
+      error = 'End date cannot be before start date'
+    } else if (isNaN(start) || isNaN(end)) {
+      error = invalidDateMessage
+    }
+    setError(error)
+    return !!error
+  }
 
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <FilterLabel label={title} description={desc}/>
       <div className={styles.row}>
         <KeyboardDatePicker
+          error={!!error}
           className={styles.date}
-          autoOk
           disabled={disabled}
           variant="inline"
           inputVariant="outlined"
           label="Start date"
           format="dd/MM/yyyy"
           value={startDate}
+          invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onChange={date => handleDateChange(date)}
+          onAccept={handleStartChange}
+          onChange={setStartDate}
+          onBlur={() => handleStartChange(startDate)}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleStartChange(startDate) } }}
         />
         <div className={styles.dash}>-</div>
         <KeyboardDatePicker
+          error={!!error}
           className={styles.date}
-          autoOk
           disabled={disabled}
           variant="inline"
           inputVariant="outlined"
           label="End date"
           format="dd/MM/yyyy"
           value={endDate}
+          invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onChange={date => handleDateChange(date)}
+          onAccept={handleEndChange}
+          onChange={setEndDate}
+          onBlur={() => handleEndChange(endDate)}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleEndChange(endDate) } }}
         />
       </div>
+      {error && <FormHelperText error>
+        {error}
+      </FormHelperText>}
     </div>
   </Tooltip>
 })

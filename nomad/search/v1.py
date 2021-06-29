@@ -514,8 +514,6 @@ def search(
     else:
         es_query &= owner_query
 
-    print(es_query.to_dict())
-
     # pagination
     if pagination is None:
         pagination = Pagination()

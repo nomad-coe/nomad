@@ -94,7 +94,8 @@ export const filtersGW = [
 
 export const filtersAuthor = [
   'authors.name',
-  'external_db'
+  'external_db',
+  'upload_time'
 ]
 
 export const filtersDataset = [
