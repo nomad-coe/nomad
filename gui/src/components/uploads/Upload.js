@@ -232,14 +232,14 @@ class Upload extends React.Component {
     }
   })
 
-  static defaultSelectedColumns = ['mainfile', 'parser', 'proc', 'tasks_status']
+  static defaultSelectedColumns = ['mainfile', 'parser', 'proc', 'process_status']
 
   state = {
     upload: this.props.upload,
     params: {
       page: 1,
       per_page: 10,
-      order_by: 'tasks_status',
+      order_by: 'process_status',
       order: 1
     },
     updating: true, // it is still not complete and continuously looking for updates
@@ -307,18 +307,18 @@ class Upload extends React.Component {
         label: 'Processing',
         supportsSort: false,
         description: 'Details on the processing of this entry.',
-        render: entry => `${entry.current_task || 'waiting'} [${entry.tasks.indexOf(entry.current_task) + 1}/${entry.tasks.length}]`
+        render: entry => `${entry.current_process_step || 'waiting'}`
       },
-      tasks_status: {
+      process_status: {
         label: 'Status',
         supportsSort: true,
         descriptions: 'Entry processing status',
         render: entry => {
-          const { tasks_status, errors, warnings } = entry
-          const label = tasks_status.toLowerCase()
-          const error = tasks_status === 'FAILURE' || errors.length > 0 || warnings.length > 0
+          const { process_status, errors, warnings } = entry
+          const label = process_status.toLowerCase()
+          const error = process_status === 'FAILURE' || errors.length > 0 || warnings.length > 0
           let tooltip = null
-          if (tasks_status === 'FAILURE') {
+          if (process_status === 'FAILURE') {
             tooltip = `Calculation processing failed with errors: ${errors.join(', ')}`
           }
           if (errors.length > 0) {
@@ -352,9 +352,9 @@ class Upload extends React.Component {
     const {page, per_page, order_by, order} = this.state.params
     this.state.upload.get(page, per_page, order_by, order)
       .then(upload => {
-        const {tasks_running, process_running, current_task} = upload
+        const { process_running, current_process_step } = upload
         if (!this._unmounted) {
-          const continueUpdating = tasks_running || process_running || current_task === 'uploading'
+          const continueUpdating = process_running || current_process_step === 'uploading'
           this.setState({upload: upload, updating: continueUpdating})
           if (continueUpdating) {
             window.setTimeout(() => {
@@ -486,15 +486,14 @@ class Upload extends React.Component {
   renderStepper() {
     const { classes } = this.props
     const { upload } = this.state
-    const { calcs, tasks, current_task, tasks_running, tasks_status, process_running, current_process } = upload
+    const { calcs, process_running, current_process, current_process_step, process_status } = upload
 
-    // map tasks [ uploading, extracting, parse_all, cleanup ] to steps
+    // map current_process_step to steps
     const steps = [ 'upload', 'process', 'publish' ]
     let step = null
-    const task_index = tasks.indexOf(current_task)
-    if (task_index === 0) {
+    if (current_process_step === 'uploading') {
       step = 'upload'
-    } else if (task_index > 0 && tasks_running) {
+    } else if (process_running) {
       step = 'process'
     } else if (!upload.published) {
       step = 'publish'
@@ -506,7 +505,7 @@ class Upload extends React.Component {
         if (step === 'upload') {
           props.children = 'uploading'
           const { uploading } = upload
-          if (upload.tasks_status !== 'FAILURE') {
+          if (upload.process_status !== 'FAILURE') {
             props.optional = (
               <Typography variant="caption">
                 {`${uploading || 0}%`}
@@ -518,7 +517,7 @@ class Upload extends React.Component {
         }
       },
       process: (props) => {
-        props.error = tasks_status === 'FAILURE'
+        props.error = process_status === 'FAILURE'
 
         const processIndex = steps.indexOf('process')
         if (stepIndex <= processIndex) {
@@ -527,14 +526,14 @@ class Upload extends React.Component {
           props.children = 'processed'
         }
 
-        if (current_task === 'extracting') {
+        if (current_process_step === 'updating files') {
           props.children = 'extracting'
           props.optional = (
             <Typography variant="caption">
               be patient
             </Typography>
           )
-        } else if (current_task === 'parse_all') {
+        } else if (current_process_step === 'parse all') {
           props.children = 'parsing'
         }
 
@@ -542,7 +541,7 @@ class Upload extends React.Component {
           if (!calcs) {
             props.optional = (
               <Typography variant="caption" >
-                matching...
+                {current_process_step}
               </Typography>
             )
           } else if (calcs.pagination.total > 0) {
@@ -561,7 +560,7 @@ class Upload extends React.Component {
                 </Typography>
               )
             }
-          } else if (tasks_status === 'SUCCESS') {
+          } else if (process_status === 'SUCCESS') {
             props.error = true
             props.optional = (
               <Typography variant="caption" color="error">No calculations found.</Typography>
@@ -569,7 +568,7 @@ class Upload extends React.Component {
           }
         }
 
-        if (tasks_status === 'FAILURE') {
+        if (process_status === 'FAILURE') {
           props.optional = (
             <Typography variant="caption" color="error">
               processing failed
@@ -629,7 +628,7 @@ class Upload extends React.Component {
   renderCalcTable() {
     const { classes } = this.props
     const { columns, upload } = this.state
-    const { calcs, tasks_status, waiting } = this.state.upload
+    const { calcs, process_status, waiting } = this.state.upload
 
     if (!calcs) {
       return (
@@ -641,8 +640,8 @@ class Upload extends React.Component {
 
     const { pagination } = calcs
 
-    if (pagination.total === 0 && tasks_status !== 'SUCCESS') {
-      if (this.state.upload.tasks_running) {
+    if (pagination.total === 0 && process_status !== 'SUCCESS') {
+      if (this.state.upload.process_running) {
         if (waiting) {
           return (
             <Typography className={classes.detailsContent}>
@@ -666,7 +665,7 @@ class Upload extends React.Component {
       }))
     }
 
-    const running = upload.tasks_running || upload.process_running
+    const running = upload.process_running
     const alreadyPublishedToCentralNomad = upload.published_to && upload.published_to.length > 0
 
     const actions = upload.published
@@ -686,7 +685,7 @@ class Upload extends React.Component {
             <DeleteIcon />
           </Tooltip>
         </IconButton>
-        <IconButton disabled={running || tasks_status !== 'SUCCESS' || data.pagination.total === 0} onClick={this.handlePublishOpen}>
+        <IconButton disabled={running || process_status !== 'SUCCESS' || data.pagination.total === 0} onClick={this.handlePublishOpen}>
           <Tooltip title="Publish upload">
             <PublishIcon />
           </Tooltip>
@@ -699,7 +698,7 @@ class Upload extends React.Component {
       columns={columns}
       selectedColumns={Upload.defaultSelectedColumns}
       selectedColumnsKey={null}
-      editable={tasks_status === 'SUCCESS'}
+      editable={process_status === 'SUCCESS'}
       data={data}
       onChange={this.handleChange}
       onEdit={this.handleChange}
@@ -722,7 +721,7 @@ class Upload extends React.Component {
       </div>
     )
 
-    if (upload.tasks_running || upload.process_running) {
+    if (upload.process_running) {
       return render(<CircularProgress size={32}/>, '')
     } else if (upload.published) {
       return render(<PublishedIcon size={32} color="primary"/>, 'This upload is published')

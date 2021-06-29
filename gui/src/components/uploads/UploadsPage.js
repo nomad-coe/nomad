@@ -217,7 +217,7 @@ class UploadsPage extends React.Component {
       .then(uploads => {
         this.setState({
           data: uploads,
-          uploading: this.state.uploading.filter(upload => upload.current_task === 'uploading')})
+          uploading: this.state.uploading.filter(upload => upload.current_process_step === 'uploading')})
       })
       .catch(error => {
         this.setState({data: {...this.defaultData}})
