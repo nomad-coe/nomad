@@ -45,7 +45,7 @@ const useStyles = makeStyles(theme => {
       display: 'none'
     },
     listChild: {
-      marginLeft: theme.spacing(1)
+      marginLeft: theme.spacing(1.5)
     },
     listParent: {
     },
@@ -113,6 +113,7 @@ const FiltersTree = React.memo(({
     function buildList(list, item, level) {
       const childName = item.name
       const filters = item.filters
+      const component = item.component
       const isOpen = isMenuOpen && view === childName
 
       // Add this item
@@ -121,19 +122,19 @@ const FiltersTree = React.memo(({
         className={styles.li}
       >
         <ListItem
-          button
+          button={!!component}
           className={styles.listItem}
           classes={{gutters: styles.gutters}}
-          onClick={() => handleClick(childName)}
+          onClick={component ? () => handleClick(childName) : undefined}
         >
           <ListItemText
             className={level === 0 ? styles.listParent : styles.listChild}
             primaryTypographyProps={{color: isOpen ? 'primary' : 'textPrimary'}}
             primary={childName}
           />
-          <ListItemIcon className={styles.listIcon}>
+          {component && <ListItemIcon className={styles.listIcon}>
             <NavigateNextIcon color={isOpen ? 'primary' : 'action'} className={styles.arrow}/>
-          </ListItemIcon>
+          </ListItemIcon>}
         </ListItem>
         {filters}
         <Divider className={styles.divider}/>

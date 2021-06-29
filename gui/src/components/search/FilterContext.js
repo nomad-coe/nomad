@@ -88,9 +88,9 @@ export const filtersDFT = [
   'results.method.simulation.dft.smearing_type'
 ]
 
-export const filtersGW = [
-  'results.method.simulation.gw.gw_type'
-]
+// export const filtersGW = [
+//   'results.method.simulation.gw.gw_type'
+// ]
 
 export const filtersAuthor = [
   'authors.name',
@@ -117,7 +117,7 @@ filtersAll = filtersAll.concat(filtersElectronic)
 filtersAll = filtersAll.concat(filtersSymmetry)
 filtersAll = filtersAll.concat(filtersMethod)
 filtersAll = filtersAll.concat(filtersDFT)
-filtersAll = filtersAll.concat(filtersGW)
+// filtersAll = filtersAll.concat(filtersGW)
 filtersAll = filtersAll.concat(filtersAuthor)
 filtersAll = filtersAll.concat(filtersDataset)
 filtersAll = filtersAll.concat(filtersIDs)

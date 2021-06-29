@@ -33,7 +33,7 @@ import FilterElements, { labelElements } from './FilterElements'
 import FilterElectronic, { labelElectronic } from './FilterElectronic'
 import FilterSymmetry, { labelSymmetry } from './FilterSymmetry'
 import FilterDFT, { labelDFT } from './FilterDFT'
-import FilterGW, { labelGW } from './FilterGW'
+// import FilterGW, { labelGW } from './FilterGW'
 import FilterMethod, { labelMethod } from './FilterMethod'
 import FilterMaterial, { labelMaterial } from './FilterMaterial'
 import FilterAuthor, { labelAuthor } from './FilterAuthor'
@@ -46,7 +46,7 @@ import {
   filtersMaterial,
   filtersElectronic,
   filtersDFT,
-  filtersGW,
+  // filtersGW,
   filtersSymmetry,
   filtersMethod,
   filtersAuthor,
@@ -85,12 +85,12 @@ const filterTree = [
         name: labelDFT,
         filters: <FilterSummary quantities={filtersDFT}/>,
         component: FilterDFT
-      },
-      {
-        name: labelGW,
-        filters: <FilterSummary quantities={filtersGW}/>,
-        component: FilterGW
       }
+      // {
+      //   name: labelGW,
+      //   filters: <FilterSummary quantities={filtersGW}/>,
+      //   component: FilterGW
+      // }
     ]
   },
   {
@@ -302,7 +302,6 @@ const FilterPanel = React.memo(({
   // When Portals are disabled (disablePortal), their positioning goes haywire.
   // The clicks outside are thus detected by individual event listeners that
   // toggle a global menu state.
-  // return <ClickAwayListener disableReactTree onClickAway={() => onIsMenuOpenChange(false)}>
   return <div className={clsx(className, styles.root)}>
     <Scrollable className={clsx(styles.menuPrimary, isMenuOpen && styles.menuPrimaryBorder)}>
       <div className={styles.paddingPrimary}>

@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
@@ -83,6 +83,8 @@ const FilterSlider = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const endChanged = useRef(false)
+  const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const [minGlobal, maxGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
   const [minText, setMinText] = useState()
@@ -134,18 +136,23 @@ const FilterSlider = React.memo(({
   }, [unit, setFilter])
 
   const handleStartChange = useCallback((event) => {
+    startChanged.current = true
     setError()
     const value = event.target?.value
     setMinText(value)
   }, [])
 
   const handleEndChange = useCallback((event) => {
+    endChanged.current = true
     setError()
     const value = event.target?.value
     setMaxText(value)
   }, [])
 
   const handleStartSubmit = useCallback(() => {
+    if (!startChanged.current) {
+      return
+    }
     const value = minText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
@@ -162,9 +169,13 @@ const FilterSlider = React.memo(({
     } else {
       setError(`Invalid value.`)
     }
+    startChanged.current = false
   }, [minText, minConverted, sendFilter])
 
   const handleEndSubmit = useCallback(() => {
+    if (!endChanged.current) {
+      return
+    }
     const value = maxText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
@@ -174,13 +185,14 @@ const FilterSlider = React.memo(({
         return
       }
       setRange(old => {
-        const newRange = {...old, gte: number}
+        const newRange = {...old, lte: number}
         sendFilter(newRange)
         return newRange
       })
     } else {
       setError(`Invalid value.`)
     }
+    endChanged.current = false
   }, [maxText, maxConverted, sendFilter])
 
   // Handle range commit: Set the filter when mouse is released on a slider

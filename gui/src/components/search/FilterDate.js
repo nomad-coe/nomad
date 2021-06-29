@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Tooltip,
@@ -73,10 +73,8 @@ const FilterDate = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
-  // const [startError, setStartError] = useState()
-  // const [endError, setEndError] = useState()
   const [error, setError] = useState()
-  // eslint-disable-next-line no-unused-vars
+  const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
   const disabled = startGlobal === null || endGlobal === null
@@ -98,32 +96,25 @@ const FilterDate = React.memo(({
   const title = label || def?.name
 
   const handleStartChange = useCallback((date) => {
+    changed.current = true
     setStartDate(date)
-    const start = getTime(date)
-    const end = getTime(endDate)
-    if (checkError(start, end)) {
-      return
-    }
-    setFilter({
-      gte: getTime(date),
-      lte: getTime(endDate)
-    })
-  }, [endDate, setFilter])
+  }, [])
 
   const handleEndChange = useCallback((date) => {
+    changed.current = true
     setEndDate(date)
-    const start = getTime(startDate)
-    const end = getTime(date)
-    if (checkError(start, end)) {
+  }, [])
+
+  // Used to check the input for errors and set the filter new valid values are
+  // found.
+  const handleAccept = useCallback(() => {
+    if (!changed.current) {
       return
     }
-    setFilter({
-      gte: start,
-      lte: end
-    })
-  }, [startDate, setFilter])
+    const start = getTime(startDate)
+    const end = getTime(endDate)
 
-  const checkError = (start, end) => {
+    // Check for errors and set error status.
     let error
     if (start > end) {
       error = 'End date cannot be before start date'
@@ -131,8 +122,15 @@ const FilterDate = React.memo(({
       error = invalidDateMessage
     }
     setError(error)
-    return !!error
-  }
+    if (error) {
+      return
+    }
+    setFilter({
+      gte: start,
+      lte: end
+    })
+    changed.current = false
+  }, [startDate, endDate, setFilter])
 
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -149,10 +147,10 @@ const FilterDate = React.memo(({
           value={startDate}
           invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleStartChange}
-          onChange={setStartDate}
-          onBlur={() => handleStartChange(startDate)}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleStartChange(startDate) } }}
+          onAccept={handleAccept}
+          onChange={handleStartChange}
+          onBlur={handleAccept}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept() } }}
         />
         <div className={styles.dash}>-</div>
         <KeyboardDatePicker
@@ -166,10 +164,10 @@ const FilterDate = React.memo(({
           value={endDate}
           invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleEndChange}
-          onChange={setEndDate}
-          onBlur={() => handleEndChange(endDate)}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleEndChange(endDate) } }}
+          onAccept={handleAccept}
+          onChange={handleEndChange}
+          onBlur={handleAccept}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept() } }}
         />
       </div>
       {error && <FormHelperText error>

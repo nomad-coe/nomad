@@ -32,7 +32,7 @@ import { Unit } from '../../units'
 import { useApi } from '../apiV1'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-import { useSetFilter, useQueryValue } from './FilterContext'
+import { useSetFilter } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -53,7 +53,6 @@ const FilterText = React.memo(({
   quantity,
   description,
   autocomplete,
-  suggest,
   className,
   classes,
   units,
@@ -82,7 +81,6 @@ const FilterText = React.memo(({
 
   // Attach the filter hook
   const setFilter = useSetFilter(quantity)
-  const query = useQueryValue()
 
   const filterOptions = useCallback((options, {inputValue}) => {
     const trimmed = inputValue.trim().toLowerCase()
@@ -143,23 +141,8 @@ const FilterText = React.memo(({
           .finally(() => setLoading(false))
       } else if (autocomplete === 'aggregations') {
       }
-    } else if (suggest) {
-      setLoading(true)
-      api.suggestions_aggregate(quantity, input, query)
-        .then(data => {
-          setSuggestions(data)
-          setOpen(true)
-        })
-        .finally(() => setLoading(false))
     }
-  }, [api, autocomplete, suggest, query, quantity])
-
-  // When the field is (re)-focused, clear out old suggestions, and fetch new
-  // ones
-  const handleFocus = useCallback(() => {
-    setSuggestions([])
-    fetchSuggestions(inputValue)
-  }, [inputValue, fetchSuggestions])
+  }, [api, autocomplete, quantity])
 
   // Submit the input value upon the element losing focus. This ensures that any
   // filters that are typed and not manually submitted (using enter) will still
@@ -197,6 +180,10 @@ const FilterText = React.memo(({
 
     // Suggestions are only retrieved in user input, not on clearing or
     // selecting a value
+    if (value.trim() === '') {
+      setSuggestions([])
+      return
+    }
     if (reason === 'input') {
       fetchSuggestions(value)
     }
@@ -217,7 +204,6 @@ const FilterText = React.memo(({
       classes={{endAdornment: styles.endAdornment}}
       filterOptions={filterOptions}
       options={suggestions}
-      onFocus={suggest ? handleFocus : undefined}
       onBlur={handleBlur}
       onInputChange={handleInputChange}
       onHighlightChange={handleHighlight}
@@ -234,9 +220,6 @@ const FilterText = React.memo(({
           InputLabelProps={{ shrink: true }}
           InputProps={{
             ...params.InputProps,
-            // classes: {
-            //   input: styles.input
-            // },
             endAdornment: (<>
               {loading ? <CircularProgress color="inherit" size={20} /> : null}
               {(inputValue?.length || null) && <>
@@ -267,13 +250,11 @@ FilterText.propTypes = {
   classes: PropTypes.object,
   units: PropTypes.object,
   autocomplete: PropTypes.string, // Determines the autocompletion mode: either 'aggregations', 'suggestions', or 'off'
-  suggest: PropTypes.bool, // Whether values are suggested even without any input
   'data-testid': PropTypes.string
 }
 
 FilterText.defaultProps = {
-  autocomplete: 'suggestions',
-  suggest: false
+  autocomplete: 'suggestions'
 }
 
 export default FilterText
