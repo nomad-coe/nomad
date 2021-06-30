@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -29,27 +29,50 @@ import { useResults } from './FilterContext'
  * Displays the list of search results
  */
 const useStyles = makeStyles(theme => ({
-  root: {}
+  root: {
+    height: '100%'
+  }
 }))
 const SearchResults = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const results = useResults()
 
-  return <div className={clsx(className, styles.root)}>
-    <Paper>
-      {results && <NewEntryList
-        query={results.query}
-        editable={results.query.owner === 'staging' || results.query.owner === 'user'}
-        data={results}
-        page={results?.pagination?.page}
-        per_page={results?.pagination?.page_size}
-        order={results?.pagination?.order}
-        order_by={results?.pagination?.order_by}
-      />}
-    </Paper>
-  </div>
+  // Find out how many results will fit on the current page.
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 20,
+    order: 'desc',
+    order_by: 'upload_time'
+  })
+
+  const results = useResults(pagination)
+  const total = results?.pagination.total || 0
+
+  // Request new results when scrolled to bottom. TODO: we should definitely use
+  // scrolling here instead of increasing the page size...
+  const handleBottom = useCallback(() => {
+    setPagination(old => {
+      if (old.page_size >= total) {
+        return old
+      }
+      const newPagination = {...old, page_size: Math.min(old.page_size + 20, total)}
+      return newPagination
+    })
+  }, [total])
+
+  return <Paper className={clsx(className, styles.root)}>
+    {results && <NewEntryList
+      query={results.query}
+      editable={results.query.owner === 'staging' || results.query.owner === 'user'}
+      data={results}
+      page={results?.pagination?.page}
+      per_page={results?.pagination?.page_size}
+      order={results?.pagination?.order}
+      order_by={results?.pagination?.order_by}
+      onBottom={handleBottom}
+    />}
+  </Paper>
 })
 SearchResults.propTypes = {
   initialTab: PropTypes.string,

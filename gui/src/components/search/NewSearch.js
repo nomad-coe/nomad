@@ -51,8 +51,8 @@ const useNewSearchStyles = makeStyles(theme => {
       paddingRight: theme.spacing(4)
     },
     resultList: {
-      // overflowY: 'auto',
-      flexGrow: 1
+      flexGrow: 1,
+      minHeight: 0 // This makes sure that the flex item is not bigger than the parent.
     },
     spacer: {
       flexGrow: 1

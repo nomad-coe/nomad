@@ -26,7 +26,6 @@ import clsx from 'clsx'
 /**
  * Component for displaying a scrollable view.
  */
-
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -41,13 +40,6 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     height: '100%',
     overflowY: 'scroll',
-    '&::-webkit-scrollbar': {
-      display: 'none'
-    },
-    '-ms-overflow-style': 'none',
-    scrollbarWidth: 'none',
-    // paddingTop: theme.spacing(1.5),
-    // paddingBottom: theme.spacing(1.5),
     boxSizing: 'border-box'
   },
   scrollHint: {
@@ -67,7 +59,22 @@ const useStyles = makeStyles(theme => ({
     top: 0
   }
 }))
+const useScrollStyles = makeStyles((theme) => ({
+  scrollBar: {
+    overflowY: 'scroll',
+    '&::-webkit-scrollbar': {
+      display: 'none'
+    },
+    '-ms-overflow-style': 'none',
+    scrollbarWidth: 'none'
+  }
+}))
+
 const Scrollable = React.memo(({
+  onBottom,
+  scrollBar,
+  hints,
+  footer,
   className,
   classes,
   children,
@@ -79,6 +86,7 @@ const Scrollable = React.memo(({
   const [isTop, setIsTop] = useState(true)
   const [isBottom, setIsBottom] = useState(false)
   const styles = useStyles({classes: classes})
+  const scrollStyles = useScrollStyles({classes: classes})
 
   // When the height of children changes, redetermine whether to show
   // scrollhints
@@ -97,10 +105,13 @@ const Scrollable = React.memo(({
 
     function updateScrollPosition() {
       const scrollHeight = element.scrollHeight - element.offsetHeight
-      const bottom = element.scrollTop === scrollHeight
-      const top = element.scrollTop === 0
+      const bottom = Math.round(element.scrollTop) >= scrollHeight
+      const top = Math.round(element.scrollTop) <= 0
       setIsTop(top || null)
       setIsBottom(bottom || null)
+      if (bottom && onBottom) {
+        onBottom()
+      }
     }
 
     if (element) {
@@ -109,19 +120,20 @@ const Scrollable = React.memo(({
         element.removeEventListener('scroll', updateScrollPosition, false)
       }
     }
-  }, [])
+  }, [onBottom])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={clsx(styles.containerOuter)}>
-      {(isOverflowing && !isTop) && <div className={clsx(styles.scrollHint, styles.scrollDown)}>
+      {(hints && isOverflowing && !isTop) && <div className={clsx(styles.scrollHint, styles.scrollDown)}>
         <ExpandLessIcon color="action"/>
       </div>}
-      <div ref={refRoot} className={clsx(styles.containerInner)}>
+      <div ref={refRoot} className={clsx(styles.containerInner, !scrollBar && scrollStyles.scrollBar)}>
         <div ref={ref}>
           {children}
+          {footer}
         </div>
       </div>
-      {(isOverflowing && !isBottom) && <div className={clsx(styles.scrollHint, styles.scrollUp)}>
+      {(hints && isOverflowing && !isBottom) && <div className={clsx(styles.scrollHint, styles.scrollUp)}>
         <ExpandMoreIcon color="action"/>
       </div>}
     </div>
@@ -129,10 +141,19 @@ const Scrollable = React.memo(({
 })
 
 Scrollable.propTypes = {
+  onBottom: PropTypes.func, // Callback that is fired when bottom reached
+  scrollBar: PropTypes.bool, // Whether to show native scrollbar
+  hints: PropTypes.bool, // Whether to show scroll hints
+  fixed: PropTypes.bool, // Whether to show scroll hints
+  footer: PropTypes.object, // A fixed component that is shown at the bottom
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.any,
   'data-testid': PropTypes.string
+}
+Scrollable.defaultProps = {
+  scrollBar: false,
+  hints: true
 }
 
 export default Scrollable

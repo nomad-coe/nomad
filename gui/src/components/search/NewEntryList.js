@@ -17,13 +17,13 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination, Button } from '@material-ui/core'
+import { withStyles, Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import DataTable from '../DataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import DownloadButton from '../DownloadButton'
 import PublicIcon from '@material-ui/icons/Public'
@@ -97,12 +97,13 @@ export class NewEntryListUnstyled extends React.Component {
     selectedColumns: PropTypes.arrayOf(PropTypes.string),
     user: PropTypes.object,
     showAccessColumn: PropTypes.bool,
-    entryPagePathPrefix: PropTypes.string
+    entryPagePathPrefix: PropTypes.string,
+    onBottom: PropTypes.func
   }
 
   static styles = theme => ({
     root: {
-      overflow: 'auto'
+      height: '100%'
     },
     entryDetails: {
       paddingTop: theme.spacing(2),
@@ -330,7 +331,7 @@ export class NewEntryListUnstyled extends React.Component {
     if (this.showEntryActions(row)) {
       return <Tooltip title="Show raw files and archive">
         <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
-          <DetailsIcon />
+          <NavigateNextIcon />
         </IconButton>
       </Tooltip>
     } else {
@@ -361,15 +362,6 @@ export class NewEntryListUnstyled extends React.Component {
       }
       selectedColumns.push('authors')
     }
-
-    const pagination = <TablePagination
-      count={totalNumber}
-      rowsPerPage={per_page}
-      page={page - 1}
-      onChangePage={this.handleChangePage}
-      onChangeRowsPerPage={this.handleChangeRowsPerPage}
-      labelDisplayedRows={({ from, to, count }) => `${from.toLocaleString()}-${to.toLocaleString()} of ${count.toLocaleString()}`}
-    />
 
     const example = selected && selected.length > 0 ? results.find(d => d.calc_id === selected[0]) : results[0]
     const selectQuery = (selected && selected.length > 0) ? {calc_id: selected, owner: query['owner']} : query
@@ -405,9 +397,9 @@ export class NewEntryListUnstyled extends React.Component {
           selected={this.state.selected}
           onSelectionChanged={selection => this.setState({selected: selection})}
           onOrderChanged={(order, orderBy) => this.handleChange({order: order === 'asc' ? -1 : 1, order_by: orderBy})}
-          rows={per_page}
-          pagination={pagination}
+          rows={results?.length || 0}
           actions={allActions}
+          onBottom={this.props.onBottom}
           {...rest}
         />
       </div>

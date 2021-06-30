@@ -370,7 +370,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
-export function useResults(delay = 400) {
+export function useResults(pagination, delay = 400) {
   const api = useApi()
   const firstRender = useRef(true)
   const search = useSearch()
@@ -380,8 +380,9 @@ export function useResults(delay = 400) {
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback((search, exclusive) => {
+  const apiCall = useCallback((search, exclusive, pagination) => {
     const finalSearch = {...search}
+    finalSearch.pagination = pagination
     finalSearch.query = cleanQuery(finalSearch.query, exclusive)
 
     api.queryEntry(finalSearch)
@@ -397,12 +398,12 @@ export function useResults(delay = 400) {
   // will be debounced.
   useEffect(() => {
     if (firstRender.current) {
-      apiCall(search, exclusive)
+      apiCall(search, exclusive, pagination)
       firstRender.current = false
     } else {
-      debounced(search, exclusive)
+      debounced(search, exclusive, pagination)
     }
-  }, [apiCall, debounced, search, exclusive])
+  }, [apiCall, debounced, search, exclusive, pagination])
 
   return results
 }
