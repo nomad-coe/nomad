@@ -259,7 +259,7 @@ const queryState = selector({
     return query
   }
 })
-export function useQueryValue() {
+export function useQuery() {
   return useRecoilValue(queryState)
 }
 
@@ -300,7 +300,7 @@ export function useSearch() {
 export function useAgg(quantity, type, restrict = false, update = true, delay = 200) {
   const api = useApi()
   const [results, setResults] = useState()
-  const query = useQueryValue()
+  const query = useQuery()
   const exclusive = useExclusive()
   const firstRender = useRef(true)
 
@@ -370,22 +370,22 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
-export function useResults(pagination, delay = 400) {
+export function useResults(query, pagination, exclusive, delay = 400) {
   const api = useApi()
   const firstRender = useRef(true)
-  const search = useSearch()
-  const exclusive = useExclusive()
   const [results, setResults] = useState()
 
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback((search, exclusive, pagination) => {
-    const finalSearch = {...search}
-    finalSearch.pagination = pagination
-    finalSearch.query = cleanQuery(finalSearch.query, exclusive)
+  const apiCall = useCallback((query, pagination, exclusive) => {
+    const search = {
+      owner: 'all',
+      query: cleanQuery(query, exclusive),
+      pagination: pagination
+    }
 
-    api.queryEntry(finalSearch)
+    api.queryEntry(search)
       .then(data => {
         setResults(data)
       })
@@ -398,12 +398,12 @@ export function useResults(pagination, delay = 400) {
   // will be debounced.
   useEffect(() => {
     if (firstRender.current) {
-      apiCall(search, exclusive, pagination)
+      apiCall(query, pagination, exclusive)
       firstRender.current = false
     } else {
-      debounced(search, exclusive, pagination)
+      debounced(query, pagination, exclusive)
     }
-  }, [apiCall, debounced, search, exclusive, pagination])
+  }, [apiCall, debounced, query, pagination, exclusive])
 
   return results
 }

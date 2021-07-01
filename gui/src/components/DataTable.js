@@ -19,19 +19,28 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { withStyles } from '@material-ui/core/styles'
-import Table from '@material-ui/core/Table'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableHead from '@material-ui/core/TableHead'
-import TableRow from '@material-ui/core/TableRow'
-import TableSortLabel from '@material-ui/core/TableSortLabel'
-import Toolbar from '@material-ui/core/Toolbar'
-import Typography from '@material-ui/core/Typography'
-import Checkbox from '@material-ui/core/Checkbox'
-import IconButton from '@material-ui/core/IconButton'
-import Tooltip from '@material-ui/core/Tooltip'
+import {
+  Button,
+  Toolbar,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  Typography,
+  Checkbox,
+  IconButton,
+  Tooltip,
+  Popover,
+  List,
+  ListItemText,
+  ListItem,
+  Collapse,
+  Icon,
+  Box
+} from '@material-ui/core'
 import ViewColumnIcon from '@material-ui/icons/ViewColumn'
-import { Popover, List, ListItemText, ListItem, Collapse, Icon, Box } from '@material-ui/core'
 import { compose } from 'recompose'
 import _ from 'lodash'
 import { normalizeDisplayValue } from '../config'
@@ -531,11 +540,16 @@ class DataTableUnStyled extends React.Component {
           onBottom={this.props.onBottom}
           scrollBar
           hints={false}
-          footer={data?.length < totalNumber && <div className={classes.footer}><Typography
-            variant="button"
-            color="primary"
-          >Scroll down to load more entries
-          </Typography></div>}
+          footer={data?.length < totalNumber
+            ? <div className={classes.footer}>
+              <Button
+                color="primary"
+                onClick={this.props.onBottom}
+              >Scroll down or click here to load more entries
+              </Button>
+            </div>
+            : null
+          }
         >
           <Table size="small">
             <TableBody>
