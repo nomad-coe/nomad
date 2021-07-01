@@ -64,7 +64,8 @@ def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, **kwargs)
     upload.upload_time = datetime.utcnow()
-
+    assert upload.process_status == ProcessStatus.READY
+    assert upload.current_process_step is None
     upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
     upload.process_upload()  # pylint: disable=E1101
     upload.block_until_complete(interval=.01)

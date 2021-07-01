@@ -1061,7 +1061,6 @@ class Upload(Proc):
 
     def on_waiting_for_result(self):
         # Called when the upload has transitioned to status waiting
-        self.save()
         self.check_join()
 
     @property

@@ -112,8 +112,8 @@ class ProcessStatus:
     FAILURE = 'FAILURE'
     DELETED = 'DELETED'
 
-    STATUSES_PROCESSING = ('PENDING', 'RUNNING', 'WAITING_FOR_RESULT')
-    STATUSES_NOT_PROCESSING = ('READY', 'SUCCESS', 'FAILURE')
+    STATUSES_PROCESSING = (PENDING, RUNNING, WAITING_FOR_RESULT)
+    STATUSES_NOT_PROCESSING = (READY, SUCCESS, FAILURE)
 
 
 class InvalidId(Exception): pass
@@ -545,10 +545,11 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
 
     # call the process function
     try:
-        self.process_status = ProcessStatus.RUNNING
         os.chdir(config.fs.working_directory)
         with utils.timer(logger, 'process executed on worker'):
             # Actually call the process function
+            self.process_status = ProcessStatus.RUNNING
+            self.save()
             rv = func(self, *process_args, **process_kwargs)
             if self.errors:
                 # Must have called self.fail, but continued execution and returned normally
@@ -567,8 +568,8 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
             elif rv == ProcessStatus.WAITING_FOR_RESULT:
                 # No errors, and the process requests to wait for other processes
                 self.process_status = ProcessStatus.WAITING_FOR_RESULT
-                self.on_waiting_for_result()
                 self.save()
+                self.on_waiting_for_result()
             elif rv == ProcessStatus.DELETED:
                 # The Proc object itself to be deleted from the database
                 pass
