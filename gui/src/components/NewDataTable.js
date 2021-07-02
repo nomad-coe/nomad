@@ -19,23 +19,33 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { withStyles } from '@material-ui/core/styles'
-import Table from '@material-ui/core/Table'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableHead from '@material-ui/core/TableHead'
-import TableRow from '@material-ui/core/TableRow'
-import TableSortLabel from '@material-ui/core/TableSortLabel'
-import Toolbar from '@material-ui/core/Toolbar'
-import Typography from '@material-ui/core/Typography'
-import Checkbox from '@material-ui/core/Checkbox'
-import IconButton from '@material-ui/core/IconButton'
-import Tooltip from '@material-ui/core/Tooltip'
+import {
+  Button,
+  Toolbar,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  Typography,
+  Checkbox,
+  IconButton,
+  Tooltip,
+  Popover,
+  List,
+  ListItemText,
+  ListItem,
+  Collapse,
+  Icon,
+  Box
+} from '@material-ui/core'
 import ViewColumnIcon from '@material-ui/icons/ViewColumn'
-import { Popover, List, ListItemText, ListItem, Collapse, Icon, Box } from '@material-ui/core'
 import { compose } from 'recompose'
 import _ from 'lodash'
 import { normalizeDisplayValue } from '../config'
 import SortIcon from '@material-ui/icons/Sort'
+import Scrollable from './visualization/Scrollable'
 import searchQuantities from '../searchQuantities'
 
 const globalSelectedColumns = {}
@@ -54,7 +64,9 @@ class DataTableToolbarUnStyled extends React.Component {
 
   static styles = theme => ({
     root: {
-      paddingLeft: theme.spacing(3)
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(2),
+      minHeight: theme.spacing(7)
     },
     selected: {
       color: theme.palette.secondary.main
@@ -105,7 +117,7 @@ class DataTableToolbarUnStyled extends React.Component {
     const { anchorEl } = this.state
     const open = Boolean(anchorEl)
 
-    const regularActions = <React.Fragment>
+    const regularActions = <>
       {actions || <React.Fragment/>}
       <Tooltip title="Change displayed columns">
         <IconButton onClick={this.handleClick}>
@@ -141,7 +153,7 @@ class DataTableToolbarUnStyled extends React.Component {
           })}
         </List>
       </Popover>
-    </React.Fragment>
+    </>
 
     if (numSelected > 0) {
       return (
@@ -246,7 +258,8 @@ class DataTableUnStyled extends React.Component {
      * If no entryDetails are given. This will be called, when an entry was clicked.
      */
     onEntryClicked: PropTypes.func,
-    rows: PropTypes.number
+    rows: PropTypes.number,
+    onBottom: PropTypes.func
   }
 
   static styles = (theme => ({
@@ -278,9 +291,6 @@ class DataTableUnStyled extends React.Component {
     clickable: {
       cursor: 'pointer'
     },
-    tableWrapper: {
-      overflowX: 'auto'
-    },
     visuallyHidden: {
       border: 0,
       clip: 'rect(0 0 0 0)',
@@ -307,6 +317,32 @@ class DataTableUnStyled extends React.Component {
     },
     selectedEntryCheckbox: {
       color: `${theme.palette.primary.contrastText} !important`
+    },
+    containerOuter: {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    containerInner: {
+      display: 'flex',
+      flexDirection: 'column',
+      flex: 1,
+      minHeight: 0
+    },
+    entries: {
+      flex: 1,
+      minHeight: 0
+    },
+    scrollable: {
+      height: 'auto',
+      flex: 1,
+      minHeight: 0
+    },
+    footer: {
+      padding: theme.spacing(2),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }
   }))
 
@@ -442,63 +478,80 @@ class DataTableUnStyled extends React.Component {
       title = `${totalNumber.toLocaleString()} ${totalNumber === 1 ? entityLabels[0] : entityLabels[1]}`
     }
 
-    return (
-      <div>
-        <DataTableToolbar
-          title={title}
-          columns={columns}
-          numSelected={selected ? selected.length : totalNumber}
-          selectedColumns={selectedColumns}
-          selectActions={selectActions}
-          actions={actions}
-          onColumnsChanged={this.handleSelectedColumnsChanged}
-        />
-        <div className={classes.tableWrapper}>
-          <Table className={classes.table} size="small">
-            <TableHead>
-              <TableRow>
-                {withSelect ? <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selected && selected.length > 0 && selected.length !== totalNumber}
-                    checked={!selected || (selected.length === totalNumber && totalNumber !== 0)}
-                    disabled={totalNumber === 0}
-                    onChange={this.handleSelectAllClick}
-                  />
-                </TableCell> : <React.Fragment/>}
-                {Object.keys(columns).filter(key => selectedColumns.indexOf(key) !== -1).map(key => {
-                  const column = columns[key]
-                  const description = column.description || (searchQuantities[key] && searchQuantities[key].description)
-                  return (
-                    <TableCell
-                      key={key}
-                      className={classes.cell}
-                      align={column.align || 'left'}
-                      sortDirection={orderBy === key ? order : false}
-                    >
-                      <Tooltip title={description || ''}>
-                        {column.supportsSort ? <TableSortLabel
-                          active={orderBy === key}
-                          hideSortIcon
-                          direction={order}
-                          onClick={event => this.handleRequestSort(event, key)}
-                        >
-                          {column.label}
-                          <Box paddingLeft={1} fontSize="1rem">
-                            {orderBy !== key && <Icon fontSize="small"><SortIcon style={{fontSize: '1rem'}}/></Icon>}
-                          </Box>
-                          {orderBy === key ? (
-                            <span className={classes.visuallyHidden}>
-                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
-                            </span>
-                          ) : null}
-                        </TableSortLabel> : <span>{column.label}</span>}
-                      </Tooltip>
-                    </TableCell>
-                  )
-                })}
-                {entryActions && <TableCell className={classes.actionsCell}/>}
-              </TableRow>
-            </TableHead>
+    return <div className={classes.containerOuter}>
+      <DataTableToolbar
+        title={title}
+        columns={columns}
+        numSelected={selected ? selected.length : totalNumber}
+        selectedColumns={selectedColumns}
+        selectActions={selectActions}
+        actions={actions}
+        onColumnsChanged={this.handleSelectedColumnsChanged}
+      />
+      <div className={classes.containerInner}>
+        <Table className={classes.table} size="small">
+          <TableHead>
+            <TableRow>
+              {withSelect ? <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={selected && selected.length > 0 && selected.length !== totalNumber}
+                  checked={!selected || (selected.length === totalNumber && totalNumber !== 0)}
+                  disabled={totalNumber === 0}
+                  onChange={this.handleSelectAllClick}
+                />
+              </TableCell> : <React.Fragment/>}
+              {Object.keys(columns).filter(key => selectedColumns.indexOf(key) !== -1).map(key => {
+                const column = columns[key]
+                const description = column.description || (searchQuantities[key] && searchQuantities[key].description)
+                return (
+                  <TableCell
+                    key={key}
+                    className={classes.cell}
+                    align={column.align || 'left'}
+                    sortDirection={orderBy === key ? order : false}
+                  >
+                    <Tooltip title={description || ''}>
+                      {column.supportsSort ? <TableSortLabel
+                        active={orderBy === key}
+                        hideSortIcon
+                        direction={order}
+                        onClick={event => this.handleRequestSort(event, key)}
+                      >
+                        {column.label}
+                        <Box paddingLeft={1} fontSize="1rem">
+                          {orderBy !== key && <Icon fontSize="small"><SortIcon style={{fontSize: '1rem'}}/></Icon>}
+                        </Box>
+                        {orderBy === key ? (
+                          <span className={classes.visuallyHidden}>
+                            {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                          </span>
+                        ) : null}
+                      </TableSortLabel> : <span>{column.label}</span>}
+                    </Tooltip>
+                  </TableCell>
+                )
+              })}
+              {entryActions && <TableCell className={classes.actionsCell}/>}
+            </TableRow>
+          </TableHead>
+        </Table>
+        <Scrollable
+          className={classes.scrollable}
+          onBottom={this.props.onBottom}
+          scrollBar
+          hints={false}
+          footer={data?.length < totalNumber
+            ? <div className={classes.footer}>
+              <Button
+                color="primary"
+                onClick={this.props.onBottom}
+              >Scroll down or click here to load more entries
+              </Button>
+            </div>
+            : null
+          }
+        >
+          <Table size="small">
             <TableBody>
               {data.map((row, index) => {
                 const isItemSelected = isSelected(row)
@@ -551,9 +604,9 @@ class DataTableUnStyled extends React.Component {
               {pagination ? <TableRow>{pagination}</TableRow> : <React.Fragment/>}
             </TableBody>
           </Table>
-        </div>
+        </Scrollable>
       </div>
-    )
+    </div>
   }
 }
 

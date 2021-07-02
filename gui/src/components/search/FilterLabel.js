@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import { Tooltip, Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
@@ -27,30 +27,50 @@ import clsx from 'clsx'
 const useStaticStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(1)
+  },
+  label: {
+    textTransform: 'capitalize',
+    fontSize: '0.85rem',
+    color: '#383838'
   }
 }))
 const FilterLabel = React.memo(({
   label,
+  underscores,
   description,
   className,
   classes
 }) => {
   const styles = useStaticStyles({classes: classes})
 
+  // Remove underscores from name
+  const finalLabel = useMemo(
+    () => !underscores ? label.replaceAll('_', ' ') : label,
+    [label, underscores]
+  )
+
   return <div className={clsx(className, styles.root)}>
     <Tooltip title={description} placement="bottom">
-      <Typography className={styles.name} variant="body1">
-        {label}
+      <Typography
+        className={styles.label}
+        variant="button"
+      >
+        {finalLabel}
       </Typography>
     </Tooltip>
   </div>
 })
 
 FilterLabel.propTypes = {
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
+  underscores: PropTypes.bool,
   description: PropTypes.string,
   className: PropTypes.string,
   classes: PropTypes.object
+}
+
+FilterLabel.defaultProps = {
+  underscores: false
 }
 
 export default FilterLabel

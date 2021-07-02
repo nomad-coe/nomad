@@ -32,22 +32,17 @@ import NavigateNextIcon from '@material-ui/icons/NavigateNext'
  * Displays the tree-like structure for selecting filters.
  */
 const useStyles = makeStyles(theme => {
-  const padding = theme.spacing(2)
   return {
     root: {},
     list: {
       paddingTop: 0,
       paddingBottom: 0
     },
-    section: {
-    },
-    hidden: {
-      display: 'none'
-    },
     listChild: {
-      marginLeft: theme.spacing(1.5)
+      marginLeft: theme.spacing(1.8)
     },
-    listParent: {
+    label: {
+      textTransform: 'capitalize'
     },
     listIcon: {
       fontsize: '1rem',
@@ -58,8 +53,8 @@ const useStyles = makeStyles(theme => {
       fontSize: '1.5rem'
     },
     gutters: {
-      paddingLeft: theme.spacing(3),
-      paddingRight: padding
+      paddingLeft: theme.spacing(3.0),
+      paddingRight: theme.spacing(2.35)
     },
     li: {
       display: 'flex',
@@ -67,20 +62,11 @@ const useStyles = makeStyles(theme => {
       width: '100%'
     },
     listItem: {
-      height: '2.5rem'
+      position: 'relative',
+      height: '2.6rem'
     },
     divider: {
       width: '100%'
-    },
-    selected: {
-      '&$selected': {
-        backgroundColor: theme.palette.primary.main,
-        color: 'black'
-      },
-      '&$selected:hover': {
-        backgroundColor: theme.palette.primary.main,
-        color: 'black'
-      }
     }
   }
 })
@@ -128,8 +114,11 @@ const FiltersTree = React.memo(({
           onClick={component ? () => handleClick(childName) : undefined}
         >
           <ListItemText
-            className={level === 0 ? styles.listParent : styles.listChild}
-            primaryTypographyProps={{color: isOpen ? 'primary' : 'textPrimary'}}
+            className={level === 0 ? undefined : styles.listChild}
+            primaryTypographyProps={{
+              color: isOpen ? 'primary' : 'initial',
+              className: styles.label
+            }}
             primary={childName}
           />
           {component && <ListItemIcon className={styles.listIcon}>

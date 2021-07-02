@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { withStyles, Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
-import DataTable from '../DataTable'
+import NewDataTable from '../NewDataTable'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
@@ -147,7 +147,7 @@ export class NewEntryListUnstyled extends React.Component {
       supportsSort: true,
       description: 'The time this entry was uploaded.'
     },
-    authors: {
+    'authors': {
       label: 'Authors',
       render: entry => authorList(entry),
       supportsSort: true,
@@ -241,14 +241,6 @@ export class NewEntryListUnstyled extends React.Component {
   handleChangeRowsPerPage = event => {
     const rowsPerPage = event.target.value
     this.handleChange({per_page: rowsPerPage})
-  }
-
-  handleSort(columnKey) {
-    if (this.props.order_by === columnKey) {
-      this.handleChange({order: this.props.order * -1})
-    } else {
-      this.handleChange({order: 1, order_by: columnKey})
-    }
   }
 
   renderEntryDetails(row) {
@@ -381,7 +373,7 @@ export class NewEntryListUnstyled extends React.Component {
 
     return (
       <div className={classes.root}>
-        <DataTable
+        <NewDataTable
           entityLabels={['entry', 'entries']}
           selectActions={selectActions}
           id={row => row.calc_id}
@@ -396,7 +388,7 @@ export class NewEntryListUnstyled extends React.Component {
           orderBy={order_by}
           selected={this.state.selected}
           onSelectionChanged={selection => this.setState({selected: selection})}
-          onOrderChanged={(order, orderBy) => this.handleChange({order: order === 'asc' ? -1 : 1, order_by: orderBy})}
+          onOrderChanged={(order, orderBy) => this.handleChange({order: order, order_by: orderBy})}
           rows={results?.length || 0}
           actions={allActions}
           onBottom={this.props.onBottom}

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,7 +23,9 @@ import {
   Paper
 } from '@material-ui/core'
 import NewEntryList from './NewEntryList'
-import { useQuery, useExclusive, useResults } from './FilterContext'
+import { debounce } from 'lodash'
+import { useApi } from '../apiV1'
+import { useQuery, useExclusive, cleanQuery } from './FilterContext'
 
 /**
  * Displays the list of search results
@@ -38,33 +40,72 @@ const SearchResults = React.memo(({
   className
 }) => {
   const styles = useStyles()
+  const api = useApi()
   const query = useQuery()
   const exclusive = useExclusive()
   const [pagination, setPagination] = useState({
     page: 1,
-    page_size: INIT_PAGE_SIZE,
     order: 'desc',
     order_by: 'upload_time'
   })
-  const results = useResults(query, pagination, exclusive)
+  const pageSize = useRef(INIT_PAGE_SIZE)
+  const immediate = useRef(false)
+  const [results, setResults] = useState()
   const total = results?.pagination.total || 0
 
-  // When query changes, reset pagination.
-  useEffect(() => {
-    setPagination(old => ({...old, page_size: INIT_PAGE_SIZE}))
-  }, [query])
+  // API call for fetching results
+  const loadResults = useCallback((query, pagination, exclusive) => {
+    const search = {
+      owner: 'all',
+      query: cleanQuery(query, exclusive),
+      pagination: pagination
+    }
+    api.queryEntry(search)
+      .then(data => {
+        setResults(data)
+      })
+  }, [api])
 
-  // Request new results when scrolled to bottom. TODO: we should definitely use
-  // scrolling here instead of increasing the page size...
+  // Debounced API call version
+  const loadResultsDebounced = useCallback(debounce(loadResults, 400), [])
+
+  // When bottom of results reached, increase the page size and ask request
+  // immediate refresh.
   const handleBottom = useCallback(() => {
-    setPagination(old => {
-      if (old.page_size >= total) {
-        return old
-      }
-      const newPagination = {...old, page_size: Math.min(old.page_size + 20, total)}
-      return newPagination
-    })
+    pageSize.current = Math.min(pageSize.current + 20, total)
+    immediate.current = true
+    if (pageSize.current < total) {
+      setPagination(old => {
+        const newPagination = {...old, page_size: pageSize.current}
+        return newPagination
+      })
+    }
   }, [total])
+
+  // Handle sorting changes in the pagination: TODO: currently broken
+  const handleChange = useCallback(({order, order_by}) => {
+    immediate.current = true
+    // setPagination(old => {
+    //   const newPagination = {...old, order: order, order_by: order_by}
+    //   return newPagination
+    // })
+  }, [])
+
+  useEffect(() => {
+    pageSize.current = INIT_PAGE_SIZE
+    immediate.current = false
+  }, [query, exclusive])
+
+  // If the pagination changes, we load results immediately. Otherwise a
+  // debounce is used.
+  useEffect(() => {
+    pagination.page_size = pageSize.current
+    if (immediate.current) {
+      loadResults(query, pagination, exclusive)
+    } else {
+      loadResultsDebounced(query, pagination, exclusive)
+    }
+  }, [query, pagination, exclusive, loadResults, loadResultsDebounced])
 
   // The rendered component is memoized in its entirety. This makes sure that we
   // re-render the results list only when the actual results have changed, and
@@ -80,10 +121,11 @@ const SearchResults = React.memo(({
         per_page={results?.pagination?.page_size}
         order={results?.pagination?.order}
         order_by={results?.pagination?.order_by}
+        onChange={handleChange}
         onBottom={handleBottom}
       />}
     </Paper>
-  }, [results, handleBottom, styles, className])
+  }, [className, styles.root, results, handleChange, handleBottom])
 
   return comp
 })

@@ -85,6 +85,7 @@ const FilterElements = React.memo(({
       </Grid>
       <Grid item xs={12}>
         <FilterSlider
+          label="number of elements"
           quantity="results.material.n_elements"
           step={1}
           units={units}

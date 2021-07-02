@@ -34,7 +34,7 @@ const useStyles = makeStyles(theme => {
   const padding = theme.spacing(2)
   return {
     root: {
-      boxShadow: 'inset 0 0 8px 1px rgba(0,0,0, 0.075)',
+      boxShadow: 'inset 0 0 8px 1px rgba(0,0,0, 0.06)',
       backgroundColor: theme.palette.background.default,
       width: '100%',
       padding: padding,

@@ -25,7 +25,7 @@ import {
   useRecoilState,
   useRecoilCallback
 } from 'recoil'
-import _ from 'lodash'
+import { debounce } from 'lodash'
 import { useApi } from '../apiV1'
 import { setToArray } from '../../utils'
 import { Quantity } from '../../units'
@@ -340,7 +340,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   }, [api, quantity, restrict, type])
 
   // This is a debounced version of apiCall.
-  const debounced = useCallback(_.debounce(apiCall, delay), [])
+  const debounced = useCallback(debounce(apiCall, delay), [])
 
   // The API call is made immediately on first render. On subsequent renders it
   // will be debounced.
@@ -392,7 +392,7 @@ export function useResults(query, pagination, exclusive, delay = 400) {
   }, [api])
 
   // This is a debounced version of apiCall.
-  const debounced = useCallback(_.debounce(apiCall, delay), [])
+  const debounced = useCallback(debounce(apiCall, delay), [])
 
   // The API call is made immediately on first render. On subsequent renders it
   // will be debounced.
@@ -410,7 +410,7 @@ export function useResults(query, pagination, exclusive, delay = 400) {
 
 // Converts all sets to arrays and convert all Quantities into their SI unit
 // values
-function cleanQuery(obj, exclusive) {
+export function cleanQuery(obj, exclusive) {
   let newObj = {}
   for (let [k, v] of Object.entries(obj)) {
     let newValue
@@ -431,11 +431,18 @@ function cleanQuery(obj, exclusive) {
     } else {
       if (v instanceof Set) {
         newValue = setToArray(v)
+        if (newValue.length === 0) {
+          newValue = undefined
+        }
         k = `${k}:any`
       } else if (v instanceof Quantity) {
         newValue = v.toSI()
       } else if (Array.isArray(v)) {
-        newValue = v
+        if (v.length === 0) {
+          newValue = undefined
+        } else {
+          newValue = v
+        }
         k = `${k}:any`
       } else if (typeof v === 'object' && v !== null) {
         newValue = cleanQuery(v, exclusive)

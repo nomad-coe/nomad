@@ -26,7 +26,7 @@ import SearchContext from './SearchContext'
 import { filtersAll, useMenuOpenState } from './FilterContext'
 
 const useNewSearchStyles = makeStyles(theme => {
-  const filterWidth = 26
+  const filterWidth = 25
   return {
     root: {
       display: 'flex',
