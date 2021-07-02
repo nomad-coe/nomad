@@ -137,7 +137,7 @@ const NewSearchBar = React.memo(({
     if (equals) {
       const quantityName = equals[1]
       queryValue = equals[2]
-      quantityFullname = quantityFullnames.get(quantityName)
+      quantityFullname = quantityFullnames.get(quantityName) || quantityName
       if (!quantitySet.has(quantityFullname)) {
         setError(`Unknown quantity name`)
         return
