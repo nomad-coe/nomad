@@ -58,13 +58,13 @@ with open(upload_file, 'rb') as f:
     upload = client.uploads.upload(file=f, publish_directly=True).response().result
 
 print('processing ...')
-while upload.tasks_running:
+while upload.process_running:
     upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
     time.sleep(5)
     print('processed: %d, failures: %d' % (upload.processed_calcs, upload.failed_calcs))
 
 # check if processing was a success
-if upload.tasks_status != 'SUCCESS':
+if upload.process_status != 'SUCCESS':
     print('something went wrong')
     print('errors: %s' % str(upload.errors))
     # try to delete the unsuccessful upload

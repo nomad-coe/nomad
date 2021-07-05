@@ -66,7 +66,7 @@ def uploads(
     if published:
         query |= mongoengine.Q(published=True)
     if processing:
-        query |= mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING)
+        query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
@@ -91,15 +91,15 @@ def uploads(
     if processing_failure_calcs or processing_failure or processing_necessary:
         if calc_query is None:
             calc_query = mongoengine.Q()
-        calc_query |= mongoengine.Q(tasks_status=proc.FAILURE)
+        calc_query |= mongoengine.Q(process_status=proc.ProcessStatus.FAILURE)
     if processing_failure_uploads or processing_failure or processing_necessary:
-        query |= mongoengine.Q(tasks_status=proc.FAILURE)
+        query |= mongoengine.Q(process_status=proc.ProcessStatus.FAILURE)
     if processing_incomplete_calcs or processing_incomplete or processing_necessary:
         if calc_query is None:
             calc_query = mongoengine.Q()
-        calc_query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
+        calc_query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
     if processing_incomplete_uploads or processing_incomplete or processing_necessary:
-        query |= mongoengine.Q(process_status__ne=proc.PROCESS_COMPLETED)
+        query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if unindexed:
         uploads_search = SearchRequest().quantity('upload_id', size=10000).execute()
@@ -160,7 +160,6 @@ def ls(ctx, uploads, calculations, ids, json):
             upload.name,
             upload.user_id,
             upload.process_status,
-            upload.tasks_status,
             upload.published]
 
         if calculations:
@@ -171,7 +170,7 @@ def ls(ctx, uploads, calculations, ids, json):
 
         return row
 
-    headers = ['id', 'name', 'user', 'process', 'tasks', 'published']
+    headers = ['id', 'name', 'user', 'process', 'published']
     if calculations:
         headers += ['calcs', 'failed', 'processing']
 
@@ -252,8 +251,8 @@ def chown(ctx, username, uploads):
 @uploads.command(help='Reset the processing state.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
-@click.option('--success', is_flag=True, help='Set the tasks status to success instead of pending')
-@click.option('--failure', is_flag=True, help='Set the tasks status to failure instead of pending.')
+@click.option('--success', is_flag=True, help='Set the process status to success instead of pending')
+@click.option('--failure', is_flag=True, help='Set the process status to failure instead of pending.')
 @click.pass_context
 def reset(ctx, uploads, with_calcs, success, failure):
     _, uploads = query_uploads(ctx, uploads)
@@ -266,9 +265,9 @@ def reset(ctx, uploads, with_calcs, success, failure):
         if with_calcs:
             calc_update = proc.Calc.reset_pymongo_update()
             if success:
-                calc_update['tasks_status'] = proc.SUCCESS
+                calc_update['process_status'] = proc.ProcessStatus.SUCCESS
             if failure:
-                calc_update['tasks_status'] = proc.FAILURE
+                calc_update['process_status'] = proc.ProcessStatus.FAILURE
 
             proc.Calc._get_collection().update_many(
                 dict(upload_id=upload.upload_id), {'$set': calc_update})
@@ -276,9 +275,9 @@ def reset(ctx, uploads, with_calcs, success, failure):
         upload.process_status = None
         upload.reset()
         if success:
-            upload.tasks_status = proc.SUCCESS
+            upload.process_status = proc.ProcessStatus.SUCCESS
         if failure:
-            upload.tasks_status = proc.FAILURE
+            upload.process_status = proc.ProcessStatus.FAILURE
         upload.save()
         i += 1
         print('resetted %d of %d uploads' % (i, uploads_count))
@@ -380,7 +379,7 @@ def re_pack(ctx, uploads, parallel: int):
     _, uploads = query_uploads(ctx, uploads)
     __run_processing(
         uploads, parallel, lambda upload: upload.re_pack(), 're-packing',
-        wait_for_tasks=False)
+        wait_until_complete=False)
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
@@ -422,11 +421,8 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
                     **logger_kwargs)
 
                 process.fail('process terminate via nomad cli')
-                process.process_status = proc.PROCESS_COMPLETED
-                process.on_process_complete(None)
-                process.save()
 
-    running_query = query & (mongoengine.Q(process_status=proc.PROCESS_RUNNING) | mongoengine.Q(tasks_status=proc.RUNNING))
+    running_query = query & mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))

@@ -244,8 +244,7 @@ class Api {
     const upload = new Upload({
       upload_id: Api.uploadIds++,
       name: name,
-      tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
-      current_task: 'uploading',
+      current_process_step: 'uploading',
       uploading: 0,
       create_time: new Date()
     }, this)

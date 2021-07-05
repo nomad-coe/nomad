@@ -59,7 +59,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
         upload = client.uploads.get_upload(
             upload_id=upload.upload_id, per_page=100).response().result
 
-        while upload.tasks_running:
+        while upload.process_running:
             time.sleep(0.3)
             upload = client.uploads.get_upload(
                 upload_id=upload.upload_id, per_page=100).response().result
@@ -80,7 +80,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
         print('observe the upload process to be finished')
         upload = get_upload(upload)
 
-        assert upload.tasks_status == 'SUCCESS'
+        assert upload.process_status == 'SUCCESS'
         total = upload.calcs.pagination.total
         assert 100 > total > 0
         assert len(upload.calcs.results) == total
@@ -158,7 +158,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
                 upload = client.uploads.get_upload(
                     upload_id=upload.upload_id).response().result
 
-            assert upload.tasks_status == 'SUCCESS', 'publish must be successful'
+            assert upload.process_status == 'SUCCESS', 'publish must be successful'
             published = True
 
         print('editing upload')

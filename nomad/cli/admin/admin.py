@@ -72,7 +72,7 @@ def __run_parallel(
         logger.info(
             'cli schedules parallel %s processing for upload' % label,
             current_process=upload.current_process,
-            current_task=upload.current_task, upload_id=upload.upload_id)
+            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
         with cv:
             cv.wait_for(lambda: state['available_threads_count'] > 0)
             state['available_threads_count'] -= 1
@@ -86,35 +86,32 @@ def __run_parallel(
 
 def __run_processing(
         uploads, parallel: int, process, label: str, reprocess_running: bool = False,
-        wait_for_tasks: bool = True, reset_first: bool = False):
+        wait_until_complete: bool = True, reset_first: bool = False):
 
     def run_process(upload, logger):
         logger.info(
             'cli calls %s processing' % label,
             current_process=upload.current_process,
-            current_task=upload.current_task, upload_id=upload.upload_id)
+            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
         if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
                 current_process=upload.current_process,
-                current_task=upload.current_task, upload_id=upload.upload_id)
+                current_process_step=upload.current_process_step, upload_id=upload.upload_id)
             return False
 
         if reset_first:
             upload.reset(force=True)
         elif upload.process_running:
-            tasks_status = upload.tasks_status
-            if tasks_status == proc.RUNNING:
-                tasks_status = proc.FAILURE
-            upload.reset(force=True, tasks_status=tasks_status)
+            upload.reset(force=True, process_status=proc.ProcessStatus.FAILURE)
 
         process(upload)
-        if wait_for_tasks:
+        if wait_until_complete:
             upload.block_until_complete(interval=.5)
         else:
-            upload.block_until_process_complete(interval=.5)
+            upload.block_until_complete_or_waiting_for_result(interval=.5)
 
-        if upload.tasks_status == proc.FAILURE:
+        if upload.process_status == proc.ProcessStatus.FAILURE:
             logger.info('%s with failure' % label, upload_id=upload.upload_id)
 
         logger.info('%s complete' % label, upload_id=upload.upload_id)
@@ -150,23 +147,14 @@ def reset_processing(zero_complete_time):
     infrastructure.setup_mongo()
 
     def reset_collection(cls):
-        in_processing = cls.objects(process_status__in=[proc.PROCESS_RUNNING, proc.base.PROCESS_CALLED])
+        in_processing = cls.objects(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
         print('%d %s processes need to be reset due to incomplete process' % (in_processing.count(), cls.__name__))
         in_processing.update(
-            process_status=None,
+            process_status=proc.ProcessStatus.READY,
             current_process=None,
+            current_process_step=None,
             worker_hostname=None,
             celery_task_id=None,
-            errors=[], warnings=[],
-            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now(),
-            current_task=None,
-            tasks_status=proc.base.CREATED)
-
-        in_tasks = cls.objects(tasks_status__in=[proc.PENDING, proc.RUNNING])
-        print('%d %s processes need to be reset due to incomplete tasks' % (in_tasks.count(), cls.__name__))
-        in_tasks.update(
-            current_task=None,
-            tasks_status=proc.base.CREATED,
             errors=[], warnings=[],
             complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now())
 
@@ -216,7 +204,8 @@ def lift_embargo(dry, parallel):
     if not dry:
         __run_processing(
             uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing',
-            wait_for_tasks=False)
+            wait_until_complete=False)
+    return
 
 
 @admin.command()

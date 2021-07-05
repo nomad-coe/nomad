@@ -18,7 +18,7 @@
 
 import time
 
-from nomad.processing import SUCCESS
+from nomad.processing import ProcessStatus
 from nomad.datamodel import EntryMetadata
 
 from tests.test_files import example_file
@@ -33,11 +33,11 @@ def test_upload(bravado, proc_infra, no_warn):
     with open(example_file, 'rb') as f:
         upload = bravado.uploads.upload(file=f, name='test_upload').response().result
 
-    while upload.tasks_running:
+    while upload.process_running:
         upload = bravado.uploads.get_upload(upload_id=upload.upload_id).response().result
         time.sleep(0.1)
 
-    assert upload.tasks_status == SUCCESS
+    assert upload.process_status == ProcessStatus.SUCCESS
 
 
 def test_get_repo_calc(bravado, proc_infra, raw_files):

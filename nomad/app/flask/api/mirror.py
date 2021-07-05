@@ -120,7 +120,7 @@ class MirrorUploadResource(Resource):
         except KeyError:
             abort(404, message='Upload with id %s does not exist.' % upload_id)
 
-        if upload.tasks_running or upload.process_running:
+        if upload.process_running:
             abort(400, message='Only non processing uploads can be exported')
 
         upload_data = _upload_data(

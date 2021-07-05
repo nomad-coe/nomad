@@ -28,8 +28,7 @@ from fastapi.responses import StreamingResponse
 
 from nomad import utils, config, files, datamodel
 from nomad.files import StagingUploadFiles, UploadFiles, is_safe_relative_path
-from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
-from nomad.processing.base import PROCESS_COMPLETED
+from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
 from nomad.utils import strip
 
 from .auth import create_user_dependency, generate_upload_token
@@ -62,12 +61,10 @@ upload_metadata_parameters = parameter_dependency_from_model(
 
 
 class ProcData(BaseModel):
-    tasks: List[str] = Field()
-    tasks_running: bool = Field()
-    tasks_status: str = Field()
-    current_task: Optional[str] = Field()
     process_running: bool = Field()
     current_process: Optional[str] = Field()
+    current_process_step: Optional[str] = Field()
+    process_status: str = Field()
     errors: List[str] = Field()
     warnings: List[str] = Field()
     create_time: datetime = Field()
@@ -128,7 +125,7 @@ class EntryProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'mainfile'  # Default value
-        assert order_by in ('mainfile', 'parser', 'tasks_status', 'current_task'), 'order_by must be a valid attribute'
+        assert order_by in ('mainfile', 'parser', 'process_status', 'current_process'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -354,9 +351,9 @@ async def get_uploads(
         query_kwargs.update(name__in=query.upload_name)
 
     if query.is_processing is True:
-        query_kwargs.update(process_status__ne=PROCESS_COMPLETED)
+        query_kwargs.update(process_status__in=ProcessStatus.STATUSES_PROCESSING)
     elif query.is_processing is False:
-        query_kwargs.update(process_status=PROCESS_COMPLETED)
+        query_kwargs.update(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
 
     if query.is_published is True:
         query_kwargs.update(published=True)
@@ -1017,7 +1014,7 @@ async def post_upload_action_publish(
 
     _check_upload_not_processing(upload)
 
-    if upload.tasks_status == FAILURE:
+    if upload.process_status == ProcessStatus.FAILURE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload that failed processing.')
@@ -1255,7 +1252,7 @@ def _check_upload_not_processing(upload: Upload):
     '''
     Checks if the upload is processing, and raises a HTTPException (err code 400) if so.
     '''
-    if upload.tasks_running or upload.process_running:
+    if upload.process_running:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently being processed, operation not allowed.')
