@@ -46,7 +46,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -1512,6 +1512,84 @@ class Upload(Proc):
 
     def entry_ids(self) -> Iterable[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
+
+    def export_bundle(
+            self, export_path: str = None, zipped: bool = True, export_as_stream: bool = False,
+            move_files: bool = False, include_raw_files: bool = True, include_protected_raw_files: bool = False,
+            include_archive_files: bool = False, include_datasets: bool = True) -> Iterable[bytes]:
+        '''
+        Method for exporting an upload as an *upload bundle*. Upload bundles are file bundles
+        used to export and import uploads between different NOMAD installations.
+
+        Arguments:
+            export_path: Defines the output path. Set to None if exporting as a stream.
+            zipped: if the bundle should be zipped. If not set, the bundle will be outputted
+                as an uncompressed folder with files. If exporting as a stream, zipped must
+                be set to True.
+            export_as_stream: If the bundle should be exported as a stream, rather than saved
+                to a file or folder. If set, the `export_path` should be set to None.
+                Further, `zipped` must be set to True. The stream is returned by the function.
+            move_files: When internally moving data between different NOMAD installations,
+                it may be possible to move files, rather than copy them. In that case, set
+                this flag to True. Use with care. Requires that `zipped` and `export_as_stream`
+                are set to False.
+            include_raw_files: If the "raw" files should be included.
+            include_protected_raw_files: If protected raw files (e.g. POTCAR files) should
+                be included.
+            include_archive_files: If the archive files (produced by parsing the raw files)
+                should be included.
+            include_datasets: If datasets referring to entries from this upload should be
+                included.
+        '''
+        assert not self.process_running, 'Upload is being processed.'
+        bundle_info: Dict[str, Any] = dict(
+            upload_id=self.upload_id,
+            source=config.meta,  # Information about the source system, i.e. this NOMAD installation
+            export_options=dict(
+                include_raw_files=include_raw_files,
+                include_protected_raw_files=include_protected_raw_files,
+                include_archive_files=include_archive_files,
+                include_datasets=include_datasets),
+            upload=json.loads(self.to_json()),
+            entries=[json.loads(entry.to_json()) for entry in self.calcs])
+        # Handle datasets
+        dataset_ids: Set[str] = set()
+        for entry_json in bundle_info['entries']:
+            entry_metadata = entry_json.get('metadata')
+            entry_metadata_datasets = entry_metadata.get('datasets')
+            if entry_metadata_datasets:
+                if not include_datasets:
+                    entry_metadata['datasets'] = []
+                else:
+                    dataset_ids.update(entry_metadata_datasets)
+        if include_datasets:
+            bundle_info['datasets'] = [
+                datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
+                for dataset_id in sorted(dataset_ids)]
+
+        return UploadBundle.create_bundle(
+            self.upload_id, self.upload_files, bundle_info, export_path, zipped, export_as_stream, move_files,
+            include_raw_files, include_protected_raw_files, include_archive_files, include_datasets)
+
+    @classmethod
+    def import_bundle(
+            cls, path: str, move_files: bool = False, delete_source_when_done: bool = False,
+            include_raw_files: bool = True, include_archive_files: bool = True,
+            include_datasets: bool = True, trigger_processing: bool = False):
+        '''
+        Imports an upload from the specified path, pointing to an *upload bundle*. An
+        upload by the `upload_id` specified in the bundle must not already exist.
+
+        Arguments:
+            path: A path defining an upload bundle (either a zipped file or a folder).
+            move_files: If the files should be moved to the new location, rather than copied.
+            delete_source_when_done: If set, the source file or folder is deleted when done.
+            include_raw_files: If the raw files should be copied from the bundle (if provided).
+            include_archive_files: If the archive files should be imported (if provided).
+            include_datasets: If dataset files should be imported (if provided).
+            trigger_processing: If set to True, we trigger processing after import.
+        '''
+        pass  # TODO
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

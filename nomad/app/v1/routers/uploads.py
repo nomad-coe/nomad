@@ -288,6 +288,10 @@ _raw_path_response = 200, {
         content, either encoded as json or html, depending on the request headers (json if
         `Accept = application/json`, html otherwise).''')}
 
+_upload_bundle_response = 200, {
+    'content': {
+        'application/zip': {'example': '<zipped bundle data>'}}}
+
 
 _no_name = 'NO NAME'
 
@@ -1085,6 +1089,62 @@ async def post_upload_action_process(
         data=_upload_to_pydantic(upload))
 
 
+@router.get(
+    '/bundle/{upload_id}', tags=[default_tag],
+    summary='Gets an *upload bundle* for the specified upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_bundle_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_bundle(
+        upload_id: str = Path(
+        ...,
+        description='The unique id of the upload.'),
+        include_raw_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If raw files should be included in the bundle (true by default).''')),
+        include_protected_raw_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If protected raw files (like POTCAR files) should be included in the bundle
+                (true by default).''')),
+        include_archive_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If archive files (i.e. parsed entries data) should be included in the bundle
+                (true by default).''')),
+        include_datasets: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If datasets references to this upload should be included in the bundle
+                (true by default).''')),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    Get an *upload bundle* for the specified upload. An upload bundle is a file bundle which
+    can be used to export and import uploads between different NOMAD installations.
+    '''
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    full_access = user and (user.is_admin or upload.user_id == str(user.user_id))
+    _check_upload_not_processing(upload)
+    if include_protected_raw_files and not full_access:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            You do not have access to protected raw files for this upload - cannot have
+            `include_protected_raw_files` set to true.'''))
+
+    try:
+        stream = upload.export_bundle(
+            export_path=None, zipped=True, export_as_stream=True, move_files=False,
+            include_raw_files=include_raw_files, include_protected_raw_files=include_protected_raw_files,
+            include_archive_files=include_archive_files, include_datasets=include_datasets)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Could not export due to error: ''' + str(e)))
+
+    return StreamingResponse(stream, media_type='application/zip')
+
+
 async def _get_file_if_provided(
         upload_id: str, request: Request, file: UploadFile, local_path: str, file_name: str,
         user: User) -> Tuple[str, int]:
@@ -1187,22 +1247,37 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def _get_upload_with_read_access(upload_id: str, user: User) -> Upload:
+def _get_upload_with_read_access(upload_id: str, user: User, include_others: bool = False) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
     no read access to it, a HTTPException is raised.
+
+    Arguments:
+        upload_id: The id of the requested upload.
+        user: The authenticated user, if any.
+        include_others: If uploads owned by others should be included. Access to the uploads
+            of other users is only granted if the upload is published and not under embargo.
     '''
-    if not user:
+    if not include_others and not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            User authentication required to access uploads.'''))
+            User authentication required to access upload.'''))
     mongodb_query = _query_mongodb(upload_id=upload_id)
     if not mongodb_query.count():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if user.is_admin or upload.user_id == str(user.user_id):
-        # Ok, it exists and belongs to user
+    if user and (user.is_admin or upload.user_id == str(user.user_id)):
+        # Ok, it exists and belongs to user, or we have an admin user
+        return upload
+    elif include_others:
+        if not upload.published:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - not published yet.'''))
+        for entry in Calc.objects(upload_id=upload_id):
+            if entry.metadata.get('with_embargo'):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                    You do not have access to the specified upload - published with embargo.'''))
         return upload
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''

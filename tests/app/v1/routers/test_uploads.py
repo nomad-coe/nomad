@@ -1232,6 +1232,65 @@ def test_delete_upload(
         assert_upload_does_not_exist(client, upload_id, test_auth_dict['test_user'][0])
 
 
+@pytest.mark.parametrize('upload_id, user, query_args, expected_status_code', [
+    pytest.param(
+        'id_published_w', 'test_user', dict(),
+        200, id='published-owner'),
+    pytest.param(
+        'id_published_w', 'admin_user', dict(),
+        200, id='published-admin'),
+    pytest.param(
+        'id_published_w', 'other_test_user', dict(),
+        401, id='published-not-owner'),
+    pytest.param(
+        'id_published_w', 'other_test_user', dict(include_protected_raw_files=False),
+        401, id='published-not-owner-exclude-protected'),
+    pytest.param(
+        'id_published_w', 'test_user', dict(include_raw_files=False),
+        200, id='published-owner-exclude-raw'),
+    pytest.param(
+        'id_published_w', 'test_user', dict(include_archive_files=False),
+        200, id='published-owner-exclude-archive'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', dict(),
+        200, id='unpublished-owner'),
+    pytest.param(
+        'id_unpublished_w', 'admin_user', dict(),
+        200, id='unpublished-admin'),
+    pytest.param(
+        'id_unpublished_w', 'other_test_user', dict(),
+        401, id='unpublished-not-owner'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', dict(include_protected_raw_files=False),
+        400, id='unpublished-owner-exclude-protected')])
+def test_get_upload_bundle(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        upload_id, user, query_args, expected_status_code):
+
+    include_raw_files = query_args.get('include_raw_files', True)
+    include_archive_files = query_args.get('include_archive_files', True)
+
+    url = build_url(f'uploads/bundle/{upload_id}', query_args)
+    response = perform_get(client, url, user_auth=test_auth_dict[user][0])
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+            upload = Upload.get(upload_id)
+            upload_files = upload.upload_files
+            expected_files = set([f'{upload_id}/bundle_info.json'])
+            for dirpath, __, filenames in os.walk(upload_files.os_path):
+                for filename in filenames:
+                    os_path = os.path.join(dirpath, filename)
+                    rel_path = os.path.relpath(os_path, upload_files.os_path)
+                    include = False
+                    include |= rel_path.startswith('raw') and include_raw_files
+                    include |= rel_path.startswith('archive') and include_archive_files
+                    if include:
+                        expected_files.add(os.path.join(upload_id, rel_path))
+            assert expected_files == set(zip_file.namelist())
+    return
+
+
 @pytest.mark.parametrize('authorized, expected_status_code', [
     pytest.param(True, 200, id='ok'),
     pytest.param(False, 401, id='not-authorized')])
