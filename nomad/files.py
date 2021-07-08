@@ -230,7 +230,7 @@ class StreamedFile(BaseModel):
     Convenience class for representing a streamed file, together with information about
     file size and an associated path.
     '''
-    f: Iterable[bytes]
+    f: Any
     path: str
     size: int
 
@@ -292,6 +292,40 @@ class FileSource:
                         path=rel_path,
                         f=open(os_path, 'rb'),
                         size=os.stat(os_path).st_size)
+
+
+def create_zipstream_content(streamed_files: Iterable[StreamedFile]) -> Iterable[Dict]:
+    '''
+    Generator which "casts" a sequence of StreamedFiles to a sequence of dictionaries, of
+    the form which is required by the `zipstream` library, i.e. dictionaries with keys
+    `arcname`, `iterable` and `buffer_size`. Useful for generating zipstreams.
+    '''
+    for streamed_file in streamed_files:
+
+        def content_generator():
+            while True:
+                data = streamed_file.f.read(1024 * 64)
+                if not data:
+                    break
+                yield data
+
+        yield dict(
+            arcname=streamed_file.path,
+            iterable=content_generator(),
+            buffer_size=streamed_file.size)
+
+
+def create_zipstream(
+        streamed_files: Iterable[StreamedFile],
+        compress: bool = False) -> Iterator[bytes]:
+    '''
+    Creates a zip stream, i.e. a streamed zip file.
+    '''
+    compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+    zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
+    zip_stream.paths_to_write = create_zipstream_content(streamed_files)
+
+    return iter(zip_stream)
 
 
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
@@ -1292,28 +1326,26 @@ class UploadBundle:
                 json.dump(bundle_info, bundle_info_file, indent=2)
         else:
             # Exporting zipped
-            def path_to_write_generator():
+            def streamed_files():
                 # Generator for generating zip file content
                 # 1. Yield all the selected regular files
                 for file_source in upload_files.files_for_bundle(
                         include_raw_files, include_protected_raw_files, include_archive_files):
                     for streamed_file in file_source.to_streamed_files():
-                        yield dict(
-                            arcname=os.path.join(upload_id, streamed_file.path),
-                            iterable=streamed_file.f,
-                            buffer_size=streamed_file.size)
+                        # Add upload_id at the beginning of the path
+                        streamed_file.path = os.path.join(upload_id, streamed_file.path)
+                        yield streamed_file
                 # 2. Finally, also yield a stream for the bundle_info.json
-                bundle_info_bytes = json.dumps(bundle_info, indent=2).encode('utf8')
-                yield dict(
-                    arcname=os.path.join(upload_id, 'bundle_info.json'),
-                    iterable=io.BytesIO(bundle_info_bytes),
-                    buffer_size=len(bundle_info_bytes))
+                bundle_info_bytes = json.dumps(bundle_info, indent=2).encode()
+                yield StreamedFile(
+                    path=os.path.join(upload_id, 'bundle_info.json'),
+                    f=io.BytesIO(bundle_info_bytes),
+                    size=len(bundle_info_bytes))
 
-            zip_stream = zipstream.ZipFile(mode='w', compression=zipfile.ZIP_DEFLATED, allowZip64=True)
-            zip_stream.paths_to_write = path_to_write_generator()
+            zip_stream = create_zipstream(streamed_files())
 
             if export_as_stream:
-                return iter(zip_stream)
+                return zip_stream
             else:
                 # Write to zip file
                 with open(export_path, 'wb') as f:
