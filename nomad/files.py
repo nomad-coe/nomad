@@ -17,7 +17,7 @@
 #
 
 '''
-Uploads contains classes and functions to create and maintain file structures
+Contains classes and functions to create and maintain file structures
 for uploads, and some generic file utilities.
 
 There are two different structures for uploads in two different states: *staging* and *public*.
@@ -449,17 +449,6 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         ``public`` or ``restricted`` archive.'''
         raise NotImplementedError()
 
-    def files_for_bundle(
-            self, include_raw_files: bool = True, include_protected_raw_files: bool = False,
-            include_archive_files: bool = False) -> Iterable[FileSource]:
-        '''
-        Returns an iterable of :class:`FileSource` objects, defining the objects to be
-        included in an upload bundle. Note, the bundle_info.json file is not included in
-        the sequence, only the "regular" files, and only those specified by the arguments
-        to the method.
-        '''
-        raise NotImplementedError()
-
     def close(self):
         ''' Release possibly held system resources (e.g. file handles). '''
         pass
@@ -475,6 +464,110 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
                 except Exception as e:
                     utils.get_logger(__name__).error(
                         'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
+
+    def create_bundle(
+            self, bundle_info: Dict[str, Any], export_path: str = None,
+            zipped: bool = True, export_as_stream: bool = False, move_files: bool = False,
+            include_raw_files: bool = True, include_protected_raw_files: bool = False,
+            include_archive_files: bool = False) -> Iterator[bytes]:
+        '''
+        Creates an *upload bundle* from these UploadFiles. Upload bundles are used to export
+        and import uploads between different NOMAD installations. It is essential that the
+        `bundle_info` is provided. This method collects the files requested, adds the
+        `bundle_info.json` file, and writes them to disk, zipped or not, or returns them
+        as a zipped stream of bytes, depending on the arguments provided. It does not validate
+        the content of the `bundle_info` dictionary. To export an upload as a bundle, you would
+        normally use the method :func:`Upload.export_bundle`, which creates the `bundle_info`
+        and then calls this method. See :func:`Upload.export_bundle` for more info.
+        '''
+        # Argument checks
+        if export_as_stream:
+            assert export_path is None, 'Cannot have `export_path` set when exporting as a stream.'
+            assert zipped, 'Must have `zipped` set to True when exporting as stream.'
+        else:
+            assert export_path is not None, 'Must specify `export_path`.'
+            assert not os.path.exists(export_path), '`export_path` alredy exists.'
+
+        if include_raw_files and not include_protected_raw_files:
+            # TODO: Will be required if we for example want to allow anyone to download
+            # bundels for public uploads from central NOMAD.
+            raise NotImplementedError('Selectively excluding protected files is not yet supported.')
+
+        if move_files:
+            # Special case, for quickly migrating uploads between two local NOMAD installations
+            assert include_raw_files and include_protected_raw_files and include_archive_files, (
+                'Must export entire upload when using `move_files`.')
+            assert not zipped and not export_as_stream, (
+                'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
+
+        # Do the actual export
+        if not zipped:
+            # Exporting to a folder
+            os.makedirs(export_path)
+            for file_source in self.files_for_bundle(
+                    include_raw_files, include_protected_raw_files, include_archive_files):
+                if file_source.is_stream():
+                    # Stream file to disk
+                    streamed_file = file_source.to_streamed_file()
+                    destination_path = os.path.join(export_path, streamed_file.path)
+                    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+                    with open(destination_path, 'wb') as f:
+                        for chunk in streamed_file.f:
+                            f.write(chunk)
+                else:
+                    # Regular file/folder. Copy or move it.
+                    destination_path = os.path.join(export_path, file_source.source_rel_path)
+                    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+                    if move_files:
+                        # Move the file/folder
+                        shutil.move(file_source.source_os_path, destination_path)
+                    else:
+                        # Copy the file/folder
+                        if os.path.isfile(file_source.source_os_path):
+                            shutil.copyfile(file_source.source_os_path, destination_path)
+                        else:
+                            copytree(file_source.source_os_path, destination_path)
+            # Finally, add the bundle_info.json
+            with open(os.path.join(export_path, 'bundle_info.json'), 'wt') as bundle_info_file:
+                json.dump(bundle_info, bundle_info_file, indent=2)
+        else:
+            # Exporting zipped
+            def streamed_files():
+                # Generator for generating zip file content
+                # 1. Yield all the selected regular files
+                for file_source in self.files_for_bundle(
+                        include_raw_files, include_protected_raw_files, include_archive_files):
+                    for streamed_file in file_source.to_streamed_files():
+                        yield streamed_file
+                # 2. Finally, also yield a stream for the bundle_info.json
+                bundle_info_bytes = json.dumps(bundle_info, indent=2).encode()
+                yield StreamedFile(
+                    path='bundle_info.json',
+                    f=io.BytesIO(bundle_info_bytes),
+                    size=len(bundle_info_bytes))
+
+            zip_stream = create_zipstream(streamed_files())
+
+            if export_as_stream:
+                # Return the stream
+                return zip_stream
+            else:
+                # Write the stream to disk
+                with open(export_path, 'wb') as f:
+                    for chunk in zip_stream:
+                        f.write(chunk)
+        return None
+
+    def files_for_bundle(
+            self, include_raw_files: bool = True, include_protected_raw_files: bool = False,
+            include_archive_files: bool = False) -> Iterable[FileSource]:
+        '''
+        Returns an iterable of :class:`FileSource` objects, defining the objects to be
+        included in an upload bundle. Note, the bundle_info.json file is not included in
+        the sequence, only the "regular" files, and only those specified by the arguments
+        to the method.
+        '''
+        raise NotImplementedError()
 
 
 class StagingUploadFiles(UploadFiles):
@@ -1249,106 +1342,3 @@ class PublicUploadFiles(UploadFiles):
                 yield FileSource(source_base_path=self.os_path, source_rel_path=filename)
             if filename.startswith('archive-') and include_archive_files:
                 yield FileSource(source_base_path=self.os_path, source_rel_path=filename)
-
-
-class UploadBundle:
-    '''
-    Class for working with *upload bundles*. An upload bundle is a "bundle" of files intended
-    for exporting and importing uploads between NOMAD installations. An upload bundle has
-    the same file structure as either a :class:`StagingUploadFiles` or :class:`PublicUploadFiles`,
-    except not all types of files may have been included, and there is also an additional file
-    in the base folder, `bundle_info.json`, containing information used for import.
-    '''
-
-    @classmethod
-    def create_bundle(
-            cls, upload_id: str, upload_files: UploadFiles, bundle_info: Dict[str, Any],
-            export_path: str = None, zipped: bool = True, export_as_stream: bool = False,
-            move_files: bool = False, include_raw_files: bool = True, include_protected_raw_files: bool = False,
-            include_archive_files: bool = False, include_datasets: bool = True) -> Iterator[bytes]:
-        '''
-        Creates an upload bundle from the given data. It is essential that the `bundle_info`
-        is provided. This method collects the files requested, and adds the `bundle_info.json`
-        file, and writes them to disk, zipped or not, or returns them as a zipped stream of bytes.
-        It does not validate the content of the `bundle_info` dictionary. To export an upload
-        as a bundle, you should use the method :func:`Upload.export_bundle`. See this method
-        for further details.
-        '''
-        # Argument checks
-        if export_as_stream:
-            assert export_path is None, 'Cannot have `export_path` set when exporting as a stream.'
-            assert zipped, 'Must have `zipped` set to True when exporting as stream.'
-        else:
-            assert export_path is not None, 'Must specify `export_path`.'
-            assert not os.path.exists(export_path), '`export_path` alredy exists.'
-
-        if include_raw_files and not include_protected_raw_files:
-            # TODO: Will be required if we for example want to allow anyone to download
-            # bundels for public uploads from central NOMAD.
-            raise NotImplementedError('Selectively excluding protected files is not yet supported.')
-
-        if move_files:
-            # Special case, for quickly migrating uploads between two local NOMAD installations
-            assert include_raw_files and include_protected_raw_files and include_archive_files, (
-                'Must export entire upload when using `move_files`.')
-            assert not zipped and not export_as_stream, (
-                'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
-
-        # Do the actual export
-        if not zipped:
-            # Exporting to a folder
-            os.makedirs(export_path)
-            for file_source in upload_files.files_for_bundle(
-                    include_raw_files, include_protected_raw_files, include_archive_files):
-                if file_source.is_stream():
-                    # Stream file to disk
-                    streamed_file = file_source.to_streamed_file()
-                    destination_path = os.path.join(export_path, streamed_file.path)
-                    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
-                    with open(destination_path, 'wb') as f:
-                        for chunk in streamed_file.f:
-                            f.write(chunk)
-                else:
-                    # Regular file/folder. Copy or move it.
-                    destination_path = os.path.join(export_path, file_source.source_rel_path)
-                    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
-                    if move_files:
-                        # Move the file/folder
-                        shutil.move(file_source.source_os_path, destination_path)
-                    else:
-                        # Copy the file/folder
-                        if os.path.isfile(file_source.source_os_path):
-                            shutil.copyfile(file_source.source_os_path, destination_path)
-                        else:
-                            copytree(file_source.source_os_path, destination_path)
-            # Finally, add the bundle_info.json
-            with open(os.path.join(export_path, 'bundle_info.json'), 'wt') as bundle_info_file:
-                json.dump(bundle_info, bundle_info_file, indent=2)
-        else:
-            # Exporting zipped
-            def streamed_files():
-                # Generator for generating zip file content
-                # 1. Yield all the selected regular files
-                for file_source in upload_files.files_for_bundle(
-                        include_raw_files, include_protected_raw_files, include_archive_files):
-                    for streamed_file in file_source.to_streamed_files():
-                        # Add upload_id at the beginning of the path
-                        streamed_file.path = os.path.join(upload_id, streamed_file.path)
-                        yield streamed_file
-                # 2. Finally, also yield a stream for the bundle_info.json
-                bundle_info_bytes = json.dumps(bundle_info, indent=2).encode()
-                yield StreamedFile(
-                    path=os.path.join(upload_id, 'bundle_info.json'),
-                    f=io.BytesIO(bundle_info_bytes),
-                    size=len(bundle_info_bytes))
-
-            zip_stream = create_zipstream(streamed_files())
-
-            if export_as_stream:
-                return zip_stream
-            else:
-                # Write to zip file
-                with open(export_path, 'wb') as f:
-                    for chunk in zip_stream:
-                        f.write(chunk)
-        return None

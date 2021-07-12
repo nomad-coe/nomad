@@ -1277,7 +1277,7 @@ def test_get_upload_bundle(
         with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
             upload = Upload.get(upload_id)
             upload_files = upload.upload_files
-            expected_files = set([f'{upload_id}/bundle_info.json'])
+            expected_files = set(['bundle_info.json'])
             for dirpath, __, filenames in os.walk(upload_files.os_path):
                 for filename in filenames:
                     os_path = os.path.join(dirpath, filename)
@@ -1286,7 +1286,7 @@ def test_get_upload_bundle(
                     include |= rel_path.startswith('raw') and include_raw_files
                     include |= rel_path.startswith('archive') and include_archive_files
                     if include:
-                        expected_files.add(os.path.join(upload_id, rel_path))
+                        expected_files.add(rel_path)
             assert expected_files == set(zip_file.namelist())
     return
 

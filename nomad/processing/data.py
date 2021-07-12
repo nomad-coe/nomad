@@ -46,7 +46,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -1567,9 +1567,9 @@ class Upload(Proc):
                 datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
                 for dataset_id in sorted(dataset_ids)]
 
-        return UploadBundle.create_bundle(
-            self.upload_id, self.upload_files, bundle_info, export_path, zipped, export_as_stream, move_files,
-            include_raw_files, include_protected_raw_files, include_archive_files, include_datasets)
+        return self.upload_files.create_bundle(
+            bundle_info, export_path, zipped, export_as_stream, move_files,
+            include_raw_files, include_protected_raw_files, include_archive_files)
 
     @classmethod
     def import_bundle(
