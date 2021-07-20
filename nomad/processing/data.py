@@ -34,7 +34,8 @@ from mongoengine import (
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
-from datetime import datetime
+import pytz
+from datetime import datetime, timedelta
 from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
@@ -46,7 +47,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -1514,25 +1515,29 @@ class Upload(Proc):
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
 
     def export_bundle(
-            self, export_path: str = None, zipped: bool = True, export_as_stream: bool = False,
-            move_files: bool = False, include_raw_files: bool = True, include_protected_raw_files: bool = False,
+            self, export_as_stream: bool = False, export_path: str = None,
+            zipped: bool = True, move_files: bool = False, overwrite: bool = True,
+            include_raw_files: bool = True, include_protected_raw_files: bool = False,
             include_archive_files: bool = False, include_datasets: bool = True) -> Iterable[bytes]:
         '''
         Method for exporting an upload as an *upload bundle*. Upload bundles are file bundles
         used to export and import uploads between different NOMAD installations.
 
         Arguments:
-            export_path: Defines the output path. Set to None if exporting as a stream.
-            zipped: if the bundle should be zipped. If not set, the bundle will be outputted
-                as an uncompressed folder with files. If exporting as a stream, zipped must
-                be set to True.
             export_as_stream: If the bundle should be exported as a stream, rather than saved
-                to a file or folder. If set, the `export_path` should be set to None.
+                to a file or folder. If set to True, the `export_path` should be set to None.
                 Further, `zipped` must be set to True. The stream is returned by the function.
+            export_path: Defines the output path, when not exporting as a stream. Set to
+                None if exporting as a stream.
+            zipped: if the bundle should be zipped. Set to False to export the bundle to disk
+                as an uncompressed folder. If exporting as a stream, zipped must be set to True.
             move_files: When internally moving data between different NOMAD installations,
-                it may be possible to move files, rather than copy them. In that case, set
-                this flag to True. Use with care. Requires that `zipped` and `export_as_stream`
-                are set to False.
+                it may be possible to move the source files, rather than copy them. In that
+                case, set this flag to True. Use with care. Requires that `zipped` and
+                `export_as_stream` are set to False.
+            overwrite:
+                If the target file/folder should be overwritten by this operation. Not
+                applicable if `export_as_stream` is True.
             include_raw_files: If the "raw" files should be included.
             include_protected_raw_files: If protected raw files (e.g. POTCAR files) should
                 be included.
@@ -1541,7 +1546,22 @@ class Upload(Proc):
             include_datasets: If datasets referring to entries from this upload should be
                 included.
         '''
+        # Safety checks
+        if export_as_stream:
+            assert export_path is None, 'Cannot have `export_path` set when exporting as a stream.'
+            assert zipped, 'Must have `zipped` set to True when exporting as stream.'
+        else:
+            assert export_path is not None, 'Must specify `export_path`.'
+            assert overwrite or not os.path.exists(export_path), '`export_path` alredy exists.'
+        if move_files:
+            # Special case, for quickly migrating uploads between two local NOMAD installations
+            assert include_raw_files and include_protected_raw_files and include_archive_files, (
+                'Must export entire upload when using `move_files`.')
+            assert not zipped and not export_as_stream, (
+                'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
         assert not self.process_running, 'Upload is being processed.'
+
+        # Create bundle_info json data
         bundle_info: Dict[str, Any] = dict(
             upload_id=self.upload_id,
             source=config.meta,  # Information about the source system, i.e. this NOMAD installation
@@ -1554,8 +1574,8 @@ class Upload(Proc):
             entries=[json.loads(entry.to_json()) for entry in self.calcs])
         # Handle datasets
         dataset_ids: Set[str] = set()
-        for entry_json in bundle_info['entries']:
-            entry_metadata = entry_json.get('metadata')
+        for entry_dict in bundle_info['entries']:
+            entry_metadata = entry_dict['metadata']
             entry_metadata_datasets = entry_metadata.get('datasets')
             if entry_metadata_datasets:
                 if not include_datasets:
@@ -1567,29 +1587,261 @@ class Upload(Proc):
                 datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
                 for dataset_id in sorted(dataset_ids)]
 
-        return self.upload_files.create_bundle(
-            bundle_info, export_path, zipped, export_as_stream, move_files,
-            include_raw_files, include_protected_raw_files, include_archive_files)
+        # Assemble the files
+        file_source = self.upload_files.files_to_bundle(
+            bundle_info, include_raw_files, include_protected_raw_files, include_archive_files)
+
+        # Export
+        if export_as_stream:
+            return file_source.to_zipstream()
+        elif zipped:
+            file_source.to_zipfile(export_path, overwrite)
+        else:
+            file_source.to_disk(export_path, move_files, overwrite)
+        return None
 
     @classmethod
     def import_bundle(
-            cls, path: str, move_files: bool = False, delete_source_when_done: bool = False,
-            include_raw_files: bool = True, include_archive_files: bool = True,
-            include_datasets: bool = True, trigger_processing: bool = False):
+            cls, bundle: UploadBundle, move_files: bool = False,
+            include_raw_files: bool = True, include_archive_files: bool = True, include_datasets: bool = True,
+            keep_original_timestamps: bool = True, set_from_oasis: bool = True,
+            with_embargo: bool = None, embargo_length: int = None,
+            trigger_processing: bool = False):
         '''
-        Imports an upload from the specified path, pointing to an *upload bundle*. An
-        upload by the `upload_id` specified in the bundle must not already exist.
+        Imports an upload from the specified :class:`UploadBundle` (created from a folder or
+        a zipfile). An upload by the `upload_id` specified in the bundle must not already exist.
+        Extensive checks are made to ensure referential consistency etc. Note, however,
+        that no permission checks are done (the method does not check who is doing the
+        operation and if the user has the permissions to do so, this must be checked before
+        calling this method).
 
         Arguments:
-            path: A path defining an upload bundle (either a zipped file or a folder).
-            move_files: If the files should be moved to the new location, rather than copied.
-            delete_source_when_done: If set, the source file or folder is deleted when done.
-            include_raw_files: If the raw files should be copied from the bundle (if provided).
-            include_archive_files: If the archive files should be imported (if provided).
-            include_datasets: If dataset files should be imported (if provided).
+            bundle: The :class:`UploadBundle` to import.
+            move_files: If the files should be moved to the new location, rather than
+                copied (only applicable if the bundle is created from a folder).
+            include_raw_files: If the raw files should be imported (if provided in the bundle).
+            include_archive_files: If the archive files should be imported (if provided in the bundle).
+            include_datasets: If dataset files should be imported (if provided in the bundle).
+            keep_original_timestamps: if set to True, all timestamps are set from the bundle.
+                False means that some timestamps are set to the current time, namely
+                `upload_time` and (if published) the `publish_time`.
+            set_from_oasis: If True, sets the `from_oasis`, `oasis_deployment_id`
+                to reflect that this bundle comes from another NOMAD deployment.
+            with_embargo: Used to set the embargo flag. If set to None, the value will be
+                imported from the bundle.
+            embargo_length: Used to set the embargo length. If set to None, the value will be
+                imported from the bundle.
             trigger_processing: If set to True, we trigger processing after import.
         '''
-        pass  # TODO
+        def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):
+            ''' Checks if the specified keys exist in the provided json structure `data`. '''
+            for key in required_keys:
+                current = data
+                for sub_key in key.split('.'):
+                    assert sub_key in current, error_message.replace('{key}', key)
+                    current = current[sub_key]
+
+        def check_user_ids(user_ids: Iterable[str], error_message: str):
+            ''' Checks if all user_ids provided in `user_ids` are valid. '''
+            for user_id in user_ids:
+                user = datamodel.User.get(user_id=user_id)
+                assert user is not None, error_message.replace('{value}', user_id)
+
+        try:
+            upload: Upload = None
+            upload_files: UploadFiles = None
+            upload_saved: bool = False
+            new_datasets: List[datamodel.Dataset] = []
+            entries_metadata_to_index: List[datamodel.EntryMetadata] = []  # Data to index in es
+
+            bundle_info = bundle.bundle_info
+            # Sanity checks
+            required_keys_root_level = (
+                'upload_id', 'source.version', 'source.commit', 'source.deployment', 'source.deployment_id',
+                'export_options.include_raw_files',
+                'export_options.include_protected_raw_files',
+                'export_options.include_archive_files',
+                'export_options.include_datasets',
+                'upload._id', 'upload.user_id', 'upload.published',
+                'upload.create_time', 'upload.upload_time', 'upload.process_status',
+                'entries')
+            required_keys_entry_level = (
+                '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
+            required_keys_entry_metadata = (
+                'uploader', 'upload_time', 'published', 'calc_hash')
+            required_keys_datasets = (
+                'dataset_id', 'name', 'user_id')
+
+            keys_exist(bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
+
+            include_raw_files &= bundle_info['export_options']['include_raw_files']
+            include_archive_files &= bundle_info['export_options']['include_archive_files']
+            include_datasets &= bundle_info['export_options']['include_datasets']
+
+            upload_id = bundle_info['upload_id']
+            upload_dict = bundle_info['upload']
+            assert upload_dict['_id'] == upload_id, 'Inconsisten upload id information'
+            try:
+                Upload.get(upload_id)
+                assert False, f'Upload with id {upload_id} already exists'
+            except KeyError:
+                pass
+            published = upload_dict['published']
+            if published and keep_original_timestamps:
+                assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
+            process_status = upload_dict['process_status']
+            assert process_status in ProcessStatus.STATUSES_NOT_PROCESSING, (
+                f'Invalid `process_status`: {process_status}')
+            check_user_ids([upload_dict['user_id']], 'Invalid uploader user_id: {value}')
+            try:
+                # Instantiate an Upload object from the json, and validate it
+                upload = Upload.from_json(json.dumps(upload_dict))
+                upload.validate()
+            except Exception as e:
+                assert False, 'Bad upload json data: ' + str(e)
+            assert not upload.pending_operations, 'Should not have `pending_operations`'  # Would not be secure
+            current_time = pytz.utc.localize(datetime.utcnow())
+            current_time_plus_tolerance = current_time + timedelta(minutes=2)
+            if not keep_original_timestamps:
+                upload.upload_time = current_time
+            if published and not keep_original_timestamps:
+                upload.publish_time = current_time
+            for timestamp in (upload.upload_time, upload.last_update, upload.complete_time, upload.publish_time):
+                assert timestamp is None or upload.create_time <= timestamp < current_time_plus_tolerance, (
+                    'Missing or inconsistent timestamp')
+            if set_from_oasis:
+                upload.from_oasis = True
+                source_deployment_id = bundle_info['source']['deployment_id']
+                assert source_deployment_id, 'No source deployment_id defined'
+                if not upload.oasis_deployment_id:
+                    upload.oasis_deployment_id = source_deployment_id
+                    # Note, if oasis_deployment_id is set in the bundle_info, we keep this
+                    # field as it is, since it indicates that the upload has been importet from
+                    # somewhere else originally (i.e. source_deployment_id would not be the
+                    # original source)
+                # TODO: should we do anything about published_to?
+
+            # Dataset definitions
+            if include_datasets:
+                assert 'datasets' in bundle_info, 'Missing datasets definition in bundle_info.json'
+                datasets_dict = bundle_info['datasets']
+                dataset_id_mapping: Dict[str, str] = {}  # Map from old to new id (usually the same)
+                for dataset_dict in datasets_dict:
+                    keys_exist(dataset_dict, required_keys_datasets, 'Missing key in dataset definition: {key}')
+                    check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {value}')
+                    dataset_id = dataset_dict['dataset_id']
+                    try:
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(name=dataset_dict['name'])
+                        # Dataset by the given name already exists
+                        assert existing_dataset.user_id == upload.user_id, (
+                            'A dataset with the same name but different creator exists')
+                        dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
+                        # Note, it may be that a dataset with the same name and creator
+                        # is created in both environments. In that case, we consider them
+                        # to be the "same" dataset, even if they do not have the same dataset_id.
+                        # Thus, in that case the dataset id needs to be translated.
+                    except KeyError:
+                        # Create a new dataset
+                        new_dataset = datamodel.Dataset(**dataset_dict)
+                        new_dataset.a_mongo.save()
+                        new_datasets.append(new_dataset)
+                        dataset_id_mapping[dataset_id] = dataset_id
+            # Entries
+            entries = []
+            with_embargo_values = set()
+            for entry_dict in bundle_info['entries']:
+                keys_exist(entry_dict, required_keys_entry_level, 'Missing key for entry: {key}')
+                assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
+                    f'Invalid entry `process_status`')
+                entry_metadata_dict = entry_dict['metadata']
+                if with_embargo is not None:
+                    entry_metadata_dict['with_embargo'] = with_embargo
+                keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
+                with_embargo_values.add(entry_metadata_dict.get('with_embargo'))
+                # Check referential consistency
+                assert entry_dict['upload_id'] == upload_id, 'Mismatching entry upload_id'
+                for key, value in (
+                        ('upload_name', upload.name),
+                        ('uploader', upload.user_id),
+                        ('published', upload.published)):
+                    assert entry_metadata_dict.get(key) == value, f'Inconsistent entry metadata: {key}'
+                check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {value}')
+                check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {value}')
+                # Instantiate an Upload object from the json, and validate it
+                try:
+                    entry: Calc = Calc.from_json(json.dumps(entry_dict))
+                    entry.validate()
+                except Exception as e:
+                    assert False, 'Bad entry json data: ' + str(e)
+                # Instantiate an EntryMetadata object to validate the format
+                try:
+                    entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
+                    entry_metadata.upload_time = upload.upload_time  # Set same upload_time everywhere
+                    if include_datasets:
+                        entry_metadata.datasets = [dataset_id_mapping[id] for id in entry_metadata.datasets]
+                    else:
+                        entry_metadata.datasets = []
+                    entry.apply_entry_metadata(entry_metadata)
+                    if not include_archive_files:
+                        entries_metadata_to_index.append(
+                            datamodel.EntryMetadata.m_from_dict(entry.metadata))
+                except Exception as e:
+                    assert False, 'Invalid entry metadata: ' + str(e)
+                entries.append(entry)
+
+            # Validate embargo settings
+            assert len(with_embargo_values) == 1, 'Different embargo settings for different entries'
+            with_embargo = with_embargo_values.pop()
+            assert with_embargo is None or type(with_embargo) == bool, 'Invalid with_embargo value'
+            if upload.published:
+                assert type(with_embargo) == bool, 'Invalid `with_embargo` value (must be boolean)'
+                if with_embargo:
+                    if embargo_length is not None:
+                        upload.embargo_length = embargo_length
+                    assert upload.embargo_length is not None, 'Missing required `embargo_length`'
+                    assert 1 <= upload.embargo_length <= 36, 'Invalid `embargo_length`'
+
+            # Import the files
+            upload_files = bundle.import_upload_files(include_raw_files, include_archive_files, move_files)
+
+            # Check the archive metadata, if included
+            if include_archive_files:
+                for entry in entries:
+                    try:
+                        entry_metadata = entry.full_entry_metadata(upload_files)
+                        entries_metadata_to_index.append(entry_metadata)
+                        # TODO: Should we validate the entire ArchiveObject, not just the indexed data?
+                    except Exception as e:
+                        assert False, 'Invalid metadata in archive entry: ' + str(e)
+
+            # Everything looks good - save to mongo.
+            upload.save()
+            upload_saved = True
+            for entry in entries:
+                entry.save()
+
+            # Index in elastic search
+            search.index(
+                [
+                    cast(datamodel.EntryArchive, entry_metadata.m_parent)
+                    for entry_metadata in entries_metadata_to_index],
+                update_materials=True, refresh=True)
+
+            if trigger_processing:
+                upload.process_upload()
+
+        except Exception as e:
+            # Undo everything
+            if new_datasets:
+                for dataset in new_datasets:
+                    dataset.a_mongo.delete()
+            if upload_saved:
+                upload.delete_upload_local()  # Will also delete files, entries and remove from elastic search
+            elif upload_files:
+                upload_files.delete()
+            raise
+        finally:
+            bundle.close()
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

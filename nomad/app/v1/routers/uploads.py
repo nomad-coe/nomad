@@ -1135,7 +1135,7 @@ async def get_upload_bundle(
 
     try:
         stream = upload.export_bundle(
-            export_path=None, zipped=True, export_as_stream=True, move_files=False,
+            export_as_stream=True, export_path=None, zipped=True, move_files=False, overwrite=False,
             include_raw_files=include_raw_files, include_protected_raw_files=include_protected_raw_files,
             include_archive_files=include_archive_files, include_datasets=include_datasets)
     except Exception as e:
