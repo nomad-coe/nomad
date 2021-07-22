@@ -408,11 +408,17 @@ class ZipFileSource(BrowsableFileSource):
             if path == self.sub_path or (path.startswith(path_prefix) and not path.endswith(os.path.sep)):
                 yield StreamedFile(
                     path=path,
-                    f=self.zip_file.open(path, 'rb'),
+                    f=self.zip_file.open(path, 'r'),
                     size=self.zip_file.getinfo(path).file_size)
 
     def open(self, path, mode='rb') -> IO:
-        return self.zip_file.open(path, mode)
+        assert 'r' in mode, 'Mode must be a read mode'
+        for c in mode:
+            assert c in ('r', 'b', 't'), f'Invalid mode for open command: {mode}'
+        f = self.zip_file.open(path, 'r')
+        if 't' in mode:
+            return io.TextIOWrapper(f)
+        return f
 
     def directory_list(self, path: str) -> List[str]:
         path_prefix = '' if not path else path + os.path.sep
@@ -424,7 +430,8 @@ class ZipFileSource(BrowsableFileSource):
 
     def sub_source(self, path: str) -> 'ZipFileSource':
         assert is_safe_relative_path(path), 'Unsafe path provided'
-        assert path.startswith(self.sub_path + os.path.sep), 'Provided `path` is not a sub path.'
+        if self.sub_path:
+            assert path.startswith(self.sub_path + os.path.sep), 'Provided `path` is not a sub path.'
         return ZipFileSource(self.zip_file, path)
 
     def close(self):
@@ -1473,6 +1480,7 @@ class UploadBundle:
     '''
     def __init__(self, path: str):
         ''' Creates an UploadBundle instance. The `path` should denote a zipfile or a folder. '''
+        self.path = path
         self.file_source: BrowsableFileSource = None
         self._bundle_info: Dict[str, Any] = None
         if os.path.isdir(path):
@@ -1515,3 +1523,10 @@ class UploadBundle:
 
     def close(self):
         self.file_source.close()
+
+    def delete(self, include_parent_folder: bool = False):
+        self.close()
+        if include_parent_folder:
+            PathObject(os.path.dirname(self.path)).delete()
+        else:
+            PathObject(self.path).delete()

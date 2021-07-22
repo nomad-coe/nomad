@@ -49,6 +49,7 @@ from nomad import utils, config, infrastructure, search, datamodel, metainfo, pa
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
+from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
@@ -353,9 +354,14 @@ class Calc(Proc):
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
     @process
-    def process_calc(self):
+    def process_calc(self, reprocess_settings: Dict[str, Any] = None):
         '''
         Processes (or reprocesses) a calculation.
+
+        Arguments:
+            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+                Settings that are not specified are defaulted. See `config.reprocess` for
+                available options and the configured default values.
         '''
         logger = self.get_logger()
         if self.upload is None:
@@ -371,22 +377,23 @@ class Calc(Proc):
             # This entry has already been published and has metadata.
             # Determine if we should reparse or keep it.
             should_parse = False
-            reprocess_if_parser_unchanged = config.reprocess_published.reprocess_entry_if_parser_unchanged
-            reprocess_if_parser_changed = config.reprocess_published.reprocess_entry_if_parser_changed
-            if reprocess_if_parser_unchanged or reprocess_if_parser_changed:
+            settings = config.reprocess.copy().apply(reprocess_settings)  # Add default settings
+            reparse_if_parser_unchanged = settings.reparse_published_entry_if_parser_unchanged
+            reparse_if_parser_changed = settings.reparse_published_entry_if_parser_changed
+            if reparse_if_parser_unchanged or reparse_if_parser_changed:
                 with utils.timer(logger, 'parser matching executed'):
                     parser = match_parser(
                         self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
                 if parser is None:
                     # Should only be possible if the upload is published and we have
-                    # config.reprocess_published.delete_unmatched_entries == False
+                    # settings.delete_unmatched_entries_from_published_uploads == False
                     logger.warn('no parser matches during re-process, not updating the entry')
                     self.warnings = ['no matching parser found during processing']
                 else:
                     parser_changed = self.parser != parser.name and parser_dict[self.parser].name != parser.name
-                    if reprocess_if_parser_unchanged and not parser_changed:
+                    if reparse_if_parser_unchanged and not parser_changed:
                         should_parse = True
-                    elif reprocess_if_parser_changed and parser_changed:
+                    elif reparse_if_parser_changed and parser_changed:
                         should_parse = True
                     if should_parse and self.parser != parser.name:
                         if parser_dict[self.parser].name == parser.name:
@@ -1009,7 +1016,7 @@ class Upload(Proc):
         self.upload_files.re_pack(self.entries_user_and_system_metadata())
 
     @process
-    def process_upload(self):
+    def process_upload(self, reprocess_settings: Dict[str, Any] = None):
         '''
         A *process* that executes pending operations (if any), matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
@@ -1017,46 +1024,56 @@ class Upload(Proc):
         staging area first, and re-packed to the public area when done). Reprocessing may
         also cause existing entries to disappear (if main files have been removed from an
         upload in the staging area, or no longer match because of modified parsers, etc).
+
+        Arguments:
+            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+                Settings that are not specified are defaulted. See `config.reprocess` for
+                available options and the configured default values.
         '''
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
         self.extracting()
 
+        oasis_metadata: Dict[str, Any] = {}
         if self.from_oasis:
             # we might need to add datasets from the oasis before processing and
             # adding the entries
             oasis_metadata_file = os.path.join(
-                self.staging_upload_files._raw_dir.os_path, config.metadata_file_name + '.json')
-            with open(oasis_metadata_file, 'rt') as f:
-                oasis_metadata = json.load(f)
-            oasis_datasets = oasis_metadata.get('oasis_datasets', {})
-            metadata_was_changed = False
-            for oasis_dataset in oasis_datasets.values():
-                try:
-                    existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
-                        user_id=self.user_id, name=oasis_dataset['name'])
-                except KeyError:
-                    datamodel.Dataset(**oasis_dataset).a_mongo.save()
-                else:
-                    oasis_dataset_id = oasis_dataset['dataset_id']
-                    if existing_dataset.dataset_id != oasis_dataset_id:
-                        # A dataset for the same user with the same name was created
-                        # in both deployments. We consider this to be the "same" dataset.
-                        # These datasets have different ids and we need to migrate the provided
-                        # dataset ids:
-                        for entry in oasis_metadata['entries'].values():
-                            entry_datasets = entry.get('datasets', [])
-                            for index, dataset_id in enumerate(entry_datasets):
-                                if dataset_id == oasis_dataset_id:
-                                    entry_datasets[index] = existing_dataset.dataset_id
-                                    metadata_was_changed = True
+                StagingUploadFiles.base_folder_for(self.upload_id), 'raw',
+                config.metadata_file_name + '.json')
+            if os.path.exists(oasis_metadata_file):
+                # Old way of importing from oasis
+                # TODO: remove when we no longer need it
+                with open(oasis_metadata_file, 'rt') as f:
+                    oasis_metadata = json.load(f)
+                oasis_datasets = oasis_metadata.get('oasis_datasets', {})
+                metadata_was_changed = False
+                for oasis_dataset in oasis_datasets.values():
+                    try:
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
+                            user_id=self.user_id, name=oasis_dataset['name'])
+                    except KeyError:
+                        datamodel.Dataset(**oasis_dataset).a_mongo.save()
+                    else:
+                        oasis_dataset_id = oasis_dataset['dataset_id']
+                        if existing_dataset.dataset_id != oasis_dataset_id:
+                            # A dataset for the same user with the same name was created
+                            # in both deployments. We consider this to be the "same" dataset.
+                            # These datasets have different ids and we need to migrate the provided
+                            # dataset ids:
+                            for entry in oasis_metadata['entries'].values():
+                                entry_datasets = entry.get('datasets', [])
+                                for index, dataset_id in enumerate(entry_datasets):
+                                    if dataset_id == oasis_dataset_id:
+                                        entry_datasets[index] = existing_dataset.dataset_id
+                                        metadata_was_changed = True
 
-            if metadata_was_changed:
-                with open(oasis_metadata_file, 'wt') as f:
-                    json.dump(oasis_metadata, f)
+                if metadata_was_changed:
+                    with open(oasis_metadata_file, 'wt') as f:
+                        json.dump(oasis_metadata, f)
 
-        self.parse_all()
+        self.parse_all(oasis_metadata, reprocess_settings)
         self.set_process_step('collecting entry results')
         return ProcessStatus.WAITING_FOR_RESULT
 
@@ -1142,7 +1159,7 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
+    def match_mainfiles(self) -> Iterator[Tuple[str, Parser]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
@@ -1162,23 +1179,26 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=path_info.path, exc_info=e)
 
-    def parse_all(self):
+    def parse_all(self, oasis_metadata: Dict[str, Any], reprocess_settings: Dict[str, Any] = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
         creates respective :class:`Calc` instances, and triggers their processing.
+
+        Arguments:
+            oasis_metadata: The oasis metadata, if importing an upload the old way
+            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+                Settings that are not specified are defaulted. See `config.reprocess` for
+                available options and the configured default values.
         '''
         self.set_process_step('parse all')
         logger = self.get_logger()
 
+        oasis_entries_metadata = oasis_metadata.get('entries', {})
         with utils.timer(logger, 'calcs processing called'):
             try:
-                staging_upload_files = self.staging_upload_files
-                oasis_metadata = {}
-                if self.from_oasis:
-                    oasis_metadata_file_path = os.path.join(
-                        staging_upload_files.os_path, 'raw', config.metadata_file_name)
-                    oasis_metadata = self.metadata_file_cached(oasis_metadata_file_path).get('entries', {})
+                settings = config.reprocess.copy().apply(reprocess_settings)  # Add default settings
 
+                staging_upload_files = self.staging_upload_files
                 old_entries = Calc.objects(upload_id=self.upload_id)
                 has_old_entries = old_entries.count() > 0
                 matched_entries: Set[str] = set()
@@ -1186,7 +1206,7 @@ class Upload(Proc):
                 count_already_processing = 0
                 for filename, parser in self.match_mainfiles():
                     # Get metadata and calc_id
-                    oasis_entry_metadata = oasis_metadata.get(filename)
+                    oasis_entry_metadata = oasis_entries_metadata.get(filename)
                     if oasis_entry_metadata is not None:
                         calc_id = oasis_entry_metadata.get('calc_id')
                         if calc_id is None:
@@ -1207,7 +1227,7 @@ class Upload(Proc):
                         matched_entries.add(calc_id)
                     except KeyError:
                         # No existing entry found
-                        if not self.published or config.reprocess_published.add_new_entries_if_found:
+                        if not self.published or settings.add_new_entries_to_published_upload_if_found:
                             entry = Calc.create(
                                 calc_id=calc_id,
                                 mainfile=filename,
@@ -1221,7 +1241,7 @@ class Upload(Proc):
                     if entry.calc_id not in matched_entries:
                         if entry.process_running:
                             count_already_processing += 1
-                        if not self.published or config.reprocess_published.delete_unmatched_entries:
+                        if not self.published or settings.delete_unmatched_entries_from_published_uploads:
                             entries_to_delete.append(entry.calc_id)
 
                 # Delete entries
@@ -1250,7 +1270,9 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'calcs processing called'):
                     # process call calcs
-                    Calc.process_all(Calc.process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
+                    Calc.process_all(
+                        Calc.process_calc, dict(upload_id=self.upload_id), exclude=['metadata'],
+                        process_kwargs=dict(reprocess_settings=settings))
                     logger.info('completed to trigger process of all calcs')
 
             except Exception as e:
@@ -1515,10 +1537,10 @@ class Upload(Proc):
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
 
     def export_bundle(
-            self, export_as_stream: bool = False, export_path: str = None,
-            zipped: bool = True, move_files: bool = False, overwrite: bool = True,
-            include_raw_files: bool = True, include_protected_raw_files: bool = False,
-            include_archive_files: bool = False, include_datasets: bool = True) -> Iterable[bytes]:
+            self, export_as_stream: bool, export_path: str,
+            zipped: bool, move_files: bool, overwrite: bool,
+            include_raw_files: bool, include_protected_raw_files: bool,
+            include_archive_files: bool, include_datasets: bool) -> Iterable[bytes]:
         '''
         Method for exporting an upload as an *upload bundle*. Upload bundles are file bundles
         used to export and import uploads between different NOMAD installations.
@@ -1602,11 +1624,10 @@ class Upload(Proc):
 
     @classmethod
     def import_bundle(
-            cls, bundle: UploadBundle, move_files: bool = False,
-            include_raw_files: bool = True, include_archive_files: bool = True, include_datasets: bool = True,
-            keep_original_timestamps: bool = True, set_from_oasis: bool = True,
-            with_embargo: bool = None, embargo_length: int = None,
-            trigger_processing: bool = False):
+            cls, bundle: UploadBundle, move_files: bool, with_embargo: bool, embargo_length: int,
+            include_raw_files: bool, include_archive_files: bool, include_datasets: bool,
+            keep_original_timestamps: bool, set_from_oasis: bool, trigger_processing: bool,
+            reprocess_settings: Dict[str, Any] = None) -> 'Upload':
         '''
         Imports an upload from the specified :class:`UploadBundle` (created from a folder or
         a zipfile). An upload by the `upload_id` specified in the bundle must not already exist.
@@ -1619,19 +1640,22 @@ class Upload(Proc):
             bundle: The :class:`UploadBundle` to import.
             move_files: If the files should be moved to the new location, rather than
                 copied (only applicable if the bundle is created from a folder).
-            include_raw_files: If the raw files should be imported (if provided in the bundle).
-            include_archive_files: If the archive files should be imported (if provided in the bundle).
-            include_datasets: If dataset files should be imported (if provided in the bundle).
+            with_embargo: Used to set the embargo flag. If set to None, the value will be
+                imported from the bundle.
+            embargo_length: Used to set the embargo length. If set to None, the value will be
+                imported from the bundle.
+            include_raw_files: If the raw files should be imported.
+            include_archive_files: If the archive files should be imported.
+            include_datasets: If dataset files should be imported.
             keep_original_timestamps: if set to True, all timestamps are set from the bundle.
                 False means that some timestamps are set to the current time, namely
                 `upload_time` and (if published) the `publish_time`.
             set_from_oasis: If True, sets the `from_oasis`, `oasis_deployment_id`
                 to reflect that this bundle comes from another NOMAD deployment.
-            with_embargo: Used to set the embargo flag. If set to None, the value will be
-                imported from the bundle.
-            embargo_length: Used to set the embargo length. If set to None, the value will be
-                imported from the bundle.
             trigger_processing: If set to True, we trigger processing after import.
+            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+                Used if `trigger_processing` is set to True. Settings that are not
+                specified are defaulted from `config.bundle_import.reprocess`.
         '''
         def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):
             ''' Checks if the specified keys exist in the provided json structure `data`. '''
@@ -1652,7 +1676,7 @@ class Upload(Proc):
             upload_files: UploadFiles = None
             upload_saved: bool = False
             new_datasets: List[datamodel.Dataset] = []
-            entries_metadata_to_index: List[datamodel.EntryMetadata] = []  # Data to index in es
+            entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in es
 
             bundle_info = bundle.bundle_info
             # Sanity checks
@@ -1674,9 +1698,21 @@ class Upload(Proc):
 
             keys_exist(bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
 
-            include_raw_files &= bundle_info['export_options']['include_raw_files']
-            include_archive_files &= bundle_info['export_options']['include_archive_files']
-            include_datasets &= bundle_info['export_options']['include_datasets']
+            # Check version
+            bundle_version = bundle_info['source']['version']
+            assert bundle_version >= config.bundle_import.required_nomad_version, (
+                'Bundle created in NOMAD version {}, required at least {}'.format(
+                    bundle_version, config.bundle_import.required_nomad_version))
+
+            if include_raw_files:
+                assert bundle_info['export_options']['include_raw_files'], (
+                    'Raw files required but not included in the bundle')
+            if include_archive_files:
+                assert bundle_info['export_options']['include_archive_files'], (
+                    'Archive files required but not included in the bundle')
+            if include_datasets:
+                assert bundle_info['export_options']['include_datasets'], (
+                    'Datasets data required but not included in the bundle')
 
             upload_id = bundle_info['upload_id']
             upload_dict = bundle_info['upload']
@@ -1687,6 +1723,8 @@ class Upload(Proc):
             except KeyError:
                 pass
             published = upload_dict['published']
+            if published:
+                assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
             if published and keep_original_timestamps:
                 assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
             process_status = upload_dict['process_status']
@@ -1782,9 +1820,7 @@ class Upload(Proc):
                     else:
                         entry_metadata.datasets = []
                     entry.apply_entry_metadata(entry_metadata)
-                    if not include_archive_files:
-                        entries_metadata_to_index.append(
-                            datamodel.EntryMetadata.m_from_dict(entry.metadata))
+                    # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
                     assert False, 'Invalid entry metadata: ' + str(e)
                 entries.append(entry)
@@ -1809,27 +1845,27 @@ class Upload(Proc):
                 for entry in entries:
                     try:
                         entry_metadata = entry.full_entry_metadata(upload_files)
-                        entries_metadata_to_index.append(entry_metadata)
+                        entry_data_to_index.append(
+                            cast(datamodel.EntryArchive, entry_metadata.m_parent))
                         # TODO: Should we validate the entire ArchiveObject, not just the indexed data?
                     except Exception as e:
                         assert False, 'Invalid metadata in archive entry: ' + str(e)
 
             # Everything looks good - save to mongo.
-            upload.save()
+            upload.save(force_insert=True)  # Need to use force_insert since created using from_json
             upload_saved = True
             for entry in entries:
-                entry.save()
+                entry.save(force_insert=True)
 
             # Index in elastic search
-            search.index(
-                [
-                    cast(datamodel.EntryArchive, entry_metadata.m_parent)
-                    for entry_metadata in entries_metadata_to_index],
-                update_materials=True, refresh=True)
+            if entry_data_to_index:
+                search.index(entry_data_to_index, update_materials=True, refresh=True)
 
             if trigger_processing:
-                upload.process_upload()
+                reprocess_settings = config.bundle_import.reprocess.copy().apply(reprocess_settings)
+                upload.process_upload(reprocess_settings)
 
+            return upload
         except Exception as e:
             # Undo everything
             if new_datasets:

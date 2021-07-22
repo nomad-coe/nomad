@@ -18,11 +18,11 @@ data:
       {{ if .Values.meta.deployment }}
       deployment: "{{ .Values.meta.deployment }}"
       {{ end }}
-    reprocess_published:
-      reprocess_entry_if_parser_unchanged: "{{ .Values.reprocess_published.reprocess_entry_if_parser_unchanged }}"
-      reprocess_entry_if_parser_changed: "{{ .Values.reprocess_published.reprocess_entry_if_parser_changed }}"
-      add_new_entries_if_found "{{ .Values.reprocess_published.add_new_entries_if_found }}"
-      delete_unmatched_entries  "{{ .Values.reprocess_published.delete_unmatched_entries }}"
+    reprocess:
+      reparse_published_entry_if_parser_unchanged: "{{ .Values.reprocess.reparse_published_entry_if_parser_unchanged }}"
+      reparse_published_entry_if_parser_changed: "{{ .Values.reprocess.reparse_published_entry_if_parser_changed }}"
+      add_new_entries_to_published_upload_if_found "{{ .Values.reprocess.add_new_entries_to_published_upload_if_found }}"
+      delete_unmatched_entries_from_published_uploads  "{{ .Values.reprocess.delete_unmatched_entries_from_published_uploads }}"
     process_reuse_parser: {{ .Values.process_reuse_parser }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"

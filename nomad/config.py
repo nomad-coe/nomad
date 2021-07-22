@@ -40,6 +40,7 @@ import os
 import os.path
 import yaml
 import warnings
+from typing import Dict, Any
 
 try:
     from nomad import gitinfo
@@ -79,6 +80,15 @@ class NomadConfig(dict):
             del self[name]
         else:
             raise AttributeError("No such attribute: " + name)
+
+    def copy(self) -> 'NomadConfig':
+        return NomadConfig(**self)
+
+    def apply(self, settings: Dict[str, Any]) -> 'NomadConfig':
+        ''' Applies the settings of the provided dictionary and returns self. '''
+        if settings:
+            self.update(settings)
+        return self
 
 
 CELERY_WORKER_ROUTING = 'worker'
@@ -315,11 +325,34 @@ gitlab = NomadConfig(
     private_token='not set'
 )
 
-reprocess_published = NomadConfig(
-    reprocess_entry_if_parser_unchanged=True,
-    reprocess_entry_if_parser_changed=True,
-    add_new_entries_if_found=True,
-    delete_unmatched_entries=False
+reprocess = NomadConfig(
+    # Configures standard behaviour when reprocessing.
+    reparse_published_entry_if_parser_unchanged=True,
+    reparse_published_entry_if_parser_changed=True,
+    add_new_entries_to_published_upload_if_found=True,
+    delete_unmatched_entries_from_published_uploads=False
+)
+
+bundle_import = NomadConfig(
+    # Configures behaviour of the API endpoint for uploading bundles
+    allow_bundles_from_oasis=True,  # If oasis admins can push bundles to this NOMAD deployment
+    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can push bundles of unpublished uploads
+    required_nomad_version='0.10.4',  # Minimum  nomad version of bundles required for import
+
+    # Default import settings (only admin users can upload bundles with other settings than these)
+    include_raw_files=True,
+    include_archive_files=False,
+    include_datasets=True,
+    keep_original_timestamps=False,
+    set_from_oasis=True,
+    trigger_processing=True,
+    reprocess=NomadConfig(
+        # When importing with trigger_processing=True, these settings control this initial processing
+        reparse_published_entry_if_parser_unchanged=True,
+        reparse_published_entry_if_parser_changed=True,
+        add_new_entries_to_published_upload_if_found=True,
+        delete_unmatched_entries_from_published_uploads=True
+    )
 )
 
 auxfile_cutoff = 100

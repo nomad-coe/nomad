@@ -32,7 +32,7 @@ from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
-from nomad.files import StagingUploadFiles, UploadFiles, PublicUploadFiles
+from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 
 '''
@@ -1288,6 +1288,38 @@ def test_get_upload_bundle(
                     if include:
                         expected_files.add(rel_path)
             assert expected_files == set(zip_file.namelist())
+    return
+
+
+@pytest.mark.parametrize('upload_id, user, export_args, query_args, expected_status_code', [
+    pytest.param(
+        'id_published_w', 'admin_user', dict(), dict(),
+        200, id='published-admin'),
+    pytest.param(
+        'id_unpublished_w', 'admin_user', dict(), dict(),
+        200, id='unpublished-admin'),
+])
+def test_post_upload_bundle(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        upload_id, user, export_args, query_args, expected_status_code):
+    upload = Upload.get(upload_id)
+    published = upload.published
+    export_path = os.path.join(config.fs.tmp, 'bundle_' + upload_id)
+    export_args_with_defaults = dict(
+        export_as_stream=False, export_path=export_path,
+        zipped=True, move_files=False, overwrite=True,
+        include_raw_files=True, include_protected_raw_files=True,
+        include_archive_files=True, include_datasets=True)
+    export_args_with_defaults.update(export_args)
+    upload.export_bundle(**export_args_with_defaults)
+    upload.delete_upload_local()  # Delete so we can import it again
+
+    user_auth, __token = test_auth_dict[user]
+    response = perform_post_put_file(
+        client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_processing(client, upload_id, user_auth, published=published)
     return
 
 
