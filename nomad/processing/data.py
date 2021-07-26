@@ -34,7 +34,6 @@ from mongoengine import (
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
-import pytz
 from datetime import datetime, timedelta
 from pymongo import UpdateOne
 import hashlib
@@ -99,6 +98,29 @@ _log_processors = [
 def _normalize_oasis_upload_metadata(upload_id, metadata):
     # This is overwritten by the tests to do necessary id manipulations
     return upload_id, metadata
+
+
+def check_user_ids(user_ids: Iterable[str], error_message: str):
+    '''
+    Checks if all user_ids provided in the Iterable `user_ids` are valid. If not, raises an
+    AssertionError with the specified error message. The string {id} in `error_message` is
+    replaced with the bad value.
+    '''
+    for user_id in user_ids:
+        user = datamodel.User.get(user_id=user_id)
+        assert user is not None, error_message.replace('{id}', user_id)
+
+
+def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):
+    '''
+    Checks if the specified keys exist in the provided dictionary structure `data`.
+    Supports dot-notation to access subkeys.
+    '''
+    for key in required_keys:
+        current = data
+        for sub_key in key.split('.'):
+            assert sub_key in current, error_message.replace('{key}', key)
+            current = current[sub_key]
 
 
 class Calc(Proc):
@@ -377,7 +399,7 @@ class Calc(Proc):
             # This entry has already been published and has metadata.
             # Determine if we should reparse or keep it.
             should_parse = False
-            settings = config.reprocess.copy().apply(reprocess_settings)  # Add default settings
+            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
             reparse_if_parser_unchanged = settings.reparse_published_entry_if_parser_unchanged
             reparse_if_parser_changed = settings.reparse_published_entry_if_parser_changed
             if reparse_if_parser_unchanged or reparse_if_parser_changed:
@@ -817,6 +839,29 @@ class Upload(Proc):
 
         return self
 
+    @classmethod
+    def create_skeleton_from_bundle(cls, bundle: UploadBundle):
+        '''
+        Creates a minimalistic "skeleton" from the provided upload bundle (basically just
+        with the right upload_id and user), on which we can initiate the :func:`import_bundle`
+        process to import the bundle data.
+        '''
+        bundle_info = bundle.bundle_info
+        keys_exist(bundle_info, ('upload_id', 'upload.user_id'), 'Missing key in bundle_info.json: {key}')
+        upload_id = bundle_info['upload_id']
+        user_id = bundle_info['upload']['user_id']
+        try:
+            Upload.get(upload_id)
+            assert False, f'Upload with id {upload_id} already exists'
+        except KeyError:
+            pass
+        upload_user = datamodel.User.get(user_id=user_id)
+        assert upload_user is not None, f'Invalid user_id: {user_id}'
+        return Upload.create(
+            upload_id=upload_id,
+            user=upload_user,
+            upload_time=datetime.utcnow())
+
     def delete(self):
         ''' Deletes this upload process state entry and its calcs. '''
         Calc.objects(upload_id=self.upload_id).delete()
@@ -1030,6 +1075,10 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
+        return self._process_upload(reprocess_settings)
+
+    def _process_upload(self, reprocess_settings: Dict[str, Any]):
+        ''' The function doing the actual processing'''
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
@@ -1196,7 +1245,7 @@ class Upload(Proc):
         oasis_entries_metadata = oasis_metadata.get('entries', {})
         with utils.timer(logger, 'calcs processing called'):
             try:
-                settings = config.reprocess.copy().apply(reprocess_settings)  # Add default settings
+                settings = config.reprocess.customize(reprocess_settings)  # Add default settings
 
                 staging_upload_files = self.staging_upload_files
                 old_entries = Calc.objects(upload_id=self.upload_id)
@@ -1592,8 +1641,8 @@ class Upload(Proc):
                 include_protected_raw_files=include_protected_raw_files,
                 include_archive_files=include_archive_files,
                 include_datasets=include_datasets),
-            upload=json.loads(self.to_json()),
-            entries=[json.loads(entry.to_json()) for entry in self.calcs])
+            upload=self.to_mongo().to_dict(),
+            entries=[entry.to_mongo().to_dict() for entry in self.calcs])
         # Handle datasets
         dataset_ids: Set[str] = set()
         for entry_dict in bundle_info['entries']:
@@ -1622,62 +1671,44 @@ class Upload(Proc):
             file_source.to_disk(export_path, move_files, overwrite)
         return None
 
-    @classmethod
+    @process
     def import_bundle(
-            cls, bundle: UploadBundle, move_files: bool, with_embargo: bool, embargo_length: int,
-            include_raw_files: bool, include_archive_files: bool, include_datasets: bool,
-            keep_original_timestamps: bool, set_from_oasis: bool, trigger_processing: bool,
-            reprocess_settings: Dict[str, Any] = None) -> 'Upload':
+            self, bundle_path: str, move_files: bool = False,
+            with_embargo: bool = None, embargo_length: int = None,
+            settings: config.NomadConfig = config.bundle_import.default_settings):
         '''
-        Imports an upload from the specified :class:`UploadBundle` (created from a folder or
-        a zipfile). An upload by the `upload_id` specified in the bundle must not already exist.
+        A *process* that imports data from an upload bundle to the current upload (which should
+        normally have been created using the :func:`create_skeleton_from_bundle` method).
         Extensive checks are made to ensure referential consistency etc. Note, however,
-        that no permission checks are done (the method does not check who is doing the
+        that no permission checks are done (the method does not check who is invoking the
         operation and if the user has the permissions to do so, this must be checked before
         calling this method).
 
+        There are two ways to handle a failed bundle import: 1) leave the Upload object, files,
+        etc. as they are, but ensure that nothing related to this upload is indexed in
+        elastic search, or 2) delete everything, including the upload. This is determined
+        by the setting `delete_upload_on_fail`.
+
         Arguments:
-            bundle: The :class:`UploadBundle` to import.
+            bundle_path: The path to the bundle to import.
             move_files: If the files should be moved to the new location, rather than
                 copied (only applicable if the bundle is created from a folder).
             with_embargo: Used to set the embargo flag. If set to None, the value will be
                 imported from the bundle.
             embargo_length: Used to set the embargo length. If set to None, the value will be
                 imported from the bundle.
-            include_raw_files: If the raw files should be imported.
-            include_archive_files: If the archive files should be imported.
-            include_datasets: If dataset files should be imported.
-            keep_original_timestamps: if set to True, all timestamps are set from the bundle.
-                False means that some timestamps are set to the current time, namely
-                `upload_time` and (if published) the `publish_time`.
-            set_from_oasis: If True, sets the `from_oasis`, `oasis_deployment_id`
-                to reflect that this bundle comes from another NOMAD deployment.
-            trigger_processing: If set to True, we trigger processing after import.
-            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
-                Used if `trigger_processing` is set to True. Settings that are not
-                specified are defaulted from `config.bundle_import.reprocess`.
+            settings: A dictionary structure defining how to import, see
+                `config.import_bundle.default_settings` for available options. There,
+                the default settings are also defined
         '''
-        def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):
-            ''' Checks if the specified keys exist in the provided json structure `data`. '''
-            for key in required_keys:
-                current = data
-                for sub_key in key.split('.'):
-                    assert sub_key in current, error_message.replace('{key}', key)
-                    current = current[sub_key]
-
-        def check_user_ids(user_ids: Iterable[str], error_message: str):
-            ''' Checks if all user_ids provided in `user_ids` are valid. '''
-            for user_id in user_ids:
-                user = datamodel.User.get(user_id=user_id)
-                assert user is not None, error_message.replace('{value}', user_id)
-
         try:
-            upload: Upload = None
+            logger = self.get_logger(bundle_path=bundle_path)
+            settings = config.bundle_import.default_settings.customize(settings)  # Add defaults
+            bundle: UploadBundle = None
             upload_files: UploadFiles = None
-            upload_saved: bool = False
             new_datasets: List[datamodel.Dataset] = []
-            entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in es
-
+            entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in ES
+            bundle = UploadBundle(bundle_path)
             bundle_info = bundle.bundle_info
             # Sanity checks
             required_keys_root_level = (
@@ -1704,55 +1735,53 @@ class Upload(Proc):
                 'Bundle created in NOMAD version {}, required at least {}'.format(
                     bundle_version, config.bundle_import.required_nomad_version))
 
-            if include_raw_files:
+            if settings.include_raw_files:
                 assert bundle_info['export_options']['include_raw_files'], (
                     'Raw files required but not included in the bundle')
-            if include_archive_files:
+            if settings.include_archive_files:
                 assert bundle_info['export_options']['include_archive_files'], (
                     'Archive files required but not included in the bundle')
-            if include_datasets:
+            if settings.include_datasets:
                 assert bundle_info['export_options']['include_datasets'], (
                     'Datasets data required but not included in the bundle')
 
-            upload_id = bundle_info['upload_id']
             upload_dict = bundle_info['upload']
-            assert upload_dict['_id'] == upload_id, 'Inconsisten upload id information'
-            try:
-                Upload.get(upload_id)
-                assert False, f'Upload with id {upload_id} already exists'
-            except KeyError:
-                pass
+            assert self.upload_id == bundle_info['upload_id'] == upload_dict['_id'], (
+                'Inconsisten upload id information')
             published = upload_dict['published']
             if published:
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
-            if published and keep_original_timestamps:
+            if published and settings.keep_original_timestamps:
                 assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
             process_status = upload_dict['process_status']
             assert process_status in ProcessStatus.STATUSES_NOT_PROCESSING, (
                 f'Invalid `process_status`: {process_status}')
-            check_user_ids([upload_dict['user_id']], 'Invalid uploader user_id: {value}')
+            # Define which keys we think okay to copy from the bundle
+            upload_keys_to_copy = [
+                'name', 'embargo_length', 'published', 'create_time',
+                'from_oasis', 'oasis_deployment_id', 'published_to']
+            if settings.keep_original_timestamps:
+                upload_keys_to_copy.extend(('upload_time', 'publish_time'))
             try:
-                # Instantiate an Upload object from the json, and validate it
-                upload = Upload.from_json(json.dumps(upload_dict))
-                upload.validate()
+                # Update the upload with data from the json, and validate it
+                update = {k: upload_dict[k] for k in upload_keys_to_copy if k in upload_dict}
+                self.modify(**update)
+                self.validate()
             except Exception as e:
                 assert False, 'Bad upload json data: ' + str(e)
-            assert not upload.pending_operations, 'Should not have `pending_operations`'  # Would not be secure
-            current_time = pytz.utc.localize(datetime.utcnow())
+            current_time = datetime.utcnow()
             current_time_plus_tolerance = current_time + timedelta(minutes=2)
-            if not keep_original_timestamps:
-                upload.upload_time = current_time
-            if published and not keep_original_timestamps:
-                upload.publish_time = current_time
-            for timestamp in (upload.upload_time, upload.last_update, upload.complete_time, upload.publish_time):
-                assert timestamp is None or upload.create_time <= timestamp < current_time_plus_tolerance, (
-                    'Missing or inconsistent timestamp')
-            if set_from_oasis:
-                upload.from_oasis = True
+            if self.published and not settings.keep_original_timestamps:
+                self.publish_time = current_time
+            for timestamp in (self.upload_time, self.last_update, self.complete_time, self.publish_time):
+                assert timestamp is None or self.create_time <= timestamp < current_time_plus_tolerance, (
+                    'Bad/inconsistent timestamp')
+            if settings.set_from_oasis:
+                self.from_oasis = True
                 source_deployment_id = bundle_info['source']['deployment_id']
                 assert source_deployment_id, 'No source deployment_id defined'
-                if not upload.oasis_deployment_id:
-                    upload.oasis_deployment_id = source_deployment_id
+                if not self.oasis_deployment_id:
+                    self.oasis_deployment_id = source_deployment_id
                     # Note, if oasis_deployment_id is set in the bundle_info, we keep this
                     # field as it is, since it indicates that the upload has been importet from
                     # somewhere else originally (i.e. source_deployment_id would not be the
@@ -1760,18 +1789,18 @@ class Upload(Proc):
                 # TODO: should we do anything about published_to?
 
             # Dataset definitions
-            if include_datasets:
+            if settings.include_datasets:
                 assert 'datasets' in bundle_info, 'Missing datasets definition in bundle_info.json'
-                datasets_dict = bundle_info['datasets']
+                datasets = bundle_info['datasets']
                 dataset_id_mapping: Dict[str, str] = {}  # Map from old to new id (usually the same)
-                for dataset_dict in datasets_dict:
+                for dataset_dict in datasets:
                     keys_exist(dataset_dict, required_keys_datasets, 'Missing key in dataset definition: {key}')
-                    check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {value}')
+                    check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {id}')
                     dataset_id = dataset_dict['dataset_id']
                     try:
                         existing_dataset = datamodel.Dataset.m_def.a_mongo.get(name=dataset_dict['name'])
                         # Dataset by the given name already exists
-                        assert existing_dataset.user_id == upload.user_id, (
+                        assert existing_dataset.user_id == dataset_dict['user_id'], (
                             'A dataset with the same name but different creator exists')
                         dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
                         # Note, it may be that a dataset with the same name and creator
@@ -1797,25 +1826,32 @@ class Upload(Proc):
                 keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
                 with_embargo_values.add(entry_metadata_dict.get('with_embargo'))
                 # Check referential consistency
-                assert entry_dict['upload_id'] == upload_id, 'Mismatching entry upload_id'
-                for key, value in (
-                        ('upload_name', upload.name),
-                        ('uploader', upload.user_id),
-                        ('published', upload.published)):
-                    assert entry_metadata_dict.get(key) == value, f'Inconsistent entry metadata: {key}'
-                check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {value}')
-                check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {value}')
-                # Instantiate an Upload object from the json, and validate it
+                assert entry_dict['upload_id'] == self.upload_id, 'Mismatching entry upload_id'
+                for k, v in (
+                        ('upload_name', self.name),
+                        ('uploader', self.user_id),
+                        ('published', self.published)):
+                    assert entry_metadata_dict.get(k) == v, f'Inconsistent entry metadata: {k}'
+                check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
+                check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
+                # Instantiate an entry object from the json, and validate it
+                entry_keys_to_copy = (
+                    'upload_id', 'mainfile', 'parser', 'metadata', 'errors', 'warnings',
+                    'last_status_message', 'current_process', 'current_process_step',
+                    'create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
                 try:
-                    entry: Calc = Calc.from_json(json.dumps(entry_dict))
+                    update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
+                    update['calc_id'] = entry_dict['_id']
+                    entry: Calc = Calc.create(**update)
+                    entry.process_status = entry_dict['process_status']
                     entry.validate()
                 except Exception as e:
                     assert False, 'Bad entry json data: ' + str(e)
                 # Instantiate an EntryMetadata object to validate the format
                 try:
                     entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
-                    entry_metadata.upload_time = upload.upload_time  # Set same upload_time everywhere
-                    if include_datasets:
+                    entry_metadata.upload_time = self.upload_time  # Set same upload_time everywhere
+                    if settings.include_datasets:
                         entry_metadata.datasets = [dataset_id_mapping[id] for id in entry_metadata.datasets]
                     else:
                         entry_metadata.datasets = []
@@ -1829,19 +1865,20 @@ class Upload(Proc):
             assert len(with_embargo_values) == 1, 'Different embargo settings for different entries'
             with_embargo = with_embargo_values.pop()
             assert with_embargo is None or type(with_embargo) == bool, 'Invalid with_embargo value'
-            if upload.published:
+            if self.published:
                 assert type(with_embargo) == bool, 'Invalid `with_embargo` value (must be boolean)'
                 if with_embargo:
                     if embargo_length is not None:
-                        upload.embargo_length = embargo_length
-                    assert upload.embargo_length is not None, 'Missing required `embargo_length`'
-                    assert 1 <= upload.embargo_length <= 36, 'Invalid `embargo_length`'
+                        self.embargo_length = embargo_length
+                    assert self.embargo_length is not None, 'Missing required `embargo_length`'
+                    assert 1 <= self.embargo_length <= 36, 'Invalid `embargo_length`'
 
             # Import the files
-            upload_files = bundle.import_upload_files(include_raw_files, include_archive_files, move_files)
+            upload_files = bundle.import_upload_files(
+                settings.include_raw_files, settings.include_archive_files, move_files)
 
             # Check the archive metadata, if included
-            if include_archive_files:
+            if settings.include_archive_files:
                 for entry in entries:
                     try:
                         entry_metadata = entry.full_entry_metadata(upload_files)
@@ -1852,32 +1889,37 @@ class Upload(Proc):
                         assert False, 'Invalid metadata in archive entry: ' + str(e)
 
             # Everything looks good - save to mongo.
-            upload.save(force_insert=True)  # Need to use force_insert since created using from_json
-            upload_saved = True
+            self.save()
             for entry in entries:
-                entry.save(force_insert=True)
+                entry.save()
 
             # Index in elastic search
             if entry_data_to_index:
                 search.index(entry_data_to_index, update_materials=True, refresh=True)
 
-            if trigger_processing:
-                reprocess_settings = config.bundle_import.reprocess.copy().apply(reprocess_settings)
-                upload.process_upload(reprocess_settings)
+            if settings.trigger_processing:
+                reprocess_settings = {
+                    k: v for k, v in settings.items() if k in config.reprocess}
+                return self._process_upload(reprocess_settings)
 
-            return upload
         except Exception as e:
-            # Undo everything
-            if new_datasets:
-                for dataset in new_datasets:
-                    dataset.a_mongo.delete()
-            if upload_saved:
-                upload.delete_upload_local()  # Will also delete files, entries and remove from elastic search
-            elif upload_files:
-                upload_files.delete()
-            raise
+            if settings.get('delete_upload_on_fail'):
+                # Delete everything
+                self.delete_upload_local()  # Will also delete files, entries and remove from elastic search
+                if new_datasets:
+                    for dataset in new_datasets:
+                        dataset.a_mongo.delete()
+                return ProcessStatus.DELETED
+            else:
+                # Just ensure the upload is deleted from search
+                with utils.timer(logger, 'upload deleted from index'):
+                    search.delete_upload(self.upload_id, refresh=True)
+
         finally:
-            bundle.close()
+            if bundle:
+                bundle.close()
+                if settings.get('delete_bundle_when_done'):
+                    bundle.delete(settings.get('also_delete_bundle_parent_folder', False))
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)

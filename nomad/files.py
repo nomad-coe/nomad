@@ -56,6 +56,7 @@ from abc import ABCMeta
 import sys
 from typing import IO, Dict, Iterable, Iterator, Callable, List, Tuple, Any, NamedTuple
 from pydantic import BaseModel
+from datetime import datetime
 import os.path
 import os
 import shutil
@@ -460,9 +461,29 @@ class CombinedFileSource(FileSource):
             file_source.to_disk(destination_dir, move_files, overwrite)
 
 
+class StandardJSONEncoder(json.JSONEncoder):
+    """ Our standard JSONEncoder with support for marshalling of datetime objects """
+    def default(self, obj):  # pylint: disable=E0202
+        if isinstance(obj, datetime):
+            return {'$datetime': obj.timestamp()}
+        return json.JSONEncoder.default(self, obj)
+
+
+class StandardJSONDecoder(json.JSONDecoder):
+    """ Our standard JSONDecoder, with support for marshalling of datetime objects """
+    def __init__(self, *args, **kargs):
+        json.JSONDecoder.__init__(self, object_hook=self.dict_to_object, *args, **kargs)
+
+    def dict_to_object(self, d):
+        v = d.get('$datetime')
+        if v is not None:
+            return datetime.fromtimestamp(v)
+        return d
+
+
 def json_to_streamed_file(json_dict: Dict[str, Any], path: str) -> StreamedFile:
     ''' Converts a json dictionary structure to a :class:`StreamedFile`. '''
-    json_bytes = json.dumps(json_dict, indent=2).encode()
+    json_bytes = json.dumps(json_dict, indent=2, cls=StandardJSONEncoder).encode()
     return StreamedFile(
         path=path,
         f=io.BytesIO(json_bytes),
@@ -1494,7 +1515,7 @@ class UploadBundle:
     def bundle_info(self) -> Dict[str, Any]:
         if self._bundle_info is None:
             with self.file_source.open('bundle_info.json', 'rt') as f:
-                self._bundle_info = json.load(f)
+                self._bundle_info = json.load(f, cls=StandardJSONDecoder)
         return self._bundle_info
 
     def import_upload_files(
@@ -1525,8 +1546,14 @@ class UploadBundle:
         self.file_source.close()
 
     def delete(self, include_parent_folder: bool = False):
+        '''
+        Deletes the bundle files. If `include_parent_folder` is set, and the parent folder
+        is empty, it is also deleted.
+        '''
         self.close()
-        if include_parent_folder:
-            PathObject(os.path.dirname(self.path)).delete()
-        else:
+        if os.path.exists(self.path):
             PathObject(self.path).delete()
+        if include_parent_folder:
+            parent_folder = os.path.dirname(self.path)
+            if not os.listdir(parent_folder):
+                PathObject(parent_folder).delete()

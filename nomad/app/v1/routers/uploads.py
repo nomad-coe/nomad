@@ -1249,27 +1249,26 @@ async def post_upload_bundle(
                     detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
 
         settings_dict: Dict[str, Any] = dict(
-            with_embargo=with_embargo,
-            embargo_length=embargo_length,
             include_raw_files=include_raw_files,
             include_archive_files=include_archive_files,
             include_datasets=include_datasets,
             keep_original_timestamps=keep_original_timestamps,
             set_from_oasis=set_from_oasis,
             trigger_processing=trigger_processing)
-        settings_oasis_users_can_edit = ('with_embargo', 'embargo_length')
 
         for k, v in settings_dict.copy().items():
-            if v is None and k not in settings_oasis_users_can_edit:
-                # Use default setting from config.bundle_import
-                assert k in config.bundle_import, f'Missing default setting for {k}'
-                settings_dict[k] = config.bundle_import[k]
-            elif v is not None and not is_admin and k not in settings_oasis_users_can_edit:
+            if v is None:
+                del settings_dict[k]
+            elif v is not None and not is_admin:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Specifying setting {k} requires an admin user')
 
-        upload = Upload.import_bundle(bundle, move_files=False, **settings_dict)
+        upload = Upload.create_skeleton_from_bundle(bundle)
+        bundle.close()
+        upload.import_bundle(
+            bundle_path, move_files=False, with_embargo=with_embargo, embargo_length=embargo_length,
+            settings=settings_dict)
 
         return UploadProcDataResponse(
             upload_id=upload.upload_id,
@@ -1278,9 +1277,8 @@ async def post_upload_bundle(
     except Exception as e:
         if bundle:
             bundle.close()
-            if method != 0:
-                bundle.delete(include_parent_folder=True)
-
+        if method != 0:
+            bundle.delete(include_parent_folder=True)
         if isinstance(e, HTTPException):
             raise
         raise HTTPException(

@@ -81,14 +81,19 @@ class NomadConfig(dict):
         else:
             raise AttributeError("No such attribute: " + name)
 
-    def copy(self) -> 'NomadConfig':
-        return NomadConfig(**self)
-
-    def apply(self, settings: Dict[str, Any]) -> 'NomadConfig':
-        ''' Applies the settings of the provided dictionary and returns self. '''
-        if settings:
-            self.update(settings)
-        return self
+    def customize(self, custom_settings: Dict[str, Any]) -> 'NomadConfig':
+        '''
+        Returns a new NomadConfig object, created by taking a copy of the current config and
+        updating it with the settings defined in `custom_settings`. The `custom_settings` dict
+        must not contain any new keys (keys not defined in this NomadConfig). If it does,
+        an exception will be raised.
+        '''
+        rv = NomadConfig(**self)
+        if custom_settings:
+            for k, v in custom_settings.items():
+                assert k in rv, f'Invalid setting: {k}'
+                rv[k] = v
+        return rv
 
 
 CELERY_WORKER_ROUTING = 'worker'
@@ -334,20 +339,26 @@ reprocess = NomadConfig(
 )
 
 bundle_import = NomadConfig(
-    # Configures behaviour of the API endpoint for uploading bundles
+    # Basic settings
     allow_bundles_from_oasis=True,  # If oasis admins can push bundles to this NOMAD deployment
     allow_unpublished_bundles_from_oasis=False,  # If oasis admins can push bundles of unpublished uploads
     required_nomad_version='0.10.4',  # Minimum  nomad version of bundles required for import
 
-    # Default import settings (only admin users can upload bundles with other settings than these)
-    include_raw_files=True,
-    include_archive_files=False,
-    include_datasets=True,
-    keep_original_timestamps=False,
-    set_from_oasis=True,
-    trigger_processing=True,
-    reprocess=NomadConfig(
-        # When importing with trigger_processing=True, these settings control this initial processing
+    default_settings=NomadConfig(
+        # Default settings for the import_bundle process
+        # (admins, and only admins, can override these settings when importing a bundle)
+        include_raw_files=True,
+        include_archive_files=False,
+        include_datasets=True,
+        keep_original_timestamps=False,  # If upload_time and publish_time should be taken from the bundle
+        set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
+        delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
+        delete_bundle_when_done=True,
+        also_delete_bundle_parent_folder=True,
+        trigger_processing=True,
+
+        # When importing with trigger_processing=True, the settings below control the
+        # initial processing behaviour (see the config for `reprocess` for more info).
         reparse_published_entry_if_parser_unchanged=True,
         reparse_published_entry_if_parser_changed=True,
         add_new_entries_to_published_upload_if_found=True,
