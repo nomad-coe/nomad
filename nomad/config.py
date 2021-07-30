@@ -353,9 +353,9 @@ bundle_import = NomadConfig(
         keep_original_timestamps=False,  # If upload_time and publish_time should be taken from the bundle
         set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
         delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
-        delete_bundle_when_done=True,
-        also_delete_bundle_parent_folder=True,
-        trigger_processing=True,
+        delete_bundle_when_done=True,  # Deletes the source file(s) when done (regardless of success)
+        also_delete_bundle_parent_folder=True,  # Removes the parent folder of the source budle, if empty.
+        trigger_processing=True,  # If the upload should be processed when the import is done.
 
         # When importing with trigger_processing=True, the settings below control the
         # initial processing behaviour (see the config for `reprocess` for more info).

@@ -674,7 +674,7 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle: BrowsableFileSource,
+            cls, budle_file_source: BrowsableFileSource,
             include_raw_files: bool,
             include_archive_files: bool) -> FileSource:
         '''
@@ -1131,15 +1131,15 @@ class StagingUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle: BrowsableFileSource,
+            cls, budle_file_source: BrowsableFileSource,
             include_raw_files: bool,
             include_archive_files: bool) -> FileSource:
         # Files to import for a staging upload
         rv = CombinedFileSource()
         if include_raw_files:
-            rv.add_file_source(bundle.sub_source('raw'))
+            rv.add_file_source(budle_file_source.sub_source('raw'))
         if include_archive_files:
-            rv.add_file_source(bundle.sub_source('archive'))
+            rv.add_file_source(budle_file_source.sub_source('archive'))
         return rv
 
 
@@ -1482,15 +1482,15 @@ class PublicUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle: BrowsableFileSource,
+            cls, budle_file_source: BrowsableFileSource,
             include_raw_files: bool,
             include_archive_files: bool) -> FileSource:
         rv = CombinedFileSource()
-        for filename in bundle.directory_list(''):
+        for filename in budle_file_source.directory_list(''):
             if filename.startswith('raw-') and include_raw_files:
-                rv.add_file_source(bundle.sub_source(filename))
+                rv.add_file_source(budle_file_source.sub_source(filename))
             if filename.startswith('archive-') and include_archive_files:
-                rv.add_file_source(bundle.sub_source(filename))
+                rv.add_file_source(budle_file_source.sub_source(filename))
         return rv
 
 

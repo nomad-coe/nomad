@@ -46,7 +46,7 @@ import requests
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
@@ -977,6 +977,8 @@ class Upload(Proc):
         '''
         Uploads the already published upload to a different NOMAD deployment. This allows
         to push uploads from an OASIS to the central NOMAD.
+        NOTE: This is the "old" way of publishing to central nomad. We want to switch to
+        using bundles instead, so this method should eventually be removed.
         '''
         assert self.published, \
             'Only published uploads can be published to the central NOMAD.'
@@ -1053,6 +1055,65 @@ class Upload(Proc):
 
         self.published_to.append(config.oasis.central_nomad_deployment_id)
         self.last_status_message = 'Successfully uploaded to central NOMAD.'
+
+    @process
+    def publish_externally(self, with_embargo: bool = None, embargo_length: int = None):
+        '''
+        Uploads the already published upload to a different NOMAD deployment. This allows
+        to push uploads from an OASIS to the central NOMAD. Makes use of the upload bundle
+        functionality.
+        '''
+        assert self.published, \
+            'Only published uploads can be published to the central NOMAD.'
+        assert config.oasis.central_nomad_deployment_id not in self.published_to, \
+            'Upload is already published to the central NOMAD.'
+
+        from nomad.cli.client.client import _create_client as create_client
+        central_nomad_client = create_client(
+            user=config.keycloak.username,
+            password=config.keycloak.password,
+            api_base_url=config.oasis.central_nomad_api_url,
+            use_token=False)
+
+        tmp_dir = create_tmp_dir('export_' + self.upload_id)
+        bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
+        try:
+            self.last_status_message = 'Creating bundle.'
+            self.save()
+
+            self.export_bundle(
+                export_as_stream=False, export_path=bundle_path,
+                zipped=True, move_files=False, overwrite=False,
+                include_raw_files=True, include_protected_raw_files=True,
+                include_archive_files=True, include_datasets=True)
+
+            self.last_status_message = 'Bundle created.'
+            self.save()
+
+            # upload to central NOMAD
+            oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
+            upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
+            upload_parameters = dict(
+                with_embargo=with_embargo,
+                embargo_length=embargo_length)
+            upload_parameters = {k: v for k, v in upload_parameters.items() if v is not None}
+            upload_url = '%s/uploads/bundle?%s' % (
+                config.oasis.central_nomad_api_url,
+                urllib.parse.urlencode(upload_parameters))
+
+            with open(bundle_path, 'rb') as f:
+                response = requests.post(upload_url, headers=upload_headers, data=f)
+
+            if response.status_code != 200:
+                self.get_logger().error(
+                    'Could not upload to central NOMAD', status_code=response.status_code)
+                self.last_status_message = 'Could not upload to central NOMAD.'
+                return
+
+            self.published_to.append(config.oasis.central_nomad_deployment_id)
+            self.last_status_message = 'Successfully uploaded to central NOMAD.'
+        finally:
+            PathObject(tmp_dir).delete()
 
     @process
     def re_pack(self):
@@ -1630,7 +1691,8 @@ class Upload(Proc):
                 'Must export entire upload when using `move_files`.')
             assert not zipped and not export_as_stream, (
                 'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
-        assert not self.process_running, 'Upload is being processed.'
+        assert not self.process_running or self.current_process == 'publish_externally', (
+            'Upload is being processed.')
 
         # Create bundle_info json data
         bundle_info: Dict[str, Any] = dict(
@@ -1753,9 +1815,6 @@ class Upload(Proc):
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
             if published and settings.keep_original_timestamps:
                 assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
-            process_status = upload_dict['process_status']
-            assert process_status in ProcessStatus.STATUSES_NOT_PROCESSING, (
-                f'Invalid `process_status`: {process_status}')
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
                 'name', 'embargo_length', 'published', 'create_time',
@@ -1914,6 +1973,7 @@ class Upload(Proc):
                 # Just ensure the upload is deleted from search
                 with utils.timer(logger, 'upload deleted from index'):
                     search.delete_upload(self.upload_id, refresh=True)
+                raise
 
         finally:
             if bundle:

@@ -1024,7 +1024,12 @@ async def post_upload_action_publish(
     embargo period (if any) is expired, the generated archive entries will be publicly visible.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=True)
+        upload_id, user, include_published=True, published_requires_admin=False)
+
+    if upload.published and not user.is_admin and not to_central_nomad:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Upload already published.')
 
     _check_upload_not_processing(upload)
 
@@ -1048,7 +1053,7 @@ async def post_upload_action_publish(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload must be published on the OASIS first.')
         # Everything looks ok, try to publish it to the central NOMAD!
-        upload.publish_from_oasis()
+        upload.publish_externally()
     else:
         # Publish to this repository
         if upload.published:

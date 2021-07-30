@@ -34,6 +34,7 @@ from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
+from nomad.archive import write_archive, read_archive
 
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -301,9 +302,14 @@ def block_until_completed(client, upload_id: str, user_auth):
 
 
 def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[EntryMetadata]:
-    ''' Create a iterable of :class:`EntryMetadata` from a API upload json record. '''
+    '''
+    Create a iterable of :class:`EntryMetadata` from a API upload json record, plus a
+    with_embargo flag fetched from mongodb.
+    '''
     return [
-        EntryMetadata(domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'])
+        EntryMetadata(
+            domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
+            with_embargo=Calc.get(entry['entry_id']).metadata.get('with_embargo'))
         for entry in entries]
 
 
@@ -1141,7 +1147,7 @@ def test_post_upload_oasis(
     pytest.param(
         dict(
             upload_id='id_published_w',
-            expected_status_code=401),
+            expected_status_code=400),
         id='already-published'),
     pytest.param(
         dict(
@@ -1177,6 +1183,92 @@ def test_post_upload_action_publish(
         assert upload['process_running']
 
         assert_gets_published(client, upload_id, user_auth, **query_args)
+
+
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            upload_id='id_published_w',
+            import_settings=dict(include_archive_files=False, trigger_processing=True)),
+        id='trigger-processing'),
+    pytest.param(
+        dict(
+            upload_id='id_published_w',
+            import_settings=dict(include_archive_files=True, trigger_processing=False)),
+        id='no-processing')])
+def test_post_upload_action_publish_to_central_nomad(
+        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client, example_data_writeable,
+        test_auth_dict, kwargs):
+    ''' Tests the publish action with to_central_nomad=True. '''
+    suffix = '_2'  # Will be added to all IDs in the mirrored upload
+    upload_id = kwargs.get('upload_id')
+    query_args = kwargs.get('query_args', {})
+    query_args['to_central_nomad'] = True
+    import_settings = kwargs.get('import_settings', {})
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    user = kwargs.get('user', 'test_user')
+    user_auth, __token = test_auth_dict[user]
+    original_upload = Upload.get(upload_id)
+
+    # Do some tricks to add suffix to the ID fields
+    old_bundle_init = files.UploadBundle.__init__
+
+    def new_bundle_init(self, *args, **kwargs):
+        old_bundle_init(self, *args, **kwargs)
+        # Change the id's in the bundle_info dict behind the scenes when loading the bundle
+        bundle_info = self.bundle_info
+        bundle_info['upload_id'] += suffix
+        bundle_info['upload']['_id'] += suffix
+        for entry_dict in bundle_info['entries']:
+            entry_dict['_id'] += suffix
+            entry_dict['upload_id'] += suffix
+
+    old_bundle_import_files = files.UploadBundle.import_upload_files
+
+    def new_bundle_import_files(self, *args, **kwargs):
+        upload_files = old_bundle_import_files(self, *args, **kwargs)
+        # Overwrite the archive files with files containing the updated IDs
+        if original_upload.published:
+            archive_path = upload_files.os_path
+        else:
+            archive_path = os.path.join(upload_files.os_path, 'archive')
+        for file_name in os.listdir(archive_path):
+            if file_name.endswith('.msg'):
+                full_path = os.path.join(archive_path, file_name)
+                data = read_archive(full_path)
+                new_data = []
+                for entry_id in data.keys():
+                    new_entry_id = (entry_id + suffix)[len(suffix):]  # fixed length required
+                    archive_dict = data[entry_id].to_dict()
+                    archive_dict['section_metadata']['upload_id'] += suffix
+                    archive_dict['section_metadata']['calc_id'] += suffix
+                    new_data.append((new_entry_id, archive_dict))
+                write_archive(full_path, len(new_data), new_data)
+        return upload_files
+
+    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
+    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
+
+    # Further monkey patching
+    def new_post(url, headers, data):
+        return client.post(url.lstrip('/api/'), headers=headers, data=data.read())
+
+    monkeypatch.setattr('requests.post', new_post)
+    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
+    import_settings = config.bundle_import.default_settings.customize(import_settings)
+    monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
+
+    # Finally, invoke the method to publish to central nomad
+    response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = assert_upload(response.json())
+        assert upload['current_process'] == 'publish_externally'
+        assert upload['process_running']
+        assert_processing(client, upload_id, user_auth, published=original_upload.published)
+        assert_processing(client, upload_id + suffix, user_auth, published=original_upload.published)
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
