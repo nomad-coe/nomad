@@ -332,37 +332,41 @@ gitlab = NomadConfig(
 
 reprocess = NomadConfig(
     # Configures standard behaviour when reprocessing.
-    reparse_published_entry_if_parser_unchanged=True,
-    reparse_published_entry_if_parser_changed=True,
-    add_new_entries_to_published_upload_if_found=True,
-    delete_unmatched_entries_from_published_uploads=False
+    # Note, the settings only matter for published uploads and entries. For uploads in
+    # staging, we always reparse, add newfound entries, and delete unmatched entries.
+    reparse_published_if_parser_unchanged=True,
+    reparse_published_if_parser_changed=True,
+    add_newfound_entries_to_published=True,
+    delete_unmatched_published_entries=False
 )
 
 bundle_import = NomadConfig(
     # Basic settings
-    allow_bundles_from_oasis=True,  # If oasis admins can push bundles to this NOMAD deployment
-    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can push bundles of unpublished uploads
+    allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
+    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
     required_nomad_version='0.10.4',  # Minimum  nomad version of bundles required for import
 
     default_settings=NomadConfig(
-        # Default settings for the import_bundle process
-        # (admins, and only admins, can override these settings when importing a bundle)
+        # Default settings for the import_bundle process.
+        # Note, admins, and only admins, can override these settings when importing a bundle.
+        # This means that if oasis admins pushes bundles to this NOMAD deployment, these
+        # default settings will be applied.
         include_raw_files=True,
         include_archive_files=False,
         include_datasets=True,
         keep_original_timestamps=False,  # If upload_time and publish_time should be taken from the bundle
         set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
         delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
-        delete_bundle_when_done=True,  # Deletes the source file(s) when done (regardless of success)
-        also_delete_bundle_parent_folder=True,  # Removes the parent folder of the source budle, if empty.
+        delete_bundle_when_done=True,  # Deletes the source bundle when done (regardless of success)
+        also_delete_bundle_parent_folder=True,  # Also deletes the parent folder, if it is empty.
         trigger_processing=True,  # If the upload should be processed when the import is done.
 
         # When importing with trigger_processing=True, the settings below control the
         # initial processing behaviour (see the config for `reprocess` for more info).
-        reparse_published_entry_if_parser_unchanged=True,
-        reparse_published_entry_if_parser_changed=True,
-        add_new_entries_to_published_upload_if_found=True,
-        delete_unmatched_entries_from_published_uploads=True
+        reparse_published_if_parser_unchanged=True,
+        reparse_published_if_parser_changed=True,
+        add_newfound_entries_to_published=True,
+        delete_unmatched_published_entries=True
     )
 )
 

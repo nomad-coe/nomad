@@ -400,15 +400,15 @@ class Calc(Proc):
             # Determine if we should reparse or keep it.
             should_parse = False
             settings = config.reprocess.customize(reprocess_settings)  # Add default settings
-            reparse_if_parser_unchanged = settings.reparse_published_entry_if_parser_unchanged
-            reparse_if_parser_changed = settings.reparse_published_entry_if_parser_changed
+            reparse_if_parser_unchanged = settings.reparse_published_if_parser_unchanged
+            reparse_if_parser_changed = settings.reparse_published_if_parser_changed
             if reparse_if_parser_unchanged or reparse_if_parser_changed:
                 with utils.timer(logger, 'parser matching executed'):
                     parser = match_parser(
                         self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
                 if parser is None:
                     # Should only be possible if the upload is published and we have
-                    # settings.delete_unmatched_entries_from_published_uploads == False
+                    # settings.delete_unmatched_published_entries == False
                     logger.warn('no parser matches during re-process, not updating the entry')
                     self.warnings = ['no matching parser found during processing']
                 else:
@@ -1337,7 +1337,7 @@ class Upload(Proc):
                         matched_entries.add(calc_id)
                     except KeyError:
                         # No existing entry found
-                        if not self.published or settings.add_new_entries_to_published_upload_if_found:
+                        if not self.published or settings.add_newfound_entries_to_published:
                             entry = Calc.create(
                                 calc_id=calc_id,
                                 mainfile=filename,
@@ -1351,7 +1351,7 @@ class Upload(Proc):
                     if entry.calc_id not in matched_entries:
                         if entry.process_running:
                             count_already_processing += 1
-                        if not self.published or settings.delete_unmatched_entries_from_published_uploads:
+                        if not self.published or settings.delete_unmatched_published_entries:
                             entries_to_delete.append(entry.calc_id)
 
                 # Delete entries

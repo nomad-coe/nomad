@@ -360,7 +360,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure):
     if with_failure == 'not-matched':
-        monkeypatch.setattr('nomad.config.reprocess.delete_unmatched_entries_from_published_uploads', False)
+        monkeypatch.setattr('nomad.config.reprocess.delete_unmatched_published_entries', False)
 
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()

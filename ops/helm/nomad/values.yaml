@@ -169,10 +169,10 @@ volumes:
 springerDbPath: /nomad/fairdi/db/data/springer.msg
 
 reprocess:
-    reparse_published_entry_if_parser_unchanged: true
-    reparse_published_entry_if_parser_changed: true
-    add_new_entries_to_published_upload_if_found: true
-    delete_unmatched_entries_from_published_uploads: false
+    reparse_published_if_parser_unchanged: true
+    reparse_published_if_parser_changed: true
+    add_newfound_entries_to_published: true
+    delete_unmatched_published_entries: false
 
 process_reuse_parser: true
 
