@@ -31,6 +31,8 @@ import { useQuery, useExclusive, cleanQuery } from './FilterContext'
  * Displays the list of search results
  */
 const INIT_PAGE_SIZE = 30
+const PAGE_SIZE_INCREMENT = 30
+
 const useStyles = makeStyles(theme => ({
   root: {
     height: '100%'
@@ -72,9 +74,9 @@ const SearchResults = React.memo(({
   // When bottom of results reached, increase the page size and ask request
   // immediate refresh.
   const handleBottom = useCallback(() => {
-    pageSize.current = Math.min(pageSize.current + 20, total)
     immediate.current = true
     if (pageSize.current < total) {
+      pageSize.current = Math.min(pageSize.current + PAGE_SIZE_INCREMENT, total)
       setPagination(old => {
         const newPagination = {...old, page_size: pageSize.current}
         return newPagination

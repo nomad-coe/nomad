@@ -439,7 +439,6 @@ const DFTEntryOverview = ({data}) => {
               failed = true
             }
             if (!failed) {
-              energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
               const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
               const sampling_method = section_run?.section_sampling_method
               const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
@@ -454,7 +453,7 @@ const DFTEntryOverview = ({data}) => {
             const scc = resolveRef(scc_ref, archive)
             let v_dos = null
             let v_bs = null
-            if (scc && scc.section_k_band && scc.section_dos) {
+            if (scc) {
               v_bs = {
                 segments: scc.section_k_band[scc.section_k_band.length - 1].section_k_band_segment,
                 m_path: `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
