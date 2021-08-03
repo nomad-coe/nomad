@@ -477,8 +477,6 @@ class DataTableUnStyled extends React.Component {
     if (total !== undefined) {
       title = `${totalNumber.toLocaleString()} ${totalNumber === 1 ? entityLabels[0] : entityLabels[1]}`
     }
-    console.log(totalNumber)
-    console.log(data.length)
 
     return <div className={classes.containerOuter}>
       <DataTableToolbar
