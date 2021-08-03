@@ -33,6 +33,8 @@ import {
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
+import { useUnits, getDimension, Quantity } from '../../units'
+import { getIsNumeric } from '../../utils'
 import { useFiltersState } from './FilterContext'
 import {
   quantityFullnames,
@@ -103,6 +105,7 @@ const NewSearchBar = React.memo(({
   className
 }) => {
   const styles = useStyles()
+  const units = useUnits()
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
@@ -136,11 +139,28 @@ const NewSearchBar = React.memo(({
     const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
     if (equals) {
       const quantityName = equals[1]
-      queryValue = equals[2]
       quantityFullname = quantityFullnames.get(quantityName) || quantityName
       if (!quantitySet.has(quantityFullname)) {
         setError(`Unknown quantity name`)
         return
+      }
+      // Numerical values have to be separately parsed and validated.
+      const isNumeric = getIsNumeric(quantityFullname)
+      if (isNumeric) {
+        try {
+          queryValue = Number.parseFloat(equals[2])
+        } catch (error) {
+          setError(`Invalid numerical value. Please check your syntax.`)
+          return
+        }
+        const dimension = getDimension(quantityFullname)
+        queryValue = dimension ? new Quantity(queryValue, units[dimension]) : queryValue
+        // const range = {}
+        // range['gte'] = queryValue
+        // range['lte'] = queryValue
+        // queryValue = range
+      } else {
+        queryValue = equals[2]
       }
       valid = true
     }
@@ -161,18 +181,20 @@ const NewSearchBar = React.memo(({
           return
         }
         quantityFullname = isAQuantity ? aFullname : bFullname
+        const info = searchQuantities[quantityFullname]
         const quantityValue = Number.parseFloat(isAQuantity ? b : a)
         if (isNaN(quantityValue)) {
           setError(`Invalid number`)
           return
         }
-        const type = searchQuantities[quantityFullname].type
+        const type = info.type
+        const dimension = getDimension(quantityFullname)
         if (!type.type_data.startsWith('int') && !type.type_data.startsWith('float')) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
         queryValue = {}
-        queryValue[opMap[op]] = quantityValue
+        queryValue[opMap[op]] = dimension ? new Quantity(quantityValue, units[dimension]) : quantityValue
         valid = true
       }
     }
@@ -187,13 +209,14 @@ const NewSearchBar = React.memo(({
         const op2 = ltegteSandwich[4]
         const c = ltegteSandwich[5]
         quantityFullname = quantityFullnames.get(b)
+        const dimension = getDimension(quantityFullname)
         const isBQuantity = quantitySet.has(quantityFullname)
         if (!isBQuantity) {
           setError(`Unknown quantity name`)
           return
         }
-        const aValue = Number.parseFloat(a)
-        const cValue = Number.parseFloat(c)
+        let aValue = Number.parseFloat(a)
+        let cValue = Number.parseFloat(c)
         if (isNaN(aValue) || isNaN(cValue)) {
           setError(`Invalid number`)
           return
@@ -203,7 +226,12 @@ const NewSearchBar = React.memo(({
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
+
         queryValue = {}
+        if (dimension) {
+          aValue = new Quantity(aValue, units[dimension])
+          cValue = new Quantity(cValue, units[dimension])
+        }
         queryValue[opMapReverse[op1]] = aValue
         queryValue[opMap[op2]] = cValue
         valid = true
@@ -403,7 +431,7 @@ const NewSearchBar = React.memo(({
       )}
     />
     {showExamples && <CustomPaper className={styles.examples}>
-      <Typography>{'Start typing a query to get relevant suggestions.'}</Typography>
+      <Typography>{'Start typing a query or a keyword to get relevant suggestions.'}</Typography>
     </CustomPaper>}
   </Paper>
 })

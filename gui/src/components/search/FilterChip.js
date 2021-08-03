@@ -44,7 +44,7 @@ const FilterChip = React.memo(({
 })
 
 FilterChip.propTypes = {
-  label: PropTypes.string,
+  label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onDelete: PropTypes.func,
   className: PropTypes.string
 }

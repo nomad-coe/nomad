@@ -17,6 +17,7 @@
  */
 import { cloneDeep, merge, isSet } from 'lodash'
 import { toUnitSystem } from './units'
+import searchQuantities from './searchQuantities.json'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -364,6 +365,18 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     }
   }
   return Number(value.toFixed(decimals))
+}
+
+/**
+ * Checks if the given metainfo is numeric.
+ *
+ * @param {string} quantity
+ *
+ * @return {bool} Whether the given metainfo is numeric or not.
+ */
+export function getIsNumeric(quantity) {
+  const type = searchQuantities[quantity]?.type?.type_data
+  return type?.startsWith('int') || type?.startsWith('float')
 }
 
 /**

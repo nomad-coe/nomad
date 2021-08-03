@@ -28,8 +28,7 @@ import EntryPage, {help as entryHelp} from '../entry/EntryPage'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import FAQ from '../FAQ'
-// import SearchPage, {help as searchHelp} from '../search/SearchPage'
-import NewSearchPage, {help as newSearchHelp} from '../search/NewSearchPage'
+import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
 import UploadPage, {help as uploadHelp} from '../uploads/UploadPage'
 import UserdataPage, {help as userdataHelp} from '../UserdataPage'
 import { ErrorBoundary } from '../errors'
@@ -74,7 +73,7 @@ const routeSpecs = [
     title: 'Search and Download Data',
     help: {
       title: 'How to find and download data',
-      content: newSearchHelp
+      content: searchHelp
     },
     navPath: 'explore/search',
     component: NewSearchPage

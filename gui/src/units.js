@@ -19,6 +19,7 @@ import { parse, SymbolNode } from 'mathjs'
 import { atom, useRecoilValue } from 'recoil'
 import { scale, add } from './utils'
 import { conversionMap, unitMap, unitSystems } from './unitsData'
+import searchQuantities from './searchQuantities.json'
 
 // Setup a unit system: by default use SI units, unless explicitly overridden
 // with something else.
@@ -45,6 +46,17 @@ export const unitsState = atom({
  */
 export const useUnits = () => {
   return useRecoilValue(unitsState)
+}
+
+/**
+ * Convenience function for getting the dimension for the given metainfo name.
+ *
+ * @returns The metainfo dimension as a string, undefined if no dimension is
+ * specified.
+ */
+export function getDimension(quantity) {
+  const info = searchQuantities[quantity]
+  return info && unitMap[info?.unit]?.dimension
 }
 
 /**

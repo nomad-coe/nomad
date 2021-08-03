@@ -18,49 +18,38 @@
 import React, { useContext } from 'react'
 import { apiContext } from '../api'
 import NewSearch from './NewSearch'
-import { domainData } from '../domainData'
 
 const help = `
-This page allows you to **search** in NOMAD's data. The upper part of this page
-gives you various options to enter and configure your search. The lower part
-shows all data that fulfills your search criteria.
+This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
+search allows you to screen data by filtering based on desired properties. This
+is different from basic *text-search* that traditional search engines offer.
 
-NOMAD's *domain-aware* search allows you to screen data by filtering based on
-desired properties. This is different from basic *text-search* that traditional
-search engines offer.
+The search page consists of three main elements: the filter panel on the left,
+the search bar, and the result list on the right.
 
-The search bar allows you to specify various quantity values that you want to
-see in your results. This includes *authors*, *comments*, *atom labels*, *code name*,
-*system type*, *crystal system*, *basis set types*, and *XC functionals*.
+The filter panel on the left allows you to graphically explore and enter
+different search filters. It also gives a visual indication of the currently
+active search filters for each category. This is a good place to start exploring
+the available search filters and their meaning.
 
-Alternatively, you can click *elements* or *metadata* to get a visual representation of
-NOMAD's data as a periodic table or metadata charts. You can click the various
-visualization elements to filter for respective quantities.
+The search bar allows you to specify filters by typing them in and pressing
+enter. You can also start by simply typing keywords of interest, which will
+toggle a list of possible suggestions. All of the filters that are available
+through the left panel are also available in this search bar. For numerical data
+you can also use range queries, e.g. \`0.0 < band_gap <= 0.1\`. The units used in the
+queries can be changed in the settings.
 
-The visual representations show metrics for all data that fit your criteria.
-You can display *entries* (i.e. code runs), *unique entries*, and *datasets*.
-Other more specific metrics might be available.
-
-Some quantities have no autocompletion for their values. You can still search for them,
-if you know exactly what you are looking for. To search for a particular entry by its id
-for example, type \`calc_id=<the_id>\` and press entry (or select the respective item from the menu).
-The usable *hidden* quantities are: ${Object.keys(domainData.dft.additionalSearchKeys).map(key => `\`${key}\``).join(', ')}.
-
-The results tabs gives you a quick overview of all entries and datasets that fit your search.
-You can click entries to see more details, download data, see the archive, etc. The *entries*
-tab displays individual entries (i.e. code runs), the *grouped entries* tab will group
-entries with similar metadata (it will group entries for the same material from the
-  same user). The *dataset* tab, shows entry curated by user created datasets. You can
-  click on datasets for a search page that will only display entries from the respective
-  dataset.
-
-The table columns can be configured. The *entries* tab also supports sorting. Selected
-entries (or all entries) can be downloaded. The download will contain all user provided
-raw calculation input and output files.
-
-You can click entries to see more details about them. The details button will navigate
-you to an entry's page. This entry page will show more metadata, raw files, the
-entry's archive, and processing logs.
+The result list is automatically updated according to the filters you have
+specified. You can browse through the results by simply scrolling through the
+available items. Here you can also change the sorting of the results, modify the
+displayed columns, access individual entries or even download selections of the
+data. The results tabs gives you a quick overview of all entries and datasets
+that fit your search and it is automatically updated based on your filters. You
+can browse through all of the results by scrolling down the list. Here you can
+also change the sorting of the results, modify the displayed columns, access
+individual entries or even download selections of the data. The arrow button
+shown for each entry will navigate you to that entry's page.  This entry page
+will show more metadata, raw files, the entry's archive, and processing logs.
 `
 export {help}
 

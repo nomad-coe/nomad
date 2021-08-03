@@ -286,15 +286,18 @@ export function useSearch() {
 }
 
 /**
- * Hook for retrieving the most up-to-date aggreagtion results for a specific
+ * Hook for retrieving the most up-to-date aggregation results for a specific
  * quantity, taking into account the current search context.
  *
- * @param {string} quantity
- * @param {string} type
- * @param {bool} restrict
+ * @param {string} quantity the quantity name
+ * @param {string} type ElasticSearch aggregation type
+ * @param {bool} restrict if true, the query filters targeting this particular
+ * quantity will be removed. This makes it possible to return all possible
+ * values for dropdowns etc.
  * @param {bool} update Whether the hook needs to react to changes in the
  * current query context. E.g. if the component showing the data is not visible,
  * this can be set to false.
+ *
  * @returns {array} The data-array returned by the API.
  */
 export function useAgg(quantity, type, restrict = false, update = true, delay = 200) {
@@ -367,6 +370,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  * Hook for returning the current query results.
  *
  * @param {number} delay The debounce delay in milliseconds.
+ *
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
@@ -408,11 +412,23 @@ export function useResults(query, pagination, exclusive, delay = 400) {
   return results
 }
 
-// Converts all sets to arrays and convert all Quantities into their SI unit
-// values
-export function cleanQuery(obj, exclusive) {
-  let newObj = {}
-  for (let [k, v] of Object.entries(obj)) {
+/**
+ * Converts all sets to arrays and convert all Quantities into their SI unit
+ * values.
+ *
+ * Should only be called when making the final API call, as during the
+ * construction of the query it is much more convenient to store filters within
+ * e.g. Sets.
+ *
+ * @param {number} query The query object
+ * @param {bool} exclusive The chemical element search mode.
+ *
+ * @returns {object} A copy of the object with certain items cleaned into a
+ * format that is supported by the API.
+ */
+export function cleanQuery(query, exclusive) {
+  let newQuery = {}
+  for (let [k, v] of Object.entries(query)) {
     let newValue
 
     // Special handling for elements. There are two search modes: exclusive and
@@ -433,6 +449,8 @@ export function cleanQuery(obj, exclusive) {
         newValue = setToArray(v)
         if (newValue.length === 0) {
           newValue = undefined
+        } else {
+          newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
         }
         k = `${k}:any`
       } else if (v instanceof Quantity) {
@@ -441,7 +459,7 @@ export function cleanQuery(obj, exclusive) {
         if (v.length === 0) {
           newValue = undefined
         } else {
-          newValue = v
+          newValue = v.map((item) => item instanceof Quantity ? item.toSI() : item)
         }
         k = `${k}:any`
       } else if (typeof v === 'object' && v !== null) {
@@ -450,7 +468,7 @@ export function cleanQuery(obj, exclusive) {
         newValue = v
       }
     }
-    newObj[k] = newValue
+    newQuery[k] = newValue
   }
-  return newObj
+  return newQuery
 }

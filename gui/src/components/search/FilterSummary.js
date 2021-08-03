@@ -23,7 +23,7 @@ import clsx from 'clsx'
 import { isNil } from 'lodash'
 import FilterChip from './FilterChip'
 import { useFiltersState } from './FilterContext'
-import { formatNumber } from '../../utils'
+import { formatNumber, getIsNumeric } from '../../utils'
 import { Quantity, useUnits } from '../../units'
 
 /**
@@ -61,10 +61,7 @@ const FilterSummary = React.memo(({
 
   const format = useCallback((value) => {
     if (!isNil(value)) {
-      if (value instanceof Quantity) {
-        value = value.toSystem(units)
-      }
-      value = formatNumber(value)
+      return value instanceof Quantity ? formatNumber(value.toSystem(units)) : formatNumber(value)
     }
     return value
   }, [units])
@@ -75,16 +72,18 @@ const FilterSummary = React.memo(({
     if (!filterValue) {
       continue
     }
-    // Is query has multiple elements, we display a chip for each without
-    // showing the quantity name
+    const isNumeric = getIsNumeric(quantity)
+    // Is query has multiple elements, we display a chip for each. For numerical
+    // values we also display the quantity name.
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = typeof filterValue === 'object' && filterValue !== null
     if (isArray || isSet) {
       filterValue.forEach((value, index) => {
+        const displayValue = format(value)
         const item = <FilterChip
           key={chips.length}
-          label={value}
+          label={isNumeric ? `${filterAbbr} = ${displayValue}` : displayValue}
           onDelete={() => {
             if (isSet) {
               const newSet = new Set(filterValue)
