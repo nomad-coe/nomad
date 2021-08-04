@@ -106,6 +106,7 @@ export function normalizeDisplayValue(value) {
 }
 
 export const electronicRange = [-5, 10]
+export const dateFormat = 'dd/MM/yyyy'
 export const normalizationWarning = `
 Energy reference could not be found: energies have an unknown shift with
 respect to the highest occupied energy.

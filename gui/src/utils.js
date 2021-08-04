@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet } from 'lodash'
-import { toUnitSystem } from './units'
+import { cloneDeep, merge, isSet, isNil, isString } from 'lodash'
+import { toUnitSystem, Quantity } from './units'
+import { fromUnixTime, format } from 'date-fns'
+import { dateFormat } from './config'
 import searchQuantities from './searchQuantities.json'
 
 export const isEquivalent = (a, b) => {
@@ -374,10 +376,63 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
  *
  * @return {bool} Whether the given metainfo is numeric or not.
  */
-export function getIsNumeric(quantity) {
+export function isMetaNumber(quantity) {
   const type = searchQuantities[quantity]?.type?.type_data
-  console.log(type)
-  return type?.startsWith('int') || type?.startsWith('float')
+  return isString(type) && (type.startsWith('int') || type.startsWith('float'))
+}
+
+/**
+ * Checks if the given metainfo is a timestamp.
+ *
+ * @param {string} quantity
+ *
+ * @return {bool} Whether the given metainfo is numeric or not.
+ */
+export function isMetaTimestamp(quantity) {
+  const type = searchQuantities[quantity]?.type?.type_data
+  return isString(type) && type === 'nomad.metainfo.metainfo._Datetime'
+}
+
+/**
+ * Determines the data type of the given metainfo and returns a function for
+ * formatting values associated with it.
+ *
+ * @param {string} quantity The metainfo name (full path)
+ *
+ * @return {obj} Object with two entries:
+ *   type = data type of the metainfo
+ *   formatter = function for formatting values associated with this metainfo.
+ */
+export function formatMeta(quantity) {
+  let type
+  let formatter
+  if (isMetaNumber(quantity)) {
+    type = 'number'
+    formatter = (value, units) => {
+      if (isNil(value)) {
+        return value
+      }
+      if (value instanceof Quantity) {
+        if (units) {
+          return `${formatNumber(value.toSystem(units))} ${value.unit.label(units)}`
+        }
+        return `${formatNumber(value.value)} ${value.unit.label()}`
+      }
+      return formatNumber(value)
+    }
+  } else if (isMetaTimestamp(quantity)) {
+    type = 'timestamp'
+    formatter = (value, units) => {
+      if (isNil(value)) {
+        return value
+      }
+      return format(fromUnixTime(value / 1000), dateFormat)
+    }
+  } else {
+    type = 'unknown'
+    formatter = (value) => value
+  }
+  return {type, formatter}
 }
 
 /**

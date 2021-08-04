@@ -16,15 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
 import FilterChip from './FilterChip'
 import { useFiltersState } from './FilterContext'
-import { formatNumber, getIsNumeric } from '../../utils'
-import { Quantity, useUnits } from '../../units'
+import { formatMeta } from '../../utils'
+import { useUnits } from '../../units'
 
 /**
  * Displays an interactable summary for a given subset of filters
@@ -59,36 +59,24 @@ const FilterSummary = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const chips = []
 
-  // Formats values so that they are more readable.
-  const format = useCallback((value) => {
-    if (!isNil(value)) {
-      if (value instanceof Quantity) {
-        value = `${formatNumber(value.toSystem(units))} ${value.unit.label(units)}`
-      } else {
-        value = formatNumber(value)
-      }
-    }
-    return value
-  }, [units])
-
   for (let quantity of quantities) {
     const filterValue = filters[quantity]
     const filterAbbr = quantity.split('.').pop()
     if (!filterValue) {
       continue
     }
-    const isNumeric = getIsNumeric(quantity)
     // Is query has multiple elements, we display a chip for each. For numerical
     // values we also display the quantity name.
+    const {metaType, formatter} = formatMeta(quantity)
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = typeof filterValue === 'object' && filterValue !== null
     if (isArray || isSet) {
       filterValue.forEach((value, index) => {
-        const displayValue = format(value)
+        const displayValue = formatter(value, units)
         const item = <FilterChip
           key={chips.length}
-          label={isNumeric ? `${filterAbbr} = ${displayValue}` : displayValue}
+          label={metaType === 'number' ? `${filterAbbr} = ${displayValue}` : displayValue}
           onDelete={() => {
             if (isSet) {
               const newSet = new Set(filterValue)
@@ -105,10 +93,10 @@ const FilterSummary = React.memo(({
       })
     // Is query is an object, it is assumed to represent a range filter.
     } else if (isObj) {
-      let lte = format(filterValue.lte)
-      let gte = format(filterValue.gte)
-      let lt = format(filterValue.lt)
-      let gt = format(filterValue.gt)
+      let lte = formatter(filterValue.lte, units)
+      let gte = formatter(filterValue.gte, units)
+      let lt = formatter(filterValue.lt, units)
+      let gt = formatter(filterValue.gt, units)
       let label
       if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
         label = `${filterAbbr}${!isNil(gte) ? ` >= ${gte}` : ''}${!isNil(gt) ? ` > ${gt}` : ''}`

@@ -31,6 +31,7 @@ import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
 import { useAgg, useFilterState } from './FilterContext'
 import { getTime } from 'date-fns'
+import { dateFormat } from '../../config'
 
 const invalidDateMessage = 'Invalid date format.'
 const useStyles = makeStyles(theme => ({
@@ -105,9 +106,8 @@ const FilterDate = React.memo(({
     setEndDate(date)
   }, [])
 
-  // Used to check the input for errors and set the filter new valid values are
-  // found.
-  const handleAccept = useCallback(() => {
+  // Used to check the input for errors and set the final filter value.
+  const handleAccept = useCallback((startDate, endDate) => {
     if (!changed.current) {
       return
     }
@@ -130,7 +130,23 @@ const FilterDate = React.memo(({
       lte: end
     })
     changed.current = false
-  }, [startDate, endDate, setFilter])
+  }, [setFilter])
+
+  // A separate accept callback is used for start and end, since the best way to
+  // get the most up-to-date values is directly from the argument given to these
+  // callbacks. When selecting a value both handleXChange and handleXAccept are
+  // called, but these calls can finish out of order.
+  const handleStartAccept = useCallback((startDate) => {
+    handleAccept(startDate, endDate)
+  }, [endDate, handleAccept])
+
+  const handleEndAccept = useCallback((endDate) => {
+    handleAccept(startDate, endDate)
+  }, [startDate, handleAccept])
+
+  const handleBlurAccept = useCallback(() => {
+    handleAccept(startDate, endDate)
+  }, [startDate, endDate, handleAccept])
 
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -143,14 +159,14 @@ const FilterDate = React.memo(({
           variant="inline"
           inputVariant="outlined"
           label="Start date"
-          format="dd/MM/yyyy"
+          format={dateFormat}
           value={startDate}
           invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleAccept}
+          onAccept={handleStartAccept}
           onChange={handleStartChange}
-          onBlur={handleAccept}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept() } }}
+          onBlur={handleBlurAccept}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
         />
         <div className={styles.dash}>-</div>
         <KeyboardDatePicker
@@ -160,14 +176,14 @@ const FilterDate = React.memo(({
           variant="inline"
           inputVariant="outlined"
           label="End date"
-          format="dd/MM/yyyy"
+          format={dateFormat}
           value={endDate}
           invalidDateMessage=""
           InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleAccept}
+          onAccept={handleEndAccept}
           onChange={handleEndChange}
-          onBlur={handleAccept}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept() } }}
+          onBlur={handleBlurAccept}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
         />
       </div>
       {error && <FormHelperText error>

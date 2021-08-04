@@ -34,7 +34,7 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
 import { useUnits, getDimension, Quantity } from '../../units'
-import { getIsNumeric } from '../../utils'
+import { isMetaNumber } from '../../utils'
 import { useFiltersState } from './FilterContext'
 import {
   quantityFullnames,
@@ -145,7 +145,7 @@ const NewSearchBar = React.memo(({
         return
       }
       // Numerical values have to be separately parsed and validated.
-      const isNumeric = getIsNumeric(quantityFullname)
+      const isNumeric = isMetaNumber(quantityFullname)
       if (isNumeric) {
         try {
           queryValue = Number.parseFloat(equals[2])
