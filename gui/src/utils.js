@@ -376,6 +376,7 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
  */
 export function getIsNumeric(quantity) {
   const type = searchQuantities[quantity]?.type?.type_data
+  console.log(type)
   return type?.startsWith('int') || type?.startsWith('float')
 }
 

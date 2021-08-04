@@ -123,7 +123,7 @@ export class Unit {
 export class Quantity {
   constructor(value, unit) {
     this.value = value
-    this.unit = unit
+    this.unit = unit instanceof Unit ? unit : new Unit(unit)
   }
   toSI() {
     return toSI(this.value, this.unit)

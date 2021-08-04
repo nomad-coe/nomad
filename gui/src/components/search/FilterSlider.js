@@ -31,7 +31,6 @@ import FilterLabel from './FilterLabel'
 import { Quantity, Unit, toUnitSystem } from '../../units'
 import searchQuantities from '../../searchQuantities'
 import { useFilterState, useAgg } from './FilterContext'
-import { formatNumber } from '../../utils'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -45,7 +44,7 @@ const useStyles = makeStyles(theme => ({
   textField: {
     marginTop: theme.spacing(1),
     flexGrow: 1,
-    width: '7rem'
+    width: '10rem'
   },
   spacer: {
     flex: '2 1 100%',
@@ -67,7 +66,8 @@ const useStyles = makeStyles(theme => ({
     }
   },
   input: {
-    padding: '16px 12px'
+    padding: '16px 12px',
+    textOverflow: 'ellipsis'
   }
 }))
 const FilterSlider = React.memo(({
@@ -116,8 +116,8 @@ const FilterSlider = React.memo(({
       setMaxLocal(maxConverted)
       setMinLocal(minConverted)
       if (filter === undefined) {
-        setMaxText(formatNumber(maxConverted))
-        setMinText(formatNumber(minConverted))
+        setMaxText(maxConverted)
+        setMinText(minConverted)
         setRange({gte: minConverted, lte: maxConverted})
       }
     }
@@ -167,7 +167,7 @@ const FilterSlider = React.memo(({
         return newRange
       })
     } else {
-      setError(`Invalid value.`)
+      setError(`Invalid minimum value.`)
     }
     startChanged.current = false
   }, [minText, minConverted, sendFilter])
@@ -190,7 +190,7 @@ const FilterSlider = React.memo(({
         return newRange
       })
     } else {
-      setError(`Invalid value.`)
+      setError(`Invalid maximum value.`)
     }
     endChanged.current = false
   }, [maxText, maxConverted, sendFilter])

@@ -59,9 +59,14 @@ const FilterSummary = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const chips = []
 
+  // Formats values so that they are more readable.
   const format = useCallback((value) => {
     if (!isNil(value)) {
-      return value instanceof Quantity ? formatNumber(value.toSystem(units)) : formatNumber(value)
+      if (value instanceof Quantity) {
+        value = `${formatNumber(value.toSystem(units))} ${value.unit.label(units)}`
+      } else {
+        value = formatNumber(value)
+      }
     }
     return value
   }, [units])
@@ -98,7 +103,7 @@ const FilterSummary = React.memo(({
         />
         chips.push(item)
       })
-    // Is query is an object, we display a customized view based on its contents.
+    // Is query is an object, it is assumed to represent a range filter.
     } else if (isObj) {
       let lte = format(filterValue.lte)
       let gte = format(filterValue.gte)
@@ -106,11 +111,11 @@ const FilterSummary = React.memo(({
       let gt = format(filterValue.gt)
       let label
       if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
-        label = `${filterAbbr}${!isNil(gte) ? `>=${gte}` : ''}${!isNil(gt) ? `>${gt}` : ''}`
+        label = `${filterAbbr}${!isNil(gte) ? ` >= ${gte}` : ''}${!isNil(gt) ? ` > ${gt}` : ''}`
       } else if ((!isNil(lte) || !isNil(lt)) && (isNil(gte) && isNil(gt))) {
-        label = `${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}${!isNil(lt) ? `<${lt}` : ''}`
+        label = `${filterAbbr}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
       } else {
-        label = `${!isNil(gte) ? `${gte}<=` : ''}${!isNil(gt) ? `${gt}<` : ''}${filterAbbr}${!isNil(lte) ? `<=${lte}` : ''}${!isNil(lt) ? `<${lt}` : ''}`
+        label = `${!isNil(gte) ? `${gte} <= ` : ''}${!isNil(gt) ? `${gt} < ` : ''}${filterAbbr}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
       }
       const item = <FilterChip
         key={chips.length}
