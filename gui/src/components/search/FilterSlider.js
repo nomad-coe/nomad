@@ -28,9 +28,14 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
 import FilterLabel from './FilterLabel'
-import { Quantity, Unit, toUnitSystem } from '../../units'
+import { Quantity, Unit, toUnitSystem, toSI } from '../../units'
+import { formatNumber } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { useFilterState, useAgg } from './FilterContext'
+
+function format(value) {
+  return formatNumber(value, 'float', 6, true)
+}
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -86,11 +91,11 @@ const FilterSlider = React.memo(({
   const endChanged = useRef(false)
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
-  const [minGlobal, maxGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
-  const [minText, setMinText] = useState()
-  const [maxText, setMaxText] = useState()
-  const [minLocal, setMinLocal] = useState()
-  const [maxLocal, setMaxLocal] = useState()
+  const [minGlobalSI, maxGlobalSI] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
+  const [minText, setMinText] = useState('')
+  const [maxText, setMaxText] = useState('')
+  const [minLocal, setMinLocal] = useState(0)
+  const [maxLocal, setMaxLocal] = useState(0)
   const [range, setRange] = useState()
   const [error, setError] = useState()
 
@@ -98,102 +103,115 @@ const FilterSlider = React.memo(({
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
-  const unitSI = def?.unit
+  const unitSI = def?.unit || 'dimensionless'
   const unit = useMemo(() => {
     return unitSI && new Unit(unitSI, units)
   }, [unitSI, units])
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
-  const stepConverted = step instanceof Quantity ? step.toSystem(units) : step
-  let minConverted = (minGlobal !== undefined && unitSI) ? toUnitSystem(minGlobal, unitSI, units) : minGlobal
-  let maxConverted = (maxGlobal !== undefined && unitSI) ? toUnitSystem(maxGlobal, unitSI, units) : maxGlobal
-  const disabled = minGlobal === null || maxGlobal === null
+  const stepSI = step instanceof Quantity ? step.toSI() : step
+  const disabled = minGlobalSI === null || maxGlobalSI === null
+
+  // The slider minimum and maximum are set according to global min/max of the
+  // field.
+  useEffect(() => {
+    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+      setMinLocal(minGlobalSI)
+      setMaxLocal(maxGlobalSI)
+    }
+  }, [minGlobalSI, maxGlobalSI])
+
+  // When units change or the slider is used to set a value, update the min/max
+  // text
+  useEffect(() => {
+    setMinText(isNil(minLocal) ? minLocal : format(toUnitSystem(minLocal, unitSI, units)))
+    setMaxText(isNil(maxLocal) ? maxLocal : format(toUnitSystem(maxLocal, unitSI, units)))
+  }, [minLocal, maxLocal, units, unitSI])
 
   // If no range has been specified by the user, the range is automatically
   // adjusted according to global min/max of the field.
   useEffect(() => {
-    if (!isNil(maxConverted) && !isNil(minConverted)) {
-      setMaxLocal(maxConverted)
-      setMinLocal(minConverted)
-      if (filter === undefined) {
-        setMaxText(maxConverted)
-        setMinText(minConverted)
-        setRange({gte: minConverted, lte: maxConverted})
-      }
+    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI) && filter === undefined) {
+      setRange({gte: minGlobalSI, lte: maxGlobalSI})
+      setMinLocal(minGlobalSI)
+      setMaxLocal(maxGlobalSI)
+      setMinText(format(toUnitSystem(minGlobalSI, unitSI, units)))
+      setMaxText(format(toUnitSystem(maxGlobalSI, unitSI, units)))
     }
-  }, [maxConverted, minConverted, filter])
+  }, [minGlobalSI, maxGlobalSI, filter, unitSI, units])
 
   // Function for converting search values and sending them to the search
   // context.
   const sendFilter = useCallback(range => {
-    if (unit) {
+    if (unitSI) {
       range = {
-        lte: new Quantity(range.lte, unit),
-        gte: new Quantity(range.gte, unit)
+        lte: new Quantity(range.lte, unitSI),
+        gte: new Quantity(range.gte, unitSI)
       }
     }
     setFilter(range)
-  }, [unit, setFilter])
+  }, [unitSI, setFilter])
 
-  const handleStartChange = useCallback((event) => {
-    startChanged.current = true
-    setError()
-    const value = event.target?.value
-    setMinText(value)
+  // Used to simultaneously update the range in the slider and the actual filter
+  // value.
+  const updateRange = useCallback((range) => {
+    setRange(range)
+    sendFilter(range)
+  }, [setRange, sendFilter])
+
+  // Handles changes in the text input fields
+  const handleChange = useCallback((ref, setter) => {
+    return (event) => {
+      ref.current = true
+      setError()
+      const value = event.target?.value
+      setter(value)
+    }
   }, [])
 
-  const handleEndChange = useCallback((event) => {
-    endChanged.current = true
-    setError()
-    const value = event.target?.value
-    setMaxText(value)
-  }, [])
-
-  const handleStartSubmit = useCallback(() => {
+  // Called when min values are submitted through the text field.
+  const handleMinSubmit = useCallback((a) => {
     if (!startChanged.current) {
       return
     }
     const value = minText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const outOfRange = number < minConverted
+      const numberSI = toSI(number, unit)
+      const outOfRange = numberSI < minGlobalSI
       if (outOfRange) {
-        setError(`Minimum value cannot be below ${minConverted}.`)
+        const min = toUnitSystem(minGlobalSI, unitSI, units)
+        setError(`Minimum value cannot be below ${min}.`)
         return
       }
-      setRange(old => {
-        const newRange = {...old, gte: number}
-        sendFilter(newRange)
-        return newRange
-      })
+      updateRange({...range, gte: numberSI})
     } else {
       setError(`Invalid minimum value.`)
     }
     startChanged.current = false
-  }, [minText, minConverted, sendFilter])
+  }, [range, minText, unitSI, unit, units, minGlobalSI, updateRange])
 
-  const handleEndSubmit = useCallback(() => {
+  // Called when max values are submitted through the text field.
+  const handleMaxSubmit = useCallback(() => {
     if (!endChanged.current) {
       return
     }
     const value = maxText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const outOfRange = number > maxConverted
+      const numberSI = toSI(number, unit)
+      const outOfRange = numberSI > maxGlobalSI
       if (outOfRange) {
-        setError(`Maximum value cannot be above ${maxConverted}.`)
+        const max = toUnitSystem(maxGlobalSI, unitSI, units)
+        setError(`Maximum value cannot be above ${max}.`)
         return
       }
-      setRange(old => {
-        const newRange = {...old, lte: number}
-        sendFilter(newRange)
-        return newRange
-      })
+      updateRange({...range, lte: numberSI})
     } else {
       setError(`Invalid maximum value.`)
     }
     endChanged.current = false
-  }, [maxText, maxConverted, sendFilter])
+  }, [range, maxText, unitSI, unit, units, maxGlobalSI, updateRange])
 
   // Handle range commit: Set the filter when mouse is released on a slider
   const handleRangeCommit = useCallback((event, value) => {
@@ -203,11 +221,11 @@ const FilterSlider = React.memo(({
   // Handle range change: only change the rendered values, send to the filter
   // hook only after mouseup
   const handleRangeChange = useCallback((event, value) => {
-    setMinText(value[0])
-    setMaxText(value[1])
     setRange({gte: value[0], lte: value[1]})
+    setMinText(format(toUnitSystem(value[0], unitSI, units)))
+    setMaxText(format(toUnitSystem(value[1], unitSI, units)))
     setError()
-  }, [])
+  }, [units, unitSI])
 
   // Until an initial min/max range is available, we do not display the
   // component
@@ -226,9 +244,9 @@ const FilterSlider = React.memo(({
           className={styles.textField}
           value={minText}
           margin="normal"
-          onChange={handleStartChange}
-          onBlur={handleStartSubmit}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleStartSubmit() } }}
+          onChange={handleChange(startChanged, setMinText)}
+          onBlur={handleMinSubmit}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleMinSubmit() } }}
           InputProps={{classes: {input: styles.input}}}
         />
         <div className={styles.spacer}>
@@ -236,7 +254,7 @@ const FilterSlider = React.memo(({
             disabled={disabled}
             min={minLocal}
             max={maxLocal}
-            step={stepConverted}
+            step={stepSI}
             value={[range.gte, range.lte]}
             onChange={handleRangeChange}
             onChangeCommitted={handleRangeCommit}
@@ -251,9 +269,9 @@ const FilterSlider = React.memo(({
           className={styles.textField}
           value={maxText}
           margin="normal"
-          onChange={handleEndChange}
-          onBlur={handleEndSubmit}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleEndSubmit() } }}
+          onChange={handleChange(endChanged, setMaxText)}
+          onBlur={handleMaxSubmit}
+          onKeyDown={(event) => { if (event.key === 'Enter') { handleMaxSubmit() } }}
           InputProps={{classes: {input: styles.input}}}
         />
       </div>

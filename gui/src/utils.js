@@ -352,7 +352,7 @@ export function diffTotal(values) {
  * @param {bool} scientific Whether to convert large or small values to scientific
  * form.
  *
- * @return {number} Array containing the total difference values.
+ * @return {number} The number with new formatting
  */
 export function formatNumber(value, type = 'float64', decimals = 3, scientific = true) {
   if (type?.startsWith('int')) {

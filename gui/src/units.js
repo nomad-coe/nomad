@@ -155,6 +155,7 @@ export function toUnitSystem(value, unit, system) {
     unit = new Unit(unit)
   }
   const unitDef = unit.unitDef
+
   // Temperatures require special handling due to the fact that e.g. Celsius and
   // Fahrenheit are not absolute units and are non-multiplicative. Two kinds of
   // temperature conversions are supported: ones with a single temperature unit
@@ -163,6 +164,11 @@ export function toUnitSystem(value, unit, system) {
   // offset into account. If they are used as a part of an expression, they are
   // interpreted as ranges and the offset is ignored.
   if (unitDef instanceof SymbolNode) {
+    // Dimensionless quantities do not change in unit conversion
+    if (unitDef.name === 'dimensionless') {
+      return value
+    }
+
     const unitFrom = unitDef.name
     if (unitMap[unitFrom].dimension === 'temperature') {
       const unitTo = system['temperature']
