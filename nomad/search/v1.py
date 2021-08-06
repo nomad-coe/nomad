@@ -577,9 +577,10 @@ def search(
         if order_field == doc_type.id_field:
             next_page_after_value = last[doc_type.id_field]
         else:
-            after_value = last
-            for order_field_segment in order_field.split('.'):
-                after_value = after_value[order_field_segment]
+            # after_value is not necessarily the value stored in the field
+            # itself: internally ES can perform the sorting on a different
+            # value which is reported under meta.sort.
+            after_value = last.meta.sort[0]
             next_page_after_value = '%s:%s' % (after_value, last[doc_type.id_field])
     pagination_response = PaginationResponse(
         total=es_response.hits.total,

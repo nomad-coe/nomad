@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
@@ -23,15 +23,11 @@ import {
   Paper
 } from '@material-ui/core'
 import NewEntryList from './NewEntryList'
-import { debounce } from 'lodash'
-import { useApi } from '../apiV1'
-import { useQuery, useExclusive, cleanQuery } from './FilterContext'
+import { useExclusive, useScrollResults } from './FilterContext'
 
 /**
  * Displays the list of search results
  */
-const INIT_PAGE_SIZE = 30
-const PAGE_SIZE_INCREMENT = 30
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -42,72 +38,24 @@ const SearchResults = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const api = useApi()
-  const query = useQuery()
   const exclusive = useExclusive()
-  const [pagination, setPagination] = useState({
-    page: 1,
-    order: 'desc',
-    order_by: 'upload_time'
-  })
-  const pageSize = useRef(INIT_PAGE_SIZE)
-  const immediate = useRef(false)
-  const [results, setResults] = useState()
-  const total = results?.pagination.total || 0
+  const page_size = 30
+  // eslint-disable-next-line no-unused-vars
+  const [orderBy, setOrderBy] = useState('upload_time')
+  // eslint-disable-next-line no-unused-vars
+  const [order, setOrder] = useState('desc')
+  const {results, next, page, total} = useScrollResults(30, orderBy, order, exclusive)
 
-  // API call for fetching results
-  const loadResults = useCallback((query, pagination, exclusive) => {
-    const search = {
-      owner: 'all',
-      query: cleanQuery(query, exclusive),
-      pagination: pagination
-    }
-    api.queryEntry(search)
-      .then(data => {
-        setResults(data)
-      })
-  }, [api])
-
-  // Debounced API call version
-  const loadResultsDebounced = useCallback(debounce(loadResults, 400), [])
-
-  // When bottom of results reached, increase the page size and ask request
-  // immediate refresh.
+  // When bottom of results reached, fetch the next set of results.
   const handleBottom = useCallback(() => {
-    immediate.current = true
-    if (pageSize.current < total) {
-      pageSize.current = Math.min(pageSize.current + PAGE_SIZE_INCREMENT, total)
-      setPagination(old => {
-        const newPagination = {...old, page_size: pageSize.current}
-        return newPagination
-      })
+    if (results.data.length < total) {
+      next()
     }
-  }, [total])
+  }, [results, total, next])
 
-  // Handle sorting changes in the pagination: TODO: currently broken
+  // Handle sorting changes in the pagination: TODO: currently broken.
   const handleChange = useCallback(({order, order_by}) => {
-    immediate.current = true
-    // setPagination(old => {
-    //   const newPagination = {...old, order: order, order_by: order_by}
-    //   return newPagination
-    // })
   }, [])
-
-  useEffect(() => {
-    pageSize.current = INIT_PAGE_SIZE
-    immediate.current = false
-  }, [query, exclusive])
-
-  // If the pagination changes, we load results immediately. Otherwise a
-  // debounce is used.
-  useEffect(() => {
-    pagination.page_size = pageSize.current
-    if (immediate.current) {
-      loadResults(query, pagination, exclusive)
-    } else {
-      loadResultsDebounced(query, pagination, exclusive)
-    }
-  }, [query, pagination, exclusive, loadResults, loadResultsDebounced])
 
   // The rendered component is memoized in its entirety. This makes sure that we
   // re-render the results list only when the actual results have changed, and
@@ -117,17 +65,17 @@ const SearchResults = React.memo(({
     return <Paper className={clsx(className, styles.root)}>
       {results && <NewEntryList
         query={results.query}
-        editable={results.query.owner === 'staging' || results.query.owner === 'user'}
+        editable={false}
         data={results}
-        page={results?.pagination?.page}
-        per_page={results?.pagination?.page_size}
-        order={results?.pagination?.order}
-        order_by={results?.pagination?.order_by}
+        page={page}
+        per_page={page_size}
+        order={order}
+        order_by={orderBy}
         onChange={handleChange}
         onBottom={handleBottom}
       />}
     </Paper>
-  }, [className, styles.root, results, handleChange, handleBottom])
+  }, [className, styles.root, results, page, order, orderBy, handleChange, handleBottom])
 
   return comp
 })

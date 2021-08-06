@@ -158,6 +158,8 @@ export function useSetExclusive() {
 
 /**
  * Returns a function that can be called to reset all current filters.
+ *
+ * @returns Function for resetting all filters.
  */
 export function useResetFilters() {
   const reset = useRecoilCallback(({reset}) => () => {
@@ -179,6 +181,7 @@ export function useResetFilters() {
 export function useFilterValue(quantity) {
   return useRecoilValue(queryFamily(quantity))
 }
+
 /**
  * This hook will expose a function for setting filter values for a specific
  * quantity. Use this hook if you intend to only set the filter value and are
@@ -191,6 +194,7 @@ export function useFilterValue(quantity) {
 export function useSetFilter(quantity) {
   return useSetRecoilState(queryFamily(quantity))
 }
+
 /**
  * This hook will expose a function for getting and setting filter values for a
  * specific quantity. Use this hook if you intend to both read and write the
@@ -243,8 +247,8 @@ export function useFiltersState(quantities) {
 }
 
 /**
- * This selector aggregates all the currently set filters into a single query
- * object used by the API.
+ * This Recoil.js selector aggregates all the currently set filters into a
+ * single query object used by the API.
  */
 const queryState = selector({
   key: 'query',
@@ -289,9 +293,9 @@ export function useSearch() {
  * Hook for retrieving the most up-to-date aggregation results for a specific
  * quantity, taking into account the current search context.
  *
- * @param {string} quantity the quantity name
+ * @param {string} quantity The quantity name
  * @param {string} type ElasticSearch aggregation type
- * @param {bool} restrict if true, the query filters targeting this particular
+ * @param {bool} restrict If true, the query filters targeting this particular
  * quantity will be removed. This makes it possible to return all possible
  * values for dropdowns etc.
  * @param {bool} update Whether the hook needs to react to changes in the
@@ -367,7 +371,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
 }
 
 /**
- * Hook for returning the current query results.
+ * Hook for returning a set of results based on the currently set query.
  *
  * @param {number} delay The debounce delay in milliseconds.
  *
@@ -410,6 +414,105 @@ export function useResults(query, pagination, exclusive, delay = 400) {
   }, [apiCall, debounced, query, pagination, exclusive])
 
   return results
+}
+
+/**
+ * Hook for returning a set of results based on the currently set query together
+ * with a function for retrieving a new set of results.
+ *
+ * @param {object} pagination The pagination settings as used by the API. Notice
+ * that 'page', and 'page_after_value' will be ignored, as they are controlled
+ * by the hook.
+ * @param {bool} exclusive Whether to use exclusive element search.
+ * @param {number} delay The debounce delay in milliseconds.
+ *
+ * @returns {object} Object containing the search results under 'results' and
+ * the used query under 'search'.
+ */
+export function useScrollResults(page_size, exclusive, delay = 400) {
+  const api = useApi()
+  const firstRender = useRef(true)
+  const [results, setResults] = useState()
+  const pageNumber = useRef(1)
+  const query = useQuery()
+  const pageAfterValue = useRef()
+  const searchRef = useRef()
+  const loading = useRef(false)
+  const total = useRef(0)
+
+  // The results are fetched as a side effect in order to not block the
+  // rendering. This causes two renders: first one without the data, the second
+  // one with the data.
+  const apiCall = useCallback((query, pageSize, orderBy, order, exclusive) => {
+    pageAfterValue.current = undefined
+    const cleanedQuery = cleanQuery(query, exclusive)
+    const search = {
+      owner: 'all',
+      query: cleanedQuery,
+      pagination: {
+        page_size: pageSize,
+        order_by: orderBy,
+        order: order,
+        page_after_value: pageAfterValue.current
+      }
+    }
+    searchRef.current = search
+
+    loading.current = true
+    api.queryEntry(search)
+      .then(data => {
+        pageAfterValue.current = data.pagination.next_page_after_value
+        total.current = data.pagination.total
+        setResults(data)
+        loading.current = false
+      })
+  }, [api])
+
+  // This is a debounced version of apiCall.
+  const debounced = useCallback(debounce(apiCall, delay), [])
+
+  // Used to load the next bath of results
+  const next = useCallback(() => {
+    if (loading.current) {
+      return
+    }
+    pageNumber.current += 1
+    searchRef.current.pagination.page_after_value = pageAfterValue.current
+    loading.current = true
+    api.queryEntry(searchRef.current)
+      .then(data => {
+        pageAfterValue.current = data.pagination.next_page_after_value
+        total.current = data.pagination.total
+        setResults(old => {
+          data.data = old.data.concat(data.data)
+          return data
+        })
+        loading.current = false
+      })
+  }, [api])
+
+  // Whenever the query changes, we make a new query that resets pagination and
+  // shows the first batch of results.
+  useEffect(() => {
+    if (firstRender.current) {
+      apiCall(query, page_size, exclusive)
+      firstRender.current = false
+    } else {
+      debounced(query, page_size, exclusive)
+    }
+  }, [apiCall, debounced, query, exclusive, page_size])
+
+  // Whenever the ordering changes, we perform a single API call that fetches
+  // results in the new order. The amount of fetched results is based on the
+  // already loaded amount.
+  // TODO
+
+  return {
+    results: results,
+    next: next,
+    page: pageNumber.current,
+    total: total.current
+  }
 }
 
 /**

@@ -22,7 +22,6 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
-import SearchContext from './SearchContext'
 import { filtersAll, useMenuOpenState } from './FilterContext'
 
 const useNewSearchStyles = makeStyles(theme => {
@@ -114,30 +113,28 @@ const NewSearch = React.memo(({
   const styles = useNewSearchStyles()
   const [resultType, setResultType] = useState('entries')
   const [isMenuOpen, setIsMenuOpen] = useMenuOpenState()
-  return <SearchContext query={query} initialQuery={initialQuery}>
-    <div className={styles.root} {...rest}>
-      <div className={styles.leftColumn}>
-        <FilterPanel
-          isMenuOpen={isMenuOpen}
-          resultType={resultType}
-          onResultTypeChange={value => setResultType(value)}
-          onIsMenuOpenChange={setIsMenuOpen}
+  return <div className={styles.root} {...rest}>
+    <div className={styles.leftColumn}>
+      <FilterPanel
+        isMenuOpen={isMenuOpen}
+        resultType={resultType}
+        onResultTypeChange={value => setResultType(value)}
+        onIsMenuOpenChange={setIsMenuOpen}
+      />
+    </div>
+    <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
+      <div className={styles.bar}>
+        <NewSearchBar
+          quantities={filtersAll}
+          className={styles.searchBar}
         />
       </div>
-      <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
-        <div className={styles.bar}>
-          <NewSearchBar
-            quantities={filtersAll}
-            className={styles.searchBar}
-          />
-        </div>
-        <div className={styles.resultList}>
-          <SearchResults/>
-        </div>
-        <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
+      <div className={styles.resultList}>
+        <SearchResults/>
       </div>
+      <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
     </div>
-  </SearchContext>
+  </div>
 })
 NewSearch.propTypes = {
   initialOwner: PropTypes.string,
