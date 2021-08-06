@@ -12,7 +12,7 @@ nptyping
 cachetools
 docstring-parser
 Pint
-orjson
+orjson==3.6.0
 click
 requests
 bravado
@@ -83,7 +83,7 @@ recommonmark
 jinja2
 rdflib==5.0.0
 fastapi
-uvicorn[standard]
+uvicorn[standard]==0.13.4
 a2wsgi==1.4.0
 python-multipart
 
