@@ -27,7 +27,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 
 from nomad import utils, config, files, datamodel
-from nomad.files import StagingUploadFiles, UploadFiles, is_safe_relative_path
+from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
 from nomad.utils import strip
 
@@ -287,6 +287,10 @@ _raw_path_response = 200, {
         If `path` denotes a directory, and `compress = false`, a list of the directory
         content, either encoded as json or html, depending on the request headers (json if
         `Accept = application/json`, html otherwise).''')}
+
+_upload_bundle_response = 200, {
+    'content': {
+        'application/zip': {'example': '<zipped bundle data>'}}}
 
 
 _no_name = 'NO NAME'
@@ -642,6 +646,14 @@ async def put_upload_raw_path(
     The `path` is interpreted as a directory. The empty string gives the "root" directory.
 
     If the file is a zip or tar archive, it will first be extracted, then merged.
+
+    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. Note, however, that the second method
+    does not transfer a filename. If a transfer is made using method 2, you can specify
+    the query argument `file_name` to name it. This *needs* to be specified when using
+    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
+    matter since they are extracted). See the POST `uploads` endpoint for examples of curl
+    commands for uploading files.
     '''
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
@@ -770,7 +782,9 @@ async def post_upload(
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. Note, however, that the second method
     does not transfer a filename. If a transfer is made using method 2, you can specify
-    the query argument `file_name` to name it, otherwise the name will be defaulted.
+    the query argument `file_name` to name it. This *needs* to be specified when using
+    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
+    matter since they are extracted).
 
     Example curl commands for creating an upload and uploading a file:
 
@@ -782,9 +796,9 @@ async def post_upload(
 
         curl -X 'POST' "url" -T local_file
 
-    Note that authentication is required to create an upload. This can either be done using
-    the regular bearer token, or using the simplified upload token. To use the simplified
-    upload token, just specify it as a query parameter in the url, i.e.
+    Note that authentication is required. This can either be done using the regular bearer
+    token, or using the simplified upload token. To use the simplified upload token, just
+    specify it as a query parameter in the url, i.e.
 
         curl -X 'POST' "baseurl?token=ABC.XYZ" ...
 
@@ -1010,7 +1024,12 @@ async def post_upload_action_publish(
     embargo period (if any) is expired, the generated archive entries will be publicly visible.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=True)
+        upload_id, user, include_published=True, published_requires_admin=False)
+
+    if upload.published and not user.is_admin and not to_central_nomad:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Upload already published.')
 
     _check_upload_not_processing(upload)
 
@@ -1034,7 +1053,7 @@ async def post_upload_action_publish(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload must be published on the OASIS first.')
         # Everything looks ok, try to publish it to the central NOMAD!
-        upload.publish_from_oasis()
+        upload.publish_externally()
     else:
         # Publish to this repository
         if upload.published:
@@ -1085,8 +1104,194 @@ async def post_upload_action_process(
         data=_upload_to_pydantic(upload))
 
 
+@router.get(
+    '/bundle/{upload_id}', tags=[default_tag],
+    summary='Gets an *upload bundle* for the specified upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_bundle_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_bundle(
+        upload_id: str = Path(
+        ...,
+        description='The unique id of the upload.'),
+        include_raw_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If raw files should be included in the bundle (true by default).''')),
+        include_protected_raw_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If protected raw files (like POTCAR files) should be included in the bundle
+                (true by default).''')),
+        include_archive_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If archive files (i.e. parsed entries data) should be included in the bundle
+                (true by default).''')),
+        include_datasets: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If datasets references to this upload should be included in the bundle
+                (true by default).''')),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    Get an *upload bundle* for the specified upload. An upload bundle is a file bundle which
+    can be used to export and import uploads between different NOMAD deployments.
+    '''
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    full_access = user and (user.is_admin or upload.user_id == str(user.user_id))
+    _check_upload_not_processing(upload)
+    if include_protected_raw_files and not full_access:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            You do not have access to protected raw files for this upload - cannot have
+            `include_protected_raw_files` set to true.'''))
+
+    try:
+        stream = upload.export_bundle(
+            export_as_stream=True, export_path=None, zipped=True, move_files=False, overwrite=False,
+            include_raw_files=include_raw_files, include_protected_raw_files=include_protected_raw_files,
+            include_archive_files=include_archive_files, include_datasets=include_datasets)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Could not export due to error: ''' + str(e)))
+
+    return StreamingResponse(stream, media_type='application/zip')
+
+
+@router.post(
+    '/bundle', tags=[default_tag],
+    summary='Posts an *upload bundle* to this NOMAD deployment.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_not_authorized, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_bundle(
+        request: Request,
+        file: UploadFile = File(None),
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        with_embargo: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                Specifies the embargo flag to set on the upload. If omitted, the value
+                specified in the bundle will be used.''')),
+        embargo_length: Optional[int] = FastApiQuery(
+            None,
+            description=strip('''
+                Specifies the embargo length in months to set on the upload. If omitted,
+                the value specified in the bundle will be used.''')),
+        include_raw_files: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If raw files should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        include_archive_files: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If archive files (i.e. parsed entries data) should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        include_datasets: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If dataset references to this upload should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        keep_original_timestamps: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If all original timestamps, including `upload_time` and `publish_time`, should be kept
+                *(only admins can change this setting)*.''')),
+        set_from_oasis: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If the `from_oasis` flag and `oasis_deployment_id` should be set
+                *(only admins can change this setting)*.''')),
+        trigger_processing: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If processing should be triggered after the bundle has been imported
+                *(only admins can change this setting)*.''')),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Posts an *upload bundle* to this NOMAD deployment. An upload bundle is a file bundle which
+    can be used to export and import uploads between different NOMAD installations. The
+    endpoint expects an upload bundle attached as a zipfile.
+
+    **NOTE:** This endpoint is restricted to admin users and oasis admins. Further, all
+    settings except `with_embargo` and `embargo_length` requires an admin user to change
+    (these settings have default values specified by the system configuration).
+
+    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. See the POST `uploads` endpoint for
+    examples of curl commands for uploading files.
+    '''
+    is_admin = user.is_admin
+    is_oasis = not is_admin and user.is_oasis_admin and config.bundle_import.allow_bundles_from_oasis
+
+    if not is_admin and not is_oasis:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='User not authorized to upload bundles')
+
+    bundle_path, method = await _get_file_if_provided(
+        tmp_dir_prefix='bundle', request=request, file=file, local_path=local_path, file_name=None, user=user)
+
+    if not bundle_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail='No bundle file provided')
+
+    try:
+        bundle: UploadBundle = None
+        bundle = UploadBundle(bundle_path)
+
+        if is_oasis and not config.bundle_import.allow_unpublished_bundles_from_oasis:
+            bundle_info = bundle.bundle_info
+            if not bundle_info.get('upload', {}).get('published'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
+
+        settings_dict: Dict[str, Any] = dict(
+            include_raw_files=include_raw_files,
+            include_archive_files=include_archive_files,
+            include_datasets=include_datasets,
+            keep_original_timestamps=keep_original_timestamps,
+            set_from_oasis=set_from_oasis,
+            trigger_processing=trigger_processing)
+
+        for k, v in settings_dict.copy().items():
+            if v is None:
+                del settings_dict[k]
+            elif v is not None and not is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Specifying setting {k} requires an admin user')
+
+        upload = Upload.create_skeleton_from_bundle(bundle)
+        bundle.close()
+        upload.import_bundle(
+            bundle_path, move_files=False, with_embargo=with_embargo, embargo_length=embargo_length,
+            settings=settings_dict)
+
+        return UploadProcDataResponse(
+            upload_id=upload.upload_id,
+            data=_upload_to_pydantic(upload))
+
+    except Exception as e:
+        if bundle:
+            bundle.close()
+        if method != 0:
+            bundle.delete(include_parent_folder=True)
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail='Failed to import bundle: ' + str(e))
+
+
 async def _get_file_if_provided(
-        upload_id: str, request: Request, file: UploadFile, local_path: str, file_name: str,
+        tmp_dir_prefix: str, request: Request, file: UploadFile, local_path: str, file_name: str,
         user: User) -> Tuple[str, int]:
     '''
     If the user provides a file with the api call, load it and save it to a temporary
@@ -1109,7 +1314,6 @@ async def _get_file_if_provided(
                 The specified local_path cannot be found or is not a file.'''))
         method = 0
         file_name = os.path.basename(local_path)
-        src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
     elif file:
         # Method 1: Data provided as formdata
         method = 1
@@ -1130,7 +1334,7 @@ async def _get_file_if_provided(
         upload_path = local_path  # Use the provided path
         uploaded_bytes = os.path.getsize(local_path)
     else:
-        tmp_dir = files.create_tmp_dir(upload_id)
+        tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
         upload_path = os.path.join(tmp_dir, file_name)
         try:
             with open(upload_path, 'wb') as f:
@@ -1187,22 +1391,37 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def _get_upload_with_read_access(upload_id: str, user: User) -> Upload:
+def _get_upload_with_read_access(upload_id: str, user: User, include_others: bool = False) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
     no read access to it, a HTTPException is raised.
+
+    Arguments:
+        upload_id: The id of the requested upload.
+        user: The authenticated user, if any.
+        include_others: If uploads owned by others should be included. Access to the uploads
+            of other users is only granted if the upload is published and not under embargo.
     '''
-    if not user:
+    if not include_others and not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            User authentication required to access uploads.'''))
+            User authentication required to access upload.'''))
     mongodb_query = _query_mongodb(upload_id=upload_id)
     if not mongodb_query.count():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if user.is_admin or upload.user_id == str(user.user_id):
-        # Ok, it exists and belongs to user
+    if user and (user.is_admin or upload.user_id == str(user.user_id)):
+        # Ok, it exists and belongs to user, or we have an admin user
+        return upload
+    elif include_others:
+        if not upload.published:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - not published yet.'''))
+        for entry in Calc.objects(upload_id=upload_id):
+            if entry.metadata.get('with_embargo'):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                    You do not have access to the specified upload - published with embargo.'''))
         return upload
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''

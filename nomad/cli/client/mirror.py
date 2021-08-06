@@ -329,7 +329,7 @@ def mirror(
                 # rollback
                 try:
                     if upload:
-                        upload.delete
+                        upload.delete()
                         proc.Calc.objects(upload_id=upload.upload_id).delete()
                 except Exception:
                     pass

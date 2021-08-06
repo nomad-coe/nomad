@@ -17,8 +17,8 @@
 #
 
 '''
-Uploads contains classes and functions to create and maintain file structures
-for uploads.
+Contains classes and functions to create and maintain file structures
+for uploads, and some generic file utilities.
 
 There are two different structures for uploads in two different states: *staging* and *public*.
 Possible operations on uploads differ based on this state. Staging is used for
@@ -54,11 +54,14 @@ being other mainfiles. Therefore, the aux files of a restricted calc might becom
 
 from abc import ABCMeta
 import sys
-from typing import IO, Dict, Iterable, Callable, List, Tuple, Any, NamedTuple
+from typing import IO, Dict, Iterable, Iterator, Callable, List, Tuple, Any, NamedTuple
+from pydantic import BaseModel
+from datetime import datetime
 import os.path
 import os
 import shutil
 import tarfile
+import zipstream
 import hashlib
 import io
 import json
@@ -223,6 +226,304 @@ class RawPathInfo(NamedTuple):
     access: str
 
 
+class StreamedFile(BaseModel):
+    '''
+    Convenience class for representing a streamed file, together with information about
+    file size and an associated path.
+    '''
+    f: Any
+    path: str
+    size: int
+
+
+class FileSource(metaclass=ABCMeta):
+    '''
+    An abstract class which represents a generic "file source", from which some number of files
+    can be retrieved. There are several different ways to create a file source, see subclasses.
+    The files in the source are associated with paths and have known sizes.
+    '''
+    def to_streamed_files(self) -> Iterable[StreamedFile]:
+        ''' Retrieves the files in the source as :class:`StreamedFile` objects. '''
+        raise NotImplementedError()
+
+    def to_zipstream(self) -> Iterator[bytes]:
+        ''' Returns a zip stream with the files from this FileSource. '''
+        return create_zipstream(self.to_streamed_files())
+
+    def to_zipfile(self, path, overwrite: bool = False):
+        '''
+        Generates a zip file from the files in this FileSource and stores it to disk. The
+        zipfile content is created by calling :func:`to_zipstream`.
+        '''
+        assert not os.path.isdir(path), 'Exporting to zip file requires a file path, not directory.'
+        assert overwrite or not os.path.exists(path), '`path` already exists. Use `overwrite` to overwrite.'
+        with open(path, 'wb') as f:
+            for chunk in self.to_zipstream():
+                f.write(chunk)
+
+    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
+        '''
+        Writes the files from this FileSource to disk, uncompressed. The default implementation
+        makes use of :func:`to_streamed_files`. The `destination_dir` should be a directory
+        (it will be created if it does not exist). The `move_files` argument instructs
+        the method to move the source files if possible.
+        '''
+        if not os.path.exists(destination_dir):
+            os.makedirs(destination_dir)
+        assert os.path.isdir(destination_dir), '`destination_dir` is not a directory'
+        for streamed_file in self.to_streamed_files():
+            assert is_safe_relative_path(streamed_file.path), 'Unsafe relative path encountered'
+            os_path = os.path.join(destination_dir, streamed_file.path)
+            dir_path = os.path.dirname(os_path)
+            if os.path.exists(os_path):
+                assert overwrite, 'Target already exists and `overwrite` is False'
+                PathObject(os_path).delete()
+            os.makedirs(dir_path, exist_ok=True)
+            with open(os_path, 'wb') as output_file:
+                for chunk in streamed_file.f:
+                    output_file.write(chunk)
+
+    def close(self):
+        ''' Perform "closing" of the source, if applicable. '''
+        pass
+
+
+class BrowsableFileSource(FileSource, metaclass=ABCMeta):
+    '''
+    A :class:`FileSource` which can be "browsed", like a folder on disk or a zip archive.
+    '''
+    def open(self, path, mode='rb') -> IO:
+        ''' Opens a file by the specified path. '''
+        raise NotImplementedError()
+
+    def directory_list(self, path: str) -> List[str]:
+        '''
+        Returns a list of directory contents, located in the directory denoted by `path`
+        in this file source.
+        '''
+        raise NotImplementedError()
+
+    def sub_source(self, path: str) -> 'BrowsableFileSource':
+        '''
+        Creates a new instance of :class:`BrowsableFileSource` which just contains the
+        files located under the specified path.
+        '''
+        raise NotImplementedError()
+
+
+class StreamedFileSource(FileSource):
+    '''
+    A :class:`FileSource` created from a single :class:`StreamedFile`.
+    '''
+    def __init__(self, streamed_file: StreamedFile):
+        self.streamed_file = streamed_file
+
+    def to_streamed_files(self) -> Iterable[StreamedFile]:
+        yield self.streamed_file
+
+
+class DiskFileSource(BrowsableFileSource):
+    '''
+    A :class:`FileSource` corresponding to a single file or a folder on disk. The object
+    is identified by a `base_path` and a `relative path`. The `base_path` should be a folder,
+    the `relative_path` is optional, and used for selecting only a specific file or folder
+    located under `base_folder`. The paths of the files retrieved from this source are given
+    relative to the `base_path`.
+    '''
+    def __init__(self, base_path: str, relative_path: str = None):
+        assert os.path.isdir(base_path)
+        if relative_path:
+            assert is_safe_relative_path(relative_path), 'Unsafe relative_path received'
+            self.full_path = os.path.join(base_path, relative_path)
+            assert os.path.exists(self.full_path)
+        else:
+            self.full_path = base_path
+        self.base_path = base_path
+        self.relative_path = relative_path
+
+    def to_streamed_files(self) -> Iterable[StreamedFile]:
+        if os.path.isfile(self.full_path):
+            # Single file
+            yield StreamedFile(
+                path=self.relative_path,
+                f=open(self.full_path, 'rb'),
+                size=os.stat(self.full_path).st_size)
+        else:
+            # Directory - crawl it and its subfolders for files
+            for dirpath, __, filenames in os.walk(self.full_path):
+                for filename in filenames:
+                    sub_full_path = os.path.join(dirpath, filename)
+                    sub_relative_path = os.path.relpath(sub_full_path, self.base_path)
+                    yield StreamedFile(
+                        path=sub_relative_path,
+                        f=open(sub_full_path, 'rb'),
+                        size=os.stat(sub_full_path).st_size)
+
+    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
+        if self.relative_path:
+            destination_path = os.path.join(destination_dir, self.relative_path)
+        else:
+            destination_path = destination_dir
+        destination_parent = os.path.dirname(destination_path)
+        os.makedirs(destination_parent, exist_ok=True)
+        if os.path.exists(destination_path):
+            assert overwrite, f'Target {destination_path} already exists and `overwrite` is False'
+            PathObject(destination_path).delete()
+        # All looks good. Copy or move the source to the destination
+        if move_files:
+            shutil.move(self.full_path, destination_path)
+        else:
+            if os.path.isfile(self.full_path):
+                shutil.copyfile(self.full_path, destination_path)
+            else:
+                copytree(self.full_path, destination_path)
+
+    def open(self, path, mode='rb') -> IO:
+        assert is_safe_relative_path(path)
+        return open(os.path.join(self.base_path, path), mode)
+
+    def directory_list(self, path: str) -> List[str]:
+        assert is_safe_relative_path(path)
+        sub_path = os.path.join(self.base_path, path)
+        return os.listdir(sub_path)
+
+    def sub_source(self, path: str) -> 'DiskFileSource':
+        assert is_safe_relative_path(path)
+        return DiskFileSource(self.base_path, path)
+
+
+class ZipFileSource(BrowsableFileSource):
+    '''
+    Allows us to "wrap" a :class:`zipfile.ZipFile` object and use it as a :class:`BrowsableFileSource`,
+    i.e. it denotes a resource (single file or folder) stored in a ZipFile.
+    '''
+    def __init__(self, zip_file: zipfile.ZipFile, sub_path: str = ''):
+        assert is_safe_relative_path(sub_path)
+        self.zip_file = zip_file
+        self.sub_path = sub_path
+        self._namelist: List[str] = zip_file.namelist()
+
+    def to_streamed_files(self) -> Iterable[StreamedFile]:
+        path_prefix = '' if not self.sub_path else self.sub_path + os.path.sep
+        for path in self._namelist:
+            if path == self.sub_path or (path.startswith(path_prefix) and not path.endswith(os.path.sep)):
+                yield StreamedFile(
+                    path=path,
+                    f=self.zip_file.open(path, 'r'),
+                    size=self.zip_file.getinfo(path).file_size)
+
+    def open(self, path, mode='rb') -> IO:
+        assert 'r' in mode, 'Mode must be a read mode'
+        for c in mode:
+            assert c in ('r', 'b', 't'), f'Invalid mode for open command: {mode}'
+        f = self.zip_file.open(path, 'r')
+        if 't' in mode:
+            return io.TextIOWrapper(f)
+        return f
+
+    def directory_list(self, path: str) -> List[str]:
+        path_prefix = '' if not path else path + os.path.sep
+        found = set()
+        for path2 in self._namelist:
+            if path2.startswith(path_prefix):
+                found.add(path2.split(os.path.sep)[0])
+        return sorted(found)
+
+    def sub_source(self, path: str) -> 'ZipFileSource':
+        assert is_safe_relative_path(path), 'Unsafe path provided'
+        if self.sub_path:
+            assert path.startswith(self.sub_path + os.path.sep), 'Provided `path` is not a sub path.'
+        return ZipFileSource(self.zip_file, path)
+
+    def close(self):
+        self.zip_file.close()
+
+
+class CombinedFileSource(FileSource):
+    '''
+    Class for defining a :class:`FileSource` by combining multiple "subsources" into one.
+    New sources are added using :func:`add_file_source`.
+    '''
+    def __init__(self):
+        self.sources = []
+
+    def add_file_source(self, file_source: FileSource):
+        assert isinstance(file_source, FileSource)
+        self.sources.append(file_source)
+
+    def to_streamed_files(self) -> Iterable[StreamedFile]:
+        for file_source in self.sources:
+            for streamed_file in file_source.to_streamed_files():
+                yield streamed_file
+
+    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
+        for file_source in self.sources:
+            file_source.to_disk(destination_dir, move_files, overwrite)
+
+
+class StandardJSONEncoder(json.JSONEncoder):
+    """ Our standard JSONEncoder with support for marshalling of datetime objects """
+    def default(self, obj):  # pylint: disable=E0202
+        if isinstance(obj, datetime):
+            return {'$datetime': obj.timestamp()}
+        return json.JSONEncoder.default(self, obj)
+
+
+class StandardJSONDecoder(json.JSONDecoder):
+    """ Our standard JSONDecoder, with support for marshalling of datetime objects """
+    def __init__(self, *args, **kargs):
+        json.JSONDecoder.__init__(self, object_hook=self.dict_to_object, *args, **kargs)
+
+    def dict_to_object(self, d):
+        v = d.get('$datetime')
+        if v is not None:
+            return datetime.fromtimestamp(v)
+        return d
+
+
+def json_to_streamed_file(json_dict: Dict[str, Any], path: str) -> StreamedFile:
+    ''' Converts a json dictionary structure to a :class:`StreamedFile`. '''
+    json_bytes = json.dumps(json_dict, indent=2, cls=StandardJSONEncoder).encode()
+    return StreamedFile(
+        path=path,
+        f=io.BytesIO(json_bytes),
+        size=len(json_bytes))
+
+
+def create_zipstream_content(streamed_files: Iterable[StreamedFile]) -> Iterable[Dict]:
+    '''
+    Generator which "casts" a sequence of StreamedFiles to a sequence of dictionaries, of
+    the form which is required by the `zipstream` library, i.e. dictionaries with keys
+    `arcname`, `iterable` and `buffer_size`. Useful for generating zipstreams.
+    '''
+    for streamed_file in streamed_files:
+
+        def content_generator():
+            while True:
+                data = streamed_file.f.read(1024 * 64)
+                if not data:
+                    break
+                yield data
+
+        yield dict(
+            arcname=streamed_file.path,
+            iterable=content_generator(),
+            buffer_size=streamed_file.size)
+
+
+def create_zipstream(
+        streamed_files: Iterable[StreamedFile],
+        compress: bool = False) -> Iterator[bytes]:
+    '''
+    Creates a zip stream, i.e. a streamed zip file.
+    '''
+    compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+    zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
+    zip_stream.paths_to_write = create_zipstream_content(streamed_files)
+
+    return iter(zip_stream)
+
+
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
     ''' Abstract base class for upload files. '''
     def __init__(
@@ -359,6 +660,30 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
                 except Exception as e:
                     utils.get_logger(__name__).error(
                         'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
+
+    def files_to_bundle(
+            self, bundle_info: Dict[str, Any],
+            include_raw_files: bool, include_protected_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        '''
+        Returns a :class:`FileSource`, defining the files/folders to be included in an
+        upload bundle when *exporting*. Note, the bundle_info.json file is not included,
+        only the "regular" files, and only those specified by the arguments to the method.
+        '''
+        raise NotImplementedError()
+
+    @classmethod
+    def files_from_bundle(
+            cls, budle_file_source: BrowsableFileSource,
+            include_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        '''
+        Returns a :class:`FileSource`, defining the files/folders to be included in an
+        upload bundle when *importing*. Note, the bundle_info.json file is not included in
+        the source, only the "regular" files, and only those specified by the arguments
+        to the method.
+        '''
+        raise NotImplementedError()
 
 
 class StagingUploadFiles(UploadFiles):
@@ -789,6 +1114,34 @@ class StagingUploadFiles(UploadFiles):
 
         return utils.make_websave(hash)
 
+    def files_to_bundle(
+            self, bundle_info: Dict[str, Any],
+            include_raw_files: bool, include_protected_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        # Files to export for staging uploads.
+        if include_raw_files and not include_protected_raw_files:
+            assert False, 'Excluding protected files not supported for uploads in staging.'
+        rv = CombinedFileSource()
+        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, 'bundle_info.json')))
+        if include_raw_files and include_protected_raw_files:
+            rv.add_file_source(DiskFileSource(self.os_path, 'raw'))
+        if include_archive_files:
+            rv.add_file_source(DiskFileSource(self.os_path, 'archive'))
+        return rv
+
+    @classmethod
+    def files_from_bundle(
+            cls, budle_file_source: BrowsableFileSource,
+            include_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        # Files to import for a staging upload
+        rv = CombinedFileSource()
+        if include_raw_files:
+            rv.add_file_source(budle_file_source.sub_source('raw'))
+        if include_archive_files:
+            rv.add_file_source(budle_file_source.sub_source('archive'))
+        return rv
+
 
 class PublicUploadFiles(UploadFiles):
 
@@ -1109,3 +1462,98 @@ class PublicUploadFiles(UploadFiles):
             shutil.move(
                 repacked_file.os_path,
                 public_file.os_path)
+
+    def files_to_bundle(
+            self, bundle_info: Dict[str, Any],
+            include_raw_files: bool, include_protected_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        # Defines files for upload bundles of published uploads.
+        if include_raw_files and not include_protected_raw_files:
+            # TODO: Probably need to support this in the future
+            raise NotImplementedError('Excluding protected files not yet supported')
+        rv = CombinedFileSource()
+        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, 'bundle_info.json')))
+        for filename in os.listdir(self.os_path):
+            if filename.startswith('raw-') and include_raw_files:
+                rv.add_file_source(DiskFileSource(self.os_path, filename))
+            if filename.startswith('archive-') and include_archive_files:
+                rv.add_file_source(DiskFileSource(self.os_path, filename))
+        return rv
+
+    @classmethod
+    def files_from_bundle(
+            cls, budle_file_source: BrowsableFileSource,
+            include_raw_files: bool,
+            include_archive_files: bool) -> FileSource:
+        rv = CombinedFileSource()
+        for filename in budle_file_source.directory_list(''):
+            if filename.startswith('raw-') and include_raw_files:
+                rv.add_file_source(budle_file_source.sub_source(filename))
+            if filename.startswith('archive-') and include_archive_files:
+                rv.add_file_source(budle_file_source.sub_source(filename))
+        return rv
+
+
+class UploadBundle:
+    '''
+    Class for handling file-related logic for an *upload bundle*. Upload bundles are used
+    to import and export uploads between different NOMAD installations.
+    '''
+    def __init__(self, path: str):
+        ''' Creates an UploadBundle instance. The `path` should denote a zipfile or a folder. '''
+        self.path = path
+        self.file_source: BrowsableFileSource = None
+        self._bundle_info: Dict[str, Any] = None
+        if os.path.isdir(path):
+            self.file_source = DiskFileSource(path)
+        else:
+            assert zipfile.is_zipfile(path), '`path` must define a folder or a zipfile.'
+            zip_file = zipfile.ZipFile(path, 'r')
+            self.file_source = ZipFileSource(zip_file)
+
+    @property
+    def bundle_info(self) -> Dict[str, Any]:
+        if self._bundle_info is None:
+            with self.file_source.open('bundle_info.json', 'rt') as f:
+                self._bundle_info = json.load(f, cls=StandardJSONDecoder)
+        return self._bundle_info
+
+    def import_upload_files(
+            self, include_raw_files: bool, include_archive_files: bool,
+            move_files: bool) -> UploadFiles:
+        '''
+        Creates an :class:`UploadFiles` object of the right type and imports the selected
+        files to it. The target folder must not already exist.
+        '''
+        try:
+            upload_files: UploadFiles = None
+            upload_id: str = self.bundle_info['upload_id']
+            published: bool = self.bundle_info['upload']['published']
+            cls = PublicUploadFiles if published else StagingUploadFiles
+            assert not os.path.exists(cls.base_folder_for(upload_id)), 'Upload folder already exists'
+            upload_files = cls(upload_id, is_authorized=lambda: True, create=True)
+            import_file_source = upload_files.files_from_bundle(
+                self.file_source, include_raw_files, include_archive_files)
+            import_file_source.to_disk(upload_files.os_path, move_files=move_files, overwrite=True)
+            return upload_files
+        except Exception:
+            # Some thing went wrong. Delete the files and re-raise the original exception
+            if upload_files:
+                upload_files.delete()
+            raise
+
+    def close(self):
+        self.file_source.close()
+
+    def delete(self, include_parent_folder: bool = False):
+        '''
+        Deletes the bundle files. If `include_parent_folder` is set, and the parent folder
+        is empty, it is also deleted.
+        '''
+        self.close()
+        if os.path.exists(self.path):
+            PathObject(self.path).delete()
+        if include_parent_folder:
+            parent_folder = os.path.dirname(self.path)
+            if not os.listdir(parent_folder):
+                PathObject(parent_folder).delete()

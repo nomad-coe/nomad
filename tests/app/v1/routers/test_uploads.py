@@ -32,8 +32,9 @@ from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
-from nomad.files import StagingUploadFiles, UploadFiles, PublicUploadFiles
+from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
+from nomad.archive import write_archive, read_archive
 
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -301,9 +302,14 @@ def block_until_completed(client, upload_id: str, user_auth):
 
 
 def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[EntryMetadata]:
-    ''' Create a iterable of :class:`EntryMetadata` from a API upload json record. '''
+    '''
+    Create a iterable of :class:`EntryMetadata` from a API upload json record, plus a
+    with_embargo flag fetched from mongodb.
+    '''
     return [
-        EntryMetadata(domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'])
+        EntryMetadata(
+            domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
+            with_embargo=Calc.get(entry['entry_id']).metadata.get('with_embargo'))
         for entry in entries]
 
 
@@ -1141,7 +1147,7 @@ def test_post_upload_oasis(
     pytest.param(
         dict(
             upload_id='id_published_w',
-            expected_status_code=401),
+            expected_status_code=400),
         id='already-published'),
     pytest.param(
         dict(
@@ -1177,6 +1183,92 @@ def test_post_upload_action_publish(
         assert upload['process_running']
 
         assert_gets_published(client, upload_id, user_auth, **query_args)
+
+
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            upload_id='id_published_w',
+            import_settings=dict(include_archive_files=False, trigger_processing=True)),
+        id='trigger-processing'),
+    pytest.param(
+        dict(
+            upload_id='id_published_w',
+            import_settings=dict(include_archive_files=True, trigger_processing=False)),
+        id='no-processing')])
+def test_post_upload_action_publish_to_central_nomad(
+        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client, example_data_writeable,
+        test_auth_dict, kwargs):
+    ''' Tests the publish action with to_central_nomad=True. '''
+    suffix = '_2'  # Will be added to all IDs in the mirrored upload
+    upload_id = kwargs.get('upload_id')
+    query_args = kwargs.get('query_args', {})
+    query_args['to_central_nomad'] = True
+    import_settings = kwargs.get('import_settings', {})
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    user = kwargs.get('user', 'test_user')
+    user_auth, __token = test_auth_dict[user]
+    original_upload = Upload.get(upload_id)
+
+    # Do some tricks to add suffix to the ID fields
+    old_bundle_init = files.UploadBundle.__init__
+
+    def new_bundle_init(self, *args, **kwargs):
+        old_bundle_init(self, *args, **kwargs)
+        # Change the id's in the bundle_info dict behind the scenes when loading the bundle
+        bundle_info = self.bundle_info
+        bundle_info['upload_id'] += suffix
+        bundle_info['upload']['_id'] += suffix
+        for entry_dict in bundle_info['entries']:
+            entry_dict['_id'] += suffix
+            entry_dict['upload_id'] += suffix
+
+    old_bundle_import_files = files.UploadBundle.import_upload_files
+
+    def new_bundle_import_files(self, *args, **kwargs):
+        upload_files = old_bundle_import_files(self, *args, **kwargs)
+        # Overwrite the archive files with files containing the updated IDs
+        if original_upload.published:
+            archive_path = upload_files.os_path
+        else:
+            archive_path = os.path.join(upload_files.os_path, 'archive')
+        for file_name in os.listdir(archive_path):
+            if file_name.endswith('.msg'):
+                full_path = os.path.join(archive_path, file_name)
+                data = read_archive(full_path)
+                new_data = []
+                for entry_id in data.keys():
+                    new_entry_id = (entry_id + suffix)[len(suffix):]  # fixed length required
+                    archive_dict = data[entry_id].to_dict()
+                    archive_dict['section_metadata']['upload_id'] += suffix
+                    archive_dict['section_metadata']['calc_id'] += suffix
+                    new_data.append((new_entry_id, archive_dict))
+                write_archive(full_path, len(new_data), new_data)
+        return upload_files
+
+    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
+    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
+
+    # Further monkey patching
+    def new_post(url, headers, data):
+        return client.post(url.lstrip('/api/'), headers=headers, data=data.read())
+
+    monkeypatch.setattr('requests.post', new_post)
+    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
+    import_settings = config.bundle_import.default_settings.customize(import_settings)
+    monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
+
+    # Finally, invoke the method to publish to central nomad
+    response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = assert_upload(response.json())
+        assert upload['current_process'] == 'publish_externally'
+        assert upload['process_running']
+        assert_processing(client, upload_id, user_auth, published=original_upload.published)
+        assert_processing(client, upload_id + suffix, user_auth, published=original_upload.published)
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
@@ -1230,6 +1322,97 @@ def test_delete_upload(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_upload_does_not_exist(client, upload_id, test_auth_dict['test_user'][0])
+
+
+@pytest.mark.parametrize('upload_id, user, query_args, expected_status_code', [
+    pytest.param(
+        'id_published_w', 'test_user', dict(),
+        200, id='published-owner'),
+    pytest.param(
+        'id_published_w', 'admin_user', dict(),
+        200, id='published-admin'),
+    pytest.param(
+        'id_published_w', 'other_test_user', dict(),
+        401, id='published-not-owner'),
+    pytest.param(
+        'id_published_w', 'other_test_user', dict(include_protected_raw_files=False),
+        401, id='published-not-owner-exclude-protected'),
+    pytest.param(
+        'id_published_w', 'test_user', dict(include_raw_files=False),
+        200, id='published-owner-exclude-raw'),
+    pytest.param(
+        'id_published_w', 'test_user', dict(include_archive_files=False),
+        200, id='published-owner-exclude-archive'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', dict(),
+        200, id='unpublished-owner'),
+    pytest.param(
+        'id_unpublished_w', 'admin_user', dict(),
+        200, id='unpublished-admin'),
+    pytest.param(
+        'id_unpublished_w', 'other_test_user', dict(),
+        401, id='unpublished-not-owner'),
+    pytest.param(
+        'id_unpublished_w', 'test_user', dict(include_protected_raw_files=False),
+        400, id='unpublished-owner-exclude-protected')])
+def test_get_upload_bundle(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        upload_id, user, query_args, expected_status_code):
+
+    include_raw_files = query_args.get('include_raw_files', True)
+    include_archive_files = query_args.get('include_archive_files', True)
+
+    url = build_url(f'uploads/bundle/{upload_id}', query_args)
+    response = perform_get(client, url, user_auth=test_auth_dict[user][0])
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+            upload = Upload.get(upload_id)
+            upload_files = upload.upload_files
+            expected_files = set(['bundle_info.json'])
+            for dirpath, __, filenames in os.walk(upload_files.os_path):
+                for filename in filenames:
+                    os_path = os.path.join(dirpath, filename)
+                    rel_path = os.path.relpath(os_path, upload_files.os_path)
+                    include = False
+                    include |= rel_path.startswith('raw') and include_raw_files
+                    include |= rel_path.startswith('archive') and include_archive_files
+                    if include:
+                        expected_files.add(rel_path)
+            assert expected_files == set(zip_file.namelist())
+    return
+
+
+@pytest.mark.parametrize('upload_id, user, export_args, query_args, expected_status_code', [
+    pytest.param(
+        'id_published_w', 'admin_user', dict(), dict(),
+        200, id='published-admin'),
+    pytest.param(
+        'id_unpublished_w', 'admin_user', dict(), dict(),
+        200, id='unpublished-admin'),
+])
+def test_post_upload_bundle(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        upload_id, user, export_args, query_args, expected_status_code):
+    upload = Upload.get(upload_id)
+    published = upload.published
+    export_path = os.path.join(config.fs.tmp, 'bundle_' + upload_id)
+    export_args_with_defaults = dict(
+        export_as_stream=False, export_path=export_path,
+        zipped=True, move_files=False, overwrite=True,
+        include_raw_files=True, include_protected_raw_files=True,
+        include_archive_files=True, include_datasets=True)
+    export_args_with_defaults.update(export_args)
+    upload.export_bundle(**export_args_with_defaults)
+    upload.delete_upload_local()  # Delete so we can import it again
+
+    user_auth, __token = test_auth_dict[user]
+    response = perform_post_put_file(
+        client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_processing(client, upload_id, user_auth, published=published)
+    return
 
 
 @pytest.mark.parametrize('authorized, expected_status_code', [

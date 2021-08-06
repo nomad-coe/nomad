@@ -22,19 +22,12 @@ import urllib
 import io
 import json
 import os
-import sys
 import inspect
 from fastapi import Request, Query, HTTPException, status  # pylint: disable=unused-import
 from pydantic import ValidationError, BaseModel  # pylint: disable=unused-import
-import zipstream
 import gzip
 import lzma
-from nomad.files import UploadFiles
-
-if sys.version_info >= (3, 7):
-    import zipfile
-else:
-    import zipfile37 as zipfile  # pragma: no cover
+from nomad.files import UploadFiles, StreamedFile, create_zipstream
 
 
 def parameter_dependency_from_model(name: str, model_cls):
@@ -84,42 +77,6 @@ def parameter_dependency_from_model(name: str, model_cls):
     return func
 
 
-class File(BaseModel):
-    path: str
-    f: Any
-    size: int
-
-
-def create_streamed_zipfile(
-        files: Iterator[File],
-        compress: bool = False) -> Iterator[bytes]:
-
-    '''
-    Creates a streaming zipfile object that can be used in fastapi's ``StreamingResponse``.
-    '''
-
-    def path_to_write_generator():
-        for file_obj in files:
-            def content_generator():
-                while True:
-                    data = file_obj.f.read(1024 * 64)
-                    if not data:
-                        break
-                    yield data
-
-            yield dict(
-                arcname=file_obj.path,
-                iterable=content_generator(),
-                buffer_size=file_obj.size)
-
-    compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
-    zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
-    zip_stream.paths_to_write = path_to_write_generator()
-
-    for chunk in zip_stream:
-        yield chunk
-
-
 class DownloadItem(BaseModel):
     ''' Defines an object (file or folder) for download. '''
     upload_id: str
@@ -147,7 +104,7 @@ def create_download_stream_zipped(
         create_manifest_file: if set, a manifest file is created in the root folder.
         compress: if the zip file should be compressed or not
     '''
-    def file_generator(upload_files) -> Iterator[File]:
+    def streamed_files(upload_files) -> Iterator[StreamedFile]:
         manifest = []
         try:
             items: Iterator[DownloadItem] = (
@@ -174,7 +131,7 @@ def create_download_stream_zipped(
                     # File
                     if download_item.zip_path not in streamed_paths:
                         streamed_paths.add(download_item.zip_path)
-                        yield File(
+                        yield StreamedFile(
                             path=download_item.zip_path,
                             f=upload_files.raw_file(download_item.raw_path, 'rb'),
                             size=upload_files.raw_file_size(download_item.raw_path))
@@ -189,7 +146,7 @@ def create_download_stream_zipped(
                             zip_path = os.path.join(download_item.zip_path, relative_path)
                             if zip_path not in streamed_paths:
                                 streamed_paths.add(zip_path)
-                                yield File(
+                                yield StreamedFile(
                                     path=zip_path,
                                     f=upload_files.raw_file(path_info.path, 'rb'),
                                     size=path_info.size)
@@ -200,13 +157,13 @@ def create_download_stream_zipped(
 
             if create_manifest_file:
                 manifest_content = json.dumps(manifest).encode()
-                yield File(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
+                yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
 
         finally:
             if upload_files:
                 upload_files.close()
 
-    return create_streamed_zipfile(file_generator(upload_files), compress=compress)
+    return create_zipstream(streamed_files(upload_files), compress=compress)
 
 
 def create_download_stream_raw_file(
@@ -258,9 +215,9 @@ def create_download_stream_raw_file(
     upload_files.close()
 
 
-def create_stream_from_string(content: str) -> Iterator[bytes]:
+def create_stream_from_string(content: str) -> io.BytesIO:
     ''' For returning strings as content using '''
-    yield content.encode()
+    return io.BytesIO(content.encode())
 
 
 def create_responses(*args):

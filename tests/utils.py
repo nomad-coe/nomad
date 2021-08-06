@@ -138,7 +138,7 @@ class ExampleData:
         self._entry_id_counter = 1
         self._upload_id_counter = 1
 
-        self._time_stamp = datetime.now()
+        self._time_stamp = datetime.utcnow()
 
     def save(self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True):
         from tests.test_files import create_test_upload_files
@@ -151,12 +151,17 @@ class ExampleData:
 
             for entry_metadata in self.entries.values():
                 mongo_entry = proc.Calc(
-                    create_time=datetime.now(),
+                    create_time=self._next_time_stamp(),
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser='parsers/vasp',
                     process_status=proc.ProcessStatus.SUCCESS)
+                upload_dict = self.uploads.get(entry_metadata.upload_id)
+                if upload_dict:
+                    # Mirror fields from upload
+                    entry_metadata.uploader = upload_dict['user_id']
+                    entry_metadata.upload_time = upload_dict['upload_time']
                 mongo_entry.apply_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
@@ -204,9 +209,12 @@ class ExampleData:
             'create_time': self._next_time_stamp(),
             'upload_time': self._next_time_stamp(),
             'complete_time': self._next_time_stamp(),
+            'last_update': self._next_time_stamp(),
             'published': False,
             'published_to': []}
         upload_dict.update(kwargs)
+        if upload_dict['published'] and 'publish_time' not in upload_dict:
+            upload_dict['publish_time'] = self._next_time_stamp()
         if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
             upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
         self.uploads[upload_id] = upload_dict

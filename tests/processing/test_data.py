@@ -360,7 +360,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure):
     if with_failure == 'not-matched':
-        monkeypatch.setattr('nomad.config.reprocess_published.delete_unmatched_entries', False)
+        monkeypatch.setattr('nomad.config.reprocess.delete_unmatched_published_entries', False)
 
     if with_failure == 'before':
         calc = published.all_calcs(0, 1).first()
@@ -550,7 +550,7 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
 
 
 def mock_failure(cls, function_name, monkeypatch):
-    def mock(self):
+    def mock(self, *args, **kwargs):
         self.set_process_step(function_name)
         raise Exception('fail for test')
 

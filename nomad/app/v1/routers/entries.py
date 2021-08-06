@@ -29,6 +29,7 @@ import json
 import orjson
 
 from nomad import files, config, utils
+from nomad.files import StreamedFile, create_zipstream
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 from nomad.archive import ArchiveQueryError
@@ -38,8 +39,8 @@ from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
 from ..utils import (
-    create_streamed_zipfile, create_download_stream_zipped, create_download_stream_raw_file,
-    DownloadItem, File, create_responses)
+    create_download_stream_zipped, create_download_stream_raw_file,
+    DownloadItem, create_responses)
 from ..models import (
     PaginationResponse, MetadataPagination, WithQuery, WithQueryAndPagination, MetadataRequired,
     MetadataResponse, Metadata, Files, Query, User, Owner,
@@ -747,8 +748,8 @@ def _answer_entries_archive_download_request(
 
     required_reader = RequiredReader('*')
 
-    # a generator of File objects to create the streamed zip from
-    def file_generator():
+    # a generator of StreamedFile objects to create the zipstream from
+    def streamed_files():
         # go through all entries that match the query
         for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
             path = os.path.join(entry_metadata['upload_id'], '%s.json' % entry_metadata['entry_id'])
@@ -758,7 +759,7 @@ def _answer_entries_archive_download_request(
                 f = io.BytesIO(orjson.dumps(
                     archive_data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
 
-                yield File(path=path, f=f, size=f.getbuffer().nbytes)
+                yield StreamedFile(path=path, f=f, size=f.getbuffer().nbytes)
             except KeyError as e:
                 logger.error('missing archive', entry_id=entry_metadata['entry_id'], exc_info=e)
 
@@ -767,11 +768,11 @@ def _answer_entries_archive_download_request(
 
         # add the manifest at the end
         manifest_content = json.dumps(manifest).encode()
-        yield File(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
+        yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
 
     try:
         # create the streaming response with zip file contents
-        content = create_streamed_zipfile(file_generator(), compress=files_params.compress)
+        content = create_zipstream(streamed_files(), compress=files_params.compress)
         return StreamingResponse(content, media_type='application/zip')
     finally:
         uploads.close()
