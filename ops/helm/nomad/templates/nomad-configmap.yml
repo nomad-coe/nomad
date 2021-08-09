@@ -21,8 +21,8 @@ data:
     reprocess:
       reparse_published_if_parser_unchanged: "{{ .Values.reprocess.reparse_published_if_parser_unchanged }}"
       reparse_published_if_parser_changed: "{{ .Values.reprocess.reparse_published_if_parser_changed }}"
-      add_newfound_entries_to_published "{{ .Values.reprocess.add_newfound_entries_to_published }}"
-      delete_unmatched_published_entries  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
+      add_newfound_entries_to_published: "{{ .Values.reprocess.add_newfound_entries_to_published }}"
+      delete_unmatched_published_entries:  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
     process_reuse_parser: {{ .Values.process_reuse_parser }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
