@@ -46,6 +46,12 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v1.0.0
+- new search interface
+- new v1 API (entries, materials, upload, datasets, sync)
+- refactored metainfo and parsers
+- new upload UI and incremental uploads
+
 ### v0.10.4
 - new "basic" parser to cover codes without proper parser
 - removed old nomad-coe parser dependencies

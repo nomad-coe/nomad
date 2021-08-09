@@ -24,7 +24,7 @@ mongo:
 logstash:
   host: logstash.elk.svc.cluster.local
 
-dbname: nomad_dev_v0_8
+dbname: nomad_dev_v1
 
 keycloak:
   serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
@@ -36,7 +36,7 @@ keycloak:
 
 volumes:
   prefixSize: 1
-  public: /nomad/fairdi/dev/v0_8/fs/public
-  staging: /nomad/fairdi/dev/v0_8/fs/staging
-  tmp: /nomad/fairdi/dev/v0_8/fs/tmp
+  public: /nomad/fairdi/dev/v1/fs/public
+  staging: /nomad/fairdi/dev/v1/fs/staging
+  tmp: /nomad/fairdi/dev/v1/fs/tmp
   nomad: /nomad

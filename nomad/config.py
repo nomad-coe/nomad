@@ -312,7 +312,7 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.4',
+    version='1.0.0',
     commit=gitinfo.commit,
     release='devel',
     deployment='standard',
@@ -344,7 +344,7 @@ bundle_import = NomadConfig(
     # Basic settings
     allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
     allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
-    required_nomad_version='0.10.4',  # Minimum  nomad version of bundles required for import
+    required_nomad_version='1.0.0',  # Minimum  nomad version of bundles required for import
 
     default_settings=NomadConfig(
         # Default settings for the import_bundle process.
