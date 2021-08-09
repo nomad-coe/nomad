@@ -25,7 +25,7 @@ data:
       delete_unmatched_published_entries:  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
     process_reuse_parser: {{ .Values.process_reuse_parser }}
     fs:
-      tmp: "{{ .Values.volumes.tmp }}"
+      tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
       {{ if .Values.volumes.archiveVersionSuffix }}
