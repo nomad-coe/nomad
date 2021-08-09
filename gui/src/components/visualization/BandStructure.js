@@ -23,7 +23,8 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convertSI, add, distance, mergeObjects } from '../../utils'
+import { add, distance, mergeObjects } from '../../utils'
+import { toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 
@@ -69,7 +70,7 @@ const BandStructure = React.memo(({
         energyHighestOccupied = 0
         setNormalizedToHOE(false)
       } else {
-        energyHighestOccupied = convertSI(data.energy_highest_occupied, 'joule', units, false)
+        energyHighestOccupied = toUnitSystem(data.energy_highest_occupied, 'joule', units, false)
         setNormalizedToHOE(true)
       }
     }
@@ -131,7 +132,7 @@ const BandStructure = React.memo(({
 
       // Create plot data entry for each band
       for (let band of bands) {
-        band = convertSI(band, 'joule', units, false)
+        band = toUnitSystem(band, 'joule', units, false)
         if (energyHighestOccupied !== 0) {
           band = add(band, -energyHighestOccupied)
         }
@@ -168,7 +169,7 @@ const BandStructure = React.memo(({
 
     // Create plot data entry for each band
     for (let band of bands) {
-      band = convertSI(band, 'joule', units, false)
+      band = toUnitSystem(band, 'joule', units, false)
       if (energyHighestOccupied !== 0) {
         band = add(band, -energyHighestOccupied)
       }

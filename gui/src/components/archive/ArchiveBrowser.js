@@ -30,9 +30,8 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
-import { UnitSelector } from './UnitSelector'
-import { convertSI, getHighestOccupiedEnergy } from '../../utils'
-import { conversionMap } from '../../units'
+import { getHighestOccupiedEnergy } from '../../utils'
+import { toUnitSystem, useUnits } from '../../units'
 import { electronicRange } from '../../config'
 
 export const configState = atom({
@@ -43,24 +42,6 @@ export const configState = atom({
     'showAllDefined': false,
     'energyUnit': 'joule'
   }
-})
-
-// Set up a unit system: by default use SI units, unless explicitly overridden
-// with something else.
-let defaults = {}
-for (const dimension in conversionMap) {
-  const info = conversionMap[dimension]
-  defaults[dimension] = info.units[0]
-}
-const override = {
-  'length': 'angstrom',
-  'energy': 'electron_volt',
-  'system': 'custom'
-}
-defaults = {...defaults, ...override}
-export const unitsState = atom({
-  key: 'units',
-  default: defaults
 })
 
 // Contains details about the currently visualized system. Used to detect if a
@@ -148,7 +129,6 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
-        <UnitSelector unitsState={unitsState}></UnitSelector>
       </FormGroup>
     </Box>
   )
@@ -295,7 +275,7 @@ class QuantityAdaptor extends ArchiveAdaptor {
 }
 
 function QuantityItemPreview({value, def}) {
-  const units = useRecoilState(unitsState)[0]
+  const units = useUnits()
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -333,7 +313,7 @@ function QuantityItemPreview({value, def}) {
     let finalValue = value
     let finalUnit = def.unit
     if (def.unit) {
-      [finalValue, finalUnit] = convertSI(value, def.unit, units)
+      [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
     }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
@@ -348,11 +328,11 @@ QuantityItemPreview.propTypes = ({
 
 function QuantityValue({value, def}) {
   // Figure out the units
-  const units = useRecoilState(unitsState)[0]
+  const units = useUnits()
   let finalValue = value
   let finalUnit = def.unit
   if (def.unit) {
-    [finalValue, finalUnit] = convertSI(value, def.unit, units)
+    [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
   }
 
   return <Box
@@ -381,7 +361,7 @@ QuantityValue.propTypes = ({
 function Overview({section, def, parent}) {
   // States
   const [mode, setMode] = useState('bs')
-  const units = useRecoilValue(unitsState)
+  const units = useUnits()
 
   // Styles
   const useStyles = makeStyles(
@@ -429,8 +409,8 @@ function Overview({section, def, parent}) {
     const nAtoms = section.atom_species.length
     let system = {
       'species': section.atom_species,
-      'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+      'cell': section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      'positions': toUnitSystem(section.atom_positions, 'meter', {length: 'angstrom'}, false),
       'pbc': section.configuration_periodic_dimensions
     }
     visualizedSystem.sectionPath = sectionPath
@@ -450,7 +430,7 @@ function Overview({section, def, parent}) {
     }
     const system = {
       species: section.atom_labels,
-      cell: section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      cell: section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
       positions: section.atom_positions,
       fractional: true,
       pbc: section.periodicity
@@ -473,7 +453,7 @@ function Overview({section, def, parent}) {
                 segments: section.section_k_band_segment,
                 reciprocal_cell: section.reciprocal_cell
               }}
-              layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
+              layout={{yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}}
               aspectRatio={1}
               units={units}
             ></BandStructure>
@@ -518,7 +498,7 @@ function Overview({section, def, parent}) {
     const isVibrational = section.dos_kind === 'vibrational'
     const layout = isVibrational
       ? undefined
-      : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}
+      : {yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}
     return <DOS
       className={style.dos}
       layout={layout}

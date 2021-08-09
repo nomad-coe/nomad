@@ -17,7 +17,6 @@
  */
 import React, { useContext, useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { useRecoilValue } from 'recoil'
 import { Box, Card, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import _ from 'lodash'
 import { apiContext as apiContextV0 } from '../api'
@@ -34,12 +33,11 @@ import { DOI } from '../search/DatasetList'
 import { errorContext } from '../errors'
 import {
   authorList,
-  convertSI,
   getHighestOccupiedEnergy,
   toMateriaStructure,
   mergeObjects
 } from '../../utils'
-import { unitsState } from '../archive/ArchiveBrowser'
+import { useUnits, toUnitSystem } from '../../units'
 import { resolveRef, refPath } from '../archive/metainfo'
 import searchQuantities from '../../searchQuantities'
 
@@ -170,7 +168,7 @@ const DFTEntryOverview = ({data}) => {
   // Determine which information source will be used: section_results of
   // section_metadata
   const hasResults = !!data?.results
-  const units = useRecoilValue(unitsState)
+  const units = useUnits()
 
   // Determine the set of available properties.
   const availableProps = useMemo(() => {
@@ -441,11 +439,10 @@ const DFTEntryOverview = ({data}) => {
               failed = true
             }
             if (!failed) {
-              energies = convertSI(energies, 'joule', {energy: 'electron_volt'}, false)
               const e_criteria_wf = section_wf?.section_geometry_optimization?.input_energy_difference_tolerance
               const sampling_method = section_run?.section_sampling_method
               const e_criteria_fs = sampling_method && sampling_method[0]?.geometry_optimization_energy_change
-              const e_criteria = convertSI(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
+              const e_criteria = toUnitSystem(e_criteria_wf || e_criteria_fs, 'joule', {energy: 'electron_volt'}, false)
               setGeoOpt({energies: energies, energy_change_criteria: e_criteria})
             } else {
               setGeoOpt({})
@@ -456,7 +453,7 @@ const DFTEntryOverview = ({data}) => {
             const scc = resolveRef(scc_ref, archive)
             let v_dos = null
             let v_bs = null
-            if (scc && scc.section_k_band && scc.section_dos) {
+            if (scc) {
               v_bs = {
                 segments: scc.section_k_band[scc.section_k_band.length - 1].section_k_band_segment,
                 m_path: `${url}/${refPath(scc_ref)}/section_k_band:${scc.section_k_band.length - 1}`
@@ -536,8 +533,8 @@ const DFTEntryOverview = ({data}) => {
             if (!reprSys && sys.is_representative) {
               const reprSys = {
                 species: sys.atom_species,
-                cell: sys.lattice_vectors ? convertSI(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-                positions: convertSI(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
+                cell: sys.lattice_vectors ? toUnitSystem(sys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+                positions: toUnitSystem(sys.atom_positions, 'meter', {length: 'angstrom'}, false),
                 pbc: sys.configuration_periodic_dimensions,
                 m_path: `${url}/section_run/section_system:${i}`,
                 name: 'original'
@@ -553,7 +550,7 @@ const DFTEntryOverview = ({data}) => {
         if (idealSys && data?.dft?.system === 'bulk') {
           const ideal = {
             species: idealSys.atom_labels,
-            cell: idealSys.lattice_vectors ? convertSI(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+            cell: idealSys.lattice_vectors ? toUnitSystem(idealSys.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
             positions: idealSys.atom_positions,
             fractional: true,
             pbc: idealSys.periodicity,
@@ -774,7 +771,7 @@ const DFTEntryOverview = ({data}) => {
                   {hasResults
                     ? <>
                       <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap {...quantityProps}/>
-                      <Quantity quantity="results.material.type_structural" label='structural type' noWrap {...quantityProps}/>
+                      <Quantity quantity="results.material.structural_type" label='structural type' noWrap {...quantityProps}/>
                       <Quantity quantity="results.material.material_name" label='material name' noWrap {...quantityProps}/>
                       {data?.results?.material?.symmetry &&
                       <Quantity row>
@@ -807,7 +804,7 @@ const DFTEntryOverview = ({data}) => {
                       />
                       <Quantity
                         quantity="dft.system"
-                        description={searchQuantities['results.material.type_structural']?.description || ''}
+                        description={searchQuantities['results.material.structural_type']?.description || ''}
                         label='structural type'
                         noWrap
                         {...quantityProps}
@@ -863,7 +860,7 @@ const DFTEntryOverview = ({data}) => {
             <Grid item xs={7} style={{marginTop: '-2rem'}}>
               <Structure
                 data={structures}
-                materialType={data?.results?.material?.type_structural || data?.dft?.system}
+                materialType={data?.results?.material?.structural_type || data?.dft?.system}
                 aspectRatio={1.5}
                 data-testid="viewer-material"
               />

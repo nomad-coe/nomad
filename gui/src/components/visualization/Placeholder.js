@@ -30,7 +30,7 @@ import clsx from 'clsx'
  * with respect to the root component.
  */
 
-const useStaticStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
     height: '100%'
@@ -47,10 +47,16 @@ const useStaticStyles = makeStyles(theme => ({
     height: '100%'
   }
 }))
-export default function Placeholder(props) {
+const Placeholder = React.memo(({
+  aspectRatio,
+  className,
+  classes,
+  'data-testid':
+  testID,
+  ...other
+}) => {
   // If aspect ratio is provided, use it to determine width and height
-  const {aspectRatio, className, classes, 'data-testid': testID, ...other} = props
-  const useStyles = makeStyles(theme => {
+  const useStylesDynamic = makeStyles(theme => {
     return {
       containerOuter: aspectRatio
         ? {
@@ -67,16 +73,16 @@ export default function Placeholder(props) {
     }
   })
   const theme = useTheme()
-  const styles = useStyles()
-  const staticStyles = useStaticStyles({classes: classes, theme: theme})
-  return <div className={clsx(className, staticStyles.root)} data-testid={testID}>
-    <div className={styles.containerOuter}>
-      <div className={staticStyles.placeholder}>
-        <Skeleton className={staticStyles.skeleton} {...other}/>
+  const styles = useStyles({classes: classes, theme: theme})
+  const stylesDynamic = useStylesDynamic()
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <div className={stylesDynamic.containerOuter}>
+      <div className={styles.placeholder}>
+        <Skeleton className={styles.skeleton} {...other}/>
       </div>
     </div>
   </div>
-}
+})
 
 Placeholder.propTypes = {
   aspectRatio: PropTypes.number,
@@ -84,3 +90,5 @@ Placeholder.propTypes = {
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
+
+export default Placeholder

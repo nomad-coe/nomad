@@ -308,7 +308,7 @@ def assert_archive(archive, required=None):
         assert key in archive
 
 
-n_code_names = results.Simulation.program_name.a_elasticsearch.default_aggregation_size
+n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
 program_name = 'results.method.simulation.program_name'
 
 

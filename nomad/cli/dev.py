@@ -145,10 +145,16 @@ def search_quantities():
                 result[key] = val
         return result
 
-    export.update({
-        search_quantity.qualified_name: to_dictV1(search_quantity)
-        for search_quantity in entry_type.quantities.values()
-    })
+    suggestions = []
+    suggestion_postfix = ".suggestion"
+    for search_quantity in entry_type.quantities.values():
+        isSuggestion = search_quantity.search_field.endswith(suggestion_postfix)
+        if not isSuggestion:
+            export[search_quantity.qualified_name] = to_dictV1(search_quantity)
+        else:
+            suggestions.append(search_quantity.qualified_name[:-len(suggestion_postfix)])
+    for suggestion in suggestions:
+        export[suggestion]["suggestion"] = True
 
     print(json.dumps(export, indent=2))
 

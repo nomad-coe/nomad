@@ -20,7 +20,16 @@ from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
 import pydantic
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import (  # pylint: disable=unused-import
+    BaseModel,
+    StrictInt,
+    StrictFloat,
+    StrictBool,
+    Field,
+    Extra,
+    validator,
+    root_validator,
+)
 import datetime
 import numpy as np
 import re
@@ -35,10 +44,8 @@ from .utils import parameter_dependency_from_model, update_url_query_arguments
 
 
 User = datamodel.User.m_def.a_pydantic.model
-
-
-Value = Union[bool, int, float, datetime.datetime, str]
-ComparableValue = Union[int, float, datetime.datetime, str]
+Value = Union[StrictInt, StrictFloat, StrictBool, datetime.datetime, str]
+ComparableValue = Union[StrictInt, StrictFloat, datetime.datetime, str]
 
 
 class HTTPExceptionModel(BaseModel):
@@ -52,36 +59,48 @@ class NoneEmptyBaseModel(BaseModel):
         return values
 
 
-class All(NoneEmptyBaseModel):
+class All(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='all')
 
 
-class None_(NoneEmptyBaseModel):
+class None_(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='none')
 
 
-class Any_(NoneEmptyBaseModel):
+class Any_(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='any')
 
 
-class ComparisonOperator(NoneEmptyBaseModel):
-    op: ComparableValue
+class Range(BaseModel, extra=Extra.forbid):
+    """Represents a finite range which can have open or closed ends. Supports
+    several datatypes that have a well-defined comparison operator.
+    """
+    @root_validator
+    def check_range_is_valid(cls, values):  # pylint: disable=no-self-argument
+        lt = values.get('lt')
+        lte = values.get('lte')
+        gt = values.get('gt')
+        gte = values.get('gte')
 
+        # At least one value needs to be defined
+        assert (lt is not None) or (lte is not None) or (gt is not None) or (gte is not None)
 
-class Lte(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='lte')
+        # The start/end can only be either open or closed, not both
+        if lt is not None:
+            assert lte is None
+        if lte is not None:
+            assert lt is None
+        if gt is not None:
+            assert gte is None
+        if gte is not None:
+            assert gt is None
 
+        return values
 
-class Lt(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='lt')
-
-
-class Gte(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='gte')
-
-
-class Gt(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='gt')
+    lt: Optional[ComparableValue] = Field(None)
+    lte: Optional[ComparableValue] = Field(None)
+    gt: Optional[ComparableValue] = Field(None)
+    gte: Optional[ComparableValue] = Field(None)
 
 
 class LogicalOperator(NoneEmptyBaseModel):
@@ -114,16 +133,16 @@ class Nested(BaseModel):
 
 
 ops = {
-    'lte': Lte,
-    'lt': Lt,
-    'gte': Gte,
-    'gt': Gt,
+    'lte': Range,
+    'lt': Range,
+    'gte': Range,
+    'gt': Range,
     'all': All,
     'none': None_,
     'any': Any_
 }
 
-QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_, Nested, Dict[str, Any]]
+QueryParameterValue = Union[Value, List[Value], Range, Any_, All, None_, Nested, Dict[str, Any]]
 
 Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
 
@@ -1004,7 +1023,7 @@ class DateHistogramAggregationResponse(BucketAggregationResponse, DateHistogramA
     pass
 
 
-class MixMaxAggregationResponse(MinMaxAggregation):
+class MinMaxAggregationResponse(MinMaxAggregation):
     data: List[Union[float, None]]
 
 
@@ -1012,7 +1031,7 @@ class AggregationResponse(Aggregation):
     terms: Optional[TermsAggregationResponse]
     histogram: Optional[HistogramAggregationResponse]
     date_histogram: Optional[DateHistogramAggregationResponse]
-    min_max: Optional[MixMaxAggregationResponse]
+    min_max: Optional[MinMaxAggregationResponse]
 
 
 class CodeResponse(BaseModel):

@@ -28,7 +28,7 @@ import EntryPage, {help as entryHelp} from '../entry/EntryPage'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import FAQ from '../FAQ'
-import SearchPage, {help as searchHelp} from '../search/SearchPage'
+import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
 import UploadPage, {help as uploadHelp} from '../uploads/UploadPage'
 import UserdataPage, {help as userdataHelp} from '../UserdataPage'
 import { ErrorBoundary } from '../errors'
@@ -76,7 +76,7 @@ const routeSpecs = [
       content: searchHelp
     },
     navPath: 'explore/search',
-    component: SearchPage
+    component: NewSearchPage
   },
   {
     path: '/userdata',

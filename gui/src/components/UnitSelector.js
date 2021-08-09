@@ -32,35 +32,43 @@ import {
   Radio,
   Tooltip
 } from '@material-ui/core'
+import SettingsIcon from '@material-ui/icons/Settings'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { conversionMap, unitMap, unitSystems } from '../../units'
+import { unitsState } from '../units'
+import { conversionMap, unitMap, unitSystems } from '../unitsData'
 
 /**
  * Component that wraps it's children in a container that can be 'floated',
  * i.e. displayed on an html element that is positioned relative to the
  * viewport and is above all other elements.
  */
-export function UnitSelector({className, classes, unitsState, onUnitChange, onSystemChange}) {
+const useStyles = makeStyles((theme) => {
+  return {
+    menuItem: {
+      width: '10rem'
+    },
+    icon: {
+      marginRight: '0.5rem'
+    },
+    systems: {
+      margin: theme.spacing(2),
+      marginTop: theme.spacing(1)
+    }
+  }
+})
+const UnitSelector = React.memo(({
+  className,
+  classes,
+  onUnitChange,
+  onSystemChange
+}) => {
   // States
   const [canSelect, setCanSelect] = useState(true)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const open = Boolean(anchorEl)
   const [units, setUnits] = useRecoilState(unitsState)
-
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      menuItem: {
-        width: '10rem'
-      },
-      systems: {
-        margin: theme.spacing(2),
-        marginTop: theme.spacing(1)
-      }
-    }
-  })
-  const style = useStyles(classes)
+  const styles = useStyles({classes: classes})
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -90,7 +98,6 @@ export function UnitSelector({className, classes, unitsState, onUnitChange, onSy
     if (onUnitChange) {
       onUnitChange(event)
     }
-    console.log(changes)
     setUnits({...units, ...changes})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -101,15 +108,16 @@ export function UnitSelector({className, classes, unitsState, onUnitChange, onSy
   const systemNames = ['SI', 'AU']
 
   return (
-    <Box className={clsx(style.root, className)}>
+    <Box className={clsx(styles.root, className)}>
       <Button
         aria-controls="customized-menu"
         aria-haspopup="true"
-        variant="outlined"
+        variant="text"
         color="primary"
         onClick={openMenu}
       >
-        Select units
+        <SettingsIcon className={styles.icon}/>
+        Settings
       </Button>
       <Menu
         id="select-unit"
@@ -123,7 +131,7 @@ export function UnitSelector({className, classes, unitsState, onUnitChange, onSy
       >
         <FormControl
           component="fieldset"
-          classes={{root: style.systems}}
+          classes={{root: styles.systems}}
         >
           <FormLabel component="legend">Unit system</FormLabel>
           <RadioGroup aria-label="gender" name="gender1" value={units.system} onChange={handleSystemChange}>
@@ -146,7 +154,7 @@ export function UnitSelector({className, classes, unitsState, onUnitChange, onSy
             <FormControl disabled={!canSelect}>
               <InputLabel id="demo-simple-select-label">{dimension}</InputLabel>
               <Select
-                classes={{root: style.menuItem}}
+                classes={{root: styles.menuItem}}
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
                 name={dimension}
@@ -164,22 +172,9 @@ export function UnitSelector({className, classes, unitsState, onUnitChange, onSy
       </Menu>
     </Box>
   )
-}
+})
 
 UnitSelector.propTypes = {
-  /**
-   * CSS class for the root element.
-   */
-  className: PropTypes.string,
-  /**
-   * CSS classes for this component.
-   */
-  classes: PropTypes.object,
-  /**
-   * Recoil atom containing the unit configuration that this component will
-   * attach to.
-   */
-  unitsState: PropTypes.object,
   /**
    * Callback for unit selection.
    */
@@ -187,8 +182,12 @@ UnitSelector.propTypes = {
   /**
    * Callback for unit system selection.
    */
-  onSystemChange: PropTypes.func
+  onSystemChange: PropTypes.func,
+  className: PropTypes.string,
+  classes: PropTypes.object
 }
 UnitSelector.defaultProps = {
   float: false
 }
+
+export default UnitSelector

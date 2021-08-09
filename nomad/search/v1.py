@@ -30,7 +30,7 @@ from nomad.app.v1.models import (
     Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
     DateHistogramAggregation, MinMaxAggregation, Bucket,
-    MixMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
+    MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
     DateHistogramAggregationResponse, AggregationResponse)
 
 from .common import SearchError, _es_to_entry_dict, _owner_es_query
@@ -134,16 +134,16 @@ def validate_api_query(
             return Q('bool', must=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.Any_):
-            return Q('bool', should=[match(name, item)for item in value.op])
+            return Q('bool', should=[match(name, item) for item in value.op])
 
         elif isinstance(value, api_models.None_):
             return Q('bool', must_not=[match(name, item) for item in value.op])
 
-        elif isinstance(value, api_models.ComparisonOperator):
-            # TODO typecheck?
+        elif isinstance(value, api_models.Range):
             quantity = validate_quantity(name, None, doc_type=doc_type)
-            field = quantity.search_field
-            return Q('range', **{field: {type(value).__name__.lower(): value.op}})
+            return Q('range', **{quantity.search_field: value.dict(
+                exclude_unset=True,
+            )})
 
         elif isinstance(value, (api_models.And, api_models.Or, api_models.Not)):
             return validate_query(value)
@@ -338,7 +338,7 @@ def _api_to_es_aggregation(
             'histogram', field=quantity.search_field, interval=agg.interval))
 
     elif isinstance(agg, MinMaxAggregation):
-        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long']:
+        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a mix-max aggregation',
                 loc=['aggregations', name, 'min_max', 'quantity'])
@@ -458,10 +458,10 @@ def _es_to_api_aggregation(
 
     elif isinstance(agg, MinMaxAggregation):
         min_value = es_aggs['agg:%s:min' % name]['value']
-        max_value = es_aggs['agg:%s:min' % name]['value']
+        max_value = es_aggs['agg:%s:max' % name]['value']
 
         return AggregationResponse(
-            min_max=MixMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
+            min_max=MinMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
 
     else:
         raise NotImplementedError()
@@ -577,9 +577,10 @@ def search(
         if order_field == doc_type.id_field:
             next_page_after_value = last[doc_type.id_field]
         else:
-            after_value = last
-            for order_field_segment in order_field.split('.'):
-                after_value = after_value[order_field_segment]
+            # after_value is not necessarily the value stored in the field
+            # itself: internally ES can perform the sorting on a different
+            # value which is reported under meta.sort.
+            after_value = last.meta.sort[0]
             next_page_after_value = '%s:%s' % (after_value, last[doc_type.id_field])
     pagination_response = PaginationResponse(
         total=es_response.hits.total,

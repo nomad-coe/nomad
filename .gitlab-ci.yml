@@ -48,7 +48,7 @@ prepare:
     - python -m nomad.cli dev metainfo > gui/src/metainfo.json
     - python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
     - python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-    - python -m nomad.cli dev units > gui/src/units.js
+    - python -m nomad.cli dev units > gui/src/unitsData.js
   except:
     - /^dev-.*$/
     - tags
@@ -61,7 +61,7 @@ prepare:
     - gui/src/searchQuantities.json
     - gui/src/parserMetadata.json
     - gui/src/toolkitMetadata.json
-    - gui/src/units.js
+    - gui/src/unitsData.js
     expire_in: 1 hrs
 
 python linting:

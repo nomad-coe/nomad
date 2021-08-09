@@ -82,9 +82,9 @@ def test_material_atom(atom):
     material = atom.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.type_structural == "atom"
-    assert material.type_functional is None
-    assert material.type_compound is None
+    assert material.structural_type == "atom"
+    assert material.functional_type is None
+    assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
 
@@ -96,9 +96,9 @@ def test_material_molecule(molecule):
     material = molecule.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.type_structural == "molecule / cluster"
-    assert material.type_functional is None
-    assert material.type_compound is None
+    assert material.structural_type == "molecule / cluster"
+    assert material.functional_type is None
+    assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
 
@@ -110,9 +110,9 @@ def test_material_1d(one_d):
     material = one_d.results.material
     assert_material(material)
     assert isinstance(material.material_id, str)
-    assert material.type_structural == "1D"
-    assert material.type_functional is None
-    assert material.type_compound is None
+    assert material.structural_type == "1D"
+    assert material.functional_type is None
+    assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
 
@@ -124,9 +124,9 @@ def test_material_2d(two_d):
     material = two_d.results.material
     assert_material(material)
     assert isinstance(material.material_id, str)
-    assert material.type_structural == "2D"
-    assert material.type_functional is None
-    assert material.type_compound is None
+    assert material.structural_type == "2D"
+    assert material.functional_type is None
+    assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
 
@@ -138,9 +138,9 @@ def test_material_surface(surface):
     material = surface.results.material
     assert_material(material)
     assert material.material_id is None
-    assert material.type_structural == "surface"
-    assert material.type_functional is None
-    assert material.type_compound is None
+    assert material.structural_type == "surface"
+    assert material.functional_type is None
+    assert material.compound_type is None
     assert material.material_name is None
     assert material.symmetry is None
 
@@ -151,10 +151,10 @@ def test_material_surface(surface):
 def test_material_bulk(bulk):
     material = bulk.results.material
     assert_material(material)
-    assert material.type_structural == "bulk"
+    assert material.structural_type == "bulk"
     assert isinstance(material.material_id, str)
-    assert material.type_functional
-    assert material.type_compound
+    assert material.functional_type
+    assert material.compound_type
     assert isinstance(material.material_name, str)
     assert_symmetry(material.symmetry)
 
@@ -233,8 +233,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 0
 
     # Unpolarized DOS with gap:
     efermi = 1.5
@@ -243,11 +241,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is False
     assert dos.densities.shape == (1, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 1
-    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Polarized DOS
     efermi = 1.5
@@ -256,14 +249,6 @@ def test_dos_electronic():
     assert dos.spin_polarized is True
     assert dos.densities.shape == (2, 101)
     assert dos.energies.shape == (101, )
-    channel_info = dos.channel_info
-    assert len(channel_info) == 2
-    assert channel_info[0].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[0].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[0].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
-    assert channel_info[1].energy_fermi.to(ureg.electron_volt).magnitude == pytest.approx(efermi)
-    assert channel_info[1].energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert channel_info[1].energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(1.9)
 
     # Vibrational instead of electronic
     archive = get_template_dos(type="vibrational")

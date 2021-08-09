@@ -16,6 +16,12 @@
  * limitations under the License.
  */
 import React from 'react'
+import {
+  atom,
+  useSetRecoilState,
+  useRecoilValue,
+  useRecoilState
+} from 'recoil'
 import PropTypes from 'prop-types'
 import { apiBase } from '../config'
 import { makeStyles, Typography } from '@material-ui/core'
@@ -78,22 +84,30 @@ function handleApiError(e) {
 }
 
 class Api {
-  constructor(keycloak) {
+  constructor(keycloak, setLoading) {
     this.keycloak = keycloak
+    this.setLoading = setLoading
     this.axios = axios.create({
       baseURL: `${apiBase}/v1`
     })
 
-    this.loadingHandler = []
-    this.loading = 0
+    this.nLoading = 0
 
-    this.onFinishLoading = () => {
-      this.loading--
-      this.loadingHandler.forEach(handler => handler(this.loading))
+    this.onFinishLoading = (show) => {
+      if (show) {
+        this.nLoading--
+        if (this.nLoading === 0) {
+          setLoading(false)
+        }
+      }
     }
-    this.onStartLoading = () => {
-      this.loading++
-      this.loadingHandler.forEach(handler => handler(this.loading))
+    this.onStartLoading = (show) => {
+      if (show) {
+        this.nLoading++
+        if (this.nLoading > 0) {
+          setLoading(true)
+        }
+      }
     }
   }
 
@@ -186,6 +200,34 @@ class Api {
   }
 
   /**
+   * Returns a list of suggestions for the given metainfo quantities.
+   *
+   * @param {string} quantity The quantity names for which suggestions are
+   * returned.
+   * @param {string} input Input used to filter the responses. Must be provided
+   * in order to return suggestions.
+   *
+   * @returns List of suggested values. The items are ordered by how well they
+   * match the input.
+   */
+  async suggestions(quantities, input) {
+    const auth = await this.authHeaders()
+    try {
+      const suggestions = await this.axios.post(
+        `/suggestions`,
+        {
+          input: input,
+          quantities: quantities
+        },
+        auth
+      )
+      return suggestions.data
+    } catch (errors) {
+      handleApiError(errors)
+    }
+  }
+
+  /**
    * Return the raw file metadata for a given entry.
    * @param {string} entryId
    * @returns Object containing the raw file metadata.
@@ -200,6 +242,31 @@ class Api {
       handleApiError(errors)
     } finally {
       this.onFinishLoading()
+    }
+  }
+
+  /**
+   * Executes the given entry query
+   * @param {object} query contains the query
+   * @returns Object containing the raw file metadata.
+   */
+  async queryEntry(search, show = true) {
+    this.onStartLoading(show)
+    const auth = await this.authHeaders()
+    try {
+      const result = await this.axios.post(
+        '/entries/query',
+        {
+          exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
+          ...search
+        },
+        auth
+      )
+      return result.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading(show)
     }
   }
 }
@@ -226,14 +293,35 @@ function parse(result) {
 
 let api = null
 
+/**
+ * Hook that returns a shared instance of the API class.
+*/
 export function useApi() {
   const [keycloak] = useKeycloak()
+  const setLoading = useSetLoading()
 
   if (!api || api.keycloak !== keycloak) {
-    api = new Api(keycloak)
+    api = new Api(keycloak, setLoading)
   }
 
   return api
+}
+
+/**
+ * Hooks/state for reading/writing whether the API is loading something.
+*/
+const apiLoading = atom({
+  key: 'apiLoading',
+  default: false
+})
+export function useLoading() {
+  return useRecoilValue(apiLoading)
+}
+export function useLoadingState() {
+  return useRecoilState(apiLoading)
+}
+export function useSetLoading() {
+  return useSetRecoilState(apiLoading)
 }
 
 const useLoginRequiredStyles = makeStyles(theme => ({

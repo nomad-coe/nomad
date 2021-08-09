@@ -23,7 +23,8 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { add, convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { add, mergeObjects } from '../../utils'
+import { Unit, toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 
@@ -43,12 +44,16 @@ const DOS = React.memo(({
   'data-testid': testID,
   ...other
 }) => {
+  const energyUnit = useMemo(() => new Unit('joule'), [])
+  const valueUnit = useMemo(() => new Unit('1/joule/meter^3'), [])
+  const valueDisplayUnit = useMemo(() => new Unit('states/joule/meter^3/atom'), [])
+
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
     let defaultLayout = {
       yaxis: {
         title: {
-          text: `Energy (${convertSILabel('joule', units)})`
+          text: `Energy (${energyUnit.label(units)})`
         },
         zeroline: type === 'vibrational'
       },
@@ -66,7 +71,7 @@ const DOS = React.memo(({
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, units, type])
+  }, [layout, energyUnit, units, type])
 
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [finalLayout, setFinalLayout] = useState(initialLayout)
@@ -86,7 +91,6 @@ const DOS = React.memo(({
     // Determine the energy reference.
     let energyHighestOccupied
     let normalized
-
     if (type === 'vibrational') {
       energyHighestOccupied = 0
       normalized = true
@@ -95,7 +99,7 @@ const DOS = React.memo(({
         energyHighestOccupied = 0
         normalized = false
       } else {
-        energyHighestOccupied = convertSI(data.energy_highest_occupied, 'joule', units, false)
+        energyHighestOccupied = toUnitSystem(data.energy_highest_occupied, energyUnit, units)
         normalized = true
       }
     }
@@ -104,13 +108,13 @@ const DOS = React.memo(({
     let mins = []
     let maxes = []
     let nChannels = data.densities.length
-    let energies = convertSI(data.energies, 'joule', units, false)
-    const values1 = convertSI(data.densities[0], '1/joule/meter^3', units, false)
+    let energies = toUnitSystem(data.energies, energyUnit, units)
+    const values1 = toUnitSystem(data.densities[0], valueUnit, units)
     let values2
     mins.push(Math.min(...values1))
     maxes.push(Math.max(...values1))
     if (nChannels === 2) {
-      values2 = convertSI(data.densities[1], '1/joule/meter^3', units, false)
+      values2 = toUnitSystem(data.densities[1], valueUnit, units)
       mins.push(Math.min(...values2))
       maxes.push(Math.max(...values2))
     }
@@ -171,7 +175,7 @@ const DOS = React.memo(({
       {
         xaxis: {
           title: {
-            text: convertSILabel('states/joule/meter^3/atom', units)
+            text: valueDisplayUnit.label(units)
           },
           range: range
         }
@@ -181,7 +185,7 @@ const DOS = React.memo(({
     setFinalData(plotData)
     setFinalLayout(computedLayout)
     setNormalizedToHOE(normalized)
-  }, [data, units, initialLayout, normalizedToHOE, theme, type])
+  }, [data, energyUnit, valueUnit, valueDisplayUnit, units, initialLayout, normalizedToHOE, theme, type])
 
   return (
     <Box className={clsx(styles.root, className)}>

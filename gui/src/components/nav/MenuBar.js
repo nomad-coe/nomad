@@ -31,12 +31,14 @@ const MenuBarContext = React.createContext({})
 
 const useMenuBarStyles = makeStyles(theme => ({
   root: {
-    margin: theme.spacing(1),
+    padding: theme.spacing(1),
+    paddingRight: theme.spacing(3),
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    justifyContent: 'left'
+    justifyContent: 'left',
+    boxSizing: 'border-box'
   }
 }))
 

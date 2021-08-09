@@ -21,7 +21,8 @@ import { Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
-import { diffTotal, convertSI, convertSILabel } from '../../utils'
+import { diffTotal } from '../../utils'
+import { toUnitSystem, Unit } from '../../units'
 import PropertyContainer from './PropertyContainer'
 
 const useStyles = makeStyles((theme) => {
@@ -43,6 +44,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
   const [finalData, setFinalData] = useState(data)
   const style = useStyles(classes)
   const theme = useTheme()
+  const energyUnit = useMemo(() => new Unit('joule'), [])
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff within useEffect (instead of e.g. useMemo),
@@ -55,7 +57,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
 
     // Convert energies into the correct units and calculate the total difference
     let energyDiffTotal = diffTotal(data.energies)
-    energyDiffTotal = convertSI(energyDiffTotal, 'joule', units, false)
+    energyDiffTotal = toUnitSystem(energyDiffTotal, energyUnit, units)
 
     let steps = [...Array(data.energies.length).keys()]
     const energyDiff = []
@@ -104,7 +106,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
       })
     }
     setFinalData(traces)
-  }, [data, units, theme])
+  }, [data, units, energyUnit, theme])
 
   const plotLayout = useMemo(() => {
     if (!data) {
@@ -134,7 +136,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         spikemode: 'across' },
       yaxis: {
         title: {
-          text: `Total change (${convertSILabel('joule', units)})`
+          text: `Total change (${energyUnit.label(units)})`
         },
         tickfont: {
           color: theme.palette.primary.dark
@@ -144,7 +146,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
       },
       yaxis2: {
         title: {
-          text: `Abs. change per step (${convertSILabel('joule', units)})`
+          text: `Abs. change per step (${energyUnit.label(units)})`
         },
         tickfont: {
           color: theme.palette.secondary.dark
@@ -156,7 +158,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         side: 'right'
       }
     }
-  }, [data, theme, units])
+  }, [data, theme, units, energyUnit])
 
   return (
     <Box className={style.root}>

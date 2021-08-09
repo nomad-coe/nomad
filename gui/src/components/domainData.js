@@ -161,7 +161,7 @@ export const domainData = ({
         supportsSort: true
       }
     },
-    defaultSearchResultColumns: ['formula', 'dft.code_name', 'dft.system', 'dft.crystal_system', 'dft.spacegroup_symbol'],
+    defaultSearchResultColumns: ['formula', 'dft.code_name', 'dft.system', 'dft.crystal_system'],
     searchTabs: ['entries', 'materials', 'datasets', 'groups', 'uploads']
   },
   ems: {
