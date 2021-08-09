@@ -12,7 +12,7 @@ nptyping
 cachetools
 docstring-parser
 Pint
-orjson
+orjson==3.6.0
 click
 requests
 bravado
