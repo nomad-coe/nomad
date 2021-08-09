@@ -24,8 +24,6 @@ import FilterText from './FilterText'
 import FilterCheckboxes from './FilterCheckboxes'
 import FilterSelect from './FilterSelect'
 
-export const labelSymmetry = 'Symmetry / Prototypes'
-
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%'

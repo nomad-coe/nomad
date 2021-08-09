@@ -96,7 +96,7 @@ const FilterSlider = React.memo(({
   const [maxText, setMaxText] = useState('')
   const [minLocal, setMinLocal] = useState(0)
   const [maxLocal, setMaxLocal] = useState(0)
-  const [range, setRange] = useState()
+  const [range, setRange] = useState({gte: undefined, lte: undefined})
   const [error, setError] = useState()
 
   // Determine the description and units
@@ -110,7 +110,7 @@ const FilterSlider = React.memo(({
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
   const stepSI = step instanceof Quantity ? step.toSI() : step
-  const disabled = minGlobalSI === null || maxGlobalSI === null
+  const disabled = minGlobalSI === null || maxGlobalSI === null || range === undefined
 
   // The slider minimum and maximum are set according to global min/max of the
   // field.
@@ -124,9 +124,9 @@ const FilterSlider = React.memo(({
   // When units change or the slider is used to set a value, update the min/max
   // text
   useEffect(() => {
-    setMinText(isNil(minLocal) ? minLocal : format(toUnitSystem(minLocal, unitSI, units)))
-    setMaxText(isNil(maxLocal) ? maxLocal : format(toUnitSystem(maxLocal, unitSI, units)))
-  }, [minLocal, maxLocal, units, unitSI])
+    setMinText(isNil(range.gte) ? '' : format(toUnitSystem(range.gte, unitSI, units)))
+    setMaxText(isNil(range.lte) ? '' : format(toUnitSystem(range.lte, unitSI, units)))
+  }, [range, units, unitSI])
 
   // If no range has been specified by the user, the range is automatically
   // adjusted according to global min/max of the field.
@@ -222,16 +222,8 @@ const FilterSlider = React.memo(({
   // hook only after mouseup
   const handleRangeChange = useCallback((event, value) => {
     setRange({gte: value[0], lte: value[1]})
-    setMinText(format(toUnitSystem(value[0], unitSI, units)))
-    setMaxText(format(toUnitSystem(value[1], unitSI, units)))
     setError()
-  }, [units, unitSI])
-
-  // Until an initial min/max range is available, we do not display the
-  // component
-  if (range === undefined) {
-    return
-  }
+  }, [])
 
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>

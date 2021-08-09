@@ -22,7 +22,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterPanel from './FilterPanel'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './SearchResults'
-import { filtersAll, useMenuOpenState } from './FilterContext'
+import { quantities, useMenuOpenState, useInitialAggs } from './FilterContext'
 
 const useNewSearchStyles = makeStyles(theme => {
   const filterWidth = 25
@@ -113,6 +113,8 @@ const NewSearch = React.memo(({
   const styles = useNewSearchStyles()
   const [resultType, setResultType] = useState('entries')
   const [isMenuOpen, setIsMenuOpen] = useMenuOpenState()
+  useInitialAggs()
+
   return <div className={styles.root} {...rest}>
     <div className={styles.leftColumn}>
       <FilterPanel
@@ -125,7 +127,7 @@ const NewSearch = React.memo(({
     <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
       <div className={styles.bar}>
         <NewSearchBar
-          quantities={filtersAll}
+          quantities={quantities}
           className={styles.searchBar}
         />
       </div>

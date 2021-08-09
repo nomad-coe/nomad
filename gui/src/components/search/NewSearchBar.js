@@ -117,10 +117,14 @@ const NewSearchBar = React.memo(({
   const setFilter = useFiltersState(quantities)[1]
   const quantitySet = useMemo(() => new Set(quantities), [quantities])
   const quantitySuggestions = useMemo(() => {
-    return quantities.map(q => ({
-      value: quantityAbbreviations.get(q) || q,
-      category: 'quantity name'
-    }))
+    const suggestions = []
+    for (let q of quantities) {
+      suggestions.push({
+        value: quantityAbbreviations.get(q) || q,
+        category: 'quantity name'
+      })
+    }
+    return suggestions
   }, [quantities])
 
   // Triggered when a value is submitted by pressing enter or clicking the
@@ -155,10 +159,6 @@ const NewSearchBar = React.memo(({
         }
         const dimension = getDimension(quantityFullname)
         queryValue = dimension ? new Quantity(queryValue, units[dimension]) : queryValue
-        // const range = {}
-        // range['gte'] = queryValue
-        // range['lte'] = queryValue
-        // queryValue = range
       } else {
         queryValue = equals[2]
       }
@@ -342,7 +342,7 @@ const NewSearchBar = React.memo(({
     // If the input is prefixed with a proper quantity name and an equals-sign,
     // we extract the quantity name and the typed input
     const split = value.split('=', 2)
-    let quantityList = quantities
+    let quantityList = [...quantities]
     if (split.length === 2) {
       const quantityName = split[0].trim()
       const quantityFullname = quantityFullnames.get(quantityName)
@@ -437,7 +437,7 @@ const NewSearchBar = React.memo(({
 })
 
 NewSearchBar.propTypes = {
-  quantities: PropTypes.arrayOf(PropTypes.string), // The set of search quantities over which the suggestions are served.
+  quantities: PropTypes.object, // The set of search quantities over which the suggestions are served.
   className: PropTypes.string
 }
 

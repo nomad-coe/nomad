@@ -22,19 +22,17 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
 import FilterCheckboxes from './FilterCheckboxes'
 
-const useFiltersElementStyles = makeStyles(theme => ({
+const useFilters = makeStyles(theme => ({
   root: {
     width: '100%'
   }
 }))
 
-export const labelGW = 'GW'
-
 const FilterGW = React.memo(({
   visible,
   className
 }) => {
-  const styles = useFiltersElementStyles()
+  const styles = useFilters()
 
   return <div className={clsx(className, styles.root)}>
     <Grid container spacing={2}>

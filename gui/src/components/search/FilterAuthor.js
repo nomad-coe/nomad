@@ -30,8 +30,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelAuthor = 'Author / Origin'
-
 const FilterAuthor = React.memo(({
   visible,
   className

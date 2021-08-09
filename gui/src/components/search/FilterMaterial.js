@@ -25,19 +25,17 @@ import FilterCheckboxes from './FilterCheckboxes'
 import FilterSelect from './FilterSelect'
 import { useUnits } from '../../units'
 
-const useFiltersElementStyles = makeStyles(theme => ({
+const useFilters = makeStyles(theme => ({
   root: {
     width: '100%'
   }
 }))
 
-export const labelMaterial = 'Material'
-
 const FilterMaterial = React.memo(({
   visible,
   className
 }) => {
-  const styles = useFiltersElementStyles()
+  const styles = useFilters()
   const units = useUnits()
 
   return <div className={clsx(className, styles.root)}>

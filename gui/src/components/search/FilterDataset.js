@@ -28,8 +28,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelDataset = 'Dataset'
-
 const FilterDataset = React.memo(({
   visible,
   className

@@ -25,10 +25,85 @@ import {
   useRecoilState,
   useRecoilCallback
 } from 'recoil'
-import { debounce } from 'lodash'
+import { debounce, isEmpty } from 'lodash'
 import { useApi } from '../apiV1'
 import { setToArray } from '../../utils'
 import { Quantity } from '../../units'
+
+let index = 0
+export const quantities = new Set()
+export const quantityGroups = new Map()
+export const quantityAggregations = new Map()
+export const labelMaterial = 'Material'
+export const labelElements = 'Elements / Formula'
+export const labelSymmetry = 'Symmetry'
+export const labelMethod = 'Method'
+export const labelDFT = 'DFT'
+export const labelElectronic = 'Electronic'
+export const labelAuthor = 'Author / Origin'
+export const labelDataset = 'Dataset'
+export const labelIDs = 'IDs'
+
+/**
+ * This function is used to register a quantity within the FilterContext. Only
+ * registered quantities may be searched for. The registration must happen
+ * before any components use the filters associated with quantities (this is
+ * because:
+ *  - The initial aggregation results must be fetched before any components
+ *  using the filter values are rendered.
+ *  - Several components need to know the list of available filter (e.g. the
+ *  search bar and  the search panel). If quantities are only registered during
+ *  component initialization, it may already be too late to update other
+ *  components.
+ *
+ * @param {string} quantity Name of the quantity. Should exist in searchQuantities.json.
+ * @param {string} group The group into which the quantity belongs to. Groups
+ * are used to e.g. in showing FilterSummaries about a group of filters.
+ * @param {string} agg Possible aggregation associated with the quantity. If
+ * provided, the initial aggregation value will be prefetched for this quantity.
+ */
+function registerQuantity(name, group, agg) {
+  quantities.add(name)
+  quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
+  if (agg) {
+    quantityAggregations[name] = agg
+  }
+}
+
+registerQuantity('results.material.structural_type', labelMaterial, 'terms')
+registerQuantity('results.material.functional_type', labelMaterial, 'terms')
+registerQuantity('results.material.compound_type', labelMaterial, 'terms')
+registerQuantity('results.material.material_name', labelMaterial)
+registerQuantity('results.material.elements', labelElements, 'terms')
+registerQuantity('results.material.chemical_formula_hill', labelElements)
+registerQuantity('results.material.chemical_formula_anonymous', labelElements)
+registerQuantity('results.material.n_elements', labelElements, 'min_max')
+registerQuantity('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
+registerQuantity('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
+registerQuantity('results.material.symmetry.structure_name', labelSymmetry, 'terms')
+registerQuantity('results.material.symmetry.strukturbericht_designation', labelSymmetry, 'terms')
+registerQuantity('results.material.symmetry.space_group_symbol', labelSymmetry)
+registerQuantity('results.material.symmetry.point_group', labelSymmetry)
+registerQuantity('results.material.symmetry.hall_symbol', labelSymmetry)
+registerQuantity('results.material.symmetry.prototype_aflow_id', labelSymmetry)
+registerQuantity('results.method.method_name', labelMethod, 'terms')
+registerQuantity('results.method.simulation.program_name', labelMethod, 'terms')
+registerQuantity('results.method.simulation.program_version', labelMethod)
+registerQuantity('results.method.simulation.dft.basis_set_type', labelDFT, 'terms')
+registerQuantity('results.method.simulation.dft.core_electron_treatment', labelDFT, 'terms')
+registerQuantity('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
+registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max')
+registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
+registerQuantity('results.properties.available_properties', labelElectronic, 'terms')
+registerQuantity('external_db', labelAuthor, 'terms')
+registerQuantity('authors.name', labelAuthor)
+registerQuantity('upload_time', labelAuthor, 'min_max')
+registerQuantity('datasets.name', labelDataset)
+registerQuantity('datasets.doi', labelDataset)
+registerQuantity('entry_id', labelIDs)
+registerQuantity('upload_id', labelIDs)
+registerQuantity('results.material.material_id', labelIDs)
+registerQuantity('datasets.dataset_id', labelIDs)
 
 /**
  * Each search quantity is here mapped into a separate Recoil.js Atom. This
@@ -41,93 +116,10 @@ import { Quantity } from '../../units'
  * approach would have been to try and Memoize each sufficiently complex
  * component, but this quickly becomes a hard manual task.
  */
-
-export const filtersElements = [
-  'results.material.elements',
-  'results.material.chemical_formula_hill',
-  'results.material.chemical_formula_anonymous',
-  'results.material.n_elements'
-]
-
-export const filtersMaterial = [
-  'results.material.structural_type',
-  'results.material.functional_type',
-  'results.material.compound_type',
-  'results.material.material_name'
-]
-
-export const filtersElectronic = [
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap',
-  'results.properties.electronic.band_structure_electronic.channel_info.band_gap_type',
-  'results.properties.available_properties'
-]
-
-export const filtersSymmetry = [
-  'results.material.symmetry.bravais_lattice',
-  'results.material.symmetry.crystal_system',
-  'results.material.symmetry.hall_symbol',
-  'results.material.symmetry.point_group',
-  'results.material.symmetry.space_group_symbol',
-  'results.material.symmetry.prototype_aflow_id',
-  'results.material.symmetry.structure_name',
-  'results.material.symmetry.strukturbericht_designation'
-]
-
-export const filtersMethod = [
-  'results.method.method_name',
-  'results.method.simulation.program_name',
-  'results.method.simulation.program_version'
-]
-
-export const filtersDFT = [
-  'results.method.simulation.dft.basis_set_type',
-  'results.method.simulation.dft.basis_set_name',
-  'results.method.simulation.dft.core_electron_treatment',
-  'results.method.simulation.dft.van_der_Waals_method',
-  'results.method.simulation.dft.relativity_method',
-  'results.method.simulation.dft.smearing_type'
-]
-
-// export const filtersGW = [
-//   'results.method.simulation.gw.gw_type'
-// ]
-
-export const filtersAuthor = [
-  'authors.name',
-  'external_db',
-  'upload_time'
-]
-
-export const filtersDataset = [
-  'datasets.name',
-  'datasets.doi'
-]
-
-export const filtersIDs = [
-  'results.material.material_id',
-  'upload_id',
-  'entry_id',
-  'datasets.dataset_id'
-]
-
-export let filtersAll = []
-filtersAll = filtersAll.concat(filtersElements)
-filtersAll = filtersAll.concat(filtersMaterial)
-filtersAll = filtersAll.concat(filtersElectronic)
-filtersAll = filtersAll.concat(filtersSymmetry)
-filtersAll = filtersAll.concat(filtersMethod)
-filtersAll = filtersAll.concat(filtersDFT)
-// filtersAll = filtersAll.concat(filtersGW)
-filtersAll = filtersAll.concat(filtersAuthor)
-filtersAll = filtersAll.concat(filtersDataset)
-filtersAll = filtersAll.concat(filtersIDs)
-
 export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
-
-let index = 0
 
 // Menu open state
 export const menuOpen = atom({
@@ -163,7 +155,7 @@ export function useSetExclusive() {
  */
 export function useResetFilters() {
   const reset = useRecoilCallback(({reset}) => () => {
-    for (let filter of filtersAll) {
+    for (let filter of quantities) {
       reset(queryFamily(filter))
     }
   }, [])
@@ -254,7 +246,7 @@ const queryState = selector({
   key: 'query',
   get: ({get}) => {
     let query = {}
-    for (let key of filtersAll) {
+    for (let key of quantities) {
       const filter = get(queryFamily(key))
       if (filter !== undefined) {
         query[key] = filter
@@ -289,6 +281,56 @@ export function useSearch() {
   return result
 }
 
+export const initialAggs = atom({
+  key: 'initialAggs',
+  default: undefined
+})
+
+/**
+ * Hook for returning the current search object.
+ *
+ * @returns {object} Object containing the search object.
+ */
+export function useInitialAgg(quantity, agg) {
+  const aggs = useRecoilValue(initialAggs)
+  let data = aggs && aggs?.aggregations?.[quantity]?.[agg].data
+  if (agg === 'min_max' && !data) {
+    data = [undefined, undefined]
+  }
+  return data
+}
+
+export function useInitialAggs() {
+  // Request initial aggregation values for all filter components that are on
+  // the search page. This is only done once.
+  const api = useApi()
+  const setInitialAggs = useSetRecoilState(initialAggs)
+
+  useEffect(() => {
+    const aggRequest = {}
+    for (const [quantity, agg] of Object.entries(quantityAggregations)) {
+      aggRequest[quantity] = {
+        [agg]: {
+          quantity: quantity,
+          size: 500
+        }
+      }
+    }
+    // Make the request
+    const search = {
+      owner: 'all',
+      query: {},
+      aggregations: aggRequest,
+      pagination: {page_size: 0}
+    }
+
+    api.queryEntry(search, false)
+      .then(data => {
+        setInitialAggs(data)
+      })
+  }, [api, setInitialAggs])
+}
+
 /**
  * Hook for retrieving the most up-to-date aggregation results for a specific
  * quantity, taking into account the current search context.
@@ -306,10 +348,11 @@ export function useSearch() {
  */
 export function useAgg(quantity, type, restrict = false, update = true, delay = 200) {
   const api = useApi()
-  const [results, setResults] = useState()
+  const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
+  const initialAgg = useInitialAgg(quantity, type)
   const query = useQuery()
   const exclusive = useExclusive()
-  const firstRender = useRef(true)
+  const firstLoad = useRef(true)
 
   // Pretty much all of the required pre-processing etc. should be done in this
   // function, as it is the final one that gets called after the debounce
@@ -342,7 +385,12 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
 
     api.queryEntry(search, false)
       .then(data => {
-        setResults(data)
+        let cleaned = data && data.aggregations[quantity][type].data
+        if (type === 'min_max' && !cleaned) {
+          cleaned = [undefined, undefined]
+        }
+        firstLoad.current = false
+        setResults(cleaned)
       })
   }, [api, quantity, restrict, type])
 
@@ -352,66 +400,23 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   // The API call is made immediately on first render. On subsequent renders it
   // will be debounced.
   useEffect(() => {
-    if (!update && !firstRender.current) {
+    if (!update) {
       return
     }
-    if (firstRender.current) {
-      apiCall(query, exclusive)
-      firstRender.current = false
+    if (firstLoad.current) {
+      // Fetch the initial aggregation values if no query
+      // is specified.
+      if (isEmpty(query)) {
+        setResults(initialAgg)
+      // Make an immediate request for the aggregation values if query has been
+      // specified.
+      } else {
+        apiCall(query, exclusive)
+      }
     } else {
       debounced(query, exclusive)
     }
-  }, [apiCall, debounced, query, exclusive, update])
-
-  let data = results && results.aggregations[quantity][type].data
-  if (type === 'min_max' && !data) {
-    data = [undefined, undefined]
-  }
-  return data
-}
-
-/**
- * Hook for returning a set of results based on the currently set query.
- *
- * @param {number} delay The debounce delay in milliseconds.
- *
- * @returns {object} Object containing the search results under 'results' and
- * the used query under 'search'.
- */
-export function useResults(query, pagination, exclusive, delay = 400) {
-  const api = useApi()
-  const firstRender = useRef(true)
-  const [results, setResults] = useState()
-
-  // The results are fetched as a side effect in order to not block the
-  // rendering. This causes two renders: first one without the data, the second
-  // one with the data.
-  const apiCall = useCallback((query, pagination, exclusive) => {
-    const search = {
-      owner: 'all',
-      query: cleanQuery(query, exclusive),
-      pagination: pagination
-    }
-
-    api.queryEntry(search)
-      .then(data => {
-        setResults(data)
-      })
-  }, [api])
-
-  // This is a debounced version of apiCall.
-  const debounced = useCallback(debounce(apiCall, delay), [])
-
-  // The API call is made immediately on first render. On subsequent renders it
-  // will be debounced.
-  useEffect(() => {
-    if (firstRender.current) {
-      apiCall(query, pagination, exclusive)
-      firstRender.current = false
-    } else {
-      debounced(query, pagination, exclusive)
-    }
-  }, [apiCall, debounced, query, pagination, exclusive])
+  }, [apiCall, debounced, query, exclusive, update, initialAgg])
 
   return results
 }
@@ -429,7 +434,7 @@ export function useResults(query, pagination, exclusive, delay = 400) {
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
-export function useScrollResults(page_size, exclusive, delay = 400) {
+export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 400) {
   const api = useApi()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
@@ -495,12 +500,12 @@ export function useScrollResults(page_size, exclusive, delay = 400) {
   // shows the first batch of results.
   useEffect(() => {
     if (firstRender.current) {
-      apiCall(query, page_size, exclusive)
+      apiCall(query, pageSize, orderBy, order, exclusive)
       firstRender.current = false
     } else {
-      debounced(query, page_size, exclusive)
+      debounced(query, pageSize, orderBy, order, exclusive)
     }
-  }, [apiCall, debounced, query, exclusive, page_size])
+  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
   // results in the new order. The amount of fetched results is based on the

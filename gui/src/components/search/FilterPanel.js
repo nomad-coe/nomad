@@ -29,49 +29,47 @@ import FilterTree from './FilterTree'
 import Scrollable from '../visualization/Scrollable'
 import Actions from '../Actions'
 
-import FilterElements, { labelElements } from './FilterElements'
-import FilterElectronic, { labelElectronic } from './FilterElectronic'
-import FilterSymmetry, { labelSymmetry } from './FilterSymmetry'
-import FilterDFT, { labelDFT } from './FilterDFT'
-// import FilterGW, { labelGW } from './FilterGW'
-import FilterMethod, { labelMethod } from './FilterMethod'
-import FilterMaterial, { labelMaterial } from './FilterMaterial'
-import FilterAuthor, { labelAuthor } from './FilterAuthor'
-import FilterDataset, { labelDataset } from './FilterDataset'
-import FilterIDs, { labelIDs } from './FilterIDs'
+import FilterElements from './FilterElements'
+import FilterElectronic from './FilterElectronic'
+import FilterSymmetry from './FilterSymmetry'
+import FilterDFT from './FilterDFT'
+import FilterMethod from './FilterMethod'
+import FilterMaterial from './FilterMaterial'
+import FilterAuthor from './FilterAuthor'
+import FilterDataset from './FilterDataset'
+import FilterIDs from './FilterIDs'
 import FilterSummary from './FilterSummary'
 import {
   useResetFilters,
-  filtersElements,
-  filtersMaterial,
-  filtersElectronic,
-  filtersDFT,
-  // filtersGW,
-  filtersSymmetry,
-  filtersMethod,
-  filtersAuthor,
-  filtersDataset,
-  filtersIDs
+  quantityGroups,
+  labelMaterial,
+  labelElements,
+  labelSymmetry,
+  labelMethod,
+  labelDFT,
+  labelElectronic,
+  labelAuthor,
+  labelDataset,
+  labelIDs
 } from './FilterContext'
 
 /**
  * Displays the filters panel.
  */
-
 const filterTree = [
   {
     name: labelMaterial,
     component: FilterMaterial,
-    filters: <FilterSummary quantities={filtersMaterial}/>,
+    filters: <FilterSummary quantities={quantityGroups.get(labelMaterial)}/>,
     children: [
       {
         name: labelElements,
-        filters: <FilterSummary quantities={filtersElements}/>,
+        filters: <FilterSummary quantities={quantityGroups.get(labelElements)}/>,
         component: FilterElements
       },
       {
         name: labelSymmetry,
-        filters: <FilterSummary quantities={filtersSymmetry}/>,
+        filters: <FilterSummary quantities={quantityGroups.get(labelSymmetry)}/>,
         component: FilterSymmetry
       }
     ]
@@ -79,18 +77,13 @@ const filterTree = [
   {
     name: labelMethod,
     component: FilterMethod,
-    filters: <FilterSummary quantities={filtersMethod}/>,
+    filters: <FilterSummary quantities={quantityGroups.get(labelMethod)}/>,
     children: [
       {
         name: labelDFT,
-        filters: <FilterSummary quantities={filtersDFT}/>,
+        filters: <FilterSummary quantities={quantityGroups.get(labelDFT)}/>,
         component: FilterDFT
       }
-      // {
-      //   name: labelGW,
-      //   filters: <FilterSummary quantities={filtersGW}/>,
-      //   component: FilterGW
-      // }
     ]
   },
   {
@@ -98,24 +91,24 @@ const filterTree = [
     children: [
       {
         name: labelElectronic,
-        filters: <FilterSummary quantities={filtersElectronic}/>,
+        filters: <FilterSummary quantities={quantityGroups.get(labelElectronic)}/>,
         component: FilterElectronic
       }
     ]
   },
   {
     name: labelAuthor,
-    filters: <FilterSummary quantities={filtersAuthor}/>,
+    filters: <FilterSummary quantities={quantityGroups.get(labelAuthor)}/>,
     component: FilterAuthor
   },
   {
     name: labelDataset,
-    filters: <FilterSummary quantities={filtersDataset}/>,
+    filters: <FilterSummary quantities={quantityGroups.get(labelDataset)}/>,
     component: FilterDataset
   },
   {
     name: labelIDs,
-    filters: <FilterSummary quantities={filtersIDs}/>,
+    filters: <FilterSummary quantities={quantityGroups.get(labelIDs)}/>,
     component: FilterIDs
   }
 ]
@@ -273,11 +266,6 @@ const FilterPanel = React.memo(({
   // Primary menu actions
   const actionsPrimary = useMemo(() => (
     [
-    // {
-    //   tooltip: 'View the API call for the selected filters',
-    //   content: <CodeIcon/>,
-    //   onClick: () => {}
-    // },
       {
         tooltip: 'Clear filters',
         content: <ClearIcon/>,

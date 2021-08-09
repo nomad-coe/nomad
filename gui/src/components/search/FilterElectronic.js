@@ -24,24 +24,25 @@ import FilterSlider from './FilterSlider'
 import FilterCheckboxes from './FilterCheckboxes'
 import { Quantity, useUnits } from '../../units'
 
-const useFiltersElementStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-export const labelElectronic = 'Electronic'
 const step = new Quantity(0.1, 'electron_volt')
 const options = {
   band_structure_electronic: {label: 'band structure'},
   dos_electronic: {label: 'density of states'}
 }
 
+export const labelElectronic = 'Electronic'
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    width: '100%'
+  }
+}))
+
 const FilterElectronic = React.memo(({
   visible,
   className
 }) => {
-  const styles = useFiltersElementStyles()
+  const styles = useStyles()
   const units = useUnits()
 
   return <div className={clsx(className, styles.root)}>

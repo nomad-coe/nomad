@@ -23,10 +23,12 @@ import { Grid } from '@material-ui/core'
 import NewPeriodicTable from './NewPeriodicTable'
 import FilterText from './FilterText'
 import FilterSlider from './FilterSlider'
-import { useFilterState, useAgg, useExclusiveState } from './FilterContext'
+import {
+  useFilterState,
+  useAgg,
+  useExclusiveState
+} from './FilterContext'
 import { useUnits } from '../../units'
-
-export const labelElements = 'Elements / Formula'
 
 const useStyles = makeStyles(theme => ({
   root: {

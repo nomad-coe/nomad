@@ -30,8 +30,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelMethod = 'Method'
-
 const FilterMethod = React.memo(({
   visible,
   className

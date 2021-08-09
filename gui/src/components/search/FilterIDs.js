@@ -28,8 +28,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export const labelIDs = 'IDs'
-
 const FilterIDs = React.memo(({
   visible,
   className

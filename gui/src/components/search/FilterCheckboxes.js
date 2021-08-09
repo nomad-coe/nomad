@@ -26,7 +26,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../searchQuantities'
 import FilterLabel from './FilterLabel'
-import { useFilterState, useAgg } from './FilterContext'
+import { useFilterState, useAgg, useInitialAgg } from './FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -52,6 +52,7 @@ const FilterCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
+  const initialAgg = useInitialAgg(quantity, 'terms')
   const availableOptions = useAgg(quantity, 'terms', true, visible)
   const [filter, setFilter] = useFilterState(quantity)
   const firstFetch = useRef(true)
@@ -65,9 +66,9 @@ const FilterCheckboxes = React.memo(({
   // Save the available options when retrieved for the first time (without any
   // filters)
   useEffect(() => {
-    if (availableOptions && firstFetch.current) {
+    if (initialAgg && firstFetch.current) {
       const opt = {}
-      for (let option of availableOptions) {
+      for (let option of initialAgg) {
         if (option.count > 0) {
           if (!options || options[option.value]) {
             opt[option.value] = {
@@ -81,7 +82,7 @@ const FilterCheckboxes = React.memo(({
       setVisibleOptions(opt)
       firstFetch.current = false
     }
-  }, [availableOptions, options])
+  }, [options, initialAgg])
 
   // React to changing filters
   useEffect(() => {
@@ -98,22 +99,25 @@ const FilterCheckboxes = React.memo(({
     })
   }, [filter])
 
-  // React to changing options. Unselected ones will be disabled/enabled
-  // accordingly.
+  // React to changes in aggregation results. Options which were not selected
+  // beforehand will be disabled/enabled according to the aggregation data.
   useEffect(() => {
-    if (availableOptions) {
+    if (initialAgg && availableOptions) {
+      const valueSet = new Set()
+      for (let value of availableOptions) {
+        if (value.count) {
+          valueSet.add(value.value)
+        }
+      }
       setVisibleOptions(old => {
-        const newOptions = {}
+        const newOptions = {...old}
         for (let key of Object.keys(old)) {
-          newOptions[key] = old[key]
-          if (!newOptions[key].checked) {
-            newOptions[key].disabled = availableOptions[key]?.count > 0
-          }
+          newOptions[key].disabled = !newOptions[key].checked && !valueSet.has(key)
         }
         return newOptions
       })
     }
-  }, [availableOptions])
+  }, [availableOptions, initialAgg])
 
   const handleChange = useCallback((event) => {
     const newOptions = {...visibleOptions}
