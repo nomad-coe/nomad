@@ -33,6 +33,7 @@ setup.json
 parser.osio.log
 gui/src/metainfo.json
 gui/src/searchQuantities.json
+gui/src/toolkitMetadata.json
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
