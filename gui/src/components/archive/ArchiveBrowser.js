@@ -21,7 +21,7 @@ import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, FormControl, RadioGroup, Radio } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
+import Browser, { Item, Content, Compartment, List, Adaptor, formatSubSectionName } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -311,13 +311,12 @@ function QuantityItemPreview({value, def}) {
     </Box>
   } else {
     let finalValue = value
-    let finalUnit = def.unit
     if (def.unit) {
-      [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
+      finalValue = toUnitSystem(value, def.unit, units)
     }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
-      {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
+      {def.unit && <Typography component="span">&nbsp;{def.unit}</Typography>}
     </Box>
   }
 }
@@ -330,9 +329,8 @@ function QuantityValue({value, def}) {
   // Figure out the units
   const units = useUnits()
   let finalValue = value
-  let finalUnit = def.unit
   if (def.unit) {
-    [finalValue, finalUnit] = toUnitSystem(value, def.unit, units)
+    finalValue = toUnitSystem(value, def.unit, units)
   }
 
   return <Box
@@ -346,7 +344,7 @@ function QuantityValue({value, def}) {
         </span>)}&nbsp;)
       </Typography>
     }
-    {def.unit && <Typography noWrap>{finalUnit}</Typography>}
+    {def.unit && <Typography noWrap>{def.unit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({
@@ -529,11 +527,18 @@ function Section({section, def, parent}) {
   }
 
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  let sub_sections = def.sub_sections
+  if (def.name === 'EntryArchive') {
+    // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
+    sub_sections = [...def.sub_sections]
+    sub_sections.reverse()
+  }
+
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
     <Overview def={def} section={section} parent={parent}></Overview>
     <Compartment title="sub sections">
-      {def.sub_sections
+      {sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
         .filter(filter)
         .map(subSectionDef => {
@@ -543,13 +548,13 @@ function Section({section, def, parent}) {
             return <List
               key={subSectionDef.name}
               itemKey={subSectionDef.name}
-              title={subSectionDef.name} disabled={disabled}
+              title={formatSubSectionName(subSectionDef.name)} disabled={disabled}
             />
           } else {
             return <Item key={key} itemKey={key} disabled={disabled}>
               <Typography component="span">
                 <Box fontWeight="bold" component="span">
-                  {subSectionDef.name}
+                  {formatSubSectionName(subSectionDef.name)}
                 </Box>
               </Typography>
             </Item>
@@ -565,7 +570,7 @@ function Section({section, def, parent}) {
           const key = quantityDef.name
           const disabled = section[key] === undefined
           return <Item key={key} itemKey={key} disabled={disabled}>
-            <Box component="span" whiteSpace="nowrap">
+            <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
               <Typography component="span">
                 <Box fontWeight="bold" component="span">
                   {quantityDef.name}
