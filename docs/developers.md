@@ -169,11 +169,21 @@ Or both together in once process:
 nomad admin run appworker
 ```
 
+On MacOS you might run into multiprocessing errors. That can be solved as described [here](https://stackoverflow.com/questions/50168647/multiprocessing-causes-python-to-crash-and-gives-an-error-may-have-been-in-progr).
+
 The app will run at port 8000 by default.
 
 To run the worker directly with celery, do (from the root)
 ```sh
 celery -A nomad.processing worker -l info
+```
+
+Before you can run the gui, make sure that generated artifacts have been created:
+```sh
+nomad dev metainfo > gui/src/metainfo.json
+nomad dev search-quantities > gui/src/searchQuantities.json
+nomad dev toolkit-metadata > gui/src/toolkitMetadata.json
+nomad dev units > gui/src/unitsData.js
 ```
 
 When you run the gui on its own (e.g. with react dev server below), you have to have
