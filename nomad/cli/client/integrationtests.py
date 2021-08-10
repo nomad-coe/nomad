@@ -66,6 +66,9 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
 
         return upload
 
+    uploads = client.uploads.get_uploads(name='integration_test_upload').response().result.results
+    assert len(uploads) == 0, 'the test upload must not exist before'
+
     if not skip_parsers:
         print('upload multi code test data with curl')
         command = command.replace('<local_file>', multi_code_example_file)

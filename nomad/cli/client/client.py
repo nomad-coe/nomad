@@ -39,11 +39,18 @@ def _create_client(*args, **kwargs):
 
 
 def __create_client(
-        user: str = nomad_config.client.user,
-        password: str = nomad_config.client.password,
-        api_base_url: str = nomad_config.client.url,
+        user: str = None, password: str = None, api_base_url: str = None,
         ssl_verify: bool = True, use_token: bool = True):
     ''' A factory method to create the client. '''
+    # Deferred assigning of default values (instead of using Pythons default arguments),
+    # because config might have been changed after import.
+    if user is None:
+        user = nomad_config.client.user
+    if password is None:
+        password = nomad_config.client.password
+    if api_base_url is None:
+        api_base_url = nomad_config.client.url
+
     if not ssl_verify:
         import warnings
         warnings.filterwarnings("ignore")
