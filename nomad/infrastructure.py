@@ -452,19 +452,20 @@ def reset(remove: bool):
         logger.error('exception reset mongodb', exc_info=e)
 
     try:
+        from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
+        from nomad.search.v0 import entry_document, material_document
+
         if not elastic_client:
             setup_elastic()
+
         elastic_client.indices.delete(index=config.elastic.index_name)
         material_index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
         elastic_client.indices.delete(index=material_index_name)
-        from nomad.search.v0 import entry_document, material_document
+        delete_indices()
+
         if not remove:
             entry_document.init(index=config.elastic.index_name)
             material_document.init(index=material_index_name)
-
-        from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
-        delete_indices()
-        if not remove:
             create_indices()
 
         logger.info('elastic index resetted')
