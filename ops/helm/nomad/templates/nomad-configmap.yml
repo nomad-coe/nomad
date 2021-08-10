@@ -48,8 +48,9 @@ data:
     elastic:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
-      index_name: "{{ .Values.dbname }}"
-      materials_index_name: "{{ .Values.dbname }}_materials"
+      index_name: "{{ .Values.dbname }}_entries"
+      materials_index_name: "{{ .Values.dbname }}_materials_v0"
+      materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:
       host: "{{ .Values.mongo.host }}"
       port: {{ .Values.mongo.port }}
