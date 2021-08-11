@@ -39,8 +39,7 @@ export const configState = atom({
   default: {
     'showMeta': false,
     'showCodeSpecific': false,
-    'showAllDefined': false,
-    'energyUnit': 'joule'
+    'showAllDefined': false
   }
 })
 
@@ -50,9 +49,15 @@ const visualizedSystem = {}
 
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
+
+  // For some reason, this hook does not work in all of the components used in
+  // the Browser (notably: Quantity, QuantityItemPreview). In order to pass the
+  // up-to-date unit information, we pass the hook value down the component
+  // hierarchy.
+  const units = useUnits()
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(data)}
+      adaptor={archiveAdaptorFactory(data, undefined, units)}
       form={<ArchiveConfigForm searchOptions={searchOptions} />}
     />
   )
@@ -137,8 +142,8 @@ ArchiveConfigForm.propTypes = ({
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
-function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
+function archiveAdaptorFactory(data, sectionDef, units) {
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data}, units)
 }
 
 function archiveSearchOptions(data) {
@@ -204,18 +209,19 @@ function archiveSearchOptions(data) {
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(obj, def, parent, context) {
+  constructor(obj, def, parent, context, units) {
     super(obj)
     this.def = def
     this.parent = parent
     this.context = context
+    this.units = units
   }
 
   adaptorFactory(obj, def, parent, context) {
     if (def.m_def === 'Section') {
-      return new SectionAdaptor(obj, def, parent, context || this.context)
+      return new SectionAdaptor(obj, def, parent, context || this.context, this.units)
     } else if (def.m_def === 'Quantity') {
-      return new QuantityAdaptor(obj, def, parent, context || this.context)
+      return new QuantityAdaptor(obj, def, parent, context || this.context, this.units)
     }
   }
 
@@ -264,18 +270,17 @@ class SectionAdaptor extends ArchiveAdaptor {
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} parent={this.parent} />
+    return <Section section={this.e} def={this.def} parent={this.parent} units={this.units}/>
   }
 }
 
 class QuantityAdaptor extends ArchiveAdaptor {
   render() {
-    return <Quantity value={this.e} def={this.def} />
+    return <Quantity value={this.e} def={this.def} units={this.units}/>
   }
 }
 
-function QuantityItemPreview({value, def}) {
-  const units = useUnits()
+function QuantityItemPreview({value, def, units}) {
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -310,28 +315,25 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    let finalValue = value
-    if (def.unit) {
-      finalValue = toUnitSystem(value, def.unit, units)
-    }
+    const [finalValue, finalUnit] = def.unit
+      ? toUnitSystem(value, def.unit, units, true)
+      : [value, def.unit]
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
-      {def.unit && <Typography component="span">&nbsp;{def.unit}</Typography>}
+      {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
     </Box>
   }
 }
 QuantityItemPreview.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
-function QuantityValue({value, def}) {
-  // Figure out the units
-  const units = useUnits()
-  let finalValue = value
-  if (def.unit) {
-    finalValue = toUnitSystem(value, def.unit, units)
-  }
+function QuantityValue({value, def, units}) {
+  const [finalValue, finalUnit] = def.unit
+    ? toUnitSystem(value, def.unit, units, true)
+    : [value, def.unit]
 
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
@@ -344,22 +346,22 @@ function QuantityValue({value, def}) {
         </span>)}&nbsp;)
       </Typography>
     }
-    {def.unit && <Typography noWrap>{def.unit}</Typography>}
+    {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
   </Box>
 }
 QuantityValue.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
 /**
  * An optional overview for a section displayed directly underneath the section
  * title.
  */
-function Overview({section, def, parent}) {
+function Overview({section, def, parent, units}) {
   // States
   const [mode, setMode] = useState('bs')
-  const units = useUnits()
 
   // Styles
   const useStyles = makeStyles(
@@ -407,8 +409,8 @@ function Overview({section, def, parent}) {
     const nAtoms = section.atom_species.length
     let system = {
       'species': section.atom_species,
-      'cell': section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      'positions': toUnitSystem(section.atom_positions, 'meter', {length: 'angstrom'}, false),
+      'cell': section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}) : undefined,
+      'positions': toUnitSystem(section.atom_positions, 'meter', {length: 'angstrom'}),
       'pbc': section.configuration_periodic_dimensions
     }
     visualizedSystem.sectionPath = sectionPath
@@ -428,7 +430,7 @@ function Overview({section, def, parent}) {
     }
     const system = {
       species: section.atom_labels,
-      cell: section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
+      cell: section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}) : undefined,
       positions: section.atom_positions,
       fractional: true,
       pbc: section.periodicity
@@ -451,7 +453,7 @@ function Overview({section, def, parent}) {
                 segments: section.section_k_band_segment,
                 reciprocal_cell: section.reciprocal_cell
               }}
-              layout={{yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}}
+              layout={{yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units)}}}
               aspectRatio={1}
               units={units}
             ></BandStructure>
@@ -496,7 +498,7 @@ function Overview({section, def, parent}) {
     const isVibrational = section.dos_kind === 'vibrational'
     const layout = isVibrational
       ? undefined
-      : {yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units, false)}}
+      : {yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units)}}
     return <DOS
       className={style.dos}
       layout={layout}
@@ -515,10 +517,11 @@ function Overview({section, def, parent}) {
 Overview.propTypes = ({
   def: PropTypes.object,
   section: PropTypes.object,
-  parent: PropTypes.object
+  parent: PropTypes.object,
+  units: PropTypes.object
 })
 
-function Section({section, def, parent}) {
+function Section({section, def, parent, units}) {
   const config = useRecoilValue(configState)
 
   if (!section) {
@@ -536,7 +539,7 @@ function Section({section, def, parent}) {
 
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    <Overview def={def} section={section} parent={parent}></Overview>
+    <Overview def={def} section={section} parent={parent} units={units}></Overview>
     <Compartment title="sub sections">
       {sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
@@ -575,7 +578,7 @@ function Section({section, def, parent}) {
                 <Box fontWeight="bold" component="span">
                   {quantityDef.name}
                 </Box>
-              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} /></span>}
+              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} units={units}/></span>}
             </Box>
           </Item>
         })
@@ -587,19 +590,21 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.any
+  parent: PropTypes.any,
+  units: PropTypes.object
 })
 
-function Quantity({value, def}) {
+function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
-    <QuantityValue value={value} def={def} />
+    <QuantityValue value={value} def={def} units={units} />
     <Meta def={def} />
   </Content>
 }
 Quantity.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
 const useMetaStyles = makeStyles(theme => ({
