@@ -19,7 +19,7 @@ import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useStat
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName } from './Browser'
 import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
 import * as d3 from 'd3'
@@ -323,6 +323,13 @@ function SectionDef({def}) {
         })}
       </Compartment>
     }
+    <Compartment title="squalified name">
+      <Typography>
+        <Box fontWeight="bold" component="span">
+          {def._qualifiedName}
+        </Box>
+      </Typography>
+    </Compartment>
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
@@ -332,7 +339,7 @@ function SectionDef({def}) {
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
-                {subSectionDef.name}
+                {formatSubSectionName(subSectionDef.name)}
               </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
             </Typography>
           </Item>

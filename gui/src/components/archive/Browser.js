@@ -27,6 +27,10 @@ import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 
+export function formatSubSectionName(name) {
+  return name.startsWith('section_') ? name.slice(8) : name
+}
+
 export class Adaptor {
   constructor(e) {
     this.e = e
@@ -166,6 +170,7 @@ Lane.propTypes = ({
 
 const useItemStyles = makeStyles(theme => ({
   root: {
+    maxWidth: 500,
     color: theme.palette.text.primary,
     textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
