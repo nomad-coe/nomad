@@ -532,6 +532,7 @@ class DataTableUnStyled extends React.Component {
                             className={clsx([classes.cell, column.ellipsisFront && classes.ellipsisFront, (selectedEntry === rowId) && classes.selectedEntryCell])}
                             key={key}
                             align={column.align || 'left'}
+                            style={column.tableCellStyle}
                           >
                             {normalizeDisplayValue(column.render ? column.render(row) : _.get(row, key))}
                           </TableCell>

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
@@ -175,3 +175,7 @@ export class ErrorBoundary extends React.Component {
 }
 
 ErrorBoundary.contextType = errorContext
+
+export function useErrors() {
+  return useContext(errorContext)
+}

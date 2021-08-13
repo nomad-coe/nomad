@@ -29,7 +29,8 @@ import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import FAQ from '../FAQ'
 import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
-import UploadPage, {help as uploadHelp} from '../uploads/UploadPage'
+import UploadPage from '../uploads/UploadPage'
+import UploadsPage, {help as uploadHelp} from '../uploads/UploadsPage'
 import UserdataPage, {help as userdataHelp} from '../UserdataPage'
 import { ErrorBoundary } from '../errors'
 
@@ -133,7 +134,7 @@ const routeSpecs = [
       content: uploadHelp
     },
     navPath: 'publish/uploads',
-    component: UploadPage,
+    component: UploadsPage,
     routes: [
       createEntryRoute({
         navPath: 'publish/uploads',
@@ -145,6 +146,12 @@ const routeSpecs = [
         ]
       })
     ]
+  },
+  {
+    path: '/uploads/:uploadId',
+    title: 'Upload',
+    navPath: 'publish/uploads',
+    component: UploadPage
   },
   {
     path: '/metainfo',

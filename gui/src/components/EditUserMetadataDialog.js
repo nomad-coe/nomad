@@ -748,7 +748,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     onEditComplete: PropTypes.func,
     disabled: PropTypes.bool,
     title: PropTypes.string,
-    info: PropTypes.object
+    info: PropTypes.object,
+    withoutLiftEmbargo: PropTypes.bool,
+    text: PropTypes.string
   }
 
   static styles = theme => ({
@@ -810,8 +812,12 @@ class EditUserMetadataDialogUnstyled extends React.Component {
 
   update() {
     const { example } = this.props
-    example.authors.forEach(user => update_local_user(user))
-    example.owners.forEach(user => update_local_user(user))
+    if (example.authors) {
+      example.authors.forEach(user => update_local_user(user))
+    }
+    if (example.owners) {
+      example.owners.forEach(user => update_local_user(user))
+    }
     this.editData = {
       comment: example.comment || '',
       references: example.references || [],
@@ -1001,13 +1007,29 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       }
     })
 
+    const tooltipProps = {
+      title: title || `Edit user metadata${dialogEnabled ? '' : '. You can only edit your data.'}`
+    }
+    const allButtonProps = {
+      onClick: this.handleButtonClick,
+      disabled: !dialogEnabled,
+      ...(buttonProps || {})
+    }
+
     return (
       <React.Fragment>
-        <IconButton {...(buttonProps || {})} onClick={this.handleButtonClick} disabled={!dialogEnabled}>
-          <Tooltip title={title || `Edit user metadata${dialogEnabled ? '' : '. You can only edit your data.'}`}>
-            <EditIcon />
-          </Tooltip>
-        </IconButton>
+        {!this.props.text &&
+          <IconButton {...buttonProps}>
+            <Tooltip {...tooltipProps}>
+              <EditIcon />
+            </Tooltip>
+          </IconButton>}
+        {this.props.text &&
+          <Tooltip {...tooltipProps}>
+            <Button {...allButtonProps}>
+              {this.props.text}
+            </Button>
+          </Tooltip>}
         {dialogEnabled
           ? <Dialog classes={{paper: classes.dialog}} open={open} onClose={this.handleClose} disableBackdropClick disableEscapeKeyDown>
             <DialogTitle>Edit the user metadata of {total} entries</DialogTitle>
@@ -1063,9 +1085,9 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="Datasets"
                 />
               </UserMetadataField>
-              <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true, 'lift')}>
+              {!this.props.withoutLiftEmbargo && <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true, 'lift')}>
                 <FormLabel>Lift embargo</FormLabel>
-              </UserMetadataField>
+              </UserMetadataField>}
             </DialogContent>
             {this.renderDialogActions(submitting, submitEnabled)}
           </Dialog>

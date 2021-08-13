@@ -105,7 +105,11 @@ export default function DefaultEntryOverview({data, children}) {
               <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={data} />
               <Quantity quantity="encyclopedia.material.material_id" label='material id' noWrap data={data} withClipboard />
               <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
-              <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard />
+              <Quantity quantity="upload_id" label='upload id' data={data} noWrap withClipboard>
+                <Typography style={{flexGrow: 1}}>
+                  <Link component={RouterLink} to={`/uploads/${data.upload_id}`}>{data.upload_id}</Link>
+                </Typography>
+              </Quantity>
               <Quantity quantity="upload_time" label='upload time' noWrap data={data}>
                 <Typography noWrap>
                   {new Date(data.upload_time).toLocaleString()}
