@@ -172,7 +172,9 @@ class ExampleData:
         if with_files:
             for upload_id in set(list(self.uploads) + list(self.upload_entries)):
                 entry_ids = self.upload_entries.get(upload_id, [])
-                published = True
+                published = self.uploads.get(upload_id, {}).get('published', True)
+                if len(entry_ids) > 0:
+                    published = True
                 archives = []
                 for entry_id in entry_ids:
                     published &= self.entries[entry_id].published
