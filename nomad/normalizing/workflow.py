@@ -20,8 +20,8 @@ import numpy as np
 
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.public import Workflow, GeometryOptimization, Phonon, Elastic,\
-    MolecularDynamics, SinglePoint
+from nomad.datamodel.metainfo.workflow import (
+    Workflow, SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic)
 
 
 def resolve_difference(values):
@@ -36,66 +36,71 @@ def resolve_difference(values):
     return delta_values
 
 
-class SinglePointNormalizer(Normalizer):
-    def __init__(self, entry_archive):
+class TaskNormalizer(Normalizer):
+    def __init__(self, entry_archive, workflow_index):
         super().__init__(entry_archive)
+        workflow_index = workflow_index if len(entry_archive.workflow) < workflow_index else -1
+        self.workflow = entry_archive.workflow[workflow_index]
+        run = self.workflow.run_ref
+        self.run = run if run is not None else entry_archive.run[-1]
 
+
+class SinglePointNormalizer(TaskNormalizer):
     def normalize(self):
-        self.section = self.entry_archive.section_workflow.section_single_point
+        super().normalize()
+        self.section = self.workflow.single_point
         if not self.section:
-            self.section = self.entry_archive.section_workflow.m_create(SinglePoint)
+            self.section = self.entry_archive.workflow.m_create(SinglePoint)
 
-        if not self.section.single_point_calculation_method:
+        if not self.section.method:
             try:
-                method = self.section_run.section_method[-1]
-                self.section.single_point_calculation_method = method.electronic_structure_method
+                method = self.run.section_method[-1]
+                self.section.method = method.electronic.method
             except Exception:
                 pass
 
-        scc = self.section_run.section_single_configuration_calculation
+        scc = self.run.calculation
         if not scc:
             return
 
         if not self.section.number_of_scf_steps:
-            self.section.number_of_scf_steps = len(scc[-1].section_scf_iteration)
+            self.section.number_of_scf_steps = len(scc[-1].scf_iteration)
 
-        energies = [scf.energy_total_scf_iteration for scf in scc[-1].section_scf_iteration]
+        energies = [scf.energy.total for scf in scc[-1].scf_iteration if scf.energy is not None]
         delta_energy = resolve_difference(energies)
         if not self.section.final_scf_energy_difference and delta_energy is not None:
             self.section.final_scf_energy_difference = delta_energy
 
         if not self.section.is_converged and delta_energy is not None:
             try:
-                threshold = self.section_run.section_method[-1].scf_threshold_energy_change
+                threshold = self.run.method[-1].scf.threshold_energy_change
                 self.section.is_converged = bool(delta_energy <= threshold)
             except Exception:
                 pass
 
         if not self.section.with_density_of_states:
-            self.section.with_density_of_states = len(scc[-1].section_dos) > 0
+            self.section.with_density_of_states = len(scc[-1].dos_electronic) > 0
 
         if not self.section.with_bandstructure:
-            self.section.with_bandstructure = len(scc[-1].section_k_band) > 0
+            self.section.with_bandstructure = len(scc[-1].band_structure_electronic) > 0
 
         if not self.section.with_eigenvalues:
-            self.section.with_eigenvalues = len(scc[-1].section_eigenvalues) > 0
+            self.section.with_eigenvalues = len(scc[-1].eigenvalues) > 0
 
         if not self.section.with_volumetric_data:
-            self.section.with_volumetric_data = len(scc[-1].section_volumetric_data) > 0
+            self.section.with_volumetric_data = (
+                len(scc[-1].potential) > 0 or len(scc[-1].density_charge) > 0)
 
         if not self.section.with_excited_states:
-            self.section.with_excited_states = len(scc[-1].section_excited_states) > 0
+            self.section.with_excited_states = len(scc[-1].excited_states) > 0
 
 
-class GeometryOptimizationNormalizer(Normalizer):
-    def __init__(self, entry_archive):
-        super().__init__(entry_archive)
-
+class GeometryOptimizationNormalizer(TaskNormalizer):
     def _to_numpy_array(self, quantity):
         return np.array(quantity.m if quantity is not None else quantity)
 
     def _get_geometry_optimization_type(self):
-        sec_system = self.section_run.section_system
+        sec_system = self.run.system
         if not sec_system:
             return
 
@@ -114,12 +119,13 @@ class GeometryOptimizationNormalizer(Normalizer):
             return 'static'
 
         else:
-            cell_init = sec_system[0].lattice_vectors
-            cell_final = sec_system[-1].lattice_vectors
-            if cell_init is None:
-                cell_init = sec_system[0].simulation_cell
-            if cell_final is None:
-                cell_final = sec_system[-1].simulation_cell
+            if sec_system[0].atoms is None or sec_system[-1].atoms is None:
+                return 'static'
+
+            cell_init = sec_system[0].atoms.lattice_vectors
+            cell_final = sec_system[-1].atoms.lattice_vectors
+            if cell_init is None or cell_final is None:
+                return 'static'
 
             cell_init = self._to_numpy_array(cell_init)
             cell_final = self._to_numpy_array(cell_final)
@@ -129,8 +135,11 @@ class GeometryOptimizationNormalizer(Normalizer):
             if cell_relaxation is not None:
                 return cell_relaxation
 
-            atom_pos_init = self._to_numpy_array(sec_system[0].atom_positions)
-            atom_pos_final = self._to_numpy_array(sec_system[-1].atom_positions)
+            atom_pos_init = self._to_numpy_array(sec_system[0].atoms.positions)
+            atom_pos_final = self._to_numpy_array(sec_system[-1].atoms.positions)
+
+            if atom_pos_init is None or atom_pos_final is None:
+                return 'static'
 
             if (atom_pos_init == atom_pos_final).all():
                 return 'static'
@@ -138,66 +147,43 @@ class GeometryOptimizationNormalizer(Normalizer):
             return 'ionic'
 
     def normalize(self):
-        self.section = self.entry_archive.section_workflow.section_geometry_optimization
-        if not self.section:
-            self.section = self.entry_archive.section_workflow.m_create(GeometryOptimization)
+        self.section = self.workflow.geometry_optimization
+        if self.section is None:
+            self.section = self.workflow.m_create(GeometryOptimization)
 
-        if not self.section.geometry_optimization_type:
+        if not self.section.type:
             try:
                 geometry_optimization_type = self._get_geometry_optimization_type()
-                self.section.geometry_optimization_type = geometry_optimization_type
+                self.section.type = geometry_optimization_type
             except Exception:
                 pass
 
         if not self.section.optimization_steps:
-            scc = self.section_run.section_single_configuration_calculation
+            scc = self.run.calculation
             self.section.optimization_steps = len(scc)
-
-        if not self.section.input_energy_difference_tolerance:
-            try:
-                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_energy_change
-                self.section.input_energy_difference_tolerance = tolerance
-            except Exception:
-                pass
-
-        if not self.section.input_force_maximum_tolerance:
-            try:
-                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_threshold_force
-                self.section.input_force_maximum_tolerance = tolerance
-            except Exception:
-                pass
-
-        if not self.section.input_displacement_maximum_tolerance:
-            try:
-                tolerance = self.section_run.section_sampling_method[-1].geometry_optimization_geometry_change
-                self.section.input_displacement_maximum_tolerance = tolerance
-            except Exception:
-                pass
 
         if not self.section.final_energy_difference:
             energies = []
-            for scc in self.section_run.section_single_configuration_calculation:
-                if scc.energy_total:
-                    energies.append(scc.energy_total)
+            for scc in self.run.calculation:
+                if scc.energy is not None and scc.energy.total is not None:
+                    energies.append(scc.energy.total.value)
 
             delta_energy = resolve_difference(energies)
             if delta_energy is not None:
                 self.section.final_energy_difference = delta_energy
 
         if not self.section.final_force_maximum:
-            scc = self.section_run.section_single_configuration_calculation
-            max_force = None
-            if scc:
-                if scc[-1].atom_forces is not None:
+            scc = self.run.calculation
+            if len(scc) > 0:
+                if scc[-1].forces is not None and scc[-1].forces.total is not None:
                     forces = self._to_numpy_array(scc[-1].atom_forces)
                     max_force = np.max(np.linalg.norm(forces, axis=1))
-            if max_force is not None:
-                self.section.final_force_maximum = max_force
+                    self.section.final_force_maximum = max_force
 
         # Store the energies as an explicit list. If a step within the
         # trajectory does not contain an energy the rest of the energies in the
         # trajectory are not included.
-        trajectory = self.entry_archive.section_workflow.calculations_ref
+        trajectory = self.entry_archive.workflow.calculations_ref
         if trajectory:
             n_steps = len(trajectory)
             energies = []
@@ -215,9 +201,9 @@ class GeometryOptimizationNormalizer(Normalizer):
 
         if not self.section.final_displacement_maximum:
             try:
-                system = self.section_run.system
+                system = self.run.system
                 displacements = [np.max(np.abs(
-                    system[n].atom_positions - system[n - 1].atom_positions)) for n in range(1, len(system))]
+                    system[n].atoms.positions - system[n - 1].atoms.positions)) for n in range(1, len(system))]
                 self.section.final_displacement_maximum = resolve_difference(displacements)
             except Exception:
                 pass
@@ -226,17 +212,17 @@ class GeometryOptimizationNormalizer(Normalizer):
             # we can have several criteria for convergence: energy, force, displacement
             criteria = []
             try:
-                criteria.append(self.section.final_energy_difference <= self.section.input_energy_difference_tolerance)
+                criteria.append(self.section.final_energy_difference <= self.section.convergence_tolerance_energy_difference)
             except Exception:
                 pass
 
             try:
-                criteria.append(self.section.final_force_maximum <= self.section.input_force_maximum_tolerance)
+                criteria.append(self.section.final_force_maximum <= self.section.convergence_tolerance_force_maximum)
             except Exception:
                 pass
 
             try:
-                criteria.append(self.section.final_displacement_maximum <= self.section.input_displacement_maximum_tolerance)
+                criteria.append(self.section.final_displacement_maximum <= self.section.convergence_tolerance_displacement_maximum)
             except Exception:
                 pass
 
@@ -245,50 +231,42 @@ class GeometryOptimizationNormalizer(Normalizer):
                 self.section.is_converged_geometry = True in criteria
 
 
-class PhononNormalizer(Normalizer):
-    def __init__(self, entry_archive):
-        super().__init__(entry_archive)
-
+class PhononNormalizer(TaskNormalizer):
     def _get_n_imaginary_frequencies(self):
-        scc = self.section_run.section_single_configuration_calculation
+        scc = self.run.calculation
         if not scc:
             return
-        sec_band = scc[0].section_k_band
+        sec_band = scc[0].band_structure_phonon
         if not sec_band:
             return
         result = 0
-        for band_segment in sec_band[0].section_k_band_segment:
-            freq = band_segment.band_energies
+        for band_segment in sec_band[0].segment:
+            freq = band_segment.value
             result += np.count_nonzero(np.array(freq) < 0)
         return result
 
     def normalize(self):
-        self.section = self.entry_archive.section_workflow.section_phonon
+        self.section = self.workflow.phonon
 
         if not self.section:
-            self.section = self.entry_archive.section_workflow.m_create(Phonon)
+            self.section = self.workflow.m_create(Phonon)
 
         if not self.section.n_imaginary_frequencies:
             # get number from bands (not complete as this is not the whole mesh)
             self.section.n_imaginary_frequencies = self._get_n_imaginary_frequencies()
 
 
-class ElasticNormalizer(Normalizer):
-    def __init__(self, entry_archive):
-        super().__init__(entry_archive)
-
+class ElasticNormalizer(TaskNormalizer):
     def _resolve_mechanical_stability(self):
-        spacegroup = self.entry_archive.section_run[-1].section_system[-1].x_elastic_space_group_number
-        order = self.entry_archive.section_run[-1].section_method[-1].x_elastic_elastic_constant_order
+        spacegroup, c = None, None
+        try:
+            spacegroup = self.run[-1].system[-1].symmetry[-1].space_group_number
+            c = self.run.calculation[-1].elastic_constants_matrix_second_order
+        except Exception:
+            return False
 
-        if spacegroup is None or order != 2:
-            return
-
-        scc = self.section_run.section_single_configuration_calculation[-1]
-        c = scc.x_elastic_2nd_order_constants_matrix
-
-        if c is None:
-            return
+        if c is None or spacegroup is None:
+            return False
 
         # see Phys. Rev B 90, 224104 (2014)
         res = False
@@ -332,9 +310,11 @@ class ElasticNormalizer(Normalizer):
         return res
 
     def _get_maximum_fit_error(self):
-        scc = self.section_run.section_single_configuration_calculation[-1]
-
         max_error = 0.0
+        if len(self.run.calculation) == 0:
+            return max_error
+        scc = self.run.calculation[-1]
+
         for diagram in scc.x_elastic_section_strain_diagrams:
             if diagram.x_elastic_strain_diagram_type == 'cross-validation':
                 error = np.amax(diagram.x_elastic_strain_diagram_values)
@@ -343,10 +323,10 @@ class ElasticNormalizer(Normalizer):
         return max_error
 
     def normalize(self):
-        self.section = self.entry_archive.section_workflow.section_elastic
+        self.section = self.workflow.elastic
 
         if not self.section:
-            self.section = self.entry_archive.section_workflow.m_create(Elastic)
+            self.section = self.workflow.m_create(Elastic)
 
         if self.section.is_mechanically_stable is None:
             self.section.is_mechanically_stable = bool(self._resolve_mechanical_stability())
@@ -355,29 +335,24 @@ class ElasticNormalizer(Normalizer):
             self.section.fitting_error_maximum = self._get_maximum_fit_error()
 
 
-class MolecularDynamicsNormalizer(Normalizer):
-    def __init__(self, entry_archive):
-        super().__init__(entry_archive)
-
+class MolecularDynamicsNormalizer(TaskNormalizer):
     def _is_with_thermodynamics(self):
-        scc = self.section_run.section_single_configuration_calculation
-        res = False
-        if scc:
-            res = scc[-1].temperature is not None
-        return res
+        try:
+            return len(self.run.calculation[-1].thermodynamics[-1].values()) > 0
+        except Exception:
+            return False
 
     def _is_with_trajectory(self):
-        sec_system = self.section_run.section_system
-        res = False
-        if sec_system:
-            res = sec_system[-1].atom_positions is not None
-        return res
+        try:
+            return self.run.system[-1].atoms.positions is not None
+        except Exception:
+            return False
 
     def normalize(self):
-        self.section = self.entry_archive.section_workflow.section_molecular_dynamics
+        self.section = self.workflow.molecular_dynamics
 
         if not self.section:
-            self.section = self.entry_archive.section_workflow.m_create(MolecularDynamics)
+            self.section = self.workflow.m_create(MolecularDynamics)
 
         if self.section.with_thermodynamics is None:
             self.section.with_thermodynamics = self._is_with_thermodynamics()
@@ -395,13 +370,12 @@ class WorkflowNormalizer(Normalizer):
         self._elastic_programs = ['elastic']
         self._phonon_programs = ['phonopy']
 
-    def _resolve_workflow_type_vasp(self):
-        sec_method = self.section_run.section_method
-        if not sec_method:
+    def _resolve_workflow_type_vasp(self, run):
+        if not run.method:
             return
 
         ibrion = -1
-        incar = self.section_run.section_method[0].x_vasp_incar_out
+        incar = run.method[0].x_vasp_incar_out
         if incar is not None:
             nsw = incar.get('NSW')
             ibrion = -1 if nsw == 0 else incar.get('IBRION', 0)
@@ -413,90 +387,81 @@ class WorkflowNormalizer(Normalizer):
         else:
             return 'geometry_optimization'
 
-    def _resolve_workflow_type(self):
-        # first get it from section_sampling_method
-        workflow_type = None
-        sec_sampling_method = self.section_run.section_sampling_method
-        if sec_sampling_method:
-            workflow_type = sec_sampling_method[-1].sampling_method
-            # some parsers e.g. turbomole outputs geometry optimization
-            if workflow_type in ['geometry optimization', 'relaxation']:
-                workflow_type = 'geometry_optimization'
+    def _resolve_workflow_type(self, workflow_index):
+        sec_run = self.entry_archive.workflow[workflow_index].run_ref
+        sec_run = self.entry_archive.run[-1] if sec_run is None else sec_run
 
         # resolve it from parser
-        if not workflow_type:
-            program_name = self.section_run.program_name
-            if program_name:
-                program_name = program_name.lower()
+        workflow_type = None
+        program_name = self.entry_archive.run.program.name
+        if program_name:
+            program_name = program_name.lower()
 
-            if program_name == 'vasp':
-                workflow_type = self._resolve_workflow_type_vasp()
+        if program_name == 'vasp':
+            workflow_type = self._resolve_workflow_type_vasp(sec_run)
 
-            elif program_name == 'elastic':
-                workflow_type = 'elastic'
+        elif program_name == 'elastic':
+            workflow_type = 'elastic'
 
-            elif program_name == 'lammps':
-                workflow_type = 'molecular_dynamics'
+        elif program_name == 'lammps':
+            workflow_type = 'molecular_dynamics'
 
-            elif program_name == 'phonopy':
-                workflow_type = 'phonon'
+        elif program_name == 'phonopy':
+            workflow_type = 'phonon'
 
         # resolve if from scc
         if not workflow_type:
-            if len(self.section_run.section_single_configuration_calculation) == 1:
+            if len(sec_run.calculation) == 1:
                 workflow_type = 'single_point'
 
         return workflow_type
 
     def normalize(self, logger=None) -> None:
-        # Setup logger
-        if logger is not None:
-            self.logger = logger.bind(normalizer=self.__class__.__name__)
+        super().normalize()
 
         # Do nothing if section_run is not present
-        if self.section_run is None:
+        if self.entry_archive.run is None:
             return
 
-        workflow_type = None
-        if self.entry_archive.section_workflow:
-            workflow_type = self.entry_archive.section_workflow.workflow_type
+        if len(self.entry_archive.workflow) == 0:
+            self.entry_archive.m_create(Workflow)
 
-        if not workflow_type:
-            workflow_type = self._resolve_workflow_type()
+        for n, sec_workflow in enumerate(self.entry_archive.workflow):
 
-        if not workflow_type:
-            return
+            workflow_type = None
+            if sec_workflow.type is None:
 
-        workflow = self.entry_archive.section_workflow
-        if not workflow:
-            workflow = self.entry_archive.m_create(Workflow)
+                workflow_type = self._resolve_workflow_type(n)
 
-        workflow.workflow_type = workflow_type
+                if not workflow_type:
+                    continue
 
-        scc = self.section_run.section_single_configuration_calculation
-        if not self.entry_archive.section_workflow.calculation_result_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculation_result_ref = scc[-1]
+                sec_workflow.type = workflow_type
 
-        if not self.entry_archive.section_workflow.calculations_ref:
-            if scc:
-                self.entry_archive.section_workflow.calculations_ref = scc
+            scc = self.entry_archive.run.calculation
+            if not sec_workflow.calculation_result_ref:
+                if scc:
+                    sec_workflow.calculation_result_ref = scc[-1]
 
-        if workflow.workflow_type == 'geometry_optimization':
-            GeometryOptimizationNormalizer(self.entry_archive).normalize()
+            if not sec_workflow.calculations_ref:
+                if scc:
+                    sec_workflow.calculations_ref = scc
 
-        elif workflow.workflow_type == 'phonon':
-            PhononNormalizer(self.entry_archive).normalize()
+            if sec_workflow.workflow_type == 'geometry_optimization':
+                GeometryOptimizationNormalizer(self.entry_archive, n).normalize()
 
-        elif workflow.workflow_type == 'elastic':
-            ElasticNormalizer(self.entry_archive).normalize()
+            elif sec_workflow.workflow_type == 'phonon':
+                PhononNormalizer(self.entry_archive, n).normalize()
 
-        elif workflow.workflow_type == 'molecular_dynamics':
-            MolecularDynamicsNormalizer(self.entry_archive).normalize()
+            elif sec_workflow.workflow_type == 'elastic':
+                ElasticNormalizer(self.entry_archive, n).normalize()
 
-        elif workflow.workflow_type == 'single_point':
-            SinglePointNormalizer(self.entry_archive).normalize()
+            elif sec_workflow.workflow_type == 'molecular_dynamics':
+                MolecularDynamicsNormalizer(self.entry_archive, n).normalize()
 
-        # remove the section workflow again, if the parser/normalizer could not produce a result
-        if workflow.calculation_result_ref is None:
-            self.entry_archive.m_remove_sub_section(EntryArchive.section_workflow, -1)
+            elif sec_workflow.workflow_type == 'single_point':
+                SinglePointNormalizer(self.entry_archive, n).normalize()
+
+            # remove the section workflow again, if the parser/normalizer could not produce a result
+            if sec_workflow.calculation_result_ref is None:
+                self.entry_archive.m_remove_sub_section(EntryArchive.workflow, n)
