@@ -267,6 +267,7 @@ def assert_entry(entry, **kwargs):
     assert not entry['process_running']
     for key, value in kwargs.items():
         assert entry.get(key, None) == value
+    assert 'entry_metadata' in entry
 
 
 def assert_pagination(pagination, expected_pagination):
@@ -967,7 +968,9 @@ def test_delete_upload_raw_path(
     pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), False, 401, id='invalid-credentials'),
     pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), True, 401, id='invalid-credentials-token'),
     pytest.param('other_test_user', 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-access'),
-    pytest.param('test_user', 'id_processing_w', dict(name='test_name'), False, 400, id='processing')])
+    pytest.param('test_user', 'id_processing_w', dict(name='test_name'), False, 400, id='processing'),
+    pytest.param('test_user', 'id_empty_w', dict(name='test_name'), False, 200, id='empty-upload-ok')]
+)
 def test_put_upload_metadata(
         client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
         user, upload_id, query_args, use_upload_token, expected_status_code):

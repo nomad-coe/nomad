@@ -15,25 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
+import React, { useEffect, useMemo, useState } from 'react'
+import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography, Link } from '@material-ui/core'
-import UploadIcon from '@material-ui/icons/CloudUpload'
-import Dropzone from 'react-dropzone'
-import Upload from './Upload'
-import { compose } from 'recompose'
-import ReloadIcon from '@material-ui/icons/Cached'
-import MoreIcon from '@material-ui/icons/MoreHoriz'
+import {
+  Paper, IconButton, Tooltip, Typography,
+  TablePagination, Box, Divider, makeStyles } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import HelpDialog from '../Help'
-import { withApi } from '../api'
-import { withCookies, Cookies } from 'react-cookie'
-import Pagination from 'material-ui-flat-pagination'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { guiBase, appBase } from '../../config'
-import qs from 'qs'
-import { CodeList } from '../About'
+import { guiBase } from '../../config'
+import NewUploadButton from './NewUploadButton'
+import { useApi, withLoginRequired } from '../apiV1'
+import Page from '../Page'
+import { useErrors } from '../errors'
+import DataTable from '../DataTable'
+import WithButton from '../utils/WithButton'
+import PublicIcon from '@material-ui/icons/Public'
+import UploaderIcon from '@material-ui/icons/AccountCircle'
+import { useHistory } from 'react-router-dom'
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -111,274 +112,211 @@ be changed after publishing data. The documentation on the [user data page](${gu
 contains more information.
 `
 
-class UploadsPage extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    cookies: instanceOf(Cookies).isRequired,
-    location: PropTypes.object
-  }
-
-  static styles = theme => ({
-    root: {
-      padding: theme.spacing(3)
-    },
-    dropzoneContainer: {
-      height: 192,
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2)
-    },
-    dropzone: {
-      textAlign: 'center',
-      color: theme.palette.grey[500],
-      fontSize: 24,
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      '& p': {
-        marginTop: 0,
-        marginBottom: theme.spacing(1)
-      },
-      '& svg': {
-        marginLeft: 'auto',
-        marginRight: 'auto'
-      },
-      marginTop: theme.spacing(3)
-    },
-    dropzoneAccept: {
-      background: theme.palette.primary.main,
-      color: theme.palette.common.white
-    },
-    dropzoneReject: {
-      background: 'red !important',
-      color: theme.palette.common.white
-    },
-    commandContainer: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center'
-    },
-    commandMarkup: {
-      flexGrow: 1,
-      marginRight: theme.spacing(1),
-      overflow: 'hidden'
-    },
-    formGroup: {
-      paddingLeft: 0
-    },
-    uploadsLabel: {
-      flexGrow: 1,
-      paddingLeft: 0,
-      padding: theme.spacing(2)
-    },
-    uploads: {
-      marginTop: theme.spacing(4)
-    },
-    pagination: {
-      textAlign: 'center'
-    }
-  })
-
-  defaultData = {
-    results: [],
-    pagination: {
-      total: 0,
-      per_page: 10,
-      page: 1
-    }
-  }
-
-  state = {
-    uploadCommand: {
-      upload_command: 'loading ...',
-      upload_tar_command: 'loading ...',
-      upload_progress_command: 'loading ...'
-    },
-    data: {...this.defaultData},
-    uploading: []
-  }
-
-  componentDidMount() {
-    this.update()
-    this.props.api.getUploadCommand()
-      .then(command => {
-        this.setState({uploadCommand: command})
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-      })
-  }
-
-  update(newPage) {
-    const {data: {pagination: {page, per_page}}} = this.state
-    this.props.api.getUploads('all', newPage || page, per_page)
-      .then(uploads => {
-        this.setState({
-          data: uploads,
-          uploading: this.state.uploading.filter(upload => upload.current_process_step === 'uploading')})
-      })
-      .catch(error => {
-        this.setState({data: {...this.defaultData}})
-        this.props.raiseError(error)
-      })
-  }
-
-  handleDoesNotExist(removedUpload) {
-    const { uploading } = this.state
-    this.setState({uploading: uploading.filter(upload => upload !== removedUpload)})
-    this.update()
-  }
-
-  onDrop(files, rejectedFiles) {
-    const upload = file => {
-      const upload = this.props.api.createUpload(file.name)
-      this.setState({uploading: [upload, ...this.state.uploading]})
-      upload.uploadFile(file).catch(this.props.raiseError)
-    }
-
-    files.forEach(upload)
-    rejectedFiles
-      .filter(file => file.name.match(/(\.zip)|(\.bz)|(\.tgz)|(\.gz)|(\.bz2)$/i))
-      .forEach(upload)
-  }
-
-  renderUploads(openUpload) {
-    const {classes} = this.props
-    const {data: {results, pagination: {total, per_page, page}}, uploading} = this.state
-
-    const renderUpload = upload => <Upload
-      open={openUpload === upload.upload_id}
-      key={upload.gui_upload_id} upload={upload}
-      onDoesNotExist={() => this.handleDoesNotExist(upload)}
-    />
-
-    return (<div className={classes.uploads}>
-      <FormGroup className={classes.formGroup} row>
-        <FormLabel className={classes.uploadsLabel}>Your uploads: </FormLabel>
-        <Tooltip title="Reload uploads, e.g. after using the curl upload" >
-          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
-        </Tooltip>
-      </FormGroup>
-      {uploading.map(renderUpload)}
-      {results.map(renderUpload)}
-      {(total > per_page)
-        ? <Pagination classes={{root: classes.pagination}}
-          limit={per_page}
-          offset={(page - 1) * per_page}
-          total={total}
-          onClick={(_, offset) => this.update((offset / per_page) + 1)}
-          previousPageLabel={'prev'}
-          nextPageLabel={'next'}
-        /> : ''}
-    </div>)
-  }
-
-  render() {
-    const { classes, location } = this.props
-    const { uploadCommand } = this.state
-
-    let openUpload = null
-    if (location && location.search) {
-      openUpload = (qs.parse(location.search.substring(1)) || {}).open
-    }
-
-    return (
-      <div className={classes.root}>
-        <Typography>
-          To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
-          all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
-          NOMAD will search through all files and identify the relevant files automatically.
-          Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
-          uploads</b> simultaneously. Your uploaded data is not published right away.
-          Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
-          our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
-          The following codes are supported: <CodeList withUploadInstructions />. Click
-          the code to get more specific information about how to prepare your files.
-        </Typography>
-        <Paper className={classes.dropzoneContainer}>
-          <Dropzone
-            accept={[
-              'application/zip',
-              'application/gzip',
-              'application/bz2',
-              'application/x-gzip',
-              'application/x-bz2',
-              'application/x-gtar',
-              'application/x-tgz',
-              'application/tar+gzip',
-              'application/x-tar',
-              'application/tar+bz2',
-              'application/x-zip-compressed',
-              'application/x-compressed',
-              'application/x-zip']}
-            className={classes.dropzone}
-            activeClassName={classes.dropzoneAccept}
-            rejectClassName={classes.dropzoneReject}
-            onDrop={this.onDrop.bind(this)}
-          >
-            <p>click or drop .tar.gz/.zip files here</p>
-            <UploadIcon style={{fontSize: 36}}/>
-          </Dropzone>
-        </Paper>
-
-        <div className={classes.commandContainer}>
-          <div className={classes.commandMarkup}>
-            <Markdown>{`
-              \`\`\`
-                ${uploadCommand.upload_command}
-              \`\`\`
-            `}</Markdown>
-          </div>
-          <CopyToClipboard text={uploadCommand.upload_command} onCopy={() => null}>
-            <Tooltip title="Copy command to clipboard">
-              <IconButton>
-                <ClipboardIcon />
-              </IconButton>
-            </Tooltip>
-            {/* <button>Copy to clipboard with button</button> */}
-          </CopyToClipboard>
-          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
-            As an experienced shell and *curl* user, you can modify the commands to
-            your liking.
-
-            The given command can be modified. To see progress on large files, use
-            \`\`\`
-              ${uploadCommand.upload_progress_command}
-            \`\`\`
-            To \`tar\` and upload multiple folders in one command, use
-            \`\`\`
-            ${uploadCommand.upload_tar_command}
-            \`\`\`
-
-            ### Form data vs. streaming
-            NOMAD accepts stream data (\`-T <local_file>\`) (like in the
-            examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
-            \`\`\`
-            ${uploadCommand.upload_command_form}
-            \`\`\`
-            We generally recommend to use streaming, because form data can produce very
-            large HTTP request on large files. Form data has the advantage of carrying
-            more information (e.g. the file name) to our servers (see below).
-
-            #### Upload names
-            With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
-            be named after the file by default. With stream data (\`-T <local_file>\`)
-            there will be no default name. To set a custom name, you can use the URL
-            parameter \`name\`:
-            \`\`\`
-            ${uploadCommand.upload_command_with_name}
-            \`\`\`
-            Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
-            and shell encoding, if your name contains spaces or other special characters.
-          `}/>
-        </div>
-
-        {this.renderUploads(openUpload)}
-      </div>
-    )
+function Published({upload}) {
+  if (upload.published) {
+    return <Tooltip title="published upload">
+      <PublicIcon color="primary" />
+    </Tooltip>
+  } else {
+    return <Tooltip title="this upload is not yet published">
+      <UploaderIcon color="error"/>
+    </Tooltip>
   }
 }
 
-export default compose(withApi(true, false, 'To upload data, you must have a Nomad Repository account and you must be logged in.'), withCookies, withStyles(UploadsPage.styles))(UploadsPage)
+const useUploadCommandStyles = makeStyles(theme => ({
+  root: {
+    width: '100%'
+  },
+  commandContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  commandMarkup: {
+    flexGrow: 1,
+    marginRight: theme.spacing(1),
+    overflow: 'hidden'
+  }
+}))
+
+function UploadCommands({uploadCommands}) {
+  const classes = useUploadCommandStyles()
+
+  return <div className={classes.root}>
+    <div className={classes.commandContainer}>
+      <div className={classes.commandMarkup}>
+        <Markdown>{`
+          \`\`\`
+            ${uploadCommands.upload_command}
+          \`\`\`
+        `}</Markdown>
+      </div>
+      <CopyToClipboard text={uploadCommands.upload_command} onCopy={() => null}>
+        <Tooltip title="Copy command to clipboard">
+          <IconButton>
+            <ClipboardIcon />
+          </IconButton>
+        </Tooltip>
+        {/* <button>Copy to clipboard with button</button> */}
+      </CopyToClipboard>
+      <HelpDialog icon={<DetailsIcon/>} maxWidth="md" title="Alternative shell commands" content={`
+        As an experienced shell and *curl* user, you can modify the commands to
+        your liking.
+
+        The given command can be modified. To see progress on large files, use
+        \`\`\`
+          ${uploadCommands.upload_progress_command}
+        \`\`\`
+        To \`tar\` and upload multiple folders in one command, use
+        \`\`\`
+        ${uploadCommands.upload_tar_command}
+        \`\`\`
+
+        ### Form data vs. streaming
+        NOMAD accepts stream data (\`-T <local_file>\`) (like in the
+        examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
+        \`\`\`
+        ${uploadCommands.upload_command_form}
+        \`\`\`
+        We generally recommend to use streaming, because form data can produce very
+        large HTTP request on large files. Form data has the advantage of carrying
+        more information (e.g. the file name) to our servers (see below).
+
+        #### Upload names
+        With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
+        be named after the file by default. With stream data (\`-T <local_file>\`)
+        there will be no default name. To set a custom name, you can use the URL
+        parameter \`name\`:
+        \`\`\`
+        ${uploadCommands.upload_command_with_name}
+        \`\`\`
+        Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
+        and shell encoding, if your name contains spaces or other special characters.
+      `}/>
+    </div>
+  </div>
+}
+
+UploadCommands.propTypes = {
+  uploadCommands: PropTypes.object.isRequired
+}
+
+function UploadsPage() {
+  const [api, errors] = [useApi(), useErrors()]
+  const history = useHistory()
+  const [data, setData] = useState(null)
+  const [uploadCommands, setUploadCommands] = useState(null)
+
+  const columns = useMemo(() => ({
+    upload_id: {
+      label: 'Upload id',
+      render: upload => <WithButton clipboard={upload.upload_id}>
+        {upload.upload_id}
+      </WithButton>,
+      tableCellStyle: {maxWidth: 300}
+    },
+    name: {
+      label: 'Name'
+    },
+    create_time: {
+      label: 'Created',
+      render: (upload) => new Date(upload.create_time).toLocaleString()
+    },
+    last_status_message: {
+      label: 'Last status'
+    },
+    entries: {
+      label: 'Entries',
+      render: (upload) => upload.entries
+    },
+    published: {
+      label: 'Published',
+      align: 'center',
+      render: upload => <Published upload={upload} />
+    }
+  }), [])
+
+  const fetchData = useMemo(() => ({page_size, page}) => {
+    api.get(`/uploads?page_size=${page_size}&page=${page}`)
+      .then(setData)
+      .catch(errors.raiseError)
+  }, [setData, errors, api])
+
+  const handlePaginationChange = changes => {
+    fetchData({
+      page_size: changes.page_size || data.pagination.page_size,
+      page: changes.page || data.pagination.page
+    })
+  }
+
+  const handleOpenUpload = upload => {
+    history.push(`uploads/${upload.upload_id}`)
+  }
+
+  useEffect(() => {
+    fetchData({
+      page_size: 10,
+      page: 1
+    })
+  }, [fetchData])
+
+  useEffect(() => {
+    api.get('/uploads/command-examples')
+      .then(setUploadCommands)
+      .catch(errors.raiseError)
+  }, [api, errors, setUploadCommands])
+
+  const pagination = <TablePagination
+    rowsPerPageOptions={[5, 10, 25, 50, 100]}
+    count={data?.pagination?.total || 0}
+    rowsPerPage={data?.pagination?.page_size}
+    page={(data?.pagination?.page || 1) - 1}
+    onChangePage={page => handlePaginationChange({page: page})}
+    onChangeRowsPerPage={page_size => handlePaginationChange({page_size: page_size})}
+    labelDisplayedRows={({ from, to, count }) => `${from.toLocaleString()}-${to.toLocaleString()} of ${count.toLocaleString()}`}
+  />
+
+  const entryActions = upload => <Tooltip title="Open this upload">
+    <IconButton onClick={() => handleOpenUpload(upload)}>
+      <DetailsIcon />
+    </IconButton>
+  </Tooltip>
+
+  return <Page loading={!(data && uploadCommands)}>
+    <Box marginBottom={2}>
+      <Typography>
+        You can create an upload and upload files through this browser-based interface:
+      </Typography>
+    </Box>
+    <NewUploadButton color="primary" />
+    <Box marginTop={4}>
+      <Typography>
+        Or, you can create an upload by sending a file-archive via shell command:
+      </Typography>
+    </Box>
+    <Box marginBottom={-2}>
+      {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
+    </Box>
+    {(data?.pagination?.total || 0) > 0 && <React.Fragment>
+      <Box marginTop={2} marginBottom={2}>
+        <Divider/>
+      </Box>
+      <Paper>
+        <DataTable
+          entityLabels={['upload', 'uploads']}
+          id={upload => upload.upload_id}
+          total={data?.pagination?.total || 0}
+          columns={columns}
+          selectedColumns={['upload_id', 'name', 'create_time', 'entries', 'published']}
+          data={data?.data || []}
+          rows={data?.pagination?.page_size}
+          pagination={pagination}
+          entryActions={entryActions}
+        />
+      </Paper>
+    </React.Fragment>}
+  </Page>
+}
+
+export default withLoginRequired(UploadsPage)

@@ -1626,7 +1626,7 @@ class Upload(Proc):
 
         self.save()
 
-        if new_entry_metadata:
+        if new_entry_metadata and self.total_calcs > 0:
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
                 with utils.timer(logger, 'upload metadata updated'):

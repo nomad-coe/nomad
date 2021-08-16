@@ -80,7 +80,7 @@ export function Published(props) {
 export class EntryListUnstyled extends React.Component {
   static propTypes = {
     classes: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
+    data: PropTypes.object,
     query: PropTypes.object.isRequired,
     onChange: PropTypes.func,
     onEdit: PropTypes.func,
@@ -90,6 +90,7 @@ export class EntryListUnstyled extends React.Component {
     page: PropTypes.number.isRequired,
     per_page: PropTypes.number.isRequired,
     editable: PropTypes.bool,
+    editUserMetadataDialogProps: PropTypes.object,
     columns: PropTypes.object,
     title: PropTypes.string,
     actions: PropTypes.element,
@@ -153,21 +154,27 @@ export class EntryListUnstyled extends React.Component {
       supportsSort: true,
       description: 'The authors of this entry. This includes the uploader and its co-authors.'
     },
-    co_authors: {
-      label: 'co-Authors',
-      render: entry => nameList(entry.authors),
-      supportsSort: false,
-      description: 'The people that this entry was co authored with'
+    owners: {
+      label: 'Owner',
+      render: entry => nameList(entry.owners || []),
+      supportsSort: true,
+      description: 'The uploader and everybody that this entry is shared with.'
     },
-    shared_with: {
-      label: 'Shared with',
-      render: entry => nameList(entry.authors),
-      supportsSort: false,
-      description: 'The people that this entry was shared with'
-    },
+    // co_authors: {
+    //   label: 'co-Authors',
+    //   render: entry => nameList(entry.co_authors || []),
+    //   supportsSort: false,
+    //   description: 'The people that this entry was co authored with'
+    // },
+    // shared_with: {
+    //   label: 'Shared with',
+    //   render: entry => nameList(entry.shared_with || []),
+    //   supportsSort: false,
+    //   description: 'The people that this entry was shared with'
+    // },
     uploader: {
       label: 'Uploader',
-      render: entry => entry.uploader.name,
+      render: entry => entry.uploader?.name || '',
       supportsSort: true,
       description: 'The uploader of this entry.'
     },
@@ -296,7 +303,11 @@ export class EntryListUnstyled extends React.Component {
             <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
             <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
+            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard>
+              <Typography style={{flexGrow: 1}}>
+                <Link component={RouterLink} to={`/uploads/${row.upload_id}`}>{row.upload_id}</Link>
+              </Typography>
+            </Quantity>
           </Quantity>
         </div>
       </div>
@@ -343,8 +354,8 @@ export class EntryListUnstyled extends React.Component {
     const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, user, showAccessColumn, ...rest } = this.props
     const { selected } = this.state
 
-    const results = data.results || []
-    const total = data.pagination && data.pagination.total
+    const results = data?.results || data?.data || []
+    const total = data?.pagination.total
     const totalNumber = total || 0
 
     const columns = this.props.columns || {
@@ -362,6 +373,7 @@ export class EntryListUnstyled extends React.Component {
     }
 
     const pagination = <TablePagination
+      rowsPerPageOptions={[5, 10, 25, 50, 100]}
       count={totalNumber}
       rowsPerPage={per_page}
       page={page - 1}
@@ -376,7 +388,7 @@ export class EntryListUnstyled extends React.Component {
       {example && editable ? <EditUserMetadataDialog
         example={example} total={selected === null ? totalNumber : selected.length}
         onEditComplete={() => this.props.onEdit()}
-        {...props}
+        {...props} {...(this.props.editUserMetadataDialogProps || {})}
       /> : ''}
       <DownloadButton
         tooltip="Download files"
@@ -391,7 +403,7 @@ export class EntryListUnstyled extends React.Component {
         <DataTable
           entityLabels={domain ? [domain.entryLabel, domain.entryLabelPlural] : ['entry', 'entries']}
           selectActions={selectActions}
-          id={row => row.calc_id}
+          id={row => row.entry_id}
           total={total}
           columns={columns}
           selectedColumns={selectedColumns}

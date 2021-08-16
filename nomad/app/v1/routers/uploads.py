@@ -30,11 +30,12 @@ from nomad import utils, config, files, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
 from nomad.utils import strip
+from nomad.search.v1 import search
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
-    Files, files_parameters)
+    Files, files_parameters, WithQuery)
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem,
     create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
@@ -93,6 +94,9 @@ class UploadProcData(ProcData):
     last_status_message: Optional[str] = Field(
         None,
         description='The last informative message that the processing saved about this uploads status.')
+    entries: int = Field(
+        0,
+        description='The number of identified entries in this upload.')
 
 
 class EntryProcData(ProcData):
@@ -100,6 +104,7 @@ class EntryProcData(ProcData):
     mainfile: str = Field()
     upload_id: str = Field()
     parser: str = Field()
+    entry_metadata: Optional[dict] = Field()
 
 
 class UploadProcDataPagination(Pagination):
@@ -190,6 +195,10 @@ class EntryProcDataQueryResponse(BaseModel):
     processing_failed: int = Field(
         None, description=strip('''
         Number of entries that failed to process.
+        '''))
+    upload: UploadProcData = Field(
+        None, description=strip('''
+        The upload processing data of the upload.
         '''))
     data: List[EntryProcData] = Field(
         None, description=strip('''
@@ -443,13 +452,36 @@ async def get_upload_entries(
     entries = list(upload.all_calcs(start, end, order_by=(order_by_with_sign, 'calc_id')))
     failed_calcs = upload.failed_calcs
 
+    # load entries's metadata from search
+    metadata_entries_query = WithQuery(
+        query={
+            'entry_id:any': list([entry.entry_id for entry in entries])
+        }).query
+    metadata_entries = search(
+        pagination=Pagination(page_size=len(entries)),
+        owner='admin' if user.is_admin else 'visible',
+        user_id=user.user_id,
+        query=metadata_entries_query)
+    metadata_entries_map = {
+        metadata_entry['entry_id']: metadata_entry
+        for metadata_entry in metadata_entries.data}
+
+    # convert data to pydantic
+    data = []
+    for entry in entries:
+        pydantic_entry = _entry_to_pydantic(entry)
+        pydantic_entry.entry_metadata = metadata_entries_map.get(entry.entry_id)
+        data.append(pydantic_entry)
+
     pagination_response = PaginationResponse(total=upload.total_calcs, **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
+
     return EntryProcDataQueryResponse(
         pagination=pagination_response,
         processing_successful=upload.processed_calcs - failed_calcs,
         processing_failed=failed_calcs,
-        data=[_entry_to_pydantic(entry) for entry in entries])
+        upload=_upload_to_pydantic(upload),
+        data=data)
 
 
 @router.get(
@@ -475,9 +507,18 @@ async def get_upload_entry(
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             An entry by that id could not be found in the specified upload.'''))
-    return EntryProcDataResponse(
-        entry_id=entry_id,
-        data=_entry_to_pydantic(entry))
+
+    # load entries's metadata from search
+    metadata_entries = search(
+        pagination=Pagination(page_size=1),
+        owner='admin' if user.is_admin else 'visible',
+        user_id=user.user_id,
+        query=dict(entry_id=entry.entry_id))
+    data = _entry_to_pydantic(entry)
+    if len(metadata_entries.data) == 1:
+        data.entry_metadata = metadata_entries.data[0]
+
+    return EntryProcDataResponse(entry_id=entry_id, data=data)
 
 
 @router.get(
@@ -1353,11 +1394,14 @@ async def _get_file_if_provided(
                                     f'{uploaded_bytes // log_interval} {log_unit}')
                         next_log_at += log_interval
                 logger.info(f'Uploaded {uploaded_bytes} bytes')
-        except Exception:
-            if os.path.exists(tmp_dir):
-                shutil.rmtree(tmp_dir)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                    Some IO went wrong, download probably aborted/disrupted.'''))
+        except Exception as e:
+            if not (isinstance(e, RuntimeError) and 'Stream consumed' in str(e)):
+                if os.path.exists(tmp_dir):
+                    shutil.rmtree(tmp_dir)
+                logger.warn('IO error receiving upload data', exc_info=e)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Some IO went wrong, download probably aborted/disrupted.')
 
     if not uploaded_bytes and method == 2:
         # No data was provided
@@ -1459,7 +1503,9 @@ def _get_upload_with_write_access(
 
 def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
-    return UploadProcData.from_orm(upload)
+    pydantic_upload = UploadProcData.from_orm(upload)
+    pydantic_upload.entries = upload.total_calcs
+    return pydantic_upload
 
 
 def _entry_to_pydantic(entry: Calc) -> EntryProcData:

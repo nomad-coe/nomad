@@ -269,6 +269,45 @@ class Api {
       this.onFinishLoading(show)
     }
   }
+
+  async get(path, query) {
+    const method = (path, body, config) => this.axios.get(path, config)
+    return this.doHttpRequest(method, path, null, {params: query})
+  }
+
+  async post(path, body, config) {
+    const method = (path, body, config) => this.axios.post(path, body, config)
+    return this.doHttpRequest(method, path, body, config)
+  }
+
+  async put(path, body, config) {
+    const method = (path, body, config) => this.axios.put(path, body, config)
+    return this.doHttpRequest(method, path, body, config)
+  }
+
+  async delete(path, config) {
+    const method = (path, body, config) => this.axios.delete(path, config)
+    return this.doHttpRequest(method, path, null, config)
+  }
+
+  async doHttpRequest(method, path, body, config) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    config = config || {}
+    config.params = config.params || {}
+    config.headers = config.headers || {
+      accept: 'application/json',
+      ...auth.headers
+    }
+    try {
+      const results = await method(path, body, config)
+      return results.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
 }
 
 /**
@@ -357,4 +396,10 @@ LoginRequired.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]).isRequired
+}
+
+export function withLoginRequired(Component, message) {
+  return ({...props}) => <LoginRequired message={message}>
+    <Component {...props} />
+  </LoginRequired>
 }
