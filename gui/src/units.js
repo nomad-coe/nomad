@@ -39,6 +39,11 @@ export const unitsState = atom({
   default: defaults
 })
 
+const abbreviationMap = {}
+for (const [key, value] of Object.entries(unitMap)) {
+  abbreviationMap[value.abbreviation] = key
+}
+
 /**
  * Convenience hook for using the currently set units.
  * @returns Object containing the currently set units for each dimension (e.g.
@@ -70,22 +75,31 @@ export class Unit {
     // Modify unit definition to comply with math.js evaluation
     const from = unit.replace('**', '^')
 
-    // Create the math.js node tree from the unit definition. If a unit system
-    // is given, the units are also converted here.
+    // Create the math.js node tree from the unit definition. Unique
+    // abbreviations are translated to full unit names. If a unit system is
+    // given, the units are also converted here.
     let rootNode = parse(from)
-    if (system) {
-      rootNode = rootNode.transform((node, path, parent) => {
-        if (node.isSymbolNode) {
-          const unitFromInfo = unitMap[node.name]
-          if (unitFromInfo !== undefined) {
-            const dimension = unitFromInfo.dimension
-            const unitTo = system[dimension]
-            node.name = unitTo
+    rootNode = rootNode.transform((node, path, parent) => {
+      if (node.isSymbolNode) {
+        // First try the full unit name
+        let unitFromInfo = unitMap[node.name]
+        // Try the abbreviation
+        if (unitFromInfo === undefined) {
+          const fullName = abbreviationMap[node.name]
+          unitFromInfo = fullName && unitMap[fullName]
+          if (unitFromInfo) {
+            node.name = fullName
           }
         }
-        return node
-      })
-    }
+        // If unit system is given, perform the translation.
+        if (system && unitFromInfo !== undefined) {
+          const dimension = unitFromInfo.dimension
+          const unitTo = system[dimension]
+          node.name = unitTo
+        }
+      }
+      return node
+    })
     return rootNode
   }
   /**

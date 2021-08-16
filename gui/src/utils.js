@@ -398,12 +398,14 @@ export function isMetaTimestamp(quantity) {
  * formatting values associated with it.
  *
  * @param {string} quantity The metainfo name (full path)
+ * @param {bool} pretty Whether to format using a prettier, but possibly lossy
+ * format.
  *
  * @return {obj} Object with two entries:
  *   type = data type of the metainfo
  *   formatter = function for formatting values associated with this metainfo.
  */
-export function formatMeta(quantity) {
+export function formatMeta(quantity, pretty = true) {
   let type
   let formatter
   if (isMetaNumber(quantity)) {
@@ -413,26 +415,73 @@ export function formatMeta(quantity) {
         return value
       }
       if (value instanceof Quantity) {
+        let label
+        let valueConv
         if (units) {
-          return `${formatNumber(value.toSystem(units))} ${value.unit.label(units)}`
+          label = value.unit.label(units)
+          valueConv = value.toSystem(units)
+        } else {
+          label = value.unit.label()
+          valueConv = value.value
         }
-        return `${formatNumber(value.value)} ${value.unit.label()}`
+        return `${pretty ? formatNumber(valueConv) : valueConv}${label ? ` ${label}` : ''}`
       }
-      return formatNumber(value)
+      return pretty ? formatNumber(value) : value
     }
   } else if (isMetaTimestamp(quantity)) {
     type = 'timestamp'
-    formatter = (value, units) => {
+    formatter = (value) => {
       if (isNil(value)) {
         return value
       }
-      return format(fromUnixTime(value / 1000), dateFormat)
+      return pretty ? format(fromUnixTime(value / 1000), dateFormat) : value
     }
   } else {
     type = 'unknown'
     formatter = (value) => value
   }
   return {type, formatter}
+}
+
+/**
+ * Determines the data type of the given metainfo and returns a function for
+ * parsing values associated with it.
+ *
+ * @param {string} quantity The metainfo name (full path)
+ *
+ * @return {obj} Object with two entries:
+ *   type = data type of the metainfo
+ *   parser = function for formatting values associated with this metainfo.
+ */
+export function parseMeta(quantity, pretty = true) {
+  let type
+  let parser
+  if (isMetaNumber(quantity)) {
+    type = 'number'
+    parser = (value, units) => {
+      if (isNil(value)) {
+        return value
+      }
+      if (isString(value)) {
+        const split = value.split(' ')
+        value = Number(split[0])
+        return split.length === 1 ? value : new Quantity(value, split[1])
+      }
+      return pretty ? formatNumber(value) : value
+    }
+  } else if (isMetaTimestamp(quantity)) {
+    type = 'timestamp'
+    parser = (value) => {
+      if (isNil(value)) {
+        return value
+      }
+      return parseInt(value)
+    }
+  } else {
+    type = 'unknown'
+    parser = (value) => value
+  }
+  return {type, parser}
 }
 
 /**

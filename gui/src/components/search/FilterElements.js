@@ -47,6 +47,7 @@ const FilterElements = React.memo(({
   const styles = useStyles()
   const [exclusive, setExclusive] = useExclusiveState()
   const [filter, setFilter] = useFilterState('results.material.elements')
+  const [filterEx, setFilterEx] = useFilterState('results.material.elements_exclusive')
   const data = useAgg('results.material.elements', 'terms', false, visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
@@ -60,8 +61,8 @@ const FilterElements = React.memo(({
   }, [data])
 
   const handleElementsChanged = useCallback(elements => {
-    setFilter(elements)
-  }, [setFilter])
+    exclusive ? setFilterEx(elements) : setFilter(elements)
+  }, [exclusive, setFilterEx, setFilter])
 
   // If this panel is not visible, we hide the periodic table as it is very
   // expensive to re-render (it is rerendered always when the query changes).
@@ -69,7 +70,7 @@ const FilterElements = React.memo(({
     {visible &&
     <NewPeriodicTable
       availableValues={availableValues}
-      values={filter}
+      values={exclusive ? filterEx : filter}
       exclusive={exclusive}
       onChanged={handleElementsChanged}
       onExclusiveChanged={setExclusive}

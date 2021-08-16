@@ -20,7 +20,7 @@ import React from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil } from 'lodash'
+import { isNil, isPlainObject } from 'lodash'
 import FilterChip from './FilterChip'
 import { useFiltersState } from './FilterContext'
 import { formatMeta } from '../../utils'
@@ -71,7 +71,7 @@ const FilterSummary = React.memo(({
       const {metaType, formatter} = formatMeta(quantity)
       const isArray = filterValue instanceof Array
       const isSet = filterValue instanceof Set
-      const isObj = typeof filterValue === 'object' && filterValue !== null
+      const isObj = isPlainObject(filterValue)
       if (isArray || isSet) {
         filterValue.forEach((value, index) => {
           const displayValue = formatter(value, units)
@@ -119,7 +119,7 @@ const FilterSummary = React.memo(({
       } else {
         const item = <FilterChip
           key={chips.length}
-          label={`${filterAbbr}=${filterValue}`}
+          label={`${filterAbbr}=${formatter(filterValue)}`}
           onDelete={() => {
             setFilter([quantity, undefined])
           }}
