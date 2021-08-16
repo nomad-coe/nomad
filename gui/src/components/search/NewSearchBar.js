@@ -34,15 +34,26 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
 import { useUnits, getDimension, Quantity } from '../../units'
-import { isMetaNumber } from '../../utils'
-import { useFiltersState } from './FilterContext'
+import { isMetaNumber, isMetaTimestamp } from '../../utils'
 import {
+  useFiltersState,
   quantityFullnames,
-  quantityAbbreviations,
-  opMap,
-  opMapReverse
-} from './Complete'
+  quantityAbbreviations
+} from './FilterContext'
 import searchQuantities from '../../searchQuantities'
+
+const opMap = {
+  '<=': 'lte',
+  '>=': 'gte',
+  '>': 'gt',
+  '<': 'lt'
+}
+const opMapReverse = {
+  '<=': 'gte',
+  '>=': 'lte',
+  '>': 'lt',
+  '<': 'gt'
+}
 
 // Decides which options are shown
 const filterOptions = (options, {inputValue}) => {
@@ -239,10 +250,10 @@ const NewSearchBar = React.memo(({
     }
 
     if (valid) {
-      // Submit to search context on successful validation. Ranges simply
-      // override any previous value, scalar values are added to the current
-      // filter array/set
-      if (isPlainObject(queryValue)) {
+      // Submit to search context on successful validation. Ranges and numeric
+      // values simply override any previous value (sliders cannot show multiple
+      // values at once).
+      if (isPlainObject(queryValue) || isMetaNumber(quantityFullname) || isMetaTimestamp(quantityFullname)) {
         setFilter([quantityFullname, queryValue])
       } else {
         setFilter([quantityFullname, old => {

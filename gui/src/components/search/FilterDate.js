@@ -77,17 +77,25 @@ const FilterDate = React.memo(({
   const [error, setError] = useState()
   const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
-  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
+  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible)
   const disabled = startGlobal === null || endGlobal === null
 
-  // If no range has been specified by the user, the range is automatically
-  // adjusted according to global min/max of the field.
+  // If no filter has been specified by the user, the range is automatically
+  // adjusted according to global min/max of the field. If filter is set, the
+  // picker value is set according to it.
   useEffect(() => {
-    if (!isNil(endGlobal) && !isNil(startGlobal)) {
-      if (filter === undefined) {
-        setStartDate(new Date(startGlobal))
-        setEndDate(new Date(endGlobal))
+    let lte
+    let gte
+    if (!isNil(startGlobal) && !isNil(endGlobal)) {
+      if (isNil(filter)) {
+        gte = startGlobal
+        lte = endGlobal
+      } else {
+        gte = isNil(filter.gte) ? startGlobal : filter.gte
+        lte = isNil(filter.lte) ? endGlobal : filter.lte
       }
+      setStartDate(new Date(gte))
+      setEndDate(new Date(lte))
     }
   }, [startGlobal, endGlobal, filter])
 

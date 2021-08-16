@@ -91,7 +91,7 @@ const FilterSlider = React.memo(({
   const endChanged = useRef(false)
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
-  const [minGlobalSI, maxGlobalSI] = useAgg(quantity, 'min_max', true, visible && filter === undefined)
+  const [minGlobalSI, maxGlobalSI] = useAgg(quantity, 'min_max', true, visible)
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
   const [minLocal, setMinLocal] = useState(0)
@@ -128,15 +128,36 @@ const FilterSlider = React.memo(({
     setMaxText(isNil(range.lte) ? '' : format(toUnitSystem(range.lte, unitSI, units)))
   }, [range, units, unitSI])
 
-  // If no range has been specified by the user, the range is automatically
-  // adjusted according to global min/max of the field.
+  // If no filter has been specified by the user, the range is automatically
+  // adjusted according to global min/max of the field. If filter is set, the
+  // slider value is set according to it.
   useEffect(() => {
-    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI) && filter === undefined) {
-      setRange({gte: minGlobalSI, lte: maxGlobalSI})
-      setMinLocal(minGlobalSI)
-      setMaxLocal(maxGlobalSI)
-      setMinText(format(toUnitSystem(minGlobalSI, unitSI, units)))
-      setMaxText(format(toUnitSystem(maxGlobalSI, unitSI, units)))
+    let lte
+    let gte
+    let min
+    let max
+    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+      if (isNil(filter)) {
+        gte = minGlobalSI
+        lte = maxGlobalSI
+        min = minGlobalSI
+        max = maxGlobalSI
+      } else {
+        if (filter instanceof Quantity) {
+          gte = filter.toSI()
+          lte = filter.toSI()
+        } else {
+          gte = filter.gte ? filter.gte.toSI() : minGlobalSI
+          lte = filter.lte ? filter.lte.toSI() : maxGlobalSI
+        }
+        min = Math.min(gte, minGlobalSI)
+        max = Math.max(lte, maxGlobalSI)
+      }
+      setMinLocal(min)
+      setMaxLocal(max)
+      setRange({gte: gte, lte: lte})
+      setMinText(format(toUnitSystem(gte, unitSI, units)))
+      setMaxText(format(toUnitSystem(lte, unitSI, units)))
     }
   }, [minGlobalSI, maxGlobalSI, filter, unitSI, units])
 

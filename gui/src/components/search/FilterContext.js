@@ -25,15 +25,25 @@ import {
   useRecoilState,
   useRecoilCallback
 } from 'recoil'
-import { debounce, isEmpty } from 'lodash'
+import {
+  debounce,
+  isEmpty,
+  isArray,
+  isPlainObject,
+  isNil
+} from 'lodash'
+import qs from 'qs'
+import { useHistory } from 'react-router-dom'
 import { useApi } from '../apiV1'
-import { setToArray } from '../../utils'
+import { setToArray, formatMeta, parseMeta } from '../../utils'
 import { Quantity } from '../../units'
 
 let index = 0
 export const quantities = new Set()
 export const quantityGroups = new Map()
 export const quantityAggregations = new Map()
+export const quantityAbbreviations = new Map()
+export const quantityFullnames = new Map()
 export const labelMaterial = 'Material'
 export const labelElements = 'Elements / Formula'
 export const labelSymmetry = 'Symmetry'
@@ -45,9 +55,10 @@ export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 
 /**
- * This function is used to register a quantity within the FilterContext. Only
- * registered quantities may be searched for. The registration must happen
- * before any components use the filters associated with quantities (this is
+ * This function is used to register a quantity within the FilterContext.
+ *
+ * Only registered quantities may be searched for. The registration must happen
+ * before any components use the filters associated with quantities. This is
  * because:
  *  - The initial aggregation results must be fetched before any components
  *  using the filter values are rendered.
@@ -68,6 +79,16 @@ function registerQuantity(name, group, agg) {
   if (agg) {
     quantityAggregations[name] = agg
   }
+  const abbreviation = name.split('.').pop()
+  const oldName = quantityAbbreviations.get(abbreviation)
+  if (oldName === undefined) {
+    quantityAbbreviations.set(name, abbreviation)
+    quantityFullnames.set(abbreviation, name)
+  } else {
+    quantityFullnames.delete(abbreviation)
+    quantityAbbreviations.set(name, name)
+    quantityAbbreviations.set(oldName, oldName)
+  }
 }
 
 registerQuantity('results.material.structural_type', labelMaterial, 'terms')
@@ -75,6 +96,7 @@ registerQuantity('results.material.functional_type', labelMaterial, 'terms')
 registerQuantity('results.material.compound_type', labelMaterial, 'terms')
 registerQuantity('results.material.material_name', labelMaterial)
 registerQuantity('results.material.elements', labelElements, 'terms')
+registerQuantity('results.material.elements_exclusive', labelElements, 'terms')
 registerQuantity('results.material.chemical_formula_hill', labelElements)
 registerQuantity('results.material.chemical_formula_anonymous', labelElements)
 registerQuantity('results.material.n_elements', labelElements, 'min_max')
@@ -133,6 +155,12 @@ export function useSetMenuOpen() {
   return useSetRecoilState(menuOpen)
 }
 
+// Whether the search is initialized.
+export const initialized = atom({
+  key: 'initialized',
+  default: false
+})
+
 // Exclusive search state
 export const exclusive = atom({
   key: 'exclusive',
@@ -142,10 +170,27 @@ export function useExclusive() {
   return useRecoilValue(exclusive)
 }
 export function useExclusiveState() {
-  return useRecoilState(exclusive)
+  const value = useRecoilValue(exclusive)
+  const setter = useSetExclusive()
+  return [value, setter]
 }
 export function useSetExclusive() {
-  return useSetRecoilState(exclusive)
+  const setter = useSetRecoilState(exclusive)
+  const [elements, setElements] = useRecoilState(queryFamily('results.material.elements'))
+  const [elementsEx, setElementsEx] = useRecoilState(queryFamily('results.material.elements_exclusive'))
+
+  const set = useCallback((exclusive) => {
+    setter(exclusive)
+    if (exclusive) {
+      setElements(new Set())
+      setElementsEx(elements)
+    } else {
+      setElements(elementsEx)
+      setElementsEx(new Set())
+    }
+  }, [elements, elementsEx, setElements, setElementsEx, setter])
+
+  return set
 }
 
 /**
@@ -245,6 +290,10 @@ export function useFiltersState(quantities) {
 const queryState = selector({
   key: 'query',
   get: ({get}) => {
+    const inited = get(initialized)
+    if (!inited) {
+      return undefined
+    }
     let query = {}
     for (let key of quantities) {
       const filter = get(queryFamily(key))
@@ -253,10 +302,137 @@ const queryState = selector({
       }
     }
     return query
+  },
+  set: ({ get, set, reset }, data) => {
+    set(initialized, true)
+    for (let filter of quantities) {
+      reset(queryFamily(filter))
+    }
+    if (data) {
+      for (const [key, value] of Object.entries(data)) {
+        set(queryFamily(key), value)
+      }
+    }
   }
 })
+
+/**
+ * Hook used to initialize the query. Must be called once before any results can
+ * be fetched. By default uses the URL query string to initialize the query.
+*/
+export function useInitQuery() {
+  const setQuery = useSetRecoilState(queryState)
+  const setInitialized = useSetRecoilState(initialized)
+
+  // If a query string is available, initialize the query from it. No results
+  // are returned by this hook until the setQuery has made its round back. This
+  // prevents double renders.
+  useEffect(() => {
+    const location = window.location.href
+    const queryString = location.split('?')
+    const qs = queryString.length !== 1 && qsToQuery(queryString.pop())
+    setInitialized(true)
+    setQuery(qs || {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+}
+
 export function useQuery() {
   return useRecoilValue(queryState)
+}
+
+/**
+ * Hook for writing a query object to the query string.
+ *
+ * @returns {object} Object containing the search object.
+ */
+export function useUpdateQueryString() {
+  const history = useHistory()
+
+  const updateQueryString = useCallback((query) => {
+    const queryString = queryToQs(query)
+    history.replace(history.location.pathname + '?' + queryString)
+  }, [history])
+
+  return updateQueryString
+}
+
+/**
+ * Converts a query string into a valid query object.
+ *
+ * @param {string} queryString URL querystring, encoded or not.
+ * @returns Returns an object containing the filters. Values are converted into
+ * datatypes that are directly compatible with the filter components.
+ */
+function qsToQuery(queryString) {
+  const query = qs.parse(queryString, { comma: true })
+  const newQuery = {}
+  for (let [key, value] of Object.entries(query)) {
+    const split = key.split(':')
+    key = split[0]
+    let newKey = quantityFullnames.get(key) || key
+    const {type, parser} = parseMeta(newKey)
+    if (split.length !== 1) {
+      const op = split[1]
+      const oldValue = newQuery[newKey]
+      if (!oldValue) {
+        newQuery[newKey] = {[op]: parser(value)}
+      } else {
+        newQuery[newKey][op] = parser(value)
+      }
+    } else {
+      if (isArray(value)) {
+        value = new Set(value)
+      } else if (isPlainObject(value)) {
+        if (!isNil(value.gte)) {
+          value.gte = parser(value.gte)
+        }
+        if (!isNil(value.lte)) {
+          value.lte = parser(value.lte)
+        }
+      } else {
+        value = parser(value)
+        if (type !== 'number' && type !== 'timestamp') {
+          value = new Set([value])
+        }
+      }
+      newQuery[newKey] = value
+    }
+  }
+  return newQuery
+}
+
+/**
+ * Converts a query into a valid query string.
+ * @param {object} query A query object representing the currently active
+ * filters.
+ * @returns URL querystring, not encoded if possible to improve readability.
+ */
+function queryToQs(query) {
+  const newQuery = {}
+  for (const [key, value] of Object.entries(query)) {
+    const {formatter} = formatMeta(key, false)
+    let newValue
+    const newKey = quantityAbbreviations.get(key)
+    if (isPlainObject(value)) {
+      if (!isNil(value.gte)) {
+        newQuery[`${newKey}:gte`] = formatter(value.gte)
+      }
+      if (!isNil(value.lte)) {
+        newQuery[`${newKey}:lte`] = formatter(value.lte)
+      }
+    } else {
+      if (isArray(value)) {
+        newValue = value.map(formatter)
+      } else if (value instanceof Set) {
+        newValue = [...value].map(formatter)
+      } else {
+        newValue = formatter(value)
+      }
+      newQuery[newKey] = newValue
+    }
+  }
+  return qs.stringify(newQuery, {indices: false, encode: false})
 }
 
 /**
@@ -439,7 +615,8 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 40
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
-  const query = useQuery()
+  const query = useQuery(true)
+  const updateQueryString = useUpdateQueryString()
   const pageAfterValue = useRef()
   const searchRef = useRef()
   const loading = useRef(false)
@@ -499,12 +676,18 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 40
   // Whenever the query changes, we make a new query that resets pagination and
   // shows the first batch of results.
   useEffect(() => {
+    // If the initial query is not yet ready, do nothing
+    if (query === undefined) {
+      return
+    }
     if (firstRender.current) {
       apiCall(query, pageSize, orderBy, order, exclusive)
       firstRender.current = false
     } else {
+      updateQueryString(query)
       debounced(query, pageSize, orderBy, order, exclusive)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
@@ -539,19 +722,22 @@ export function cleanQuery(query, exclusive) {
   for (let [k, v] of Object.entries(query)) {
     let newValue
 
-    // Special handling for elements. There are two search modes: exclusive and
-    // inclusive.
+    // If a regular elements query is made, we add the ':all'-prefix.
     if (k === 'results.material.elements') {
       if (v.size === 0) {
         continue
       }
-      if (exclusive) {
-        k = 'results.material.elements_exclusive'
-        newValue = setToArray(v).sort().join(' ')
-      } else {
-        k = `${k}:all`
-        newValue = setToArray(v)
+      k = `${k}:all`
+      newValue = setToArray(v)
+    // If an exlusive elements query is made, we sort the elements and
+    // concatenate them into a single string. This value we can then use to
+    // target the special field reserved for exclusive queries. TODO: Maybe the
+    // API could directly support an ':only'-postfix?
+    } else if (k === 'results.material.elements_exclusive') {
+      if (v.size === 0) {
+        continue
       }
+      newValue = setToArray(v).sort().join(' ')
     } else {
       if (v instanceof Set) {
         newValue = setToArray(v)
@@ -563,14 +749,14 @@ export function cleanQuery(query, exclusive) {
         k = `${k}:any`
       } else if (v instanceof Quantity) {
         newValue = v.toSI()
-      } else if (Array.isArray(v)) {
+      } else if (isArray(v)) {
         if (v.length === 0) {
           newValue = undefined
         } else {
           newValue = v.map((item) => item instanceof Quantity ? item.toSI() : item)
         }
         k = `${k}:any`
-      } else if (typeof v === 'object' && v !== null) {
+      } else if (isPlainObject(v)) {
         newValue = cleanQuery(v, exclusive)
       } else {
         newValue = v
