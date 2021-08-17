@@ -17,6 +17,7 @@
 #
 
 import numpy as np
+from numpy.core.fromnumeric import repeat
 
 from nomad.metainfo import (
     MSection, MCategory, Package, Quantity, SubSection, Datetime)
@@ -96,8 +97,6 @@ class Sample(SectionWithNotes):
 
     sample_constituents = Quantity(
         type=str, description='The constituents.')
-
-    spectrum_region = Quantity(type=str, shape=[])
 
     section_material = SubSection(sub_section=SampleMaterial, repeats=True)
 
@@ -186,21 +185,21 @@ class Metadata(MSection):
     section_sample = SubSection(sub_section=Sample)
     section_experiment = SubSection(sub_section=Experiment)
     section_instrument = SubSection(sub_section=Instrument)
-    section_data_header = SubSection(sub_section=DataHeader)
     section_origin = SubSection(sub_section=Origin)
 
 
 class Spectrum(MSection):
     n_values = Quantity(type=int)
-    excitation_energy_expected = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='J', description='The expected excitation energy range of the spectrum')
-    excitation_energy_actual = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='J', description='The actual excitation energy range of the spectrum')
     count = Quantity(type=np.dtype(np.float64), shape=['n_values'], description='The count at each energy value, dimensionless')
-    ring_current = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='A', description='Ring current')
-    total_electron_yield = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='V', description='Total electron yield')
-    mirror_current = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='V', description='Mirror current')
     energy = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='J', description='The energy range of the spectrum')
-    count_rate = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='1/s')
-    kinetic_energy = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit='J')
+
+    spectrum_region = Quantity(type=str, shape=[])
+
+    more_channel_data = Quantity(
+        type=np.dtype(np.float64), shape=['n_channels', 'n_values'],
+        description='Additional channel data according to `more_channel_data_header`.')
+    n_more_channels = Quantity(type=int, derived=lambda spectrum: len(spectrum.more_channel_data))
+    more_channel_data_header = SubSection(sub_section=DataHeader, repeats=True)
 
 
 class Data(MSection):

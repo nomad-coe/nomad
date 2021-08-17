@@ -72,7 +72,7 @@ parser_examples = [
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
     ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
     ('parsers/eels', 'tests/data/parsers/eels.json'),
-    ('parsers/xps', 'tests/data/parsers/xps.json'),
+    ('parsers/xps', 'tests/data/parsers/xps/multiple_channels.xy'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
