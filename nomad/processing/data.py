@@ -628,7 +628,7 @@ class Calc(Proc):
                 datamodel.EntryArchive.section_metadata, self._entry_metadata)
 
         for normalizer in normalizers:
-            if normalizer.domain != parser_dict[self.parser].domain:
+            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser].domain:
                 continue
 
             normalizer_name = normalizer.__name__

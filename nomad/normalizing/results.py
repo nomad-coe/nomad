@@ -39,6 +39,7 @@ from nomad.datamodel.results import (
     GeometryOptimizationProperties,
     GeometryOptimizationMethod,
     Properties,
+    Spectra,
     Symmetry,
     Structures,
     Structure,
@@ -102,17 +103,61 @@ def isint(value: Any) -> bool:
 
 
 class ResultsNormalizer(Normalizer):
-    """Populates the results section in the metainfo.
-    """
+    domain = None
+
     def normalize(self, logger=None) -> None:
         # Setup logger
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
-        # Do nothing if section_run is not present
-        if self.section_run is None:
-            return
+        if self.section_run:
+            self.normalize_run(logger=self.logger)
 
+        if self.entry_archive.section_measurement and len(self.entry_archive.section_measurement) > 0:
+            self.normalize_measurment(self.entry_archive.section_measurement[0], logger=self.logger)
+
+    def normalize_measurment(self, measurement, logger) -> None:
+        results = self.entry_archive.results
+        if results is None:
+            results = self.entry_archive.m_create(Results)
+
+        # Method
+        if results.method is None:
+            results.m_create(Method)
+        method_name = measurement.section_metadata.section_experiment.method_name
+        if method_name == 'electron energy loss spectroscopy':
+            results.method.method_name = 'EELS'
+        elif method_name == 'XPS':
+            results.method.method_name = 'XPS'
+        else:
+            logger.error('unknown measurment method', data=results.method.method_name)
+
+        # Material
+        if results.material is None:
+            results.m_create(Material)
+        try:
+            material = measurement.section_metadata.section_sample.section_material[0]
+            results.material.elements = material.elements if material.elements else []
+            if material.formula:
+                atoms = ase.Atoms(material.formula)
+                results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
+                results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+                results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+        except Exception as e:
+            logger.warn('could not extract results material', exc_info=e)
+
+        # Properties
+        if measurement.section_data.section_spectrum:
+            if results.properties is None:
+                results.m_create(Properties)
+            if results.properties.spectra is None:
+                results.properties.m_create(Spectra)
+            if results.method.method_name == 'EELS':
+                results.properties.spectra.eels = measurement.section_data.section_spectrum
+            else:
+                results.properties.spectra.other_spectrum = measurement.section_data.section_spectrum
+
+    def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered
         repr_sys = None
         for section in self.section_run.section_system:

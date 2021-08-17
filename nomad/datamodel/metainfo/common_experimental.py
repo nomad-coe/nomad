@@ -17,7 +17,6 @@
 #
 
 import numpy as np
-from numpy.core.fromnumeric import repeat
 
 from nomad.metainfo import (
     MSection, MCategory, Package, Quantity, SubSection, Datetime)
