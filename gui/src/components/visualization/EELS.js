@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import React, {useState, useEffect, useMemo} from 'react'
-import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import clsx from 'clsx'
@@ -24,7 +23,8 @@ import {
   Box
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
-import { convertSI, convertSILabel, mergeObjects } from '../../utils'
+import { mergeObjects } from '../../utils'
+import { toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const useStyles = makeStyles({
@@ -34,9 +34,8 @@ const useStyles = makeStyles({
 /**
  * Graph for EELS (electron energy loss specroscopy) data.
  */
-function EELS({data, layout, aspectRatio, className, classes, unitsState, ...other}) {
+function EELS({data, layout, aspectRatio, className, classes, units, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
-  const units = useRecoilValue(unitsState)
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -49,7 +48,7 @@ function EELS({data, layout, aspectRatio, className, classes, unitsState, ...oth
       xaxis: {
         showexponent: 'first',
         title: {
-          text: `Electron energy loss (${convertSILabel('joule', units)})`
+          text: `Electron energy loss (joule)`
         }
       }
     }
@@ -67,7 +66,7 @@ function EELS({data, layout, aspectRatio, className, classes, unitsState, ...oth
       return
     }
     const plotData = []
-    let energies = convertSI(data.energy, 'joule', units, false)
+    const energies = toUnitSystem(data.energy, 'joule', units)
     plotData.push(
       {
         x: energies,
@@ -107,7 +106,7 @@ EELS.propTypes = {
   aspectRatio: PropTypes.number,
   classes: PropTypes.object,
   className: PropTypes.string,
-  unitsState: PropTypes.object // Recoil atom containing the unit configuration
+  units: PropTypes.object
 }
 
 export default withErrorHandler(EELS, 'Could not load EELS data.')

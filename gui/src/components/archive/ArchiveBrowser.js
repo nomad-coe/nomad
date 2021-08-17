@@ -524,7 +524,7 @@ function Overview({section, def, parent, units}) {
       data={section}
       layout={{yaxis: {autorange: true}}}
       aspectRatio={2}
-      unitsState={unitsState}
+      units={units}
     ></EELS>
   }
   return null

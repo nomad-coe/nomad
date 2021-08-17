@@ -157,6 +157,7 @@ const routeSpecs = [
     ]
   },
   {
+    exact: true,
     path: '/uploads/:uploadId',
     title: 'Upload',
     navPath: 'publish/uploads',

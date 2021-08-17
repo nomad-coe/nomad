@@ -70,9 +70,9 @@ parser_exceptions = {
     'parser/molcas': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
     'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/band': ['dft.system'],
-    'parsers/qbox': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/qbox': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parser/onetep': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/xps': ['formula', 'atoms']
 }
