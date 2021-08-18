@@ -123,7 +123,7 @@ export default function ProcessingTable({data, onPaginationChange}) {
       onChange={handleChange}
       // actions={actions}
       // showEntryActions={entry => entry.processed || !running}
-      showEntryActions={entry => entry.processed}
+      showEntryActions={entry => !entry.process_running}
       entryPagePathPrefix="/uploads"
       per_page={data.pagination.page_size}
       page={data.pagination.page}

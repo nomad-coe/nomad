@@ -16,29 +16,21 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Typography } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
+import { Card, CardContent, CardHeader } from '@material-ui/core'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-  },
-  title: {
-    marginBottom: theme.spacing(1)
-  }
-}))
-export default function PropertyContainer({title, className, classes, children}) {
-  const styles = useStyles({classes: classes})
-  return <div className={clsx(className, styles.root)}>
-    <Typography variant="subtitle1" align='center' className={styles.title}>{title}</Typography>
-    {children}
-  </div>
+export default function PropertyCard({children, ...headerProps}) {
+  return <Card>
+    <CardHeader {...headerProps} />
+    <CardContent>
+      {children}
+    </CardContent>
+  </Card>
 }
 
-PropertyContainer.propTypes = {
-  title: PropTypes.string,
-  className: PropTypes.string,
-  classes: PropTypes.object,
-  children: PropTypes.any
+PropertyCard.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 }

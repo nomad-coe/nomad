@@ -41,11 +41,6 @@ const common = {
   mainfile: 'vasp.xml',
   formula: 'Si2'
 }
-const commonOld = {
-  ...common, 
-  calc_id: 'dft_bulk_old',
-  entry_id: 'dft_bulk_old',
-}
 
 const workflow = {
   workflow_type: 'phonon',
@@ -58,39 +53,6 @@ const crystalSystem = 'cubic'
 const vdwMethod = 'G06'
 const relativityMethod = 'scalar_relativistic_atomic_ZORA'
 const basisSetName = 'STO-3G'
-
-// Indexed data that is specific to section_metadata
-const metaDftBulk = {
-  dft: {
-    code_name: 'VASP',
-    code_version: '1',
-    xc_functional: 'GGA',
-    xc_functional_names: ['GGA_C_PBE', 'GGA_X_PBE'],
-    basis_set: 'plane waves',
-    system: materialType,
-    crystal_system: crystalSystem,
-    spacegroup_symbol: 'Fd-3m',
-    spacegroup: 227,
-    searchable_quantities: [
-      'electronic_dos',
-      'electronic_band_structure',
-      'phonon_dos',
-      'phonon_band_structure',
-      'thermodynamical_property_heat_capacity_C_v',
-      'vibrational_free_energy_at_constant_volume'
-    ]
-  },
-  encyclopedia: {
-    material: {
-      material_id: 'Mock material id',
-      material_type: materialType,
-      material_name: materialName,
-      bulk: {
-        crystal_system: crystalSystem
-      }
-    }
-  }
-}
 
 // Indexed data that is specific to results
 const resultsDftBulk = {
@@ -245,31 +207,15 @@ const run = [{
 // Results for a repository API query
 export const repoDftBulk = {
   ...common,
-  ...metaDftBulk,
   results: {...resultsDftBulk}
-}
-
-export const repoDftBulkOld = {
-  ...commonOld,
-  ...metaDftBulk
 }
 
 // Result for an archive API query
 export const archiveDftBulk = {
   section_metadata: {
     ...common,
-    ...metaDftBulk,
   },
   section_workflow: {...workflow},
   results: {...resultsDftBulk},
-  section_run: run
-}
-
-export const archiveDftBulkOld = {
-  section_metadata: {
-    ...commonOld,
-    ...metaDftBulk,
-  },
-  section_workflow: {...workflow},
   section_run: run
 }

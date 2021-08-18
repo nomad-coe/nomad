@@ -489,6 +489,12 @@ class ResultsNormalizer(Normalizer):
                 dos_new.densities = dos
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
+                for info in dos.channel_info:
+                    info_new = dos_new.m_create(ChannelInfo)
+                    info_new.index = info.index
+                    info_new.energy_highest_occupied = info.energy_highest_occupied
+                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None

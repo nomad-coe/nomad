@@ -83,6 +83,7 @@ export default function OverviewView({uploadId, entryId}) {
       <domain.EntryOverview data={entry.data}/>
     </EntryPageContent>
   }
+
   return null
 }
 

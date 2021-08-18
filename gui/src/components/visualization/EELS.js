@@ -53,7 +53,7 @@ function EELS({data, layout, aspectRatio, className, classes, units, ...other}) 
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, units])
+  }, [layout])
 
   // Styles
   const style = useStyles(classes)

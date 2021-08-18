@@ -928,6 +928,11 @@ class DOSElectronic(DOS):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
+    channel_info = SubSection(
+        sub_section=ChannelInfo.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
 
 
 class BandStructure(MSection):

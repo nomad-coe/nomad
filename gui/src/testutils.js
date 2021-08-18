@@ -23,15 +23,13 @@ import { render } from '@testing-library/react'
 import { apiContext as apiContextV0 } from './components/api'
 import { Router } from 'react-router-dom'
 import {
-  archiveDftBulk,
-  archiveDftBulkOld
+  archiveDftBulk
 } from '../tests/DFTBulk'
 import { createBrowserHistory } from 'history'
 
 // Map from entry_id/calc_id to an archive
 export const archives = new Map()
 archives.set(archiveDftBulk.section_metadata.entry_id, archiveDftBulk)
-archives.set(archiveDftBulkOld.section_metadata.entry_id, archiveDftBulkOld)
 
 // TODO is the keycloak mock realy necessary/used? Test should not require this because
 // its all in the API and can be mocked there.
