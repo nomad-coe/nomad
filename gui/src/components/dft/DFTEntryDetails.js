@@ -22,7 +22,7 @@ import Quantity from '../Quantity'
 import _ from 'lodash'
 import {appBase, encyclopediaEnabled, normalizeDisplayValue} from '../../config'
 
-export default function DFTEntryOverview({data}) {
+export default function DFTEntryDetails({data}) {
   if (!data?.dft) {
     return <Typography color="error">No metadata available</Typography>
   }
@@ -73,6 +73,6 @@ export default function DFTEntryOverview({data}) {
   </div>
 }
 
-DFTEntryOverview.propTypes = {
+DFTEntryDetails.propTypes = {
   data: PropTypes.object.isRequired
 }

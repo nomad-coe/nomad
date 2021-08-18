@@ -22,42 +22,47 @@ import { renderWithAPIRouter, archives, wait } from '../../testutils'
 import { screen } from '@testing-library/react'
 import { waitFor, within } from '@testing-library/dom'
 import '@testing-library/jest-dom/extend-expect'
-import DFTEntryOverview from './DFTEntryOverview'
 import {
   repoDftBulk
 } from '../../../tests/DFTBulk'
 import { useApi } from '../apiV1'
+import OverviewView from './OverviewView'
 
 jest.mock('../apiV1')
 
 beforeAll(() => {
   useApi.mockReturnValue({
-    results: entry_id => wait(archives.get(entry_id))
+    results: entry_id => wait(archives.get(entry_id)),
+    entry: () => wait({
+      entry_id: repoDftBulk.entry_id,
+      data: repoDftBulk
+    })
   })
 })
 
 afterAll(() => jest.unmock('../apiV1'))
 
-test('correctly renders method and material data', async () => {
+function expectPlotButtons(plot) {
+  expect(within(plot).getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
+  expect(within(plot).getByRole('button', {name: 'Toggle fullscreen'})).toBeInTheDocument()
+  expect(within(plot).getByRole('button', {name: 'Capture image'})).toBeInTheDocument()
+  expect(within(plot).getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
+}
+
+test('correctly renders metadata and all properties', async () => {
   const entry = repoDftBulk
   const results = entry.results
 
   renderWithAPIRouter(
-    <DFTEntryOverview
-      data={repoDftBulk}
-    ></DFTEntryOverview>
+    <OverviewView entryId={repoDftBulk.entry_id} uploadId="dont-care" />
   )
-  // Wait for the component to update to its final state before performing the
-  // tests. This prevents the test from removing the component before the API
-  // call is finished (leading to "Can't perform a React state update on an
-  // unmounted component...") and also removes the warning about the component
-  // doing something unexpected ("An update to ...  inside a test was not
-  // wrapped in act(...)")
-  const dos_electronic_placeholder = screen.getByTestId('dos-electronic-placeholder')
+
+  // Wait to load the entry metadata, i.e. wait for an arbitrary placeholder to appear
   await waitFor(() => {
-    expect(dos_electronic_placeholder).not.toBeInTheDocument()
+    expect(screen.getByTestId('dos-electronic-placeholder')).toBeInTheDocument()
   })
 
+  // Check if all method quantities are shown (on the left)
   const method = results.method.simulation
   const code_name = screen.getByTitle('The name of the used program.')
   expect(within(code_name).getByText('program name')).toBeInTheDocument()
@@ -84,6 +89,7 @@ test('correctly renders method and material data', async () => {
   expect(within(relativity).getByText('relativity method')).toBeInTheDocument()
   expect(within(relativity).getByText(method.dft.relativity_method)).toBeInTheDocument()
 
+  // Check if all metadata is shown (on the left)
   const comment = screen.getByTitle('A user provided comment for this entry')
   expect(within(comment).getByText('comment')).toBeInTheDocument()
   expect(within(comment).getByText(entry.comment)).toBeInTheDocument()
@@ -118,6 +124,7 @@ test('correctly renders method and material data', async () => {
   expect(within(processing_version).getByText('processing version')).toBeInTheDocument()
   expect(within(processing_version).getByText(`${entry.nomad_version}/${entry.nomad_commit}`)).toBeInTheDocument()
 
+  // Check if all material data is shown (on the right, in the materials card)
   const material = results.material
   const formula = screen.getByTitle('The chemical formula for a structure in Hill form with element symbols followed by integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.')
   expect(within(formula).getByText('formula')).toBeInTheDocument()
@@ -138,53 +145,11 @@ test('correctly renders method and material data', async () => {
   expect(within(method_name).getByText('method name')).toBeInTheDocument()
   expect(within(method_name).getByText('DFT')).toBeInTheDocument()
 
-  // The test DOM does not support canvas or WebGL, and trying to add mocks for
-  // them does not seem to work ATM.  Thus we expect a message saying that the
-  // 3D viewers are disabled.
-  const msgs = screen.getAllByText('Could not display the visualization as your browser does not support WebGL content.')
-  expect(msgs).toHaveLength(2)
-})
-
-function expectPlotButtons(plot) {
-  expect(within(plot).getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
-  expect(within(plot).getByRole('button', {name: 'Toggle fullscreen'})).toBeInTheDocument()
-  expect(within(plot).getByRole('button', {name: 'Capture image'})).toBeInTheDocument()
-  expect(within(plot).getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
-}
-
-test('correctly renders electronic properties', async () => {
-  renderWithAPIRouter(
-    <DFTEntryOverview
-      data={repoDftBulk}
-    ></DFTEntryOverview>
-  )
-
+  // Check if all the property cards are shown
   expect(screen.getByText('Electronic properties')).toBeInTheDocument()
   expect(screen.getByText('Band structure')).toBeInTheDocument()
   expect(screen.getByText('Density of states')).toBeInTheDocument()
   expect(screen.getByText('Brillouin zone')).toBeInTheDocument()
-
-  // Placeholders are shown in the beginning but removed when plot is loaded.
-  const dosElectronicPlaceholder = screen.getByTestId('dos-electronic-placeholder')
-  expect(dosElectronicPlaceholder).toBeInTheDocument()
-  const bsElectronicPlaceholder = screen.getByTestId('bs-electronic-placeholder')
-  expect(bsElectronicPlaceholder).toBeInTheDocument()
-  await waitFor(() => { expect(dosElectronicPlaceholder).not.toBeInTheDocument() })
-  await waitFor(() => { expect(bsElectronicPlaceholder).not.toBeInTheDocument() })
-
-  // Check that plot buttons are displayed
-  const dosElectronic = screen.getByTestId('dos-electronic')
-  expectPlotButtons(dosElectronic)
-  const bsElectronic = screen.getByTestId('bs-electronic')
-  expectPlotButtons(bsElectronic)
-})
-
-test('correctly renders vibrational properties', async () => {
-  renderWithAPIRouter(
-    <DFTEntryOverview
-      data={repoDftBulk}
-    ></DFTEntryOverview>
-  )
 
   expect(screen.getByText('Vibrational properties')).toBeInTheDocument()
   expect(screen.getByText('Phonon dispersion')).toBeInTheDocument()
@@ -192,7 +157,7 @@ test('correctly renders vibrational properties', async () => {
   expect(screen.getByText('Heat capacity')).toBeInTheDocument()
   expect(screen.getByText('Helmholtz free energy')).toBeInTheDocument()
 
-  // Placeholders are shown in the beginning but removed when plot is loaded.
+  // Check for all visualization placeholder are shown
   const dosPhononPlaceholder = screen.getByTestId('dos-phonon-placeholder')
   expect(dosPhononPlaceholder).toBeInTheDocument()
   const bsPhononPlaceholder = screen.getByTestId('bs-phonon-placeholder')
@@ -201,10 +166,30 @@ test('correctly renders vibrational properties', async () => {
   expect(heatCapacityPlaceholder).toBeInTheDocument()
   const energyFreePlaceholder = screen.getByTestId('energy-free-placeholder')
   expect(energyFreePlaceholder).toBeInTheDocument()
+  const dosElectronicPlaceholder = screen.getByTestId('dos-electronic-placeholder')
+  expect(dosElectronicPlaceholder).toBeInTheDocument()
+  const bsElectronicPlaceholder = screen.getByTestId('bs-electronic-placeholder')
+  expect(bsElectronicPlaceholder).toBeInTheDocument()
+
+  // Check if all placeholders disappear
+  await waitFor(() => { expect(dosElectronicPlaceholder).not.toBeInTheDocument() })
+  await waitFor(() => { expect(bsElectronicPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(dosPhononPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(bsPhononPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(heatCapacityPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(energyFreePlaceholder).not.toBeInTheDocument() })
+
+  // The test DOM does not support canvas or WebGL, and trying to add mocks for
+  // them does not seem to work ATM.  Thus we expect a message saying that the
+  // 3D viewers are disabled.
+  const msgs = screen.getAllByText('Could not display the visualization as your browser does not support WebGL content.')
+  expect(msgs).toHaveLength(2)
+
+  // Check that plot buttons are displayed
+  const dosElectronic = screen.getByTestId('dos-electronic')
+  expectPlotButtons(dosElectronic)
+  const bsElectronic = screen.getByTestId('bs-electronic')
+  expectPlotButtons(bsElectronic)
 
   // Check that plot buttons are displayed
   const bsPhonon = screen.getByTestId('bs-phonon')

@@ -15,31 +15,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { domainComponents } from '../domainComponents'
 import { useApi } from '../apiV1'
 import { EntryPageContent } from './EntryPage'
-import { errorContext } from '../errors'
-import { Typography, makeStyles } from '@material-ui/core'
+import { useErrors } from '../errors'
+import { Typography, makeStyles, Box, Grid, Link, Divider } from '@material-ui/core'
+import { ApiDialog } from '../ApiDialogButton'
+import Actions from '../Actions'
+import Quantity from '../Quantity'
+import { Link as RouterLink } from 'react-router-dom'
+import { DOI } from '../search/DatasetList'
+import { authorList } from '../../utils'
+import searchQuantities from '../../searchQuantities'
+import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
+import MaterialCard from '../entry/properties/MaterialCard'
+import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
+import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
+import SpectrumCard from './properties/SpectrumCard'
+
+function MetadataSection({title, children}) {
+  return <Box marginTop={2} marginBottom={2}>
+    {title && <Typography component="div">
+      <Box fontSize="h6.fontSize" marginBottom={1}>
+        {title}
+      </Box>
+    </Typography>}
+    {children}
+  </Box>
+}
+
+MetadataSection.propTypes = {
+  title: PropTypes.string,
+  children: PropTypes.any
+}
 
 const useStyles = makeStyles(theme => ({
-  error: {
-    marginTop: theme.spacing(2)
+  root: {
+    marginBottom: theme.spacing(4)
   },
-  cardContent: {
-    paddingTop: 0
+  leftColumn: {
+    maxWidth: '32%',
+    flexBasis: '32%',
+    flexGrow: 0,
+    paddingRight: theme.spacing(3)
   },
-  topCard: {
-    height: '32rem'
+  rightColumn: {
+    maxWidth: '67.99%',
+    flexBasis: '67.99%',
+    flexGrow: 0,
+    '& > div': {
+      marginBottom: theme.spacing(2)
+    }
   },
-  toggle: {
-    marginBottom: theme.spacing(1)
-  },
-  structure: {
+  divider: {
     marginTop: theme.spacing(1),
-    width: '100%',
-    height: '20rem'
+    marginBottom: theme.spacing(1)
   }
 }))
 
@@ -47,17 +78,25 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 export default function OverviewView({uploadId, entryId}) {
-  const classes = useStyles()
-  const {raiseError} = useContext(errorContext)
+  const api = useApi()
+  const { raiseError } = useErrors()
   const [entry, setEntry] = useState(null)
   const [exists, setExists] = useState(true)
-  const api = useApi()
+  const [showAPIDialog, setShowAPIDialog] = useState(false)
+  const [archive, setArchive] = useState(null)
 
-  // When loaded for the first time, download calc data from the ElasticSearch
-  // index. It is used to decide the subview to show.
   useEffect(() => {
-    api.entry(entryId).then(data => {
-      setEntry(data)
+    api.entry(entryId).then(response => {
+      const entry = response.data
+      setEntry(entry)
+      api.results(entry.entry_id)
+        .then(setArchive)
+        .catch(error => {
+          if (error.name === 'DoesNotExist') {
+          } else {
+            raiseError(error)
+          }
+        })
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
         setExists(false)
@@ -65,26 +104,148 @@ export default function OverviewView({uploadId, entryId}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, entryId, setEntry, setExists])
+  }, [api, raiseError, entryId, setEntry, setExists, setArchive])
 
-  // The entry does not exist
+  const classes = useStyles()
+
+  const methodQuantities = useMemo(() => {
+    if (!entry) {
+      return null
+    }
+    const methodQuantities = []
+    const addMethodQuantities = (obj, parentKey) => {
+      const children = {}
+      Object.keys(obj).forEach(key => {
+        const value = obj[key]
+        if (Array.isArray(value) || typeof value === 'string') {
+          if (value.length > 0) {
+            methodQuantities.push({
+              quantity: `${parentKey}.${key}`,
+              label: key.replaceAll('_', ' ')
+            })
+          }
+        } else if (value instanceof Object) {
+          children[key] = value
+        }
+      })
+      Object.keys(children).forEach(key => addMethodQuantities(children[key], `${parentKey}.${key}`))
+    }
+    addMethodQuantities(entry.results.method, 'results.method')
+    return methodQuantities
+  }, [entry])
+
   if (!exists) {
     return <EntryPageContent>
-      <Typography className={classes.error}>
+      <Typography>
         This entry does not exist.
       </Typography>
     </EntryPageContent>
   }
 
-  // When repo data is loaded, return a subview that depends on the domain.
-  if (entry?.data?.domain) {
-    const domain = entry.data.domain && domainComponents[entry.data.domain]
-    return <EntryPageContent fixed>
-      <domain.EntryOverview data={entry.data}/>
-    </EntryPageContent>
+  if (!entry) {
+    return null
   }
 
-  return null
+  return <EntryPageContent fixed>
+    <Grid container spacing={0} className={classes.root}>
+      <Grid item xs={4} className={classes.leftColumn}>
+        <MetadataSection title='Method'>
+          <Quantity flex>
+            {methodQuantities.map(({...quantityProps}) => (
+              <Quantity
+                key={quantityProps.quantity}
+                {...quantityProps}
+                noWrap
+                data={entry}
+                hideIfUnavailable
+              />
+            ))}
+          </Quantity>
+        </MetadataSection>
+        <Divider className={classes.divider} />
+        <MetadataSection title='Author metadata'>
+          <Quantity flex>
+            <Quantity quantity='comment' placeholder='no comment' data={entry} />
+            <Quantity quantity='references' placeholder='no references' data={entry}>
+              {entry.references &&
+              <div style={{display: 'inline-grid'}}>
+                {entry.references.map(ref => <Typography key={ref} noWrap>
+                  <Link href={ref}>{ref}</Link>
+                </Typography>)}
+              </div>}
+            </Quantity>
+            <Quantity quantity='authors' data={entry}>
+              <Typography>
+                {authorList(entry || [])}
+              </Typography>
+            </Quantity>
+            <Quantity
+              description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
+              label='datasets'
+              placeholder='no datasets'
+              data={entry}
+            >
+              {(entry.datasets && entry.datasets.length !== 0) &&
+              <div>
+                {entry.datasets.map(ds => (
+                  <Typography key={ds.dataset_id}>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
+                  </Typography>))}
+              </div>}
+            </Quantity>
+          </Quantity>
+        </MetadataSection>
+        <Divider className={classes.divider}/>
+        <MetadataSection>
+          <Quantity column style={{maxWidth: 350}}>
+            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard data={entry}/>
+            <Quantity quantity="entry_id" label='entry id' noWrap withClipboard data={entry}/>
+            <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard data={entry}/>
+            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard data={entry}/>
+            <Quantity quantity="upload_time" label='upload time' noWrap data={entry}>
+              <Typography noWrap>
+                {new Date(entry.upload_time).toLocaleString()}
+              </Typography>
+            </Quantity>
+            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={entry}/>
+            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard data={entry}/>
+            <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={entry}>
+              <Typography noWrap>
+                {new Date(entry.last_processing).toLocaleString()}
+              </Typography>
+            </Quantity>
+            <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" data={entry}>
+              <Typography noWrap>
+                {entry.nomad_version}/{entry.nomad_commit}
+              </Typography>
+            </Quantity>
+          </Quantity>
+        </MetadataSection>
+        <ApiDialog data={entry} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+        <Actions
+          justifyContent='flex-end'
+          variant='outlined'
+          color='primary'
+          size='medium'
+          actions={[{
+            tooltip: 'Show the API access code',
+            onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
+            content: 'API'
+          }]}
+        >
+        </Actions>
+      </Grid>
+
+      <Grid item xs={8} className={classes.rightColumn}>
+        <MaterialCard entryMetadata={entry} archive={archive} />
+        <ElectronicPropertiesCard entryMetadata={entry} archive={archive} />
+        <VibrationalPropertiesCard entryMetadata={entry} archive={archive} />
+        <GeometryOptimizationCard entryMetadata={entry} archive={archive} />
+        <SpectrumCard entryMetadata={entry} archive={archive} />
+      </Grid>
+    </Grid>
+  </EntryPageContent>
 }
 
 OverviewView.propTypes = {

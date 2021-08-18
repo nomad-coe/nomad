@@ -110,16 +110,40 @@ class ResultsNormalizer(Normalizer):
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
+        results = self.entry_archive.results
+        if results is None:
+            results = self.entry_archive.m_create(Results)
+        if results.properties is None:
+            results.m_create(Properties)
+
         if self.section_run:
             self.normalize_run(logger=self.logger)
 
         if self.entry_archive.section_measurement and len(self.entry_archive.section_measurement) > 0:
             self.normalize_measurment(self.entry_archive.section_measurement[0], logger=self.logger)
 
+        # Add the present quantities. The full path will be saved for each
+        # property, and if the leaf quantity/section name is unambiguous, also
+        # it will be saved. Each repeating section will be investigated as well
+        # to find all present properties.
+        available_properties = set()
+        for section, m_def, _ in results.properties.m_traverse():
+            parent_path = section.m_path()
+            path = "{}/{}".format(parent_path if parent_path != "/" else "", m_def.name)[20:]
+            parts = filter(lambda x: not isint(x), path.split("/"))
+            path = ".".join(parts)
+            available_properties.add(path)
+        shorthand_prop = list()
+        for prop in available_properties:
+            name = prop.rsplit(".", 1)[-1]
+            shorthand_prop.append(name)
+        u, c = np.unique(shorthand_prop, return_counts=True)
+        shorthand_prop = u[c == 1]
+        available_properties |= set([str(x) for x in shorthand_prop])
+        results.properties.available_properties = list(available_properties)
+
     def normalize_measurment(self, measurement, logger) -> None:
         results = self.entry_archive.results
-        if results is None:
-            results = self.entry_archive.m_create(Results)
 
         # Method
         if results.method is None:
@@ -178,32 +202,11 @@ class ResultsNormalizer(Normalizer):
             symmetry = repr_sys.section_symmetry[0]
 
         # Create the section and populate the subsections
-        results = Results()
-        self.entry_archive.results = results
+        results = self.entry_archive.results
         results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
         results.method = self.method(encyclopedia)
         results.properties = self.properties(repr_sys, symmetry, encyclopedia)
         self.geometry_optimization(results.method, results.properties)
-
-        # Add the present quantities. The full path will be saved for each
-        # property, and if the leaf quantity/section name is unambiguous, also
-        # it will be saved. Each repeating section will be investigated as well
-        # to find all present properties.
-        available_properties = set()
-        for section, m_def, _ in results.properties.m_traverse():
-            parent_path = section.m_path()
-            path = "{}/{}".format(parent_path if parent_path != "/" else "", m_def.name)[20:]
-            parts = filter(lambda x: not isint(x), path.split("/"))
-            path = ".".join(parts)
-            available_properties.add(path)
-        shorthand_prop = list()
-        for prop in available_properties:
-            name = prop.rsplit(".", 1)[-1]
-            shorthand_prop.append(name)
-        u, c = np.unique(shorthand_prop, return_counts=True)
-        shorthand_prop = u[c == 1]
-        available_properties |= set([str(x) for x in shorthand_prop])
-        results.properties.available_properties = list(available_properties)
 
     def material(
             self,

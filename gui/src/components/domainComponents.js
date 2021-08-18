@@ -16,13 +16,10 @@
  * limitations under the License.
  */
 import DFTEntryDetails from './dft/DFTEntryDetails'
-import DFTEntryOverview from './dft/DFTEntryOverview'
 import DFTEntryRawView from './dft/DFTEntryRawView'
 import EMSEntryDetails from './ems/EMSEntryDetails'
 import EMSEntryRawView from './ems/EMSEntryRawView'
-import EMSEntryOverview from './ems/EMSEntryOverview'
 import QCMSEntryDetails from './qcms/QCMSEntryDetails'
-import QCMSEntryOverview from './qcms/QCMSEntryOverview'
 import QCMSEntryRawView from './qcms/QCMSEntryRawView'
 
 // Maps the components for each domain. These components are stored
@@ -34,10 +31,6 @@ export const domainComponents = ({
      * loading (a bool with api loading status).
      */
     EntryDetails: DFTEntryDetails,
-    /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: DFTEntryOverview,
     /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),
@@ -59,10 +52,6 @@ export const domainComponents = ({
      */
     EntryDetails: EMSEntryDetails,
     /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: EMSEntryOverview,
-    /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),
      * loading (a bool with api loading status).
@@ -80,10 +69,6 @@ export const domainComponents = ({
      * loading (a bool with api loading status).
      */
     EntryDetails: QCMSEntryDetails,
-    /**
-     * Determines the layout of the overview page.
-     */
-    EntryOverview: QCMSEntryOverview,
     /**
      * A component to render additional domain specific cards in the
      * the entry view. Needs to work with props: data (the entry data from the API),
