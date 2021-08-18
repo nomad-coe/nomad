@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Box, CardContent, Grid, Typography, Link, makeStyles, Divider } from '@material-ui/core'
 import { useApi } from '../apiV1'
@@ -138,32 +138,44 @@ const DFTEntryOverview = ({data}) => {
       })
   }, [data.entry_id, api, raiseError, setArchive])
 
+  const methodQuantities = useMemo(() => {
+    const methodQuantities = []
+    const addMethodQuantities = (obj, parentKey) => {
+      const children = {}
+      Object.keys(obj).forEach(key => {
+        const value = obj[key]
+        if (Array.isArray(value) || typeof value === 'string') {
+          if (value.length > 0) {
+            methodQuantities.push({
+              quantity: `${parentKey}.${key}`,
+              label: key.replaceAll('_', ' ')
+            })
+          }
+        } else if (value instanceof Object) {
+          children[key] = value
+        }
+      })
+      Object.keys(children).forEach(key => addMethodQuantities(children[key], `${parentKey}.${key}`))
+    }
+    addMethodQuantities(data.results.method, 'results.method')
+    return methodQuantities
+  }, [data])
+
   return (
     <Grid container spacing={0} className={styles.root}>
-
       {/* Left column */}
       <Grid item xs={4} className={styles.leftSidebar}>
         <SidebarCard title='Method'>
           <Quantity flex>
-            <Quantity quantity="results.method.simulation.program_name" label='program name' noWrap data={data}/>
-            <Quantity quantity="results.method.simulation.program_version" label='program version' ellipsisFront data={data}/>
-            <Quantity quantity="results.method.method_name" label='method name' noWrap data={data}/>
-            {data?.results?.method?.method_name === 'DFT' && <>
-              <Quantity quantity="results.method.simulation.dft.xc_functional_type" label='xc functional family' noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.dft.xc_functional_names" label='xc functional names' noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.dft.basis_set_type" label='basis set type' noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.dft.basis_set_name" label='basis set name' noWrap hideIfUnavailable data={data}/>
-              <Quantity quantity="results.method.simulation.dft.van_der_Waals_method" description="The used Van der Waals method." label='van der Waals method' noWrap hideIfUnavailable data={data}/>
-              <Quantity quantity="results.method.simulation.dft.relativity_method" label='relativity method' noWrap hideIfUnavailable data={data}/>
-              <Quantity quantity="results.method.simulation.dft.core_electron_treatment" label='core electron treatment' noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.dft.spin_polarized" label='spin-polarized' hideIfUnavailable noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.dft.smearing_type" label='smearing type' noWrap hideIfUnavailable data={data}/>
-              <Quantity quantity="results.method.simulation.dft.smearing_width" label='smearing width' noWrap hideIfUnavailable data={data}/>
-            </>}
-            {data?.results?.method?.method_name === 'GW' && <>
-              <Quantity quantity="results.method.simulation.gw.gw_type" label='gw type' noWrap data={data}/>
-              <Quantity quantity="results.method.simulation.gw.starting_point" label='ground state xc functional' noWrap data={data}/>
-            </>}
+            {methodQuantities.map(({...quantityProps}) => (
+              <Quantity
+                key={quantityProps.quantity}
+                {...quantityProps}
+                noWrap
+                data={data}
+                hideIfUnavailable
+              />
+            ))}
           </Quantity>
         </SidebarCard>
         <Divider className={styles.divider} />

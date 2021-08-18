@@ -709,6 +709,7 @@ class DFT(MSection):
     scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
     scf_threshold_energy_change.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
+    van_der_Waals_method.description = 'The used van der Waals method.'
     van_der_Waals_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)

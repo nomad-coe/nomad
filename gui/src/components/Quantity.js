@@ -47,11 +47,14 @@ class Quantity extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      maxWidth: '100%'
+    },
     valueContainer: {
       display: 'flex',
       alignItems: 'center',
-      flexDirection: 'row'
+      flexDirection: 'row',
+      maxWidth: '100%'
     },
     value: {
       flexGrow: 1

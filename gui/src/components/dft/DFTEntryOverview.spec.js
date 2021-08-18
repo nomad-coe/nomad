@@ -24,8 +24,7 @@ import { waitFor, within } from '@testing-library/dom'
 import '@testing-library/jest-dom/extend-expect'
 import DFTEntryOverview from './DFTEntryOverview'
 import {
-  repoDftBulk,
-  archiveDftBulk
+  repoDftBulk
 } from '../../../tests/DFTBulk'
 import { useApi } from '../apiV1'
 
@@ -42,7 +41,6 @@ afterAll(() => jest.unmock('../apiV1'))
 test('correctly renders method and material data', async () => {
   const entry = repoDftBulk
   const results = entry.results
-  // const archive = archiveDftBulk
 
   renderWithAPIRouter(
     <DFTEntryOverview
@@ -60,30 +58,31 @@ test('correctly renders method and material data', async () => {
     expect(dos_electronic_placeholder).not.toBeInTheDocument()
   })
 
+  const method = results.method.simulation
   const code_name = screen.getByTitle('The name of the used program.')
   expect(within(code_name).getByText('program name')).toBeInTheDocument()
-  expect(within(code_name).getByText(results.method.simulation.program_name)).toBeInTheDocument()
+  expect(within(code_name).getByText(method.program_name)).toBeInTheDocument()
   const code_version = screen.getByTitle('The version of the used program.')
   expect(within(code_version).getByText('program version')).toBeInTheDocument()
-  expect(within(code_version).getByText(results.method.simulation.program_version)).toBeInTheDocument()
-  // const xc_family = screen.getByTitle('The libXC based xc functional classification used in the simulation.')
-  // expect(within(xc_family).getByText('xc functional family')).toBeInTheDocument()
-  // expect(within(xc_family).getByText(repo.dft.xc_functional)).toBeInTheDocument()
-  // const xc_names = screen.getByTitle('The list of libXC functional names that where used in this entry.')
-  // expect(within(xc_names).getByText('xc functional names')).toBeInTheDocument()
-  // expect(within(xc_names).getByText(repo.dft.xc_functional_names.join(', '))).toBeInTheDocument()
-  // const basis_set_type = screen.getByTitle('The used basis set functions.')
-  // expect(within(basis_set_type).getByText('basis set type')).toBeInTheDocument()
-  // expect(within(basis_set_type).getByText(repo.dft.basis_set)).toBeInTheDocument()
-  // const basis_set_name = screen.getByTitle('Unique string identifying the basis set used for the final wavefunctions calculated with XC_method. It might identify a class of basis sets, often matches one of the strings given in any of basis_set_name.')
-  // expect(within(basis_set_name).getByText('basis set name')).toBeInTheDocument()
-  // expect(within(basis_set_name).getByText(archive.section_run[0].section_method[0].basis_set)).toBeInTheDocument()
-  // const vdw = screen.getByTitle('The used Van der Waals method.')
-  // expect(within(vdw).getByText('van der Waals method')).toBeInTheDocument()
-  // expect(within(vdw).getByText(archive.section_run[0].section_method[0].van_der_Waals_method)).toBeInTheDocument()
-  // const relativity = screen.getByTitle('Describes the relativistic treatment used for the calculation of the final energy and related quantities. If skipped or empty, no relativistic treatment is applied.')
-  // expect(within(relativity).getByText('relativity method')).toBeInTheDocument()
-  // expect(within(relativity).getByText(archive.section_run[0].section_method[0].relativity_method)).toBeInTheDocument()
+  expect(within(code_version).getByText(method.program_version)).toBeInTheDocument()
+  const xc_family = screen.getByTitle('The libXC based xc functional classification used in the simulation.')
+  expect(within(xc_family).getByText('xc functional type')).toBeInTheDocument()
+  expect(within(xc_family).getByText(method.dft.xc_functional_type)).toBeInTheDocument()
+  const xc_names = screen.getByTitle('The list of libXC functional names that where used in this entry.')
+  expect(within(xc_names).getByText('xc functional names')).toBeInTheDocument()
+  expect(within(xc_names).getByText(method.dft.xc_functional_names.join(', '))).toBeInTheDocument()
+  const basis_set_type = screen.getByTitle('The used basis set functions.')
+  expect(within(basis_set_type).getByText('basis set type')).toBeInTheDocument()
+  expect(within(basis_set_type).getByText(method.dft.basis_set_type)).toBeInTheDocument()
+  const basis_set_name = screen.getByTitle('Unique string identifying the basis set used for the final wavefunctions calculated with XC_method. It might identify a class of basis sets, often matches one of the strings given in any of basis_set_name.')
+  expect(within(basis_set_name).getByText('basis set name')).toBeInTheDocument()
+  expect(within(basis_set_name).getByText(method.dft.basis_set_name)).toBeInTheDocument()
+  const vdw = screen.getByTitle('The used van der Waals method.')
+  expect(within(vdw).getByText('van der Waals method')).toBeInTheDocument()
+  expect(within(vdw).getByText(method.dft.van_der_Waals_method)).toBeInTheDocument()
+  const relativity = screen.getByTitle('Describes the relativistic treatment used for the calculation of the final energy and related quantities. If skipped or empty, no relativistic treatment is applied.')
+  expect(within(relativity).getByText('relativity method')).toBeInTheDocument()
+  expect(within(relativity).getByText(method.dft.relativity_method)).toBeInTheDocument()
 
   const comment = screen.getByTitle('A user provided comment for this entry')
   expect(within(comment).getByText('comment')).toBeInTheDocument()
