@@ -20,9 +20,9 @@ import PropTypes from 'prop-types'
 import { makeStyles, TableCell, Toolbar, IconButton, Tooltip } from '@material-ui/core'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
-import DataTable from '../DataTable'
+import DataTable from '../../DataTable'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
-import { appBase } from '../../config'
+import { appBase } from '../../../config'
 
 const useStyles = makeStyles(theme => ({
   root: {

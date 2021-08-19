@@ -22,12 +22,12 @@ import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import NextIcon from '@material-ui/icons/ChevronRight'
 import StartIcon from '@material-ui/icons/SkipPrevious'
-import DataTable from '../DataTable'
-import { withApi } from '../api'
-import { EntryListUnstyled } from './EntryList'
+import DataTable from '../../DataTable'
+import { withApi } from '../../api'
+import { EntryListUnstyled } from '../EntryList'
 import MoreIcon from '@material-ui/icons/MoreHoriz'
-import DownloadButton from '../DownloadButton'
-import { searchContext } from './SearchContext'
+import DownloadButton from '../../DownloadButton'
+import { searchContext } from '../SearchContext'
 
 class GroupUnstyled extends React.Component {
   static contextType = searchContext

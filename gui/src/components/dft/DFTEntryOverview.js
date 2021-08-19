@@ -26,10 +26,10 @@ import ElectronicProperties from '../visualization/ElectronicProperties'
 import VibrationalProperties from '../visualization/VibrationalProperties'
 import GeometryOptimization from '../visualization/GeometryOptimization'
 import Structure from '../visualization/Structure'
-import Actions from '../Actions'
+import { Actions, Action } from '../Actions'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
-import { DOI } from '../search/DatasetList'
+import { DOI } from '../search/results/DatasetList'
 import { errorContext } from '../errors'
 import {
   authorList,
@@ -747,17 +747,16 @@ const DFTEntryOverview = ({data}) => {
           </Quantity>
         </SidebarCard>
         <ApiDialog data={data} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
-        <Actions
-          justifyContent='flex-end'
-          variant='outlined'
-          color='primary'
-          size='medium'
-          actions={[{
-            tooltip: 'Show the API access code',
-            onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-            content: 'API'
-          }]}
-        >
+        <Actions justifyContent='flex-end'>
+          <Action
+            tooltip="Show the API access code"
+            onClick={(event) => { setShowAPIDialog(!showAPIDialog) }}
+            variant="outlined"
+            color="primary"
+            size="medium"
+          >
+            API
+          </Action>
         </Actions>
       </Grid>
 

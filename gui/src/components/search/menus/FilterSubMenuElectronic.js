@@ -15,14 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterSlider from './FilterSlider'
-import FilterCheckboxes from './FilterCheckboxes'
-import { Quantity, useUnits } from '../../units'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputSlider from '../input/InputSlider'
+import InputCheckboxes from '../input/InputCheckboxes'
+import { Quantity, useUnits } from '../../../units'
 
 const step = new Quantity(0.1, 'electron_volt')
 const options = {
@@ -30,25 +29,18 @@ const options = {
   dos_electronic: {label: 'density of states'}
 }
 
-export const labelElectronic = 'Electronic'
-
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterElectronic = React.memo(({
-  visible,
-  className
+const FilterSubMenuElectronic = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
   const units = useUnits()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterSlider
+        <InputSlider
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
           units={units}
           step={step}
@@ -56,13 +48,13 @@ const FilterElectronic = React.memo(({
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap_type"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           label="available electronic properties"
           description="The electronic properties that are present in an entry."
           quantity="results.properties.available_properties"
@@ -71,11 +63,10 @@ const FilterElectronic = React.memo(({
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterElectronic.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuElectronic.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterElectronic
+export default FilterSubMenuElectronic

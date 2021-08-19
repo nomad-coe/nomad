@@ -15,38 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterCheckboxes from './FilterCheckboxes'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputCheckboxes from './InputCheckboxes'
 
-const useFilters = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterGW = React.memo(({
-  visible,
-  className
+const FilterSubMenuGW = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useFilters()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           quantity="results.method.simulation.gw.gw_type"
+          visible={visible}
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterGW.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuGW.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterGW
+export default FilterSubMenuGW

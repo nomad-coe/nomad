@@ -27,11 +27,11 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import searchQuantities from '../../searchQuantities'
-import FilterLabel from './FilterLabel'
-import { useAgg, useFilterState } from './FilterContext'
+import searchQuantities from '../../../searchQuantities'
+import FilterLabel from './InputLabel'
+import { useAgg, useFilterState } from '../FilterContext'
 import { getTime } from 'date-fns'
-import { dateFormat } from '../../config'
+import { dateFormat } from '../../../config'
 
 const invalidDateMessage = 'Invalid date format.'
 const useStyles = makeStyles(theme => ({
@@ -61,7 +61,7 @@ const useStyles = makeStyles(theme => ({
     flex: 1
   }
 }))
-const FilterDate = React.memo(({
+const InputDateRange = React.memo(({
   label,
   quantity,
   description,
@@ -201,7 +201,7 @@ const FilterDate = React.memo(({
   </Tooltip>
 })
 
-FilterDate.propTypes = {
+InputDateRange.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
@@ -211,4 +211,4 @@ FilterDate.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default FilterDate
+export default InputDateRange

@@ -49,8 +49,10 @@ export const labelElements = 'Elements / Formula'
 export const labelSymmetry = 'Symmetry'
 export const labelMethod = 'Method'
 export const labelDFT = 'DFT'
+export const labelProperties = 'Properties'
 export const labelElectronic = 'Electronic'
 export const labelAuthor = 'Author / Origin'
+export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 
@@ -143,6 +145,21 @@ export const queryFamily = atomFamily({
   default: undefined
 })
 
+// Query owner state
+export const owner = atom({
+  key: 'owner',
+  default: 'public'
+})
+export function useOwner() {
+  return useRecoilValue(owner)
+}
+export function useSetOwner() {
+  return useSetRecoilState(owner)
+}
+export function useOwnerState() {
+  return useRecoilState(owner)
+}
+
 // Menu open state
 export const menuOpen = atom({
   key: 'isMenuOpen',
@@ -153,6 +170,21 @@ export function useMenuOpenState() {
 }
 export function useSetMenuOpen() {
   return useSetRecoilState(menuOpen)
+}
+
+// Current menu path
+export const menuPath = atom({
+  key: 'menuPath',
+  default: 'Filters'
+})
+export function useMenuPathState() {
+  return useRecoilState(menuPath)
+}
+export function useMenuPath() {
+  return useRecoilValue(menuPath)
+}
+export function useSetMenuPath() {
+  return useSetRecoilState(menuPath)
 }
 
 // Whether the search is initialized.
@@ -435,28 +467,6 @@ function queryToQs(query) {
   return qs.stringify(newQuery, {indices: false, encode: false})
 }
 
-/**
- * Hook for returning the current search object.
- *
- * @returns {object} Object containing the search object.
- */
-export function useSearch() {
-  const query = useRecoilValue(queryState)
-  const result = useMemo(() => {
-    return {
-      owner: 'all',
-      query: query,
-      pagination: {
-        page: 1,
-        page_size: 10,
-        order: 'desc',
-        order_by: 'upload_time'
-      }
-    }
-  }, [query])
-  return result
-}
-
 export const initialAggs = atom({
   key: 'initialAggs',
   default: undefined
@@ -480,6 +490,7 @@ export function useInitialAggs() {
   // Request initial aggregation values for all filter components that are on
   // the search page. This is only done once.
   const api = useApi()
+  const owner = useOwner()
   const setInitialAggs = useSetRecoilState(initialAggs)
 
   useEffect(() => {
@@ -494,7 +505,7 @@ export function useInitialAggs() {
     }
     // Make the request
     const search = {
-      owner: 'all',
+      owner: owner,
       query: {},
       aggregations: aggRequest,
       pagination: {page_size: 0}
@@ -504,7 +515,7 @@ export function useInitialAggs() {
       .then(data => {
         setInitialAggs(data)
       })
-  }, [api, setInitialAggs])
+  }, [api, setInitialAggs, owner])
 }
 
 /**
@@ -522,11 +533,12 @@ export function useInitialAggs() {
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(quantity, type, restrict = false, update = true, delay = 200) {
+export function useAgg(quantity, type, restrict = false, update = true, delay = 500) {
   const api = useApi()
   const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
   const initialAgg = useInitialAgg(quantity, type)
   const query = useQuery()
+  const owner = useOwner()
   const exclusive = useExclusive()
   const firstLoad = useRef(true)
 
@@ -552,7 +564,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       }
     }
     const search = {
-      owner: 'all',
+      owner: owner,
       query: queryCleaned,
       aggregations: aggs,
       pagination: {page_size: 0},
@@ -568,7 +580,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
         firstLoad.current = false
         setResults(cleaned)
       })
-  }, [api, quantity, restrict, type])
+  }, [api, quantity, restrict, type, owner])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -592,7 +604,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     } else {
       debounced(query, exclusive)
     }
-  }, [apiCall, debounced, query, exclusive, update, initialAgg])
+  }, [apiCall, quantity, debounced, query, exclusive, update, initialAgg])
 
   return results
 }
@@ -610,12 +622,13 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
-export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 400) {
+export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
   const api = useApi()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
   const query = useQuery(true)
+  const owner = useOwner()
   const updateQueryString = useUpdateQueryString()
   const pageAfterValue = useRef()
   const searchRef = useRef()
@@ -629,7 +642,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 40
     pageAfterValue.current = undefined
     const cleanedQuery = cleanQuery(query, exclusive)
     const search = {
-      owner: 'all',
+      owner: owner,
       query: cleanedQuery,
       pagination: {
         page_size: pageSize,
@@ -648,7 +661,13 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 40
         setResults(data)
         loading.current = false
       })
-  }, [api])
+
+    // We only update the query string after the API call is finished. Updating
+    // the query string causes quite an intensive render (not sure why), so it
+    // is better to debounce this value as well to keep the user interaction
+    // smoother.
+    updateQueryString(query)
+  }, [api, owner, updateQueryString])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -684,7 +703,6 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 40
       apiCall(query, pageSize, orderBy, order, exclusive)
       firstRender.current = false
     } else {
-      updateQueryString(query)
       debounced(query, pageSize, orderBy, order, exclusive)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

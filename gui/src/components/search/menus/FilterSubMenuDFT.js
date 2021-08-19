@@ -15,48 +15,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputCheckboxes from '../input/InputCheckboxes'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterDataset = React.memo(({
-  visible,
-  className
+const FilterSubMenuDFT = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterText
-          label="dataset name"
-          quantity="datasets.name"
+        <InputCheckboxes
+          quantity="results.method.simulation.dft.basis_set_type"
+          visible={visible}
+          xs={6}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <InputCheckboxes
+          quantity="results.method.simulation.dft.core_electron_treatment"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          label="dataset DOI"
-          quantity="datasets.doi"
+        <InputCheckboxes
+          quantity="results.method.simulation.dft.relativity_method"
           visible={visible}
-          autocomplete="off"
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterDataset.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuDFT.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterDataset
+export default FilterSubMenuDFT

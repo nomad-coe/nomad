@@ -36,7 +36,7 @@ import {
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import NoData from './NoData'
-import Actions from '../Actions'
+import { Actions, Action } from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
@@ -379,16 +379,6 @@ const Plot = React.memo(({
     Plotly.downloadImage(canvasRef.current, captureSettings)
   }, [canvasRef, captureSettings])
 
-  // List of actionable buttons for the plot
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
-  ]
-  if (metaInfoLink) {
-    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(metaInfoLink) }, content: <ViewList/>})
-  }
-
   // If data is set explicitly to False, we show the NoData component.
   if (data === false) {
     return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
@@ -415,7 +405,22 @@ const Plot = React.memo(({
         </Tooltip>}
       </div>
       <div className={styles.footer}>
-        <Actions actions={actions}></Actions>
+        <Actions>
+          <Action tooltip='Reset view' onClick={handleReset}>
+            <Replay/>
+          </Action>
+          <Action tooltip='Toggle fullscreen' onClick={() => setFloat(!float)}>
+            {float ? <FullscreenExit/> : <Fullscreen/>}
+          </Action>
+          <Action tooltip='Capture image' onClick={handleCapture}>
+            <CameraAlt/>
+          </Action>
+          {metaInfoLink &&
+            <Action tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
+              <ViewList/>
+            </Action>
+          }
+        </Actions>
       </div>
     </Floatable>
   </Box>

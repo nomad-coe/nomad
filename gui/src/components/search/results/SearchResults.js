@@ -22,8 +22,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import {
   Paper
 } from '@material-ui/core'
-import NewEntryList from './NewEntryList'
-import { useExclusive, useScrollResults } from './FilterContext'
+import NewEntryList from '../NewEntryList'
+import { useExclusive, useScrollResults } from '../FilterContext'
 
 /**
  * Displays the list of search results
