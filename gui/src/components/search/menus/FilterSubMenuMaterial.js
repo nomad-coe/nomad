@@ -15,61 +15,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
-import FilterCheckboxes from './FilterCheckboxes'
-import FilterSelect from './FilterSelect'
-import { useUnits } from '../../units'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
+import InputCheckboxes from '../input/InputCheckboxes'
+import InputSelect from '../input/InputSelect'
+import { useUnits } from '../../../units'
 
-const useFilters = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterMaterial = React.memo(({
-  visible,
-  className
+const FilterSubMenuMaterial = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useFilters()
   const units = useUnits()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           quantity="results.material.structural_type"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterSelect
+        <InputSelect
           quantity="results.material.functional_type"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterSelect
+        <InputSelect
           quantity="results.material.compound_type"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <InputText
           quantity="results.material.material_name"
           units={units}
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterMaterial.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuMaterial.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterMaterial
+export default FilterSubMenuMaterial

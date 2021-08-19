@@ -40,7 +40,7 @@ import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
-import Actions from '../Actions'
+import { Actions, Action } from '../Actions'
 import { mergeObjects } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
@@ -412,17 +412,6 @@ const Structure = React.memo(({
     ></Placeholder>
   }
 
-  // List of actionable buttons for the viewer
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
-  ]
-  if (finalSystem?.path) {
-    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(finalSystem.path) }, content: <ViewList/>})
-  }
-  actions.push({tooltip: 'Options', onClick: openMenu, content: <MoreVert/>})
-
   const menuItems = [
     <MenuItem key='show-bonds'>
       <FormControlLabel
@@ -499,7 +488,25 @@ const Structure = React.memo(({
       : <div className={styles.viewerCanvas} ref={refCanvas}></div>
     }
     <div className={styles.header}>
-      <Actions actions={actions}></Actions>
+      <Actions>
+        <Action tooltip='Reset view' onClick={handleReset}>
+          <Replay/>
+        </Action>
+        <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+          {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+        </Action>
+        <Action tooltip='Capture image' onClick={takeScreencapture}>
+          <CameraAlt/>
+        </Action>
+        {finalSystem?.path &&
+          <Action tooltip='View data in the archive' onClick={() => { history.push(finalSystem.path) }}>
+            <ViewList/>
+          </Action>
+        }
+        <Action tooltip='Options' onClick={openMenu}>
+          <MoreVert/>
+        </Action>
+      </Actions>
       <Menu
         id='settings-menu'
         anchorEl={anchorEl}

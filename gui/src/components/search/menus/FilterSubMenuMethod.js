@@ -15,52 +15,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterCheckboxes from './FilterCheckboxes'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
+import InputCheckboxes from '../input/InputCheckboxes'
+import InputSelect from '../input/InputSelect'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterDFT = React.memo(({
-  visible,
-  className
+const FilterSubMenuMethod = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.basis_set_type"
+        <InputCheckboxes
+          quantity="results.method.method_name"
           visible={visible}
           xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.core_electron_treatment"
+        <InputSelect
+          quantity="results.method.simulation.program_name"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.simulation.dft.relativity_method"
-          visible={visible}
+        <InputText
+          quantity="results.method.simulation.program_version"
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterDFT.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuMethod.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterDFT
+export default FilterSubMenuMethod

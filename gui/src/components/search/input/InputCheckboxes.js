@@ -24,9 +24,9 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import searchQuantities from '../../searchQuantities'
-import FilterLabel from './FilterLabel'
-import { useFilterState, useAgg, useInitialAgg } from './FilterContext'
+import searchQuantities from '../../../searchQuantities'
+import InputLabel from './InputLabel'
+import { useFilterState, useAgg, useInitialAgg } from '../FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -38,7 +38,7 @@ const useStyles = makeStyles(theme => ({
     boxSizing: 'border-box'
   }
 }))
-const FilterCheckboxes = React.memo(({
+const InputCheckboxes = React.memo(({
   label,
   quantity,
   description,
@@ -139,14 +139,14 @@ const FilterCheckboxes = React.memo(({
   })
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <FilterLabel label={title} description={desc}/>
+    <InputLabel label={title} description={desc}/>
     <Grid container spacing={0}>
       {checkboxes}
     </Grid>
   </div>
 })
 
-FilterCheckboxes.propTypes = {
+InputCheckboxes.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string,
   // Optional information about the options. Can also be used to enable/disable
@@ -160,8 +160,8 @@ FilterCheckboxes.propTypes = {
   'data-testid': PropTypes.string
 }
 
-FilterCheckboxes.defaultProps = {
+InputCheckboxes.defaultProps = {
   xs: 12
 }
 
-export default FilterCheckboxes
+export default InputCheckboxes

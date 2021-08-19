@@ -15,8 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext } from 'react'
-import { apiContext } from '../api'
+import React from 'react'
 import NewSearch from './NewSearch'
 
 const help = `
@@ -54,12 +53,7 @@ will show more metadata, raw files, the entry's archive, and processing logs.
 export {help}
 
 export default function NewSearchPage() {
-  const {user} = useContext(apiContext)
-  const withoutLogin = ['all', 'public']
-
   return <NewSearch
-    initialOwner="public"
-    ownerTypes={['public', 'visible'].filter(key => user || withoutLogin.indexOf(key) !== -1)}
-    showDisclaimer
+    owner="public"
   />
 }

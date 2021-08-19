@@ -33,7 +33,7 @@ import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
-import Actions from '../Actions'
+import { Actions, Action } from '../Actions'
 import clsx from 'clsx'
 
 /**
@@ -251,18 +251,21 @@ const BrillouinZone = React.memo(({
     />
   }
 
-  // List of actionable buttons for the viewer
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
-  ]
-
   const content = <Box className={style.container}>
     {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
     <div className={style.viewerCanvas} ref={refCanvas}></div>
     <div className={style.header}>
-      <Actions actions={actions}></Actions>
+      <Actions>
+        <Action tooltip='Reset view' onClick={handleReset}>
+          <Replay/>
+        </Action>
+        <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+          {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+        </Action>
+        <Action tooltip='Capture image' onClick={takeScreencapture}>
+          <CameraAlt/>
+        </Action>
+      </Actions>
     </div>
   </Box>
 

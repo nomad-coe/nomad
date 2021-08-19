@@ -15,55 +15,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
-import FilterCheckboxes from './FilterCheckboxes'
-import FilterDate from './FilterDate'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterAuthor = React.memo(({
-  visible,
-  className
+const FilterSubMenuIDs = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterText
-          label="author name"
-          quantity="authors.name"
+        <InputText
+          quantity="entry_id"
           visible={visible}
+          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          label="external database"
-          quantity="external_db"
+        <InputText
+          quantity="upload_id"
           visible={visible}
+          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterDate
-          quantity="upload_time"
+        <InputText
+          quantity="results.material.material_id"
           visible={visible}
+          autocomplete='off'
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <InputText
+          quantity="datasets.dataset_id"
+          visible={visible}
+          autocomplete='off'
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterAuthor.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuIDs.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterAuthor
+export default FilterSubMenuIDs

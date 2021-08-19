@@ -22,7 +22,7 @@ import { Divider, Grid, Card, CardHeader, CardContent, Typography, Link, makeSty
 import { domainData } from '../domainData'
 import ApiDialogButton from '../ApiDialogButton'
 import { Link as RouterLink } from 'react-router-dom'
-import { DOI } from '../search/DatasetList'
+import { DOI } from '../search/results/DatasetList'
 import { authorList } from '../../utils'
 
 const useStyles = makeStyles(theme => ({

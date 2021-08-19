@@ -28,10 +28,10 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import searchQuantities from '../../searchQuantities'
-import FilterLabel from './FilterLabel'
-import FilterChip from './FilterChip'
-import { useFilterState, useAgg } from './FilterContext'
+import FilterChip from '../FilterChip'
+import searchQuantities from '../../../searchQuantities'
+import InputLabel from './InputLabel'
+import { useFilterState, useAgg } from '../FilterContext'
 
 // This forces the menu to have a fixed anchor instead of jumping around
 const MenuProps = {
@@ -66,7 +66,7 @@ const useStyles = makeStyles(theme => ({
     right: theme.spacing(1)
   }
 }))
-const FilterSelect = React.memo(({
+const InputSelect = React.memo(({
   label,
   quantity,
   description,
@@ -109,7 +109,7 @@ const FilterSelect = React.memo(({
 
   return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <FilterLabel label={title} description={desc}/>
+      <InputLabel label={title} description={desc}/>
       <Select
         disabled={disabled}
         multiple
@@ -131,7 +131,7 @@ const FilterSelect = React.memo(({
   </Tooltip>
 })
 
-FilterSelect.propTypes = {
+InputSelect.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
@@ -141,4 +141,4 @@ FilterSelect.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default FilterSelect
+export default InputSelect

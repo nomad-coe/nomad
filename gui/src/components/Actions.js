@@ -21,7 +21,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Tooltip, IconButton, Button } from '@material-ui/core'
 import clsx from 'clsx'
 
-const useStyles = makeStyles((theme) => ({
+const useActionsStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
     width: '100%',
@@ -29,87 +29,104 @@ const useStyles = makeStyles((theme) => ({
   },
   spacer: {
     flexGrow: 1
-  },
-  iconButton: {
-    marginRight: theme.spacing(1)
   }
 }))
-const Actions = React.memo(({
+export const Actions = React.memo(({
   header,
-  actions,
-  color,
-  variant,
-  size,
   justifyContent,
   className,
-  classes
+  classes,
+  children
 }) => {
   const useDynamicStyles = makeStyles((theme) => ({
     root: {
       justifyContent: justifyContent
     }
   }))
-  const styles = useStyles({classes: classes})
+  const styles = useActionsStyles({classes: classes})
   const dynamicStyles = useDynamicStyles()
-  const buttonList = actions && actions.map((value, idx) => {
-    return <Tooltip key={idx} title={value.tooltip}>
-      {variant === 'icon'
-        ? <IconButton
-          color={color}
-          size={size}
-          className={styles.iconButton}
-          onClick={value.onClick}
-          disabled={value.disabled}
-          href={value.href}
-          aria-label={value.tooltip}
-        >
-          {value.content}
-        </IconButton>
-        : <Button
-          color={color}
-          variant={variant}
-          size={size}
-          className={styles.iconButton}
-          onClick={value.onClick}
-          disabled={value.disabled}
-          href={value.href}
-          aria-label={value.tooltip}
-        >
-          {value.content}
-        </Button>
-      }
-    </Tooltip>
-  })
+
   return <div className={clsx(className, styles.root, dynamicStyles.root)}>
     {header}
     {header && <div className={styles.spacer}></div>}
-    {buttonList}
+    {children}
   </div>
 })
 
 Actions.propTypes = {
   header: PropTypes.any, // A text message or component to display at the left side of the actions
-  actions: PropTypes.arrayOf(
-    PropTypes.shape({
-      content: PropTypes.any, // The content to show inside the button: text, component, icon, etc.
-      href: PropTypes.string,
-      tooltip: PropTypes.string,
-      disabled: PropTypes.number,
-      onClick: PropTypes.func
-    })
-  ),
-  color: PropTypes.string, // The color of the MUI buttons
-  variant: PropTypes.string, // The variant of the MUI buttons
-  size: PropTypes.string, // Size of the MUI buttons
   justifyContent: PropTypes.string, // The flexbox justification of buttons
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  children: PropTypes.node
 }
 
 Actions.defaultProps = {
-  size: 'small',
-  variant: 'icon',
   justifyContent: 'flex-end'
 }
 
-export default Actions
+const useActionStyles = makeStyles((theme) => ({
+  root: {
+    marginRight: theme.spacing(1)
+  }
+}))
+export const Action = React.memo(({
+  variant,
+  color,
+  size,
+  href,
+  disabled,
+  onClick,
+  tooltip,
+  className,
+  classes,
+  children
+}) => {
+  const styles = useActionStyles({classes: classes})
+
+  return <Tooltip title={tooltip}>
+    {variant === 'icon'
+      ? <IconButton
+        color={color}
+        size={size}
+        className={clsx(className, styles.root)}
+        onClick={onClick}
+        disabled={disabled}
+        href={href}
+        aria-label={tooltip}
+      >
+        {children}
+      </IconButton>
+      : <Button
+        color={color}
+        variant={variant}
+        size={size}
+        className={clsx(className, styles.root)}
+        onClick={onClick}
+        disabled={disabled}
+        href={href}
+        aria-label={tooltip}
+      >
+        {children}
+      </Button>
+    }
+  </Tooltip>
+})
+
+Action.propTypes = {
+  variant: PropTypes.string, // The variant of the MUI buttons
+  color: PropTypes.string, // The color of the MUI buttons
+  size: PropTypes.string, // Size of the MUI buttons
+  href: PropTypes.string,
+  disabled: PropTypes.bool,
+  onClick: PropTypes.func,
+  tooltip: PropTypes.string,
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.node
+}
+
+Action.defaultProps = {
+  size: 'small',
+  variant: 'icon'
+}

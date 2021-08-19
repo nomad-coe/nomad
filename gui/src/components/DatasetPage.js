@@ -21,7 +21,7 @@ import { apiContext } from './api'
 import Search from './search/Search'
 import { Typography, makeStyles } from '@material-ui/core'
 import { matchPath, useLocation, useRouteMatch } from 'react-router'
-import { DOI } from './search/DatasetList'
+import { DOI } from './search/results/DatasetList'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you

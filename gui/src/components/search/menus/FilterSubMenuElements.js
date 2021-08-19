@@ -15,35 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import NewPeriodicTable from './NewPeriodicTable'
-import FilterText from './FilterText'
-import FilterSlider from './FilterSlider'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputPeriodicTable from '../input/InputPeriodicTable'
+import InputText from '../input/InputText'
+import InputSlider from '../input/InputSlider'
 import {
   useFilterState,
   useAgg,
   useExclusiveState
-} from './FilterContext'
-import { useUnits } from '../../units'
+} from '../FilterContext'
+import { useUnits } from '../../../units'
 
 const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%',
-    marginTop: theme.spacing(0.5)
-  },
   grid: {
     marginTop: theme.spacing(2)
   }
 }))
 
-const FilterElements = React.memo(({
-  visible,
-  className
+const FilterSubMenuElements = React.memo(({
+  value,
+  ...rest
 }) => {
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
   const styles = useStyles()
   const [exclusive, setExclusive] = useExclusiveState()
   const [filter, setFilter] = useFilterState('results.material.elements')
@@ -52,11 +50,7 @@ const FilterElements = React.memo(({
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}
-    if (data) {
-      for (let value of data) {
-        elementCountMap[value.value] = value.count
-      }
-    }
+    data && data.forEach((value) => { elementCountMap[value.value] = value.count })
     return elementCountMap
   }, [data])
 
@@ -64,30 +58,27 @@ const FilterElements = React.memo(({
     exclusive ? setFilterEx(elements) : setFilter(elements)
   }, [exclusive, setFilterEx, setFilter])
 
-  // If this panel is not visible, we hide the periodic table as it is very
-  // expensive to re-render (it is rerendered always when the query changes).
-  return <div className={clsx(className, styles.root)}>
-    {visible &&
-    <NewPeriodicTable
+  return <FilterSubMenu value={value} {...rest}>
+    <InputPeriodicTable
       availableValues={availableValues}
       values={exclusive ? filterEx : filter}
       exclusive={exclusive}
       onChanged={handleElementsChanged}
       onExclusiveChanged={setExclusive}
-    />}
+    />
     <Grid container spacing={2} className={styles.grid}>
       <Grid item xs={6}>
-        <FilterText
+        <InputText
           quantity="results.material.chemical_formula_hill"
         />
       </Grid>
       <Grid item xs={6}>
-        <FilterText
+        <InputText
           quantity="results.material.chemical_formula_anonymous"
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterSlider
+        <InputSlider
           label="number of elements"
           quantity="results.material.n_elements"
           step={1}
@@ -96,11 +87,10 @@ const FilterElements = React.memo(({
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterElements.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuElements.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterElements
+export default FilterSubMenuElements

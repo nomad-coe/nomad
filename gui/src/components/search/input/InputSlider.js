@@ -27,11 +27,11 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import FilterLabel from './FilterLabel'
-import { Quantity, Unit, toUnitSystem, toSI } from '../../units'
-import { formatNumber } from '../../utils'
-import searchQuantities from '../../searchQuantities'
-import { useFilterState, useAgg } from './FilterContext'
+import FilterLabel from './InputLabel'
+import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
+import { formatNumber } from '../../../utils'
+import searchQuantities from '../../../searchQuantities'
+import { useFilterState, useAgg } from '../FilterContext'
 
 function format(value) {
   return formatNumber(value, 'float', 6, true)
@@ -75,7 +75,7 @@ const useStyles = makeStyles(theme => ({
     textOverflow: 'ellipsis'
   }
 }))
-const FilterSlider = React.memo(({
+const InputSlider = React.memo(({
   label,
   quantity,
   description,
@@ -295,7 +295,7 @@ const FilterSlider = React.memo(({
   </Tooltip>
 })
 
-FilterSlider.propTypes = {
+InputSlider.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
@@ -307,4 +307,4 @@ FilterSlider.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default FilterSlider
+export default InputSlider

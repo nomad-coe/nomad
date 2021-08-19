@@ -172,7 +172,7 @@ const useTableStyles = makeStyles(theme => ({
   }
 }))
 
-const NewPeriodicTable = React.memo(({
+const InputPeriodicTable = React.memo(({
   availableValues,
   values,
   exclusive,
@@ -233,7 +233,7 @@ const NewPeriodicTable = React.memo(({
   )
 })
 
-NewPeriodicTable.propTypes = {
+InputPeriodicTable.propTypes = {
   availableValues: PropTypes.object,
   values: PropTypes.object,
   onChanged: PropTypes.func.isRequired,
@@ -241,4 +241,4 @@ NewPeriodicTable.propTypes = {
   onExclusiveChanged: PropTypes.func.isRequired
 }
 
-export default NewPeriodicTable
+export default InputPeriodicTable

@@ -15,81 +15,74 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
 import { Grid } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
-import FilterText from './FilterText'
-import FilterCheckboxes from './FilterCheckboxes'
-import FilterSelect from './FilterSelect'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
+import InputCheckboxes from '../input/InputCheckboxes'
+import InputSelect from '../input/InputSelect'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterSymmetry = React.memo(({
-  visible,
-  className
+const FilterSubMenuSymmetry = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           quantity="results.material.symmetry.bravais_lattice"
           visible={visible}
           xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterCheckboxes
+        <InputCheckboxes
           quantity="results.material.symmetry.crystal_system"
           visible={visible}
           xs={6}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterSelect
+        <InputSelect
           quantity="results.material.symmetry.structure_name"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterSelect
+        <InputSelect
           quantity="results.material.symmetry.strukturbericht_designation"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <InputText
           quantity="results.material.symmetry.space_group_symbol"
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <InputText
           quantity="results.material.symmetry.point_group"
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <InputText
           quantity="results.material.symmetry.hall_symbol"
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
+        <InputText
           quantity="results.material.symmetry.prototype_aflow_id"
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterSymmetry.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuSymmetry.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterSymmetry
+export default FilterSubMenuSymmetry

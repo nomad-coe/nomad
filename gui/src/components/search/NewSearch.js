@@ -15,18 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useState} from 'react'
+import React, { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import FilterPanel from './FilterPanel'
+import FilterMainMenu from './menus/FilterMainMenu'
 import NewSearchBar from './NewSearchBar'
-import SearchResults from './SearchResults'
+import SearchResults from './results/SearchResults'
 import {
   quantities,
   useMenuOpenState,
   useInitQuery,
-  useInitialAggs
+  useInitialAggs,
+  useSetOwner
 } from './FilterContext'
 
 const useStyles = makeStyles(theme => {
@@ -105,29 +106,30 @@ const useStyles = makeStyles(theme => {
 })
 
 const NewSearch = React.memo(({
-  initialOwner,
-  ownerTypes,
-  initialMetric,
-  query,
-  initialQuery,
-  resultListProps,
-  initialRequest,
-  showDisclaimer,
-  ...rest
+  owner,
+  collapsed
 }) => {
   const styles = useStyles()
   const [resultType, setResultType] = useState('entries')
-  const [isMenuOpen, setIsMenuOpen] = useMenuOpenState()
+  const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
+  const [isCollapsed, setIsCollapsed] = useState(collapsed)
+  const setOwner = useSetOwner()
   useInitQuery()
   useInitialAggs()
 
-  return <div className={styles.root} {...rest}>
+  useEffect(() => {
+    setOwner(owner)
+  }, [setOwner, owner])
+
+  return <div className={styles.root}>
     <div className={styles.leftColumn}>
-      <FilterPanel
-        isMenuOpen={isMenuOpen}
+      <FilterMainMenu
+        open={isMenuOpen}
         resultType={resultType}
         onResultTypeChange={value => setResultType(value)}
-        onIsMenuOpenChange={setIsMenuOpen}
+        onOpenChange={setIsMenuOpen}
+        collapsed={isCollapsed}
+        onCollapseChanged={setIsCollapsed}
       />
     </div>
     <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
@@ -145,23 +147,8 @@ const NewSearch = React.memo(({
   </div>
 })
 NewSearch.propTypes = {
-  initialOwner: PropTypes.string,
-  ownerTypes: PropTypes.arrayOf(PropTypes.string),
-  initialMetric: PropTypes.string,
-  initialRequest: PropTypes.object,
-  resultListProps: PropTypes.object,
-  /**
-   * Additional search parameters that will be added to all searches that are send to
-   * the API. The idea is that this can be used to lock some aspects of the search for
-   * special contexts, like the dataset page for example.
-   */
-  query: PropTypes.object,
-  /**
-   * Similar to query, but these parameters can be changes by the user interacting with
-   * the component.
-   */
-  initialQuery: PropTypes.object,
-  showDisclaimer: PropTypes.bool
+  owner: PropTypes.string,
+  collapsed: PropTypes.bool
 }
 
 export default NewSearch

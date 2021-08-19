@@ -15,61 +15,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
+import InputCheckboxes from '../input/InputCheckboxes'
+import InputDateRange from '../input/InputDateRange'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterIDs = React.memo(({
-  visible,
-  className
+const FilterSubMenuAuthor = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterText
-          quantity="entry_id"
+        <InputText
+          label="author name"
+          quantity="authors.name"
           visible={visible}
-          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="upload_id"
+        <InputCheckboxes
+          label="external database"
+          quantity="external_db"
           visible={visible}
-          autocomplete='off'
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.material.material_id"
+        <InputDateRange
+          quantity="upload_time"
           visible={visible}
-          autocomplete='off'
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterText
-          quantity="datasets.dataset_id"
-          visible={visible}
-          autocomplete='off'
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterIDs.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuAuthor.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterIDs
+export default FilterSubMenuAuthor

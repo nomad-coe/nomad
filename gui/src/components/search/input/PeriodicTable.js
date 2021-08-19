@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import periodicTableData from './PeriodicTableData'
 import { withStyles, Typography, Button, Tooltip, FormControlLabel, Checkbox } from '@material-ui/core'
 import chroma from 'chroma-js'
-import { nomadSecondaryColor } from '../../config.js'
+import { nomadSecondaryColor } from '../../../config.js'
 
 const elements = []
 for (var i = 0; i < 10; i++) {

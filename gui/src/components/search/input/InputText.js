@@ -28,11 +28,11 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import CloseIcon from '@material-ui/icons/Close'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { Unit } from '../../units'
-import { useApi } from '../apiV1'
-import searchQuantities from '../../searchQuantities'
-import FilterLabel from './FilterLabel'
-import { useSetFilter } from './FilterContext'
+import { Unit } from '../../../units'
+import { useApi } from '../../apiV1'
+import searchQuantities from '../../../searchQuantities'
+import InputLabel from './InputLabel'
+import { useSetFilter } from '../FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -48,7 +48,7 @@ const useStyles = makeStyles(theme => ({
     height: '2.5rem'
   }
 }))
-const FilterText = React.memo(({
+const InputText = React.memo(({
   label,
   quantity,
   description,
@@ -190,7 +190,7 @@ const FilterText = React.memo(({
   }, [fetchSuggestions])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <FilterLabel label={title} description={desc}/>
+    <InputLabel label={title} description={desc}/>
     <Autocomplete
       freeSolo
       clearOnBlur={false}
@@ -242,7 +242,7 @@ const FilterText = React.memo(({
   </div>
 })
 
-FilterText.propTypes = {
+InputText.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string,
   description: PropTypes.string,
@@ -253,8 +253,8 @@ FilterText.propTypes = {
   'data-testid': PropTypes.string
 }
 
-FilterText.defaultProps = {
+InputText.defaultProps = {
   autocomplete: 'suggestions'
 }
 
-export default FilterText
+export default InputText

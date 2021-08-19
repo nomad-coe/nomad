@@ -50,7 +50,7 @@ const FilterLabel = React.memo(({
   )
 
   return <div className={clsx(className, styles.root)}>
-    <Tooltip title={description} placement="bottom">
+    <Tooltip title={description || ''} placement="bottom">
       <Typography
         className={styles.label}
         variant="button"
@@ -63,8 +63,8 @@ const FilterLabel = React.memo(({
 
 FilterLabel.propTypes = {
   label: PropTypes.string.isRequired,
-  underscores: PropTypes.bool,
   description: PropTypes.string,
+  underscores: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object
 }

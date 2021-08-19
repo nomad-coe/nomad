@@ -15,53 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
-import FilterText from './FilterText'
-import FilterCheckboxes from './FilterCheckboxes'
-import FilterSelect from './FilterSelect'
+import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import InputText from '../input/InputText'
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  }
-}))
-
-const FilterMethod = React.memo(({
-  visible,
-  className
+const FilterSubMenuDataset = React.memo(({
+  value,
+  ...rest
 }) => {
-  const styles = useStyles()
+  const {selected} = useContext(filterMenuContext)
+  const visible = value === selected
 
-  return <div className={clsx(className, styles.root)}>
+  return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <FilterCheckboxes
-          quantity="results.method.method_name"
-          visible={visible}
-          xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <FilterSelect
-          quantity="results.method.simulation.program_name"
+        <InputText
+          label="dataset name"
+          quantity="datasets.name"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
-        <FilterText
-          quantity="results.method.simulation.program_version"
+        <InputText
+          label="dataset DOI"
+          quantity="datasets.doi"
+          visible={visible}
+          autocomplete="off"
         />
       </Grid>
     </Grid>
-  </div>
+  </FilterSubMenu>
 })
-FilterMethod.propTypes = {
-  visible: PropTypes.bool,
-  className: PropTypes.string
+FilterSubMenuDataset.propTypes = {
+  value: PropTypes.string
 }
 
-export default FilterMethod
+export default FilterSubMenuDataset
