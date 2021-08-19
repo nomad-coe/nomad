@@ -129,6 +129,8 @@ export default function ProcessingTable({data, onPaginationChange}) {
       page={data.pagination.page}
       order={data.pagination.order === 'asc' ? 1 : 0}
       order_by={data.pagination.order_by}
+      // TODO this is a hack, gave up trying to understand CSS width in table cells
+      entryDetailsWidth={903}
     />
   </Paper>
 }

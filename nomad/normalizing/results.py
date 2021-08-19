@@ -162,13 +162,22 @@ class ResultsNormalizer(Normalizer):
         try:
             material = measurement.section_metadata.section_sample.section_material[0]
             results.material.elements = material.elements if material.elements else []
+            atoms = None
             if material.formula:
-                atoms = ase.Atoms(material.formula)
-                results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
-                results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
-                results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+                results.material.chemical_formula_descriptive = material.formula
+                try:
+                    atoms = ase.Atoms(material.formula)
+                except Exception as e:
+                    logger.warn('could not normalize formula, using elements next', exc_info=e)
+
+            if atoms is None:
+                atoms = ase.Atoms(''.join(material.elements))
+
+            results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
+            results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
         except Exception as e:
-            logger.warn('could not extract results material', exc_info=e)
+            logger.warn('could not normalize material', exc_info=e)
 
         # Properties
         if measurement.section_data.section_spectrum:

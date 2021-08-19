@@ -26,6 +26,26 @@ import { normalizeDisplayValue, encyclopediaEnabled, appBase } from '../../../co
 import Actions from '../../Actions'
 import Structure from '../../visualization/Structure'
 
+export function Formula({data}) {
+  const formula = (data) => {
+    const material = data?.results?.material
+    if (!material) {
+      return null
+    }
+
+    return material.chemical_formula_hill || material.chemical_formula_reduced || material.chemical_formula_descriptive
+  }
+
+  return <Quantity
+    quantity={formula} label='formula' noWrap data={data}
+    description="The chemical formula that describes the simulated system or experiment sample."
+  />
+}
+
+Formula.propTypes = {
+  data: PropTypes.object
+}
+
 const useStyles = makeStyles(theme => ({
   properties: {
     height: '100%',
@@ -67,7 +87,7 @@ export default function MaterialCard({entryMetadata, archive}) {
       <Grid item xs={5}>
         <Box className={classes.properties}>
           <Quantity column>
-            <Quantity quantity="results.material.chemical_formula_hill" label='formula' noWrap data={entryMetadata}/>
+            <Formula data={entryMetadata} />
             <Quantity quantity="results.material.structural_type" label='structural type' noWrap data={entryMetadata}/>
             <Quantity quantity="results.material.material_name" label='material name' noWrap data={entryMetadata}/>
             {entryMetadata.results?.material?.symmetry &&

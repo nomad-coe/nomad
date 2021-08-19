@@ -17,11 +17,11 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, makeStyles } from '@material-ui/core'
-import { domainComponents } from '../domainComponents'
+import { Typography, makeStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 import { useApi } from '../apiV1'
+import RawFiles from './RawFiles'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -53,7 +53,6 @@ export default function RawFileView({uploadId, entryId}) {
   }, [api, raiseError, entryId, setState])
 
   const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
-  const domainComponent = entryData.domain && domainComponents[entryData.domain]
 
   if (state.doesNotExist) {
     return <EntryPageContent>
@@ -65,7 +64,12 @@ export default function RawFileView({uploadId, entryId}) {
 
   return (
     <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
-      {domainComponent && <domainComponent.EntryRawView data={entryData} entryId={entryId} uploadId={uploadId} />}
+      <Card className={classes.root}>
+        <CardHeader title="Raw files" />
+        <CardContent>
+          <RawFiles data={entryData} entryId={entryId} uploadId={uploadId} />
+        </CardContent>
+      </Card>
     </EntryPageContent>
   )
 }

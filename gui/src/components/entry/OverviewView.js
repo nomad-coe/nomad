@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../apiV1'
 import { EntryPageContent } from './EntryPage'
@@ -33,6 +33,7 @@ import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectrumCard from './properties/SpectrumCard'
+import { MethodDetails } from './EntryDetails'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -108,32 +109,6 @@ export default function OverviewView({uploadId, entryId}) {
 
   const classes = useStyles()
 
-  const methodQuantities = useMemo(() => {
-    if (!entry) {
-      return null
-    }
-    const methodQuantities = []
-    const addMethodQuantities = (obj, parentKey) => {
-      const children = {}
-      Object.keys(obj).forEach(key => {
-        const value = obj[key]
-        if (Array.isArray(value) || typeof value === 'string') {
-          if (value.length > 0) {
-            methodQuantities.push({
-              quantity: `${parentKey}.${key}`,
-              label: key.replaceAll('_', ' ')
-            })
-          }
-        } else if (value instanceof Object) {
-          children[key] = value
-        }
-      })
-      Object.keys(children).forEach(key => addMethodQuantities(children[key], `${parentKey}.${key}`))
-    }
-    addMethodQuantities(entry.results.method, 'results.method')
-    return methodQuantities
-  }, [entry])
-
   if (!exists) {
     return <EntryPageContent>
       <Typography>
@@ -150,17 +125,7 @@ export default function OverviewView({uploadId, entryId}) {
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
         <MetadataSection title='Method'>
-          <Quantity flex>
-            {methodQuantities.map(({...quantityProps}) => (
-              <Quantity
-                key={quantityProps.quantity}
-                {...quantityProps}
-                noWrap
-                data={entry}
-                hideIfUnavailable
-              />
-            ))}
-          </Quantity>
+          <MethodDetails data={entry} />
         </MetadataSection>
         <Divider className={classes.divider} />
         <MetadataSection title='Author metadata'>

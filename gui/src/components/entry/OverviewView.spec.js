@@ -126,7 +126,7 @@ test('correctly renders metadata and all properties', async () => {
 
   // Check if all material data is shown (on the right, in the materials card)
   const material = results.material
-  const formula = screen.getByTitle('The chemical formula for a structure in Hill form with element symbols followed by integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.')
+  const formula = screen.getByTitle('The chemical formula that describes the simulated system or experiment sample.')
   expect(within(formula).getByText('formula')).toBeInTheDocument()
   expect(within(formula).getByText(material.chemical_formula_hill)).toBeInTheDocument()
   const structural_type = screen.getByTitle('Classification based on structural features.')
