@@ -23,7 +23,7 @@ import { toMateriaStructure } from '../../../utils'
 import Quantity from '../../Quantity'
 import { Box, Grid, makeStyles, Typography } from '@material-ui/core'
 import { normalizeDisplayValue, encyclopediaEnabled, appBase } from '../../../config'
-import Actions from '../../Actions'
+import { Actions } from '../../Actions'
 import Structure from '../../visualization/Structure'
 
 export function Formula({data}) {
