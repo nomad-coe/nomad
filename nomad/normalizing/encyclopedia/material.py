@@ -289,7 +289,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def material_classification(self, material: Material, section_system: Section) -> None:
         try:
-            sec_springer = section_system["section_springer_material"][0]
+            sec_springer = section_system["springer_material"][0]
         except Exception:
             return
 
@@ -311,7 +311,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def structure_type(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             notes = sec_prototype.m_cache['prototype_notes']
         except Exception:
             return
@@ -345,7 +345,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def structure_prototype(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             name = sec_prototype.m_cache['prototype_name']
         except Exception:
             return
@@ -354,7 +354,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def strukturbericht_designation(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             strukturbericht = sec_prototype.m_cache["strukturbericht_designation"]
         except Exception:
             return
@@ -381,11 +381,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         properties = sec_enc.properties
-        sec_symmetry = sec_system["section_symmetry"][0]
-        symmetry_analyzer = sec_system["section_symmetry"][0].m_cache["symmetry_analyzer"]
+        sec_symmetry = sec_system["symmetry"][0]
+        symmetry_analyzer = sec_system["symmetry"][0].m_cache["symmetry_analyzer"]
         spg_number = symmetry_analyzer.get_space_group_number()
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
@@ -511,7 +511,7 @@ class Material2DNormalizer(MaterialNormalizer):
 
     def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         try:
@@ -736,7 +736,7 @@ class Material1DNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)

@@ -117,6 +117,14 @@ class Atoms(MSection):
         with variable compositions.
         ''')
 
+    species = Quantity(
+        type=np.dtype(np.int32),
+        shape=['n_atoms'],
+        description='''
+        Species of the atom (normally the atomic number Z, 0 or negative for unidentifed
+        species or particles that are not atoms.
+        ''')
+
     labels = Quantity(
         type=str,
         shape=['n_atoms'],

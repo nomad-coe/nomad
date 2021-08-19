@@ -40,7 +40,7 @@ class MethodNormalizer():
     def __init__(self, entry_archive, logger):
         self.logger = logger
         self.entry_archive = entry_archive
-        self.section_run = entry_archive.section_run[0]
+        self.section_run = entry_archive.run[0]
 
     def method_id(self, method: Method, settings_basis_set: RestrictedDict, repr_method: Section):
         method_dict = RestrictedDict(
@@ -50,7 +50,7 @@ class MethodNormalizer():
             ],
             forbidden_values=[None]
         )
-        method_dict['program_name'] = self.section_run.program_name
+        method_dict['program_name'] = self.section_run.program.name
 
         # The subclasses may define their own method properties that are to be
         # included here.
@@ -80,7 +80,7 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        eos_dict['upload_id'] = self.entry_archive.section_metadata.upload_id
+        eos_dict['upload_id'] = self.entry_archive.metadata.upload_id
 
         # Method
         eos_dict["method_id"] = method.method_id
@@ -110,11 +110,11 @@ class MethodNormalizer():
         )
 
         # Only calculations from the same upload are grouped
-        param_dict['upload_id'] = self.entry_archive.section_metadata.upload_id
+        param_dict['upload_id'] = self.entry_archive.metadata.upload_id
 
         # The same code and functional type is required
-        param_dict['program_name'] = self.section_run.program_name
-        param_dict['program_version'] = self.section_run.program_version
+        param_dict['program_name'] = self.section_run.program.name
+        param_dict['program_version'] = self.section_run.program.version
 
         # Get a string representation of the geometry. It is included as the
         # geometry should remain the same during parameter variation. By simply
@@ -122,18 +122,22 @@ class MethodNormalizer():
         # order/translation/rotation does not change.
         geom_dict: OrderedDict = OrderedDict()
         sec_sys = repr_system
-        atom_labels = sec_sys['atom_labels']
-        geom_dict['atom_labels'] = ', '.join(atom_labels)
-        atom_positions = sec_sys['atom_positions']
-        geom_dict['atom_positions'] = np.array2string(
-            atom_positions.to(ureg.angstrom).magnitude,  # convert to Angstrom
-            formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
-        ).replace('\n', '')
-        cell = sec_sys['lattice_vectors']
-        geom_dict['simulation_cell'] = np.array2string(
-            cell.to(ureg.angstrom).magnitude,  # convert to Angstrom
-            formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
-        ).replace('\n', '')
+
+        try:
+            atom_labels = sec_sys['atom_labels']
+            geom_dict['atom_labels'] = ', '.join(atom_labels)
+            atom_positions = sec_sys['atom_positions']
+            geom_dict['atom_positions'] = np.array2string(
+                atom_positions.to(ureg.angstrom).magnitude,  # convert to Angstrom
+                formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
+            ).replace('\n', '')
+            cell = sec_sys['lattice_vectors']
+            geom_dict['simulation_cell'] = np.array2string(
+                cell.to(ureg.angstrom).magnitude,  # convert to Angstrom
+                formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
+            ).replace('\n', '')
+        except Exception:
+            pass
         param_dict['settings_geometry'] = geom_dict
 
         # The subclasses may define their own method properties that are to be
@@ -170,7 +174,7 @@ class MethodDFTNormalizer(MethodNormalizer):
     """
     def core_electron_treatment(self, method: Method) -> None:
         treatment = config.services.unavailable_value
-        code_name = self.section_run.program_name
+        code_name = self.section_run.program.name
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -186,7 +190,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         and parameters as a string: see
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
-        xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.section_run.section_method)
+        xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method, self.section_run.method)
         if xc_functional is config.services.unavailable_value:
             self.logger.warning(
                 "Metainfo for 'XC_functional' not found, and could not "
@@ -202,40 +206,43 @@ class MethodDFTNormalizer(MethodNormalizer):
         """
         linked_methods = [repr_method]
         try:
-            refs = repr_method.section_method_to_method_refs
+            refs = repr_method.method_ref
         except KeyError:
             pass
         else:
             for ref in refs:
-                method_to_method_kind = ref.method_to_method_kind
-                referenced_method = ref.method_to_method_ref
+                method_to_method_kind = ref.kind
+                referenced_method = ref.value
                 if method_to_method_kind == "core_settings":
                     linked_methods.append(referenced_method)
 
         xc_functional = config.services.unavailable_value
         for method in linked_methods:
             try:
-                section_xc_functionals = method.section_XC_functionals
+                sec_xc_functionals = method.dft.xc_functional
             except KeyError:
                 pass
             else:
                 components = {}
-                for component in section_xc_functionals:
-                    try:
-                        cname = component.XC_functional_name
-                    except KeyError:
-                        pass
-                    else:
-                        this_component = ''
-                        if component.XC_functional_weight is not None:
-                            this_component = str(component.XC_functional_weight) + '*'
-                        this_component += cname
-                        components[cname] = this_component
-                result_array = []
-                for name in sorted(components):
-                    result_array.append(components[name])
-                if len(result_array) >= 1:
-                    xc_functional = '+'.join(result_array)
+                for functional in ['exchange', 'correlation', 'hybrid', 'contributions']:
+                    for component in sec_xc_functionals[functional]:
+                        try:
+                            cname = component.name
+                        except KeyError:
+                            pass
+                        else:
+                            this_component = ''
+                            if component.weight is not None:
+                                this_component = str(component.weight) + '*'
+                            this_component += cname
+                            components[cname] = this_component
+                    result_array = []
+                    for name in sorted(components):
+                        result_array.append(components[name])
+                    if len(result_array) >= 1:
+                        xc_functional = '+'.join(result_array)
+                if method.dft.xc_functional.name is None:
+                    method.dft.xc_functional.name = xc_functional
 
         return xc_functional
 
@@ -271,17 +278,21 @@ class MethodDFTNormalizer(MethodNormalizer):
         # _reducible_ k-point-mesh:
         #    - grid dimensions (e.g. [ 4, 4, 8 ])
         #    - or list of reducible k-points
-        smearing_kind = repr_method.smearing_kind
-        if smearing_kind is not None:
-            hash_dict['smearing_kind'] = smearing_kind
-        smearing_width = repr_method.smearing_width
-        if smearing_width is not None:
-            smearing_width = '%.4f' % (smearing_width)
-            hash_dict['smearing_width'] = smearing_width
         try:
-            scc = self.section_run.section_single_configuration_calculation[-1]
-            eigenvalues = scc.section_eigenvalues
-            kpt = eigenvalues[-1].eigenvalues_kpoints
+            smearing_kind = repr_method.electronic.smearing.kind
+            if smearing_kind is not None:
+                hash_dict['smearing_kind'] = smearing_kind
+            smearing_width = repr_method.electronic.smearing.width
+            if smearing_width is not None:
+                smearing_width = '%.4f' % (smearing_width)
+                hash_dict['smearing_width'] = smearing_width
+        except Exception:
+            pass
+
+        try:
+            scc = self.section_run.calculation[-1]
+            eigenvalues = scc.eigenvalues
+            kpt = eigenvalues[-1].kpoints
         except (KeyError, IndexError):
             pass
         else:
@@ -289,10 +300,13 @@ class MethodDFTNormalizer(MethodNormalizer):
                 hash_dict['number_of_eigenvalues_kpoints'] = str(len(kpt))
 
         # SCF convergence settings
-        conv_thr = repr_method.scf_threshold_energy_change
-        if conv_thr is not None:
-            conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
-            hash_dict['scf_threshold_energy_change'] = conv_thr
+        try:
+            conv_thr = repr_method.scf.threshold_energy_change
+            if conv_thr is not None:
+                conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
+                hash_dict['scf_threshold_energy_change'] = conv_thr
+        except Exception:
+            pass
 
         return hash_dict
 
@@ -386,7 +400,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         # Fetch resources
         repr_method = context.representative_method
         repr_system = context.representative_system
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         method = sec_enc.method
         material = sec_enc.material
         settings_basis_set = get_basis_set(context, self.entry_archive, self.logger)

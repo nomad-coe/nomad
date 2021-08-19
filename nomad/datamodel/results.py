@@ -37,20 +37,16 @@ from nomad.metainfo import (
 m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
-from nomad.datamodel.metainfo.common_dft import (  # noqa
-    Method as section_method,
-    Dos,
-    Phonon,
-    SingleConfigurationCalculation,
-    GeometryOptimization,
-    Elastic,
-    KBand,
-    KBandSegment,
-    ThermodynamicalProperties,
-)
-from nomad.datamodel.metainfo.common_experimental import (  # noqa
-    Spectrum
-)
+from nomad.datamodel.metainfo.run.calculation import (
+    Dos, DosValues, BandStructure as BandStructureCalculation, BandEnergies, Thermodynamics,
+    Calculation)  # noqa
+from nomad.datamodel.metainfo.run.method import (
+    BasisSet, Scf, Electronic, Smearing, GW as GWMethod
+)  # noqa
+from nomad.datamodel.metainfo.workflow import (
+    GeometryOptimization, Phonon, Elastic
+)  # noqa
+
 
 unavailable = "unavailable"
 not_processed = "not processed"
@@ -683,7 +679,7 @@ class DFT(MSection):
             Elasticsearch(suggestion=True)
         ],
     )
-    basis_set_name = section_method.basis_set.m_copy()
+    basis_set_name = BasisSet.name.m_copy()
     basis_set_name.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
@@ -706,28 +702,28 @@ class DFT(MSection):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
+    scf_threshold_energy_change = Scf.threshold_energy_change.m_copy()
     scf_threshold_energy_change.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
-    van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
+    van_der_Waals_method = Electronic.van_der_waals_method.m_copy()
     van_der_Waals_method.description = 'The used van der Waals method.'
     van_der_Waals_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
     ]
 
-    relativity_method = section_method.relativity_method.m_copy()
+    relativity_method = Electronic.relativity_method.m_copy()
     relativity_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
     ]
 
-    smearing_type = section_method.smearing_kind.m_copy()
+    smearing_type = Smearing.kind.m_copy()
     smearing_type.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
     ]
 
-    smearing_width = section_method.smearing_width.m_copy()
+    smearing_width = Smearing.width.m_copy()
     smearing_width.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     xc_functional_type = Quantity(
         type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
@@ -751,7 +747,7 @@ class GW(MSection):
         Methodology for a GW calculation.
         """
     )
-    gw_type = section_method.gw_type.m_copy()
+    gw_type = GWMethod.type.m_copy()
     gw_type.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
@@ -773,9 +769,9 @@ class GeometryOptimizationMethod(MSection):
         properties presented in results.properties.geometry_optimization.
         """,
     )
-    geometry_optimization_type = GeometryOptimization.geometry_optimization_type.m_copy()
-    input_energy_difference_tolerance = GeometryOptimization.input_energy_difference_tolerance.m_copy()
-    input_force_maximum_tolerance = GeometryOptimization.input_force_maximum_tolerance.m_copy()
+    geometry_optimization_type = GeometryOptimization.type.m_copy()
+    input_energy_difference_tolerance = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
+    input_force_maximum_tolerance = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
 
 
 class MolecularDynamicsMethod(MSection):
@@ -811,7 +807,7 @@ class ElasticMethod(MSection):
         """,
     )
     energy_stress_calculator = Elastic.energy_stress_calculator.m_copy()
-    elastic_calculation_method = Elastic.elastic_calculation_method.m_copy()
+    elastic_calculation_method = Elastic.calculation_method.m_copy()
     elastic_constants_order = Elastic.elastic_constants_order.m_copy()
     fitting_error_maximum = Elastic.fitting_error_maximum.m_copy()
     strain_maximum = Elastic.strain_maximum.m_copy()
@@ -890,14 +886,15 @@ class DOS(MSection):
         """,
     )
     energies = Quantity(
-        type=Dos.dos_energies,
+        type=Dos.energies,
         description="""
         Array containing the set of discrete energy values for the density of
         states (DOS).
         """,
     )
     densities = Quantity(
-        type=Dos.dos_values_normalized,
+        type=DosValues.value,
+        shape=['n_spin_channels'],
         description="""
         Density of states (DOS) values normalized with unit cell volume and
         number of atoms.
@@ -944,13 +941,13 @@ class BandStructure(MSection):
         """,
     )
     reciprocal_cell = Quantity(
-        type=KBand.reciprocal_cell,
+        type=BandStructureCalculation.reciprocal_cell,
         description="""
         The reciprocal cell within which the band structure is calculated.
         """,
     )
     segments = Quantity(
-        type=KBandSegment,
+        type=BandEnergies,
         shape=["*"],
         description="""
         Collection of linear path segments in the reciprocal space. The
@@ -1011,14 +1008,14 @@ class HeatCapacityConstantVolume(MSection):
         """
     )
     heat_capacities = Quantity(
-        type=ThermodynamicalProperties.thermodynamical_property_heat_capacity_C_v,
+        type=Thermodynamics.heat_capacity_c_v,
         shape=[],
         description="""
         Specific heat capacity values at constant volume.
         """,
     )
     temperatures = Quantity(
-        type=ThermodynamicalProperties.thermodynamical_property_temperature,
+        type=Thermodynamics.temperature,
         description="""
         The temperatures at which heat capacities are calculated.
         """,
@@ -1034,14 +1031,14 @@ class EnergyFreeHelmholtz(MSection):
         """
     )
     energies = Quantity(
-        type=ThermodynamicalProperties.vibrational_free_energy_at_constant_volume,
+        type=Thermodynamics.vibrational_free_energy_at_constant_volume,
         shape=[],
         description="""
         The Helmholtz free energies per atom at constant volume.
         """,
     )
     temperatures = Quantity(
-        type=ThermodynamicalProperties.thermodynamical_property_temperature,
+        type=Thermodynamics.temperature,
         description="""
         The temperatures at which Helmholtz free energies are calculated.
         """,
@@ -1056,7 +1053,7 @@ class GeometryOptimizationProperties(MSection):
         """,
     )
     trajectory = Quantity(
-        type=SingleConfigurationCalculation,
+        type=Calculation,
         shape=["0..*"],
         description="""
         List of references to each section_single_configuration_calculation in
@@ -1088,7 +1085,7 @@ class MolecularDynamicsProperties(MSection):
         """,
     )
     trajectory = Quantity(
-        type=SingleConfigurationCalculation,
+        type=Calculation,
         shape=["0..*"],
         description="""
         List of references to each section_single_configuration_calculation in

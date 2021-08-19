@@ -24,7 +24,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.metainfo.run.method import Method
 from nomad.datamodel.metainfo.run.system import System
 from nomad.datamodel.metainfo.run.calculation import Calculation
-from nomad import datamodel
 
 
 class AccessoryInfo(MCategory):
@@ -251,10 +250,3 @@ class Run(MSection):
     calculation = SubSection(sub_section=Calculation.m_def, repeats=True)
 
     run_ref = SubSection(sub_section=RunReference.m_def, repeats=True)
-
-
-class EntryArchive(datamodel.EntryArchive):
-
-    m_def = Section(validate=False, extends_base_section=True)
-
-    run = SubSection(sub_section=Run.m_def, repeats=True)

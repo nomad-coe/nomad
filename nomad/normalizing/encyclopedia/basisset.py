@@ -40,7 +40,7 @@ def get_basis_set(context, entry_archive, logger) -> RestrictedDict:
         returns None.
     """
     settings: BasisSet = None
-    program_name = entry_archive.section_run[0].program_name
+    program_name = entry_archive.run[0].program.name
     if program_name == "exciting":
         settings = BasisSetExciting(context, entry_archive, logger)
     elif program_name == "FHI-aims":

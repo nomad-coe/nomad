@@ -6,7 +6,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.metainfo.search_extension import Search
 from nomad.datamodel.metainfo.run.calculation import Calculation
 from nomad.datamodel.metainfo.run.run import RunReference
-from nomad import datamodel
 
 
 class FastAccess(MCategory):
@@ -1134,7 +1133,7 @@ class Workflow(MSection):
         ''',
         categories=[FastAccess])
 
-    calculation_refs = Quantity(
+    calculations_ref = Quantity(
         type=Reference(Calculation.m_def),
         shape=['optimization_steps'],
         description='''
@@ -1200,10 +1199,3 @@ class Workflow(MSection):
 
     run_ref = SubSection(
         sub_section=RunReference.m_def, repeats=True)
-
-
-class EntryArchive(datamodel.EntryArchive):
-
-    m_def = Section(validate=False, extends_base_section=True)
-
-    workflow = SubSection(sub_section=Workflow.m_def, repeats=True)

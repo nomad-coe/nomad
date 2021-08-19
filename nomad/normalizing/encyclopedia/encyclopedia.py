@@ -50,7 +50,7 @@ class EncyclopediaNormalizer(Normalizer):
         # Primarily try to determine the calculation type from workflow
         # information
         try:
-            workflow = self.entry_archive.section_workflow
+            workflow = self.entry_archive.workflow[-1]
             workflow_map = {
                 "molecular_dynamics": calc_enums.molecular_dynamics,
                 "geometry_optimization": calc_enums.geometry_optimization,
@@ -65,20 +65,16 @@ class EncyclopediaNormalizer(Normalizer):
 
         # Fall back to old frame sequence data
         try:
-            sccs = self.section_run.section_single_configuration_calculation
+            sccs = self.section_run.calculation
         except Exception:
             sccs = []
-        try:
-            frame_sequences = self.section_run.section_frame_sequence
-        except Exception:
-            frame_sequences = []
 
         n_scc = len(sccs)
-        n_frame_seq = len(frame_sequences)
 
         # No sequences, only a few calculations
-        if n_scc <= 3 and n_frame_seq == 0:
-            program_name = self.section_run.program_name
+        n_workflow = len(self.entry_archive.workflow)
+        if n_scc <= 3 and n_workflow == 0:
+            program_name = self.section_run.program.name
             if program_name == "elastic":
                 # TODO move to taylor expansion as soon as data is correct in archive
                 calc_type = calc_enums.elastic_constants
@@ -87,33 +83,16 @@ class EncyclopediaNormalizer(Normalizer):
 
         # One sequence. Currently calculations with multiple sequences are
         # unsupported.
-        elif n_frame_seq == 1:
-            frame_seq = frame_sequences[0]
-
-            # See if sampling_method is present
-            section_sampling_method = frame_seq.frame_sequence_to_sampling_ref
-            if section_sampling_method is None:
-                self.logger.info(
-                    "Cannot determine encyclopedia run type because missing "
-                    "value for frame_sequence_to_sampling_ref."
-                )
-                return calc_type
-
-            # See if local frames are present
-            frames = frame_seq.frame_sequence_local_frames_ref
-            if not frames:
-                self.logger.info("No frames referenced in section_frame_sequence_local_frames.")
-                return calc_type
-
-            sampling_method = section_sampling_method.sampling_method
-
-            if sampling_method == "molecular_dynamics":
+        elif n_workflow == 1:
+            workflow_type = self.entry_archive.workflow[0].type
+            if workflow_type == "molecular_dynamics":
                 calc_type = calc_enums.molecular_dynamics
-            if sampling_method == "geometry_optimization":
+            if workflow_type == "geometry_optimization":
                 calc_type = calc_enums.geometry_optimization
-            if sampling_method == "taylor_expansion":
+            if workflow_type == "phonon":
                 calc_type = calc_enums.phonon_calculation
-
+            if workflow_type == 'single_point':
+                calc_type = calc_enums.single_point
         calc.calculation_type = calc_type
         return calc_type
 
@@ -129,8 +108,8 @@ class EncyclopediaNormalizer(Normalizer):
         else:
             # Try to find system type information from archive for the selected system.
             try:
-                system = self.section_run.section_system[system_idx]
-                stype = system.system_type
+                system = self.section_run.system[system_idx]
+                stype = system.type
             except KeyError:
                 pass
             else:
@@ -139,7 +118,7 @@ class EncyclopediaNormalizer(Normalizer):
                 # For bulk systems we also ensure that the symmetry information is available
                 if stype == material_enums.bulk:
                     try:
-                        system.section_symmetry[0]
+                        system.symmetry[0]
                     except (KeyError, IndexError):
                         self.logger.info("Symmetry information is not available for a bulk system. No Encylopedia entry created.")
                     else:
@@ -151,12 +130,12 @@ class EncyclopediaNormalizer(Normalizer):
     def method_type(self, method: Method) -> tuple:
         repr_method = None
         method_id = config.services.unavailable_value
-        methods = self.section_run.section_method
+        methods = self.section_run.method
         n_methods = len(methods)
 
         if n_methods == 1:
             repr_method = methods[0]
-            method_id = repr_method.electronic_structure_method
+            method_id = repr_method.electronic.method if repr_method.electronic else ''
             if method_id is None:
                 method_id = config.services.unavailable_value
             elif method_id in {"G0W0", "scGW"}:
@@ -164,7 +143,7 @@ class EncyclopediaNormalizer(Normalizer):
         elif n_methods > 1:
             for sec_method in methods:
                 # GW
-                electronic_structure_method = sec_method.electronic_structure_method
+                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else ''
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
                     method_id = "GW"
@@ -174,19 +153,19 @@ class EncyclopediaNormalizer(Normalizer):
                 # linked methods, try to get electronic_structure_method from
                 # each.
                 try:
-                    refs = sec_method.section_method_to_method_refs
+                    refs = sec_method.method_ref
                 except KeyError:
                     pass
                 else:
                     linked_methods = [sec_method]
                     for ref in refs:
-                        method_to_method_kind = ref.method_to_method_kind
-                        method_to_method_ref = ref.method_to_method_ref
+                        method_to_method_kind = ref.kind
+                        method_to_method_ref = ref.value
                         if method_to_method_kind == "core_settings":
                             linked_methods.append(method_to_method_ref)
 
                     for i_method in linked_methods:
-                        electronic_structure_method = i_method.electronic_structure_method
+                        electronic_structure_method = i_method.electronic.method if i_method.electronic else ''
                         if electronic_structure_method is not None:
                             repr_method = sec_method
                             method_id = electronic_structure_method
@@ -223,7 +202,7 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
-        sec_enc = self.entry_archive.section_metadata.m_create(EncyclopediaMetadata)
+        sec_enc = self.entry_archive.metadata.m_create(EncyclopediaMetadata)
         status_enums = EncyclopediaMetadata.status.type
         calc_enums = Calculation.calculation_type.type
 
@@ -285,7 +264,7 @@ class EncyclopediaNormalizer(Normalizer):
             # Get representative scc
             try:
                 representative_scc_idx = self.section_run.m_cache["representative_scc_idx"]
-                representative_scc = self.section_run.section_single_configuration_calculation[representative_scc_idx]
+                representative_scc = self.section_run.calculation[representative_scc_idx]
             except Exception:
                 representative_scc = None
                 representative_scc_idx = None

@@ -42,7 +42,7 @@ class TaskNormalizer(Normalizer):
         workflow_index = workflow_index if len(entry_archive.workflow) < workflow_index else -1
         self.workflow = entry_archive.workflow[workflow_index]
         run = self.workflow.run_ref
-        self.run = run if run is not None else entry_archive.run[-1]
+        self.run = run[-1].value if run else entry_archive.run[-1]
 
 
 class SinglePointNormalizer(TaskNormalizer):
@@ -50,7 +50,7 @@ class SinglePointNormalizer(TaskNormalizer):
         super().normalize()
         self.section = self.workflow.single_point
         if not self.section:
-            self.section = self.entry_archive.workflow.m_create(SinglePoint)
+            self.section = self.workflow.m_create(SinglePoint)
 
         if not self.section.method:
             try:
@@ -66,7 +66,7 @@ class SinglePointNormalizer(TaskNormalizer):
         if not self.section.number_of_scf_steps:
             self.section.number_of_scf_steps = len(scc[-1].scf_iteration)
 
-        energies = [scf.energy.total for scf in scc[-1].scf_iteration if scf.energy is not None]
+        energies = [scf.energy.total.value for scf in scc[-1].scf_iteration if scf.energy is not None]
         delta_energy = resolve_difference(energies)
         if not self.section.final_scf_energy_difference and delta_energy is not None:
             self.section.final_scf_energy_difference = delta_energy
@@ -147,6 +147,7 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             return 'ionic'
 
     def normalize(self):
+        super().normalize()
         self.section = self.workflow.geometry_optimization
         if self.section is None:
             self.section = self.workflow.m_create(GeometryOptimization)
@@ -246,6 +247,7 @@ class PhononNormalizer(TaskNormalizer):
         return result
 
     def normalize(self):
+        super().normalize()
         self.section = self.workflow.phonon
 
         if not self.section:
@@ -323,6 +325,7 @@ class ElasticNormalizer(TaskNormalizer):
         return max_error
 
     def normalize(self):
+        super().normalize()
         self.section = self.workflow.elastic
 
         if not self.section:
@@ -349,6 +352,7 @@ class MolecularDynamicsNormalizer(TaskNormalizer):
             return False
 
     def normalize(self):
+        super().normalize
         self.section = self.workflow.molecular_dynamics
 
         if not self.section:
@@ -369,49 +373,27 @@ class WorkflowNormalizer(Normalizer):
         super().__init__(entry_archive)
         self._elastic_programs = ['elastic']
         self._phonon_programs = ['phonopy']
+        self._molecular_dynamics_programs = ['lammps']
 
-    def _resolve_workflow_type_vasp(self, run):
-        if not run.method:
-            return
-
-        ibrion = -1
-        incar = run.method[0].x_vasp_incar_out
-        if incar is not None:
-            nsw = incar.get('NSW')
-            ibrion = -1 if nsw == 0 else incar.get('IBRION', 0)
-
-        if ibrion == -1:
-            return 'single_point'
-        elif ibrion == 0:
-            return 'molecular_dynamics'
-        else:
-            return 'geometry_optimization'
-
-    def _resolve_workflow_type(self, workflow_index):
-        sec_run = self.entry_archive.workflow[workflow_index].run_ref
-        sec_run = self.entry_archive.run[-1] if sec_run is None else sec_run
-
+    def _resolve_workflow_type(self, run):
         # resolve it from parser
         workflow_type = None
-        program_name = self.entry_archive.run.program.name
+        program_name = run.program.name
         if program_name:
             program_name = program_name.lower()
 
-        if program_name == 'vasp':
-            workflow_type = self._resolve_workflow_type_vasp(sec_run)
-
-        elif program_name == 'elastic':
+        if program_name in self._elastic_programs:
             workflow_type = 'elastic'
 
-        elif program_name == 'lammps':
+        elif program_name in self._molecular_dynamics_programs:
             workflow_type = 'molecular_dynamics'
 
-        elif program_name == 'phonopy':
+        elif program_name in self._phonon_programs:
             workflow_type = 'phonon'
 
         # resolve if from scc
-        if not workflow_type:
-            if len(sec_run.calculation) == 1:
+        if workflow_type is None:
+            if len(run.calculation) == 1:
                 workflow_type = 'single_point'
 
         return workflow_type
@@ -423,22 +405,36 @@ class WorkflowNormalizer(Normalizer):
         if self.entry_archive.run is None:
             return
 
-        if len(self.entry_archive.workflow) == 0:
+        if not self.entry_archive.workflow:
             self.entry_archive.m_create(Workflow)
 
         for n, sec_workflow in enumerate(self.entry_archive.workflow):
+            # we get reference the referenced run from which information can be extracted
+            sec_run = sec_workflow.run_ref
+            sec_run = sec_run[-1].value if sec_run else self.entry_archive.run[-1]
 
-            workflow_type = None
             if sec_workflow.type is None:
-
-                workflow_type = self._resolve_workflow_type(n)
-
-                if not workflow_type:
+                workflow_type = self._resolve_workflow_type(sec_run)
+                if workflow_type is None:
                     continue
-
                 sec_workflow.type = workflow_type
 
-            scc = self.entry_archive.run.calculation
+            if sec_workflow.type == 'geometry_optimization':
+                GeometryOptimizationNormalizer(self.entry_archive, n).normalize()
+
+            elif sec_workflow.type == 'phonon':
+                PhononNormalizer(self.entry_archive, n).normalize()
+
+            elif sec_workflow.type == 'elastic':
+                ElasticNormalizer(self.entry_archive, n).normalize()
+
+            elif sec_workflow.type == 'molecular_dynamics':
+                MolecularDynamicsNormalizer(self.entry_archive, n).normalize()
+
+            elif sec_workflow.type == 'single_point':
+                SinglePointNormalizer(self.entry_archive, n).normalize()
+
+            scc = sec_run.calculation
             if not sec_workflow.calculation_result_ref:
                 if scc:
                     sec_workflow.calculation_result_ref = scc[-1]
@@ -446,21 +442,6 @@ class WorkflowNormalizer(Normalizer):
             if not sec_workflow.calculations_ref:
                 if scc:
                     sec_workflow.calculations_ref = scc
-
-            if sec_workflow.workflow_type == 'geometry_optimization':
-                GeometryOptimizationNormalizer(self.entry_archive, n).normalize()
-
-            elif sec_workflow.workflow_type == 'phonon':
-                PhononNormalizer(self.entry_archive, n).normalize()
-
-            elif sec_workflow.workflow_type == 'elastic':
-                ElasticNormalizer(self.entry_archive, n).normalize()
-
-            elif sec_workflow.workflow_type == 'molecular_dynamics':
-                MolecularDynamicsNormalizer(self.entry_archive, n).normalize()
-
-            elif sec_workflow.workflow_type == 'single_point':
-                SinglePointNormalizer(self.entry_archive, n).normalize()
 
             # remove the section workflow again, if the parser/normalizer could not produce a result
             if sec_workflow.calculation_result_ref is None:

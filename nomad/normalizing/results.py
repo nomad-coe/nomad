@@ -27,10 +27,8 @@ from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.datamodel.optimade import OptimadeEntry, Species
-from nomad.datamodel.metainfo.common_dft import (
-    section_symmetry,
-    section_system,
-)
+from nomad.datamodel.metainfo.run.system import System, Symmetry as SystemSymmetry
+from nomad.datamodel.metainfo.run.method import Electronic
 from nomad.datamodel.results import (
     ChannelInfo,
     Results,
@@ -193,22 +191,22 @@ class ResultsNormalizer(Normalizer):
     def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered
         repr_sys = None
-        for section in self.section_run.section_system:
+        for section in self.section_run.system:
             if section.is_representative:
                 repr_sys = section
                 break
         try:
-            encyclopedia = self.entry_archive.section_metadata.encyclopedia
+            encyclopedia = self.entry_archive.metadata.encyclopedia
         except Exception:
             encyclopedia = None
         try:
-            optimade = self.entry_archive.section_metadata.dft.optimade
+            optimade = self.entry_archive.metadata.dft.optimade
         except Exception:
             optimade = None
 
         symmetry = None
-        if repr_sys and repr_sys.section_symmetry:
-            symmetry = repr_sys.section_symmetry[0]
+        if repr_sys and repr_sys.symmetry:
+            symmetry = repr_sys.symmetry[0]
 
         # Create the section and populate the subsections
         results = self.entry_archive.results
@@ -219,16 +217,16 @@ class ResultsNormalizer(Normalizer):
 
     def material(
             self,
-            repr_sys: section_system,
-            symmetry: section_symmetry,
+            repr_sys: System,
+            symmetry: SystemSymmetry,
             encyclopedia: EncyclopediaMetadata,
             optimade: OptimadeEntry) -> Material:
         """Returns a populated Material subsection."""
         material = Material()
 
         if repr_sys:
-            material.structural_type = repr_sys.system_type
-            names, counts = atomutils.get_hill_decomposition(repr_sys.atom_labels, reduced=True)
+            material.structural_type = repr_sys.type
+            names, counts = atomutils.get_hill_decomposition(repr_sys.atoms.labels, reduced=True)
             material.chemical_formula_reduced_fragments = [
                 "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(names, counts)
             ]
@@ -256,8 +254,8 @@ class ResultsNormalizer(Normalizer):
 
     def symmetry(
             self,
-            repr_sys: section_system,
-            symmetry: section_symmetry,
+            repr_sys: System,
+            symmetry: SystemSymmetry,
             encyclopedia: EncyclopediaMetadata) -> Symmetry:
         """Returns a populated Symmetry subsection."""
         result = Symmetry()
@@ -279,10 +277,10 @@ class ResultsNormalizer(Normalizer):
             result.prototype_formula = encyclopedia.material.bulk.structure_prototype
             filled = True
 
-        proto = repr_sys.section_prototype if repr_sys else None
+        proto = repr_sys.prototype if repr_sys else None
         proto = proto[0] if proto else None
         if proto:
-            result.prototype_aflow_id = proto.prototype_aflow_id
+            result.prototype_aflow_id = proto.aflow_id
             filled = True
 
         if filled:
@@ -324,7 +322,10 @@ class ResultsNormalizer(Normalizer):
             i_species.concentration = [1.0]
 
     def basis_set_type(self) -> Union[str, None]:
-        name = self.section_run.program_basis_set_type
+        try:
+            name = self.section_run.method[0].basis_set.type
+        except Exception:
+            name = None
         if name:
             key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
             name_mapping = {
@@ -337,7 +338,7 @@ class ResultsNormalizer(Normalizer):
 
     def core_electron_treatment(self) -> str:
         treatment = config.services.unavailable_value
-        code_name = self.section_run.program_name
+        code_name = self.section_run.program.name
         if code_name is not None:
             core_electron_treatments = {
                 'VASP': 'pseudopotential',
@@ -350,14 +351,14 @@ class ResultsNormalizer(Normalizer):
 
     def xc_functional_names(self, repr_method) -> Union[List[str], None]:
         if repr_method:
-            functionals = repr_method.section_XC_functionals
+            functionals = []
+            try:
+                for functional_type in ['exchange', 'correlation', 'hybrid', 'contributions']:
+                    functionals.extend([f.name for f in repr_method.dft.xc_functional[functional_type]])
+            except Exception:
+                pass
             if functionals:
-                names = []
-                for functional in functionals:
-                    name = functional.XC_functional_name
-                    if name:
-                        names.append(name)
-                return sorted(names)
+                return sorted(functionals)
         return None
 
     def xc_functional_type(self, xc_functionals) -> str:
@@ -375,18 +376,18 @@ class ResultsNormalizer(Normalizer):
         simulation = Simulation()
         repr_method = None
         method_name = config.services.unavailable_value
-        methods = self.section_run.section_method
+        methods = self.section_run.method
         n_methods = len(methods)
 
         if n_methods == 1:
             repr_method = methods[0]
-            method_name = repr_method.electronic_structure_method
+            method_name = repr_method.electronic.method if repr_method.electronic else None
             if method_name is None:
                 method_name = config.services.unavailable_value
         elif n_methods > 1:
             # GW
             for sec_method in methods:
-                electronic_structure_method = sec_method.electronic_structure_method
+                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else None
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
                     method_name = electronic_structure_method
@@ -395,48 +396,53 @@ class ResultsNormalizer(Normalizer):
             # Method referencing another as "core_settings". If core method was
             # given, create new merged method containing all the information.
             for sec_method in methods:
-                refs = sec_method.section_method_to_method_refs
+                refs = sec_method.method_ref
                 if refs:
                     core_method = None
                     for ref in refs:
-                        method_to_method_kind = ref.method_to_method_kind
+                        method_to_method_kind = ref.kind
                         if method_to_method_kind == "core_settings":
-                            core_method = ref.method_to_method_ref
+                            core_method = ref.value
                     if core_method:
                         updatable_props = ["electronic_structure_method"]
                         for prop in updatable_props:
                             new_val = sec_method.get(prop)
                             if new_val is not None:
                                 setattr(core_method, prop, new_val)
+                        if sec_method.electronic:
+                            core_method.electronic = Electronic(method=sec_method.electronic.method)
                         repr_method = core_method
-                        method_name = repr_method.electronic_structure_method
+                        method_name = repr_method.electronic.method
 
         if method_name in {"G0W0", "scGW"}:
             method.method_name = "GW"
             gw = GW()
-            gw.gw_type = repr_method.gw_type
-            gw.starting_point = repr_method.gw_starting_point.split()
+            gw.gw_type = repr_method.gw.type
+            gw.starting_point = repr_method.gw.starting_point.split()
             simulation.gw = gw
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"
             dft = DFT()
             dft.basis_set_type = self.basis_set_type()
             dft.core_electron_treatment = self.core_electron_treatment()
-            dft.smearing_kind = repr_method.smearing_kind
-            dft.smearing_width = repr_method.smearing_width
-            if repr_method.number_of_spin_channels:
-                dft.spin_polarized = repr_method.number_of_spin_channels > 1
+            if repr_method.electronic is not None:
+                if repr_method.electronic.smearing is not None:
+                    dft.smearing_kind = repr_method.electronic.smearing.kind
+                    dft.smearing_width = repr_method.electronic.smearing.width
+                if repr_method.electronic.n_spin_channels:
+                    dft.spin_polarized = repr_method.n_spin_channels > 1
+                dft.van_der_Waals_method = repr_method.electronic.van_der_waals_method
+                dft.relativity_method = repr_method.electronic.relativity_method
             dft.xc_functional_names = self.xc_functional_names(repr_method)
             dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
-            dft.scf_threshold_energy_change = repr_method.scf_threshold_energy_change
-            dft.van_der_Waals_method = repr_method.van_der_Waals_method
-            dft.relativity_method = repr_method.relativity_method
+            if repr_method.scf is not None:
+                dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
             simulation.dft = dft
 
         if encyclopedia and encyclopedia.method:
             method.method_id = encyclopedia.method.method_id
-        simulation.program_name = self.section_run.program_name
-        simulation.program_version = self.section_run.program_version
+        simulation.program_name = self.section_run.program.name
+        simulation.program_version = self.section_run.program.version
         method.simulation = simulation
 
         return method
@@ -451,15 +457,14 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of band_energies.
           - The reported band_structure_kind is not "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        path = ["run", "calculation", "band_structure_electronic"]
         for bs in self.traverse_reversed(path):
-            kind = bs.band_structure_kind
-            if kind == "vibrational" or not bs.section_k_band_segment:
+            if not bs.segment:
                 continue
             valid = True
-            for segment in bs.section_k_band_segment:
-                energies = segment.band_energies
-                k_points = segment.band_k_points
+            for segment in bs.segment:
+                energies = segment.energies
+                k_points = segment.kpoints
                 if not valid_array(energies) or not valid_array(k_points):
                     valid = False
                     break
@@ -467,9 +472,9 @@ class ResultsNormalizer(Normalizer):
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructureElectronic()
                 bs_new.reciprocal_cell = bs
-                bs_new.segments = bs.section_k_band_segment
-                bs_new.spin_polarized = bs_new.segments[0].band_energies.shape[0] > 1
-                for info in bs.channel_info:
+                bs_new.segments = bs.segment
+                bs_new.spin_polarized = bs_new.segments[0].energies.shape[0] > 1
+                for info in bs.info:
                     info_new = bs_new.m_create(ChannelInfo)
                     info_new.index = info.index
                     info_new.band_gap = info.band_gap
@@ -490,15 +495,14 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is not "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        path = ["run", "calculation", "dos_electronic"]
         for dos in self.traverse_reversed(path):
-            kind = dos.dos_kind
-            energies = dos.dos_energies
-            values = dos.dos_values_normalized
-            if kind != "vibrational" and valid_array(energies) and valid_array(values):
+            energies = dos.energies
+            values = np.array([d.value.magnitude for d in dos.total])
+            if valid_array(energies) and valid_array(values):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
-                dos_new.densities = dos
+                dos_new.densities = dos.total
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
                 for info in dos.channel_info:
@@ -521,22 +525,21 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of band_energies.
           - The reported band_structure_kind is "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        path = ["run", "calculation", "band_structure_phonon"]
         for bs in self.traverse_reversed(path):
-            kind = bs.band_structure_kind
-            if kind != "vibrational" or not bs.section_k_band_segment:
+            if not bs.segment:
                 continue
             valid = True
-            for segment in bs.section_k_band_segment:
-                energies = segment.band_energies
-                k_points = segment.band_k_points
+            for segment in bs.segment:
+                energies = segment.energies
+                k_points = segment.kpoints
                 if not valid_array(energies) or not valid_array(k_points):
                     valid = False
                     break
             if valid:
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructurePhonon()
-                bs_new.segments = bs.section_k_band_segment
+                bs_new.segments = bs.segment
                 return bs_new
 
         return None
@@ -550,16 +553,15 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        path = ["run", "calculation", "dos_phonon"]
         for dos in self.traverse_reversed(path):
-            kind = dos.dos_kind
-            energies = dos.dos_energies
-            values = dos.dos_values_normalized
-            if kind == "vibrational" and valid_array(energies) and valid_array(values):
+            energies = dos.energies
+            values = np.array([d.value.magnitude for d in dos.total])
+            if valid_array(energies) and valid_array(values):
                 # Fill dos data to the newer, improved data layout
                 dos_new = DOSPhonon()
                 dos_new.energies = dos
-                dos_new.densities = dos
+                dos_new.densities = dos.total
                 return dos_new
 
         return None
@@ -572,9 +574,9 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["section_run", "section_frame_sequence", "section_thermodynamical_properties"]
+        path = ["run", "calculation", "thermodynamics"]
         for thermo_prop in self.traverse_reversed(path):
-            temperatures = thermo_prop.thermodynamical_property_temperature
+            temperatures = thermo_prop.temperature
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
             if valid_array(temperatures) and valid_array(energies):
                 energy_free = EnergyFreeHelmholtz()
@@ -592,10 +594,10 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["section_run", "section_frame_sequence", "section_thermodynamical_properties"]
+        path = ["run", "calculation", "thermodynamics"]
         for thermo_prop in self.traverse_reversed(path):
-            temperatures = thermo_prop.thermodynamical_property_temperature
-            heat_capacities = thermo_prop.specific_heat_capacity
+            temperatures = thermo_prop.temperature
+            heat_capacities = thermo_prop.heat_capacity_c_v
             if valid_array(temperatures) and valid_array(heat_capacities):
                 heat_cap = HeatCapacityConstantVolume()
                 heat_cap.heat_capacities = thermo_prop
@@ -608,23 +610,24 @@ class ResultsNormalizer(Normalizer):
         """Populates both geometry optimization methodology and calculated
         properties based on the first found geometry optimization workflow.
         """
-        path = ["section_workflow"]
+        path = ["workflow"]
         for workflow in self.traverse_reversed(path):
             # Check validity
-            if workflow.workflow_type == "geometry_optimization" and workflow.calculations_ref:
+            if workflow.type == "geometry_optimization" and workflow.calculations_ref:
 
                 # Method
-                geo_opt_wf = workflow.section_geometry_optimization
+                geo_opt_wf = workflow.geometry_optimization
                 if geo_opt_wf is not None:
                     geo_opt_meth = GeometryOptimizationMethod()
-                    geo_opt_meth.geometry_optimization_type = geo_opt_wf.geometry_optimization_type
+                    geo_opt_meth.geometry_optimization_type = geo_opt_wf.type
                     method.simulation.geometry_optimization = geo_opt_meth
 
                 # Properties
                 geo_opt_prop = GeometryOptimizationProperties()
                 geo_opt_prop.trajectory = workflow.calculations_ref
+                system_ref = workflow.calculation_result_ref.system_ref
                 structure_optimized = self.structure_optimized(
-                    workflow.calculation_result_ref.single_configuration_calculation_to_system_ref
+                    system_ref[-1].value if system_ref else None
                 )
                 if structure_optimized:
                     geo_opt_prop.structure_optimized = structure_optimized
@@ -639,8 +642,8 @@ class ResultsNormalizer(Normalizer):
 
     def properties(
             self,
-            repr_sys: section_system,
-            symmetry: section_symmetry,
+            repr_sys: System,
+            symmetry: SystemSymmetry,
             encyclopedia: EncyclopediaMetadata) -> Properties:
         """Returns a populated Properties subsection."""
         properties = Properties()
@@ -688,43 +691,43 @@ class ResultsNormalizer(Normalizer):
             properties.vibrational = vibrational
 
         try:
-            n_calc = len(self.section_run.section_single_configuration_calculation)
+            n_calc = len(self.section_run.calculation)
         except Exception:
             n_calc = 0
         properties.n_calculations = n_calc
 
         return properties
 
-    def structure_original(self, repr_sys: section_system) -> StructureOriginal:
+    def structure_original(self, repr_sys: System) -> StructureOriginal:
         """Returns a populated Structure subsection for the original
         structure.
         """
-        if repr_sys:
+        if repr_sys and repr_sys.atoms:
             struct = StructureOriginal()
-            struct.cartesian_site_positions = repr_sys.atom_positions
-            struct.species_at_sites = repr_sys.atom_labels
+            struct.cartesian_site_positions = repr_sys.atoms.positions
+            struct.species_at_sites = repr_sys.atoms.labels
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(repr_sys.lattice_vectors):
-                struct.dimension_types = np.array(repr_sys.configuration_periodic_dimensions).astype(int)
-                struct.lattice_vectors = repr_sys.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(repr_sys.lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(repr_sys.lattice_vectors)
+            if atomutils.is_valid_basis(repr_sys.atoms.lattice_vectors.magnitude):
+                struct.dimension_types = np.array(repr_sys.atoms.periodic).astype(int)
+                struct.lattice_vectors = repr_sys.atoms.lattice_vectors
+                struct.cell_volume = atomutils.get_volume(repr_sys.atoms.lattice_vectors.magnitude)
+                struct.lattice_parameters = self.lattice_parameters(repr_sys.atoms.lattice_vectors)
             return struct
 
         return None
 
-    def structure_primitive(self, symmetry: section_symmetry) -> StructurePrimitive:
+    def structure_primitive(self, symmetry: SystemSymmetry) -> StructurePrimitive:
         """Returns a populated Structure subsection for the primitive
         structure.
         """
         if symmetry:
             struct = StructurePrimitive()
-            prim_sys = symmetry.section_primitive_system[0]
-            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers_primitive)
+            prim_sys = symmetry.system_primitive[0]
+            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers)
             self.species(struct.species_at_sites, struct)
-            lattice_vectors = prim_sys.lattice_vectors_primitive
-            if atomutils.is_valid_basis(lattice_vectors):
-                struct.cartesian_site_positions = atomutils.to_cartesian(prim_sys.atom_positions_primitive, lattice_vectors)
+            lattice_vectors = prim_sys.lattice_vectors
+            if atomutils.is_valid_basis(lattice_vectors.magnitude):
+                struct.cartesian_site_positions = atomutils.to_cartesian(prim_sys.positions.magnitude, lattice_vectors.magnitude)
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = lattice_vectors
                 struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
@@ -733,18 +736,18 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def structure_conventional(self, symmetry: section_symmetry) -> StructureConventional:
+    def structure_conventional(self, symmetry: SystemSymmetry) -> StructureConventional:
         """Returns a populated Structure subsection for the conventional
         structure.
         """
         if symmetry:
             struct = StructureConventional()
-            conv_sys = symmetry.section_std_system[0]
-            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers_std)
+            conv_sys = symmetry.system_std[0]
+            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers)
             self.species(struct.species_at_sites, struct)
-            lattice_vectors = conv_sys.lattice_vectors_std
-            if atomutils.is_valid_basis(lattice_vectors):
-                struct.cartesian_site_positions = atomutils.to_cartesian(conv_sys.atom_positions_std, lattice_vectors)
+            lattice_vectors = conv_sys.lattice_vectors
+            if atomutils.is_valid_basis(lattice_vectors.magnitude):
+                struct.cartesian_site_positions = atomutils.to_cartesian(conv_sys.positions.magnitude, lattice_vectors.magnitude)
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = lattice_vectors
                 struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
@@ -756,20 +759,20 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def structure_optimized(self, system: section_system) -> Structure:
+    def structure_optimized(self, system: System) -> Structure:
         """Returns a populated Structure subsection for the optimized
         structure.
         """
         if system:
             struct = StructureOptimized()
-            struct.cartesian_site_positions = system.atom_positions
-            struct.species_at_sites = system.atom_labels
+            struct.cartesian_site_positions = system.atoms.positions
+            struct.species_at_sites = system.atoms.labels
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(system.lattice_vectors):
-                struct.dimension_types = np.array(system.configuration_periodic_dimensions).astype(int)
-                struct.lattice_vectors = system.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(system.lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(system.lattice_vectors)
+            if atomutils.is_valid_basis(system.atoms.lattice_vectors.magnitude):
+                struct.dimension_types = np.array(system.atoms.periodic).astype(int)
+                struct.lattice_vectors = system.atoms.lattice_vectors
+                struct.cell_volume = atomutils.get_volume(system.atoms.lattice_vectors.magnitude)
+                struct.lattice_parameters = self.lattice_parameters(system.atoms.lattice_vectors)
             return struct
 
         return None

@@ -58,8 +58,8 @@ from nomad.archive import (
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 
 
-section_metadata = datamodel.EntryArchive.section_metadata.name
-section_workflow = datamodel.EntryArchive.section_workflow.name
+section_metadata = datamodel.EntryArchive.metadata.name
+section_workflow = datamodel.EntryArchive.workflow.name
 section_results = datamodel.EntryArchive.results.name
 
 
@@ -220,7 +220,7 @@ class Calc(Proc):
         self._entry_metadata.processing_errors = []
 
         self._parser_results = EntryArchive()
-        self._parser_results.section_metadata = self._entry_metadata
+        self._parser_results.metadata = self._entry_metadata
 
     def _set_system_metadata(self, entry_metadata: datamodel.EntryMetadata):
         '''
@@ -459,7 +459,7 @@ class Calc(Proc):
                 # close loghandler that was not closed due to failures
                 try:
                     if self._parser_results and self._parser_results.m_resource:
-                        self._parser_results.section_metadata = None
+                        self._parser_results.metadata = None
                         self._parser_results.m_resource.unload()
                 except Exception as e:
                     logger.error('could not unload processing results', exc_info=e)
@@ -563,7 +563,7 @@ class Calc(Proc):
             with upload_files.read_archive(self.calc_id) as archive:
                 arch = archive[self.calc_id]
                 phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
-            self._entry_metadata = phonon_archive.section_metadata
+            self._entry_metadata = phonon_archive.metadata
             self._calc_proc_logs = phonon_archive.processing_logs
 
             # Re-create the parse results
@@ -585,19 +585,19 @@ class Calc(Proc):
                 ref_archive = EntryArchive.m_from_dict(arch.to_dict())
 
             # Get encyclopedia method information directly from the referenced calculation.
-            ref_enc_method = ref_archive.section_metadata.encyclopedia.method
+            ref_enc_method = ref_archive.metadata.encyclopedia.method
             if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
                 logger.error("No method information available in referenced calculation.")
                 return
 
-            self._parser_results.section_metadata.encyclopedia.method = ref_enc_method
+            self._parser_results.metadata.encyclopedia.method = ref_enc_method
 
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
             # archive.
             self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
-            self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
+            self._entry_metadata.dft.xc_functional = ref_archive.metadata.dft.xc_functional
+            self._entry_metadata.dft.basis_set = ref_archive.metadata.dft.basis_set
             self._entry_metadata.dft.update_group_hash()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
@@ -620,7 +620,7 @@ class Calc(Proc):
 
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
-                assert self._parser_results.section_metadata == self._entry_metadata
+                assert self._parser_results.metadata == self._entry_metadata
                 search.index(self._parser_results)
 
             # persist the archive
@@ -635,9 +635,9 @@ class Calc(Proc):
         ''' The process step that encapsulates all normalizing related actions. '''
         self.set_process_step('normalizing')
         # allow normalizer to access and add data to the entry metadata
-        if self._parser_results.section_metadata is None:
+        if self._parser_results.metadata is None:
             self._parser_results.m_add_sub_section(
-                datamodel.EntryArchive.section_metadata, self._entry_metadata)
+                datamodel.EntryArchive.metadata, self._entry_metadata)
 
         for normalizer in normalizers:
             if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser].domain:
@@ -676,7 +676,7 @@ class Calc(Proc):
 
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
-            assert self._parser_results.section_metadata == self._entry_metadata
+            assert self._parser_results.metadata == self._entry_metadata
             search.index(self._parser_results)
 
         # persist the archive
@@ -711,8 +711,8 @@ class Calc(Proc):
         else:
             archive = datamodel.EntryArchive()
 
-        if archive.section_metadata is None:
-            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if archive.metadata is None:
+            archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
 
         archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
 
@@ -722,7 +722,7 @@ class Calc(Proc):
         except Exception as e:
             # most likely failed due to domain data, try to write metadata and processing logs
             archive = datamodel.EntryArchive()
-            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+            archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
             archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
             self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
             raise

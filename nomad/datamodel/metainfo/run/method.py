@@ -425,6 +425,14 @@ class BasisSet(MSection):
         wavefunction or an electron density.
         ''')
 
+    type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The type of basis set used by the program. Valid values are: [`Numeric AOs`,
+        `Gaussians`, `(L)APW+lo`, `plane waves`, `psinc functions`, `real-space grid`].
+        ''')
+
     name = Quantity(
         type=str,
         shape=[],

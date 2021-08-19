@@ -41,7 +41,8 @@ m_package = metainfo.Package()
 
 from .results import Results  # noqa
 from .encyclopedia import EncyclopediaMetadata  # noqa
-from .metainfo.common_dft import Run, Workflow  # noqa
+from .metainfo.run.run import Run  # noqa
+from .metainfo.workflow import Workflow  # noqa
 from .metainfo.common_experimental import Measurement  # noqa
 from .metainfo.common_qcms import QuantumCMS  # noqa
 
@@ -672,14 +673,14 @@ class EntryMetadata(metainfo.MSection):
 class EntryArchive(metainfo.MSection):
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
-        derived=lambda entry: entry.section_metadata.calc_id,
+        derived=lambda entry: entry.metadata.calc_id,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     section_run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
-    section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
-    section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[FastAccess])
-    section_metadata = metainfo.SubSection(
+    quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
+    workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
+    metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],
         a_elasticsearch=Elasticsearch())
 
