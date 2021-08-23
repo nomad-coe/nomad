@@ -26,7 +26,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ReactJson from 'react-json-view'
 import { amber } from '@material-ui/core/colors'
 import { maxLogsToShow } from '../../config'
-import { EntryPageContent } from './EntryPage'
+import Page from '../Page'
 
 class LogEntryUnstyled extends React.Component {
   static propTypes = {
@@ -135,12 +135,12 @@ class ArchiveLogView extends React.Component {
 
     if (doesNotExist) {
       return (
-        <EntryPageContent>
+        <Page>
           <Typography>
             No archive log does exist for this entry. Most likely the entry itself does not
             exist.
           </Typography>
-        </EntryPageContent>
+        </Page>
       )
     }
 
@@ -155,7 +155,7 @@ class ArchiveLogView extends React.Component {
     }
 
     return (
-      <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
+      <Page limitedWidth>
         {content}
         <Download
           classes={{root: classes.downloadFab}} tooltip="download logfile"
@@ -165,7 +165,7 @@ class ArchiveLogView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-      </EntryPageContent>
+      </Page>
     )
   }
 }

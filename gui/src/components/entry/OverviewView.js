@@ -18,7 +18,6 @@
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../apiV1'
-import { EntryPageContent } from './EntryPage'
 import { useErrors } from '../errors'
 import { Typography, makeStyles, Box, Grid, Link, Divider } from '@material-ui/core'
 import { ApiDialog } from '../ApiDialogButton'
@@ -34,6 +33,7 @@ import VibrationalPropertiesCard from '../entry/properties/VibrationalProperties
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectrumCard from './properties/SpectrumCard'
 import { MethodDetails } from './EntryDetails'
+import Page from '../Page'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -78,7 +78,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-export default function OverviewView({uploadId, entryId}) {
+const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...moreProps}) {
   const api = useApi()
   const { raiseError } = useErrors()
   const [entry, setEntry] = useState(null)
@@ -110,18 +110,18 @@ export default function OverviewView({uploadId, entryId}) {
   const classes = useStyles()
 
   if (!exists) {
-    return <EntryPageContent>
+    return <Page>
       <Typography>
         This entry does not exist.
       </Typography>
-    </EntryPageContent>
+    </Page>
   }
 
   if (!entry) {
     return null
   }
 
-  return <EntryPageContent fixed>
+  return <Page limitedWidth>
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
         <MetadataSection title='Method'>
@@ -210,10 +210,14 @@ export default function OverviewView({uploadId, entryId}) {
         <SpectrumCard entryMetadata={entry} archive={archive} />
       </Grid>
     </Grid>
-  </EntryPageContent>
-}
+  </Page>
+})
 
 OverviewView.propTypes = {
   uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired
 }
+
+OverviewView.whyDidYouRender = true
+
+export default OverviewView

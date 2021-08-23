@@ -23,7 +23,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import _ from 'lodash'
 import searchQuantities from '../searchQuantities'
 
-class Quantity extends React.Component {
+class Quantity extends React.PureComponent {
   static propTypes = {
     classes: PropTypes.object,
     children: PropTypes.node,

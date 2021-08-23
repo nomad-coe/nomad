@@ -18,10 +18,10 @@
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Card, CardHeader, CardContent } from '@material-ui/core'
-import { EntryPageContent } from './EntryPage'
 import { errorContext } from '../errors'
 import { useApi } from '../apiV1'
 import RawFiles from './RawFiles'
+import Page from '../Page'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -55,22 +55,22 @@ export default function RawFileView({uploadId, entryId}) {
   const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
 
   if (state.doesNotExist) {
-    return <EntryPageContent>
+    return <Page>
       <Typography className={classes.error}>
         This entry does not exist.
       </Typography>
-    </EntryPageContent>
+    </Page>
   }
 
   return (
-    <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
+    <Page limitedWidth>
       <Card className={classes.root}>
         <CardHeader title="Raw files" />
         <CardContent>
           <RawFiles data={entryData} entryId={entryId} uploadId={uploadId} />
         </CardContent>
       </Card>
-    </EntryPageContent>
+    </Page>
   )
 }
 
