@@ -413,7 +413,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
     return names, counts
 
 
-def get_formula_string(symbols: List[str], counts: List[int]) -> str:
+def get_formula_string(symbols: Iterable[str], counts: Iterable[int]) -> str:
     """Used to form a single formula string from a list of chemical species and
     their counts.
 

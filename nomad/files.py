@@ -1084,18 +1084,6 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def calc_id(self, mainfile: str) -> str:
-        '''
-        Calculates a id for the given calc.
-        Arguments:
-            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
-        Returns:
-            The calc id
-        Raises:
-            KeyError: If the mainfile does not exist.
-        '''
-        return utils.hash(self.upload_id, mainfile)
-
     def calc_hash(self, mainfile: str) -> str:
         '''
         Calculates a hash for the given calc based on file contents and aux file contents.

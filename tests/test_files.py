@@ -331,10 +331,6 @@ class TestStagingUploadFiles(UploadFilesContract):
                 if filepath == example_file_mainfile:
                     assert len(content) > 0
 
-    def test_calc_id(self, test_upload: StagingUploadWithFiles):
-        _, _, upload_files = test_upload
-        assert upload_files.calc_id(example_file_mainfile) is not None
-
     def test_pack(self, test_upload: StagingUploadWithFiles):
         _, entries, upload_files = test_upload
         upload_files.pack(entries)

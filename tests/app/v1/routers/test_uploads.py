@@ -32,6 +32,7 @@ from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 from nomad.archive import write_archive, read_archive
@@ -1191,18 +1192,24 @@ def test_post_upload_action_publish(
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
-            upload_id='id_published_w',
+            upload_id='examples_template',
             import_settings=dict(include_archive_files=False, trigger_processing=True)),
         id='trigger-processing'),
     pytest.param(
         dict(
-            upload_id='id_published_w',
+            upload_id='examples_template',
             import_settings=dict(include_archive_files=True, trigger_processing=False)),
         id='no-processing')])
 def test_post_upload_action_publish_to_central_nomad(
-        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client, example_data_writeable,
-        test_auth_dict, kwargs):
+        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client,
+        non_empty_processed, internal_example_user_metadata,
+        test_users_dict, test_auth_dict, kwargs):
     ''' Tests the publish action with to_central_nomad=True. '''
+    # Create a published upload
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    non_empty_processed.publish_upload()
+    non_empty_processed.block_until_complete(interval=.01)
+
     suffix = '_2'  # Will be added to all IDs in the mirrored upload
     upload_id = kwargs.get('upload_id')
     query_args = kwargs.get('query_args', {})
@@ -1211,7 +1218,7 @@ def test_post_upload_action_publish_to_central_nomad(
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'test_user')
     user_auth, __token = test_auth_dict[user]
-    original_upload = Upload.get(upload_id)
+    old_upload = Upload.get(upload_id)
 
     # Do some tricks to add suffix to the ID fields
     old_bundle_init = files.UploadBundle.__init__
@@ -1223,7 +1230,7 @@ def test_post_upload_action_publish_to_central_nomad(
         bundle_info['upload_id'] += suffix
         bundle_info['upload']['_id'] += suffix
         for entry_dict in bundle_info['entries']:
-            entry_dict['_id'] += suffix
+            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
             entry_dict['upload_id'] += suffix
 
     old_bundle_import_files = files.UploadBundle.import_upload_files
@@ -1231,7 +1238,7 @@ def test_post_upload_action_publish_to_central_nomad(
     def new_bundle_import_files(self, *args, **kwargs):
         upload_files = old_bundle_import_files(self, *args, **kwargs)
         # Overwrite the archive files with files containing the updated IDs
-        if original_upload.published:
+        if old_upload.published:
             archive_path = upload_files.os_path
         else:
             archive_path = os.path.join(upload_files.os_path, 'archive')
@@ -1241,10 +1248,12 @@ def test_post_upload_action_publish_to_central_nomad(
                 data = read_archive(full_path)
                 new_data = []
                 for entry_id in data.keys():
-                    new_entry_id = (entry_id + suffix)[len(suffix):]  # fixed length required
                     archive_dict = data[entry_id].to_dict()
-                    archive_dict['section_metadata']['upload_id'] += suffix
-                    archive_dict['section_metadata']['calc_id'] += suffix
+                    section_metadata = archive_dict['section_metadata']
+                    section_metadata['upload_id'] += suffix
+                    new_entry_id = generate_entry_id(
+                        section_metadata['upload_id'], section_metadata['mainfile'])
+                    section_metadata['calc_id'] = new_entry_id
                     new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
         return upload_files
@@ -1270,8 +1279,16 @@ def test_post_upload_action_publish_to_central_nomad(
         upload = assert_upload(response.json())
         assert upload['current_process'] == 'publish_externally'
         assert upload['process_running']
-        assert_processing(client, upload_id, user_auth, published=original_upload.published)
-        assert_processing(client, upload_id + suffix, user_auth, published=original_upload.published)
+        assert_processing(client, upload_id, user_auth, published=old_upload.published)
+        assert_processing(client, upload_id + suffix, user_auth, published=old_upload.published)
+
+        new_upload = Upload.get(upload_id + suffix)
+        assert len(old_upload.calcs) == len(new_upload.calcs)
+        old_calc = old_upload.calcs[0]
+        new_calc = new_upload.calcs[0]
+        for k, v in old_calc.metadata.items():
+            if k not in ('upload_time', 'last_processing'):
+                assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
@@ -1386,19 +1403,23 @@ def test_get_upload_bundle(
     return
 
 
-@pytest.mark.parametrize('upload_id, user, export_args, query_args, expected_status_code', [
+@pytest.mark.parametrize('published, user, export_args, query_args, expected_status_code', [
     pytest.param(
-        'id_published_w', 'admin_user', dict(), dict(),
+        True, 'admin_user', dict(), dict(),
         200, id='published-admin'),
     pytest.param(
-        'id_unpublished_w', 'admin_user', dict(), dict(),
-        200, id='unpublished-admin'),
-])
+        False, 'admin_user', dict(), dict(),
+        200, id='unpublished-admin')])
 def test_post_upload_bundle(
-        client, proc_infra, example_data_writeable, test_auth_dict,
-        upload_id, user, export_args, query_args, expected_status_code):
-    upload = Upload.get(upload_id)
-    published = upload.published
+        client, proc_infra, non_empty_processed, internal_example_user_metadata, test_auth_dict,
+        published, user, export_args, query_args, expected_status_code):
+    # Create the bundle
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    if published:
+        non_empty_processed.publish_upload()
+        non_empty_processed.block_until_complete(interval=.01)
+    upload = non_empty_processed
+    upload_id = upload.upload_id
     export_path = os.path.join(config.fs.tmp, 'bundle_' + upload_id)
     export_args_with_defaults = dict(
         export_as_stream=False, export_path=export_path,
@@ -1407,8 +1428,9 @@ def test_post_upload_bundle(
         include_archive_files=True, include_datasets=True)
     export_args_with_defaults.update(export_args)
     upload.export_bundle(**export_args_with_defaults)
-    upload.delete_upload_local()  # Delete so we can import it again
-
+    # Delete the upload so we can import the bundle without id collisions
+    upload.delete_upload_local()
+    # Finally, import the bundle
     user_auth, __token = test_auth_dict[user]
     response = perform_post_put_file(
         client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args)
