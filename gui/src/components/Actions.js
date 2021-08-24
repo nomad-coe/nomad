@@ -84,7 +84,7 @@ export const Action = React.memo(({
 }) => {
   const styles = useActionStyles({classes: classes})
 
-  return <Tooltip title={tooltip}>
+  return <Tooltip title={tooltip || ''}>
     {variant === 'icon'
       ? <IconButton
         color={color}

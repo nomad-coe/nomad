@@ -35,6 +35,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const SearchResults = React.memo(({
+  resultType,
   className
 }) => {
   const styles = useStyles()
@@ -80,8 +81,7 @@ const SearchResults = React.memo(({
   return comp
 })
 SearchResults.propTypes = {
-  initialTab: PropTypes.string,
-  resultListProps: PropTypes.object,
+  resultType: PropTypes.string,
   className: PropTypes.string
 }
 

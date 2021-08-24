@@ -16,18 +16,13 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-  FormGroup,
-  Switch} from '@material-ui/core'
-import Markdown from '../Markdown'
 import { useRoute } from './Routes'
-import { matomo } from '../App'
 import { useCookies } from 'react-cookie'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
-import { guiBase, consent, appBase, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../../config'
-import UnitSelector from '../UnitSelector'
+import Consent from './Consent'
+import { appBase, oasis, aitoolkitEnabled } from '../../config'
 
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -35,98 +30,31 @@ import UserDataIcon from '@material-ui/icons/AccountCircle'
 import AboutIcon from '@material-ui/icons/Home'
 import ForumIcon from '@material-ui/icons/QuestionAnswer'
 import FAQIcon from '@material-ui/icons/LiveHelp'
-import EncyclopediaIcon from '@material-ui/icons/Language'
 import MetainfoIcon from '@material-ui/icons/Info'
 import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import AnalyticsIcon from '@material-ui/icons/ShowChart'
 
-function Consent(moreProps) {
-  const [cookies, setCookie] = useCookies()
-  const [accepted, setAccepted] = useState(cookies['terms-accepted'])
-  const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
-  const cookieOptions = useMemo(() => ({
-    expires: new Date(2147483647 * 1000),
-    path: '/' + guiBase.split('/').slice(1).join('/')
-  }), [])
-
-  useEffect(() => {
-    if (!optOut) {
-      matomo.push(['setConsentGiven'])
-    } else {
-      matomo.push(['requireConsent'])
-    }
-  })
-
-  // Write again to push forwards Safari's hard-coded 7 days ITP window
-  useEffect(() => {
-    setCookie('terms-accepted', cookies['terms-accepted'], cookieOptions)
-    setCookie('tracking-enabled', cookies['tracking-enabled'], cookieOptions)
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [])
-
-  const handleClosed = accepted => {
-    if (accepted) {
-      setCookie('terms-accepted', true, cookieOptions)
-      setCookie('tracking-enabled', !optOut, cookieOptions)
-      setAccepted(true)
-    }
-  }
-  const handleOpen = () => {
-    setCookie('terms-accepted', false, cookieOptions)
-    setAccepted(false)
-  }
-
-  return (
-    <React.Fragment>
-      <MenuBarItem
-        name="terms"
-        onClick={handleOpen}
-        tooltip="The terms of service and cookie consent"
-        icon={<TermsIcon/>}
-        {...moreProps}
-      />
-      <Dialog
-        disableBackdropClick disableEscapeKeyDown
-        open={!accepted}
-      >
-        <DialogTitle>Terms of Use</DialogTitle>
-        <DialogContent>
-          <Markdown>{consent}</Markdown>
-          <FormGroup>
-            <FormControlLabel
-              control={<Switch
-                checked={optOut}
-                onChange={(e) => {
-                  setOptOut(!optOut)
-                }}
-                color="primary"
-              />}
-              label="Do not provide information about your use of NOMAD (opt-out)."
-            />
-          </FormGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => handleClosed(true)} color="primary">
-            Accept
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </React.Fragment>
-  )
-}
-
 const useStyles = makeStyles(theme => ({
   spacer: {
     flexGrow: 1
   }
 }))
-export default function MainMenu() {
+
+/**
+ * Main menu showing the available navigation items.
+ */
+const MainMenu = React.memo(() => {
   const route = useRoute()
-  const selected = (route?.navPath) || 'publish/uploads'
+  const cookies = useCookies()[0]
   const styles = useStyles()
+  const selected = (route?.navPath) || 'publish/uploads'
+  const [consentOpen, setConsentOpen] = useState(cookies['terms-accepted'] !== 'true')
+
+  const handleConsentAccept = useCallback(() => {
+    setConsentOpen(false)
+  }, [])
 
   return <MenuBar selected={selected}>
     <MenuBarMenu name="publish" label="Publish" route="/uploads" icon={<BackupIcon/>}>
@@ -141,15 +69,13 @@ export default function MainMenu() {
     </MenuBarMenu>
     <MenuBarMenu name="explore" route="/search" icon={<SearchIcon/>}>
       <MenuBarItem
-        name="search" route="/search"
-        tooltip="Find and download data"
+        label="Search Entries" name="searchentries" route="/search/entries"
+        tooltip="Search individual entries"
       />
-      {encyclopediaEnabled && <MenuBarItem
-        name="encyclopedia"
-        href={`${appBase}/encyclopedia/#/search`}
-        tooltip="Visit the NOMAD Materials Encyclopedia"
-        icon={<EncyclopediaIcon/>}
-      />}
+      <MenuBarItem
+        label="Search Materials" name="searchmaterials" route="/search/materials"
+        tooltip="Search materials"
+      />
     </MenuBarMenu>
     <MenuBarMenu name="analyze" route="/metainfo" icon={<AnalyticsIcon/>}>
       {(!oasis && aitoolkitEnabled)
@@ -165,7 +91,7 @@ export default function MainMenu() {
         />
       }
       <MenuBarItem
-        name="metainfo" route="/metainfo" tooltip="Browse the NOMAD Archive schema"
+        name="metainfo" label="The NOMAD Metainfo" route="/metainfo" tooltip="Browse the NOMAD Metainfo Schema"
       />
       <MenuBarItem
         name="apis" label="APIs" route="/apis" tooltip="The list of APIs offered by NOMAD"
@@ -174,7 +100,7 @@ export default function MainMenu() {
     <MenuBarMenu name="about" route="/" icon={<AboutIcon/>}>
       <MenuBarItem
         label="Information" name="info" route="/"
-        tooltip="About the NOMAD Repository and Archive"
+        tooltip="Overview of the NOMAD Repository and Archive"
       />
       <MenuBarItem
         name="forum"
@@ -200,9 +126,16 @@ export default function MainMenu() {
         tooltip="NOMAD's main Gitlab project"
         icon={<CodeIcon/>}
       />
-      <Consent />
+      <MenuBarItem
+        name="Terms"
+        onClick={() => setConsentOpen(true)}
+        tooltip="The terms of service and cookie consent"
+        icon={<TermsIcon/>}
+      />
     </MenuBarMenu>
     <div className={styles.spacer}></div>
-    <UnitSelector></UnitSelector>
+    <Consent open={consentOpen} onAccept={handleConsentAccept}/>
   </MenuBar>
-}
+})
+
+export default MainMenu

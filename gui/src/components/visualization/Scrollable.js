@@ -86,7 +86,7 @@ const Scrollable = React.memo(({
   const [isTop, setIsTop] = useState(true)
   const [isBottom, setIsBottom] = useState(false)
   const styles = useStyles({classes: classes})
-  const scrollStyles = useScrollStyles({classes: classes})
+  const scrollStyles = useScrollStyles({classes: {scrollBar: classes?.scrollBar}})
 
   // When the height of children changes, redetermine whether to show
   // scrollhints

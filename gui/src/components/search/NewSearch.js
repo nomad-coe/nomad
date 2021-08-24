@@ -31,7 +31,6 @@ import {
 } from './FilterContext'
 
 const useStyles = makeStyles(theme => {
-  const filterWidth = 25
   return {
     root: {
       display: 'flex',
@@ -40,20 +39,25 @@ const useStyles = makeStyles(theme => {
       overflow: 'hidden'
     },
     leftColumn: {
-      flex: `0 0 ${filterWidth}rem`,
-      maxWidth: `${filterWidth}rem`,
+      flexShrink: 0,
+      flexGrow: 0,
       height: '100%',
-      position: 'relative'
+      zIndex: 2
+    },
+    leftColumnCollapsed: {
+      maxWidth: '4rem'
     },
     center: {
-      position: 'relative',
       flex: `1 1 100%`,
       display: 'flex',
       flexDirection: 'column',
-      paddingTop: theme.spacing(3),
-      paddingBottom: theme.spacing(3),
+      zIndex: 1,
+      paddingBottom: theme.spacing(2.5),
       paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(4)
+      paddingRight: theme.spacing(3),
+      paddingTop: theme.spacing(0.25)
+    },
+    container: {
     },
     resultList: {
       flexGrow: 1,
@@ -62,14 +66,12 @@ const useStyles = makeStyles(theme => {
     spacer: {
       flexGrow: 1
     },
-    bar: {
+    searchBar: {
+      marginTop: theme.spacing(2),
       display: 'flex',
       flexGrow: 0,
-      marginBottom: theme.spacing(3)
-    },
-    searchBar: {
-      flexGrow: 1,
-      zIndex: 1
+      zIndex: 1,
+      marginBottom: theme.spacing(2.0)
     },
     spacerBar: {
       flex: `0 0 ${theme.spacing(3)}px`
@@ -122,26 +124,25 @@ const NewSearch = React.memo(({
   }, [setOwner, owner])
 
   return <div className={styles.root}>
-    <div className={styles.leftColumn}>
+    <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>
       <FilterMainMenu
         open={isMenuOpen}
+        onOpenChange={setIsMenuOpen}
         resultType={resultType}
         onResultTypeChange={value => setResultType(value)}
-        onOpenChange={setIsMenuOpen}
         collapsed={isCollapsed}
-        onCollapseChanged={setIsCollapsed}
+        onCollapsedChange={setIsCollapsed}
       />
     </div>
-    <div className={styles.center} onClick={ () => { setIsMenuOpen(false) } }>
-      <div className={styles.bar}>
-        <NewSearchBar
-          quantities={quantities}
-          className={styles.searchBar}
-        />
-      </div>
-      <div className={styles.resultList}>
-        <SearchResults/>
-      </div>
+    <div className={styles.center}>
+      <NewSearchBar
+        quantities={quantities}
+        className={styles.searchBar}
+      />
+      <SearchResults
+        className={styles.resultList}
+        resultType={resultType}
+      />
       <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
     </div>
   </div>

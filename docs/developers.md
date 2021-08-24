@@ -130,6 +130,11 @@ cd ops/docker-compose/infrastructure
 docker-compose up -d mongo elastic rabbitmq
 ```
 
+Note that the ElasticSearch service has a known problem in quickly hitting the
+virtual memory limits of your OS. If you experience issues with the
+ElasticSearch container not running correctly or crashing, try [increasing the
+virtual memory limits as shown here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html).
+
 To shut down everything, just `ctrl-c` the running output. If you started everything
 in *deamon* mode (`-d`) use:
 ```sh
@@ -148,7 +153,7 @@ Create a `nomad.yaml` file in the root folder:
 
 ```
 keycloak:
-  realm: fairdi_nomad_test
+  realm_name: fairdi_nomad_test
 ```
 
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with

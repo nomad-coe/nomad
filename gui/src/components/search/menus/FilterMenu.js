@@ -28,6 +28,7 @@ import {
   Paper,
   Typography
 } from '@material-ui/core'
+import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
@@ -36,7 +37,91 @@ import FilterSummary from '../FilterSummary'
 import { Actions, Action } from '../../Actions'
 import { quantityGroups, useResetFilters } from '../FilterContext'
 
+// The menu animations use a transition on the 'transform' property. Notice that
+// animating 'transform' instead of e.g. the 'left' property is much more
+// performant. We also hint the browser that the transform property will be
+// animated using the 'will-change' property: this will pre-optimize the element
+// for animation when possible (the recommendation is to remove/add it when
+// needed, but in this case we keep it on constantly).
+//
+// The menu widths are hardcoded. We need the widths to perform the close
+// animation. Another option would be to use useLayoutEffect to determine the
+// sizes of the components dynamically, but this seems to be quite a bit less
+// responsive compared to hardcoding the values.
+
+export const filterMenuContext = React.createContext()
+
 const useFilterMenuStyles = makeStyles(theme => {
+  const width = 22
+  return {
+    root: {
+      boxSizing: 'border-box',
+      display: 'flex',
+      position: 'relative',
+      flexDirection: 'column',
+      width: `${width}rem`,
+      height: '100%',
+      '-webkit-transform': 'none',
+      transform: 'none',
+      transition: 'transform 250ms',
+      willChange: 'transform'
+    },
+    collapsed: {
+      '-webkit-transform': `translateX(-${width - 4}rem)`,
+      transform: `translateX(-${width - 4}rem)`
+    }
+  }
+})
+
+export const FilterMenu = React.memo(({
+  selected,
+  onSelectedChange,
+  open,
+  onOpenChange,
+  collapsed,
+  onCollapsedChange,
+  className,
+  children
+}) => {
+  const styles = useFilterMenuStyles()
+  const [size, setSize] = useState('medium')
+
+  const handleChange = useCallback((newValue) => {
+    if (newValue !== selected) {
+      onOpenChange(true)
+    } else {
+      onOpenChange(old => !old)
+    }
+    onSelectedChange && onSelectedChange(newValue)
+  }, [selected, onSelectedChange, onOpenChange])
+
+  return <div className={clsx(className, styles.root, collapsed && styles.collapsed)}>
+    <filterMenuContext.Provider value={{
+      selected: selected,
+      onChange: handleChange,
+      open: open,
+      onOpenChange: onOpenChange,
+      size: size,
+      onSizeChange: setSize,
+      collapsed: collapsed,
+      onCollapsedChange: onCollapsedChange
+    }}>
+      {children}
+    </filterMenuContext.Provider>
+  </div>
+})
+FilterMenu.propTypes = {
+  selected: PropTypes.string,
+  onSelectedChange: PropTypes.func,
+  open: PropTypes.bool,
+  onOpenChange: PropTypes.func,
+  collapsed: PropTypes.bool,
+  onCollapsedChange: PropTypes.func,
+  className: PropTypes.string,
+  children: PropTypes.node
+}
+
+const useFilterMenuItemsStyles = makeStyles(theme => {
   const padding = theme.spacing(2)
   return {
     root: {
@@ -44,20 +129,30 @@ const useFilterMenuStyles = makeStyles(theme => {
       display: 'flex',
       flexDirection: 'column',
       width: '100%',
-      height: '100%'
+      height: '100%',
+      zIndex: 3
     },
     header: {
       paddingTop: theme.spacing(0.5),
       paddingBottom: theme.spacing(0.5),
       paddingLeft: padding,
-      paddingRight: padding
+      paddingRight: padding,
+      overflow: 'visible'
     },
     headerText: {
       display: 'flex',
       alignItems: 'center'
     },
+    headerTextVertical: {
+      display: 'flex',
+      alignItems: 'center',
+      position: 'absolute',
+      right: '0.5rem',
+      top: '3.5rem',
+      height: '4rem',
+      transform: 'rotate(90deg)'
+    },
     menu: {
-      zIndex: 3,
       position: 'absolute',
       right: 0,
       top: 0,
@@ -74,17 +169,27 @@ const useFilterMenuStyles = makeStyles(theme => {
       paddingBottom: `${theme.spacing(1.5)}px`
     },
     button: {
-      marginRight: 0
+      marginRight: 0,
+      '-webkit-transform': 'none',
+      transform: 'none',
+      transition: 'transform 250ms',
+      willChange: 'transform'
+    },
+    hidden: {
+      display: 'none'
+    },
+    overflow: {
+      overflow: 'visible'
     }
   }
 })
 
-export const FilterMenu = React.memo(({
+export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const styles = useFilterMenuStyles()
-  const { open } = useContext(filterMenuContext)
+  const styles = useFilterMenuItemsStyles()
+  const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const resetFilters = useResetFilters()
 
   // Unfortunately the ClickAwayListener does not play nicely together with
@@ -93,7 +198,9 @@ export const FilterMenu = React.memo(({
   // The clicks outside are thus detected by individual event listeners that
   // toggle the menu state.
   return <div className={clsx(className, styles.root)}>
-    <Scrollable className={clsx(styles.menu, open && styles.menuBorder)}>
+    <Scrollable
+      className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}
+      classes={{containerInner: styles.overflow}}>
       <div className={styles.padding}>
         <Actions
           header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
@@ -102,20 +209,47 @@ export const FilterMenu = React.memo(({
           <Action
             tooltip="Clear filters"
             onClick={() => resetFilters()}
-            className={styles.button}
           >
             <ClearIcon/>
           </Action>
+          {!collapsed && <Action
+            tooltip={'Close filter menu'}
+            onClick={() => {
+              onCollapsedChange(old => !old)
+              onOpenChange(false)
+            }}
+            className={styles.button}
+          >
+            <ArrowBackIcon/>
+          </Action>}
         </Actions>
-        <List dense className={styles.list}>
+        <List dense>
           <Divider/>
           {children}
         </List>
       </div>
     </Scrollable>
+    <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
+      <Actions className={styles.header}>
+        {collapsed && <Action
+          tooltip={'Open filter menu'}
+          onClick={() => {
+            onCollapsedChange(false)
+          }}
+          className={styles.button}
+        >
+          <ArrowForwardIcon/>
+        </Action>}
+      </Actions>
+      <Typography
+        className={clsx(styles.headerText, styles.headerTextVertical)}
+        variant="button"
+      >Filters
+      </Typography>
+    </div>
   </div>
 })
-FilterMenu.propTypes = {
+FilterMenuItems.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node
 }
@@ -194,45 +328,6 @@ FilterMenuItem.defaultProps = {
   depth: 0
 }
 
-export const filterMenuContext = React.createContext()
-export const FilterMenuContext = React.memo(({
-  selected,
-  onSelectedChange,
-  open,
-  onOpenChange,
-  children
-}) => {
-  const [size, setSize] = useState('medium')
-
-  const handleChange = useCallback((newValue) => {
-    if (newValue !== selected) {
-      onOpenChange(true)
-    } else {
-      onOpenChange(old => !old)
-    }
-    onSelectedChange && onSelectedChange(newValue)
-  }, [selected, onSelectedChange, onOpenChange])
-
-  return <filterMenuContext.Provider value={{
-    selected: selected,
-    open: open,
-    onOpenChange: onOpenChange,
-    size: size,
-    onSizeChange: setSize,
-    onChange: handleChange
-  }}>
-    {children}
-  </filterMenuContext.Provider>
-})
-
-FilterMenuContext.propTypes = {
-  selected: PropTypes.string,
-  onSelectedChange: PropTypes.func,
-  open: PropTypes.bool,
-  onOpenChange: PropTypes.func,
-  children: PropTypes.node
-}
-
 const useFilterSubMenuStyles = makeStyles(theme => ({
   root: {
     width: '100%'
@@ -243,38 +338,11 @@ const useFilterSubMenuStyles = makeStyles(theme => ({
 }))
 
 const useFilterSubMenusStyles = makeStyles(theme => {
-  // The secondary menu widths are hardcoded. Another option would be to use
-  // useLayoutEffect to determine the sizes of the components dynamically, but
-  // this seems to be quite a bit less responsive compared to hardcoding the
-  // values.
   const padding = theme.spacing(2)
   const widthMedium = 25
   const widthLarge = 43
   return {
     root: {
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      height: '100%'
-    },
-    header: {
-      paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(1.5),
-      paddingRight: theme.spacing(0),
-      paddingLeft: theme.spacing(0)
-    },
-    headerText: {
-      display: 'flex',
-      alignItems: 'center'
-    },
-    // The menu animation uses a transition on the 'transform' property. Notice
-    // that animating 'transform' instead of e.g. the 'left' property is much
-    // more performant. We also hint the browser that the transform property
-    // will be animated using the 'will-change' property: this will pre-optimize
-    // the element for animation when possible (the recommendation is to
-    // remove/add it when needed, but in this case we keep it on constantly).
-    container: {
       zIndex: 2,
       display: 'flex',
       flexDirection: 'column',
@@ -290,6 +358,19 @@ const useFilterSubMenusStyles = makeStyles(theme => {
       flexGrow: 1,
       boxSizing: 'border-box',
       willChange: 'transform'
+    },
+    collapsed: {
+      display: 'none'
+    },
+    header: {
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(1.5),
+      paddingRight: theme.spacing(0),
+      paddingLeft: theme.spacing(0)
+    },
+    headerText: {
+      display: 'flex',
+      alignItems: 'center'
     },
     containerMedium: {
       '-webkit-transform': `translateX(${widthMedium}rem)`,
@@ -325,7 +406,7 @@ export const FilterSubMenus = React.memo(({
   children
 }) => {
   const styles = useFilterSubMenusStyles()
-  const { selected, open, onOpenChange, size } = useContext(filterMenuContext)
+  const { selected, open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
   const [menuStyle, containerStyle] = {
     medium: [styles.menuMedium, styles.containerMedium],
     large: [styles.menuLarge, styles.containerLarge]
@@ -333,9 +414,9 @@ export const FilterSubMenus = React.memo(({
 
   return <Paper
     elevation={4}
-    className={clsx(styles.container, open && containerStyle)}
+    className={clsx(styles.root, open && containerStyle)}
   >
-    <div className={clsx(styles.menu, menuStyle)}>
+    <div className={clsx(styles.menu, menuStyle, collapsed && styles.collapsed)}>
       <Scrollable>
         <div className={styles.padding}>
           <Actions

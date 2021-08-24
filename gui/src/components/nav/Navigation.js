@@ -22,7 +22,7 @@ import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button } from '
 import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
-import AppBar from './AppBar'
+import AppBar, { appBarHeight } from './AppBar'
 import { version } from '../../config'
 import Routes from './Routes'
 import { withApi } from '../api'
@@ -126,7 +126,7 @@ const useStyles = makeStyles(theme => ({
     height: '100vh'
   },
   content: {
-    marginTop: theme.spacing(14),
+    marginTop: theme.spacing(appBarHeight),
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     width: '100%',
