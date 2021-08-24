@@ -1921,12 +1921,13 @@ class Upload(Proc):
                     assert False, 'Bad entry json data: ' + str(e)
                 # Instantiate an EntryMetadata object to validate the format
                 try:
+                    if settings.include_datasets:
+                        entry_metadata_dict['datasets'] = [
+                            dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
+                    else:
+                        entry_metadata_dict['datasets'] = []
                     entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
                     entry_metadata.upload_time = self.upload_time  # Set same upload_time everywhere
-                    if settings.include_datasets:
-                        entry_metadata.datasets = [dataset_id_mapping[id] for id in entry_metadata.datasets]
-                    else:
-                        entry_metadata.datasets = []
                     entry.apply_entry_metadata(entry_metadata)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:

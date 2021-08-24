@@ -30,7 +30,7 @@ from tests.test_files import (
     assert_upload_files)
 from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
-from nomad import config, files, infrastructure
+from nomad import config, files, infrastructure, datamodel
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -1271,6 +1271,14 @@ def test_post_upload_action_publish_to_central_nomad(
     import_settings = config.bundle_import.default_settings.customize(import_settings)
     monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
 
+    # create a dataset to also test this aspect of oasis uploads
+    calc = old_upload.calcs[0]
+    datamodel.Dataset(
+        dataset_id='dataset_id', name='dataset_name',
+        user_id=test_users_dict[user].user_id).a_mongo.save()
+    calc.metadata['datasets'] = ['dataset_id']
+    calc.save()
+
     # Finally, invoke the method to publish to central nomad
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
 
@@ -1289,6 +1297,7 @@ def test_post_upload_action_publish_to_central_nomad(
         for k, v in old_calc.metadata.items():
             if k not in ('upload_time', 'last_processing'):
                 assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
+        assert new_calc.metadata.get('datasets') == ['dataset_id']
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
