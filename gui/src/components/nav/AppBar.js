@@ -18,16 +18,25 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Link as RouterLink } from 'react-router-dom'
-import { Typography,
-  AppBar as MuiAppBar, Toolbar, Link, LinearProgress, makeStyles } from '@material-ui/core'
-import { useRoute } from './Routes'
+import {
+  AppBar as MuiAppBar,
+  Toolbar,
+  Link,
+  LinearProgress,
+  makeStyles
+} from '@material-ui/core'
 import LoginLogout from '../LoginLogout'
-import HelpDialog from '../Help'
+import UnitSelector from '../UnitSelector'
 import MainMenu from './MainMenu'
+import Breadcrumbs from './Breadcrumbs'
 import { useLoading } from '../apiV1'
 import { guiBase } from '../../config'
 
+export const appBarHeight = 12
+
+/**
+ * Linear indefinite loading indicator that is connceted to API traffic.
+ */
 function LoadingIndicator({className}) {
   const loading = useLoading()
   return loading && <LinearProgress className={className} color="secondary" />
@@ -37,75 +46,85 @@ LoadingIndicator.propTypes = {
   className: PropTypes.string
 }
 
-const useAppBarStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
     zIndex: theme.zIndex.drawer + 1,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    height: theme.spacing(appBarHeight),
+    display: 'flex',
+    flexDirection: 'column',
+    padding: theme.spacing(1)
   },
-  title: {
-    marginLeft: theme.spacing(1),
-    flexGrow: 1,
+  logo: {
     display: 'flex',
     alignItems: 'center',
     alignContent: 'flex-start',
     color: theme.palette.primary.main
   },
   toolbar: {
+    display: 'flex',
+    flexDirection: 'row',
     paddingRight: theme.spacing(3)
   },
-  helpButton: {
-    marginLeft: theme.spacing(1)
-  },
-  logo: {
-    height: theme.spacing(7),
-    marginRight: theme.spacing(2)
+  logoImg: {
+    height: theme.spacing(appBarHeight - 2),
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   },
   actions: {
+    minWidth: theme.spacing(25),
     display: 'flex',
-    alignItems: 'center'
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'space-evenly'
   },
-  button: {
+  menuItem: {
     borderColor: theme.palette.getContrastText(theme.palette.primary.main),
-    marginRight: 0
+    marginRight: 0,
+    minWidth: '6rem',
+    justifyContent: 'flex-start'
   },
-  mainMenu: {
-    marginLeft: theme.spacing(1)
+  navigation: {
+    flexGrow: 1,
+    marginRight: theme.spacing(1),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'space-evenly'
   },
   progress: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0
+  },
+  crumbs: {
+    padding: '5px 0px 5px 5px'
   }
 }))
 
+/**
+ * The App bar that is always shown at the top of the screen.
+ */
 export default function AppBar() {
-  const classes = useAppBarStyles()
-  const {help, title, breadCrumbs} = useRoute()
+  const styles = useStyles()
 
-  return <MuiAppBar position="fixed" className={classes.root}>
-    <Toolbar classes={{root: classes.toolbar}} disableGutters>
-      <div className={classes.title}>
+  return <MuiAppBar position="fixed" className={styles.root}>
+    <Toolbar className={styles.toolbar} disableGutters>
+      <div className={styles.logo}>
         <Link href="https://nomad-lab.eu">
-          <img alt="The NOMAD logo" className={classes.logo} src={`${guiBase}/nomad.png`}></img>
+          <img alt="The NOMAD logo" className={styles.logoImg} src={`${guiBase}/nomad.png`}></img>
         </Link>
-        <Typography variant="h6" color="inherit" noWrap>
-          {
-            breadCrumbs && breadCrumbs.map((breadCrumb, index) => <React.Fragment key={index}>
-              <Link component={RouterLink} to={breadCrumb.path}>{breadCrumb.title}</Link>&nbsp;›&nbsp;
-            </React.Fragment>)
-          }
-          {title}
-        </Typography>
-        {help ? <HelpDialog color="inherit" maxWidth="md" classes={{root: classes.helpButton}} {...help}/> : ''}
       </div>
-      <div className={classes.actions}>
-        <LoginLogout color="primary" classes={{button: classes.button}} />
+      <div className={styles.navigation}>
+        <MainMenu/>
+        <Breadcrumbs className={styles.crumbs}/>
+      </div>
+      <div className={styles.actions}>
+        <LoginLogout color="primary" classes={{button: styles.menuItem}} />
+        <UnitSelector className={styles.menuItem}></UnitSelector>
       </div>
     </Toolbar>
-    <div className={classes.mainMenu} >
-      <MainMenu />
-    </div>
-    <LoadingIndicator className={classes.progress}/>
+    <LoadingIndicator className={styles.progress}/>
   </MuiAppBar>
 }

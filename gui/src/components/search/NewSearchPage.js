@@ -23,8 +23,8 @@ This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
 search allows you to screen data by filtering based on desired properties. This
 is different from basic *text-search* that traditional search engines offer.
 
-The search page consists of three main elements: the filter panel on the left,
-the search bar, and the result list on the right.
+The search page consists of three main elements: the filter panel, the search
+bar, and the result list.
 
 The filter panel on the left allows you to graphically explore and enter
 different search filters. It also gives a visual indication of the currently
@@ -33,10 +33,9 @@ the available search filters and their meaning.
 
 The search bar allows you to specify filters by typing them in and pressing
 enter. You can also start by simply typing keywords of interest, which will
-toggle a list of possible suggestions. All of the filters that are available
-through the left panel are also available in this search bar. For numerical data
-you can also use range queries, e.g. \`0.0 < band_gap <= 0.1\`. The units used in the
-queries can be changed in the settings.
+toggle a list of suggestions. For numerical data you can also use range queries,
+e.g. \`0.0 < band_gap <= 0.1\`. The units used in the queries can be changed in
+the settings.
 
 The result list is automatically updated according to the filters you have
 specified. You can browse through the results by simply scrolling through the

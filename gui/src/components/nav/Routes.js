@@ -69,20 +69,31 @@ const routeSpecs = [
     component: FAQ
   },
   {
-    path: '/search',
+    path: '/search/entries',
     exact: true,
-    title: 'Search and Download Data',
+    title: 'Search Entries',
     help: {
       title: 'How to find and download data',
       content: searchHelp
     },
-    navPath: 'explore/search',
+    navPath: 'explore/searchentries',
+    component: NewSearchPage
+  },
+  {
+    path: '/search/materials',
+    exact: true,
+    title: 'Search Materials',
+    help: {
+      title: 'How to find and download data',
+      content: searchHelp
+    },
+    navPath: 'explore/searchmaterials',
     component: NewSearchPage
   },
   {
     path: '/userdata',
     exact: true,
-    title: 'Manage Your Data',
+    title: 'Your Data',
     help: {
       title: 'How to manage your data',
       content: userdataHelp
@@ -102,18 +113,16 @@ const routeSpecs = [
     ]
   },
   createEntryRoute({
-    navPath: 'explore/search',
     breadCrumbs: [
       {
-        title: 'Search',
-        path: '/search'
+        title: 'Search Entries',
+        path: '/search/entries'
       }
     ]
   }),
   {
     path: '/dataset',
     title: 'Dataset',
-    navPath: 'explore/search',
     routes: [
       {
         path: '/id',
@@ -128,7 +137,7 @@ const routeSpecs = [
   {
     path: '/uploads',
     exact: true,
-    title: 'Upload and Publish Data',
+    title: 'Upload',
     help: {
       title: 'How to upload data',
       content: uploadHelp
@@ -155,9 +164,9 @@ const routeSpecs = [
   },
   {
     path: '/metainfo',
-    title: 'The NOMAD Meta Info',
+    title: 'The NOMAD Metainfo',
     help: {
-      title: 'About the NOMAD meta-info',
+      title: 'About the NOMAD metainfo',
       content: metainfoHelp
     },
     navPath: 'analyze/metainfo',

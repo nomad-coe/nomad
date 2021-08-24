@@ -31,8 +31,6 @@ const MenuBarContext = React.createContext({})
 
 const useMenuBarStyles = makeStyles(theme => ({
   root: {
-    padding: theme.spacing(1),
-    paddingRight: theme.spacing(3),
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
@@ -42,6 +40,9 @@ const useMenuBarStyles = makeStyles(theme => ({
   }
 }))
 
+/**
+ * Reusable menubar e.g. for navigation.
+*/
 export function MenuBar({children, selected}) {
   const classes = useMenuBarStyles()
 
@@ -85,10 +86,6 @@ MenuBar.propTypes = {
 const useMenuBarItemStyles = makeStyles(theme => ({
   selected: {
     color: theme.palette.primary.main
-  },
-  link: {
-    color: 'inherit',
-    textDecoration: 'none'
   }
 }))
 
@@ -110,17 +107,17 @@ export const MenuBarItem = React.forwardRef(({name, label, tooltip, route, href,
     }
   }
 
-  const item = <MuiMenuItem
+  return <MuiMenuItem
     data-testid={name}
     ref={ref}
+    component={href ? 'a' : 'li'}
+    href={href}
     dense
     classes={{root: selected ? classes.selected : undefined}}
     onClick={handleClick}
   >
     <ListItemText primary={label} secondary={tooltip} />
   </MuiMenuItem>
-
-  return href ? <a href={href} className={classes.link}>{item}</a> : item
 })
 MenuBarItem.propTypes = {
   name: PropTypes.string.isRequired,
@@ -154,7 +151,6 @@ export function MenuBarMenu({name, label, children}) {
 
   const selected = context.selectedMenu === name
   const open = context.openMenu === name
-  const aMenuIsOpen = context.openMenu !== null
   const anchorEl = open ? context.openMenuAnchorEl : undefined
 
   const handleClick = (event) => {
@@ -162,9 +158,7 @@ export function MenuBarMenu({name, label, children}) {
   }
 
   const handleMouseOver = (event) => {
-    if (aMenuIsOpen) {
-      context.onClickMenu(name, event)
-    }
+    context.onClickMenu(name, event)
   }
 
   const handleClose = () => {
@@ -173,7 +167,7 @@ export function MenuBarMenu({name, label, children}) {
     }
   }
 
-  return <React.Fragment>
+  return <div onMouseLeave={handleClose}>
     <ClickAwayListener onClickAway={handleClose}>
       <Button
         className={classes.root}
@@ -200,7 +194,7 @@ export function MenuBarMenu({name, label, children}) {
     >
       {children}
     </MuiMenu>
-  </React.Fragment>
+  </div>
 }
 MenuBarMenu.propTypes = {
   name: PropTypes.string.isRequired,

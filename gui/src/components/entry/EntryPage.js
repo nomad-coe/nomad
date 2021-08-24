@@ -23,19 +23,21 @@ import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RawFileView from './RawFileView'
 import KeepState from '../KeepState'
-import { guiBase } from '../../config'
 import { useRouteMatch, useHistory, Route } from 'react-router-dom'
 
 export const help = `
-The *raw files* tab, will show you all files that belong to the entry and offers a download
+The *overview* tab gives you an insightful overview about the most prominent
+contents found in an entry. You can find more details in the *archive* tab.
+
+The *raw data* tab will show you all files that belong to the entry and offers a download
 on individual, or all files. The files can be selected and downloaded. You can also
 view the contents of some files directly here on this page.
 
-The *archive* tab, shows you the parsed data as a tree
-data structure. This view is connected to NOMAD's [meta-info](${guiBase}/metainfo), which acts a schema for
+The *archive* tab shows you the parsed data as a tree
+data structure. This view is connected to NOMAD's [metainfo](/metainfo), which acts a schema for
 all parsed data.
 
-The *log* tab, will show you a log of the entry's processing.
+The *log* tab will show you a log of the entry's processing.
 `
 
 export function EntryPageContent({children, width, minWidth, maxWidth}) {

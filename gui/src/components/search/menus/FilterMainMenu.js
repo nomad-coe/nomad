@@ -18,9 +18,9 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {
-  FilterMenuContext,
   FilterMenu,
   FilterMenuItem,
+  FilterMenuItems,
   FilterSubMenus
 } from './FilterMenu'
 
@@ -54,17 +54,23 @@ import {
  */
 const FilterMainMenu = React.memo(({
   open,
-  onOpenChange
+  onOpenChange,
+  collapsed,
+  onCollapsedChange,
+  resultType,
+  onResultTypeChange
 }) => {
   const [value, setValue] = React.useState()
 
-  return <FilterMenuContext
+  return <FilterMenu
     selected={value}
     onSelectedChange={setValue}
     open={open}
     onOpenChange={onOpenChange}
+    collapsed={collapsed}
+    onCollapsedChange={onCollapsedChange}
   >
-    <FilterMenu>
+    <FilterMenuItems>
       <FilterMenuItem value={labelMaterial} depth={0}/>
       <FilterMenuItem value={labelElements} depth={1}/>
       <FilterMenuItem value={labelSymmetry} depth={1}/>
@@ -76,7 +82,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
       <FilterMenuItem value={labelIDs} depth={0}/>
-    </FilterMenu>
+    </FilterMenuItems>
     <FilterSubMenus>
       <FilterSubMenuMaterial value={labelMaterial}/>
       <FilterSubMenuElements value={labelElements} size="large"/>
@@ -89,11 +95,15 @@ const FilterMainMenu = React.memo(({
       <FilterSubMenuAccess value={labelAccess}/>
       <FilterSubMenuIDs value={labelIDs}/>
     </FilterSubMenus>
-  </FilterMenuContext>
+  </FilterMenu>
 })
 FilterMainMenu.propTypes = {
   open: PropTypes.bool,
-  onOpenChange: PropTypes.func
+  onOpenChange: PropTypes.func,
+  collapsed: PropTypes.bool,
+  onCollapsedChange: PropTypes.func,
+  resultType: PropTypes.string,
+  onResultTypeChange: PropTypes.func
 }
 
 export default FilterMainMenu

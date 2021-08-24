@@ -19,7 +19,6 @@ import React, { useCallback, useState } from 'react'
 import { useRecoilState } from 'recoil'
 import { makeStyles } from '@material-ui/core/styles'
 import {
-  Box,
   Button,
   Menu,
   MenuItem,
@@ -45,11 +44,10 @@ import { conversionMap, unitMap, unitSystems } from '../unitsData'
  */
 const useStyles = makeStyles((theme) => {
   return {
+    root: {
+    },
     menuItem: {
       width: '10rem'
-    },
-    icon: {
-      marginRight: '0.5rem'
     },
     systems: {
       margin: theme.spacing(2),
@@ -107,71 +105,70 @@ const UnitSelector = React.memo(({
   const unitNames = ['energy', 'length', 'force', 'mass', 'time', 'temperature']
   const systemNames = ['SI', 'AU']
 
-  return (
-    <Box className={clsx(styles.root, className)}>
-      <Button
-        aria-controls="customized-menu"
-        aria-haspopup="true"
-        variant="text"
-        color="primary"
-        onClick={openMenu}
+  return <>
+    <Button
+      aria-controls="customized-menu"
+      aria-haspopup="true"
+      variant="text"
+      color="primary"
+      onClick={openMenu}
+      className={clsx(styles.root, className)}
+      startIcon={<SettingsIcon/>}
+    >
+      Units
+    </Button>
+    <Menu
+      id="select-unit"
+      anchorEl={anchorEl}
+      getContentAnchorEl={null}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      keepMounted
+      open={open}
+      onClose={closeMenu}
+    >
+      <FormControl
+        component="fieldset"
+        classes={{root: styles.systems}}
       >
-        <SettingsIcon className={styles.icon}/>
-        Settings
-      </Button>
-      <Menu
-        id="select-unit"
-        anchorEl={anchorEl}
-        getContentAnchorEl={null}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        keepMounted
-        open={open}
-        onClose={closeMenu}
-      >
-        <FormControl
-          component="fieldset"
-          classes={{root: styles.systems}}
-        >
-          <FormLabel component="legend">Unit system</FormLabel>
-          <RadioGroup aria-label="gender" name="gender1" value={units.system} onChange={handleSystemChange}>
-            <Tooltip title="Custom units">
-              <FormControlLabel value="custom" control={<Radio />} label="Custom" />
+        <FormLabel component="legend">Unit system</FormLabel>
+        <RadioGroup aria-label="gender" name="gender1" value={units.system} onChange={handleSystemChange}>
+          <Tooltip title="Custom units">
+            <FormControlLabel value="custom" control={<Radio />} label="Custom" />
+          </Tooltip>
+          {systemNames.map((systemName) => {
+            const system = unitSystems[systemName]
+            return <Tooltip key={systemName} title={system.description}>
+              <FormControlLabel value={systemName} control={<Radio />} label={system.label} />
             </Tooltip>
-            {systemNames.map((systemName) => {
-              const system = unitSystems[systemName]
-              return <Tooltip key={systemName} title={system.description}>
-                <FormControlLabel value={systemName} control={<Radio />} label={system.label} />
-              </Tooltip>
-            })}
-          </RadioGroup>
-        </FormControl>
-        {unitNames.map((dimension) => {
-          const unitList = conversionMap[dimension].units
-          return <MenuItem
-            key={dimension}
-          >
-            <FormControl disabled={!canSelect}>
-              <InputLabel id="demo-simple-select-label">{dimension}</InputLabel>
-              <Select
-                classes={{root: styles.menuItem}}
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                name={dimension}
-                value={units[dimension]}
-                onChange={handleUnitChange}
-              >
-                {unitList.map((unit) => {
-                  const unitLabel = unitMap[unit].label
-                  return <MenuItem key={unit} value={unit}>{unitLabel}</MenuItem>
-                })}
-              </Select>
-            </FormControl>
-          </MenuItem>
-        })}
-      </Menu>
-    </Box>
-  )
+          })}
+        </RadioGroup>
+      </FormControl>
+      {unitNames.map((dimension) => {
+        const unitList = conversionMap[dimension].units
+        return <MenuItem
+          key={dimension}
+        >
+          <FormControl disabled={!canSelect}>
+            <InputLabel id="demo-simple-select-label">{dimension}</InputLabel>
+            <Select
+              classes={{root: styles.menuItem}}
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              name={dimension}
+              value={units[dimension]}
+              onChange={handleUnitChange}
+            >
+              {unitList.map((unit) => {
+                const unitLabel = unitMap[unit].label
+                return <MenuItem key={unit} value={unit}>{unitLabel}</MenuItem>
+              })}
+            </Select>
+          </FormControl>
+        </MenuItem>
+      })}
+    </Menu>
+  </>
 })
 
 UnitSelector.propTypes = {
