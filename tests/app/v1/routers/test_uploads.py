@@ -1257,6 +1257,7 @@ def test_post_upload_action_publish_to_central_nomad(
         assert_processing(client, upload_id, user_auth, published=old_upload.published)
         assert_processing(client, upload_id + suffix, user_auth, published=old_upload.published)
 
+        old_upload = Upload.get(upload_id)
         new_upload = Upload.get(upload_id + suffix)
         assert len(old_upload.calcs) == len(new_upload.calcs)
         old_calc = old_upload.calcs[0]
@@ -1265,6 +1266,8 @@ def test_post_upload_action_publish_to_central_nomad(
             if k not in ('upload_time', 'last_processing'):
                 assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
         assert new_calc.metadata.get('datasets') == ['dataset_id']
+        assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
+        assert new_upload.from_oasis and new_upload.oasis_deployment_id
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
@@ -1423,6 +1426,8 @@ def test_post_upload_bundle(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_processing(client, upload_id, user_auth, published=publish)
+        upload = Upload.get(upload_id)
+        assert upload.from_oasis and upload.oasis_deployment_id
     return
 
 

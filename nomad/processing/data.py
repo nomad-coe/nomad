@@ -1828,7 +1828,7 @@ class Upload(Proc):
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
                 'name', 'embargo_length', 'published', 'create_time',
-                'from_oasis', 'oasis_deployment_id', 'published_to']
+                'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
                 upload_keys_to_copy.extend(('upload_time', 'publish_time'))
             try:
@@ -1855,7 +1855,6 @@ class Upload(Proc):
                     # field as it is, since it indicates that the upload has been importet from
                     # somewhere else originally (i.e. source_deployment_id would not be the
                     # original source)
-                # TODO: should we do anything about published_to?
 
             # Dataset definitions
             if settings.include_datasets:
