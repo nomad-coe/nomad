@@ -136,6 +136,12 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const setQuery = useSetRecoilState(queryState)
+  const [initialized, setInitialized] = useState(false)
+
+  // Reset the query when entering the search context for the first time
+  useEffect(() => {
+    setQuery()
+  }, [setQuery])
 
   // Read the target resource and initial query from the URL
   const [resource, query] = useMemo(() => {
@@ -148,8 +154,6 @@ export const SearchContext = React.memo(({
     } else {
       [path, qs] = split
       query = qsToQuery(qs)
-      console.log(qs)
-      console.log(query)
     }
     return [path.split('/').pop(), query]
   }, [])
@@ -157,11 +161,13 @@ export const SearchContext = React.memo(({
   // Save the initial query. Cannot be done inside useMemo due to bad setState.
   useEffect(() => {
     setQuery(query)
+    setInitialized(true)
   }, [setQuery, query])
 
   const values = useMemo(() => ({
-    resource
-  }), [resource])
+    resource,
+    initialized
+  }), [resource, initialized])
 
   return <searchContext.Provider value={values}>
     {children}
@@ -353,10 +359,6 @@ export function useFiltersState(quantities) {
 const queryState = selector({
   key: 'query',
   get: ({get}) => {
-    const inited = get(initialized)
-    if (!inited) {
-      return undefined
-    }
     let query = {}
     for (let key of quantities) {
       const filter = get(queryFamily(key))
@@ -367,7 +369,6 @@ const queryState = selector({
     return query
   },
   set: ({ get, set, reset }, data) => {
-    set(initialized, true)
     for (let filter of quantities) {
       reset(queryFamily(filter))
     }
@@ -635,7 +636,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  */
 export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
   const api = useApi()
-  const { resource } = useSearchContext()
+  const { resource, initialized } = useSearchContext()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
@@ -707,7 +708,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // shows the first batch of results.
   useEffect(() => {
     // If the initial query is not yet ready, do nothing
-    if (query === undefined) {
+    if (!initialized) {
       return
     }
     if (firstRender.current) {
@@ -716,7 +717,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     } else {
       debounced(query, pageSize, orderBy, order, exclusive)
     }
-  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
+  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy, initialized])
 
   // Whenever the ordering changes, we perform a single API call that fetches
   // results in the new order. The amount of fetched results is based on the
