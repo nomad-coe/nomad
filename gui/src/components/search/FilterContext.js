@@ -148,6 +148,8 @@ export const SearchContext = React.memo(({
     } else {
       [path, qs] = split
       query = qsToQuery(qs)
+      console.log(qs)
+      console.log(query)
     }
     return [path.split('/').pop(), query]
   }, [])
@@ -188,21 +190,6 @@ export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
-
-// Query owner state
-// export const owner = atom({
-//   key: 'owner',
-//   default: 'public'
-// })
-// export function useOwner() {
-//   return useRecoilValue(owner)
-// }
-// export function useSetOwner() {
-//   return useSetRecoilState(owner)
-// }
-// export function useOwnerState() {
-//   return useRecoilState(owner)
-// }
 
 // Menu open state
 export const menuOpen = atom({
@@ -447,7 +434,7 @@ function qsToQuery(queryString) {
         }
       } else {
         value = parser(value)
-        if (type !== 'number' && type !== 'timestamp') {
+        if (type !== 'number' && type !== 'timestamp' && key !== 'owner') {
           value = new Set([value])
         }
       }
