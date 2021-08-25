@@ -1080,39 +1080,6 @@ def test_post_upload(
             assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], with_embargo=False)
 
 
-@pytest.mark.parametrize('user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code', [
-    pytest.param('test_user', 'test_user', 'oasis_upload_id', 'an_id', 200, id='ok'),
-    pytest.param('test_user', 'test_user', 'id_unpublished_w', 'an_id', 400, id='dulicate'),
-    pytest.param('test_user', None, 'oasis_upload_id', 'an_id', 400, id='missing-oasis_uploader_id'),
-    pytest.param('test_user', 'test_user', None, 'an_id', 400, id='missing-oasis_upload_id'),
-    pytest.param('test_user', 'test_user', 'oasis_upload_id', None, 400, id='missing-oasis_deployment_id'),
-    pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin'),
-    pytest.param(None, 'test_user', 'oasis_upload_id', 'an_id', 401, id='no-credentials'),
-    pytest.param('invalid', 'test_user', 'oasis_upload_id', 'an_id', 401, id='invalid-credentials')])
-def test_post_upload_oasis(
-        client, mongo, proc_infra, oasis_example_upload, example_data_writeable,
-        test_users_dict, test_auth_dict,
-        user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code):
-
-    user_auth, __token = test_auth_dict[user]
-    oasis_uploader_id = test_users_dict[oasis_uploader].user_id if oasis_uploader else None
-    url = 'uploads'
-    response = perform_post_put_file(
-        client, 'POST', url, 'stream', oasis_example_upload, user_auth,
-        oasis_upload_id=oasis_upload_id,
-        oasis_uploader_id=oasis_uploader_id,
-        oasis_deployment_id=oasis_deployment_id)
-
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
-        response_json = response.json()
-        upload_id = response_json['upload_id']
-        assert upload_id == oasis_upload_id
-        assert_upload(response_json)
-        assert_processing(client, upload_id, user_auth, published=True, check_search=False)
-        assert_gets_published(client, upload_id, user_auth, from_oasis=True, with_embargo=False)
-
-
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
@@ -1412,19 +1379,28 @@ def test_get_upload_bundle(
     return
 
 
-@pytest.mark.parametrize('published, user, export_args, query_args, expected_status_code', [
+@pytest.mark.parametrize('publish, test_duplicate, user, export_args, query_args, expected_status_code', [
     pytest.param(
-        True, 'admin_user', dict(), dict(),
+        True, False, 'admin_user', dict(), dict(),
         200, id='published-admin'),
     pytest.param(
-        False, 'admin_user', dict(), dict(),
-        200, id='unpublished-admin')])
+        False, False, 'admin_user', dict(), dict(),
+        200, id='unpublished-admin'),
+    pytest.param(
+        True, True, 'admin_user', dict(), dict(),
+        400, id='duplicate'),
+    pytest.param(
+        True, False, 'other_test_user', dict(), dict(),
+        401, id='not-oasis-admin'),
+    pytest.param(
+        True, False, None, dict(), dict(),
+        401, id='no-credentials')])
 def test_post_upload_bundle(
         client, proc_infra, non_empty_processed, internal_example_user_metadata, test_auth_dict,
-        published, user, export_args, query_args, expected_status_code):
+        publish, test_duplicate, user, export_args, query_args, expected_status_code):
     # Create the bundle
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
-    if published:
+    if publish:
         non_empty_processed.publish_upload()
         non_empty_processed.block_until_complete(interval=.01)
     upload = non_empty_processed
@@ -1437,15 +1413,16 @@ def test_post_upload_bundle(
         include_archive_files=True, include_datasets=True)
     export_args_with_defaults.update(export_args)
     upload.export_bundle(**export_args_with_defaults)
-    # Delete the upload so we can import the bundle without id collisions
-    upload.delete_upload_local()
+    if not test_duplicate:
+        # Delete the upload so we can import the bundle without id collisions
+        upload.delete_upload_local()
     # Finally, import the bundle
     user_auth, __token = test_auth_dict[user]
     response = perform_post_put_file(
         client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_processing(client, upload_id, user_auth, published=published)
+        assert_processing(client, upload_id, user_auth, published=publish)
     return
 
 
