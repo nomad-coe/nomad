@@ -250,15 +250,16 @@ class Api {
 
   /**
    * Executes the given entry query
-   * @param {object} query contains the query
+   * @param {object} search contains the search object
+   * @param {string} searchTarget The target of the search: entries or materials
    * @returns Object containing the raw file metadata.
    */
-  async queryEntry(search, show = true) {
+  async query(searchTarget, search, show = true) {
     this.onStartLoading(show)
     const auth = await this.authHeaders()
     try {
       const result = await this.axios.post(
-        '/entries/query',
+        `${searchTarget}/query`,
         {
           exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
           ...search

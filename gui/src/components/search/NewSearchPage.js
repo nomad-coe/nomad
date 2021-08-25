@@ -17,6 +17,7 @@
  */
 import React from 'react'
 import NewSearch from './NewSearch'
+import { SearchContext } from './FilterContext'
 
 const help = `
 This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
@@ -52,7 +53,7 @@ will show more metadata, raw files, the entry's archive, and processing logs.
 export {help}
 
 export default function NewSearchPage() {
-  return <NewSearch
-    owner="public"
-  />
+  return <SearchContext>
+    <NewSearch/>
+  </SearchContext>
 }

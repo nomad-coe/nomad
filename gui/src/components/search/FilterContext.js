@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useRef, useMemo, useContext } from 'react'
 import {
   atom,
   atomFamily,
@@ -33,6 +33,7 @@ import {
   isNil
 } from 'lodash'
 import qs from 'qs'
+import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../apiV1'
 import { setToArray, formatMeta, parseMeta } from '../../utils'
@@ -128,6 +129,48 @@ registerQuantity('entry_id', labelIDs)
 registerQuantity('upload_id', labelIDs)
 registerQuantity('results.material.material_id', labelIDs)
 registerQuantity('datasets.dataset_id', labelIDs)
+
+export const searchContext = React.createContext()
+export const SearchContext = React.memo(({
+  children
+}) => {
+  const setQuery = useSetRecoilState(queryState)
+
+  // Read the target resource and initial query from the URL
+  const [resource, query] = useMemo(() => {
+    const location = window.location.href
+    const split = location.split('?')
+    let qs, path, query
+    if (split.length === 1) {
+      path = split.pop()
+      query = {}
+    } else {
+      [path, qs] = split
+      query = qsToQuery(qs)
+    }
+    return [path.split('/').pop(), query]
+  }, [])
+
+  // Save the initial query. Cannot be done inside useMemo due to bad setState.
+  useEffect(() => {
+    setQuery(query)
+  }, [setQuery, query])
+
+  const values = useMemo(() => ({
+    resource
+  }), [resource])
+
+  return <searchContext.Provider value={values}>
+    {children}
+  </searchContext.Provider>
+})
+SearchContext.propTypes = {
+  children: PropTypes.node
+}
+
+export function useSearchContext() {
+  return useContext(searchContext)
+}
 
 /**
  * Each search quantity is here mapped into a separate Recoil.js Atom. This
@@ -348,27 +391,6 @@ const queryState = selector({
   }
 })
 
-/**
- * Hook used to initialize the query. Must be called once before any results can
- * be fetched. By default uses the URL query string to initialize the query.
-*/
-export function useInitQuery() {
-  const setQuery = useSetRecoilState(queryState)
-  const setInitialized = useSetRecoilState(initialized)
-
-  // If a query string is available, initialize the query from it. No results
-  // are returned by this hook until the setQuery has made its round back. This
-  // prevents double renders.
-  useEffect(() => {
-    const location = window.location.href
-    const queryString = location.split('?')
-    const qs = queryString.length !== 1 && qsToQuery(queryString.pop())
-    setInitialized(true)
-    setQuery(qs || {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-}
-
 export function useQuery() {
   return useRecoilValue(queryState)
 }
@@ -490,6 +512,7 @@ export function useInitialAggs() {
   // Request initial aggregation values for all filter components that are on
   // the search page. This is only done once.
   const api = useApi()
+  const { resource } = useSearchContext()
   const owner = useOwner()
   const setInitialAggs = useSetRecoilState(initialAggs)
 
@@ -507,15 +530,15 @@ export function useInitialAggs() {
     const search = {
       owner: owner,
       query: {},
-      aggregations: aggRequest,
+      aggregations: resource === 'entries' ? aggRequest : undefined,
       pagination: {page_size: 0}
     }
 
-    api.queryEntry(search, false)
+    api.query(resource, search, false)
       .then(data => {
         setInitialAggs(data)
       })
-  }, [api, setInitialAggs, owner])
+  }, [api, setInitialAggs, owner, resource])
 }
 
 /**
@@ -535,6 +558,7 @@ export function useInitialAggs() {
  */
 export function useAgg(quantity, type, restrict = false, update = true, delay = 500) {
   const api = useApi()
+  const { resource } = useSearchContext()
   const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
   const initialAgg = useInitialAgg(quantity, type)
   const query = useQuery()
@@ -566,12 +590,12 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     const search = {
       owner: owner,
       query: queryCleaned,
-      aggregations: aggs,
+      aggregations: resource === 'entries' ? aggs : undefined,
       pagination: {page_size: 0},
       required: { include: [] }
     }
 
-    api.queryEntry(search, false)
+    api.query(resource, search, false)
       .then(data => {
         let cleaned = data && data.aggregations[quantity][type].data
         if (type === 'min_max' && !cleaned) {
@@ -580,7 +604,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
         firstLoad.current = false
         setResults(cleaned)
       })
-  }, [api, quantity, restrict, type, owner])
+  }, [api, quantity, restrict, type, owner, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -624,6 +648,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  */
 export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
   const api = useApi()
+  const { resource } = useSearchContext()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
@@ -654,7 +679,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     searchRef.current = search
 
     loading.current = true
-    api.queryEntry(search)
+    api.query(resource, search)
       .then(data => {
         pageAfterValue.current = data.pagination.next_page_after_value
         total.current = data.pagination.total
@@ -667,7 +692,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     // is better to debounce this value as well to keep the user interaction
     // smoother.
     updateQueryString(query)
-  }, [api, owner, updateQueryString])
+  }, [api, owner, updateQueryString, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -680,7 +705,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     pageNumber.current += 1
     searchRef.current.pagination.page_after_value = pageAfterValue.current
     loading.current = true
-    api.queryEntry(searchRef.current)
+    api.query(resource, searchRef.current)
       .then(data => {
         pageAfterValue.current = data.pagination.next_page_after_value
         total.current = data.pagination.total
@@ -690,7 +715,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
         })
         loading.current = false
       })
-  }, [api])
+  }, [api, resource])
 
   // Whenever the query changes, we make a new query that resets pagination and
   // shows the first batch of results.

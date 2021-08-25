@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
@@ -25,9 +25,7 @@ import SearchResults from './results/SearchResults'
 import {
   quantities,
   useMenuOpenState,
-  useInitQuery,
-  useInitialAggs,
-  useSetOwner
+  useInitialAggs
 } from './FilterContext'
 
 const useStyles = makeStyles(theme => {
@@ -112,24 +110,15 @@ const NewSearch = React.memo(({
   collapsed
 }) => {
   const styles = useStyles()
-  const [resultType, setResultType] = useState('entries')
   const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
-  const setOwner = useSetOwner()
-  useInitQuery()
   useInitialAggs()
-
-  useEffect(() => {
-    setOwner(owner)
-  }, [setOwner, owner])
 
   return <div className={styles.root}>
     <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>
       <FilterMainMenu
         open={isMenuOpen}
         onOpenChange={setIsMenuOpen}
-        resultType={resultType}
-        onResultTypeChange={value => setResultType(value)}
         collapsed={isCollapsed}
         onCollapsedChange={setIsCollapsed}
       />
@@ -141,7 +130,6 @@ const NewSearch = React.memo(({
       />
       <SearchResults
         className={styles.resultList}
-        resultType={resultType}
       />
       <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
     </div>
