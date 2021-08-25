@@ -49,63 +49,62 @@ class DosNormalizer(Normalizer):
             return
 
         for scc in section_sccs:
-            for section_dos in [scc.dos_electronic, scc.dos_phonon]:
-                if section_dos is None:
+            section_dos = scc.dos_electronic
+            if section_dos is None:
+                continue
+
+            energy_fermi = scc.energy.fermi if scc.energy is not None else None
+            energy_highest = scc.energy.highest_occupied if scc.energy is not None else None
+            energy_lowest = scc.energy.lowest_unoccupied if scc.energy is not None else None
+            for dos in section_dos:
+                # perform normalization only for total dos
+                if dos.total is None:
                     continue
 
-                energy_fermi = scc.energy.fermi
-                energy_highest = scc.energy.highest_occupied
-                energy_lowest = scc.energy.lowest_unoccupied
-                for dos in section_dos:
-                    # perform normalization only for total dos
-                    if dos.total is None:
-                        continue
+                # Normalize DOS values to be 1/J/atom/m^3
+                system = scc.system_ref
+                if not system or system[0].value.atoms is None:
+                    self.logger.error('referenced system for dos calculation could not be found')
+                    continue
+                atom_positions = system[0].value.atoms.positions
+                lattice_vectors = system[0].value.atoms.lattice_vectors
+                if atom_positions is None:
+                    self.logger.error('required quantity atom_positions is not available')
+                    continue
+                if lattice_vectors is None:
+                    self.logger.error('required quantity lattice_vectors is not available')
+                    continue
+                number_of_atoms = np.shape(atom_positions)[0]
+                unit_cell_volume = get_volume(lattice_vectors.magnitude)
+                for dos_total in dos.total:
+                    dos_total.normalization_factor = number_of_atoms * unit_cell_volume
+                # Add energy references
+                self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest)
 
-                    # Normalize DOS values to be 1/J/atom/m^3
-                    system = scc.system_ref
-                    if not system or system[0].value.atoms is None:
-                        self.logger.error('referenced system for dos calculation could not be found')
-                        continue
-                    atom_positions = system[0].value.atoms.positions
-                    lattice_vectors = system[0].value.atoms.lattice_vectors
-                    if atom_positions is None:
-                        self.logger.error('required quantity atom_positions is not available')
-                        continue
-                    if lattice_vectors is None:
-                        self.logger.error('required quantity lattice_vectors is not available')
-                        continue
-                    number_of_atoms = np.shape(atom_positions)[0]
-                    unit_cell_volume = get_volume(lattice_vectors.magnitude)
-                    for dos_total in dos.total:
-                        dos_total.normalization_factor = number_of_atoms * unit_cell_volume
+                if not dos.info or dos.info[-1].energy_highest_occupied is None:
+                    continue
 
-                    # Add energy references
-                    self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest)
+                dos_energies_normalized = dos.energies - dos.info[-1].energy_highest_occupied
+                dos.dos_energies_normalized = dos_energies_normalized
+                dos_values_normalized = [
+                    dos_total.value.magnitude / dos_total.normalization_factor for dos_total in dos.total]
 
-                    if dos.info[-1].energy_highest_occupied is None:
-                        continue
-
-                    dos_energies_normalized = dos.energies - dos.info[-1].energy_highest_occupied
-                    dos.dos_energies_normalized = dos_energies_normalized
-                    dos_values_normalized = [
-                        dos_total.value.magnitude / dos_total.normalization_factor for dos_total in dos.total]
-
-                    # Data for DOS fingerprint
-                    try:
-                        dos_fingerprint = DOSFingerprint().calculate(
-                            dos_energies_normalized.magnitude,
-                            dos_values_normalized,
-                            n_atoms=number_of_atoms
-                        )
-                    except Exception as e:
-                        self.logger.error('could not generate dos fingerprint', exc_info=e)
-                    else:
-                        sec_dos_fingerprint = dos.m_create(DosFingerprint)
-                        sec_dos_fingerprint.bins = dos_fingerprint.bins
-                        sec_dos_fingerprint.indices = dos_fingerprint.indices
-                        sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
-                        sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
-                        sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
+                # Data for DOS fingerprint
+                try:
+                    dos_fingerprint = DOSFingerprint().calculate(
+                        dos_energies_normalized.magnitude,
+                        dos_values_normalized,
+                        n_atoms=number_of_atoms
+                    )
+                except Exception as e:
+                    self.logger.error('could not generate dos fingerprint', exc_info=e)
+                else:
+                    sec_dos_fingerprint = dos.m_create(DosFingerprint)
+                    sec_dos_fingerprint.bins = dos_fingerprint.bins
+                    sec_dos_fingerprint.indices = dos_fingerprint.indices
+                    sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
+                    sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
+                    sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
 
     def add_energy_references(
             self,

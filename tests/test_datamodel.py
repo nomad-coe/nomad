@@ -127,9 +127,9 @@ def test_common_metainfo():
 
 
 def test_vasp_metainfo():
-    from nomad.datamodel.metainfo import common_dft
+    from nomad.datamodel.metainfo.run import Run
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
-    run = common_dft.Run()
+    run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities
 
 

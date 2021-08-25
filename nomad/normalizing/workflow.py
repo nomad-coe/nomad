@@ -21,7 +21,8 @@ import numpy as np
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.workflow import (
-    Workflow, SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic)
+    Workflow, SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic,
+    Thermodynamics)
 
 
 def resolve_difference(values):
@@ -54,7 +55,7 @@ class SinglePointNormalizer(TaskNormalizer):
 
         if not self.section.method:
             try:
-                method = self.run.section_method[-1]
+                method = self.run.method[-1]
                 self.section.method = method.electronic.method
             except Exception:
                 pass
@@ -63,10 +64,10 @@ class SinglePointNormalizer(TaskNormalizer):
         if not scc:
             return
 
-        if not self.section.number_of_scf_steps:
-            self.section.number_of_scf_steps = len(scc[-1].scf_iteration)
+        if not self.section.n_scf_steps:
+            self.section.n_scf_steps = len(scc[-1].scf_iteration)
 
-        energies = [scf.energy.total.value for scf in scc[-1].scf_iteration if scf.energy is not None]
+        energies = [scf.energy.total.value for scf in scc[-1].scf_iteration if scf.energy is not None and scf.energy.total is not None]
         delta_energy = resolve_difference(energies)
         if not self.section.final_scf_energy_difference and delta_energy is not None:
             self.section.final_scf_energy_difference = delta_energy
@@ -96,8 +97,6 @@ class SinglePointNormalizer(TaskNormalizer):
 
 
 class GeometryOptimizationNormalizer(TaskNormalizer):
-    def _to_numpy_array(self, quantity):
-        return np.array(quantity.m if quantity is not None else quantity)
 
     def _get_geometry_optimization_type(self):
         sec_system = self.run.system
@@ -127,21 +126,18 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             if cell_init is None or cell_final is None:
                 return 'static'
 
-            cell_init = self._to_numpy_array(cell_init)
-            cell_final = self._to_numpy_array(cell_final)
-
-            cell_relaxation = compare_cell(cell_init, cell_final)
+            cell_relaxation = compare_cell(cell_init.magnitude, cell_final.magnitude)
 
             if cell_relaxation is not None:
                 return cell_relaxation
 
-            atom_pos_init = self._to_numpy_array(sec_system[0].atoms.positions)
-            atom_pos_final = self._to_numpy_array(sec_system[-1].atoms.positions)
+            atom_pos_init = sec_system[0].atoms.positions
+            atom_pos_final = sec_system[-1].atoms.positions
 
             if atom_pos_init is None or atom_pos_final is None:
                 return 'static'
 
-            if (atom_pos_init == atom_pos_final).all():
+            if (atom_pos_init.magnitude == atom_pos_final.magnitude).all():
                 return 'static'
 
             return 'ionic'
@@ -177,14 +173,15 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             scc = self.run.calculation
             if len(scc) > 0:
                 if scc[-1].forces is not None and scc[-1].forces.total is not None:
-                    forces = self._to_numpy_array(scc[-1].atom_forces)
-                    max_force = np.max(np.linalg.norm(forces, axis=1))
-                    self.section.final_force_maximum = max_force
+                    forces = scc[-1].forces.total.value
+                    if forces is not None:
+                        max_force = np.max(np.linalg.norm(forces.magnitude, axis=1))
+                        self.section.final_force_maximum = max_force * forces.units
 
         # Store the energies as an explicit list. If a step within the
         # trajectory does not contain an energy the rest of the energies in the
         # trajectory are not included.
-        trajectory = self.entry_archive.workflow.calculations_ref
+        trajectory = self.workflow.calculations_ref
         if trajectory:
             n_steps = len(trajectory)
             energies = []
@@ -262,8 +259,8 @@ class ElasticNormalizer(TaskNormalizer):
     def _resolve_mechanical_stability(self):
         spacegroup, c = None, None
         try:
-            spacegroup = self.run[-1].system[-1].symmetry[-1].space_group_number
-            c = self.run.calculation[-1].elastic_constants_matrix_second_order
+            spacegroup = self.run.system[-1].symmetry[-1].space_group_number
+            c = self.section.elastic_constants_matrix_second_order
         except Exception:
             return False
 
@@ -315,11 +312,10 @@ class ElasticNormalizer(TaskNormalizer):
         max_error = 0.0
         if len(self.run.calculation) == 0:
             return max_error
-        scc = self.run.calculation[-1]
 
-        for diagram in scc.x_elastic_section_strain_diagrams:
-            if diagram.x_elastic_strain_diagram_type == 'cross-validation':
-                error = np.amax(diagram.x_elastic_strain_diagram_values)
+        for diagram in self.section.strain_diagrams:
+            if diagram.type == 'cross-validation':
+                error = np.amax(diagram.value)
                 max_error = error if error > max_error else max_error
 
         return max_error
@@ -352,7 +348,7 @@ class MolecularDynamicsNormalizer(TaskNormalizer):
             return False
 
     def normalize(self):
-        super().normalize
+        super().normalize()
         self.section = self.workflow.molecular_dynamics
 
         if not self.section:
@@ -363,6 +359,48 @@ class MolecularDynamicsNormalizer(TaskNormalizer):
 
         if self.section.with_trajectory is None:
             self.section.with_trajectory = self._is_with_trajectory()
+
+
+class ThermodynamicsNormalizer(TaskNormalizer):
+    def normalize(self):
+        super().normalize()
+        self.section = self.workflow.thermodynamics
+
+        if not self.run.calculation or not self.run.calculation[0].thermodynamics:
+            return
+
+        if not self.section:
+            self.section = self.workflow.m_create(Thermodynamics)
+
+        def set_thermo_property(name):
+            values = []
+            quantity = None
+            for scc in self.run.calculation:
+                try:
+                    for thermo in scc.thermodynamics:
+                        quantity = thermo[name]
+                        values.append(quantity.magnitude if hasattr(quantity, 'magnitude') else quantity)
+                except Exception:
+                    pass
+            unit = quantity.magnitude if hasattr(quantity, 'magnitude') else 1.0
+            setattr(self.section, name, np.array(values) * unit)
+
+        if not self.section.temperature:
+            set_thermo_property('temperature')
+
+        if not self.section.pressure:
+            set_thermo_property('pressure')
+
+        if not self.section.helmholz_free_energy:
+            set_thermo_property('helmholz_free_energy')
+
+        if not self.section.vibrational_free_energy_at_constant_volume:
+            set_thermo_property('vibrational_free_energy_at_constant_volume')
+
+        if not self.section.heat_capacity_c_v:
+            set_thermo_property('heat_capacity_c_v')
+
+        # TODO add values for specific energy
 
 
 class WorkflowNormalizer(Normalizer):
@@ -395,6 +433,8 @@ class WorkflowNormalizer(Normalizer):
         if workflow_type is None:
             if len(run.calculation) == 1:
                 workflow_type = 'single_point'
+            else:
+                workflow_type = 'geometry_optimization'
 
         return workflow_type
 
@@ -402,7 +442,7 @@ class WorkflowNormalizer(Normalizer):
         super().normalize()
 
         # Do nothing if section_run is not present
-        if self.entry_archive.run is None:
+        if not self.entry_archive.run:
             return
 
         if not self.entry_archive.workflow:
@@ -415,8 +455,6 @@ class WorkflowNormalizer(Normalizer):
 
             if sec_workflow.type is None:
                 workflow_type = self._resolve_workflow_type(sec_run)
-                if workflow_type is None:
-                    continue
                 sec_workflow.type = workflow_type
 
             if sec_workflow.type == 'geometry_optimization':
@@ -442,6 +480,9 @@ class WorkflowNormalizer(Normalizer):
             if not sec_workflow.calculations_ref:
                 if scc:
                     sec_workflow.calculations_ref = scc
+
+            # add thermodynamics data
+            ThermodynamicsNormalizer(self.entry_archive, n).normalize()
 
             # remove the section workflow again, if the parser/normalizer could not produce a result
             if sec_workflow.calculation_result_ref is None:

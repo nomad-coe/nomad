@@ -101,6 +101,11 @@ class BasisSetFHIAims(BasisSet):
     def to_dict(self):
         # Get basis set settings for each species
         aims_bs = self._ctx.representative_method.x_fhi_aims_section_controlIn_basis_set
+        if not aims_bs:
+            try:
+                aims_bs = self._ctx.representative_method.method_ref[0].value.x_fhi_aims_section_controlIn_basis_set
+            except Exception:
+                pass
         if aims_bs is not None:
             bs_by_species = {}
             for this_aims_bs in aims_bs:

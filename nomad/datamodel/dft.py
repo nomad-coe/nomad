@@ -374,13 +374,15 @@ class DFTMetadata(MSection):
             self.spacegroup = 0 if not spacegroup else int(spacegroup)
             self.spacegroup_symbol = get_value(section_symmetry.international_short_symbol)
 
-        program_basis_set_type = section_run.method[-1].basis_set[-1].type
-        if program_basis_set_type:
-            self.basis_set = map_basis_set_to_basis_set_label(program_basis_set_type)
+        if section_run.method and section_run.method[0].basis_set:
+            program_basis_set_type = section_run.method[0].basis_set[0].type
+            if program_basis_set_type:
+                self.basis_set = map_basis_set_to_basis_set_label(program_basis_set_type)
 
         if section_system:
             self.system = get_value(section_system.type)
-            entry.formula = get_value(section_system.chemical_composition.value_bulk_reduced)
+            if section_system.chemical_composition is not None:
+                entry.formula = get_value(section_system.chemical_composition.value_bulk_reduced)
 
         # metrics and quantities
         quantities = set()
@@ -537,7 +539,7 @@ class DFTMetadata(MSection):
         valid = False
         for bs in self.traverse_reversed(entry_archive, path):
             valid = True
-            for segment in bs.section_k_band_segment:
+            for segment in bs.segment:
                 energies = segment.energies
                 k_points = segment.kpoints
                 if not valid_array(energies) or not valid_array(k_points):

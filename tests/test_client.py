@@ -21,7 +21,7 @@ import pytest
 from nomad.client import query_archive
 from nomad.metainfo import MSection, SubSection
 from nomad.datamodel import EntryArchive, User
-from nomad.datamodel.metainfo.public import section_run
+from nomad.datamodel.metainfo.run.run import Run
 
 from tests.app.flask.conftest import client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
@@ -68,9 +68,9 @@ def test_query_query(api, published_wo_user_metadata):
 
 
 @pytest.mark.parametrize('q_schema,sub_sections', [
-    ({'section_run': '*'}, [EntryArchive.section_run]),
-    ({'section_run': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system]),
-    ({'section_run[0]': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system])
+    ({'run': '*'}, [EntryArchive.run]),
+    ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
+    ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system])
 ])
 def test_query_schema(api, published_wo_user_metadata, q_schema, sub_sections):
     assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
@@ -118,14 +118,14 @@ def patch_multiprocessing_and_api(monkeypatch):
 
 
 def test_parallel_query(api, many_uploads, monkeypatch):
-    result = query_archive(required=dict(section_run='*'), parallel=2)
+    result = query_archive(required=dict(run='*'), parallel=2)
     assert_results(result, total=4)
     assert result._statistics.nentries == 4
     assert result._statistics.loaded_nentries == 4
     assert result._statistics.last_response_nentries == 4
     assert result._statistics.napi_calls == 1
 
-    result = query_archive(required=dict(section_run='*'), parallel=2, per_page=1)
+    result = query_archive(required=dict(run='*'), parallel=2, per_page=1)
     assert_results(result, total=4)
     assert result._statistics.nentries == 4
     assert result._statistics.loaded_nentries == 4

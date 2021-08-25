@@ -4,7 +4,7 @@
         "chemical_formula": "He2",
         "chemical_name": "Helium"
     },
-    "section_metadata": {
+    "metadata": {
         "domain": "qcms"
     }
 }

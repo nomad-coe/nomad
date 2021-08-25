@@ -295,13 +295,13 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
         classes: Dict[str, List[str]] = {}
         try:
-            classifications = sec_springer['springer_classification']
+            classifications = sec_springer['classification']
         except KeyError:
             pass
         else:
             classes["material_class_springer"] = classifications
         try:
-            compound_classes = sec_springer['springer_compound_class']
+            compound_classes = sec_springer['compound_class']
         except KeyError:
             pass
         else:

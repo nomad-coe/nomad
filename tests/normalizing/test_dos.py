@@ -37,8 +37,7 @@ def test_fingerprint(dos_si_vasp):
     # Check if DOS fingerprint was created
     dos_fingerprint_dict = dos_si_vasp.m_xpath(
         '''
-        section_run[*].section_single_configuration_calculation[*].
-        section_dos[*].section_dos_fingerprint
+        run[*].calculation[*].dos_electronic[*].fingerprint
         ''')[-1][-1][0]
     dos_fingerprint = DOSFingerprint().from_dict(dos_fingerprint_dict)
     assert dos_fingerprint.get_similarity(dos_fingerprint) == 1
@@ -75,12 +74,14 @@ def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_hig
     """Checks that the energy reference detection for DOS works in different
     scenarios.
     """
+    fermi = fermi[0] if fermi else fermi
+    lowest = lowest[0] if lowest else lowest
+    highest = highest[0] if highest else highest
     archive = get_template_dos(ranges, fermi, highest, lowest, n)
-    dos = archive.section_run[0].section_single_configuration_calculation[0].section_dos[0]
-    n_channels = len(ranges)
+    dos = archive.run[0].calculation[0].dos_electronic[0]
+    n_channels = 1
     for i_channel in range(n_channels):
-        info = dos.channel_info[i_channel]
-        assert info.index == i_channel
+        info = dos.info[i_channel]
         assert info.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
             expected_highest[i_channel]
         )
@@ -96,8 +97,8 @@ def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive,
     tested.
     """
     def get_dos_values_normalized(archive):
-        return archive.section_run[0].m_xpath(
-            'section_single_configuration_calculation[*].section_dos[*].dos_values_normalized')[-1][0]
+        total_dos = archive.run[0].calculation[-1].dos_electronic[-1].total
+        return np.array([d.value / d.normalization_factor for d in total_dos])
 
     dos_vasp = get_dos_values_normalized(dos_si_vasp)
     dos_exciting = get_dos_values_normalized(dos_si_exciting)

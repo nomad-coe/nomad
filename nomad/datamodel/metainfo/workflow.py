@@ -1,5 +1,6 @@
 import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
+from nptyping import NDArray
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
@@ -640,29 +641,7 @@ class StrainDiagrams(MSection):
     m_def = Section(
         validate=False)
 
-    strain_diagram_number_of_eta = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        Number of strain values used in the strain diagram
-        ''')
-
-    strain_diagram_values = Quantity(
-        type=np.dtype(np.float64),
-        shape=['number_of_deformations', 'strain_diagram_number_of_eta'],
-        description='''
-        Values of the energy(units:J)/d2E(units:Pa)/cross-validation (depending on the
-        value of strain_diagram_type)
-        ''')
-
-    strain_diagram_eta_values = Quantity(
-        type=np.dtype(np.float64),
-        shape=['number_of_deformations', 'strain_diagram_number_of_eta'],
-        description='''
-        eta values used the strain diagrams
-        ''')
-
-    strain_diagram_type = Quantity(
+    type = Quantity(
         type=str,
         shape=[],
         description='''
@@ -670,14 +649,43 @@ class StrainDiagrams(MSection):
         validation error); d2E (second derivative of the energy wrt the strain)
         ''')
 
-    strain_diagram_stress_voigt_component = Quantity(
+    n_eta = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of strain values used in the strain diagram
+        ''')
+
+    n_deformations = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of deformations.
+        ''')
+
+    value = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_deformations', 'n_eta'],
+        description='''
+        Values of the energy(units:J)/d2E(units:Pa)/cross-validation (depending on the
+        value of strain_diagram_type)
+        ''')
+
+    eta = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_deformations', 'n_eta'],
+        description='''
+        eta values used the strain diagrams
+        ''')
+
+    stress_voigt_component = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
         Voigt component corresponding to the strain diagram
         ''')
 
-    strain_diagram_polynomial_fit_order = Quantity(
+    polynomial_fit_order = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
@@ -944,6 +952,104 @@ class Elastic(MSection):
         repeats=True)
 
 
+class Thermodynamics(MSection):
+    '''
+    Section containing the results of a thermodynamics workflow.
+    '''
+
+    m_def = Section(validate=False)
+
+    n_values = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of thermodynamics property evaluations.
+        ''')
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='kelvin',
+        description='''
+        Specifies the temperatures at which properties such as the Helmholtz free energy
+        are calculated.
+        ''')
+
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='pascal',
+        description='''
+        Array containing the values of the pressure (one third of the trace of the stress
+        tensor) corresponding to each property evaluation.
+        ''')
+
+    helmholz_free_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Helmholtz free energy per unit cell at constant volume.
+        ''')
+
+    heat_capacity_c_v = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / kelvin',
+        description='''
+        Heat capacity per cell unit at constant volume.
+        ''')
+
+    @derived(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / (kelvin * kilogram)',
+        description='''
+        Specific heat capacity at constant volume.
+        ''',
+        cached=True
+    )
+    def specific_heat_capacity(self) -> NDArray:
+        """Returns the specific heat capacity by dividing the heat capacity per
+        cell with the mass of the atoms in the cell.
+        """
+        import nomad.atomutils
+        workflow = self.m_parent
+        system = workflow.calculations_ref[0].system_ref[0].value
+        atomic_numbers = system.atoms.species
+        mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
+        heat_capacity = self.heat_capacity_c_v
+        specific_heat_capacity = heat_capacity / mass_per_unit_cell
+        return specific_heat_capacity
+
+    vibrational_free_energy_at_constant_volume = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Holds the vibrational free energy per cell unit at constant volume.
+        ''')
+
+    @derived(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / kilogram',
+        description='''
+        Stores the specific vibrational free energy at constant volume.
+        ''',
+        cached=True
+    )
+    def specific_vibrational_free_energy_at_constant_volume(self) -> NDArray:
+        import nomad.atomutils
+        workflow = self.m_parent
+        system = workflow.calculations_ref[0].system_ref[0].value
+        atomic_numbers = system.atoms.species
+        mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
+        free_energy = self.vibrational_free_energy_at_constant_volume
+        specific_free_energy = free_energy / mass_per_unit_cell
+        return specific_free_energy
+
+
 class MolecularDynamics(MSection):
     '''
     Section containing results of molecular dynamics workflow.
@@ -1006,7 +1112,7 @@ class SinglePoint(MSection):
         Calculation method used.
         ''')
 
-    number_of_scf_steps = Quantity(
+    n_scf_steps = Quantity(
         type=int,
         shape=[],
         description='''
@@ -1192,6 +1298,10 @@ class Workflow(MSection):
 
     raman = SubSection(
         sub_section=Raman.m_def,
+        repeats=False)
+
+    thermodynamics = SubSection(
+        sub_section=Thermodynamics.m_def,
         repeats=False)
 
     workflow_ref = SubSection(

@@ -218,6 +218,8 @@ class MethodDFTNormalizer(MethodNormalizer):
 
         xc_functional = config.services.unavailable_value
         for method in linked_methods:
+            if method.dft is None:
+                continue
             try:
                 sec_xc_functionals = method.dft.xc_functional
             except KeyError:
@@ -332,7 +334,7 @@ class MethodDFTNormalizer(MethodNormalizer):
         #   - basis set parameters
         # convergence threshold should be kept constant during convtest
         param_dict['functional_long_name'] = method.functional_long_name
-        conv_thr = repr_method.scf_threshold_energy_change
+        conv_thr = repr_method.scf.threshold_energy_change if repr_method.scf is not None else None
         if conv_thr is not None:
             conv_thr = '%.13f' % (conv_thr.to(ureg.rydberg).magnitude)
         param_dict['scf_threshold_energy_change'] = conv_thr
@@ -419,14 +421,14 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     """
     def gw_starting_point(self, method: Method, repr_method: Section) -> None:
         try:
-            ref = repr_method.section_method_to_method_refs[0]
-            method_to_method_kind = ref.method_to_method_kind
-            start_method = ref.method_to_method_ref
+            ref = repr_method.method_ref[0]
+            method_to_method_kind = ref.kind
+            start_method = ref.value
         except KeyError:
             pass
         else:
             if method_to_method_kind == "starting_point":
-                methods = self.section_run.section_method
+                methods = self.section_run.method
                 xc_functional = MethodDFTNormalizer.functional_long_name_from_method(start_method, methods)
                 method.gw_starting_point = xc_functional
 
@@ -434,12 +436,12 @@ class MethodGWNormalizer(MethodDFTNormalizer):
         method.functional_type = "GW"
 
     def gw_type(self, method: Method, repr_method: Section) -> None:
-        method.gw_type = repr_method["electronic_structure_method"]
+        method.gw_type = repr_method.gw.type
 
     def normalize(self, context: Context) -> None:
         # Fetch resources
         repr_method = context.representative_method
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         method = sec_enc.method
 
         # Fill metainfo

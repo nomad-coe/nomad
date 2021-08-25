@@ -289,11 +289,11 @@ def test_read_springer():
 def archive():
     return EntryArchive.m_from_dict(json.loads('''
         {
-            "section_metadata": {
+            "metadata": {
                 "calc_id": "test_id",
                 "encyclopedia": {
                     "properties": {
-                        "electronic_dos": "/section_run/0/section_single_configuration_calculation/1/section_dos/0"
+                        "electronic_dos": "/run/0/calculation/1/dos_electronic/0"
                     }
                 }
             },
@@ -301,54 +301,81 @@ def archive():
                 "properties": {
                     "electronic": {
                         "dos_electronic": {
-                            "energies": "/section_run/0/section_single_configuration_calculation/1/section_dos/0/dos_energies"
+                            "energies": "/run/0/calculation/1/dos_electronic/0/energies"
                         }
                     }
                 }
             },
-            "section_run": [
+            "run": [
                 {
-                    "section_single_configuration_calculation": [
+                    "system": [
                         {
-                            "energy_total": 0.1
+                            "atoms": {
+                                "labels": [
+                                    "He"
+                                ]
+                            }
                         },
                         {
-                            "energy_total": 0.2,
-                            "section_dos": [
-                                {
-                                    "dos_kind": "test",
-                                    "dos_energies": [0.0, 0.1]
-                                }
-                            ],
-                            "section_eigenvalues": [
-                                {
-                                    "eigenvalues_kind": "test"
-                                }
-                            ],
-                            "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/1"
-                        },
-                        {
-                            "energy_total": 0.1
+                            "atoms": {
+                                "labels": [
+                                    "H"
+                                ]
+                            }
                         }
                     ],
-                    "section_system": [
+                    "calculation": [
                         {
-                            "atom_labels": ["He"]
+                            "system_ref": [
+                                {
+                                    "value": "/run/0/system/1"
+                                }
+                            ],
+                            "energy": {
+                                "total": {
+                                    "value": 0.1
+                                }
+                            }
                         },
                         {
-                            "atom_labels": ["H"],
-                            "section_symmetry": [
+                            "system_ref": [
                                 {
-                                    "space_group_number": 221
+                                    "value": "/run/0/system/1"
                                 }
+                            ],
+                            "energy": {
+                                "total": {
+                                    "value": 0.2
+                                }
+                            },
+                            "dos_electronic": [
+                                {
+                                    "energies": [0.0, 0.1]
+                                }
+                            ],
+                            "eigenvalues": [
                             ]
+                        },
+                        {
+                            "system_ref": [
+                                {
+                                    "value": "/run/0/system/1"
+                                }
+                            ],
+                            "energy": {
+                                "total": {
+                                    "value": 0.1
+                                }
+                            }
                         }
                     ]
                 }
             ],
-            "section_workflow": {
-                "calculation_result_ref": "/section_run/0/section_single_configuration_calculation/1"
-            }
+            "workflow": [
+                {
+                    "calculation_result_ref": "/run/0/calculation/1"
+                }
+            ]
         }
         '''))
 
@@ -356,24 +383,27 @@ def archive():
 @pytest.mark.parametrize('required, error', [
     pytest.param('include', None, id='include-all'),
     pytest.param('*', None, id='include-all-alias'),
-    pytest.param({'section_metadata': '*'}, None, id='include-sub-section'),
-    pytest.param({'section_metadata': {
+    pytest.param({'metadata': '*'}, None, id='include-sub-section'),
+    pytest.param({'metadata': {
         'calc_id': '*'
     }}, None, id='include-quantity'),
     pytest.param({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*'
+                'energy': {
+                    'total': '*'
+                }
             }
         }
     }, None, id='resolve-with-required'),
     pytest.param({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': 'include-resolved'
         }
     }, None, id='resolve-with-directive'),
     pytest.param({
-        'section_workflow': 'include-resolved',
+        'workflow':
+            'include-resolved',
         'results': 'include-resolved'
     }, None, id='include-resolved'),
     pytest.param({
@@ -388,15 +418,15 @@ def archive():
         }
     }, None, id='resolve-quantity-ref'),
     pytest.param({
-        'section_metadata': {
+        'metadata': {
             'calc_id': {
                 'doesnotexist': '*'
             }
         }
-    }, ['section_metadata', 'calc_id'], id='not-a-section'),
+    }, ['metadata', 'calc_id'], id='not-a-section'),
     pytest.param({
-        'section_metadata': 'bad-directive'
-    }, ['section_metadata'], id='bad-directive')
+        'metadata': 'bad-directive'
+    }, ['metadata'], id='bad-directive')
 ])
 @pytest.mark.parametrize('resolve_inplace', [
     pytest.param(True, id='inplace'),
@@ -518,15 +548,15 @@ def assert_required_results(
 
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
-    assert archive.section_workflow.calculation_result_ref is not None
-    assert archive.section_metadata.encyclopedia is not None
+    assert archive.workflow[0].calculation_result_ref is not None
+    assert archive.metadata.encyclopedia is not None
     # test refs
-    assert archive.section_workflow.calculation_result_ref.energy_total is not None
-    assert len(archive.section_workflow.calculation_result_ref.section_eigenvalues) == 0
+    assert archive.workflow[0].calculation_result_ref.energy.total is not None
+    assert len(archive.workflow[0].calculation_result_ref.eigenvalues) == 0
     # test refs of refs
-    system = archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref
-    assert system.atom_labels == ['H']
-    assert system.section_symmetry[0].space_group_number == 221
+    system = archive.workflow[0].calculation_result_ref.system_ref[0].value
+    assert system.atoms.labels == ['H']
+    assert system.symmetry[0].space_group_number == 221
 
     return archive
 
@@ -557,7 +587,7 @@ def test_read_partial_archives(archive, mongo):
 
 def test_compute_required_with_referenced(archive):
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
                 'energy_total': '*',
                 'single_configuration_calculation_to_system_ref': '*'

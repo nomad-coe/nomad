@@ -100,7 +100,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if workflow:
             try:
                 iscc = workflow.calculation_result_ref
-                system = iscc.system_ref.value
+                system = iscc.system_ref[-1].value
                 if system is not None:
                     scc = iscc
             except Exception:
@@ -112,7 +112,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             try:
                 sccs = self.section_run.calculation
                 for iscc in reversed(sccs):
-                    isys = iscc.system_ref.value
+                    isys = iscc.system_ref[-1].value
                     if isys is not None:
                         system = isys
                         scc = iscc
@@ -123,8 +123,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             # If no sccs exist, try to find systems
             if system is None:
                 try:
-                    systems = self.section_run.system
-                    system = systems[-1]
+                    system = self.section_run.system[-1]
                 except Exception:
                     system = None
 

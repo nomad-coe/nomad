@@ -124,7 +124,7 @@ def write_partial_archive_to_mongo(archive: EntryArchive):
     ''' Partially writes the given archive to mongodb. '''
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
-    mongo_id = archive.section_metadata.calc_id
+    mongo_id = archive.metadata.calc_id
 
     partial_archive_dict = create_partial_archive(archive)
     partial_archive_dict['_id'] = mongo_id
@@ -214,7 +214,7 @@ def compute_required_with_referenced(required):
     if not isinstance(required, dict):
         return None
 
-    if any(key.startswith('section_run') for key in required):
+    if any(key.startswith('run') for key in required):
         return None
 
     required = dict(**required)

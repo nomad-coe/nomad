@@ -38,13 +38,13 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.run.calculation import (
-    Dos, DosValues, BandStructure as BandStructureCalculation, BandEnergies, Thermodynamics,
+    Dos, BandStructure as BandStructureCalculation, BandEnergies,
     Calculation)  # noqa
 from nomad.datamodel.metainfo.run.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
-    GeometryOptimization, Phonon, Elastic
+    GeometryOptimization, Phonon, Elastic, Thermodynamics
 )  # noqa
 
 
@@ -717,8 +717,8 @@ class DFT(MSection):
         Elasticsearch(suggestion=True)
     ]
 
-    smearing_type = Smearing.kind.m_copy()
-    smearing_type.m_annotations["elasticsearch"] = [
+    smearing_kind = Smearing.kind.m_copy()
+    smearing_kind.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
     ]
@@ -893,8 +893,7 @@ class DOS(MSection):
         """,
     )
     densities = Quantity(
-        type=DosValues.value,
-        shape=['n_spin_channels'],
+        type=np.dtype(np.float64),
         description="""
         Density of states (DOS) values normalized with unit cell volume and
         number of atoms.

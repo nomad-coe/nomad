@@ -323,7 +323,7 @@ class ResultsNormalizer(Normalizer):
 
     def basis_set_type(self) -> Union[str, None]:
         try:
-            name = self.section_run.method[0].basis_set.type
+            name = self.section_run.method[0].basis_set[0].type
         except Exception:
             name = None
         if name:
@@ -404,13 +404,10 @@ class ResultsNormalizer(Normalizer):
                         if method_to_method_kind == "core_settings":
                             core_method = ref.value
                     if core_method:
-                        updatable_props = ["electronic_structure_method"]
-                        for prop in updatable_props:
-                            new_val = sec_method.get(prop)
-                            if new_val is not None:
-                                setattr(core_method, prop, new_val)
                         if sec_method.electronic:
-                            core_method.electronic = Electronic(method=sec_method.electronic.method)
+                            electronic = core_method.electronic
+                            electronic = electronic if electronic else core_method.m_create(Electronic)
+                            core_method.electronic.method = sec_method.electronic.method
                         repr_method = core_method
                         method_name = repr_method.electronic.method
 
@@ -430,7 +427,7 @@ class ResultsNormalizer(Normalizer):
                     dft.smearing_kind = repr_method.electronic.smearing.kind
                     dft.smearing_width = repr_method.electronic.smearing.width
                 if repr_method.electronic.n_spin_channels:
-                    dft.spin_polarized = repr_method.n_spin_channels > 1
+                    dft.spin_polarized = repr_method.electronic.n_spin_channels > 1
                 dft.van_der_Waals_method = repr_method.electronic.van_der_waals_method
                 dft.relativity_method = repr_method.electronic.relativity_method
             dft.xc_functional_names = self.xc_functional_names(repr_method)
@@ -502,7 +499,7 @@ class ResultsNormalizer(Normalizer):
             if valid_array(energies) and valid_array(values):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
-                dos_new.densities = dos.total
+                dos_new.densities = [d.value for d in dos.total]
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
                 for info in dos.channel_info:
@@ -561,7 +558,7 @@ class ResultsNormalizer(Normalizer):
                 # Fill dos data to the newer, improved data layout
                 dos_new = DOSPhonon()
                 dos_new.energies = dos
-                dos_new.densities = dos.total
+                dos_new.densities = [d.value for d in dos.total]
                 return dos_new
 
         return None
@@ -574,7 +571,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["run", "calculation", "thermodynamics"]
+        path = ["workflow", "thermodynamics"]
         for thermo_prop in self.traverse_reversed(path):
             temperatures = thermo_prop.temperature
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
@@ -594,7 +591,7 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["run", "calculation", "thermodynamics"]
+        path = ["workflow", "thermodynamics"]
         for thermo_prop in self.traverse_reversed(path):
             temperatures = thermo_prop.temperature
             heat_capacities = thermo_prop.heat_capacity_c_v
@@ -707,11 +704,12 @@ class ResultsNormalizer(Normalizer):
             struct.cartesian_site_positions = repr_sys.atoms.positions
             struct.species_at_sites = repr_sys.atoms.labels
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(repr_sys.atoms.lattice_vectors.magnitude):
+            lattice_vectors = repr_sys.atoms.lattice_vectors
+            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
                 struct.dimension_types = np.array(repr_sys.atoms.periodic).astype(int)
-                struct.lattice_vectors = repr_sys.atoms.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(repr_sys.atoms.lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(repr_sys.atoms.lattice_vectors)
+                struct.lattice_vectors = lattice_vectors
+                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
+                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
             return struct
 
         return None
@@ -726,7 +724,7 @@ class ResultsNormalizer(Normalizer):
             struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers)
             self.species(struct.species_at_sites, struct)
             lattice_vectors = prim_sys.lattice_vectors
-            if atomutils.is_valid_basis(lattice_vectors.magnitude):
+            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
                 struct.cartesian_site_positions = atomutils.to_cartesian(prim_sys.positions.magnitude, lattice_vectors.magnitude)
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = lattice_vectors
@@ -746,7 +744,7 @@ class ResultsNormalizer(Normalizer):
             struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers)
             self.species(struct.species_at_sites, struct)
             lattice_vectors = conv_sys.lattice_vectors
-            if atomutils.is_valid_basis(lattice_vectors.magnitude):
+            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
                 struct.cartesian_site_positions = atomutils.to_cartesian(conv_sys.positions.magnitude, lattice_vectors.magnitude)
                 struct.dimension_types = [1, 1, 1]
                 struct.lattice_vectors = lattice_vectors
@@ -768,7 +766,8 @@ class ResultsNormalizer(Normalizer):
             struct.cartesian_site_positions = system.atoms.positions
             struct.species_at_sites = system.atoms.labels
             self.species(struct.species_at_sites, struct)
-            if atomutils.is_valid_basis(system.atoms.lattice_vectors.magnitude):
+            lattice_vectors = system.atoms.lattice_vectors
+            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
                 struct.dimension_types = np.array(system.atoms.periodic).astype(int)
                 struct.lattice_vectors = system.atoms.lattice_vectors
                 struct.cell_volume = atomutils.get_volume(system.atoms.lattice_vectors.magnitude)

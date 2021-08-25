@@ -56,7 +56,7 @@ class EncyclopediaNormalizer(Normalizer):
                 "geometry_optimization": calc_enums.geometry_optimization,
                 "phonon": calc_enums.phonon_calculation,
             }
-            workflow_enum = workflow_map.get(workflow.workflow_type)
+            workflow_enum = workflow_map.get(workflow.type)
             if workflow_enum is not None:
                 calc.calculation_type = workflow_enum
                 return workflow_enum
@@ -74,12 +74,7 @@ class EncyclopediaNormalizer(Normalizer):
         # No sequences, only a few calculations
         n_workflow = len(self.entry_archive.workflow)
         if n_scc <= 3 and n_workflow == 0:
-            program_name = self.section_run.program.name
-            if program_name == "elastic":
-                # TODO move to taylor expansion as soon as data is correct in archive
-                calc_type = calc_enums.elastic_constants
-            else:
-                calc_type = calc_enums.single_point
+            calc_type = calc_enums.single_point
 
         # One sequence. Currently calculations with multiple sequences are
         # unsupported.
@@ -91,6 +86,8 @@ class EncyclopediaNormalizer(Normalizer):
                 calc_type = calc_enums.geometry_optimization
             if workflow_type == "phonon":
                 calc_type = calc_enums.phonon_calculation
+            if workflow_type == 'elastic':
+                calc_type = calc_enums.elastic_constants
             if workflow_type == 'single_point':
                 calc_type = calc_enums.single_point
         calc.calculation_type = calc_type
@@ -135,7 +132,7 @@ class EncyclopediaNormalizer(Normalizer):
 
         if n_methods == 1:
             repr_method = methods[0]
-            method_id = repr_method.electronic.method if repr_method.electronic else ''
+            method_id = repr_method.electronic.method if repr_method.electronic else None
             if method_id is None:
                 method_id = config.services.unavailable_value
             elif method_id in {"G0W0", "scGW"}:
@@ -143,7 +140,7 @@ class EncyclopediaNormalizer(Normalizer):
         elif n_methods > 1:
             for sec_method in methods:
                 # GW
-                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else ''
+                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else None
                 if electronic_structure_method in {"G0W0", "scGW"}:
                     repr_method = sec_method
                     method_id = "GW"
@@ -163,13 +160,11 @@ class EncyclopediaNormalizer(Normalizer):
                         method_to_method_ref = ref.value
                         if method_to_method_kind == "core_settings":
                             linked_methods.append(method_to_method_ref)
-
                     for i_method in linked_methods:
-                        electronic_structure_method = i_method.electronic.method if i_method.electronic else ''
+                        electronic_structure_method = i_method.electronic.method if i_method.electronic else None
                         if electronic_structure_method is not None:
                             repr_method = sec_method
                             method_id = electronic_structure_method
-
         method.method_type = method_id
         return repr_method, method_id
 

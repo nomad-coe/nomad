@@ -26,7 +26,8 @@ from nomad.metainfo.search_extension import Search
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = Package()
 
-from .metainfo.common_dft import section_k_band, section_dos, section_thermodynamical_properties, FastAccess  # noqa
+from nomad.datamodel.metainfo.run.calculation import (
+    FastAccess, BandStructure, Dos, Thermodynamics)  # noqa
 
 
 class WyckoffVariables(MSection):
@@ -595,7 +596,7 @@ class Properties(MSection):
     )
     energies = SubSection(sub_section=Energies.m_def, repeats=False, categories=[FastAccess], a_search=Search())
     electronic_band_structure = Quantity(
-        type=Reference(section_k_band.m_def),
+        type=Reference(BandStructure.m_def),
         shape=[],
         description="""
         Reference to an electronic band structure.
@@ -603,7 +604,7 @@ class Properties(MSection):
         a_search=Search(value=lambda section: section.electronic_band_structure.m_proxy_value if section.electronic_band_structure is not None else None, mapping=Keyword())
     )
     electronic_dos = Quantity(
-        type=Reference(section_dos.m_def),
+        type=Reference(BandStructure.m_def),
         shape=[],
         description="""
         Reference to an electronic density of states.
@@ -611,7 +612,7 @@ class Properties(MSection):
         a_search=Search(value=lambda section: section.electronic_dos.m_proxy_value if section.electronic_dos is not None else None, mapping=Keyword())
     )
     phonon_band_structure = Quantity(
-        type=Reference(section_k_band.m_def),
+        type=Reference(BandStructure.m_def),
         shape=[],
         description="""
         Reference to a phonon band structure.
@@ -619,7 +620,7 @@ class Properties(MSection):
         a_search=Search(value=lambda section: section.phonon_band_structure.m_proxy_value if section.phonon_band_structure is not None else None, mapping=Keyword())
     )
     phonon_dos = Quantity(
-        type=Reference(section_dos.m_def),
+        type=Reference(Dos.m_def),
         shape=[],
         description="""
         Reference to a phonon density of states.
@@ -627,7 +628,7 @@ class Properties(MSection):
         a_search=Search(value=lambda section: section.phonon_dos.m_proxy_value if section.phonon_dos is not None else None, mapping=Keyword())
     )
     thermodynamical_properties = Quantity(
-        type=Reference(section_thermodynamical_properties.m_def),
+        type=Reference(Thermodynamics.m_def),
         shape=[],
         description="""
         Reference to a section containing thermodynamical properties.

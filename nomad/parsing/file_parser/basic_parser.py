@@ -186,9 +186,9 @@ class BasicParser(FairdiParser):
 
                 if 'energy' in key:
                     shape = None
-                    value = value[-1] if 'fermi' in key else EnergyEntry(value=value * energy_unit)
+                    val = value[-1] if 'fermi' in key else EnergyEntry(value=value * energy_unit)
                     sub_key = 'fermi' if 'fermi' in key else key.replace('energy_', '').lower()
-                    set_value(sec_scc.energy, sub_key, value, energy_unit, shape, np.float64)
+                    set_value(sec_scc.energy, sub_key, val, energy_unit, shape, np.float64)
 
                 if 'atom_forces' in key:
                     val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*', 'atom_forces')
@@ -234,7 +234,7 @@ class BasicParser(FairdiParser):
 
         # remove unfilled sections
         for system in sec_run.system:
-            if len(system.atoms.values()) == 0:
+            if system.atoms.positions is None or system.atoms.labels is None:
                 system.m_remove_sub_section(System.atoms, 0)
         for calculation in sec_run.calculation:
             if len(calculation.energy.values()) == 0:

@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nomad.processing.data import Calc
 import numpy as np
 
 from typing import List, Union
@@ -28,20 +29,15 @@ import ase.build
 from nomad.units import ureg
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.common_dft import (
-    Method,
-    MethodToMethodRefs,
-    XCFunctionals,
-    FrameSequence,
-    SamplingMethod,
-    SingleConfigurationCalculation,
-    MethodToMethodRefs,
-    Run,
-    System,
-    Dos,
-    KBand,
-    KBandSegment,
-)
+from nomad.datamodel.metainfo.run.run import Run, Program
+from nomad.datamodel.metainfo.run.method import (
+    Method, BasisSet, Electronic, DFT, XCFunctional, Functional, MethodReference,
+    Electronic, Smearing, Scf, XCFunctional, Functional, GW)
+from nomad.datamodel.metainfo.run.system import (
+    System, Atoms as AtomsMethod, SystemReference)
+from nomad.datamodel.metainfo.run.calculation import (
+    Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
+from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -76,45 +72,43 @@ def get_template() -> EntryArchive:
     """
     template = EntryArchive()
     run = template.m_create(Run)
-    run.program_name = "VASP"
-    run.program_version = "4.6.35"
-    run.program_basis_set_type = "plane waves"
+    run.program = Program(name="VASP", version="4.6.35")
     method = run.m_create(Method)
-    method.electronic_structure_method = "DFT"
-    functional = method.m_create(XCFunctionals)
-    functional.XC_functional_name = "GGA_X_PBE"
+    method.basis_set.append(BasisSet(type="plane waves"))
+    method.electronic = Electronic(method="DFT")
+    xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
+    method.dft = DFT(xc_functional=xc_functional)
     system = run.m_create(System)
-    system.simulation_cell = [
-        [5.76372622e-10, 0.0, 0.0],
-        [0.0, 5.76372622e-10, 0.0],
-        [0.0, 0.0, 4.0755698899999997e-10]
-    ]
-    system.atom_positions = [
-        [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-        [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-        [0.0, 0.0, 0.0],
-        [2.88186311e-10, 2.88186311e-10, 0.0],
-    ]
-    system.atom_labels = ["Br", "K", "Si", "Si"]
-    system.configuration_periodic_dimensions = [True, True, True]
-    scc = run.m_create(SingleConfigurationCalculation)
-    scc.single_configuration_calculation_to_system_ref = system
-    scc.single_configuration_to_calculation_method_ref = method
-    scc.energy_free = -1.5936767191492225e-18
-    scc.energy_total = -1.5935696296699573e-18
-    scc.energy_total_T0 = -3.2126683561907e-22
-    sampling_method = run.m_create(SamplingMethod)
-    sampling_method.sampling_method = "geometry_optimization"
-    frame_sequence = run.m_create(FrameSequence)
-    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
-    frame_sequence.frame_sequence_local_frames_ref = [scc]
+    system.atoms = AtomsMethod(
+        lattice_vectors=[
+            [5.76372622e-10, 0.0, 0.0],
+            [0.0, 5.76372622e-10, 0.0],
+            [0.0, 0.0, 4.0755698899999997e-10]
+        ],
+        positions=[
+            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+            [0.0, 0.0, 0.0],
+            [2.88186311e-10, 2.88186311e-10, 0.0],
+        ],
+        labels=["Br", "K", "Si", "Si"],
+        periodic=[True, True, True])
+    scc = run.m_create(Calculation)
+    scc.system_ref.append(SystemReference(value=system))
+    scc.method_ref.append(MethodReference(value=method))
+    scc.energy = Energy(
+        free=EnergyEntry(value=-1.5936767191492225e-18),
+        total=EnergyEntry(value=-1.5935696296699573e-18),
+        total_t0=EnergyEntry(value=-3.2126683561907e-22))
+    workflow = template.m_create(Workflow)
+    workflow.type = "geometry_optimization"
     return template
 
 
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     template = get_template()
-    template.section_run[0].section_single_configuration_calculation[0].single_configuration_calculation_to_system_ref = None
-    template.section_run[0].section_system = None
+    template.run[0].calculation[0].system_ref = None
+    template.run[0].system = None
 
     # Fill structural information
     # system = template.section_run[0].m_create(System)
@@ -123,17 +117,18 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     # system.simulation_cell = atoms.get_cell() * 1E-10
     # system.configuration_periodic_dimensions = atoms.get_pbc()
     system = get_section_system(atoms)
-    template.section_run[0].m_add_sub_section(Run.section_system, system)
+    template.run[0].m_add_sub_section(Run.system, system)
 
     return run_normalize(template)
 
 
 def get_section_system(atoms: Atoms):
     system = System()
-    system.atom_positions = atoms.get_positions() * 1E-10
-    system.atom_labels = atoms.get_chemical_symbols()
-    system.simulation_cell = atoms.get_cell() * 1E-10
-    system.configuration_periodic_dimensions = atoms.get_pbc()
+    system.atoms = AtomsMethod(
+        positions=atoms.get_positions() * 1E-10,
+        labels=atoms.get_chemical_symbols(),
+        lattice_vectors=atoms.get_cell() * 1E-10,
+        periodic=atoms.get_pbc())
     return system
 
 
@@ -158,32 +153,34 @@ def get_template_dos(
         has_references: Whether the DOS has energy references or not.
         normalize: Whether the returned value is already normalized or not.
     """
-    n_channels = len(fill)
     if len(fill) > 1 and type != "electronic":
         raise ValueError("Cannot create spin polarized DOS for non-electronic data.")
     template = get_template()
-    scc = template.section_run[0].section_single_configuration_calculation[0]
-    dos = scc.m_create(Dos)
-    dos.dos_kind = type
+    scc = template.run[0].calculation[0]
+    dos_type = Calculation.dos_electronic if type == "electronic" else Calculation.dos_phonon
+    dos = scc.m_create(Dos, dos_type)
     energies = np.linspace(-5, 5, n_values)
-    dos.dos_values = np.zeros((n_channels, n_values))
     for i, range_list in enumerate(fill):
+        dos_total = dos.m_create(DosValues, Dos.total)
+        dos_total.spin = i
+        dos_value = np.zeros(n_values)
         for r in range_list:
             idx_bottom = (np.abs(energies - r[0])).argmin()
             idx_top = (np.abs(energies - r[1])).argmin()
-            dos.dos_values[i, idx_bottom:idx_top] = 1
+            dos_value[idx_bottom:idx_top] = 1
+        dos_total.value = dos_value
 
-    dos.dos_energies = energies * ureg.electron_volt
+    dos.energies = energies * ureg.electron_volt
     if energy_reference_fermi is not None:
         energy_reference_fermi *= ureg.electron_volt
     if energy_reference_highest_occupied is not None:
         energy_reference_highest_occupied *= ureg.electron_volt
     if energy_reference_lowest_unoccupied is not None:
         energy_reference_lowest_unoccupied *= ureg.electron_volt
-    scc.energy_reference_fermi = energy_reference_fermi
-    scc.energy_reference_highest_occupied = energy_reference_highest_occupied
-    scc.energy_reference_lowest_unoccupied = energy_reference_lowest_unoccupied
-
+    scc.energy = Energy(
+        fermi=energy_reference_fermi,
+        highest_occupied=energy_reference_highest_occupied,
+        lowest_unoccupied=energy_reference_lowest_unoccupied)
     # import matplotlib.pyplot as mpl
     # if n_channels == 2:
     #     mpl.plot(energies, dos.dos_values[0, :])
@@ -216,10 +213,9 @@ def get_template_band_structure(
     if band_gaps is None:
         band_gaps = [None]
     template = get_template()
-    scc = template.section_run[0].section_single_configuration_calculation[0]
-    bs = scc.m_create(KBand)
-    bs.band_structure_kind = type
+    scc = template.run[0].calculation[0]
     if type == "electronic":
+        bs = scc.m_create(BandStructure, Calculation.band_structure_electronic)
         n_spin_channels = len(band_gaps)
         fermi: List[float] = []
         highest: List[float] = []
@@ -233,12 +229,13 @@ def get_template_band_structure(
                 fermi.append(1 * 1.60218e-19)
 
         if has_references:
-            scc.energy_reference_fermi = fermi
+            scc.energy = Energy(fermi=fermi[0])
             if len(highest) > 0:
-                scc.energy_reference_highest_occupied = highest
+                scc.energy.highest_occupied = highest[0]
             if len(lowest) > 0:
-                scc.energy_reference_lowest_unoccupied = lowest
+                scc.energy.lowest_unoccupied = lowest[0]
     else:
+        bs = scc.m_create(BandStructure, Calculation.band_structure_phonon)
         n_spin_channels = 1
     n_segments = 2
     full_space = np.linspace(0, 2 * np.pi, 200)
@@ -247,7 +244,7 @@ def get_template_band_structure(
     for i_seg in range(n_segments):
         krange = space[i_seg]
         n_points = len(krange)
-        seg = bs.m_create(KBandSegment)
+        seg = bs.m_create(BandEnergies)
         energies = np.zeros((n_spin_channels, n_points, 2))
         k_points = np.zeros((n_points, 3))
         k_points[:, 0] = np.linspace(0, 1, n_points)
@@ -269,8 +266,8 @@ def get_template_band_structure(
         else:
             energies[0, :, 0] = -np.cos(krange)
             energies[0, :, 1] = np.cos(krange)
-        seg.band_energies = energies * 1.60218e-19
-        seg.band_k_points = k_points
+        seg.energies = energies * 1.60218e-19
+        seg.kpoints = k_points
 
     # For plotting
     # e = []
@@ -293,22 +290,21 @@ def get_template_band_structure(
 def dft() -> EntryArchive:
     """DFT calculation."""
     template = get_template()
-    template.section_run[0].section_method = None
-    run = template.section_run[0]
+    template.run[0].method = None
+    run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electronic_structure_method = "DFT"
-    method_dft.smearing_kind = "gaussian"
-    method_dft.smearing_width = 1e-20
-    method_dft.scf_threshold_energy_change = 1e-24
-    method_dft.number_of_spin_channels = 2
-    method_dft.van_der_Waals_method = "G06"
-    method_dft.relativity_method = "scalar_relativistic"
-    C = method_dft.m_create(XCFunctionals)
-    C.XC_functional_name = "GGA_C_PBE"
-    C.XC_functional_weight = 1.0
-    X = method_dft.m_create(XCFunctionals)
-    X.XC_functional_name = "GGA_X_PBE"
-    X.XC_functional_weight = 1.0
+    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.dft = DFT()
+    method_dft.electronic = Electronic(
+        method="DFT",
+        smearing=Smearing(kind="gaussian", width=1e-20),
+        n_spin_channels=2,
+        van_der_waals_method="G06",
+        relativity_method="scalar_relativistic")
+    method_dft.scf = Scf(threshold_energy_change=1e-24)
+    method_dft.dft.xc_functional = XCFunctional()
+    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
     return run_normalize(template)
 
 
@@ -316,29 +312,23 @@ def dft() -> EntryArchive:
 def dft_method_referenced() -> EntryArchive:
     """DFT calculation with two methods: one referencing the other."""
     template = get_template()
-    template.section_run[0].section_method = None
-    run = template.section_run[0]
-
+    template.run[0].method = None
+    run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.smearing_kind = "gaussian"
-    method_dft.smearing_width = 1e-20
-    method_dft.scf_threshold_energy_change = 1e-24
-    method_dft.number_of_spin_channels = 2
-    method_dft.van_der_Waals_method = "G06"
-    method_dft.relativity_method = "scalar_relativistic"
-    C = method_dft.m_create(XCFunctionals)
-    C.XC_functional_name = "GGA_C_PBE"
-    C.XC_functional_weight = 1.0
-    X = method_dft.m_create(XCFunctionals)
-    X.XC_functional_name = "GGA_X_PBE"
-    X.XC_functional_weight = 1.0
-
+    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.electronic = Electronic(
+        smearing=Smearing(kind="gaussian", width=1e-20),
+        n_spin_channels=2, van_der_waals_method="G06",
+        relativity_method="scalar_relativistic")
+    method_dft.scf = Scf(threshold_energy_change=1e-24)
+    method_dft.dft = DFT(xc_functional=XCFunctional())
+    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
     method_ref = run.m_create(Method)
-    method_ref.electronic_structure_method = "DFT"
-    ref = method_ref.m_create(MethodToMethodRefs)
-    ref.method_to_method_ref = method_dft
-    ref.method_to_method_kind = "core_settings"
-    run.section_single_configuration_calculation[0].single_configuration_to_calculation_method_ref = method_ref
+    method_ref.basis_set.append(BasisSet(type="plane waves"))
+    method_ref.electronic = Electronic(method="DFT")
+    method_ref.method_ref.append(MethodReference(kind="core_settings", value=method_dft))
+    run.calculation[0].method_ref.append(MethodReference(value=method_ref))
 
     return run_normalize(template)
 
@@ -347,22 +337,19 @@ def dft_method_referenced() -> EntryArchive:
 def dft_plus_u() -> EntryArchive:
     """DFT+U calculation."""
     template = get_template()
-    template.section_run[0].section_method = None
-    run = template.section_run[0]
+    template.run[0].method = None
+    run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electronic_structure_method = "DFT+U"
-    method_dft.smearing_kind = "gaussian"
-    method_dft.smearing_width = 1e-20
-    method_dft.scf_threshold_energy_change = 1e-24
-    method_dft.number_of_spin_channels = 2
-    method_dft.van_der_Waals_method = "G06"
-    method_dft.relativity_method = "scalar_relativistic"
-    C = method_dft.m_create(XCFunctionals)
-    C.XC_functional_name = "GGA_C_PBE"
-    C.XC_functional_weight = 1.0
-    X = method_dft.m_create(XCFunctionals)
-    X.XC_functional_name = "GGA_X_PBE"
-    X.XC_functional_weight = 1.0
+    method_dft.basis_set.append(BasisSet(type="plane waves"))
+    method_dft.electronic = Electronic(
+        method="DFT+U",
+        smearing=Smearing(kind="gaussian", width=1e-20),
+        n_spin_channels=2, van_der_waals_method="G06",
+        relativity_method="scalar_relativistic")
+    method_dft.scf = Scf(threshold_energy_change=1e-24)
+    method_dft.dft = DFT(xc_functional=XCFunctional())
+    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
     return run_normalize(template)
 
 
@@ -370,29 +357,23 @@ def dft_plus_u() -> EntryArchive:
 def gw() -> EntryArchive:
     """GW calculation."""
     template = get_template()
-    template.section_run[0].section_method = None
-    run = template.section_run[0]
+    template.run[0].method = None
+    run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electronic_structure_method = "DFT"
-    method_dft.smearing_kind = "gaussian"
-    method_dft.smearing_width = 1e-20
-    method_dft.scf_threshold_energy_change = 1e-24
-    method_dft.number_of_spin_channels = 2
-    method_dft.van_der_Waals_method = "G06"
-    method_dft.relativity_method = "scalar_relativistic"
-    C = method_dft.m_create(XCFunctionals)
-    C.XC_functional_name = "GGA_C_PBE"
-    C.XC_functional_weight = 1.0
-    X = method_dft.m_create(XCFunctionals)
-    X.XC_functional_name = "GGA_X_PBE"
-    X.XC_functional_weight = 1.0
+    method_dft.electronic = Electronic(
+        method="DFT",
+        smearing=Smearing(kind="gaussian", width=1e-20),
+        n_spin_channels=2, van_der_waals_method="G06",
+        relativity_method="scalar_relativistic")
+    method_dft.scf = Scf(threshold_energy_change=1e-24)
+    method_dft.dft = DFT(xc_functional=XCFunctional())
+    method_dft.dft.xc_functional.correlation.append(Functional(name="GGA_C_PBE", weight=1.0))
+    method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
+
     method_gw = run.m_create(Method)
-    method_gw.electronic_structure_method = "G0W0"
-    method_gw.gw_type = "G0W0"
-    method_gw.gw_starting_point = "GGA_C_PBE GGA_X_PBE"
-    ref = method_gw.m_create(MethodToMethodRefs)
-    ref.method_to_method_kind = "starting_point"
-    ref.method_to_method_ref = run.section_method[0]
+    method_gw.electronic = Electronic(method="G0W0")
+    method_gw.gw = GW(type="G0W0", starting_point="GGA_C_PBE GGA_X_PBE")
+    method_gw.method_ref.append(MethodReference(kind="starting_point", value=run.method[0]))
     return run_normalize(template)
 
 
@@ -453,8 +434,6 @@ def one_d() -> EntryArchive:
 def single_point() -> EntryArchive:
     """Single point calculation."""
     template = get_template()
-    template.section_run[0].section_frame_sequence = None
-    template.section_run[0].section_sampling_method = None
 
     return run_normalize(template)
 
@@ -462,38 +441,31 @@ def single_point() -> EntryArchive:
 @pytest.fixture(scope='session')
 def geometry_optimization() -> EntryArchive:
     template = get_template()
-    template.section_run[0].section_frame_sequence = None
-    template.section_run[0].section_sampling_method = None
-    template.section_run[0].section_system = None
-    template.section_run[0].section_single_configuration_calculation = None
-    run = template.section_run[0]
+    template.run[0].system = None
+    template.run[0].calculation = None
+    run = template.run[0]
     atoms1 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
     atoms2 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
     atoms2.translate([0.01, 0, 0])
     sys1 = get_section_system(atoms1)
     sys2 = get_section_system(atoms2)
-    scc1 = run.m_create(SingleConfigurationCalculation)
-    scc2 = run.m_create(SingleConfigurationCalculation)
-    scc1.energy_total = 1e-19
-    scc2.energy_total = 0.5e-19
-    scc1.energy_total_T0 = 1e-19
-    scc2.energy_total_T0 = 0.5e-19
-    scc1.single_configuration_calculation_to_system_ref = sys1
-    scc2.single_configuration_calculation_to_system_ref = sys2
-    scc1.single_configuration_to_calculation_method_ref = run.section_method[0]
-    scc2.single_configuration_to_calculation_method_ref = run.section_method[0]
-    run.m_add_sub_section(Run.section_system, sys1)
-    run.m_add_sub_section(Run.section_system, sys2)
-    sampling_method = run.m_create(SamplingMethod)
-    sampling_method.sampling_method = "geometry_optimization"
-    sampling_method.geometry_optimization_energy_change = 1e-3 * ureg.electron_volt
-    sampling_method.geometry_optimization_threshold_force = 1e-11 * ureg.newton
-    sampling_method.geometry_optimization_geometry_change = 1e-3 * ureg.angstrom
-    sampling_method.geometry_optimization_method = "bfgs"
-    frame_sequence = run.m_create(FrameSequence)
-    frame_sequence.frame_sequence_local_frames_ref = [scc1, scc2]
-    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
-    frame_sequence.number_of_frames_in_sequence = 1
+    scc1 = run.m_create(Calculation)
+    scc2 = run.m_create(Calculation)
+    scc1.energy = Energy(total=EnergyEntry(value=1e-19), total_t0=EnergyEntry(value=1e-19))
+    scc2.energy = Energy(total=EnergyEntry(value=0.5e-19), total_t0=EnergyEntry(value=0.5e-19))
+    scc1.system_ref.append(SystemReference(value=sys1))
+    scc2.system_ref.append(SystemReference(value=sys2))
+    scc1.method_ref.append(MethodReference(value=run.method[0]))
+    scc2.method_ref.append(MethodReference(value=run.method[0]))
+    run.m_add_sub_section(Run.system, sys1)
+    run.m_add_sub_section(Run.system, sys2)
+    workflow = template.m_create(Workflow)
+    workflow.type = "geometry_optimization"
+    workflow.geometry_optimization = GeometryOptimization(
+        convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
+        convergence_tolerance_force_maximum=1e-11 * ureg.newton,
+        convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
+        method="bfgs")
     return run_normalize(template)
 
 
@@ -501,16 +473,8 @@ def geometry_optimization() -> EntryArchive:
 def molecular_dynamics() -> EntryArchive:
     """Molecular dynamics calculation."""
     template = get_template()
-    template.section_run[0].section_frame_sequence = None
-    template.section_run[0].section_sampling_method = None
-    run = template.section_run[0]
-    sampling_method = run.m_create(SamplingMethod)
-    sampling_method.sampling_method = "molecular_dynamics"
-    frame_sequence = run.m_create(FrameSequence)
-    frame_sequence.frame_sequence_local_frames_ref = [run.section_single_configuration_calculation[0]]
-    frame_sequence.frame_sequence_to_sampling_ref = sampling_method
-    frame_sequence.number_of_frames_in_sequence = 1
-
+    workflow = template.m_create(Workflow)
+    workflow.type = "molecular_dynamics"
     return run_normalize(template)
 
 

@@ -21,7 +21,7 @@ import numpy as np
 import ase
 
 from nomad.datamodel.metainfo.run.calculation import (
-    BandStructure, BrillouinZone, BandGap
+    BandStructure, BrillouinZone, BandGap, ElectronicStructureInfo
 )
 from nomad.datamodel.metainfo.run.system import System
 from nomad.normalizing.normalizer import Normalizer
@@ -50,9 +50,9 @@ class BandStructureNormalizer(Normalizer):
 
             # In order to resolve band gaps, we need a reference to the highest
             # occupied energy or the Fermi energy
-            energy_fermi = scc.energy.fermi
-            energy_highest = scc.energy.highest_occupied
-            energy_lowest = scc.energy.lowest_unoccupied
+            energy_fermi = scc.energy.fermi if scc.energy is not None else None
+            energy_highest = scc.energy.highest_occupied if scc.energy is not None else None
+            energy_lowest = scc.energy.lowest_unoccupied if scc.energy is not None else None
 
             # In order to resolve the special points and the reciprocal cell,
             # we need information about the system.
@@ -65,9 +65,9 @@ class BandStructureNormalizer(Normalizer):
                     self.add_brillouin_zone(band)
                     self.add_channel_info(
                         band,
-                        energy_fermi.magnitude if energy_fermi else energy_fermi,
-                        energy_highest.magnitude if energy_highest else energy_highest,
-                        energy_lowest.magnitude if energy_lowest else energy_lowest
+                        energy_fermi.magnitude if energy_fermi is not None else energy_fermi,
+                        energy_highest.magnitude if energy_highest is not None else energy_highest,
+                        energy_lowest.magnitude if energy_lowest is not None else energy_lowest
                     )
                     self.add_path_labels(band, system)
 
@@ -176,8 +176,7 @@ class BandStructureNormalizer(Normalizer):
 
         # Create energy reference sections for each spin channel, add fermi
         # energy if present
-        info = band.info[0] if band.info else band.m_create(BandStructure)
-
+        info = band.info[0] if band.info else band.m_create(ElectronicStructureInfo)
         if energy_fermi is not None:
             info.energy_fermi = energy_fermi
         if energy_highest is not None:
@@ -249,35 +248,35 @@ class BandStructureNormalizer(Normalizer):
                         gap_idx[1] = band_minima_idx[band_idx]
                     break
 
-        if np.inf in np.abs(energy_hi_lo):
-            return
-
         # Save the found energy references
-        band.info[0].energy_highest_occupied = energy_hi_lo[0]
-        band.info[0].energy_lowest_unoccupied = energy_hi_lo[1]
+        if abs(energy_hi_lo[0]) != np.inf:
+            band.info[0].energy_highest_occupied = energy_hi_lo[0]
+        if abs(energy_hi_lo[1]) != np.inf:
+            band.info[0].energy_lowest_unoccupied = energy_hi_lo[1]
 
         # If highest occupied energy and a lowest unoccupied energy are
         # found, and the difference between them is positive, save
         # information about the band gap.
         gap = band.m_create(BandGap)
         gap_value = 0.0
-        info = band.info[i_channel]
-        gap_value = float(energy_hi_lo[1] - energy_hi_lo[0])
-        if gap_value > 0:
-            # See if the gap is direct or indirect by comparing the k-point
-            # locations with some tolerance
-            k_point_lower = path[gap_idx[0]]
-            k_point_upper = path[gap_idx[1]]
-            k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-            is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+        info = band.info[0]
+        if np.inf not in np.abs(energy_hi_lo):
+            gap_value = float(energy_hi_lo[1] - energy_hi_lo[0])
+            if gap_value > 0:
+                # See if the gap is direct or indirect by comparing the k-point
+                # locations with some tolerance
+                k_point_lower = path[gap_idx[0]]
+                k_point_upper = path[gap_idx[1]]
+                k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
-            band_gap_type = "direct" if is_direct_gap else "indirect"
-            gap.type = band_gap_type
-            info.band_gap_type = band_gap_type
-            gap.conduction_band_min_k_point = k_point_upper
-            gap.conduction_band_min_energy = float(energy_hi_lo[1])
-            gap.valence_band_max_k_point = k_point_lower
-            gap.valence_band_max_energy = float(energy_hi_lo[0])
+                band_gap_type = "direct" if is_direct_gap else "indirect"
+                gap.type = band_gap_type
+                info.band_gap_type = band_gap_type
+                gap.conduction_band_min_k_point = k_point_upper
+                gap.conduction_band_min_energy = float(energy_hi_lo[1])
+                gap.valence_band_max_k_point = k_point_lower
+                gap.valence_band_max_energy = float(energy_hi_lo[0])
         gap.value = gap_value
         # TODO why necessary to report gap twice?
         info.band_gap = gap_value
