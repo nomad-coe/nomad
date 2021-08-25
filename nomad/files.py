@@ -466,7 +466,7 @@ class StandardJSONEncoder(json.JSONEncoder):
     """ Our standard JSONEncoder with support for marshalling of datetime objects """
     def default(self, obj):  # pylint: disable=E0202
         if isinstance(obj, datetime):
-            return {'$datetime': obj.timestamp()}
+            return {'$datetime': obj.isoformat()}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -477,8 +477,8 @@ class StandardJSONDecoder(json.JSONDecoder):
 
     def dict_to_object(self, d):
         v = d.get('$datetime')
-        if v is not None:
-            return datetime.fromtimestamp(v)
+        if v is not None and len(d) == 1:
+            return datetime.fromisoformat(v)
         return d
 
 
