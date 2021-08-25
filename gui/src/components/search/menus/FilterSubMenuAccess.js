@@ -20,14 +20,12 @@ import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { FilterSubMenu } from './FilterMenu'
 import InputRadio from '../input/InputRadio'
-import { useOwnerState } from '../FilterContext'
 import { useApi } from '../../apiV1'
 
 const FilterSubMenuAccess = React.memo(({
   value,
   ...rest
 }) => {
-  const [owner, setOwner] = useOwnerState()
   const api = useApi()
   const authenticated = api?.keycloak?.authenticated
 
@@ -35,6 +33,7 @@ const FilterSubMenuAccess = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <InputRadio
+          quantity="owner"
           label="Visibility"
           description="The visibility of the calculation."
           options={{
@@ -45,8 +44,6 @@ const FilterSubMenuAccess = React.memo(({
             user: {label: 'Private', disabled: !authenticated, tooltip: 'Only consider entries that belong to you.'},
             staging: {label: 'Unpublished', disabled: !authenticated, tooltip: 'Only search through unpublished entries.'}
           }}
-          selected={owner}
-          onChange={setOwner}
         ></InputRadio>
       </Grid>
     </Grid>

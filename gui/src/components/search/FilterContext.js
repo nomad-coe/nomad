@@ -126,6 +126,7 @@ registerQuantity('upload_time', labelAuthor, 'min_max')
 registerQuantity('datasets.name', labelDataset)
 registerQuantity('datasets.doi', labelDataset)
 registerQuantity('entry_id', labelIDs)
+registerQuantity('owner', labelAccess)
 registerQuantity('upload_id', labelIDs)
 registerQuantity('results.material.material_id', labelIDs)
 registerQuantity('datasets.dataset_id', labelIDs)
@@ -189,19 +190,19 @@ export const queryFamily = atomFamily({
 })
 
 // Query owner state
-export const owner = atom({
-  key: 'owner',
-  default: 'public'
-})
-export function useOwner() {
-  return useRecoilValue(owner)
-}
-export function useSetOwner() {
-  return useSetRecoilState(owner)
-}
-export function useOwnerState() {
-  return useRecoilState(owner)
-}
+// export const owner = atom({
+//   key: 'owner',
+//   default: 'public'
+// })
+// export function useOwner() {
+//   return useRecoilValue(owner)
+// }
+// export function useSetOwner() {
+//   return useSetRecoilState(owner)
+// }
+// export function useOwnerState() {
+//   return useRecoilState(owner)
+// }
 
 // Menu open state
 export const menuOpen = atom({
@@ -513,7 +514,7 @@ export function useInitialAggs() {
   // the search page. This is only done once.
   const api = useApi()
   const { resource } = useSearchContext()
-  const owner = useOwner()
+  const owner = useRecoilValue(queryFamily('owner'))
   const setInitialAggs = useSetRecoilState(initialAggs)
 
   useEffect(() => {
@@ -562,7 +563,6 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
   const initialAgg = useInitialAgg(quantity, type)
   const query = useQuery()
-  const owner = useOwner()
   const exclusive = useExclusive()
   const firstLoad = useRef(true)
 
@@ -588,7 +588,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       }
     }
     const search = {
-      owner: owner,
+      owner: query.owner,
       query: queryCleaned,
       aggregations: resource === 'entries' ? aggs : undefined,
       pagination: {page_size: 0},
@@ -604,7 +604,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
         firstLoad.current = false
         setResults(cleaned)
       })
-  }, [api, quantity, restrict, type, owner, resource])
+  }, [api, quantity, restrict, type, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -653,7 +653,6 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
   const query = useQuery(true)
-  const owner = useOwner()
   const updateQueryString = useUpdateQueryString()
   const pageAfterValue = useRef()
   const searchRef = useRef()
@@ -667,7 +666,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     pageAfterValue.current = undefined
     const cleanedQuery = cleanQuery(query, exclusive)
     const search = {
-      owner: owner,
+      owner: query.owner,
       query: cleanedQuery,
       pagination: {
         page_size: pageSize,
@@ -692,7 +691,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     // is better to debounce this value as well to keep the user interaction
     // smoother.
     updateQueryString(query)
-  }, [api, owner, updateQueryString, resource])
+  }, [api, updateQueryString, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -730,7 +729,6 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     } else {
       debounced(query, pageSize, orderBy, order, exclusive)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
@@ -765,47 +763,51 @@ export function cleanQuery(query, exclusive) {
   for (let [k, v] of Object.entries(query)) {
     let newValue
 
+    // Some quantities are not included in the query, e.g. the owner.
+    if (k === 'owner') {
     // If a regular elements query is made, we add the ':all'-prefix.
-    if (k === 'results.material.elements') {
-      if (v.size === 0) {
-        continue
-      }
-      k = `${k}:all`
-      newValue = setToArray(v)
-    // If an exlusive elements query is made, we sort the elements and
-    // concatenate them into a single string. This value we can then use to
-    // target the special field reserved for exclusive queries. TODO: Maybe the
-    // API could directly support an ':only'-postfix?
-    } else if (k === 'results.material.elements_exclusive') {
-      if (v.size === 0) {
-        continue
-      }
-      newValue = setToArray(v).sort().join(' ')
     } else {
-      if (v instanceof Set) {
+      if (k === 'results.material.elements') {
+        if (v.size === 0) {
+          continue
+        }
+        k = `${k}:all`
         newValue = setToArray(v)
-        if (newValue.length === 0) {
-          newValue = undefined
-        } else {
-          newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
+      // If an exlusive elements query is made, we sort the elements and
+      // concatenate them into a single string. This value we can then use to
+      // target the special field reserved for exclusive queries. TODO: Maybe the
+      // API could directly support an ':only'-postfix?
+      } else if (k === 'results.material.elements_exclusive') {
+        if (v.size === 0) {
+          continue
         }
-        k = `${k}:any`
-      } else if (v instanceof Quantity) {
-        newValue = v.toSI()
-      } else if (isArray(v)) {
-        if (v.length === 0) {
-          newValue = undefined
-        } else {
-          newValue = v.map((item) => item instanceof Quantity ? item.toSI() : item)
-        }
-        k = `${k}:any`
-      } else if (isPlainObject(v)) {
-        newValue = cleanQuery(v, exclusive)
+        newValue = setToArray(v).sort().join(' ')
       } else {
-        newValue = v
+        if (v instanceof Set) {
+          newValue = setToArray(v)
+          if (newValue.length === 0) {
+            newValue = undefined
+          } else {
+            newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
+          }
+          k = `${k}:any`
+        } else if (v instanceof Quantity) {
+          newValue = v.toSI()
+        } else if (isArray(v)) {
+          if (v.length === 0) {
+            newValue = undefined
+          } else {
+            newValue = v.map((item) => item instanceof Quantity ? item.toSI() : item)
+          }
+          k = `${k}:any`
+        } else if (isPlainObject(v)) {
+          newValue = cleanQuery(v, exclusive)
+        } else {
+          newValue = v
+        }
       }
+      newQuery[k] = newValue
     }
-    newQuery[k] = newValue
   }
   return newQuery
 }

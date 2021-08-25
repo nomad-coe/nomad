@@ -27,6 +27,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import InputLabel from './InputLabel'
+import { useFilterState } from '../FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -39,25 +40,25 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const InputRadio = React.memo(({
+  quantity,
   label,
   description,
   options,
-  selected,
-  onChange,
   className,
   classes,
   'data-testid': testID
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const [filter, setFilter] = useFilterState(quantity)
 
   const handleChange = useCallback((event, value) => {
-    onChange && onChange(value)
-  }, [onChange])
+    setFilter(value)
+  }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputLabel label={label} description={description}/>
-    <RadioGroup aria-label={label} name={label} value={selected} onChange={handleChange}>
+    <RadioGroup aria-label={label} name={label} value={filter || 'public'} onChange={handleChange}>
       {options && Object.entries(options).map(([key, value]) =>
         <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={
           <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
@@ -70,19 +71,13 @@ const InputRadio = React.memo(({
 })
 
 InputRadio.propTypes = {
-  label: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
+  quantity: PropTypes.string.isRequired,
+  label: PropTypes.string,
+  description: PropTypes.string,
   options: PropTypes.object, // Mapping from option name to show label and tooltip
-  selected: PropTypes.string, // The currently selected option
-  xs: PropTypes.number,
-  onChange: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
-}
-
-InputRadio.defaultProps = {
-  xs: 12
 }
 
 export default InputRadio
