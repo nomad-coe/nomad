@@ -354,6 +354,7 @@ bundle_import = NomadConfig(
         include_raw_files=True,
         include_archive_files=False,
         include_datasets=True,
+        include_bundle_info=True,  # Keeps the bundle_info.json file (not necessary but nice to have)
         keep_original_timestamps=False,  # If upload_time and publish_time should be taken from the bundle
         set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
         delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure

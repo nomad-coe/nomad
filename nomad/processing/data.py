@@ -1948,7 +1948,8 @@ class Upload(Proc):
 
             # Import the files
             upload_files = bundle.import_upload_files(
-                settings.include_raw_files, settings.include_archive_files, move_files)
+                settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
+                move_files)
 
             # Check the archive metadata, if included
             if settings.include_archive_files:
