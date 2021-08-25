@@ -507,10 +507,14 @@ export function useInitialAggs() {
 
   useEffect(() => {
     const aggRequest = {}
+    // Materials search requires a slightly different mapping: all material
+    // specific filters are at the root, other filters target the nested
+    // entries.
     for (const [quantity, agg] of Object.entries(quantityAggregations)) {
-      aggRequest[quantity] = {
+      const key = resource === 'materials' ? toMaterialAgg(quantity) : quantity
+      aggRequest[key] = {
         [agg]: {
-          quantity: quantity,
+          quantity: key,
           size: 500
         }
       }
@@ -519,7 +523,7 @@ export function useInitialAggs() {
     const search = {
       owner: owner,
       query: {},
-      aggregations: resource === 'entries' ? aggRequest : undefined,
+      aggregations: aggRequest,
       pagination: {page_size: 0}
     }
 
@@ -566,11 +570,11 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       queryCleaned[quantity] = undefined
     }
     queryCleaned = cleanQuery(queryCleaned, exclusive)
-
+    const key = resource === 'materials' ? toMaterialAgg(quantity) : quantity
     const aggs = {
-      [quantity]: {
+      [key]: {
         [type]: {
-          quantity: quantity,
+          quantity: key,
           size: 500
         }
       }
@@ -798,4 +802,15 @@ export function cleanQuery(query, exclusive) {
     }
   }
   return newQuery
+}
+
+function toMaterialAgg(quantity) {
+  const prefix = 'results.material.'
+  let key
+  if (quantity.startsWith(prefix)) {
+    key = quantity.substring(prefix.length)
+  } else {
+    key = `entries.${quantity}`
+  }
+  return key
 }

@@ -22,27 +22,31 @@ import { makeStyles } from '@material-ui/core/styles'
 import {
   Paper
 } from '@material-ui/core'
-import NewEntryList from '../NewEntryList'
-import { useExclusive, useScrollResults } from '../FilterContext'
+import SearchResultsMaterials from './SearchResultsMaterials'
+import SearchResultsEntries from './SearchResultsEntries'
+import { useExclusive, useScrollResults, useSearchContext } from '../FilterContext'
 
 /**
  * Displays the list of search results
  */
-
 const useStyles = makeStyles(theme => ({
   root: {
     height: '100%'
   }
 }))
+const orderByMap = {
+  'entries': 'upload_time',
+  'materials': 'chemical_formula_hill'
+}
 const SearchResults = React.memo(({
-  resultType,
   className
 }) => {
   const styles = useStyles()
   const exclusive = useExclusive()
+  const { resource } = useSearchContext()
   const page_size = 30
   // eslint-disable-next-line no-unused-vars
-  const [orderBy, setOrderBy] = useState('upload_time')
+  const [orderBy, setOrderBy] = useState(orderByMap[resource])
   // eslint-disable-next-line no-unused-vars
   const [order, setOrder] = useState('desc')
   const {results, next, page, total} = useScrollResults(30, orderBy, order, exclusive)
@@ -62,9 +66,11 @@ const SearchResults = React.memo(({
   // re-render the results list only when the actual results have changed, and
   // not just when the search query changes. Has a significant effect on
   // performance.
-  const comp = useMemo(() => {
+  // const component = resource === 'materials' ? MaterialResults : NewEntryList
+  const result = useMemo(() => {
+    const Component = resource === 'materials' ? SearchResultsMaterials : SearchResultsEntries
     return <Paper className={clsx(className, styles.root)}>
-      {results && <NewEntryList
+      {results && <Component
         query={results.query}
         editable={false}
         data={results}
@@ -76,12 +82,11 @@ const SearchResults = React.memo(({
         onBottom={handleBottom}
       />}
     </Paper>
-  }, [className, styles.root, results, page, order, orderBy, handleChange, handleBottom])
+  }, [resource, className, styles.root, results, page, order, orderBy, handleChange, handleBottom])
 
-  return comp
+  return result
 })
 SearchResults.propTypes = {
-  resultType: PropTypes.string,
   className: PropTypes.string
 }
 

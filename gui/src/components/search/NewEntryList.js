@@ -329,6 +329,7 @@ export class NewEntryListUnstyled extends React.Component {
 
   render() {
     const { classes, data, order, order_by, page, per_page, editable, title, query, actions, user, showAccessColumn, ...rest } = this.props
+    console.log(data)
     const { selected } = this.state
     const searchResultColumns = domainData.dft.searchResultColumns
     const defaultSearchResultColumns = domainData.dft.defaultSearchResultColumns

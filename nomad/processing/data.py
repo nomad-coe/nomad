@@ -499,8 +499,7 @@ class Calc(Proc):
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
-
-            search.index(self._parser_results)
+            search.index(self._parser_results, update_materials=True)
         except Exception as e:
             self.get_logger().error(
                 'could not index after processing failure', exc_info=e)
@@ -626,7 +625,7 @@ class Calc(Proc):
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
                 assert self._parser_results.metadata == self._entry_metadata
-                search.index(self._parser_results)
+                search.index(self._parser_results, update_materials=True)
 
             # persist the archive
             with utils.timer(
@@ -682,7 +681,7 @@ class Calc(Proc):
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
             assert self._parser_results.metadata == self._entry_metadata
-            search.index(self._parser_results)
+            search.index(self._parser_results, update_materials=True)
 
         # persist the archive
         with utils.timer(
