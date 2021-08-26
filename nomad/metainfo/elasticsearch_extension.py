@@ -799,14 +799,23 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     if not update_materials:
         return
 
+    def get_material_id(entry):
+        material_id = None
+        try:
+            material_id = entry.results.material.material_id
+        except AttributeError:
+            pass
+        return material_id
+
     # Get all entry and material ids.
     entry_ids, material_ids = set(), set()
     entries_dict = {}
     for entry in entries:
         entries_dict[entry.entry_id] = entry
         entry_ids.add(entry.entry_id)
-        if entry.results.material is not None:
-            material_ids.add(entry.results.material.material_id)
+        material_id = get_material_id(entry)
+        if material_id is not None:
+            material_ids.add(material_id)
 
     # Get existing materials for entries' material ids (i.e. the entry needs to be added
     # or updated).
@@ -871,7 +880,8 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
                 # material quantities like new AFLOW prototypes
                 material_doc.update(**material_type.create_index_doc(entry.results.material))
 
-            if entry.results.material.material_id != material_id:
+            new_material_id = get_material_id(entry)
+            if new_material_id != material_id:
                 # Remove the entry, it moved to another material. But the material cannot
                 # run empty, because another entry had this material id.
                 material_entries_to_remove.append(index)
@@ -887,7 +897,8 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     for entry_id in remaining_entry_ids:
         entry = entries_dict.get(entry_id)
-        material_id = entry.results.material.material_id
+
+        material_id = get_material_id(entry)
         material_doc = material_docs_dict.get(material_id)
         if material_doc is None:
             # The material does not yet exist. Create it.
@@ -900,7 +911,7 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     # Second, we go through the old materials. The following cases need to be covered:
     # - the old materials are empty (standard case)
-    # - an entry needs to be removed but the material still as entries (new material id case 1)
+    # - an entry needs to be removed but the material still has entries (new material id case 1)
     # - an entry needs to be removed and the material is now "empty" (new material id case 2)
     for material_doc in old_material_docs:
         material_id = material_doc['material_id']
