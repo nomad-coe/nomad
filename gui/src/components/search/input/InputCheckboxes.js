@@ -106,12 +106,6 @@ const InputCheckboxes = React.memo(({
         const disabled = selected ? false : value.count === 0
         if (oldState) {
           oldState.disabled = disabled
-        } else {
-          opt[key] = {
-            label: key,
-            checked: false,
-            disabled: disabled
-          }
         }
       }
     }
