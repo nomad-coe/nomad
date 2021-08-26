@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Grid,
@@ -55,7 +55,6 @@ const InputCheckboxes = React.memo(({
   const initialAgg = useInitialAgg(quantity, 'terms')
   const availableOptions = useAgg(quantity, 'terms', true, visible)
   const [filter, setFilter] = useFilterState(quantity)
-  const firstFetch = useRef(true)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -66,7 +65,7 @@ const InputCheckboxes = React.memo(({
   // Save the available options when retrieved for the first time (without any
   // filters)
   useEffect(() => {
-    if (initialAgg && firstFetch.current) {
+    if (initialAgg) {
       const opt = {}
       for (let option of initialAgg) {
         if (option.count > 0) {
@@ -80,7 +79,6 @@ const InputCheckboxes = React.memo(({
         }
       }
       setVisibleOptions(opt)
-      firstFetch.current = false
     }
   }, [options, initialAgg])
 

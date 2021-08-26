@@ -43,6 +43,7 @@ const InputRadio = React.memo(({
   quantity,
   label,
   description,
+  initialValue,
   options,
   className,
   classes,
@@ -58,7 +59,7 @@ const InputRadio = React.memo(({
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputLabel label={label} description={description}/>
-    <RadioGroup aria-label={label} name={label} value={filter || 'visible'} onChange={handleChange}>
+    <RadioGroup aria-label={label} name={label} value={filter || initialValue} onChange={handleChange}>
       {options && Object.entries(options).map(([key, value]) =>
         <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={
           <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
@@ -74,6 +75,7 @@ InputRadio.propTypes = {
   quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
+  initialValue: PropTypes.string,
   options: PropTypes.object, // Mapping from option name to show label and tooltip
   className: PropTypes.string,
   classes: PropTypes.object,

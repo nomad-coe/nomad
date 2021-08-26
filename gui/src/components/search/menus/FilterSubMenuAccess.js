@@ -36,6 +36,7 @@ const FilterSubMenuAccess = React.memo(({
           quantity="owner"
           label="Visibility"
           description="The visibility of the calculation."
+          initialValue={authenticated ? 'visible' : 'public'}
           options={{
             all: {label: 'All', disabled: !authenticated, tooltip: 'Consider all entries.'},
             public: {label: 'Public', disabled: false, tooltip: 'Consider all entries that can be publically downloaded, i.e. only published entries without embargo.'},

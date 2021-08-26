@@ -155,7 +155,7 @@ export const SearchContext = React.memo(({
 }) => {
   const setQuery = useSetRecoilState(queryState)
   const api = useApi()
-  const setInitialAggs = useSetRecoilState(initialAggs)
+  const setInitialAggs = useSetRecoilState(initialAggsState)
 
   // Reset the query when entering the search context for the first time
   useEffect(() => {
@@ -184,16 +184,16 @@ export const SearchContext = React.memo(({
 
   // Fetch initial aggregation data. We include all data here.
   useEffect(() => {
-    const aggRequest = {}
+    let aggRequest = {}
     for (const [quantity, agg] of Object.entries(quantityAggregations)) {
-      const key = resource === 'materials' ? quantityMaterialNames[quantity] : quantity
-      aggRequest[key] = {
+      aggRequest[quantity] = {
         [agg]: {
-          quantity: key,
+          quantity: quantity,
           size: 500
         }
       }
     }
+    aggRequest = cleanAggRequest(aggRequest, resource)
     const search = {
       owner: 'visible',
       query: {},
@@ -203,6 +203,7 @@ export const SearchContext = React.memo(({
 
     api.query(resource, search, false)
       .then(data => {
+        data = cleanAggResponse(data, resource)
         setInitialAggs(data)
       })
   }, [api, setInitialAggs, resource])
@@ -526,7 +527,7 @@ function queryToQs(query) {
   return qs.stringify(newQuery, {indices: false, encode: false})
 }
 
-export const initialAggs = atom({
+export const initialAggsState = atom({
   key: 'initialAggs',
   default: undefined
 })
@@ -537,12 +538,8 @@ export const initialAggs = atom({
  * @returns {object} Object containing the search object.
  */
 export function useInitialAgg(quantity, agg) {
-  const aggs = useRecoilValue(initialAggs)
-  let data = aggs && aggs?.aggregations?.[quantity]?.[agg].data
-  if (agg === 'min_max' && !data) {
-    data = [undefined, undefined]
-  }
-  return data
+  const aggs = useRecoilValue(initialAggsState)
+  return getAggData(aggs, quantity, agg)
 }
 
 /**
@@ -564,7 +561,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   const api = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
-  const initialAgg = useInitialAgg(quantity, type)
+  const initialAggs = useRecoilValue(initialAggsState)
   const query = useQuery()
   const exclusive = useExclusive()
   const firstLoad = useRef(true)
@@ -580,32 +577,31 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     if (restrict && query && quantity in query) {
       queryCleaned[quantity] = undefined
     }
-    queryCleaned = cleanQuery(queryCleaned, exclusive)
-    const key = resource === 'materials' ? quantityMaterialNames[quantity] : quantity
-    const aggs = {
-      [key]: {
+    queryCleaned = cleanQuery(queryCleaned, exclusive, resource)
+    let aggRequest = {
+      [quantity]: {
         [type]: {
-          quantity: key,
+          quantity: quantity,
           size: 500
         }
       }
     }
+
+    aggRequest = cleanAggRequest(aggRequest, resource)
     const search = {
       owner: query.owner || 'visible',
       query: queryCleaned,
-      aggregations: resource === 'entries' ? aggs : undefined,
+      aggregations: aggRequest,
       pagination: {page_size: 0},
       required: { include: [] }
     }
 
     api.query(resource, search, false)
       .then(data => {
-        let cleaned = data && data.aggregations[key][type].data
-        if (type === 'min_max' && !cleaned) {
-          cleaned = [undefined, undefined]
-        }
+        data = cleanAggResponse(data, resource)
+        data = getAggData(data, quantity, type)
         firstLoad.current = false
-        setResults(cleaned)
+        setResults(data)
       })
   }, [api, quantity, restrict, type, resource])
 
@@ -622,7 +618,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       // Fetch the initial aggregation values if no query
       // is specified.
       if (isEmpty(query)) {
-        setResults(initialAgg)
+        setResults(getAggData(initialAggs, quantity, type))
       // Make an immediate request for the aggregation values if query has been
       // specified.
       } else {
@@ -631,7 +627,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     } else {
       debounced(query, exclusive)
     }
-  }, [apiCall, quantity, debounced, query, exclusive, update, initialAgg])
+  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs])
 
   return results
 }
@@ -667,7 +663,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // one with the data.
   const apiCall = useCallback((query, pageSize, orderBy, order, exclusive) => {
     pageAfterValue.current = undefined
-    const cleanedQuery = cleanQuery(query, exclusive)
+    const cleanedQuery = cleanQuery(query, exclusive, resource)
     const search = {
       owner: query.owner || 'visible',
       query: cleanedQuery,
@@ -749,7 +745,8 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
 
 /**
  * Converts all sets to arrays and convert all Quantities into their SI unit
- * values.
+ * values. Also remaps quantity names depending whether materials or entries are
+ * requested.
  *
  * Should only be called when making the final API call, as during the
  * construction of the query it is much more convenient to store filters within
@@ -761,10 +758,11 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function cleanQuery(query, exclusive) {
+export function cleanQuery(query, exclusive, resource) {
   let newQuery = {}
   for (let [k, v] of Object.entries(query)) {
     let newValue
+    let postfix
 
     // Some quantities are not included in the query, e.g. the owner.
     if (k === 'owner') {
@@ -774,7 +772,7 @@ export function cleanQuery(query, exclusive) {
         if (v.size === 0) {
           continue
         }
-        k = `${k}:all`
+        postfix = 'all'
         newValue = setToArray(v)
       // If an exlusive elements query is made, we sort the elements and
       // concatenate them into a single string. This value we can then use to
@@ -793,7 +791,7 @@ export function cleanQuery(query, exclusive) {
           } else {
             newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
           }
-          k = `${k}:any`
+          postfix = 'any'
         } else if (v instanceof Quantity) {
           newValue = v.toSI()
         } else if (isArray(v)) {
@@ -802,15 +800,69 @@ export function cleanQuery(query, exclusive) {
           } else {
             newValue = v.map((item) => item instanceof Quantity ? item.toSI() : item)
           }
-          k = `${k}:any`
+          postfix = 'any'
         } else if (isPlainObject(v)) {
-          newValue = cleanQuery(v, exclusive)
+          newValue = cleanQuery(v, exclusive, resource)
         } else {
           newValue = v
         }
       }
+      console.log(k)
+      k = resource === 'materials' ? quantityMaterialNames[k] : k
+      k = postfix ? `${k}:${postfix}` : k
       newQuery[k] = newValue
     }
   }
   return newQuery
+}
+
+/**
+ * Modified aggregation keys depending the the targeted resource.  Should only
+ * be called when making the final API call.
+ *
+ * @returns {object} A copy of the object with certain items cleaned into a
+ * format that is supported by the API.
+ */
+function cleanAggRequest(aggs, resource) {
+  if (resource === 'materials') {
+    let newAggs = {}
+    for (let [label, agg] of Object.entries(aggs)) {
+      label = resource === 'materials' ? quantityMaterialNames[label] : label
+      for (let v of Object.values(agg)) {
+        v.quantity = label
+      }
+      newAggs[label] = agg
+    }
+    return newAggs
+  }
+  return aggs
+}
+
+/**
+ * Cleans the aggregation response into a format that is usable by the GUI.
+ *
+ * @returns {object} A copy of the object with the correct quantity names used
+ * by the GUI.
+ */
+function cleanAggResponse(response, resource) {
+  if (resource === 'materials') {
+    const newAggs = {}
+    for (let [label, agg] of Object.entries(response.aggregations)) {
+      label = resource === 'materials' ? quantityEntryNames[label] : label
+      for (let v of Object.values(agg)) {
+        v.quantity = label
+      }
+      newAggs[label] = agg
+    }
+    response.aggregations = newAggs
+  }
+  return response
+}
+
+function getAggData(aggs, quantity, type) {
+  let agg = aggs && aggs.aggregations?.[quantity]?.[type]?.data
+  if (type === 'min_max' && !agg) {
+    agg = [undefined, undefined]
+  }
+  return agg
 }
