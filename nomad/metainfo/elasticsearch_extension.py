@@ -819,11 +819,14 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     # Get existing materials for entries' material ids (i.e. the entry needs to be added
     # or updated).
-    elasticsearch_results = material_index.mget(body={
-        'docs': [dict(_id=material_id) for material_id in material_ids]
-    })
-    existing_material_docs = [
-        doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+    if material_ids:
+        elasticsearch_results = material_index.mget(body={
+            'docs': [dict(_id=material_id) for material_id in material_ids]
+        })
+        existing_material_docs = [
+            doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+    else:
+        existing_material_docs = []
 
     # Get old materials that still have one of the entries, but the material id has changed
     # (i.e. the materials where entries need to be removed due entries having different
@@ -897,17 +900,17 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     for entry_id in remaining_entry_ids:
         entry = entries_dict.get(entry_id)
-
         material_id = get_material_id(entry)
-        material_doc = material_docs_dict.get(material_id)
-        if material_doc is None:
-            # The material does not yet exist. Create it.
-            material_doc = material_type.create_index_doc(entry.results.material)
-            material_docs_dict[material_id] = material_doc
-            actions_and_docs.append(dict(create=dict(_id=material_id)))
-            actions_and_docs.append(material_doc)
-        # The material does exist (now), but the entry is new.
-        material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
+        if material_id is not None:
+            material_doc = material_docs_dict.get(material_id)
+            if material_doc is None:
+                # The material does not yet exist. Create it.
+                material_doc = material_type.create_index_doc(entry.results.material)
+                material_docs_dict[material_id] = material_doc
+                actions_and_docs.append(dict(create=dict(_id=material_id)))
+                actions_and_docs.append(material_doc)
+            # The material does exist (now), but the entry is new.
+            material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
 
     # Second, we go through the old materials. The following cases need to be covered:
     # - the old materials are empty (standard case)
