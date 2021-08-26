@@ -627,7 +627,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     } else {
       debounced(query, exclusive)
     }
-  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs])
+  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs, type])
 
   return results
 }
@@ -807,7 +807,6 @@ export function cleanQuery(query, exclusive, resource) {
           newValue = v
         }
       }
-      console.log(k)
       k = resource === 'materials' ? quantityMaterialNames[k] : k
       k = postfix ? `${k}:${postfix}` : k
       newQuery[k] = newValue
@@ -817,11 +816,10 @@ export function cleanQuery(query, exclusive, resource) {
 }
 
 /**
- * Modified aggregation keys depending the the targeted resource.  Should only
- * be called when making the final API call.
+ * Cleans the aggregation request into a format that is usable by the API.
  *
- * @returns {object} A copy of the object with certain items cleaned into a
- * format that is supported by the API.
+ * @returns {object} A copy of the object with the correct quantity names used
+ * by the API.
  */
 function cleanAggRequest(aggs, resource) {
   if (resource === 'materials') {
