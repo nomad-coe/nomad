@@ -45,6 +45,8 @@ export const quantityGroups = new Map()
 export const quantityAggregations = new Map()
 export const quantityAbbreviations = new Map()
 export const quantityFullnames = new Map()
+export const quantityMaterialNames = {}
+export const quantityEntryNames = {}
 export const labelMaterial = 'Material'
 export const labelElements = 'Elements / Formula'
 export const labelSymmetry = 'Symmetry'
@@ -77,11 +79,15 @@ export const labelIDs = 'IDs'
  * provided, the initial aggregation value will be prefetched for this quantity.
  */
 function registerQuantity(name, group, agg) {
+  // Store the available quantities, their grouping, and the initial aggregation
+  // types.
   quantities.add(name)
   quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
   if (agg) {
     quantityAggregations[name] = agg
   }
+
+  // Register mappings from full name to abbreviation and vice versa
   const abbreviation = name.split('.').pop()
   const oldName = quantityAbbreviations.get(abbreviation)
   if (oldName === undefined) {
@@ -92,6 +98,18 @@ function registerQuantity(name, group, agg) {
     quantityAbbreviations.set(name, name)
     quantityAbbreviations.set(oldName, oldName)
   }
+
+  // Material and entry queries target slightly different fields. Here we
+  // prebuild the mapping.
+  const prefix = 'results.material.'
+  let materialName
+  if (name.startsWith(prefix)) {
+    materialName = name.substring(prefix.length)
+  } else {
+    materialName = `entries.${name}`
+  }
+  quantityMaterialNames[name] = materialName
+  quantityEntryNames[materialName] = name
 }
 
 registerQuantity('results.material.structural_type', labelMaterial, 'terms')
@@ -136,11 +154,12 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const setQuery = useSetRecoilState(queryState)
-  const [initialized, setInitialized] = useState(false)
+  const api = useApi()
+  const setInitialAggs = useSetRecoilState(initialAggs)
 
   // Reset the query when entering the search context for the first time
   useEffect(() => {
-    setQuery()
+    setQuery(undefined)
   }, [setQuery])
 
   // Read the target resource and initial query from the URL
@@ -161,13 +180,36 @@ export const SearchContext = React.memo(({
   // Save the initial query. Cannot be done inside useMemo due to bad setState.
   useEffect(() => {
     setQuery(query)
-    setInitialized(true)
   }, [setQuery, query])
 
+  // Fetch initial aggregation data. We include all data here.
+  useEffect(() => {
+    const aggRequest = {}
+    for (const [quantity, agg] of Object.entries(quantityAggregations)) {
+      const key = resource === 'materials' ? quantityMaterialNames[quantity] : quantity
+      aggRequest[key] = {
+        [agg]: {
+          quantity: key,
+          size: 500
+        }
+      }
+    }
+    const search = {
+      owner: 'visible',
+      query: {},
+      aggregations: aggRequest,
+      pagination: {page_size: 0}
+    }
+
+    api.query(resource, search, false)
+      .then(data => {
+        setInitialAggs(data)
+      })
+  }, [api, setInitialAggs, resource])
+
   const values = useMemo(() => ({
-    resource,
-    initialized
-  }), [resource, initialized])
+    resource
+  }), [resource])
 
   return <searchContext.Provider value={values}>
     {children}
@@ -225,7 +267,7 @@ export function useSetMenuPath() {
 }
 
 // Whether the search is initialized.
-export const initialized = atom({
+export const initializedState = atom({
   key: 'initialized',
   default: false
 })
@@ -359,6 +401,9 @@ export function useFiltersState(quantities) {
 const queryState = selector({
   key: 'query',
   get: ({get}) => {
+    if (!get(initializedState)) {
+      return undefined
+    }
     let query = {}
     for (let key of quantities) {
       const filter = get(queryFamily(key))
@@ -376,6 +421,9 @@ const queryState = selector({
       for (const [key, value] of Object.entries(data)) {
         set(queryFamily(key), value)
       }
+      set(initializedState, true)
+    } else {
+      set(initializedState, false)
     }
   }
 })
@@ -497,43 +545,6 @@ export function useInitialAgg(quantity, agg) {
   return data
 }
 
-export function useInitialAggs() {
-  // Request initial aggregation values for all filter components that are on
-  // the search page. This is only done once.
-  const api = useApi()
-  const { resource } = useSearchContext()
-  const owner = useRecoilValue(queryFamily('owner'))
-  const setInitialAggs = useSetRecoilState(initialAggs)
-
-  useEffect(() => {
-    const aggRequest = {}
-    // Materials search requires a slightly different mapping: all material
-    // specific filters are at the root, other filters target the nested
-    // entries.
-    for (const [quantity, agg] of Object.entries(quantityAggregations)) {
-      const key = resource === 'materials' ? toMaterialAgg(quantity) : quantity
-      aggRequest[key] = {
-        [agg]: {
-          quantity: key,
-          size: 500
-        }
-      }
-    }
-    // Make the request
-    const search = {
-      owner: owner,
-      query: {},
-      aggregations: aggRequest,
-      pagination: {page_size: 0}
-    }
-
-    api.query(resource, search, false)
-      .then(data => {
-        setInitialAggs(data)
-      })
-  }, [api, setInitialAggs, owner, resource])
-}
-
 /**
  * Hook for retrieving the most up-to-date aggregation results for a specific
  * quantity, taking into account the current search context.
@@ -570,7 +581,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       queryCleaned[quantity] = undefined
     }
     queryCleaned = cleanQuery(queryCleaned, exclusive)
-    const key = resource === 'materials' ? toMaterialAgg(quantity) : quantity
+    const key = resource === 'materials' ? quantityMaterialNames[quantity] : quantity
     const aggs = {
       [key]: {
         [type]: {
@@ -580,7 +591,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       }
     }
     const search = {
-      owner: query.owner,
+      owner: query.owner || 'visible',
       query: queryCleaned,
       aggregations: resource === 'entries' ? aggs : undefined,
       pagination: {page_size: 0},
@@ -589,7 +600,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
 
     api.query(resource, search, false)
       .then(data => {
-        let cleaned = data && data.aggregations[quantity][type].data
+        let cleaned = data && data.aggregations[key][type].data
         if (type === 'min_max' && !cleaned) {
           cleaned = [undefined, undefined]
         }
@@ -604,7 +615,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
   // The API call is made immediately on first render. On subsequent renders it
   // will be debounced.
   useEffect(() => {
-    if (!update) {
+    if (!update || query === undefined) {
       return
     }
     if (firstLoad.current) {
@@ -640,7 +651,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  */
 export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
   const api = useApi()
-  const { resource, initialized } = useSearchContext()
+  const { resource } = useSearchContext()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
@@ -658,7 +669,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     pageAfterValue.current = undefined
     const cleanedQuery = cleanQuery(query, exclusive)
     const search = {
-      owner: query.owner,
+      owner: query.owner || 'visible',
       query: cleanedQuery,
       pagination: {
         page_size: pageSize,
@@ -712,7 +723,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // shows the first batch of results.
   useEffect(() => {
     // If the initial query is not yet ready, do nothing
-    if (!initialized) {
+    if (query === undefined) {
       return
     }
     if (firstRender.current) {
@@ -721,7 +732,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     } else {
       debounced(query, pageSize, orderBy, order, exclusive)
     }
-  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy, initialized])
+  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
   // results in the new order. The amount of fetched results is based on the
@@ -802,15 +813,4 @@ export function cleanQuery(query, exclusive) {
     }
   }
   return newQuery
-}
-
-function toMaterialAgg(quantity) {
-  const prefix = 'results.material.'
-  let key
-  if (quantity.startsWith(prefix)) {
-    key = quantity.substring(prefix.length)
-  } else {
-    key = `entries.${quantity}`
-  }
-  return key
 }

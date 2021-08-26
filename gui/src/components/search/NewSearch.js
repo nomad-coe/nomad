@@ -24,8 +24,7 @@ import NewSearchBar from './NewSearchBar'
 import SearchResults from './results/SearchResults'
 import {
   quantities,
-  useMenuOpenState,
-  useInitialAggs
+  useMenuOpenState
 } from './FilterContext'
 
 const useStyles = makeStyles(theme => {
@@ -112,7 +111,6 @@ const NewSearch = React.memo(({
   const styles = useStyles()
   const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
-  useInitialAggs()
 
   return <div className={styles.root}>
     <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>

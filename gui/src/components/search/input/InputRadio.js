@@ -58,7 +58,7 @@ const InputRadio = React.memo(({
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputLabel label={label} description={description}/>
-    <RadioGroup aria-label={label} name={label} value={filter || 'public'} onChange={handleChange}>
+    <RadioGroup aria-label={label} name={label} value={filter || 'visible'} onChange={handleChange}>
       {options && Object.entries(options).map(([key, value]) =>
         <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={
           <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
