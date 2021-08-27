@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputCheckboxes from './InputCheckboxes'
+import InputCheckboxes from '../input/InputCheckboxes'
 
 const FilterSubMenuGW = React.memo(({
   value,
@@ -33,7 +33,9 @@ const FilterSubMenuGW = React.memo(({
       <Grid item xs={12}>
         <InputCheckboxes
           quantity="results.method.simulation.gw.gw_type"
+          label="GW Type"
           visible={visible}
+          xs={6}
         />
       </Grid>
     </Grid>

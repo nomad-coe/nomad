@@ -54,12 +54,12 @@ from nomad.datamodel.metainfo.workflow import (
 unavailable = "unavailable"
 not_processed = "not processed"
 structure_classes = [
-    "1D",
-    "2D",
-    "atom",
     "bulk",
-    "molecule / cluster",
     "surface",
+    "2D",
+    "1D",
+    "molecule / cluster",
+    "atom",
     unavailable,
     not_processed,
 ]
