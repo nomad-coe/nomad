@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useContext, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
@@ -31,7 +31,7 @@ import { domainData } from '../../domainData'
 import { domainComponents } from '../../domainComponents'
 import { authorList, nameList } from '../../../utils'
 import NewDataTable from '../../NewDataTable'
-import { apiContext } from '../../api'
+import { useApi } from '../../apiV1'
 import Quantity from '../../Quantity'
 import searchQuantities from '../../../searchQuantities'
 
@@ -39,7 +39,7 @@ import searchQuantities from '../../../searchQuantities'
  * Displays the list of search results for entries.
  */
 export function Published(props) {
-  const api = useContext(apiContext)
+  const api = useApi()
   const {entry} = props
   if (entry.published) {
     if (entry.with_embargo) {
@@ -255,7 +255,7 @@ const SearchResultsEntries = React.memo(({
   className,
   ...rest
 }) => {
-  // const api = useApi()
+  const api = useApi()
   // const authenticated = api.authenticated
   const [selected, setSelected] = useState([])
   const styles = useStyles()
@@ -264,14 +264,13 @@ const SearchResultsEntries = React.memo(({
   const entryPagePathPrefix = undefined
 
   const showEntryActions = useCallback((row) => {
-    return true
-    // const { user } = this.props
-    // if (row.with_embargo && !(user && row.owners.find(owner => owner.user_id === user.sub))) {
-    //   return false
-    // } else {
-    //   return !this.props.showEntryActions || this.props.showEntryActions(row)
-    // }
-  }, [])
+    const user = api.user
+    if (row.with_embargo && !(user && row.owners.find(owner => owner.user_id === user.sub))) {
+      return false
+    } else {
+      return !this.props.showEntryActions || this.props.showEntryActions(row)
+    }
+  }, [api])
 
   const handleViewEntryPage = useCallback((event, row) => {
     event.stopPropagation()
@@ -354,7 +353,7 @@ const SearchResultsEntries = React.memo(({
   const totalNumber = total || 0
   const example = selected && selected.length > 0 ? data?.data.find(d => d.calc_id === selected[0]) : data?.data[0]
   const selectQuery = (selected && selected.length > 0) ? {calc_id: selected, owner: query['owner']} : query
-  const createActions = useCallback((props, moreActions) => <React.Fragment>
+  const createActions = useCallback((props, moreActions) => <>
     {example && editable ? <EditUserMetadataDialog
       example={example} total={selected === null ? totalNumber : selected.length}
       onEditComplete={() => this.props.onEdit()}
@@ -364,7 +363,7 @@ const SearchResultsEntries = React.memo(({
       tooltip="Download files"
       {...props}/>
     {moreActions}
-  </React.Fragment>, [editable, example, selected, totalNumber])
+  </>, [editable, example, selected, totalNumber])
   const selectActions = createActions({query: selectQuery, buttonProps: {color: 'secondary'}})
 
   return <NewDataTable

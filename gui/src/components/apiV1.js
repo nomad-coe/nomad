@@ -86,6 +86,7 @@ function handleApiError(e) {
 class Api {
   constructor(keycloak, setLoading) {
     this.keycloak = keycloak
+    this.user = keycloak.loadUserInfo()
     this.setLoading = setLoading
     this.axios = axios.create({
       baseURL: `${apiBase}/v1`
