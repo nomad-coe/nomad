@@ -26,6 +26,9 @@ from nomad.datamodel.metainfo.run.system import System
 from nomad.datamodel.metainfo.run.calculation import Calculation
 
 
+m_package = Package()
+
+
 class AccessoryInfo(MCategory):
     '''
     Information that *in theory* should not affect the results of the calculations (e.g.,

@@ -313,9 +313,12 @@ class Calc(Proc):
             # or configuration
             calc_archive = archive[self.calc_id]
             entry_archive_dict = {section_metadata: calc_archive[section_metadata].to_dict()}
-            for addtional_section in [section_workflow, section_results]:
-                if addtional_section in calc_archive:
-                    entry_archive_dict[addtional_section] = calc_archive[addtional_section].to_dict()
+            if section_workflow in calc_archive:
+                for workflow in calc_archive[section_workflow]:
+                    entry_archive_dict.setdefault(section_workflow, [])
+                    entry_archive_dict[section_workflow].append(workflow.to_dict())
+            if section_results in calc_archive:
+                entry_archive_dict[section_results] = calc_archive[section_results].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
             entry_metadata.m_update_from_dict(self.metadata)
             return entry_metadata

@@ -589,22 +589,26 @@ def test_compute_required_with_referenced(archive):
     required = compute_required_with_referenced({
         'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': '*'
             }
         }
     })
 
     assert required == {
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': '*'
         },
-        'section_run': {
-            'section_single_configuration_calculation': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': '*'
+        'run': {
+            'calculation': {
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': '*'
             },
-            'section_system': '*'
+            'system': '*'
         }
     }
 

@@ -28,7 +28,7 @@ from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
 from .metainfo.workflow import Workflow
-from .metainfo.common_dft import FastAccess
+from .metainfo.run.calculation import FastAccess
 from .metainfo.run.run import Run
 from .metainfo.run.method import Functional
 from .metainfo.run.calculation import Energy

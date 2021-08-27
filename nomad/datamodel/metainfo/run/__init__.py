@@ -33,14 +33,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 from nomad.metainfo import Environment
-
 from .run import Run
-
+from . import run
+from . import method
+from . import calculation
+from . import system
 
 m_env = Environment()
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.run.method'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.run.system'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.run.calculation'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.run.run'].m_package)  # type: ignore
+m_env.m_add_sub_section(Environment.packages, run.m_package)
+m_env.m_add_sub_section(Environment.packages, method.m_package)
+m_env.m_add_sub_section(Environment.packages, calculation.m_package)
+m_env.m_add_sub_section(Environment.packages, system.m_package)

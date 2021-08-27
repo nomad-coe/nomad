@@ -27,7 +27,7 @@ from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.datamodel.metainfo.common_dft import FastAccess
+from nomad.datamodel.metainfo.run.calculation import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 

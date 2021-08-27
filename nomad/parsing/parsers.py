@@ -44,7 +44,7 @@ from turbomoleparser import TurbomoleParser
 from castepparser import CastepParser
 from wien2kparser import Wien2kParser
 from nwchemparser import NWChemParser
-from lobsterparser import LobsterParser
+# from lobsterparser import LobsterParser
 from bandparser import BandParser
 from amberparser import AmberParser
 from asapparser import AsapParser
@@ -204,7 +204,7 @@ parsers = [
     LammpsParser(),
     AmberParser(),
     GromacsParser(),
-    LobsterParser(),
+    # LobsterParser(),
     GromosParser(),
     NAMDParser(),
     CharmmParser(),

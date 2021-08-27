@@ -23,6 +23,9 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum, derived)
 
 
+m_package = Package()
+
+
 class FastAccess(MCategory):
     '''
     Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,

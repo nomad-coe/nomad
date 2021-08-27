@@ -21,7 +21,7 @@ from typing import Any, Tuple, Dict, Union, List
 from nomad import infrastructure, config
 from nomad.metainfo import MSection, Definition, Quantity, Reference, SubSection, Section
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.common import FastAccess
+from nomad.datamodel.metainfo.run.calculation import FastAccess
 
 
 def create_partial_archive(archive: EntryArchive) -> Dict:

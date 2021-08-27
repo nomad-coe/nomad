@@ -25,6 +25,9 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum, derived)
 
 
+m_package = Package()
+
+
 class MethodReference(MSection):
     '''
     Section that describes the relationship between the current method to other method
@@ -440,9 +443,9 @@ class BasisSet(MSection):
         Identifies the basis set.
         ''')
 
-    cell_dependent = SubSection(sub_section=BasisSetCellDependent.m_def)
+    cell_dependent = SubSection(sub_section=BasisSetCellDependent.m_def, repeats=True)
 
-    atom_centered = SubSection(sub_section=BasisSetAtomCentered.m_def)
+    atom_centered = SubSection(sub_section=BasisSetAtomCentered.m_def, repeats=True)
 
 
 class Interaction(MSection):

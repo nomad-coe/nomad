@@ -1239,9 +1239,16 @@ class Workflow(MSection):
         ''',
         categories=[FastAccess])
 
+    n_calculations = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of calculations in workflow
+        ''')
+
     calculations_ref = Quantity(
         type=Reference(Calculation.m_def),
-        shape=['optimization_steps'],
+        shape=['n_calculations'],
         description='''
         List of references to each section single_configuration_calculation in the
         simulation.

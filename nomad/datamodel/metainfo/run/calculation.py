@@ -25,6 +25,9 @@ from nomad.datamodel.metainfo.run.system import SystemReference
 from nomad.datamodel.metainfo.run.method import MethodReference
 
 
+m_package = Package()
+
+
 class ScfInfo(MCategory):
     '''
     Contains information on the self-consistent field (SCF) procedure, i.e. the number of
