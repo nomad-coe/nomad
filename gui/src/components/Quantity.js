@@ -166,12 +166,13 @@ class Quantity extends React.PureComponent {
     }
 
     const useLabel = label || (typeof quantity === 'string' ? quantity : 'MISSING LABEL')
+    const tooltip = description || (searchQuantities[quantity] && searchQuantities[quantity].description) || ''
 
     if (row || column || flex) {
       return <div className={row ? classes.row : (column ? classes.column : classes.flex)}>{children}</div>
     } else {
       return (
-        <Tooltip title={description || (searchQuantities[quantity] && searchQuantities[quantity].description) || ''}>
+        <Tooltip title={tooltip}>
           <div className={classes.root}>
             <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
             <div className={classes.valueContainer}>

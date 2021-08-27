@@ -64,17 +64,17 @@ const EntryPage = React.memo(function EntryPage() {
   const currentPath = history.location.pathname
   const {path, url} = useRouteMatch()
 
-  const match = matchPath(currentPath, { path: `${path}/:uploadId?/:entryId?/:tab?` })
-  const {params: {uploadId, entryId, tab = 'overview'}} = match
+  const match = matchPath(currentPath, { path: `${path}/:tab?` })
+  const {params: {tab = 'overview'}} = match
 
   // We use a useRef object to keep track of the current urls of each tab. Switching
   // tabs would go to the previous tab url. This way, the views behind a tab can add
   // state to the URL (e.g. path to section on the ArchiveEntryView).
   const urls = useRef({
-    'overview': `${url}/${uploadId}/${entryId}/overview`,
-    'raw': `${url}/${uploadId}/${entryId}/raw`,
-    'archive': `${url}/${uploadId}/${entryId}/archive`,
-    'logs': `${url}/${uploadId}/${entryId}/logs`
+    'overview': `${url}/overview`,
+    'raw': `${url}/raw`,
+    'archive': `${url}/archive`,
+    'logs': `${url}/logs`
   })
 
   const handleChange = (_, value) => {
@@ -92,7 +92,7 @@ const EntryPage = React.memo(function EntryPage() {
       <Tab label="Archive" value="archive"/>
       <Tab label="Logs" value="logs"/>
     </Tabs>
-    <Route path={`${path}/:uploadId?/:entryId?/:tab?`} render={(props) => <TabRoutes {...props}/>} />
+    <Route path={`${path}/:tab?`} render={(props) => <TabRoutes {...props}/>} />
   </React.Fragment>
 })
 

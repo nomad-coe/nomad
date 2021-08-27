@@ -109,6 +109,8 @@ class Api {
         }
       }
     }
+
+    this.subscriptions = {}
   }
 
   /**

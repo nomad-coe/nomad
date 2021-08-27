@@ -20,11 +20,11 @@ import { errorContext } from './errors'
 import { apiContext } from './api'
 import Search from './search/Search'
 import { Typography, makeStyles } from '@material-ui/core'
-import { matchPath, useLocation, useRouteMatch } from 'react-router'
+import { useLocation, useRouteMatch } from 'react-router'
 import { DOI } from './search/results/DatasetList'
 
 export const help = `
-This page allows you to **inspect** and **download** NOMAD datasets. It alsow allows you
+This page allows you to **inspect** and **download** NOMAD datasets. It also allows you
 to explore a dataset with similar controls that the search page offers.
 `
 
@@ -49,9 +49,7 @@ export default function DatasetPage() {
   const location = useLocation()
   const match = useRouteMatch()
 
-  const {datasetId} = matchPath(location.pathname, {
-    path: `${match.path}/:datasetId`
-  }).params
+  const {datasetId} = match.params
 
   useEffect(() => {
     api.search({

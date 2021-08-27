@@ -124,7 +124,7 @@ export default function ProcessingTable({data, onPaginationChange}) {
       // actions={actions}
       // showEntryActions={entry => entry.processed || !running}
       showEntryActions={entry => !entry.process_running}
-      entryPagePathPrefix="/uploads"
+      entryPagePathPrefix={`/uploads/${data.upload.upload_id}`}
       per_page={data.pagination.page_size}
       page={data.pagination.page}
       order={data.pagination.order === 'asc' ? 1 : 0}

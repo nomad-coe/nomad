@@ -17,7 +17,7 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
+import { withStyles, Link, Typography, Tooltip, IconButton } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import NewDataTable from '../NewDataTable'
@@ -34,6 +34,7 @@ import { domainData } from '../domainData'
 import { apiContext, withApi } from '../api'
 import { authorList, nameList } from '../../utils'
 import EntryDetails from '../entry/EntryDetails'
+import { EntryButton } from '../nav/Routes'
 
 export function Published(props) {
   const api = useContext(apiContext)
@@ -294,9 +295,9 @@ export class NewEntryListUnstyled extends React.Component {
 
       <div className={classes.entryDetailsActions}>
         {this.showEntryActions(row) &&
-          <Button color="primary" onClick={event => this.handleViewEntryPage(event, row)}>
+          <EntryButton color="primary" entryId={row.entry_id} uploadId={row.upload_id}>
             Show raw files and archive
-          </Button>
+          </EntryButton>
         }
       </div>
     </div>)
@@ -311,19 +312,15 @@ export class NewEntryListUnstyled extends React.Component {
     }
   }
 
-  handleViewEntryPage(event, row) {
-    event.stopPropagation()
-    const prefix = this.props.entryPagePathPrefix || ''
-    const url = `${prefix}/entry/id/${row.upload_id}/${row.calc_id}`
-    this.props.history.push(url)
-  }
-
   renderEntryActions(row, selected) {
     if (this.showEntryActions(row)) {
       return <Tooltip title="Show raw files and archive">
-        <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
+        <EntryButton
+          style={selected ? {color: 'white'} : null} component={IconButton}
+          entryId={row.entry_id} uploadId={row.upload_id}
+        >
           <NavigateNextIcon />
-        </IconButton>
+        </EntryButton>
       </Tooltip>
     } else {
       return ''

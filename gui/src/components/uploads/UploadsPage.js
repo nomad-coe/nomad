@@ -33,8 +33,8 @@ import DataTable from '../DataTable'
 import WithButton from '../utils/WithButton'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
-import { useHistory } from 'react-router-dom'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import { UploadButton } from '../nav/Routes'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -204,7 +204,6 @@ UploadCommands.propTypes = {
 
 function UploadsPage() {
   const [api, errors] = [useApi(), useErrors()]
-  const history = useHistory()
   const [data, setData] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
 
@@ -250,10 +249,6 @@ function UploadsPage() {
     })
   }
 
-  const handleOpenUpload = upload => {
-    history.push(`uploads/${upload.upload_id}`)
-  }
-
   useEffect(() => {
     fetchData({
       page_size: 10,
@@ -278,9 +273,9 @@ function UploadsPage() {
   />
 
   const entryActions = upload => <Tooltip title="Open this upload">
-    <IconButton onClick={() => handleOpenUpload(upload)}>
+    <UploadButton component={IconButton} uploadId={upload.upload_id}>
       <DetailsIcon />
-    </IconButton>
+    </UploadButton>
   </Tooltip>
 
   return <Page loading={!(data && uploadCommands)}>
