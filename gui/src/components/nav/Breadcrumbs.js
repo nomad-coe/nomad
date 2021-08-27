@@ -46,8 +46,8 @@ const Breadcrumbs = React.memo(function Breadcrumbs() {
       .filter(({match}) => match)
       .map(({route, match}, i) => {
         if (match.url === pathname) {
-          return <Box display="flex" flexDirection="row" alignItems="center">
-            <Typography color="textPrimary" key={i}>{route.breadcrumb}</Typography>
+          return <Box key={i} display="flex" flexDirection="row" alignItems="center">
+            <Typography color="textPrimary">{route.breadcrumb}</Typography>
             {route.help && (
               <HelpDialog className={classes.help} size="small" {...route.help}>
                 <HelpIcon className={classes.helpIcon} />
