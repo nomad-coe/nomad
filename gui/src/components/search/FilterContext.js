@@ -47,7 +47,7 @@ export const quantityAbbreviations = new Map()
 export const quantityFullnames = new Map()
 export const quantityMaterialNames = {}
 export const quantityEntryNames = {}
-export const quantityPostfixes = {}
+export const quantityData = {}
 export const labelMaterial = 'Material'
 export const labelElements = 'Elements / Formula'
 export const labelSymmetry = 'Symmetry'
@@ -80,8 +80,10 @@ export const labelIDs = 'IDs'
  * are used to e.g. in showing FilterSummaries about a group of filters.
  * @param {string} agg Possible aggregation associated with the quantity. If
  * provided, the initial aggregation value will be prefetched for this quantity.
+ * @param {string} multiple Whether this quantity supports several values
+ * @param {string} postfix The default postfix applied to filters with several values
  */
-function registerQuantity(name, group, agg, postfix = 'any') {
+function registerQuantity(name, group, agg, multiple = true, postfix = 'any') {
   // Store the available quantities, their grouping, and the initial aggregation
   // types.
   quantities.add(name)
@@ -115,18 +117,21 @@ function registerQuantity(name, group, agg, postfix = 'any') {
   quantityEntryNames[materialName] = name
 
   // Store the default query postfixes (any/all) for each quantity
-  quantityPostfixes[name] = postfix
+  const data = quantityData[name] || {}
+  data.postfix = postfix
+  data.multiple = multiple
+  quantityData[name] = data
 }
 
 registerQuantity('results.material.structural_type', labelMaterial, 'terms')
 registerQuantity('results.material.functional_type', labelMaterial, 'terms')
 registerQuantity('results.material.compound_type', labelMaterial, 'terms')
 registerQuantity('results.material.material_name', labelMaterial)
-registerQuantity('results.material.elements', labelElements, 'terms', 'all')
+registerQuantity('results.material.elements', labelElements, 'terms', true, 'all')
 registerQuantity('results.material.elements_exclusive', labelElements, 'terms')
 registerQuantity('results.material.chemical_formula_hill', labelElements)
 registerQuantity('results.material.chemical_formula_anonymous', labelElements)
-registerQuantity('results.material.n_elements', labelElements, 'min_max')
+registerQuantity('results.material.n_elements', labelElements, 'min_max', false)
 registerQuantity('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
 registerQuantity('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
 registerQuantity('results.material.symmetry.structure_name', labelSymmetry, 'terms')
@@ -143,16 +148,16 @@ registerQuantity('results.method.simulation.dft.core_electron_treatment', labelD
 registerQuantity('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
 registerQuantity('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
 registerQuantity('results.method.simulation.gw.gw_type', labelGW, 'terms')
-registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max')
+registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', false)
 registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
 registerQuantity('results.properties.available_properties', labelElectronic, 'terms', 'all')
 registerQuantity('external_db', labelAuthor, 'terms')
 registerQuantity('authors.name', labelAuthor)
-registerQuantity('upload_time', labelAuthor, 'min_max')
+registerQuantity('upload_time', labelAuthor, 'min_max', false)
 registerQuantity('datasets.name', labelDataset)
 registerQuantity('datasets.doi', labelDataset)
 registerQuantity('entry_id', labelIDs)
-registerQuantity('owner', labelAccess)
+registerQuantity('visibility', labelAccess, undefined, false)
 registerQuantity('upload_id', labelIDs)
 registerQuantity('results.material.material_id', labelIDs)
 registerQuantity('datasets.dataset_id', labelIDs)
@@ -492,7 +497,7 @@ function qsToQuery(queryString) {
         }
       } else {
         value = parser(value)
-        if (type !== 'number' && type !== 'timestamp' && key !== 'owner') {
+        if (type !== 'number' && type !== 'timestamp' && key !== 'visibility') {
           value = new Set([value])
         }
       }
@@ -597,7 +602,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
 
     aggRequest = toAPIAgg(aggRequest, resource)
     const search = {
-      owner: query.owner || 'visible',
+      owner: query.visibility || 'visible',
       query: queryCleaned,
       aggregations: aggRequest,
       pagination: {page_size: 0},
@@ -673,7 +678,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
     pageAfterValue.current = undefined
     const cleanedQuery = toAPIQuery(query, exclusive, resource)
     const search = {
-      owner: query.owner || 'visible',
+      owner: query.visibility || 'visible',
       query: cleanedQuery,
       pagination: {
         page_size: pageSize,
@@ -768,8 +773,8 @@ export function toAPIQuery(query, exclusive, resource) {
   let newQuery = {}
   for (let [k, v] of Object.entries(query)) {
     let newValue
-    // Some quantities are not included in the query, e.g. the owner.
-    if (k === 'owner') {
+    // Some quantities are not included in the query, e.g. the visibility.
+    if (k === 'visibility') {
     // If a regular elements query is made, we add the ':all'-prefix.
     } else {
       if (k === 'results.material.elements') {
@@ -799,7 +804,7 @@ export function toAPIQuery(query, exclusive, resource) {
           newValue = toAPIQueryValue(v)
         }
       }
-      const postfix = isArray(newValue) ? quantityPostfixes[k] : undefined
+      const postfix = isArray(newValue) ? quantityData[k]?.postfix : undefined
       k = resource === 'materials' ? quantityMaterialNames[k] : k
       k = postfix ? `${k}:${postfix}` : k
       newQuery[k] = newValue

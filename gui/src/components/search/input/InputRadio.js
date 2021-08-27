@@ -27,6 +27,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import InputLabel from './InputLabel'
+import searchQuantities from '../../../searchQuantities'
 import { useFilterState } from '../FilterContext'
 
 const useStyles = makeStyles(theme => ({
@@ -53,12 +54,17 @@ const InputRadio = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
 
+  // Determine the description and units
+  const def = searchQuantities[quantity]
+  const desc = description || def?.description || ''
+  const title = label || def?.name
+
   const handleChange = useCallback((event, value) => {
     setFilter(value)
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputLabel label={label} description={description}/>
+    <InputLabel label={title} description={desc}/>
     <RadioGroup aria-label={label} name={label} value={filter || initialValue} onChange={handleChange}>
       {options && Object.entries(options).map(([key, value]) =>
         <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={

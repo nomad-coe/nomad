@@ -33,7 +33,7 @@ const FilterSubMenuAccess = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <InputRadio
-          quantity="owner"
+          quantity="visibility"
           label="Visibility"
           description="The visibility of the calculation."
           initialValue={authenticated ? 'visible' : 'public'}

@@ -121,7 +121,7 @@ const NewSearch = React.memo(({
         onCollapsedChange={setIsCollapsed}
       />
     </div>
-    <div className={styles.center}>
+    <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
       <NewSearchBar
         quantities={quantities}
         className={styles.searchBar}
