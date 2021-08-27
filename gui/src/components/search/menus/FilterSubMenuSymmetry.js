@@ -36,7 +36,7 @@ const FilterSubMenuSymmetry = React.memo(({
         <InputCheckboxes
           quantity="results.material.symmetry.bravais_lattice"
           visible={visible}
-          xs={6}
+          xs={4}
         />
       </Grid>
       <Grid item xs={12}>

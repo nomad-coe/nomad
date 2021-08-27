@@ -63,6 +63,31 @@ structure_classes = [
     unavailable,
     not_processed,
 ]
+bravais_lattices = [
+    "aP",
+    "mP",
+    "mS",
+    "oP",
+    "oS",
+    "oF",
+    "oI",
+    "tP",
+    "tI",
+    "hP",
+    "hR",
+    "cP",
+    "cF",
+    "cI",
+]
+crystal_systems = [
+    "triclinic",
+    "monoclinic",
+    "orthorhombic",
+    "tetragonal",
+    "trigonal",
+    "hexagonal",
+    "cubic",
+]
 xc_treatments = {
     "gga": "GGA",
     "hf_": "HF",
@@ -405,7 +430,7 @@ class Symmetry(MSection):
         """
     )
     bravais_lattice = Quantity(
-        type=str,
+        type=MEnum(bravais_lattices),
         shape=[],
         description="""
         Identifier for the Bravais lattice in Pearson notation. The first lowercase letter
@@ -421,11 +446,10 @@ class Symmetry(MSection):
         ],
     )
     crystal_system = Quantity(
-        type=str,
+        type=MEnum(crystal_systems),
         shape=[],
         description="""
-        Name of the crystal system. Can be one of the following: triclinic, monoclinic,
-        orthorhombic, tetragonal, trigonal, hexagonal or cubic.
+        Name of the crystal system.
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
