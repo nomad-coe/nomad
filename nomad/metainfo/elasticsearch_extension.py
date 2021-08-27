@@ -751,7 +751,7 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     material_entry_type.create_mapping(entry_section_def, prefix='entries')
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
-    material_type.nested_object_keys = ['entries'] + material_type.nested_object_keys
+    material_type.nested_object_keys += ['entries'] + material_entry_type.nested_object_keys
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
