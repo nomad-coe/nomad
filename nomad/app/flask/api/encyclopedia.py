@@ -401,7 +401,7 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
         calc_id: Calculation id.
 
     Returns:
-        MSection: The section_run as MSection
+        MSection: The section run as MSection
         For each path, a dictionary containing the path as key and the returned
         section as value.
     """
@@ -1279,11 +1279,11 @@ calculation_property_map = {
     },
     "wyckoff_sets": {
         "source": "archive",
-        "path": "section_metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
+        "path": "metadata/encyclopedia/material/idealized_structure/wyckoff_sets"
     },
     "idealized_structure": {
         "source": "archive",
-        "path": "section_metadata/encyclopedia/material/idealized_structure"
+        "path": "metadata/encyclopedia/material/idealized_structure"
     },
 }
 

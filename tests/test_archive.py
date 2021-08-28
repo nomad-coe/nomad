@@ -287,7 +287,7 @@ def test_read_springer():
 
 @pytest.fixture(scope='session')
 def archive():
-    return EntryArchive.m_from_dict(json.loads('''
+    archive = EntryArchive.m_from_dict(json.loads('''
         {
             "metadata": {
                 "calc_id": "test_id",
@@ -314,14 +314,24 @@ def archive():
                                 "labels": [
                                     "He"
                                 ]
-                            }
+                            },
+                            "symmetry": [
+                                {
+                                    "space_group_number": 221
+                                }
+                            ]
                         },
                         {
                             "atoms": {
                                 "labels": [
                                     "H"
                                 ]
-                            }
+                            },
+                            "symmetry": [
+                                {
+                                    "space_group_number": 221
+                                }
+                            ]
                         }
                     ],
                     "calculation": [
@@ -378,6 +388,9 @@ def archive():
             ]
         }
         '''))
+    assert archive.run is not None
+    assert len(archive.run) == 1
+    return archive
 
 
 @pytest.mark.parametrize('required, error', [
@@ -574,10 +587,10 @@ def test_parital_archive_read_write(archive, mongo):
 
 def test_partial_archive_re_write(archive, mongo):
     write_partial_archive_to_mongo(archive)
-    archive.section_metadata.comment = 'changed'
+    archive.metadata.comment = 'changed'
     write_partial_archive_to_mongo(archive)
     archive = assert_partial_archive(read_partial_archive_from_mongo('test_id'))
-    assert archive.section_metadata.comment == 'changed'
+    assert archive.metadata.comment == 'changed'
 
 
 def test_read_partial_archives(archive, mongo):
@@ -592,7 +605,9 @@ def test_compute_required_with_referenced(archive):
                 'energy': {
                     'total': '*'
                 },
-                'system_ref': '*'
+                'system_ref': {
+                    'value': '*'
+                }
             }
         }
     })
@@ -606,7 +621,9 @@ def test_compute_required_with_referenced(archive):
                 'energy': {
                     'total': '*'
                 },
-                'system_ref': '*'
+                'system_ref': {
+                    'value': '*'
+                }
             },
             'system': '*'
         }
@@ -615,10 +632,12 @@ def test_compute_required_with_referenced(archive):
 
 def test_compute_required_incomplete(archive):
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'section_dos': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'dos_electronic': '*'
             }
         }
     })
@@ -626,11 +645,15 @@ def test_compute_required_incomplete(archive):
     assert required is None
 
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': {
-                    'section_symmetry': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': {
+                    'value': {
+                        'symmetry': '*'
+                    }
                 }
             }
         }

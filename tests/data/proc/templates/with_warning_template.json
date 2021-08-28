@@ -45,10 +45,12 @@
                     "basis_set": [
                         {
                             "type": "plane waves",
-                            "cell_dependent": {
-                                "kind": "plane waves",
-                                "planewave_cutoff": 5.81433707960672e-17
-                            }
+                            "cell_dependent": [
+                                {
+                                    "kind": "plane waves",
+                                    "planewave_cutoff": 5.81433707960672e-17
+                                }
+                            ]
                         }
                     ]
                 }

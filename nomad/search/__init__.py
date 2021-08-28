@@ -168,7 +168,7 @@ def index(
         _refresh()
 
 
-# TODO this depends on how we merge section_metadata
+# TODO this depends on how we merge section metadata
 def publish(entries: Iterable[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
@@ -193,7 +193,7 @@ def update_metadata(
         for entry_metadata in entries:
             entry_archive = entry_metadata.m_parent
             if entry_archive is None:
-                entry_archive = EntryArchive(section_metadata=entry_metadata)
+                entry_archive = EntryArchive(metadata=entry_metadata)
             entry_doc = entry_type.create_index_doc(entry_archive)
 
             entry_doc.update(**kwargs)

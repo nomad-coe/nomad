@@ -109,7 +109,7 @@ class StructureCollection(EntryCollection):
             logger.error('missing archive entry', upload_id=upload_id, calc_id=calc_id)
             return None
 
-        metadata = archive[calc_id]['section_metadata'].to_dict()
+        metadata = archive[calc_id]['metadata'].to_dict()
         entry = datamodel.EntryMetadata.m_from_dict(metadata)
 
         attrs = entry.dft.optimade.m_to_dict()

@@ -28,8 +28,8 @@ import os.path
 
 from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, DFTMetadata, Results
-from nomad.datamodel.metainfo.run.run import Run
-from nomad.datamodel.metainfo.run.system import System
+from nomad.datamodel.metainfo.run.run import Run, Program
+from nomad.datamodel.metainfo.run.system import System, Atoms
 from tests.normalizing.conftest import run_normalize
 
 
@@ -252,7 +252,7 @@ class ExampleData:
         if material_id is None:
             material_id = 'test_material_id'
 
-        entry_metadata = entry_archive.section_metadata
+        entry_metadata = entry_archive.metadata
         if entry_metadata is None:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
@@ -277,7 +277,7 @@ class ExampleData:
         entry_metadata.m_update(**kwargs)
 
         # create v0 default data
-        if entry_archive.section_metadata.dft is None:
+        if entry_archive.metadata.dft is None:
             if dft is None:
                 dft = {
                     'xc_functional': 'GGA',
@@ -332,7 +332,7 @@ class ExampleData:
             assert isinstance(section_results, Results)
             entry_archive.m_add_sub_section(EntryArchive.results, section_results)
 
-        if len(entry_archive.section_run) == 0:
+        if len(entry_archive.run) == 0:
             entry_archive.m_create(Run)
 
         if archive is not None:
@@ -378,15 +378,17 @@ class ExampleData:
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
 
         archive = EntryArchive()
-        archive.m_create(Run).m_create(
-            System,
-            atom_labels=atom_labels,
-            atom_positions=[test_vector for i in range(0, len(atom_labels))],
+        run = archive.m_create(Run)
+        run.m_create(Program, name='VASP')
+        run.m_create(System).m_create(
+            Atoms,
+            labels=atom_labels,
+            positions=[test_vector for i in range(0, len(atom_labels))],
             lattice_vectors=[test_vector, test_vector, test_vector],
-            configuration_periodic_dimensions=[True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)])
+            periodic=[True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)])
 
         run_normalize(archive)
-        entry_metadata = archive.section_metadata
+        entry_metadata = archive.metadata
         entry_metadata.domain = 'dft'
         entry_metadata.apply_domain_metadata(archive)
 

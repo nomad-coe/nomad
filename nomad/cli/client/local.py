@@ -171,6 +171,6 @@ def local(calc_id, show_archive, show_metadata, skip_normalizers, not_strict, **
             json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
         if show_metadata:
-            metadata = entry_archive.section_metadata
+            metadata = entry_archive.metadata
             metadata.apply_domain_metadata(entry_archive)
             json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

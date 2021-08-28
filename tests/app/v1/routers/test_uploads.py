@@ -1216,7 +1216,7 @@ def test_post_upload_action_publish_to_central_nomad(
                 new_data = []
                 for entry_id in data.keys():
                     archive_dict = data[entry_id].to_dict()
-                    section_metadata = archive_dict['section_metadata']
+                    section_metadata = archive_dict['metadata']
                     section_metadata['upload_id'] += suffix
                     new_entry_id = generate_entry_id(
                         section_metadata['upload_id'], section_metadata['mainfile'])

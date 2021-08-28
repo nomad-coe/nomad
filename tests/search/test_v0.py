@@ -40,7 +40,7 @@ def test_index_skeleton_calc(elastic):
 
 
 def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -55,7 +55,7 @@ def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
 
 def test_index_normalized_calc_with_metadata(
         elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -69,7 +69,7 @@ def test_index_normalized_calc_with_metadata(
 
 def test_index_normalized_calc_with_author(
         elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id',
         coauthors=[dict(first_name='Howard', last_name='Wolowitz')])
@@ -85,7 +85,7 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 @pytest.fixture()
 def example_search_data(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id', published=True,
         upload_time=datetime.now())
@@ -98,7 +98,7 @@ def example_search_data(elastic, normalized: datamodel.EntryArchive):
 
 @pytest.fixture()
 def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
-    entry_metadata = parsed_ems.section_metadata
+    entry_metadata = parsed_ems.metadata
     entry_metadata.m_update(
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)

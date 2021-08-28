@@ -239,15 +239,15 @@ class DocumentType():
 
         result = root.m_to_dict(**kwargs)
 
-        # TODO deal with section_metadata
-        metadata = result.get('section_metadata')
+        # TODO deal with metadata
+        metadata = result.get('metadata')
         if metadata is not None:
-            del(result['section_metadata'])
+            del(result['metadata'])
             result.update(**metadata)
 
             # TODO merge with the v0 index data, create by the other search extension
             if self == entry_type:
-                v0_entry = root.section_metadata.a_elastic.create_index_entry()
+                v0_entry = root.metadata.a_elastic.create_index_entry()
                 result.update(**v0_entry.to_dict(include_meta=False))
 
         return result
@@ -321,8 +321,8 @@ class DocumentType():
             else:
                 qualified_name = f'{prefix}.{sub_section_def.name}'
 
-            # TODO deal with section_metadata
-            qualified_name = re.sub(r'\.?section_metadata', '', qualified_name)
+            # TODO deal with metadata
+            qualified_name = re.sub(r'\.?metadata', '', qualified_name)
             qualified_name = None if qualified_name == '' else qualified_name
 
             sub_section_mapping = self.create_mapping(
@@ -334,7 +334,7 @@ class DocumentType():
                 sub_section_mapping['type'] = 'nested'
 
             if len(sub_section_mapping['properties']) > 0:
-                if sub_section_def.name == 'section_metadata':
+                if sub_section_def.name == 'metadata':
                     mappings.update(**sub_section_mapping['properties'])
                 else:
                     mappings[sub_section_def.name] = sub_section_mapping

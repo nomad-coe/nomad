@@ -24,6 +24,8 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.metainfo.run.system import SystemReference
 from nomad.datamodel.metainfo.run.method import MethodReference
 
+from ..common import FastAccess
+
 
 m_package = Package()
 
@@ -75,21 +77,6 @@ class EnergyTypeReference(MCategory):
 class ErrorEstimateContribution(MCategory):
     '''
     An estimate of a partial quantity contributing to the error for a given quantity.
-    '''
-
-    m_def = Category()
-
-
-class FastAccess(MCategory):
-    '''
-    Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
-    because they are frequently accessed via archive API.
-
-    If applied to a sub_section, the section will be added to the fast storage. Currently
-    this only works for *root* sections that are sub_sections of `EntryArchive`.
-
-    If applied to a reference types quantity, the referenced section will also be added to
-    the fast storage, regardless if the referenced section has the category or not.
     '''
 
     m_def = Category()
@@ -249,6 +236,7 @@ class Energy(MSection):
 
     total = SubSection(
         sub_section=EnergyEntry.m_def,
+        categories=[FastAccess],
         description='''
         Contains the value and information regarding the total energy of the system.
         ''')
@@ -1588,9 +1576,9 @@ class BaseCalculation(MSection):
         Indicates whether a the calculation is converged.
         ''')
 
-    system_ref = SubSection(sub_section=SystemReference.m_def, repeats=True)
+    system_ref = SubSection(sub_section=SystemReference.m_def, repeats=True, categories=[FastAccess])
 
-    method_ref = SubSection(sub_section=MethodReference.m_def, repeats=True)
+    method_ref = SubSection(sub_section=MethodReference.m_def, repeats=True, categories=[FastAccess])
 
     calculation_ref = SubSection(sub_section=CalculationReference.m_def, repeats=True)
 
@@ -1611,7 +1599,7 @@ class BaseCalculation(MSection):
         contamination in spin-unrestricted calculations.
         ''')
 
-    energy = SubSection(sub_section=Energy.m_def)
+    energy = SubSection(sub_section=Energy.m_def, categories=[FastAccess])
 
     forces = SubSection(sub_section=Forces.m_def)
 

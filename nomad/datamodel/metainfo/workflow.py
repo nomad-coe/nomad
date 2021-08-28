@@ -8,20 +8,7 @@ from nomad.metainfo.search_extension import Search
 from nomad.datamodel.metainfo.run.calculation import Calculation
 from nomad.datamodel.metainfo.run.run import RunReference
 
-
-class FastAccess(MCategory):
-    '''
-    Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
-    because they are frequently accessed via archive API.
-
-    If applied to a sub_section, the section will be added to the fast storage. Currently
-    this only works for *root* sections that are sub_sections of `EntryArchive`.
-
-    If applied to a reference types quantity, the referenced section will also be added to
-    the fast storage, regardless if the referenced section has the category or not.
-    '''
-
-    m_def = Category(aliases=['fast_access'])
+from .common import FastAccess
 
 
 class Raman(MSection):

@@ -550,7 +550,7 @@ if __name__ == '__main__':
         for use_blocked_toc in [False, True]:
             start = time()
             for _ in range(0, 23):
-                read_archive(buffer, use_blocked_toc=use_blocked_toc)[example_uuid]['section_run']['section_system']
+                read_archive(buffer, use_blocked_toc=use_blocked_toc)[example_uuid]['run']['system']
             print('archive.py: access single entry system (23), blocked %d: ' % use_blocked_toc, (time() - start) / 23)
 
         # read every n-ed entry from archive
@@ -561,7 +561,7 @@ if __name__ == '__main__':
                 with read_archive(buffer, use_blocked_toc=use_blocked_toc) as data:
                     for i, entry in enumerate(example_archive):
                         if i % access_every == 0:
-                            data[entry[0]]['section_run']['section_system']
+                            data[entry[0]]['run']['system']
             print('archive.py: access every %d-ed entry single entry system (23), blocked %d: ' % (access_every, use_blocked_toc), (time() - start) / 23)
 
         # just msgpack

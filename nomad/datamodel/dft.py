@@ -28,7 +28,7 @@ from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
 from .metainfo.workflow import Workflow
-from .metainfo.run.calculation import FastAccess
+from .metainfo.common import FastAccess
 from .metainfo.run.run import Run
 from .metainfo.run.method import Functional
 from .metainfo.run.calculation import Energy
@@ -310,7 +310,7 @@ class DFTMetadata(MSection):
 
         section_run = entry_archive.run
         if not section_run:
-            logger.warn('no section_run found')
+            logger.warn('no section run found')
             return
         section_run = section_run[0]
 

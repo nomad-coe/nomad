@@ -27,7 +27,7 @@ from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.datamodel.metainfo.run.calculation import FastAccess
+from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
@@ -676,7 +676,7 @@ class EntryArchive(metainfo.MSection):
         derived=lambda entry: entry.metadata.calc_id,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    section_run = metainfo.SubSection(sub_section=Run, repeats=True)
+    run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
     quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
     workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
@@ -690,6 +690,7 @@ class EntryArchive(metainfo.MSection):
 
     results = metainfo.SubSection(
         sub_section=Results,
+        categories=[FastAccess],
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
 
 

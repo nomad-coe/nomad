@@ -99,8 +99,8 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
 
         with upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
-            assert 'section_run' in calc_archive
-            assert 'section_metadata' in calc_archive
+            assert 'run' in calc_archive
+            assert 'metadata' in calc_archive
             assert 'processing_logs' in calc_archive
 
             has_test_event = False
@@ -113,9 +113,9 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         assert len(calc.errors) == 0
 
         archive = read_partial_archive_from_mongo(calc.calc_id)
-        assert archive.section_metadata is not None
-        assert archive.section_workflow.calculation_result_ref \
-            .single_configuration_calculation_to_system_ref.atom_labels is not None
+        assert archive.metadata is not None
+        assert archive.workflow[0].calculation_result_ref \
+            .system_ref[0].value.atoms.labels is not None
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
@@ -436,7 +436,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # assert changed archive files
     if with_failure == 'after':
         with published.upload_files.read_archive(first_calc.calc_id) as archive:
-            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs', 'section_metadata']
+            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs', 'metadata']
 
     else:
         with published.upload_files.read_archive(first_calc.calc_id) as archive:
@@ -604,14 +604,14 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
     if calc is not None:
         with upload.upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
-            assert 'section_metadata' in calc_archive
-            assert calc_archive['section_metadata']['dft']['code_name'] not in [
+            assert 'metadata' in calc_archive
+            assert calc_archive['metadata']['dft']['code_name'] not in [
                 config.services.unavailable_value, config.services.not_processed_value]
             if function != 'cleanup':
-                assert len(calc_archive['section_metadata']['processing_errors']) > 0
+                assert len(calc_archive['metadata']['processing_errors']) > 0
             assert 'processing_logs' in calc_archive
             if function != 'parsing':
-                assert 'section_run' in calc_archive
+                assert 'run' in calc_archive
 
 
 # consume_ram, segfault, and exit are not testable with the celery test worker

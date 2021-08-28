@@ -168,7 +168,7 @@ if __name__ == '__main__':
                         f.write('this is a generated test file')
 
             upload_files.write_archive(calc.calc_id, {
-                'section_run': [{'test': 'this is a generated test files'}],
+                'run': [{'test': 'this is a generated test files'}],
                 'processing_logs': [{'event': 'this is a generated test file'}]
             })
 

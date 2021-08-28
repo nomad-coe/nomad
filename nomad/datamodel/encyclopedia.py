@@ -26,8 +26,8 @@ from nomad.metainfo.search_extension import Search
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = Package()
 
-from nomad.datamodel.metainfo.run.calculation import (
-    FastAccess, BandStructure, Dos, Thermodynamics)  # noqa
+from nomad.datamodel.metainfo.common import FastAccess  # noqa
+from nomad.datamodel.metainfo.run.calculation import BandStructure, Dos, Thermodynamics  # noqa
 
 
 class WyckoffVariables(MSection):

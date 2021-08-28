@@ -16,13 +16,9 @@
 # limitations under the License.
 #
 
-from nomad.processing.data import Calc
 import numpy as np
-
 from typing import List, Union
-
 import pytest
-
 from ase import Atoms
 import ase.build
 
@@ -111,7 +107,7 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     template.run[0].system = None
 
     # Fill structural information
-    # system = template.section_run[0].m_create(System)
+    # system = template.run[0].m_create(System)
     # system.atom_positions = atoms.get_positions() * 1E-10
     # system.atom_labels = atoms.get_chemical_symbols()
     # system.simulation_cell = atoms.get_cell() * 1E-10

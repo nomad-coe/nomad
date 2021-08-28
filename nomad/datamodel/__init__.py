@@ -108,7 +108,7 @@ domains = {
     'dft': {
         'metadata': DFTMetadata,
         'metainfo_all_package': 'common',
-        'root_section': 'section_run'
+        'root_section': 'run'
     },
     'ems': {
         'metadata': EMSMetadata,

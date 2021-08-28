@@ -289,7 +289,7 @@ def index_materials(threads, code, dry, in_place, n, source):
         mongo_db = infrastructure.mongo_client[config.mongo.db_name]
         mongo_collection = mongo_db['archive']
         if code:
-            collection = mongo_collection.find({"section_metadata.dft.code_name": {"$in": code}})
+            collection = mongo_collection.find({"metadata.dft.code_name": {"$in": code}})
         else:
             collection = mongo_collection.find()
         all_calcs = collection.count()
@@ -309,14 +309,14 @@ def index_materials(threads, code, dry, in_place, n, source):
                     # Do not process entries that do not have the material
                     # information
                     try:
-                        status = mongo_archive["section_metadata"]["encyclopedia"]["status"]
+                        status = mongo_archive["metadata"]["encyclopedia"]["status"]
                         if status != EncyclopediaMetadata.status.type.success:
                             raise AttributeError
                     except (KeyError, AttributeError, IndexError):
                         continue
 
                     # Create material information
-                    metadata = mongo_archive["section_metadata"]
+                    metadata = mongo_archive["metadata"]
                     encyclopedia = EncyclopediaMetadata.m_from_dict(metadata["encyclopedia"])
                     dft = metadata["dft"]
                     material: Material = Material()

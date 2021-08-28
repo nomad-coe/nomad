@@ -51,8 +51,8 @@ example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
 example_file_corrupt_zip = 'tests/data/proc/examples_corrupt_zip.zip'
 empty_file = 'tests/data/proc/empty.zip'
 example_archive_contents = {
-    "section_run": [],
-    "section_metadata": {},
+    "run": [],
+    "metadata": {},
     "processing_logs": [{"entry": "test"}]
 }
 

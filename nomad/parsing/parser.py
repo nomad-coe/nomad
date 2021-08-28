@@ -61,7 +61,7 @@ class Parser(metaclass=ABCMeta):
         Args:
             mainfile: A path to a mainfile that this parser can parse.
             archive: An instance of the section :class:`EntryArchive`. It might contain
-                a ``section_metadata`` with information about the entry.
+                a section ``metadata`` with information about the entry.
             logger: A optional logger
         '''
         pass

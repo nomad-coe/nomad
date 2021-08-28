@@ -22,23 +22,9 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
 
+from ..common import FastAccess
 
 m_package = Package()
-
-
-class FastAccess(MCategory):
-    '''
-    Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
-    because they are frequently accessed via archive API.
-
-    If applied to a sub_section, the section will be added to the fast storage. Currently
-    this only works for *root* sections that are sub_sections of `EntryArchive`.
-system
-    If applied to a reference types quantity, the referenced section will also be added to
-    the fast storage, regardless if the referenced section has the category or not.
-    '''
-
-    m_def = Category()
 
 
 class SystemReference(MSection):
@@ -68,6 +54,7 @@ class SystemReference(MSection):
 
     value = Quantity(
         type=Reference(SectionProxy('System')),
+        categories=[FastAccess],
         shape=[],
         description='''
         Value of the referenced section system.
@@ -533,9 +520,9 @@ class System(MSection):
         representative where chosen to be representative for all systems in the run.
         ''')
 
-    atoms = SubSection(sub_section=Atoms.m_def)
+    atoms = SubSection(sub_section=Atoms.m_def, categories=[FastAccess])
 
-    chemical_composition = SubSection(sub_section=ChemicalComposition.m_def)
+    chemical_composition = SubSection(sub_section=ChemicalComposition.m_def, categories=[FastAccess])
 
     constraint = SubSection(sub_section=Constraint.m_def, repeats=True)
 

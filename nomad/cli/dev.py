@@ -498,6 +498,12 @@ def units(ctx):
             "label": "Weber",
             "abbreviation": "Wb",
         },
+        # Magnetic dipole
+        "bohr_magneton": {
+            "dimension": "magnetic_dipole",
+            "label": "Bohr magneton",
+            "abbreviation": "Bm",
+        },
         # Inductance
         "henry": {
             "dimension": "inductance",
@@ -632,6 +638,12 @@ def units(ctx):
             ],
             "multipliers": {},
         },
+        "magnetic_dipole": {
+            "units": [
+                "bohr_magneton",
+            ],
+            "multipliers": {},
+        },
         "inductance": {
             "dimension": "inductance",
             "units": [
@@ -738,7 +750,7 @@ def units(ctx):
     units = set()
     packages = all_metainfo["packages"]
     for package in packages:
-        sections = package["section_definitions"]
+        sections = package.get("section_definitions", [])
         for section in sections:
             quantities = section.get("quantities", [])
             for quantity in quantities:
@@ -755,6 +767,9 @@ def units(ctx):
                         if not is_operator and not is_number:
                             units.add(part)
     for unit in units:
+        if unit == 'byte':
+            continue
+
         assert unit in unit_map, "The unit '{}' is not defined in the unit definitions.".format(unit)
 
     # Print unit conversion table and unit systems as a Javascript source file

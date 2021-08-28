@@ -21,7 +21,7 @@ from typing import Any, Tuple, Dict, Union, List
 from nomad import infrastructure, config
 from nomad.metainfo import MSection, Definition, Quantity, Reference, SubSection, Section
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.run.calculation import FastAccess
+from nomad.datamodel.metainfo.common import FastAccess
 
 
 def create_partial_archive(archive: EntryArchive) -> Dict:
@@ -30,9 +30,6 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
     The given archive is filtered based on the metainfo category ``FastAccess``.
     Selected sections and other data that they reference (recursively) comprise the
     resulting partial archive.
-
-    TODO at the moment is hard coded and NOT informed by the metainfo. We simply
-    add sections EntryMetadata and Workflow.
 
     Arguments:
         archive: The archive as an :class:`EntryArchive` instance.

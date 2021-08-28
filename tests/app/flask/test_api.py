@@ -733,8 +733,8 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data is not None
-        assert 'section_metadata' in data
-        assert 'section_run' in data
+        assert 'metadata' in data
+        assert 'run' in data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_signed(self, api, upload, _, test_user_signature_token):
@@ -790,7 +790,7 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    @pytest.mark.parametrize('required', [{'section_workflow': '*'}, {'section_run': '*'}])
+    @pytest.mark.parametrize('required', [{'workflow': '*'}, {'run': '*'}])
     def test_archive_query_paginated(self, api, published_wo_user_metadata, required):
         data = {'required': required, 'pagination': {'per_page': 5}}
         uri = '/archive/query'
@@ -828,9 +828,9 @@ class TestArchive(UploadFilesBasedTests):
     def test_archive_query_aggregated(self, api, published_wo_user_metadata):
         uri = '/archive/query'
         schema = {
-            'section_run': {
-                'section_single_configuration_calculation': {
-                    'energy_total': '*'}}}
+            'run': {
+                'calculation': {
+                    'energy': '*'}}}
 
         query = {'required': schema, 'aggregation': {'per_page': 1}}
 
@@ -889,7 +889,7 @@ class TestArchive(UploadFilesBasedTests):
             '$and': [
                 {'dft.code_name': 'VASP'},
                 {'$gte': {'n_atoms': 3}},
-                {'$lte': {'dft.workflow.section_geometry_optimization.final_energy_difference': 1e-24}}
+                {'$lte': {'dft.workflow.geometry_optimization.final_energy_difference': 1e-24}}
             ]}, 0, id='client-example')
     ])
     def test_post_archive_query(self, api, example_upload, query_expression, nresults):
@@ -916,7 +916,7 @@ class TestArchive(UploadFilesBasedTests):
 
 class TestMetainfo():
     @pytest.mark.parametrize('package', [
-        'nomad.datamodel.metainfo.common_dft',
+        'nomad.datamodel.metainfo.run.calculation',
         'vaspparser.metainfo.vasp'])
     def test_get_package(self, api, package):
         rv = api.get(f'/metainfo/{package}')
@@ -947,7 +947,7 @@ class TestRepo():
             domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
         entry_metadata.files = ['test/mainfile.txt']
         entry_metadata.apply_domain_metadata(normalized)
-        entry_metadata.encyclopedia = normalized.section_metadata.encyclopedia
+        entry_metadata.encyclopedia = normalized.metadata.encyclopedia
 
         entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 
@@ -1118,7 +1118,7 @@ class TestRepo():
         (2, 'files', 'test/mainfile.txt', 'test_user'),
         (2, 'paths', 'mainfile.txt', 'test_user'),
         (2, 'paths', 'test', 'test_user'),
-        (2, 'dft.quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
+        (2, 'dft.quantities', ['wyckoff_letters', 'hall_number'], 'test_user'),
         (0, 'dft.quantities', 'dos', 'test_user'),
         (2, 'external_id', 'external_2,external_3', 'other_test_user'),
         (1, 'external_id', 'external_2', 'test_user'),
@@ -2210,7 +2210,7 @@ class TestDataset:
         example_data.save()
         from nomad import files
         assert files.UploadFiles.get('1') is not None
-        assert example_entry.section_metadata.datasets[0].dataset_id == '1'
+        assert example_entry.metadata.datasets[0].dataset_id == '1'
 
         # entry_archive = EntryArchive()
         # entry_metadata = entry_archive.m_create(
@@ -2221,7 +2221,7 @@ class TestDataset:
         #     calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
         #     metadata=entry_metadata.m_to_dict()).save()
         # upload_files = files.StagingUploadFiles(upload_id='1', create=True)
-        # upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
+        # upload_files.write_archive('1', dict(metadata=entry_metadata.m_to_dict()))
         # upload_files.close()
         # index(entry_archive)
 
