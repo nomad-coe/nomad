@@ -23,7 +23,7 @@ import { withApi } from '../api'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import Download from './Download'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
-import { EntryPageContent } from './EntryPage'
+import Page from '../Page'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -115,18 +115,18 @@ class ArchiveEntryView extends React.Component {
 
     if (doesNotExist) {
       return (
-        <EntryPageContent>
+        <Page>
           <Typography className={classes.error}>
             No archive exists for this entry. Either the archive was not generated due
             to parsing or other processing errors (check the log tab), or the entry it
             self does not exist.
           </Typography>
-        </EntryPageContent>
+        </Page>
       )
     }
 
     return (
-      <EntryPageContent width={'100%'} maxWidth={'undefined'}>
+      <Page width={'100%'} maxWidth={'undefined'}>
         {
           data && typeof data !== 'string'
             ? <div className={classes.archiveBrowser}>
@@ -152,7 +152,7 @@ class ArchiveEntryView extends React.Component {
         >
           <DownloadIcon />
         </Download>
-      </EntryPageContent>
+      </Page>
     )
   }
 }

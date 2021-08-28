@@ -204,3 +204,6 @@
 [submodule "dependencies/parsers/lobster"]
 	path = dependencies/parsers/lobster
 	url = https://github.com/ondracka/nomad_parser_lobster.git
+[submodule "dependencies/parsers/xps"]
+	path = dependencies/parsers/xps
+	url = https://github.com/nomad-coe/nomad-parser-xps.git

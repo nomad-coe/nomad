@@ -39,6 +39,7 @@ from nomad.datamodel.results import (
     GeometryOptimizationProperties,
     GeometryOptimizationMethod,
     Properties,
+    Spectra,
     Symmetry,
     Structures,
     Structure,
@@ -102,43 +103,24 @@ def isint(value: Any) -> bool:
 
 
 class ResultsNormalizer(Normalizer):
-    """Populates the results section in the metainfo.
-    """
+    domain = None
+
     def normalize(self, logger=None) -> None:
         # Setup logger
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
-        # Do nothing if section_run is not present
-        if self.section_run is None:
-            return
+        results = self.entry_archive.results
+        if results is None:
+            results = self.entry_archive.m_create(Results)
+        if results.properties is None:
+            results.m_create(Properties)
 
-        # Fetch different information resources from which data is gathered
-        repr_sys = None
-        for section in self.section_run.section_system:
-            if section.is_representative:
-                repr_sys = section
-                break
-        try:
-            encyclopedia = self.entry_archive.section_metadata.encyclopedia
-        except Exception:
-            encyclopedia = None
-        try:
-            optimade = self.entry_archive.section_metadata.dft.optimade
-        except Exception:
-            optimade = None
+        if self.section_run:
+            self.normalize_run(logger=self.logger)
 
-        symmetry = None
-        if repr_sys and repr_sys.section_symmetry:
-            symmetry = repr_sys.section_symmetry[0]
-
-        # Create the section and populate the subsections
-        results = Results()
-        self.entry_archive.results = results
-        results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
-        results.method = self.method(encyclopedia)
-        results.properties = self.properties(repr_sys, symmetry, encyclopedia)
-        self.geometry_optimization(results.method, results.properties)
+        if self.entry_archive.section_measurement and len(self.entry_archive.section_measurement) > 0:
+            self.normalize_measurment(self.entry_archive.section_measurement[0], logger=self.logger)
 
         # Add the present quantities. The full path will be saved for each
         # property, and if the leaf quantity/section name is unambiguous, also
@@ -159,6 +141,81 @@ class ResultsNormalizer(Normalizer):
         shorthand_prop = u[c == 1]
         available_properties |= set([str(x) for x in shorthand_prop])
         results.properties.available_properties = list(available_properties)
+
+    def normalize_measurment(self, measurement, logger) -> None:
+        results = self.entry_archive.results
+
+        # Method
+        if results.method is None:
+            results.m_create(Method)
+        method_name = measurement.section_metadata.section_experiment.method_name
+        if method_name == 'electron energy loss spectroscopy':
+            results.method.method_name = 'EELS'
+        elif method_name == 'XPS':
+            results.method.method_name = 'XPS'
+        else:
+            logger.error('unknown measurment method', data=results.method.method_name)
+
+        # Material
+        if results.material is None:
+            results.m_create(Material)
+        try:
+            material = measurement.section_metadata.section_sample.section_material[0]
+            results.material.elements = material.elements if material.elements else []
+            atoms = None
+            if material.formula:
+                results.material.chemical_formula_descriptive = material.formula
+                try:
+                    atoms = ase.Atoms(material.formula)
+                except Exception as e:
+                    logger.warn('could not normalize formula, using elements next', exc_info=e)
+
+            if atoms is None:
+                atoms = ase.Atoms(''.join(material.elements))
+
+            results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
+            results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+        except Exception as e:
+            logger.warn('could not normalize material', exc_info=e)
+
+        # Properties
+        if measurement.section_data.section_spectrum:
+            if results.properties is None:
+                results.m_create(Properties)
+            if results.properties.spectra is None:
+                results.properties.m_create(Spectra)
+            if results.method.method_name == 'EELS':
+                results.properties.spectra.eels = measurement.section_data.section_spectrum
+            else:
+                results.properties.spectra.other_spectrum = measurement.section_data.section_spectrum
+
+    def normalize_run(self, logger=None) -> None:
+        # Fetch different information resources from which data is gathered
+        repr_sys = None
+        for section in self.section_run.section_system:
+            if section.is_representative:
+                repr_sys = section
+                break
+        try:
+            encyclopedia = self.entry_archive.section_metadata.encyclopedia
+        except Exception:
+            encyclopedia = None
+        try:
+            optimade = self.entry_archive.section_metadata.dft.optimade
+        except Exception:
+            optimade = None
+
+        symmetry = None
+        if repr_sys and repr_sys.section_symmetry:
+            symmetry = repr_sys.section_symmetry[0]
+
+        # Create the section and populate the subsections
+        results = self.entry_archive.results
+        results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
+        results.method = self.method(encyclopedia)
+        results.properties = self.properties(repr_sys, symmetry, encyclopedia)
+        self.geometry_optimization(results.method, results.properties)
 
     def material(
             self,
@@ -444,6 +501,12 @@ class ResultsNormalizer(Normalizer):
                 dos_new.densities = dos
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
+                for info in dos.channel_info:
+                    info_new = dos_new.m_create(ChannelInfo)
+                    info_new.index = info.index
+                    info_new.energy_highest_occupied = info.energy_highest_occupied
+                    info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
+                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None

@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nomad.datamodel.metainfo.common_experimental import Spectrum
 import numpy as np
 from elasticsearch_dsl import Text
 
@@ -46,6 +47,9 @@ from nomad.datamodel.metainfo.common_dft import (  # noqa
     KBand,
     KBandSegment,
     ThermodynamicalProperties,
+)
+from nomad.datamodel.metainfo.common_experimental import (  # noqa
+    Spectrum
 )
 
 unavailable = "unavailable"
@@ -582,6 +586,7 @@ class Material(MSection):
     elements = Quantity(
         type=MEnum(chemical_symbols),
         shape=["0..*"],
+        default=[],
         description="""
         Names of the different elements present in the structure.
         """,
@@ -704,6 +709,7 @@ class DFT(MSection):
     scf_threshold_energy_change = section_method.scf_threshold_energy_change.m_copy()
     scf_threshold_energy_change.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
     van_der_Waals_method = section_method.van_der_Waals_method.m_copy()
+    van_der_Waals_method.description = 'The used van der Waals method.'
     van_der_Waals_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
@@ -864,7 +870,7 @@ class Method(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     method_name = Quantity(
-        type=MEnum(["DFT", "GW", config.services.unavailable_value]),
+        type=MEnum(["DFT", "GW", "EELS", "XPS", config.services.unavailable_value]),
         description="""
         Common name for the used method.
         """,
@@ -922,6 +928,11 @@ class DOSElectronic(DOS):
         spin values.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    channel_info = SubSection(
+        sub_section=ChannelInfo.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
 
 
@@ -1119,6 +1130,11 @@ class ElasticProperties(MSection):
     )
 
 
+class Spectra(MSection):
+    eels = Quantity(type=Spectrum)
+    other_spectrum = Quantity(type=Spectrum)
+
+
 class Properties(MSection):
     m_def = Section(
         a_flask=dict(skip_none=True),
@@ -1133,6 +1149,7 @@ class Properties(MSection):
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
     elastic = SubSection(sub_section=ElasticProperties.m_def, repeats=False)
+    spectra = SubSection(sub_section=Spectra.m_def, repeats=False)
 
     n_calculations = Quantity(
         type=int,

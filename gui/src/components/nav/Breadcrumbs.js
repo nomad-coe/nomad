@@ -1,61 +1,64 @@
-import React from 'react'
-import { makeStyles } from '@material-ui/core/styles'
-import {
-  Link,
-  Typography
-} from '@material-ui/core'
-import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { Link as RouterLink } from 'react-router-dom'
-import HelpDialog from '../Help'
-import { useRoute } from './Routes'
+/*
+ * Copyright The NOMAD Authors.
+ *
+ * This file is part of NOMAD. See https://nomad-lab.eu for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-const useStyles = makeStyles((theme) => ({
+import React, { useMemo } from 'react'
+import { matchPath, useLocation, Link as RouterLink } from 'react-router-dom'
+import { Typography, Breadcrumbs as MUIBreadcrumbs, Link, Box, makeStyles } from '@material-ui/core'
+import HelpDialog from '../Help'
+import HelpIcon from '@material-ui/icons/Help'
+import { allRoutes } from './Routes'
+
+const useBreadcrumbsStyles = makeStyles(theme => ({
   root: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center'
+    marginLeft: 5
   },
-  submenuName: {
-    fontSize: '1.30rem'
+  help: {
+    marginLeft: theme.spacing(0.5)
   },
-  helpButton: {
-    marginTop: '0.1rem',
-    marginLeft: theme.spacing(1)
+  helpIcon: {
+    fontSize: 18
   }
 }))
 
-/**
- * Shows the current page title together with navigation breadcrumbs.
- */
-function Breadcrumbs({className}) {
-  const styles = useStyles()
-  const {help, title, breadCrumbs} = useRoute()
-
-  return (
-    <div className={clsx(styles.root, className)}>
-      <Typography variant="h6" color="primary" noWrap className={styles.submenuName}>
-        {breadCrumbs && breadCrumbs.map((breadCrumb, index) => <React.Fragment key={index}>
-          <Link component={RouterLink} to={breadCrumb.path}>{breadCrumb.title}</Link>&nbsp;›&nbsp;
-        </React.Fragment>)}
-        {title}
-      </Typography>
-      {help
-        ? <HelpDialog
-          color="primary"
-          maxWidth="md"
-          classes={{root: styles.helpButton}}
-          size="small"
-          {...help}
-        />
-        : ''
-      }
-    </div>
-  )
-}
-
-Breadcrumbs.propTypes = {
-  className: PropTypes.string
-}
+const Breadcrumbs = React.memo(function Breadcrumbs() {
+  const classes = useBreadcrumbsStyles()
+  const {pathname} = useLocation()
+  const routes = useMemo(() => allRoutes.slice().reverse(), [])
+  return <MUIBreadcrumbs style={{marginLeft: 5}}>
+    {routes
+      .filter(route => route.breadcrumb && route.path)
+      .map(route => ({route: route, match: matchPath(pathname, {path: route.path})}))
+      .filter(({match}) => match)
+      .map(({route, match}, i) => {
+        if (match.url === pathname) {
+          return <Box display="flex" flexDirection="row" alignItems="center">
+            <Typography color="textPrimary" key={i}>{route.breadcrumb}</Typography>
+            {route.help && (
+              <HelpDialog className={classes.help} size="small" {...route.help}>
+                <HelpIcon className={classes.helpIcon} />
+              </HelpDialog>
+            )}
+          </Box>
+        } else {
+          return <Link key={i} component={RouterLink} to={match.url}>{route.breadcrumb}</Link>
+        }
+      })}
+  </MUIBreadcrumbs>
+})
 
 export default Breadcrumbs

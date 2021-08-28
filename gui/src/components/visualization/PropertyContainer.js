@@ -25,7 +25,7 @@ const useStyles = makeStyles(theme => ({
   root: {
   },
   title: {
-    marginBottom: theme.spacing(0.5)
+    marginBottom: theme.spacing(1)
   }
 }))
 export default function PropertyContainer({title, className, classes, children}) {

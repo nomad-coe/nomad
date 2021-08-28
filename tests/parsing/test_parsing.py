@@ -32,9 +32,6 @@ from nomad.app.flask import dump_json
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
     ('parsers/template', 'tests/data/templates/template.json'),
-    ('parsers/eels', 'tests/data/parsers/eels.json'),
-    ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
-    ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
@@ -74,6 +71,10 @@ parser_examples = [
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
     ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
+    ('parsers/eels', 'tests/data/parsers/eels.json'),
+    ('parsers/xps', 'tests/data/parsers/xps/multiple_channels.xy'),
+    # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
+    # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
 ]
 
@@ -85,7 +86,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 117
+correct_num_output_files = 116
 
 
 def create_reference(data, pretty):

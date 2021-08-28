@@ -17,7 +17,7 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { withStyles, Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
+import { withStyles, Link, Typography, Tooltip, IconButton } from '@material-ui/core'
 import { compose } from 'recompose'
 import { withRouter } from 'react-router'
 import NewDataTable from '../NewDataTable'
@@ -31,9 +31,10 @@ import UploaderIcon from '@material-ui/icons/AccountCircle'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { domainData } from '../domainData'
-import { domainComponents } from '../domainComponents'
 import { apiContext, withApi } from '../api'
 import { authorList, nameList } from '../../utils'
+import EntryDetails from '../entry/EntryDetails'
+import { EntryButton } from '../nav/Routes'
 
 export function Published(props) {
   const api = useContext(apiContext)
@@ -116,7 +117,8 @@ export class NewEntryListUnstyled extends React.Component {
       margin: 'auto'
     },
     entryDetailsRow: {
-      paddingRight: theme.spacing(3)
+      paddingRight: theme.spacing(2),
+      width: '33%'
     },
     entryDetailsActions: {
       display: 'flex',
@@ -245,16 +247,14 @@ export class NewEntryListUnstyled extends React.Component {
 
   renderEntryDetails(row) {
     const { classes } = this.props
-    const domain = (row.domain && domainData[row.domain]) || domainData.dft
-    const domainComponent = (row.domain && domainComponents[row.domain]) || domainComponents.dft
 
     return (<div className={classes.entryDetails}>
       <div className={classes.entryDetailsContents}>
         <div className={classes.entryDetailsRow}>
-          <domainComponent.EntryDetails data={row} />
+          <EntryDetails data={row} />
         </div>
 
-        <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
+        <div className={classes.entryDetailsRow}>
           <Quantity className={classes.entryDetailsRow} column>
             <Quantity quantity='comment' placeholder='no comment' data={row} />
             <Quantity quantity='references' placeholder='no references' data={row}>
@@ -281,10 +281,10 @@ export class NewEntryListUnstyled extends React.Component {
           </Quantity>
         </div>
 
-        <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
+        <div className={classes.entryDetailsRow} style={{paddingRight: 0}}>
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={row} />
+            <Quantity quantity="entry_id" label="entry id" noWrap withClipboard data={row} />
             <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
             <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
@@ -295,9 +295,9 @@ export class NewEntryListUnstyled extends React.Component {
 
       <div className={classes.entryDetailsActions}>
         {this.showEntryActions(row) &&
-          <Button color="primary" onClick={event => this.handleViewEntryPage(event, row)}>
+          <EntryButton color="primary" entryId={row.entry_id} uploadId={row.upload_id}>
             Show raw files and archive
-          </Button>
+          </EntryButton>
         }
       </div>
     </div>)
@@ -312,19 +312,15 @@ export class NewEntryListUnstyled extends React.Component {
     }
   }
 
-  handleViewEntryPage(event, row) {
-    event.stopPropagation()
-    const prefix = this.props.entryPagePathPrefix || ''
-    const url = `${prefix}/entry/id/${row.upload_id}/${row.calc_id}`
-    this.props.history.push(url)
-  }
-
   renderEntryActions(row, selected) {
     if (this.showEntryActions(row)) {
       return <Tooltip title="Show raw files and archive">
-        <IconButton style={selected ? {color: 'white'} : null} onClick={event => this.handleViewEntryPage(event, row)}>
+        <EntryButton
+          style={selected ? {color: 'white'} : null} component={IconButton}
+          entryId={row.entry_id} uploadId={row.upload_id}
+        >
           <NavigateNextIcon />
-        </IconButton>
+        </EntryButton>
       </Tooltip>
     } else {
       return ''

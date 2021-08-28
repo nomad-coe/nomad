@@ -102,7 +102,7 @@ def normalize_all(entry_archive, logger=None):
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
     for normalizer in normalizing.normalizers:
-        if normalizer.domain == entry_archive.section_metadata.domain:
+        if normalizer.domain is None or normalizer.domain == entry_archive.section_metadata.domain:
             normalize(normalizer, entry_archive, logger=logger)
 
 

@@ -34,6 +34,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import ConfirmDialog from '../../uploads/ConfirmDialog'
 import { oasis } from '../../../config'
 import { authorList } from '../../../utils'
+import { DatasetButton } from '../../nav/Routes'
 
 class DOIUnstyled extends React.Component {
   static propTypes = {
@@ -103,14 +104,8 @@ class DatasetActionsUnstyled extends React.Component {
   constructor(props) {
     super(props)
     this.handleClickDOI = this.handleClickDOI.bind(this)
-    this.handleClickDataset = this.handleClickDataset.bind(this)
     this.handleClickDelete = this.handleClickDelete.bind(this)
     this.handleEdit = this.handleEdit.bind(this)
-  }
-
-  handleClickDataset() {
-    const {dataset: {id}} = this.props
-    this.props.history.push(`/dataset/id/${id}`)
   }
 
   handleClickDOI(after) {
@@ -161,9 +156,9 @@ class DatasetActionsUnstyled extends React.Component {
 
     return <FormGroup row classes={{root: classes.group}}>
       {search && <Tooltip title="Open a search page with entries from this dataset only.">
-        <IconButton onClick={this.handleClickDataset}>
+        <DatasetButton component={IconButton} datasetId={dataset.dataset_id}>
           <SearchIcon />
-        </IconButton>
+        </DatasetButton>
       </Tooltip>}
       {<DownloadButton query={query} tooltip="Download dataset" />}
       {editable && canDelete && <Tooltip title="Delete this dataset.">

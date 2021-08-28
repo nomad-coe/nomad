@@ -70,10 +70,11 @@ parser_exceptions = {
     'parser/molcas': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
     'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/band': ['dft.system'],
-    'parsers/qbox': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/qbox': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parser/onetep': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system']
+    'parser/onetep': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/xps': ['formula', 'atoms']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
@@ -89,8 +90,14 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
 
     metadata = entry_archive.section_metadata
     metadata.apply_domain_metadata(entry_archive)
-    assert metadata.formula is not None
-    assert len(metadata.atoms) is not None
+    parser_name = metadata.parser_name
+    exceptions = parser_exceptions.get(parser_name, [])
+
+    assert metadata.atoms is not None
+    if 'formula' not in exceptions:
+        assert metadata.formula is not None and metadata.formula != config.services.unavailable_value
+    if 'atoms' not in exceptions:
+        assert len(metadata.atoms) > 0
 
     if metadata.domain == 'dft':
         assert metadata.dft.code_name is not None
@@ -98,12 +105,6 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
         assert metadata.dft.basis_set is not None
         assert metadata.dft.xc_functional is not None
         assert metadata.dft.system is not None
-
-    parser_name = metadata.parser_name
-    exceptions = parser_exceptions.get(parser_name, [])
-
-    if metadata.formula != config.services.unavailable_value:
-        assert len(metadata.atoms) > 0
 
     for key in calc_metadata_keys:
         if key in exceptions:

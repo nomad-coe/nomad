@@ -15,15 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useRef } from 'react'
 import PropTypes from 'prop-types'
 import { Tab, Tabs, Box } from '@material-ui/core'
 import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RawFileView from './RawFileView'
-import KeepState from '../KeepState'
-import { useRouteMatch, useHistory, Route } from 'react-router-dom'
+import { useRouteMatch, useHistory, matchPath, Route } from 'react-router-dom'
 
 export const help = `
 The *overview* tab gives you an insightful overview about the most prominent
@@ -40,59 +39,61 @@ all parsed data.
 The *log* tab will show you a log of the entry's processing.
 `
 
-export function EntryPageContent({children, width, minWidth, maxWidth}) {
-  width = width || '1220px'
-  minWidth = minWidth || '1220px'
-  maxWidth = maxWidth || '1220px'
-  return <Box boxSizing={'border-box'} width={width} minWidth={minWidth} maxWidth={maxWidth} padding={'1.5rem 2rem'} margin="auto">
-    {children}
-  </Box>
-}
-EntryPageContent.propTypes = ({
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node
-  ]),
-  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  minWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  maxWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+const TabRoutes = React.memo(function Routes({match}) {
+  const {params: {uploadId, entryId, tab = 'overview'}} = match
+  const props = {entryId: entryId, uploadId: uploadId}
+
+  if (!entryId) {
+    return ''
+  }
+
+  return <React.Fragment>
+    <Box display={tab === 'overview' ? 'block' : 'none'}><OverviewView {...props}/></Box>
+    <Box display={tab === 'raw' ? 'block' : 'none'}><RawFileView {...props}/></Box>
+    <Box display={tab === 'archive' ? 'block' : 'none'}><ArchiveEntryView {...props}/></Box>
+    <Box display={tab === 'logs' ? 'block' : 'none'}><ArchiveLogView {...props}/></Box>
+  </React.Fragment>
 })
 
-export default function EntryPage() {
-  const history = useHistory()
-  const { path, url } = useRouteMatch()
-
-  return (
-    <Route
-      path={`${path}/:uploadId?/:entryId?/:tab?`}
-      render={({match: {params: {uploadId, entryId, tab = 'overview'}}}) => {
-        if (entryId && uploadId) {
-          const calcProps = { entryId: entryId, uploadId: uploadId }
-          return (
-            <React.Fragment>
-              <Tabs
-                value={tab || 'overview'}
-                onChange={(_, value) => history.push(`${url}/${uploadId}/${entryId}/${value}`)}
-                indicatorColor="primary"
-                textColor="primary"
-                variant="fullWidth"
-              >
-                <Tab label="Overview" value="overview" />
-                <Tab label="Raw data" value="raw" />
-                <Tab label="Archive" value="archive"/>
-                <Tab label="Logs" value="logs"/>
-              </Tabs>
-
-              <KeepState visible={tab === 'overview' || tab === undefined} render={props => <OverviewView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'raw'} render={props => <RawFileView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
-            </React.Fragment>
-          )
-        } else {
-          return ''
-        }
-      }}
-    />
-  )
+TabRoutes.propTypes = {
+  match: PropTypes.object.isRequired
 }
+
+const EntryPage = React.memo(function EntryPage() {
+  const history = useHistory()
+  const currentPath = history.location.pathname
+  const {path, url} = useRouteMatch()
+
+  const match = matchPath(currentPath, { path: `${path}/:tab?` })
+  const {params: {tab = 'overview'}} = match
+
+  // We use a useRef object to keep track of the current urls of each tab. Switching
+  // tabs would go to the previous tab url. This way, the views behind a tab can add
+  // state to the URL (e.g. path to section on the ArchiveEntryView).
+  const urls = useRef({
+    'overview': `${url}/overview`,
+    'raw': `${url}/raw`,
+    'archive': `${url}/archive`,
+    'logs': `${url}/logs`
+  })
+
+  const handleChange = (_, value) => {
+    urls.current[tab] = currentPath
+    history.push(urls.current[value])
+  }
+
+  return <React.Fragment>
+    <Tabs
+      value={tab} onChange={handleChange}
+      indicatorColor="primary" textColor="primary" variant="fullWidth"
+    >
+      <Tab label="Overview" value="overview" />
+      <Tab label="Raw data" value="raw" />
+      <Tab label="Archive" value="archive"/>
+      <Tab label="Logs" value="logs"/>
+    </Tabs>
+    <Route path={`${path}/:tab?`} render={(props) => <TabRoutes {...props}/>} />
+  </React.Fragment>
+})
+
+export default EntryPage

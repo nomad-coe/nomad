@@ -109,6 +109,8 @@ class Api {
         }
       }
     }
+
+    this.subscriptions = {}
   }
 
   /**
@@ -184,7 +186,8 @@ class Api {
                 // response, so we explicitly specify which parts we want
                 geometry_optimization: {
                   energies: 'include-resolved'
-                }
+                },
+                spectra: 'include-resolved'
               }
             }
           }

@@ -17,234 +17,406 @@
  */
 
 import React from 'react'
-import { Route, useLocation } from 'react-router-dom'
+import PropTypes from 'prop-types'
+import { Route, Switch } from 'react-router'
+import { matchPath, useLocation, Redirect, useHistory } from 'react-router-dom'
+import { Button } from '@material-ui/core'
 import About from '../About'
-import APIs from '../APIs'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
-import ResolveDOI from '../dataset/ResolveDOI'
-import DatasetPage from '../DatasetPage'
-import EntryPage, {help as entryHelp} from '../entry/EntryPage'
+import EntryPage, { help as entryHelp } from '../entry/EntryPage'
+import UploadPage from '../uploads/UploadPage'
+import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
+import UserdataPage, { help as userdataHelp } from '../UserdataPage'
+import APIs from '../APIs'
+import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
+import { aitoolkitEnabled, appBase, oasis } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
-import FAQ from '../FAQ'
-import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
-import UploadPage from '../uploads/UploadPage'
-import UploadsPage, {help as uploadHelp} from '../uploads/UploadsPage'
-import UserdataPage, {help as userdataHelp} from '../UserdataPage'
-import { ErrorBoundary } from '../errors'
+import DatasetPage, { help as datasetHelp } from '../DatasetPage'
+import ResolveDOI from '../dataset/ResolveDOI'
 
-function createEntryRoute(props) {
-  return ({
-    path: '/entry',
-    title: 'Entry',
-    help: {
-      title: 'The entry page',
-      content: entryHelp
-    },
-    ...props,
+/**
+ * Each route is an object with possible nested sub routes. Therefore, each object only
+ * represents one segment of a full path (from root to sub route). Of course sub routes
+ * can be re-used by putting them into variables and inserting them at multiple places.
+ * Sub routes are matched before there parents. This way, react routers `exact` parameter
+ * can be mostly omitted.
+ *
+ * The following keys are possible:
+ * @param {string} path The path segment for this route.
+ * @param {array} routes The sub routes.
+ * @param {string} breadcrumb An optional breadcrumb. The string is used verbatim.
+ * @param {boolean} exact Is passed to react-router routes. Does not match paths that are longer.
+ * @param {string} menu This is only allowed on the first two levels. The string is used
+ *   verbatim to create menu and menu items respectively.
+ * @param {string} tooltip Used as tooltip titles for menu items.
+ * @param {object} help  Optional object with string values keys `title` and `help`.
+ *   Used for the help dialog.
+ * @param {Component} component A react component that will be rendered if this route is
+ *   matching the current location. Alternative for render.
+ * @param {func} render This is used if this route is matching the current location.
+ *   Alternative for component.
+ * @param {string} href This can be used for menu items that are not used for navigating
+ *   in the app, but linking to other web sites.
+ */
+
+/**
+ * The reusable sub routes for entries.
+ */
+const entryRoutes = [
+  {
+    path: 'entry',
     routes: [
       {
-        path: '/id',
-        component: EntryPage
+        path: 'id/:uploadId/:entryId',
+        breadcrumb: 'Entry',
+        component: EntryPage,
+        help: {
+          title: 'The entry page',
+          content: entryHelp
+        },
+        routes: [
+          {
+            path: 'raw',
+            exact: true,
+            breadcrumb: 'Raw data files'
+          },
+          {
+            path: 'archive',
+            exact: true,
+            breadcrumb: 'Archive'
+          },
+          {
+            path: 'logs',
+            exact: true,
+            breadcrumb: 'Processing logs'
+          }
+        ]
       },
       {
-        path: '/query',
+        path: 'query',
         exact: true,
         component: EntryQuery
       },
       {
-        path: '/pid',
+        path: 'pid',
         component: ResolvePID
       }
     ]
-  })
-}
-
-const routeSpecs = [
-  {
-    path: '/faq',
-    exact: true,
-    title: 'Frequently Asked Questions',
-    component: FAQ
-  },
-  {
-    path: '/search/entries',
-    exact: true,
-    title: 'Search Entries',
-    help: {
-      title: 'How to find and download data',
-      content: searchHelp
-    },
-    navPath: 'explore/searchentries',
-    component: NewSearchPage
-  },
-  {
-    path: '/search/materials',
-    exact: true,
-    title: 'Search Materials',
-    help: {
-      title: 'How to find and download data',
-      content: searchHelp
-    },
-    navPath: 'explore/searchmaterials',
-    component: NewSearchPage
-  },
-  {
-    path: '/userdata',
-    exact: true,
-    title: 'Your Data',
-    help: {
-      title: 'How to manage your data',
-      content: userdataHelp
-    },
-    navPath: 'publish/userdata',
-    component: UserdataPage,
-    routes: [
-      createEntryRoute({
-        navPath: 'publish/userdata',
-        breadCrumbs: [
-          {
-            title: 'Your Data',
-            path: '/userdata'
-          }
-        ]
-      })
-    ]
-  },
-  createEntryRoute({
-    breadCrumbs: [
-      {
-        title: 'Search Entries',
-        path: '/search/entries'
-      }
-    ]
-  }),
-  {
-    path: '/dataset',
-    title: 'Dataset',
-    routes: [
-      {
-        path: '/id',
-        component: DatasetPage
-      },
-      {
-        path: '/doi',
-        component: ResolveDOI
-      }
-    ]
-  },
-  {
-    path: '/uploads',
-    exact: true,
-    title: 'Upload',
-    help: {
-      title: 'How to upload data',
-      content: uploadHelp
-    },
-    navPath: 'publish/uploads',
-    component: UploadsPage,
-    routes: [
-      createEntryRoute({
-        navPath: 'publish/uploads',
-        breadCrumbs: [
-          {
-            title: 'Uploads',
-            path: '/uploads'
-          }
-        ]
-      })
-    ]
-  },
-  {
-    path: '/uploads/:uploadId',
-    title: 'Upload',
-    navPath: 'publish/uploads',
-    component: UploadPage
-  },
-  {
-    path: '/metainfo',
-    title: 'The NOMAD Metainfo',
-    help: {
-      title: 'About the NOMAD metainfo',
-      content: metainfoHelp
-    },
-    navPath: 'analyze/metainfo',
-    component: MetainfoPage
-  },
-  {
-    path: '/aitoolkit',
-    title: 'Artificial Intelligence Toolkit',
-    navPath: 'analyze/aitoolkit',
-    component: AIToolkitPage
-  },
-  {
-    exact: true,
-    path: '/apis',
-    title: 'APIs',
-    navPath: 'analyze/apis',
-    component: APIs
-  },
-  {
-    exact: true,
-    path: '/',
-    title: 'About, Documentation, Getting Help',
-    navPath: 'about/info',
-    component: About
   }
 ]
 
-function flattenRouteSpecs(routeSpecs, parent, results) {
-  results = results || []
-  parent = parent || {}
-  routeSpecs.forEach(route => {
-    const flatRoute = {
-      ...parent,
-      component: null,
-      exact: false,
-      ...route,
-      path: parent.path ? `${parent.path}/${route.path.replace(/^\/+/, '')}` : route.path,
-      routes: undefined
-    }
-
-    if (flatRoute.component) {
-      results.push(flatRoute)
-    }
-
-    if (route.routes) {
-      flattenRouteSpecs(route.routes, flatRoute, results)
-    }
-  })
-  return results
-}
-
-export const routes = flattenRouteSpecs(routeSpecs)
-routes.sort((a, b) => (a.path > b.path) ? -1 : 1)
-
-export default function Routes() {
-  return <React.Fragment>
-    {routes.map(route => {
-      const {path, exact} = route
-      const children = childProps => childProps.match && <route.component {...childProps} />
-      return <ErrorBoundary key={path}>
-        <Route exact={exact} path={path}
-          // eslint-disable-next-line react/no-children-prop
-          children={children}
-        />
-      </ErrorBoundary>
-    })}
-  </React.Fragment>
-}
-
-export function useRoute() {
-  const {pathname, search} = useLocation()
-  routes.forEach(route => {
-    (route.breadCrumbs || []).forEach(breadCrumb => {
-      if (breadCrumb.path.startsWith(pathname)) {
-        breadCrumb.path = pathname + (search || '')
+/**
+ * The reusable sub routes for datasets
+ */
+const datasetRoutes = [
+  {
+    path: 'dataset',
+    routes: [
+      {
+        path: 'id/:datasetId',
+        breadcrumb: 'Dataset',
+        component: DatasetPage,
+        routes: entryRoutes,
+        help: {
+          title: 'Datasets',
+          help: datasetHelp
+        }
+      },
+      {
+        path: 'doi',
+        component: ResolveDOI
       }
-    })
-  })
-  const route = routes.find(route => pathname.startsWith(route.path))
-  return route
+    ]
+  }
+]
+
+/**
+ * The reusable sub routes for uploads
+ */
+const uploadRoutes = [
+  {
+    path: 'upload',
+    routes: [
+      {
+        path: 'id/:uploadId',
+        exact: true,
+        breadcrumb: 'Upload',
+        component: UploadPage,
+        routes: entryRoutes
+      }
+    ]
+  }
+]
+
+const toolkitRoute = (!oasis && aitoolkitEnabled)
+  ? {
+    path: 'aitoolkit',
+    exact: true,
+    menu: 'AI Toolkit',
+    tooltip: 'NOMAD\'s Artificial Intelligence Toolkit tutorial Jupyter notebooks',
+    component: AIToolkitPage,
+    breadcrumb: 'NOMAD Artificial Intelligence Toolkit'
+  } : {
+    href: 'https://nomad-lab.eu/AIToolkit',
+    menu: 'AI Toolkit',
+    tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
+  }
+
+/**
+ * The list with all routes. This is used to determine the routes for routing, the breadcrumbs,
+ * and the main menu.
+ */
+export const routes = [
+  {
+    path: 'user',
+    exact: true,
+    redirect: '/user/uploads',
+    menu: 'Publish',
+    routes: [
+      {
+        path: 'uploads',
+        exact: true,
+        component: UploadsPage,
+        menu: 'Uploads',
+        tooltip: 'Upload and publish new data',
+        breadcrumb: 'Your uploads',
+        routes: uploadRoutes,
+        help: {
+          title: 'How to upload data to NOMAD',
+          help: uploadsHelp
+        }
+      },
+      {
+        path: 'search',
+        exact: true,
+        menu: 'Your data',
+        breadcrumb: 'Search your data',
+        tooltip: 'Manage your uploaded data',
+        help: {
+          title: 'How to manage your data',
+          content: userdataHelp
+        },
+        component: UserdataPage,
+        routes: [...entryRoutes, ...datasetRoutes, ...uploadRoutes]
+      }
+    ]
+  },
+  {
+    path: 'search',
+    redirect: '/search/entries',
+    menu: 'Explore',
+    routes: [
+      {
+        path: 'entries',
+        exact: true,
+        component: NewSearchPage,
+        menu: 'Entries Repository',
+        tooltip: 'Search individual database entries',
+        breadcrumb: 'Entries search',
+        help: {
+          title: 'How to find and download data',
+          content: searchHelp
+        },
+        routes: entryRoutes
+      },
+      {
+        path: 'materials',
+        exact: true,
+        component: NewSearchPage,
+        menu: 'Material Encyclopedia',
+        tooltip: 'Search materials',
+        breadcrumb: 'Materials search'
+      }
+    ]
+  },
+  {
+    path: 'analyze',
+    menu: 'Analyze',
+    routes: [
+      {
+        path: 'apis',
+        exact: true,
+        menu: 'APIs',
+        tooltip: 'The list of APIs offered by NOMAD',
+        breadcrumb: 'NOMAD APIs',
+        component: APIs
+      },
+      {
+        path: 'metainfo',
+        menu: 'The NOMAD Metainfo',
+        tooltip: 'Browse the NOMAD Metainfo Schema',
+        breadcrumb: 'NOMAD Metainfo Browser',
+        help: {
+          title: 'About the NOMAD metainfo',
+          content: metainfoHelp
+        },
+        component: MetainfoPage
+      },
+      toolkitRoute
+    ]
+  },
+  {
+    path: 'about',
+    menu: 'About',
+    redirect: '/about/information',
+    routes: [
+      {
+        path: 'information',
+        exact: true,
+        menu: 'Information',
+        component: About,
+        breadcrumb: 'About NOMAD',
+        tooltip: 'Overview of the NOMAD Repository and Archive'
+      },
+      {
+        menu: 'Forum',
+        href: 'https://matsci.org/c/nomad/',
+        tooltip: 'The NOMAD user/developer forum on matsci.org'
+      },
+      {
+        menu: 'FAQ',
+        href: 'https://nomad-lab.eu/repository-archive-faqs',
+        tooltip: 'Frequently Asked Questions (FAQ)'
+      },
+      {
+        menu: 'Docs',
+        href: `${appBase}/docs/index.html`,
+        tooltip: 'The full user and developer documentation'
+      },
+      {
+        menu: 'Sources',
+        href: 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
+        tooltip: 'NOMAD\'s main Gitlab project'
+      },
+      {
+        menu: 'Terms',
+        consent: true,
+        tooltip: 'The terms of service and cookie consent'
+      }
+    ]
+  },
+  ...datasetRoutes,
+  ...entryRoutes,
+  {
+    path: '',
+    redirect: '/about/information'
+  }
+]
+
+/**
+ * The flattened array of all possible routs with paths starting the the root of the
+ * app.
+ */
+export const allRoutes = []
+
+function addRoute(route, pathPrefix) {
+  const path = route.path && `${pathPrefix}/${route.path}`
+  if (route.routes) {
+    route.routes.forEach(childRoute => addRoute(childRoute, path))
+  }
+  const fullRoute = {...route, path: path}
+  allRoutes.push(fullRoute)
 }
+routes.forEach(route => addRoute(route, ''))
+
+/**
+ * Renders all the apps routes according to `routes`.
+ */
+export const Routes = React.memo(function Routes() {
+  return <Switch>
+    {allRoutes
+      .filter(route => route.path && (route.component || route.render || route.children))
+      .map((route, i) => <Route
+        key={i}
+        path={route.path} exact={route.exact}
+        component={route.component} render={route.render}
+      >
+        {route.children || (route.redirect && <Redirect to={route.redirect}/>) || undefined}
+      </Route>)}
+  </Switch>
+})
+
+/**
+ * Some routes are available under different prefix routes. E.g., entries under search,
+ * uploads, or datasets. This function computes a full url for such a route, based on
+ * the given location. E.g., if location is `/search/entries/...`, getUrl for entries
+ * would give `/search/entries/entry/id/someuploadid/someentryid`. If the current location
+ * does not contain a possible prefix, the url will be returned without prefix.
+ *
+ * @param {*} path The partial path that should be the end of the returned url.
+ * @param {*} location The current react-router location object, e.g. from `useLocation()`.
+ * @returns The full url. E.g., that can be put into react-router `<Link to={...}>`.
+ */
+function getUrl(path, location) {
+  const commonPathPrefix = path.split('/')[0]
+  const pathname = location?.pathname
+  const match = pathname && allRoutes
+    .filter(route => route.routes?.some(route => route.path === commonPathPrefix))
+    .map(route => matchPath(pathname, route.path)).find(match => match)
+  const url = match?.url || ''
+
+  return `${url}/${path}`
+}
+
+export const RouteButton = React.forwardRef(function RouteButton(props, ref) {
+  const {component, path, ...moreProps} = props
+  const location = useLocation()
+  const history = useHistory()
+  const handleClick = (event) => {
+    event.stopPropagation()
+    history.push(getUrl(path, location))
+  }
+  return React.createElement(component || Button, {onClick: handleClick, ...moreProps, ref: ref})
+})
+RouteButton.propTypes = {
+  path: PropTypes.string.isRequired,
+  component: PropTypes.elementType
+}
+
+/**
+ * A button that allows to navigate to the entry page under the current route prefix.
+ * @param {string} uploadId
+ * @param {string} entryId
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const EntryButton = React.forwardRef(function EntryButton(props, ref) {
+  const {uploadId, entryId, ...moreProps} = props
+  const path = `entry/id/${uploadId}/${entryId}`
+  return <RouteButton path={path} {...moreProps} ref={ref} />
+})
+EntryButton.propTypes = {
+  uploadId: PropTypes.string.isRequired,
+  entryId: PropTypes.string.isRequired
+}
+
+/**
+ * A button that allows to navigate to the dataset page under the current route prefix.
+ * @param {string} datasetId
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const DatasetButton = React.forwardRef(function DatasetButton(props, ref) {
+  const {datasetId, ...moreProps} = props
+  const path = `dataset/id/${datasetId}`
+  return <RouteButton path={path} {...moreProps} ref={ref} />
+})
+DatasetButton.propTypes = {
+  datasetId: PropTypes.string.isRequired
+}
+
+/**
+ * A button that allows to navigate to the upload page under the current route prefix.
+ * @param {string} uploadId
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const UploadButton = React.forwardRef(function DatasetButton(props, ref) {
+  const {uploadId, ...moreProps} = props
+  const path = `upload/id/${uploadId}`
+  return <RouteButton path={path} {...moreProps} ref={ref} />
+})
+UploadButton.propTypes = {
+  uploadId: PropTypes.string.isRequired
+}
+
+export default Routes

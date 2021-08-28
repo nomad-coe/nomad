@@ -123,12 +123,14 @@ export default function ProcessingTable({data, onPaginationChange}) {
       onChange={handleChange}
       // actions={actions}
       // showEntryActions={entry => entry.processed || !running}
-      showEntryActions={entry => entry.processed}
-      entryPagePathPrefix="/uploads"
+      showEntryActions={entry => !entry.process_running}
+      entryPagePathPrefix={`/uploads/${data.upload.upload_id}`}
       per_page={data.pagination.page_size}
       page={data.pagination.page}
       order={data.pagination.order === 'asc' ? 1 : 0}
       order_by={data.pagination.order_by}
+      // TODO this is a hack, gave up trying to understand CSS width in table cells
+      entryDetailsWidth={903}
     />
   </Paper>
 }

@@ -31,6 +31,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
+import { UploadButton } from '../../nav/Routes'
 
 export function Published(props) {
   const {entry} = props
@@ -98,7 +99,6 @@ class UploadActionsUnstyled extends React.Component {
   constructor(props) {
     super(props)
     this.handleEdit = this.handleEdit.bind(this)
-    this.handleClickDetails = this.handleClickDetails.bind(this)
   }
 
   handleEdit() {
@@ -108,23 +108,19 @@ class UploadActionsUnstyled extends React.Component {
     }
   }
 
-  handleClickDetails() {
-    this.props.history.push(`/uploads?open=${this.props.upload.example.upload_id}`)
-  }
-
   render() {
     const {upload, user, classes} = this.props
     const editable = user && upload.example &&
       upload.example.authors.find(author => author.user_id === user.sub)
-
-    const query = {upload_id: [upload.example.upload_id]}
+    const uploadId = upload.example.upload_id
+    const query = {upload_id: [uploadId]}
 
     return <FormGroup row classes={{root: classes.group}}>
       {user.sub === upload.example.uploader.user_id &&
       <Tooltip title="Open this upload on the uploads page">
-        <IconButton onClick={this.handleClickDetails}>
+        <UploadButton component={IconButton} uploadId={uploadId}>
           <DetailsIcon />
-        </IconButton>
+        </UploadButton>
       </Tooltip>}
       {<DownloadButton query={query} tooltip="Download upload" />}
       {editable && <EditUserMetadataDialog

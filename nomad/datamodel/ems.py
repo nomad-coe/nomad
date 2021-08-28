@@ -49,13 +49,13 @@ class EMSMetadata(MSection):
     data_type = Quantity(type=str, a_search=Search())
     probing_method = Quantity(type=str, a_search=Search())
 
-    # data metadata
+    # origin metadata
     repository_name = Quantity(type=str, a_search=Search())
     repository_url = Quantity(type=str, a_search=Search())
     entry_repository_url = Quantity(type=str, a_search=Search())
     preview_url = Quantity(type=str, a_search=Search())
 
-    # TODO move
+    # TODO move to more a general metadata section
     quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
     group_hash = Quantity(type=str, a_search=Search())
 
@@ -67,27 +67,38 @@ class EMSMetadata(MSection):
 
         entry = self.m_parent
 
-        root_section = entry_archive.section_experiment
-        entry.formula = root_section.section_sample.section_material.chemical_formula
-        atoms = root_section.section_sample.section_material.atom_labels
+        root_section = entry_archive.section_measurement[0]
 
-        if atoms is None:
-            entry.atoms = []
-        else:
-            if hasattr(atoms, 'tolist'):
-                atoms = atoms.tolist()
-            entry.n_atoms = len(atoms)
+        sample = root_section.section_metadata.section_sample
+        entry.formula = config.services.unavailable_value
+        if sample:
+            # TODO deal with multiple materials
+            material = sample.section_material[0] if len(sample.section_material) > 0 else None
+            if material:
+                entry.formula = _unavailable(material.formula)
+                atoms = material.elements
 
-            atoms = list(set(atoms))
-            atoms.sort()
-            entry.atoms = atoms
+                if atoms is None:
+                    entry.atoms = []
+                else:
+                    if hasattr(atoms, 'tolist'):
+                        atoms = atoms.tolist()
+                    entry.n_atoms = len(atoms)
 
-        self.chemical = _unavailable(root_section.section_sample.section_material.chemical_name)
-        self.sample_microstructure = _unavailable(root_section.section_sample.sample_microstructure)
-        self.sample_constituents = _unavailable(root_section.section_sample.sample_constituents)
+                    atoms = list(set(atoms))
+                    atoms.sort()
+                    entry.atoms = atoms
 
-        self.experiment_summary = root_section.experiment_summary
-        location = root_section.experiment_location
+                if material.name:
+                    self.chemical = _unavailable(material.name)
+                else:
+                    self.chemical = _unavailable(material.formula)
+
+            self.sample_microstructure = _unavailable(sample.sample_microstructure)
+            self.sample_constituents = _unavailable(sample.sample_constituents)
+
+        self.experiment_summary = root_section.section_metadata.section_experiment.notes
+        location = root_section.section_metadata.section_experiment.experiment_location
         if location is not None:
             location_str = ', '.join([
                 getattr(location, prop)
@@ -95,21 +106,21 @@ class EMSMetadata(MSection):
                 if getattr(location, prop) is not None])
             self.experiment_location = location_str
 
-        if root_section.experiment_time:
-            self.origin_time = root_section.experiment_time
-        elif root_section.experiment_publish_time:
-            self.origin_time = root_section.experiment_publish_time
+        if root_section.section_metadata.section_experiment.experiment_start_time:
+            self.origin_time = root_section.section_metadata.section_experiment.experiment_start_time
+        elif root_section.section_metadata.section_experiment.experiment_publish_time:
+            self.origin_time = root_section.section_metadata.section_experiment.experiment_publish_time
         else:
             self.origin_time = self.m_parent.upload_time
 
-        self.data_type = _unavailable(root_section.section_method.data_type)
-        self.method = _unavailable(root_section.section_method.method_name)
-        self.probing_method = _unavailable(root_section.section_method.probing_method)
+        # self.data_type = _unavailable(root_section.section_method.data_type)
+        self.method = _unavailable(root_section.section_metadata.section_experiment.method_name)
+        # self.probing_method = _unavailable(root_section.section_method.probing_method)
 
-        self.repository_name = _unavailable(root_section.section_data.repository_name)
-        self.repository_url = root_section.section_data.repository_url
-        self.preview_url = root_section.section_data.preview_url
-        self.entry_repository_url = root_section.section_data.entry_repository_url
+        self.repository_name = _unavailable(root_section.section_metadata.section_origin.repository_name)
+        self.repository_url = root_section.section_metadata.section_origin.repository_url
+        self.preview_url = root_section.section_metadata.section_origin.preview_url
+        self.entry_repository_url = root_section.section_metadata.section_origin.entry_repository_url
 
         self.group_hash = utils.hash(
             entry.formula,

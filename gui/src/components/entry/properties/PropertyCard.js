@@ -17,20 +17,20 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import DefaultEntryOverview from '../entry/DefaultEntryOverview'
-import EMSEntryDetails from './EMSEntryDetails'
+import { Card, CardContent, CardHeader } from '@material-ui/core'
 
-/**
- * Shows an informative overview about the selected entry.
- */
-export default function EMSEntryOverview({data}) {
-  return (
-    <DefaultEntryOverview data={data}>
-      <EMSEntryDetails data={data}></EMSEntryDetails>
-    </DefaultEntryOverview>
-  )
+export default function PropertyCard({children, ...headerProps}) {
+  return <Card>
+    <CardHeader {...headerProps} />
+    <CardContent>
+      {children}
+    </CardContent>
+  </Card>
 }
 
-EMSEntryOverview.propTypes = {
-  data: PropTypes.object.isRequired
+PropertyCard.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 }

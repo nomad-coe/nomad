@@ -23,7 +23,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import _ from 'lodash'
 import searchQuantities from '../searchQuantities'
 
-class Quantity extends React.Component {
+class Quantity extends React.PureComponent {
   static propTypes = {
     classes: PropTypes.object,
     children: PropTypes.node,
@@ -47,11 +47,14 @@ class Quantity extends React.Component {
   }
 
   static styles = theme => ({
-    root: {},
+    root: {
+      maxWidth: '100%'
+    },
     valueContainer: {
       display: 'flex',
       alignItems: 'center',
-      flexDirection: 'row'
+      flexDirection: 'row',
+      maxWidth: '100%'
     },
     value: {
       flexGrow: 1
@@ -163,12 +166,13 @@ class Quantity extends React.Component {
     }
 
     const useLabel = label || (typeof quantity === 'string' ? quantity : 'MISSING LABEL')
+    const tooltip = description || (searchQuantities[quantity] && searchQuantities[quantity].description) || ''
 
     if (row || column || flex) {
       return <div className={row ? classes.row : (column ? classes.column : classes.flex)}>{children}</div>
     } else {
       return (
-        <Tooltip title={description || (searchQuantities[quantity] && searchQuantities[quantity].description) || ''}>
+        <Tooltip title={tooltip}>
           <div className={classes.root}>
             <Typography noWrap classes={{root: classes.label}} variant="caption">{useLabel}</Typography>
             <div className={classes.valueContainer}>

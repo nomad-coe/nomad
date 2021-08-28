@@ -41,11 +41,9 @@ const useStyles = makeStyles((theme) => {
       flexWrap: 'wrap'
     },
     bz: {
-      marginTop: theme.spacing(1.5),
       flex: '0 0 65%'
     },
     gaps: {
-      marginTop: theme.spacing(1.5),
       flex: '0 0 35%'
     },
     bs: {
@@ -79,7 +77,6 @@ const bandGapQuantities = {
 const ElectronicProperties = React.memo(({
   bs,
   dos,
-  className,
   classes,
   units
 }) => {
@@ -104,7 +101,7 @@ const ElectronicProperties = React.memo(({
     dosYSubject.next(update)
   }, [dosYSubject])
 
-  return (
+  return <>
     <Box className={styles.row}>
       <PropertyContainer title="Band structure" className={styles.bs}>
         <BandStructure
@@ -134,8 +131,10 @@ const ElectronicProperties = React.memo(({
           data-testid="dos-electronic"
         ></DOS>
       </PropertyContainer>
-      {bs !== false
-        ? <><PropertyContainer title="Brillouin zone" className={styles.bz}>
+    </Box>
+    {bs !== false && <Box marginTop={2}>
+      <Box className={styles.row}>
+        <PropertyContainer title="Brillouin zone" className={styles.bz}>
           <BrillouinZone
             data={bs}
             aspectRatio={0.6 * 65 / 35}
@@ -152,17 +151,14 @@ const ElectronicProperties = React.memo(({
             units={units}
           />
         </PropertyContainer>
-        </>
-        : null
-      }
-    </Box>
-  )
+      </Box>
+    </Box>}
+  </>
 })
 
 ElectronicProperties.propTypes = {
   dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   bs: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
-  className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object // Contains the unit configuration
 }

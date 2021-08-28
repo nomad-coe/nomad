@@ -34,14 +34,14 @@ describe('<MainMenu />', () => {
     </MemoryRouter>))
     Object.keys(routes).forEach(key => {
       const route = routes[key]
-      if (route.navPath) {
-        let item = screen
-        const path = route.navPath.split('/')
-        for (let i = 0; i < path.length; i++) {
-          const itemId = path[i]
-          const element = item.getByTestId(itemId)
-          expect(element).toBeInTheDocument()
-          item = within(element)
+      if (route.menu) {
+        const menu = screen.getByTestId(route.menu)
+        expect(menu).toBeInTheDocument()
+        if (route.routes) {
+          route.routes.forEach(route => {
+            const item = within(menu).getByTestId(route.menu)
+            expect(item).toBeInTheDocument()
+          })
         }
       }
     })

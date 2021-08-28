@@ -28,11 +28,11 @@ import {
 import LoginLogout from '../LoginLogout'
 import UnitSelector from '../UnitSelector'
 import MainMenu from './MainMenu'
-import Breadcrumbs from './Breadcrumbs'
 import { useLoading } from '../apiV1'
 import { guiBase } from '../../config'
+import Breadcrumbs from './Breadcrumbs'
 
-export const appBarHeight = 12
+export const appBarHeight = 10
 
 /**
  * Linear indefinite loading indicator that is connceted to API traffic.
@@ -50,7 +50,6 @@ const useStyles = makeStyles(theme => ({
   root: {
     zIndex: theme.zIndex.drawer + 1,
     backgroundColor: 'white',
-    height: theme.spacing(appBarHeight),
     display: 'flex',
     flexDirection: 'column',
     padding: theme.spacing(1)
@@ -67,14 +66,12 @@ const useStyles = makeStyles(theme => ({
     paddingRight: theme.spacing(3)
   },
   logoImg: {
-    height: theme.spacing(appBarHeight - 2),
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1)
+    height: theme.spacing(appBarHeight - 3)
   },
   actions: {
-    minWidth: theme.spacing(25),
+    // minWidth: theme.spacing(25),
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-evenly'
   },
@@ -87,6 +84,7 @@ const useStyles = makeStyles(theme => ({
   navigation: {
     flexGrow: 1,
     marginRight: theme.spacing(1),
+    marginBottom: theme.spacing(1),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -99,7 +97,7 @@ const useStyles = makeStyles(theme => ({
     right: 0
   },
   crumbs: {
-    padding: '5px 0px 5px 5px'
+    padding: '9px 0px 9px 5px'
   }
 }))
 
@@ -117,7 +115,7 @@ export default function AppBar() {
         </Link>
       </div>
       <div className={styles.navigation}>
-        <MainMenu/>
+        <MainMenu />
         <Breadcrumbs className={styles.crumbs}/>
       </div>
       <div className={styles.actions}>

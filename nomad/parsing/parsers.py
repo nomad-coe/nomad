@@ -24,9 +24,6 @@ from nomad.datamodel import results
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from eelsdbconverter import EELSApiJsonConverter
-from mpesparser import MPESParser
-from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
@@ -73,6 +70,11 @@ from libatomsparser import LibAtomsParser
 from atkparser import ATKParser
 from qboxparser import QboxParser
 from openkimparser import OpenKIMParser
+from xpsparser import XPSParser
+from eelsdbparser import EELSDBParser
+# TODO
+# from mpesparser import MPESParser
+# from aptfimparser import APTFIMParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -192,9 +194,6 @@ parsers = [
     ElasticParser(),
     GamessParser(),
     TurbomoleParser(),
-    MPESParser(),
-    APTFIMParser(),
-    EELSApiJsonConverter(),
     QboxParser(),
     Dmol3Parser(),
     FleurParser(),
@@ -213,6 +212,10 @@ parsers = [
     AsapParser(),
     FploParser(),
     MopacParser(),
+    # MPESParser(),
+    # APTFIMParser(),
+    EELSDBParser(),
+    XPSParser(),
     ArchiveParser()
 ]
 
