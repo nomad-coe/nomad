@@ -1145,3 +1145,6 @@ class Method(MSection):
     molecule_parameters = SubSection(sub_section=MoleculeParameters.m_def, repeats=True)
 
     basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True)
+
+
+m_package.__init_metainfo__()

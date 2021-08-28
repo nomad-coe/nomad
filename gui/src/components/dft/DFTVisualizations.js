@@ -191,9 +191,15 @@ MetaInfoTooltip.propTypes = {
 const tooltips = {}
 for (const label in labels) {
   const path = metainfoPaths[label]
-  const realName = path.split('/').slice(-1)[0]
-  const metainfoDef = defsByName[realName][0]
-  tooltips[label] = <MetaInfoTooltip def={metainfoDef} path={path}></MetaInfoTooltip>
+  console.assert(path, `The metainfo for ${label} does not exist.`)
+  if (path) {
+    const realName = path.split('/').slice(-1)[0]
+    const metainfoDef = defsByName[realName]?.[0]
+    console.assert(metainfoDef, `No metainfo definition called ${realName} does exist.`)
+    if (metainfoDef) {
+      tooltips[label] = <MetaInfoTooltip def={metainfoDef} path={path}></MetaInfoTooltip>
+    }
+  }
 }
 
 const workflowTypeLabels = {

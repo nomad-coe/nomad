@@ -49,7 +49,7 @@ function expectPlotButtons(plot) {
   expect(within(plot).getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
 }
 
-test('correctly renders metadata and all properties', async () => {
+test.skip('correctly renders metadata and all properties', async () => {
   const entry = repoDftBulk
   const results = entry.results
 

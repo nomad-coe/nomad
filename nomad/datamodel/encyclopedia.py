@@ -664,3 +664,6 @@ class EncyclopediaMetadata(MSection):
         """,
         a_search=Search()
     )
+
+
+m_package.__init_metainfo__()

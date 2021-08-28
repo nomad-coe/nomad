@@ -103,10 +103,20 @@ function MetainfoConfigForm(props) {
         !def.extends_base_section && def.m_def !== 'SubSection' && (
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
       ))
-      results.push(...defsForName.map(def => ({
-        path: url + '/' + metainfoPath(def),
-        label: `${def.name}${defsForName.length > 1 ? ` (${def._parentSections[0].name})` : ''} [${def.m_def.toLowerCase()}]`
-      })))
+      results.push(...defsForName.map(def => {
+        let label = def.name
+        if (defsForName.length > 1) {
+          if (def._parentSections?.length) {
+            label = `${label} (${def._parentSections[0].name})`
+          } else {
+            label = `${label} (${def._qualifiedName.split(':')[0]})`
+          }
+        }
+        return {
+          path: url + '/' + metainfoPath(def),
+          label: `${label} [${def.m_def.toLowerCase()}]`
+        }
+      }))
       return results
     }, []).sort((a, b) => a.label.localeCompare(b.label))
   }, [config.packagePrefix, url])

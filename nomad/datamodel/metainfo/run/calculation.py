@@ -1669,3 +1669,6 @@ class Calculation(BaseCalculation):
         categories=[ScfInfo])
 
     scf_iteration = SubSection(sub_section=ScfIteration.m_def, repeats=True)
+
+
+m_package.__init_metainfo__()

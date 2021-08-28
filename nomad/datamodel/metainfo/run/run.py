@@ -253,3 +253,6 @@ class Run(MSection):
     calculation = SubSection(sub_section=Calculation.m_def, repeats=True)
 
     run_ref = SubSection(sub_section=RunReference.m_def, repeats=True)
+
+
+m_package.__init_metainfo__()

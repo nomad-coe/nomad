@@ -537,3 +537,6 @@ class System(MSection):
 
     system_ref = SubSection(
         sub_section=SystemReference.m_def, repeats=True)
+
+
+m_package.__init_metainfo__()
