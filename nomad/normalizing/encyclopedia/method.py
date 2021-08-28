@@ -127,12 +127,12 @@ class MethodNormalizer():
         atom_positions = sec_sys['atom_positions']
         geom_dict['atom_positions'] = np.array2string(
             atom_positions.to(ureg.angstrom).magnitude,  # convert to Angstrom
-            formatter={'float_kind': lambda x: "%.6f" % x},
+            formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
         ).replace('\n', '')
         cell = sec_sys['lattice_vectors']
         geom_dict['simulation_cell'] = np.array2string(
             cell.to(ureg.angstrom).magnitude,  # convert to Angstrom
-            formatter={'float_kind': lambda x: "%.6f" % x},
+            formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
         ).replace('\n', '')
         param_dict['settings_geometry'] = geom_dict
 

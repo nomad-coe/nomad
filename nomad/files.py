@@ -80,6 +80,7 @@ else:
 
 zip_file_extensions = ('.zip',)
 tar_file_extensions = ('.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar')
+bundle_info_filename = 'bundle_info.json'
 
 
 def always_restricted(path: str):
@@ -465,7 +466,7 @@ class StandardJSONEncoder(json.JSONEncoder):
     """ Our standard JSONEncoder with support for marshalling of datetime objects """
     def default(self, obj):  # pylint: disable=E0202
         if isinstance(obj, datetime):
-            return {'$datetime': obj.timestamp()}
+            return {'$datetime': obj.isoformat()}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -476,8 +477,8 @@ class StandardJSONDecoder(json.JSONDecoder):
 
     def dict_to_object(self, d):
         v = d.get('$datetime')
-        if v is not None:
-            return datetime.fromtimestamp(v)
+        if v is not None and len(d) == 1:
+            return datetime.fromisoformat(v)
         return d
 
 
@@ -674,14 +675,13 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @classmethod
     def files_from_bundle(
-            cls, budle_file_source: BrowsableFileSource,
+            cls, bundle_file_source: BrowsableFileSource,
             include_raw_files: bool,
-            include_archive_files: bool) -> FileSource:
+            include_archive_files: bool,
+            include_bundle_info: bool) -> FileSource:
         '''
         Returns a :class:`FileSource`, defining the files/folders to be included in an
-        upload bundle when *importing*. Note, the bundle_info.json file is not included in
-        the source, only the "regular" files, and only those specified by the arguments
-        to the method.
+        upload bundle when *importing*. Only the files specified by the arguments are included.
         '''
         raise NotImplementedError()
 
@@ -1084,18 +1084,6 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def calc_id(self, mainfile: str) -> str:
-        '''
-        Calculates a id for the given calc.
-        Arguments:
-            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
-        Returns:
-            The calc id
-        Raises:
-            KeyError: If the mainfile does not exist.
-        '''
-        return utils.hash(self.upload_id, mainfile)
-
     def calc_hash(self, mainfile: str) -> str:
         '''
         Calculates a hash for the given calc based on file contents and aux file contents.
@@ -1122,7 +1110,7 @@ class StagingUploadFiles(UploadFiles):
         if include_raw_files and not include_protected_raw_files:
             assert False, 'Excluding protected files not supported for uploads in staging.'
         rv = CombinedFileSource()
-        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, 'bundle_info.json')))
+        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, bundle_info_filename)))
         if include_raw_files and include_protected_raw_files:
             rv.add_file_source(DiskFileSource(self.os_path, 'raw'))
         if include_archive_files:
@@ -1131,15 +1119,18 @@ class StagingUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, budle_file_source: BrowsableFileSource,
+            cls, bundle_file_source: BrowsableFileSource,
             include_raw_files: bool,
-            include_archive_files: bool) -> FileSource:
+            include_archive_files: bool,
+            include_bundle_info: bool) -> FileSource:
         # Files to import for a staging upload
         rv = CombinedFileSource()
         if include_raw_files:
-            rv.add_file_source(budle_file_source.sub_source('raw'))
+            rv.add_file_source(bundle_file_source.sub_source('raw'))
         if include_archive_files:
-            rv.add_file_source(budle_file_source.sub_source('archive'))
+            rv.add_file_source(bundle_file_source.sub_source('archive'))
+        if include_bundle_info:
+            rv.add_file_source(bundle_file_source.sub_source(bundle_info_filename))
         return rv
 
 
@@ -1472,7 +1463,7 @@ class PublicUploadFiles(UploadFiles):
             # TODO: Probably need to support this in the future
             raise NotImplementedError('Excluding protected files not yet supported')
         rv = CombinedFileSource()
-        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, 'bundle_info.json')))
+        rv.add_file_source(StreamedFileSource(json_to_streamed_file(bundle_info, bundle_info_filename)))
         for filename in os.listdir(self.os_path):
             if filename.startswith('raw-') and include_raw_files:
                 rv.add_file_source(DiskFileSource(self.os_path, filename))
@@ -1482,15 +1473,18 @@ class PublicUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, budle_file_source: BrowsableFileSource,
+            cls, bundle_file_source: BrowsableFileSource,
             include_raw_files: bool,
-            include_archive_files: bool) -> FileSource:
+            include_archive_files: bool,
+            include_bundle_info: bool) -> FileSource:
         rv = CombinedFileSource()
-        for filename in budle_file_source.directory_list(''):
+        for filename in bundle_file_source.directory_list(''):
             if filename.startswith('raw-') and include_raw_files:
-                rv.add_file_source(budle_file_source.sub_source(filename))
+                rv.add_file_source(bundle_file_source.sub_source(filename))
             if filename.startswith('archive-') and include_archive_files:
-                rv.add_file_source(budle_file_source.sub_source(filename))
+                rv.add_file_source(bundle_file_source.sub_source(filename))
+            if filename == bundle_info_filename and include_bundle_info:
+                rv.add_file_source(bundle_file_source.sub_source(filename))
         return rv
 
 
@@ -1514,12 +1508,12 @@ class UploadBundle:
     @property
     def bundle_info(self) -> Dict[str, Any]:
         if self._bundle_info is None:
-            with self.file_source.open('bundle_info.json', 'rt') as f:
+            with self.file_source.open(bundle_info_filename, 'rt') as f:
                 self._bundle_info = json.load(f, cls=StandardJSONDecoder)
         return self._bundle_info
 
     def import_upload_files(
-            self, include_raw_files: bool, include_archive_files: bool,
+            self, include_raw_files: bool, include_archive_files: bool, include_bundle_info: bool,
             move_files: bool) -> UploadFiles:
         '''
         Creates an :class:`UploadFiles` object of the right type and imports the selected
@@ -1533,7 +1527,7 @@ class UploadBundle:
             assert not os.path.exists(cls.base_folder_for(upload_id)), 'Upload folder already exists'
             upload_files = cls(upload_id, is_authorized=lambda: True, create=True)
             import_file_source = upload_files.files_from_bundle(
-                self.file_source, include_raw_files, include_archive_files)
+                self.file_source, include_raw_files, include_archive_files, include_bundle_info)
             import_file_source.to_disk(upload_files.os_path, move_files=move_files, overwrite=True)
             return upload_files
         except Exception:

@@ -123,6 +123,18 @@ def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message
             current = current[sub_key]
 
 
+def generate_entry_id(upload_id: str, mainfile: str) -> str:
+    '''
+    Generates an id for an entry.
+    Arguments:
+        upload_id: The id of the upload
+        mainfile: The mainfile path (relative to the raw directory).
+    Returns:
+        The generated entry id
+    '''
+    return utils.hash(upload_id, mainfile)
+
+
 class Calc(Proc):
     '''
     Instances of this class represent calculations. This class manages the elastic
@@ -567,7 +579,7 @@ class Calc(Proc):
                 return
 
             relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
-            ref_id = upload_files.calc_id(relative_ref)
+            ref_id = generate_entry_id(self.upload_id, relative_ref)
             with upload_files.read_archive(ref_id) as archive:
                 arch = archive[ref_id]
                 ref_archive = EntryArchive.m_from_dict(arch.to_dict())
@@ -773,7 +785,6 @@ class Upload(Proc):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.publish_directly = self.publish_directly or self.from_oasis
         self._upload_files: UploadFiles = None
 
     @lru_cache()
@@ -1308,7 +1319,6 @@ class Upload(Proc):
             try:
                 settings = config.reprocess.customize(reprocess_settings)  # Add default settings
 
-                staging_upload_files = self.staging_upload_files
                 old_entries = Calc.objects(upload_id=self.upload_id)
                 has_old_entries = old_entries.count() > 0
                 matched_entries: Set[str] = set()
@@ -1321,9 +1331,9 @@ class Upload(Proc):
                         calc_id = oasis_entry_metadata.get('calc_id')
                         if calc_id is None:
                             logger.warn('Oasis entry without id', mainfile=filename)
-                            calc_id = staging_upload_files.calc_id(filename)
+                            calc_id = generate_entry_id(self.upload_id, filename)
                     else:
-                        calc_id = staging_upload_files.calc_id(filename)
+                        calc_id = generate_entry_id(self.upload_id, filename)
 
                     try:
                         entry = Calc.get(calc_id)
@@ -1818,7 +1828,7 @@ class Upload(Proc):
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
                 'name', 'embargo_length', 'published', 'create_time',
-                'from_oasis', 'oasis_deployment_id', 'published_to']
+                'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
                 upload_keys_to_copy.extend(('upload_time', 'publish_time'))
             try:
@@ -1845,7 +1855,6 @@ class Upload(Proc):
                     # field as it is, since it indicates that the upload has been importet from
                     # somewhere else originally (i.e. source_deployment_id would not be the
                     # original source)
-                # TODO: should we do anything about published_to?
 
             # Dataset definitions
             if settings.include_datasets:
@@ -1885,7 +1894,10 @@ class Upload(Proc):
                 keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
                 with_embargo_values.add(entry_metadata_dict.get('with_embargo'))
                 # Check referential consistency
-                assert entry_dict['upload_id'] == self.upload_id, 'Mismatching entry upload_id'
+                assert entry_dict['upload_id'] == self.upload_id, (
+                    'Mismatching upload_id in entry definition')
+                assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
+                    'Provided entry id does not match generated value')
                 for k, v in (
                         ('upload_name', self.name),
                         ('uploader', self.user_id),
@@ -1908,12 +1920,13 @@ class Upload(Proc):
                     assert False, 'Bad entry json data: ' + str(e)
                 # Instantiate an EntryMetadata object to validate the format
                 try:
+                    if settings.include_datasets:
+                        entry_metadata_dict['datasets'] = [
+                            dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
+                    else:
+                        entry_metadata_dict['datasets'] = []
                     entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
                     entry_metadata.upload_time = self.upload_time  # Set same upload_time everywhere
-                    if settings.include_datasets:
-                        entry_metadata.datasets = [dataset_id_mapping[id] for id in entry_metadata.datasets]
-                    else:
-                        entry_metadata.datasets = []
                     entry.apply_entry_metadata(entry_metadata)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
@@ -1934,7 +1947,8 @@ class Upload(Proc):
 
             # Import the files
             upload_files = bundle.import_upload_files(
-                settings.include_raw_files, settings.include_archive_files, move_files)
+                settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
+                move_files)
 
             # Check the archive metadata, if included
             if settings.include_archive_files:

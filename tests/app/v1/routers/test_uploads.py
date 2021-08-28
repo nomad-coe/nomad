@@ -30,8 +30,9 @@ from tests.test_files import (
     assert_upload_files)
 from tests.search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
-from nomad import config, files, infrastructure
+from nomad import config, files, infrastructure, datamodel
 from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 from nomad.archive import write_archive, read_archive
@@ -1079,39 +1080,6 @@ def test_post_upload(
             assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], with_embargo=False)
 
 
-@pytest.mark.parametrize('user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code', [
-    pytest.param('test_user', 'test_user', 'oasis_upload_id', 'an_id', 200, id='ok'),
-    pytest.param('test_user', 'test_user', 'id_unpublished_w', 'an_id', 400, id='dulicate'),
-    pytest.param('test_user', None, 'oasis_upload_id', 'an_id', 400, id='missing-oasis_uploader_id'),
-    pytest.param('test_user', 'test_user', None, 'an_id', 400, id='missing-oasis_upload_id'),
-    pytest.param('test_user', 'test_user', 'oasis_upload_id', None, 400, id='missing-oasis_deployment_id'),
-    pytest.param('other_test_user', 'test_user', 'oasis_upload_id', 'an_id', 401, id='not-oasis-admin'),
-    pytest.param(None, 'test_user', 'oasis_upload_id', 'an_id', 401, id='no-credentials'),
-    pytest.param('invalid', 'test_user', 'oasis_upload_id', 'an_id', 401, id='invalid-credentials')])
-def test_post_upload_oasis(
-        client, mongo, proc_infra, oasis_example_upload, example_data_writeable,
-        test_users_dict, test_auth_dict,
-        user, oasis_uploader, oasis_upload_id, oasis_deployment_id, expected_status_code):
-
-    user_auth, __token = test_auth_dict[user]
-    oasis_uploader_id = test_users_dict[oasis_uploader].user_id if oasis_uploader else None
-    url = 'uploads'
-    response = perform_post_put_file(
-        client, 'POST', url, 'stream', oasis_example_upload, user_auth,
-        oasis_upload_id=oasis_upload_id,
-        oasis_uploader_id=oasis_uploader_id,
-        oasis_deployment_id=oasis_deployment_id)
-
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
-        response_json = response.json()
-        upload_id = response_json['upload_id']
-        assert upload_id == oasis_upload_id
-        assert_upload(response_json)
-        assert_processing(client, upload_id, user_auth, published=True, check_search=False)
-        assert_gets_published(client, upload_id, user_auth, from_oasis=True, with_embargo=False)
-
-
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
@@ -1191,18 +1159,24 @@ def test_post_upload_action_publish(
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
-            upload_id='id_published_w',
+            upload_id='examples_template',
             import_settings=dict(include_archive_files=False, trigger_processing=True)),
         id='trigger-processing'),
     pytest.param(
         dict(
-            upload_id='id_published_w',
+            upload_id='examples_template',
             import_settings=dict(include_archive_files=True, trigger_processing=False)),
         id='no-processing')])
 def test_post_upload_action_publish_to_central_nomad(
-        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client, example_data_writeable,
-        test_auth_dict, kwargs):
+        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client,
+        non_empty_processed, internal_example_user_metadata,
+        test_users_dict, test_auth_dict, kwargs):
     ''' Tests the publish action with to_central_nomad=True. '''
+    # Create a published upload
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    non_empty_processed.publish_upload()
+    non_empty_processed.block_until_complete(interval=.01)
+
     suffix = '_2'  # Will be added to all IDs in the mirrored upload
     upload_id = kwargs.get('upload_id')
     query_args = kwargs.get('query_args', {})
@@ -1211,7 +1185,7 @@ def test_post_upload_action_publish_to_central_nomad(
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'test_user')
     user_auth, __token = test_auth_dict[user]
-    original_upload = Upload.get(upload_id)
+    old_upload = Upload.get(upload_id)
 
     # Do some tricks to add suffix to the ID fields
     old_bundle_init = files.UploadBundle.__init__
@@ -1223,7 +1197,7 @@ def test_post_upload_action_publish_to_central_nomad(
         bundle_info['upload_id'] += suffix
         bundle_info['upload']['_id'] += suffix
         for entry_dict in bundle_info['entries']:
-            entry_dict['_id'] += suffix
+            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
             entry_dict['upload_id'] += suffix
 
     old_bundle_import_files = files.UploadBundle.import_upload_files
@@ -1231,7 +1205,7 @@ def test_post_upload_action_publish_to_central_nomad(
     def new_bundle_import_files(self, *args, **kwargs):
         upload_files = old_bundle_import_files(self, *args, **kwargs)
         # Overwrite the archive files with files containing the updated IDs
-        if original_upload.published:
+        if old_upload.published:
             archive_path = upload_files.os_path
         else:
             archive_path = os.path.join(upload_files.os_path, 'archive')
@@ -1241,10 +1215,12 @@ def test_post_upload_action_publish_to_central_nomad(
                 data = read_archive(full_path)
                 new_data = []
                 for entry_id in data.keys():
-                    new_entry_id = (entry_id + suffix)[len(suffix):]  # fixed length required
                     archive_dict = data[entry_id].to_dict()
-                    archive_dict['section_metadata']['upload_id'] += suffix
-                    archive_dict['section_metadata']['calc_id'] += suffix
+                    section_metadata = archive_dict['section_metadata']
+                    section_metadata['upload_id'] += suffix
+                    new_entry_id = generate_entry_id(
+                        section_metadata['upload_id'], section_metadata['mainfile'])
+                    section_metadata['calc_id'] = new_entry_id
                     new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
         return upload_files
@@ -1262,6 +1238,14 @@ def test_post_upload_action_publish_to_central_nomad(
     import_settings = config.bundle_import.default_settings.customize(import_settings)
     monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
 
+    # create a dataset to also test this aspect of oasis uploads
+    calc = old_upload.calcs[0]
+    datamodel.Dataset(
+        dataset_id='dataset_id', name='dataset_name',
+        user_id=test_users_dict[user].user_id).a_mongo.save()
+    calc.metadata['datasets'] = ['dataset_id']
+    calc.save()
+
     # Finally, invoke the method to publish to central nomad
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
 
@@ -1270,8 +1254,20 @@ def test_post_upload_action_publish_to_central_nomad(
         upload = assert_upload(response.json())
         assert upload['current_process'] == 'publish_externally'
         assert upload['process_running']
-        assert_processing(client, upload_id, user_auth, published=original_upload.published)
-        assert_processing(client, upload_id + suffix, user_auth, published=original_upload.published)
+        assert_processing(client, upload_id, user_auth, published=old_upload.published)
+        assert_processing(client, upload_id + suffix, user_auth, published=old_upload.published)
+
+        old_upload = Upload.get(upload_id)
+        new_upload = Upload.get(upload_id + suffix)
+        assert len(old_upload.calcs) == len(new_upload.calcs)
+        old_calc = old_upload.calcs[0]
+        new_calc = new_upload.calcs[0]
+        for k, v in old_calc.metadata.items():
+            if k not in ('upload_time', 'last_processing'):
+                assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
+        assert new_calc.metadata.get('datasets') == ['dataset_id']
+        assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
+        assert new_upload.from_oasis and new_upload.oasis_deployment_id
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [
@@ -1386,19 +1382,32 @@ def test_get_upload_bundle(
     return
 
 
-@pytest.mark.parametrize('upload_id, user, export_args, query_args, expected_status_code', [
+@pytest.mark.parametrize('publish, test_duplicate, user, export_args, query_args, expected_status_code', [
     pytest.param(
-        'id_published_w', 'admin_user', dict(), dict(),
+        True, False, 'admin_user', dict(), dict(),
         200, id='published-admin'),
     pytest.param(
-        'id_unpublished_w', 'admin_user', dict(), dict(),
+        False, False, 'admin_user', dict(), dict(),
         200, id='unpublished-admin'),
-])
+    pytest.param(
+        True, True, 'admin_user', dict(), dict(),
+        400, id='duplicate'),
+    pytest.param(
+        True, False, 'other_test_user', dict(), dict(),
+        401, id='not-oasis-admin'),
+    pytest.param(
+        True, False, None, dict(), dict(),
+        401, id='no-credentials')])
 def test_post_upload_bundle(
-        client, proc_infra, example_data_writeable, test_auth_dict,
-        upload_id, user, export_args, query_args, expected_status_code):
-    upload = Upload.get(upload_id)
-    published = upload.published
+        client, proc_infra, non_empty_processed, internal_example_user_metadata, test_auth_dict,
+        publish, test_duplicate, user, export_args, query_args, expected_status_code):
+    # Create the bundle
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    if publish:
+        non_empty_processed.publish_upload()
+        non_empty_processed.block_until_complete(interval=.01)
+    upload = non_empty_processed
+    upload_id = upload.upload_id
     export_path = os.path.join(config.fs.tmp, 'bundle_' + upload_id)
     export_args_with_defaults = dict(
         export_as_stream=False, export_path=export_path,
@@ -1407,14 +1416,18 @@ def test_post_upload_bundle(
         include_archive_files=True, include_datasets=True)
     export_args_with_defaults.update(export_args)
     upload.export_bundle(**export_args_with_defaults)
-    upload.delete_upload_local()  # Delete so we can import it again
-
+    if not test_duplicate:
+        # Delete the upload so we can import the bundle without id collisions
+        upload.delete_upload_local()
+    # Finally, import the bundle
     user_auth, __token = test_auth_dict[user]
     response = perform_post_put_file(
         client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_processing(client, upload_id, user_auth, published=published)
+        assert_processing(client, upload_id, user_auth, published=publish)
+        upload = Upload.get(upload_id)
+        assert upload.from_oasis and upload.oasis_deployment_id
     return
 
 

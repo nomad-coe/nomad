@@ -30,6 +30,7 @@ from nomad import utils, infrastructure, config, datamodel
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing.data import generate_entry_id
 from nomad.search.v1 import search
 
 from tests.search import assert_search_upload
@@ -37,6 +38,10 @@ from tests.test_files import assert_upload_files
 from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import test_users_dict, test_user_auth  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
+
+
+def test_generate_entry_id():
+    assert generate_entry_id('an_upload_id', 'a/mainfile/path') == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
 
 
 def test_send_mail(mails, monkeypatch):
@@ -252,6 +257,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user)
     upload.from_oasis = True
+    upload.publish_directly = True
     upload.oasis_deployment_id = 'an_oasis_id'
 
     assert upload.process_status == ProcessStatus.READY

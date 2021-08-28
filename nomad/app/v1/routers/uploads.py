@@ -798,19 +798,6 @@ async def post_upload(
             None,
             description=strip('''
             If the upload should be published directly. False by default.''')),
-        oasis_upload_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the upload id of the oasis system.''')),
-        oasis_uploader_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the id of the user in the oasis system who made the upload
-            originally. The user must also be registered in NOMAD.''')),
-        oasis_deployment_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the deployment id.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
     Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
@@ -837,8 +824,8 @@ async def post_upload(
 
         curl -X 'POST' "url" -T local_file
 
-    Note that authentication is required. This can either be done using the regular bearer
-    token, or using the simplified upload token. To use the simplified upload token, just
+    Authentication is required. This can either be done using the regular bearer token,
+    or using the simplified upload token. To use the simplified upload token, just
     specify it as a query parameter in the url, i.e.
 
         curl -X 'POST' "baseurl?token=ABC.XYZ" ...
@@ -852,50 +839,7 @@ async def post_upload(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
-    upload_user = user
-
-    # check if allowed to perform oasis upload
-    from_oasis = oasis_upload_id is not None
-    if from_oasis:
-        if not user.is_oasis_admin:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Only an oasis admin can perform an oasis upload.')
-        if oasis_uploader_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You must provide the original uploader for an oasis upload.')
-        if oasis_deployment_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You must provide the oasis deployment id for an oasis upload.')
-        if publish_directly is False:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Oasis uploads are always published directly.')
-        # Switch user!
-        upload_user = datamodel.User.get(user_id=oasis_uploader_id)
-        if upload_user is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='The given original uploader does not exist.')
-    elif oasis_uploader_id is not None or oasis_deployment_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='For an oasis upload you must provide an oasis_upload_id.')
-
-    # Get upload_id and path
-    if from_oasis:
-        upload_id = oasis_upload_id
-        try:
-            Upload.get(upload_id)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='An oasis upload with the given upload_id already exists.')
-        except KeyError:
-            pass
-    else:
-        upload_id = utils.create_uuid()
+    upload_id = utils.create_uuid()
 
     if metadata.name and not file_name and files.is_safe_basename(metadata.name):
         # Try to default the file_name using name
@@ -913,12 +857,10 @@ async def post_upload(
 
     upload = Upload.create(
         upload_id=upload_id,
-        user=upload_user,
+        user=user,
         name=metadata.name,
         upload_time=datetime.utcnow(),
-        publish_directly=publish_directly or from_oasis,
-        from_oasis=from_oasis,
-        oasis_deployment_id=oasis_deployment_id)
+        publish_directly=publish_directly)
 
     # Create staging files
     files.StagingUploadFiles(upload_id=upload_id, is_authorized=lambda: True, create=True)
@@ -1240,6 +1182,11 @@ async def post_upload_bundle(
             description=strip('''
                 If dataset references to this upload should be imported from the bundle
                 *(only admins can change this setting)*.''')),
+        include_bundle_info: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If the bundle_info.json file should be kept
+                *(only admins can change this setting)*.''')),
         keep_original_timestamps: Optional[bool] = FastApiQuery(
             None,
             description=strip('''
@@ -1298,6 +1245,7 @@ async def post_upload_bundle(
             include_raw_files=include_raw_files,
             include_archive_files=include_archive_files,
             include_datasets=include_datasets,
+            include_bundle_info=include_bundle_info,
             keep_original_timestamps=keep_original_timestamps,
             set_from_oasis=set_from_oasis,
             trigger_processing=trigger_processing)

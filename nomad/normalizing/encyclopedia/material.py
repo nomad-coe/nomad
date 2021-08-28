@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, List
+from typing import Union, Dict, List, Iterable
 from nptyping import NDArray
 from math import gcd, isnan
 from functools import reduce
@@ -73,11 +73,11 @@ class MaterialNormalizer():
         formula = atomutils.get_formula_string(names, counts)
         material.formula = formula
 
-    def formula_reduced(self, material: Material, names: list, counts_reduced: list) -> None:
+    def formula_reduced(self, material: Material, names: Iterable, counts_reduced: Iterable) -> None:
         formula = atomutils.get_formula_string(names, counts_reduced)
         material.formula_reduced = formula
 
-    def species_and_counts(self, material: Material, names: List[str], reduced_counts: List[int]) -> None:
+    def species_and_counts(self, material: Material, names: Iterable[str], reduced_counts: Iterable[int]) -> None:
         parts = []
         for name, count in zip(names, reduced_counts):
             if count == 1:
@@ -151,7 +151,8 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         else:
             properties.mass_density = mass_density
 
-    def material_name(self, material: Material, symbols: list, numbers: list) -> None:
+    def material_name(
+            self, material: Material, symbols: Union[List, NDArray], numbers: Union[List, NDArray]) -> None:
         # Systems with one element are named after it
         if len(symbols) == 1:
             number = ase.data.atomic_numbers[symbols[0]]
