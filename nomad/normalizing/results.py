@@ -493,7 +493,7 @@ class ResultsNormalizer(Normalizer):
             if valid_array(energies) and valid_array(values):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
-                dos_new.densities = [d.value for d in dos.total]
+                dos_new.total = dos.total
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
                 for info in dos.channel_info:
@@ -530,7 +530,7 @@ class ResultsNormalizer(Normalizer):
             if valid:
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructurePhonon()
-                bs_new.segments = bs.segment
+                bs_new.segment = bs.segment
                 return bs_new
 
         return None

@@ -205,9 +205,9 @@ const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...mor
       <Grid item xs={8} className={classes.rightColumn}>
         <MaterialCard entryMetadata={entry} archive={archive} />
         <ElectronicPropertiesCard entryMetadata={entry} archive={archive} />
-        <VibrationalPropertiesCard entryMetadata={entry} archive={archive} />
+        {/* <VibrationalPropertiesCard entryMetadata={entry} archive={archive} />
         <GeometryOptimizationCard entryMetadata={entry} archive={archive} />
-        <SpectrumCard entryMetadata={entry} archive={archive} />
+        <SpectrumCard entryMetadata={entry} archive={archive} /> */}
       </Grid>
     </Grid>
   </Page>

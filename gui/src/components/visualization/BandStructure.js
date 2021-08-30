@@ -61,25 +61,25 @@ const BandStructure = React.memo(({
     }
 
     // Determine the energy reference.
-    let energyHighestOccupied
+    let energyHighestOccupied, normalized
     if (type === 'vibrational') {
       energyHighestOccupied = 0
-      setNormalizedToHOE(true)
+      normalized = true
     } else {
       if (!data.energy_highest_occupied === undefined) {
         energyHighestOccupied = 0
-        setNormalizedToHOE(false)
+        normalized = false
       } else {
         energyHighestOccupied = toUnitSystem(data.energy_highest_occupied, 'joule', units, false)
-        setNormalizedToHOE(true)
+        normalized = true
       }
     }
-    const energyName = 'band_energies'
-    const kpointName = 'band_k_points'
-
-    let plotData = []
-    let nChannels = data.segments[0][energyName].length
-    let nBands = data.segments[0][energyName][0][0].length
+    setNormalizedToHOE(normalized)
+    const energyName = 'energies'
+    const kpointName = 'kpoints'
+    const plotData = []
+    const nChannels = data.segments[0][energyName].length
+    const nBands = data.segments[0][energyName][0][0].length
 
     // Calculate distances in k-space if missing. These distances in k-space
     // define the plot x-axis spacing.
@@ -189,7 +189,7 @@ const BandStructure = React.memo(({
     }
 
     // Normalization line
-    if (type !== 'vibrational' && normalizedToHOE) {
+    if (type !== 'vibrational' && normalized) {
       plotData.push({
         x: [path[0], path[path.length - 1]],
         y: [0, 0],
@@ -205,7 +205,7 @@ const BandStructure = React.memo(({
     }
 
     setFinalData(plotData)
-  }, [data, theme, units, type, normalizedToHOE])
+  }, [data, theme, units, type])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -247,22 +247,27 @@ const BandStructure = React.memo(({
     // Set new layout that contains the segment labels
     let labels = []
     let labelKPoints = []
+    let ended = false
     for (let iSegment = 0; iSegment < data.segments.length; ++iSegment) {
       let segment = data.segments[iSegment]
-      const startLabel = segment.band_segm_labels ? segment.band_segm_labels[0] : ''
-      if (iSegment === 0) {
-        // If label is not defined, use empty string
-        labels.push(startLabel)
-        labelKPoints.push(pathSegments[iSegment][0])
-      } else {
+      const startLabel = segment.kpoints_labels ? segment.kpoints_labels[0] : 'None'
+      const endLabel = segment.kpoints_labels ? segment.kpoints_labels.slice(-1)[0] : 'None'
+      if (startLabel !== 'None') {
         let prevLabel = labels[labels.length - 1]
-        if (prevLabel !== startLabel) {
+        if (ended && prevLabel !== startLabel) {
           labels[labels.length - 1] = `${prevLabel}|${startLabel}`
+        } else {
+          labels.push(startLabel)
+          labelKPoints.push(pathSegments[iSegment][0])
         }
       }
-      const endLabel = segment.band_segm_labels ? segment.band_segm_labels[1] : ''
-      labels.push(endLabel)
-      labelKPoints.push(pathSegments[iSegment].slice(-1)[0])
+      if (endLabel !== 'None') {
+        ended = true
+        labels.push(endLabel)
+        labelKPoints.push(pathSegments[iSegment].slice(-1)[0])
+      } else {
+        ended = false
+      }
     }
     let shapes = []
     for (let iShape = 1; iShape < labelKPoints.length - 1; ++iShape) {

@@ -197,9 +197,9 @@ const BrillouinZone = React.memo(({
     let previousPoint
     let segment = []
     for (let seg of data.segments) {
-      let labels = seg.band_segm_labels
-      const start = seg.band_k_points[0]
-      const end = seg.band_k_points.slice(-1)[0]
+      let labels = [seg.kpoints_labels[0], seg.kpoints_labels.pop()]
+      const start = seg.kpoints[0]
+      const end = seg.kpoints.slice(-1)[0]
       if (!previousPoint || (previousPoint && distance(start, previousPoint) >= 1e-8)) {
         // Push old segment
         if (segment.length > 0) {

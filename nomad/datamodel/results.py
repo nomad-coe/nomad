@@ -38,7 +38,10 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Dos, BandStructure as BandStructureCalculation, BandEnergies,
+    Dos,
+    BandStructure as BandStructureCalculation,
+    BandEnergies,
+    DosValues,
     Calculation)  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
@@ -892,8 +895,9 @@ class DOS(MSection):
         states (DOS).
         """,
     )
-    densities = Quantity(
-        type=np.dtype(np.float64),
+    total = Quantity(
+        type=DosValues,
+        shape=["*"],
         description="""
         Density of states (DOS) values normalized with unit cell volume and
         number of atoms.
@@ -945,7 +949,7 @@ class BandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         """,
     )
-    segments = Quantity(
+    segment = Quantity(
         type=BandEnergies,
         shape=["*"],
         description="""
