@@ -24,14 +24,15 @@ import {
   FilterSubMenus
 } from './FilterMenu'
 
+import FilterSubMenuMaterial from './FilterSubMenuMaterial'
 import FilterSubMenuElements from './FilterSubMenuElements'
-import FilterSubMenuElectronic from './FilterSubMenuElectronic'
 import FilterSubMenuSymmetry from './FilterSubMenuSymmetry'
 import FilterSubMenuMethod from './FilterSubMenuMethod'
 import FilterSubMenuSimulation from './FilterSubMenuSimulation'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
-import FilterSubMenuMaterial from './FilterSubMenuMaterial'
+import FilterSubMenuElectronic from './FilterSubMenuElectronic'
+import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuAuthor from './FilterSubMenuAuthor'
 import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
@@ -46,6 +47,7 @@ import {
   labelGW,
   labelProperties,
   labelElectronic,
+  labelVibrational,
   labelAuthor,
   labelDataset,
   labelIDs,
@@ -84,6 +86,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelGW} depth={2}/>
       <FilterMenuItem value={labelProperties} depth={0} disableButton/>
       <FilterMenuItem value={labelElectronic} depth={1}/>
+      <FilterMenuItem value={labelVibrational} depth={1}/>
       <FilterMenuItem value={labelAuthor} depth={0}/>
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
@@ -98,6 +101,7 @@ const FilterMainMenu = React.memo(({
       <FilterSubMenuDFT value={labelDFT}/>
       <FilterSubMenuGW value={labelGW}/>
       <FilterSubMenuElectronic value={labelElectronic}/>
+      <FilterSubMenuVibrational value={labelVibrational}/>
       <FilterSubMenuAuthor value={labelAuthor}/>
       <FilterSubMenuDataset value={labelDataset}/>
       <FilterSubMenuAccess value={labelAccess}/>

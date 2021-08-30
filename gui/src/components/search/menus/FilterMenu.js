@@ -283,13 +283,14 @@ const useFilterMenuItemStyles = makeStyles(theme => {
 })
 export const FilterMenuItem = React.memo(({
   value,
+  group,
   onClick,
   disableButton,
   depth
 }) => {
   const styles = useFilterMenuItemStyles()
   const theme = useTheme()
-  const group = quantityGroups.get(value)
+  const groupFinal = group || quantityGroups.get(value)
   const { selected, open, onChange } = useContext(filterMenuContext)
   const handleClick = disableButton ? undefined : (onClick || onChange)
   const opened = open && value === selected
@@ -313,13 +314,14 @@ export const FilterMenuItem = React.memo(({
         <NavigateNextIcon color={opened ? 'primary' : 'action'} className={styles.arrow}/>
       </ListItemIcon>}
     </ListItem>
-    {group && <FilterSummary quantities={group}/>}
+    {groupFinal && <FilterSummary quantities={groupFinal}/>}
     <Divider className={styles.divider}/>
   </>
 })
 
 FilterMenuItem.propTypes = {
   value: PropTypes.string,
+  group: PropTypes.string,
   onClick: PropTypes.func,
   disableButton: PropTypes.bool,
   depth: PropTypes.number
