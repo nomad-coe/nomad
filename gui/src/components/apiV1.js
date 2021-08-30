@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   atom,
   useSetRecoilState,
@@ -86,7 +86,6 @@ function handleApiError(e) {
 class Api {
   constructor(keycloak, setLoading) {
     this.keycloak = keycloak
-    this.user = keycloak.loadUserInfo()
     this.setLoading = setLoading
     this.axios = axios.create({
       baseURL: `${apiBase}/v1`
@@ -335,20 +334,28 @@ function parse(result) {
   }
 }
 
-let api = null
-
 /**
  * Hook that returns a shared instance of the API class.
 */
+let api = null
+let user = null
 export function useApi() {
   const [keycloak] = useKeycloak()
   const setLoading = useSetLoading()
 
   if (!api || api.keycloak !== keycloak) {
     api = new Api(keycloak, setLoading)
+    if (keycloak.authenticated) {
+      keycloak.loadUserInfo()
+        .success(data => {
+          user = data
+        })
+    }
   }
-
-  return api
+  const result = useMemo(() => {
+    return {api, user}
+  }, [])
+  return result
 }
 
 /**
@@ -381,7 +388,7 @@ const useLoginRequiredStyles = makeStyles(theme => ({
 
 export function LoginRequired({message, children}) {
   const classes = useLoginRequiredStyles()
-  const api = useApi()
+  const {api} = useApi()
   if (api.keycloak.authenticated) {
     return <React.Fragment>
       {children}

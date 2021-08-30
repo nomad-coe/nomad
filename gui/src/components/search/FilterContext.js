@@ -167,7 +167,7 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const setQuery = useSetRecoilState(queryState)
-  const api = useApi()
+  const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
   // Reset the query when entering the search context for the first time
@@ -571,7 +571,7 @@ export function useInitialAgg(quantity, agg) {
  * @returns {array} The data-array returned by the API.
  */
 export function useAgg(quantity, type, restrict = false, update = true, delay = 500) {
-  const api = useApi()
+  const {api} = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
   const initialAggs = useRecoilValue(initialAggsState)
@@ -659,8 +659,8 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
  * the used query under 'search'.
  */
 export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
-  const api = useApi()
-  const { resource } = useSearchContext()
+  const {api} = useApi()
+  const {resource} = useSearchContext()
   const firstRender = useRef(true)
   const [results, setResults] = useState()
   const pageNumber = useRef(1)

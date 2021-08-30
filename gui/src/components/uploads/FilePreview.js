@@ -18,7 +18,6 @@
 
 import React, { useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-// import { useApi } from '../apiV1'
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, makeStyles } from '@material-ui/core'
 import InfiniteScroll from 'react-infinite-scroller'
 
@@ -36,7 +35,6 @@ const useFilePreviewStyles = makeStyles(theme => ({
 }))
 
 export default function FilePreview({uploadId, path, onClose}) {
-  // const api = useApi()
   const scrollRef = useRef()
   const [content] = useState(null)
   const classes = useFilePreviewStyles()

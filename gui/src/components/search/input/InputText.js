@@ -66,7 +66,7 @@ const InputText = React.memo(({
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  const api = useApi()
+  const {api} = useApi()
 
   // Determine the description and units
   const def = searchQuantities[quantity]

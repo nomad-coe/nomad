@@ -125,7 +125,7 @@ const NewSearchBar = React.memo(({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
   const [showExamples, setShowExamples] = useState(false)
-  const api = useApi()
+  const {api} = useApi()
   const setFilter = useFiltersState(quantities)[1]
   const quantitySet = useMemo(() => new Set(quantities), [quantities])
   const quantitySuggestions = useMemo(() => {

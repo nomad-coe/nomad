@@ -203,7 +203,8 @@ UploadCommands.propTypes = {
 }
 
 function UploadsPage() {
-  const [api, errors] = [useApi(), useErrors()]
+  const {api} = useApi()
+  const errors = useErrors()
   const [data, setData] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
 

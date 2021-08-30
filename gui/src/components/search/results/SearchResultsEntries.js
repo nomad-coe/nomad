@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
@@ -39,11 +39,11 @@ import searchQuantities from '../../../searchQuantities'
  * Displays the list of search results for entries.
  */
 export function Published(props) {
-  const api = useApi()
+  const {user} = useApi()
   const {entry} = props
   if (entry.published) {
     if (entry.with_embargo) {
-      if (api.user && entry.uploader.user_id === api.user.sub) {
+      if (user && entry.uploader.user_id === user.sub) {
         if (entry.owners.length === 1) {
           return <Tooltip title="published with embargo by you and only accessible by you">
             <UploaderIcon color="error" />
@@ -53,12 +53,12 @@ export function Published(props) {
             <SharedIcon color="error" />
           </Tooltip>
         }
-      } else if (api.user && entry.owners.find(user => user.user_id === api.user.sub)) {
+      } else if (user && entry.owners.find(user => user.user_id === user.sub)) {
         return <Tooltip title="published with embargo and shared with you">
           <SharedIcon color="error" />
         </Tooltip>
       } else {
-        if (api.user) {
+        if (user) {
           return <Tooltip title="published with embargo and not accessible by you">
             <PrivateIcon color="error" />
           </Tooltip>
@@ -211,11 +211,6 @@ const columns = {
     },
     supportsSort: false,
     description: 'The dataset names that this entry belongs to.'
-  },
-  published: {
-    label: 'Access',
-    align: 'center',
-    render: (entry) => <Published entry={entry} />
   }
 }
 
@@ -255,22 +250,34 @@ const SearchResultsEntries = React.memo(({
   className,
   ...rest
 }) => {
-  const api = useApi()
-  // const authenticated = api.authenticated
+  const {user} = useApi()
   const [selected, setSelected] = useState([])
   const styles = useStyles()
   const total = data?.pagination && data.pagination.total
   const history = useHistory()
   const entryPagePathPrefix = undefined
 
+  // The access column is hidden if user is not logged in
+  const visibleColumns = useMemo(() => {
+    if (user) {
+      return {...columns,
+        published: {
+          label: 'Access',
+          align: 'center',
+          render: (entry) => <Published entry={entry} />
+        }
+      }
+    }
+    return columns
+  }, [user])
+
+  // Decides whether actions should be shown for an entry
   const showEntryActions = useCallback((row) => {
-    const user = api.user
     if (row.with_embargo && !(user && row.owners.find(owner => owner.user_id === user.sub))) {
       return false
-    } else {
-      return !this.props.showEntryActions || this.props.showEntryActions(row)
     }
-  }, [api])
+    return true
+  }, [user])
 
   const handleViewEntryPage = useCallback((event, row) => {
     event.stopPropagation()
@@ -371,7 +378,7 @@ const SearchResultsEntries = React.memo(({
     selectActions={selectActions}
     id={row => row.entry_id}
     total={total}
-    columns={columns}
+    columns={visibleColumns}
     selectedColumns={selectedColumns}
     selectedColumnsKey="entries"
     entryDetails={renderEntryDetails}

@@ -33,7 +33,7 @@ export default function RawFileView({uploadId, entryId}) {
   const classes = useStyles()
   const {raiseError} = useContext(errorContext)
   const [state, setState] = useState({entryData: null, doesNotExist: false})
-  const api = useApi()
+  const {api} = useApi()
 
   useEffect(() => {
     setState({entryData: null, doesNotExist: false})

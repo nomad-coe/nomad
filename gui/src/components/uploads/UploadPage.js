@@ -293,7 +293,7 @@ const useStyles = makeStyles(theme => ({
 function UploadPage() {
   const classes = useStyles()
   const { uploadId } = useParams()
-  const api = useApi()
+  const {api} = useApi()
   const errors = useErrors()
   const history = useHistory()
   const location = useLocation()

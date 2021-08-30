@@ -26,7 +26,7 @@ const FilterSubMenuAccess = React.memo(({
   value,
   ...rest
 }) => {
-  const api = useApi()
+  const {api} = useApi()
   const authenticated = api?.keycloak?.authenticated
 
   return <FilterSubMenu value={value} {...rest}>
