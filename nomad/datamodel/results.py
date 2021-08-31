@@ -772,9 +772,11 @@ class GeometryOptimizationMethod(MSection):
         properties presented in results.properties.geometry_optimization.
         """,
     )
-    geometry_optimization_type = GeometryOptimization.type.m_copy()
-    input_energy_difference_tolerance = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
-    input_force_maximum_tolerance = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    type = GeometryOptimization.type.m_copy()
+    convergence_tolerance_energy_difference = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
+    convergence_tolerance_energy_difference.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    convergence_tolerance_force_maximum = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    convergence_tolerance_force_maximum.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
 
 
 class MolecularDynamicsMethod(MSection):

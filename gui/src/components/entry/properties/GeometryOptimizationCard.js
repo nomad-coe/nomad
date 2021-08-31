@@ -34,11 +34,12 @@ export default function GeometryOptimizationCard({entryMetadata, archive}) {
   }
 
   let geometryOptimization = false
-  const geometryOptimizationData = archive?.results?.properties?.geometry_optimization
-  if (geometryOptimizationData) {
+  const geoOptProps = archive?.results?.properties?.geometry_optimization
+  const geoOptMethod = entryMetadata.results.method?.simulation?.geometry_optimization
+  if (geoOptProps) {
     geometryOptimization = {}
-    geometryOptimization.energies = resolveRef(geometryOptimizationData.energies, archive)
-    geometryOptimization.energy_change_criteria = archive.results.method?.geometry_optimization
+    geometryOptimization.energies = resolveRef(geoOptProps.energies, archive)
+    geometryOptimization.convergence_tolerance_energy_difference = geoOptMethod?.convergence_tolerance_energy_difference
   }
 
   return <PropertyCard title="Geometry optimization">

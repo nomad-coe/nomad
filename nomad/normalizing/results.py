@@ -605,7 +605,9 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_wf = workflow.geometry_optimization
                 if geo_opt_wf is not None:
                     geo_opt_meth = GeometryOptimizationMethod()
-                    geo_opt_meth.geometry_optimization_type = geo_opt_wf.type
+                    geo_opt_meth.type = geo_opt_wf.type
+                    geo_opt_meth.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
+                    geo_opt_meth.convergence_tolerance_force_maximum = geo_opt_wf.convergence_tolerance_force_maximum
                     method.simulation.geometry_optimization = geo_opt_meth
 
                 # Properties

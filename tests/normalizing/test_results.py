@@ -454,7 +454,10 @@ def test_heat_capacity_constant_volume(phonon):
 def test_geometry_optimization(geometry_optimization):
     geo_opt_prop = geometry_optimization.results.properties.geometry_optimization
     assert_structure(geo_opt_prop.structure_optimized)
-    assert len(geo_opt_prop.trajectory) > 0
+    n_frames = len(geo_opt_prop.trajectory)
+    n_energies = len(geo_opt_prop.energies)
+    assert n_frames > 0
+    assert n_frames == n_energies
     assert geo_opt_prop.final_energy_difference > 0
     geo_opt_meth = geometry_optimization.results.method.simulation.geometry_optimization
     assert geo_opt_meth.geometry_optimization_type == "ionic"

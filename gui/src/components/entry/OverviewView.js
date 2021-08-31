@@ -30,7 +30,7 @@ import searchQuantities from '../../searchQuantities'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
-// import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
+import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 // import SpectrumCard from './properties/SpectrumCard'
 import { MethodDetails } from './EntryDetails'
 import Page from '../Page'
@@ -206,8 +206,8 @@ const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...mor
         <MaterialCard entryMetadata={entry} archive={archive} />
         <ElectronicPropertiesCard entryMetadata={entry} archive={archive} />
         <VibrationalPropertiesCard entryMetadata={entry} archive={archive} />
-        {/* <GeometryOptimizationCard entryMetadata={entry} archive={archive} />
-        <SpectrumCard entryMetadata={entry} archive={archive} /> */}
+        <GeometryOptimizationCard entryMetadata={entry} archive={archive} />
+        {/* <SpectrumCard entryMetadata={entry} archive={archive} /> */}
       </Grid>
     </Grid>
   </Page>
