@@ -52,7 +52,7 @@ const BandStructure = React.memo(({
   const theme = useTheme()
 
   // Determine the energy reference and normalization
-  const [normalizedToHOE, energyHighestOccupied] = useMemo(() => {
+  const [energyHighestOccupied, normalized] = useMemo(() => {
     if (!data) {
       return [undefined, undefined]
     }
@@ -189,7 +189,7 @@ const BandStructure = React.memo(({
     }
 
     // Normalization line
-    if (type !== 'vibrational' && normalizedToHOE) {
+    if (type !== 'vibrational' && normalized) {
       plotData.push({
         x: [path[0], path[path.length - 1]],
         y: [0, 0],
@@ -205,7 +205,7 @@ const BandStructure = React.memo(({
     }
 
     setFinalData(plotData)
-  }, [data, theme, units, type, normalizedToHOE, energyHighestOccupied])
+  }, [data, theme, units, type, normalized, energyHighestOccupied])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -309,7 +309,7 @@ const BandStructure = React.memo(({
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
-        warning={normalizedToHOE ? null : normalizationWarning}
+        warning={normalized ? null : normalizationWarning}
         placeholderStyle={placeholderStyle}
         metaInfoLink={data?.m_path}
         {...other}

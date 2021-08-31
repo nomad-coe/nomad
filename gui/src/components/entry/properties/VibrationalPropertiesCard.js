@@ -43,7 +43,7 @@ export default function VibrationalPropertiesCard({entryMetadata, archive}) {
   if (dosData) {
     dos = {}
     dos.energies = resolveRef(dosData.energies, archive)
-    dos.densities = resolveRef(dosData.densities, archive)
+    dos.densities = resolveRef(dosData.total, archive).map(dos => dos.value)
     dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
