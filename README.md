@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.6
+- support for NOMAD fields in optimade
+
 ### v0.10.4
 - new "basic" parser to cover codes without proper parser
 - removed old nomad-coe parser dependencies

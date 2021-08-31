@@ -22,6 +22,7 @@ import pytest
 from nomad.processing import Upload
 from nomad import search
 from nomad.app.optimade import parse_filter
+from nomad.app.optimade.common import provider_specific_fields
 
 from tests.conftest import clear_elastic, clear_raw_files
 
@@ -128,7 +129,9 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('chemical_formula_anonymous starts with "A"', -1),
     ('elements HAS ONY "H", "O"', -1),
     ('last_modified >= "2009-02-01T20:07:00Z"', 3),
-    ('species_at_sites HAS "C"', 1)
+    ('species_at_sites HAS "C"', 1),
+    ('_nmd_dft_system = "molecule / cluster"', 3),
+    ('_nmd_encyclopedia_material_formula = "H20"', 0)
 ])
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
@@ -280,6 +283,15 @@ def test_structure_endpoint(client, example_structures):
     assert len(attr.get('dimension_types')) == 3
 
 
+def test_nmd_properties_info(client):
+    rv = client.get('/optimade/info/structures')
+    assert rv.status_code == 200
+    data = rv.json()
+    assert '_nmd_dft_system' in data['data']['properties']
+    assert '_nmd_encyclopedia_material_formula' in data['data']['properties']
+    assert '_nmd_atoms' in data['data']['properties']
+
+
 def test_nmd_properties(client, example_structures):
     rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
     assert rv.status_code == 200
@@ -290,3 +302,16 @@ def test_nmd_properties(client, example_structures):
     assert attr.get('_nmd_atoms') == ['H', 'O']
     assert '_nmd_dft_system' in attr
     assert '_nmd_doesnotexist' not in attr
+
+
+def test_nmd_properties_include_all(client, example_structures):
+    all_fields = [f'_nmd_{name}' for name, _ in provider_specific_fields()]
+    rv = client.get(f'/optimade/structures/test_calc_id_1?response_fields={",".join(all_fields)}')
+    assert rv.status_code == 200
+    data = rv.json()
+    assert data.get('data') is not None
+    attr = data['data'].get('attributes')
+    assert attr is not None
+    assert attr.get('_nmd_atoms') == ['H', 'O']
+    assert '_nmd_dft_system' in attr
+    assert '_nmd_encyclopedia_material_formula' in attr
