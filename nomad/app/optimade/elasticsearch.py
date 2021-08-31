@@ -14,7 +14,7 @@ from optimade.models import StructureResource, StructureResourceAttributes
 from optimade.models.utils import OptimadeField, SupportLevel
 from optimade.server.schemas import ENTRY_INFO_SCHEMAS
 
-from nomad import datamodel, files, search, utils, metainfo
+from nomad import datamodel, files, search, utils, metainfo, config
 from nomad.normalizing.optimade import (
     optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)
@@ -28,6 +28,24 @@ float64 = np.dtype('float64')
 
 
 class StructureResourceAttributesByAlias(StructureResourceAttributes):
+    nmd_entry_page_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_entry_page_url',
+        description='The url for the NOMAD gui entry page for this structure.',
+        support=SupportLevel.OPTIONAL)
+
+    nmd_raw_file_download_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_raw_file_download_url',
+        description='The url to download all calculation raw files as .zip file.',
+        support=SupportLevel.OPTIONAL)
+
+    nmd_archive_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_archive_url',
+        description='The url to the NOMAD archive json of this structure.',
+        support=SupportLevel.OPTIONAL)
+
     def dict(self, *args, **kwargs):
         kwargs['by_alias'] = True
         return super().dict(*args, **kwargs)
@@ -193,6 +211,18 @@ class StructureCollection(EntryCollection):
         if response_fields is not None:
             for request_field in response_fields:
                 if not request_field.startswith('_nmd_'):
+                    continue
+
+                if request_field == '_nmd_archive_url':
+                    attrs[request_field] = config.api_url() + f'/archive/{upload_id}/{calc_id}'
+                    continue
+
+                if request_field == '_nmd_entry_page_url':
+                    attrs[request_field] = config.gui_url(f'entry/id/{upload_id}/{calc_id}')
+                    continue
+
+                if request_field == '_nmd_raw_file_download_url':
+                    attrs[request_field] = config.api_url() + f'/raw/calc/{upload_id}/{calc_id}'
                     continue
 
                 try:

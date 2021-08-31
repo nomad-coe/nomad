@@ -290,10 +290,11 @@ def test_nmd_properties_info(client):
     assert '_nmd_dft_system' in data['data']['properties']
     assert '_nmd_encyclopedia_material_formula' in data['data']['properties']
     assert '_nmd_atoms' in data['data']['properties']
+    assert '_nmd_archive_url' in data['data']['properties']
 
 
 def test_nmd_properties(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist')
+    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist,_nmd_archive_url')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
@@ -302,6 +303,7 @@ def test_nmd_properties(client, example_structures):
     assert attr.get('_nmd_atoms') == ['H', 'O']
     assert '_nmd_dft_system' in attr
     assert '_nmd_doesnotexist' not in attr
+    assert '_nmd_archive_url' in attr
 
 
 def test_nmd_properties_include_all(client, example_structures):
