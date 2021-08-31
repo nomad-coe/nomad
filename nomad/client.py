@@ -572,4 +572,4 @@ def query_archive(*args, **kwargs):
 
 if __name__ == '__main__':
     run = query_archive()[1]
-    run.section_system[1].atom_labels
+    run.system[1].atoms.labels

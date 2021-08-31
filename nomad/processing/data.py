@@ -576,12 +576,12 @@ class Calc(Proc):
             # an absolute path which needs to be converted into a path that is
             # relative to upload root.
             scc = self._parser_results.run[0].calculation[0]
-            calculation_refs = scc.calculation_ref
+            calculation_refs = scc.calculations_path
             if calculation_refs is None:
                 logger.error("No calculation_to_calculation references found")
                 return
 
-            relative_ref = scc.calculation_ref[0].external_url
+            relative_ref = scc.calculations_path[0]
             ref_id = generate_entry_id(self.upload_id, relative_ref)
 
             with upload_files.read_archive(ref_id) as archive:

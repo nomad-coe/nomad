@@ -31,9 +31,9 @@ import os
 import signal
 
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.run.run import Run, Program
-from nomad.datamodel.metainfo.run.method import Electronic, XCFunctional, DFT
-from nomad.datamodel.metainfo.run.system import Atoms
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import Electronic, XCFunctional, DFT
+from nomad.datamodel.metainfo.simulation.system import Atoms
 
 from .parser import Parser, MatchingParser
 

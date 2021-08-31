@@ -20,8 +20,8 @@ import numpy as np
 
 from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint
-from nomad.datamodel.metainfo.run.calculation import (
-    Dos, DosFingerprint, ElectronicStructureInfo)
+from nomad.datamodel.metainfo.simulation.calculation import (
+    Dos, DosFingerprint, ChannelInfo)
 from nomad.atomutils import get_volume
 
 from .normalizer import Normalizer
@@ -63,11 +63,11 @@ class DosNormalizer(Normalizer):
 
                 # Normalize DOS values to be 1/J/atom/m^3
                 system = scc.system_ref
-                if not system or system[0].value.atoms is None:
+                if not system or system.atoms is None:
                     self.logger.error('referenced system for dos calculation could not be found')
                     continue
-                atom_positions = system[0].value.atoms.positions
-                lattice_vectors = system[0].value.atoms.lattice_vectors
+                atom_positions = system.atoms.positions
+                lattice_vectors = system.atoms.lattice_vectors
                 if atom_positions is None:
                     self.logger.error('required quantity atom_positions is not available')
                     continue
@@ -81,10 +81,10 @@ class DosNormalizer(Normalizer):
                 # Add energy references
                 self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest)
 
-                if not dos.info or dos.info[-1].energy_highest_occupied is None:
+                if not dos.channel_info or dos.channel_info[-1].energy_highest_occupied is None:
                     continue
 
-                dos_energies_normalized = dos.energies - dos.info[-1].energy_highest_occupied
+                dos_energies_normalized = dos.energies - dos.channel_info[-1].energy_highest_occupied
                 dos.dos_energies_normalized = dos_energies_normalized
                 dos_values_normalized = [
                     dos_total.value.magnitude / dos_total.normalization_factor for dos_total in dos.total]
@@ -128,88 +128,89 @@ class DosNormalizer(Normalizer):
         value_threshold = 1e-8  # The DOS value that is considered to be zero
         # Create energy reference sections for each spin channel, add fermi
         # energy if present
-        info = dos.info[0] if dos.info else dos.m_create(ElectronicStructureInfo)
-        if energy_highest is not None:
-            info.energy_highest_occupied = energy_highest
-        if energy_lowest is not None:
-            info.energy_lowest_unoccupied = energy_lowest
-        if energy_fermi is not None:
-            info.energy_fermi = energy_fermi
+        for n, dos_total in enumerate(dos.total):
+            info = dos.channel_info[n] if len(dos.channel_info) > n else dos.m_create(ChannelInfo)
+            info.index = n
+            if energy_highest is not None:
+                info.energy_highest_occupied = energy_highest
+            if energy_lowest is not None:
+                info.energy_lowest_unoccupied = energy_lowest
+            if energy_fermi is not None:
+                info.energy_fermi = energy_fermi
 
-        # energy references is only relevant for the total
-        dos_values_normalized = np.sum([
-            dos_total.value.magnitude / dos_total.normalization_factor for dos_total in dos.total], axis=0)
+            # energy references is only relevant for the total
+            dos_values_normalized = dos_total.value.magnitude / dos_total.normalization_factor
 
-        fermi_idx = (np.abs(dos.energies - eref)).argmin()
+            fermi_idx = (np.abs(dos.energies - eref)).argmin()
 
-        # First check that the closest dos energy to energy reference
-        # is not too far away. If it is very far away, the
-        # normalization may be very inaccurate and we do not report it.
-        fermi_energy_closest = dos.energies[fermi_idx]
-        distance = np.abs(fermi_energy_closest - eref)
-        if distance.magnitude <= energy_threshold:
+            # First check that the closest dos energy to energy reference
+            # is not too far away. If it is very far away, the
+            # normalization may be very inaccurate and we do not report it.
+            fermi_energy_closest = dos.energies[fermi_idx]
+            distance = np.abs(fermi_energy_closest - eref)
+            if distance.magnitude <= energy_threshold:
 
-            # See if there are zero values close below the energy reference.
-            idx = fermi_idx
-            idx_descend = fermi_idx
-            while True:
-                try:
-                    value = dos_values_normalized[idx]
-                    energy_distance = np.abs(eref - dos.energies[idx])
-                except IndexError:
-                    break
-                if energy_distance.magnitude > energy_threshold:
-                    break
-                if value <= value_threshold:
-                    idx_descend = idx
-                    break
-                idx -= 1
+                # See if there are zero values close below the energy reference.
+                idx = fermi_idx
+                idx_descend = fermi_idx
+                while True:
+                    try:
+                        value = dos_values_normalized[idx]
+                        energy_distance = np.abs(eref - dos.energies[idx])
+                    except IndexError:
+                        break
+                    if energy_distance.magnitude > energy_threshold:
+                        break
+                    if value <= value_threshold:
+                        idx_descend = idx
+                        break
+                    idx -= 1
 
-            # See if there are zero values close above the fermi energy.
-            idx = fermi_idx
-            idx_ascend = fermi_idx
-            while True:
-                try:
-                    value = dos_values_normalized[idx]
-                    energy_distance = np.abs(eref - dos.energies[idx])
-                except IndexError:
-                    break
-                if energy_distance.magnitude > energy_threshold:
-                    break
-                if value <= value_threshold:
-                    idx_ascend = idx
-                    break
-                idx += 1
+                # See if there are zero values close above the fermi energy.
+                idx = fermi_idx
+                idx_ascend = fermi_idx
+                while True:
+                    try:
+                        value = dos_values_normalized[idx]
+                        energy_distance = np.abs(eref - dos.energies[idx])
+                    except IndexError:
+                        break
+                    if energy_distance.magnitude > energy_threshold:
+                        break
+                    if value <= value_threshold:
+                        idx_ascend = idx
+                        break
+                    idx += 1
 
-            # If there is a single peak at fermi energy, no
-            # search needs to be performed.
-            if idx_ascend != fermi_idx and idx_descend != fermi_idx:
-                info.energy_highest_occupied = fermi_energy_closest
-                info.energy_lowest_unoccupied = fermi_energy_closest
-                return
+                # If there is a single peak at fermi energy, no
+                # search needs to be performed.
+                if idx_ascend != fermi_idx and idx_descend != fermi_idx:
+                    info.energy_highest_occupied = fermi_energy_closest
+                    info.energy_lowest_unoccupied = fermi_energy_closest
+                    return
 
-            # Look for highest occupied energy below the descend index
-            idx = idx_descend
-            while True:
-                try:
-                    value = dos_values_normalized[idx]
-                except IndexError:
-                    break
-                if value > value_threshold:
-                    idx = idx if idx == idx_descend else idx + 1
-                    info.energy_highest_occupied = dos.energies[idx]
-                    break
-                idx -= 1
+                # Look for highest occupied energy below the descend index
+                idx = idx_descend
+                while True:
+                    try:
+                        value = dos_values_normalized[idx]
+                    except IndexError:
+                        break
+                    if value > value_threshold:
+                        idx = idx if idx == idx_descend else idx + 1
+                        info.energy_highest_occupied = dos.energies[idx]
+                        break
+                    idx -= 1
 
-            # Look for lowest unoccupied energy above idx_ascend
-            idx = idx_ascend
-            while True:
-                try:
-                    value = dos_values_normalized[idx]
-                except IndexError:
-                    break
-                if value > value_threshold:
-                    idx = idx if idx == idx_ascend else idx - 1
-                    info.energy_lowest_unoccupied = dos.energies[idx]
-                    break
-                idx += 1
+                # Look for lowest unoccupied energy above idx_ascend
+                idx = idx_ascend
+                while True:
+                    try:
+                        value = dos_values_normalized[idx]
+                    except IndexError:
+                        break
+                    if value > value_threshold:
+                        idx = idx if idx == idx_ascend else idx - 1
+                        info.energy_lowest_unoccupied = dos.energies[idx]
+                        break
+                    idx += 1

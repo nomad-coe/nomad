@@ -21,8 +21,8 @@ import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
-from nomad.datamodel.metainfo.run.system import SystemReference
-from nomad.datamodel.metainfo.run.method import MethodReference
+from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.method import Method
 
 from ..common import FastAccess
 
@@ -622,7 +622,7 @@ class Charges(Atomic):
     orbital_projected = SubSection(sub_section=ChargesValue.m_def, repeats=True)
 
 
-class ElectronicStructureInfo(MSection):
+class ChannelInfo(MSection):
     '''
     Section containing information on the electronic band structure.
     '''
@@ -715,14 +715,6 @@ class BandEnergies(MSection):
         lattice vectors) for which the eigenvalues are evaluated.
         ''')
 
-    kpoints_labels = Quantity(
-        type=str,
-        shape=['n_kpoints'],
-        description='''
-        Labels of the points along a one-dimensional path sampled in the $k$-space or
-        $q$-space, using the conventional symbols, e.g., Gamma, K, L.
-        ''')
-
     kpoints_weights = Quantity(
         type=np.dtype(np.float64),
         shape=['n_kpoints'],
@@ -738,6 +730,14 @@ class BandEnergies(MSection):
         expands to after applying all symmetries). This defaults to 1. If expansion is
         performed then each point will have weight
         band_energies_kpoints_weights/band_energies_kpoints_multiplicities.
+        ''')
+
+    endpoints_labels = Quantity(
+        type=str,
+        shape=[2],
+        description='''
+        Labels of the points along a one-dimensional path sampled in the $k$-space or
+        $q$-space, using the conventional symbols, e.g., Gamma, K, L.
         ''')
 
     occupations = Quantity(
@@ -862,7 +862,7 @@ class BandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         ''')
 
-    info = SubSection(sub_section=ElectronicStructureInfo.m_def, repeats=True)
+    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
 
     brillouin_zone = SubSection(sub_section=BrillouinZone.m_def, repeats=False)
 
@@ -990,7 +990,7 @@ class Dos(Atomic):
         the highest occupied energy level.
         ''')
 
-    info = SubSection(sub_section=ElectronicStructureInfo.m_def, repeats=True)
+    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
 
     total = SubSection(sub_section=DosValues.m_def, repeats=True)
 
@@ -1509,43 +1509,6 @@ class Vibrations(MSection):
     infrared = SubSection(sub_section=VibrationsValues.m_def, repeats=False)
 
 
-class CalculationReference(MSection):
-    '''
-    Section that provides a link between a section to a calculation section. Such a link
-    is necessary for example if the the referenced calculation is a self-consistent
-    calculationt that serves as a starting point or a calculation is part of a domain
-    decomposed simulation that needs to be connected.
-
-    The kind of relationship between the present calculation section and the referenced
-    one is described by kind. The reference to the calculation is given by value
-    (typically used for a section in the same section run) or external_url.
-    '''
-
-    m_def = Section(validate=False)
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Defines the relationship between the referenced calculation section and the
-        present section.
-        ''')
-
-    external_url = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        URL used to reference an externally stored calculation.
-        ''')
-
-    value = Quantity(
-        type=Reference(SectionProxy('Calculation')),
-        shape=[],
-        description='''
-        Value of the referenced section calculation.
-        ''')
-
-
 class BaseCalculation(MSection):
     '''
     Contains computed properties of a configuration as defined by the corresponding
@@ -1558,6 +1521,58 @@ class BaseCalculation(MSection):
     '''
 
     m_def = Section(validate=False)
+
+    system_ref = Quantity(
+        type=Reference(System.m_def),
+        shape=[],
+        description='''
+        Links the calculation to a section system.
+        ''',
+        categories=[FastAccess])
+
+    method_ref = Quantity(
+        type=Reference(Method.m_def),
+        shape=[],
+        description='''
+        Links the calculation to a section method.
+        ''',
+        categories=[FastAccess])
+
+    starting_calculation_ref = Quantity(
+        type=Reference(SectionProxy('Calculation')),
+        shape=[],
+        description='''
+        Links the current section calculation to the starting calculation.
+        ''',
+        categories=[FastAccess])
+
+    n_references = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+         Number of references to the current section calculation.
+        ''')
+
+    calculations_ref = Quantity(
+        type=Reference(SectionProxy('Calculation')),
+        shape=['n_references'],
+        description='''
+        Links the current section calculation to other section calculations. Such a link
+        is necessary for example if the referenced calculation is a self-consistent
+        calculation that serves as a starting point or a calculation is part of a domain
+        decomposed simulation that needs to be connected.
+        ''',
+        categories=[FastAccess])
+
+    calculations_path = Quantity(
+        type=str,
+        shape=['n_references'],
+        description='''
+        Links the current section calculation to other section calculations. Such a link
+        is necessary for example if the referenced calculation is a self-consistent
+        calculation that serves as a starting point or a calculation is part of a domain
+        decomposed simulation that needs to be connected.
+        ''')
 
     time_calculation = Quantity(
         type=np.dtype(np.float64),
@@ -1575,12 +1590,6 @@ class BaseCalculation(MSection):
         description='''
         Indicates whether a the calculation is converged.
         ''')
-
-    system_ref = SubSection(sub_section=SystemReference.m_def, repeats=True, categories=[FastAccess])
-
-    method_ref = SubSection(sub_section=MethodReference.m_def, repeats=True, categories=[FastAccess])
-
-    calculation_ref = SubSection(sub_section=CalculationReference.m_def, repeats=True)
 
     hessian_matrix = Quantity(
         type=np.dtype(np.float64),

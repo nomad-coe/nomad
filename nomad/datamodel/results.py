@@ -37,10 +37,10 @@ from nomad.metainfo import (
 m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
-from nomad.datamodel.metainfo.run.calculation import (
+from nomad.datamodel.metainfo.simulation.calculation import (
     Dos, BandStructure as BandStructureCalculation, BandEnergies,
     Calculation)  # noqa
-from nomad.datamodel.metainfo.run.method import (
+from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (

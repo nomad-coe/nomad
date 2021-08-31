@@ -490,7 +490,7 @@ def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band
         for segment in band.segment:
             assert segment.energies is not None
             assert segment.kpoints is not None
-            assert segment.kpoints_labels is not None
+            assert segment.endpoints_labels is not None
 
     # VASP bands
     generaltests(bands_unpolarized_no_gap.metadata.encyclopedia.properties.electronic_band_structure)
@@ -532,7 +532,7 @@ def test_phonon(test_user, proc_infra):
     assert status == EncyclopediaMetadata.status.type.success
 
     # There should be a reference to the external calculation
-    assert phonon.run[0].calculation[0].calculation_ref[0].external_url is not None
+    assert phonon.run[0].calculation[0].calculations_path[0] is not None
 
     # The method information should have been read from the referenced
     # calculation
@@ -551,7 +551,7 @@ def test_phonon(test_user, proc_infra):
     for segment in band.segment:
         assert segment.energies is not None
         assert segment.kpoints is not None
-        assert segment.kpoints_labels is not None
+        assert segment.endpoints_labels is not None
 
     # Check thermodynamical properties
     assert thermo_props is not None

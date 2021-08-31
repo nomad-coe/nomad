@@ -53,7 +53,7 @@ class PropertiesNormalizer():
                 for segment in band.segment:
                     energies = segment.energies
                     k_points = segment.kpoints
-                    labels = segment.kpoints_labels
+                    labels = segment.endpoints_labels
                     if energies is None or k_points is None or labels is None:
                         valid = False
                         break
@@ -163,7 +163,7 @@ class PropertiesNormalizer():
                 for segment in band.segment:
                     energies = segment.energies
                     k_points = segment.kpoints
-                    labels = segment.kpoints_labels
+                    labels = segment.endpoints_labels
                     if energies is None or k_points is None or labels is None or "?" in labels:
                         valid = False
                 if valid:

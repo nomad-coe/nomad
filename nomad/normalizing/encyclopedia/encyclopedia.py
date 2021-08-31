@@ -149,22 +149,14 @@ class EncyclopediaNormalizer(Normalizer):
                 # Methods linked to each other through references. Get all
                 # linked methods, try to get electronic_structure_method from
                 # each.
-                try:
-                    refs = sec_method.method_ref
-                except KeyError:
-                    pass
-                else:
-                    linked_methods = [sec_method]
-                    for ref in refs:
-                        method_to_method_kind = ref.kind
-                        method_to_method_ref = ref.value
-                        if method_to_method_kind == "core_settings":
-                            linked_methods.append(method_to_method_ref)
-                    for i_method in linked_methods:
-                        electronic_structure_method = i_method.electronic.method if i_method.electronic else None
-                        if electronic_structure_method is not None:
-                            repr_method = sec_method
-                            method_id = electronic_structure_method
+                linked_methods = [sec_method]
+                if sec_method.core_method_ref is not None:
+                    linked_methods.append(sec_method.core_method_ref)
+                for i_method in linked_methods:
+                    electronic_structure_method = i_method.electronic.method if i_method.electronic else None
+                    if electronic_structure_method is not None:
+                        repr_method = sec_method
+                        method_id = electronic_structure_method
         method.method_type = method_id
         return repr_method, method_id
 

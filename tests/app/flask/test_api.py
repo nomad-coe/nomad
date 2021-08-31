@@ -916,7 +916,7 @@ class TestArchive(UploadFilesBasedTests):
 
 class TestMetainfo():
     @pytest.mark.parametrize('package', [
-        'nomad.datamodel.metainfo.run.calculation',
+        'nomad.datamodel.metainfo.simulation.calculation',
         'vaspparser.metainfo.vasp'])
     def test_get_package(self, api, package):
         rv = api.get(f'/metainfo/{package}')

@@ -29,8 +29,8 @@ from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, C
 from nomad import atomutils, archive
 from nomad.units import ureg
 from nomad import utils, config
-from nomad.datamodel.metainfo.run.system import (
-    Atoms, ChemicalComposition, Symmetry, SpringerMaterial, Prototype)
+from nomad.datamodel.metainfo.simulation.system import (
+    Atoms, Symmetry, SpringerMaterial, Prototype)
 
 from .normalizer import SystemBasedNormalizer
 
@@ -179,12 +179,9 @@ class SystemNormalizer(SystemBasedNormalizer):
             return False
 
         # formulas
-        if system.chemical_composition is None:
-            system.m_create(ChemicalComposition)
-
-        system.chemical_composition.value = atoms.get_chemical_formula(mode='all')
-        system.chemical_composition.value_reduced = atoms.get_chemical_formula(mode='reduce')
-        system.chemical_composition.value_bulk_reduced = atoms.get_chemical_formula(mode='hill')
+        system.chemical_composition = atoms.get_chemical_formula(mode='all')
+        system.chemical_composition_reduced = atoms.get_chemical_formula(mode='reduce')
+        system.chemical_composition_hill = atoms.get_chemical_formula(mode='hill')
 
         # positions
         atom_positions = get_value(Atoms.positions, numpy=True, source=system.atoms)

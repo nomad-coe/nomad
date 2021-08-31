@@ -23,10 +23,10 @@ from ase.data import chemical_symbols
 from nomad.datamodel import EntryArchive
 from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.run.run import Run, Program
-from nomad.datamodel.metainfo.run.method import Method
-from nomad.datamodel.metainfo.run.system import System, Atoms
-from nomad.datamodel.metainfo.run.calculation import (
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import Method
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
+from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics)
 
 
@@ -234,7 +234,7 @@ class BasicParser(FairdiParser):
 
         # remove unfilled sections
         for system in sec_run.system:
-            if system.atoms.positions is None or system.atoms.labels is None:
+            if len(system.atoms.values()) == 0:
                 system.m_remove_sub_section(System.atoms, 0)
         for calculation in sec_run.calculation:
             if len(calculation.energy.values()) == 0:

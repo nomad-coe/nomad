@@ -41,7 +41,7 @@ m_package = metainfo.Package()
 
 from .results import Results  # noqa
 from .encyclopedia import EncyclopediaMetadata  # noqa
-from .metainfo.run.run import Run  # noqa
+from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.common_experimental import Measurement  # noqa
 from .metainfo.common_qcms import QuantumCMS  # noqa
