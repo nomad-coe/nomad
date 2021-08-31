@@ -21,7 +21,7 @@ import numpy as np
 import ase
 
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandStructure, ElectronicStructureInfo, ChannelInfo
+    BandStructure, ChannelInfo
 )
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.normalizing.normalizer import Normalizer
