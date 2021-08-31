@@ -53,7 +53,7 @@ export default function ElectronicPropertiesCard({entryMetadata, archive}) {
   if (bsData) {
     bs = {}
     bs.reciprocal_cell = resolveRef(bsData.reciprocal_cell, archive)
-    bs.segments = resolveRef(bsData.segment, archive)
+    bs.segment = resolveRef(bsData.segment, archive)
     if (bsData.channel_info) {
       bs.energy_highest_occupied = Math.max(...bsData.channel_info.map(x => x.energy_highest_occupied))
       bs.channel_info = bsData.channel_info

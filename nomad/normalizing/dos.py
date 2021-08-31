@@ -17,6 +17,7 @@
 #
 
 import numpy as np
+from nptyping import NDArray
 
 from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint
@@ -30,9 +31,10 @@ from .normalizer import Normalizer
 class DosNormalizer(Normalizer):
     """Normalizer with the following responsibilities:
 
-      - Determines highest occupied and lowest unocupied energies for a DOS.
-      - Adds normalized (intensive) DOS values which are not tied to the
-        current simulation cell size.
+      - Determines highest occupied and lowest unoccupied energies for both
+        spin channels.
+      - Adds normalization factor for intensive (=not tied to the imulation
+        cell size) DOS values which are
     """
     def normalize(self, logger=None) -> None:
 
@@ -43,26 +45,25 @@ class DosNormalizer(Normalizer):
         if self.section_run is None:
             return
 
-        # 'scc': single_configuration_calculation
-        section_sccs = self.section_run.calculation
-        if section_sccs is None:
+        calculations = self.section_run.calculation
+        if calculations is None:
             return
 
-        for scc in section_sccs:
-            section_dos = scc.dos_electronic
+        for calc in calculations:
+            section_dos = calc.dos_electronic
             if section_dos is None:
                 continue
 
-            energy_fermi = scc.energy.fermi if scc.energy is not None else None
-            energy_highest = scc.energy.highest_occupied if scc.energy is not None else None
-            energy_lowest = scc.energy.lowest_unoccupied if scc.energy is not None else None
+            energy_fermi = calc.energy.fermi if calc.energy is not None else None
+            energy_highest = calc.energy.highest_occupied if calc.energy is not None else None
+            energy_lowest = calc.energy.lowest_unoccupied if calc.energy is not None else None
             for dos in section_dos:
                 # perform normalization only for total dos
                 if dos.total is None:
                     continue
 
                 # Normalize DOS values to be 1/J/atom/m^3
-                system = scc.system_ref
+                system = calc.system_ref
                 if not system or system.atoms is None:
                     self.logger.error('referenced system for dos calculation could not be found')
                     continue
@@ -78,40 +79,47 @@ class DosNormalizer(Normalizer):
                 unit_cell_volume = get_volume(lattice_vectors.magnitude)
                 for dos_total in dos.total:
                     dos_total.normalization_factor = number_of_atoms * unit_cell_volume
-                # Add energy references
-                self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest)
-
-                if not dos.channel_info or dos.channel_info[-1].energy_highest_occupied is None:
-                    continue
-
-                dos_energies_normalized = dos.energies - dos.channel_info[-1].energy_highest_occupied
-                dos.dos_energies_normalized = dos_energies_normalized
                 dos_values_normalized = [
                     dos_total.value.magnitude / dos_total.normalization_factor for dos_total in dos.total]
 
-                # Data for DOS fingerprint
-                try:
-                    dos_fingerprint = DOSFingerprint().calculate(
-                        dos_energies_normalized.magnitude,
-                        dos_values_normalized,
-                        n_atoms=number_of_atoms
-                    )
-                except Exception as e:
-                    self.logger.error('could not generate dos fingerprint', exc_info=e)
-                else:
-                    sec_dos_fingerprint = dos.m_create(DosFingerprint)
-                    sec_dos_fingerprint.bins = dos_fingerprint.bins
-                    sec_dos_fingerprint.indices = dos_fingerprint.indices
-                    sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
-                    sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
-                    sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
+                # Add energy references
+                self.add_energy_references(dos, energy_fermi, energy_highest, energy_lowest, dos_values_normalized)
+
+                # Calculate the DOS fingerprint for successfully normalized DOS
+                normalization_reference = None
+                for info in dos.info:
+                    energy_highest = info.energy_highest_occupied
+                    if energy_highest is not None:
+                        if normalization_reference is None:
+                            normalization_reference = energy_highest
+                        else:
+                            normalization_reference = max(normalization_reference, energy_highest)
+                if normalization_reference is not None:
+                    dos_energies_normalized = dos.energies - normalization_reference
+
+                    try:
+                        dos_fingerprint = DOSFingerprint().calculate(
+                            dos_energies_normalized.magnitude,
+                            dos_values_normalized,
+                            n_atoms=number_of_atoms
+                        )
+                    except Exception as e:
+                        self.logger.error('could not generate dos fingerprint', exc_info=e)
+                    else:
+                        sec_dos_fingerprint = dos.m_create(DosFingerprint)
+                        sec_dos_fingerprint.bins = dos_fingerprint.bins
+                        sec_dos_fingerprint.indices = dos_fingerprint.indices
+                        sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
+                        sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
+                        sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
 
     def add_energy_references(
             self,
             dos: Dos,
             energy_fermi: float,
             energy_highest: float,
-            energy_lowest: float) -> None:
+            energy_lowest: float,
+            dos_values_normalized: NDArray) -> None:
         """Given the band structure and information about energy references,
         determines the energy references separately for all spin channels.
         """
@@ -121,32 +129,36 @@ class DosNormalizer(Normalizer):
             self.logger.info("could not resolve energy references for dos")
             return
 
+        # Create channel information for each spin channel and populate with
+        # initial values.
+        dos_total = dos.total
+        n_channels = len(dos_total)
+        for i_channel in range(n_channels):
+            info = dos.channel_info[i_channel] if len(dos.channel_info) > i_channel else dos.m_create(ChannelInfo)
+            info.index = i_channel
+            if info.energy_fermi is None and energy_fermi is not None:
+                info.energy_fermi = energy_fermi
+            if info.energy_highest_occupied is None and energy_highest is not None:
+                info.energy_highest_occupied = energy_highest
+            if info.energy_lowest_unoccupied is None and energy_lowest is not None:
+                info.energy_lowest_unoccupied = energy_lowest
+
         # Use a reference energy (fermi or highest occupied) to determine the
         # energy references from the DOS (discretization will affect the exact
         # location).
         energy_threshold = config.normalize.band_structure_energy_tolerance
         value_threshold = 1e-8  # The DOS value that is considered to be zero
-        # Create energy reference sections for each spin channel, add fermi
-        # energy if present
-        for n, dos_total in enumerate(dos.total):
-            info = dos.channel_info[n] if len(dos.channel_info) > n else dos.m_create(ChannelInfo)
-            info.index = n
-            if energy_highest is not None:
-                info.energy_highest_occupied = energy_highest
-            if energy_lowest is not None:
-                info.energy_lowest_unoccupied = energy_lowest
-            if energy_fermi is not None:
-                info.energy_fermi = energy_fermi
+        dos_energies = dos.energies
 
-            # energy references is only relevant for the total
-            dos_values_normalized = dos_total.value.magnitude / dos_total.normalization_factor
-
+        for i_channel in range(n_channels):
+            dos_values = dos_values_normalized[i_channel]
+            info = dos.info[i_channel]
             fermi_idx = (np.abs(dos.energies - eref)).argmin()
 
             # First check that the closest dos energy to energy reference
             # is not too far away. If it is very far away, the
             # normalization may be very inaccurate and we do not report it.
-            fermi_energy_closest = dos.energies[fermi_idx]
+            fermi_energy_closest = dos_energies[fermi_idx]
             distance = np.abs(fermi_energy_closest - eref)
             if distance.magnitude <= energy_threshold:
 
@@ -155,8 +167,8 @@ class DosNormalizer(Normalizer):
                 idx_descend = fermi_idx
                 while True:
                     try:
-                        value = dos_values_normalized[idx]
-                        energy_distance = np.abs(eref - dos.energies[idx])
+                        value = dos_values[idx]
+                        energy_distance = np.abs(eref - dos_energies[idx])
                     except IndexError:
                         break
                     if energy_distance.magnitude > energy_threshold:
@@ -171,8 +183,8 @@ class DosNormalizer(Normalizer):
                 idx_ascend = fermi_idx
                 while True:
                     try:
-                        value = dos_values_normalized[idx]
-                        energy_distance = np.abs(eref - dos.energies[idx])
+                        value = dos_values[idx]
+                        energy_distance = np.abs(eref - dos_energies[idx])
                     except IndexError:
                         break
                     if energy_distance.magnitude > energy_threshold:
@@ -187,18 +199,18 @@ class DosNormalizer(Normalizer):
                 if idx_ascend != fermi_idx and idx_descend != fermi_idx:
                     info.energy_highest_occupied = fermi_energy_closest
                     info.energy_lowest_unoccupied = fermi_energy_closest
-                    return
+                    continue
 
                 # Look for highest occupied energy below the descend index
                 idx = idx_descend
                 while True:
                     try:
-                        value = dos_values_normalized[idx]
+                        value = dos_values[idx]
                     except IndexError:
                         break
                     if value > value_threshold:
                         idx = idx if idx == idx_descend else idx + 1
-                        info.energy_highest_occupied = dos.energies[idx]
+                        info.energy_highest_occupied = dos_energies[idx]
                         break
                     idx -= 1
 
@@ -206,11 +218,11 @@ class DosNormalizer(Normalizer):
                 idx = idx_ascend
                 while True:
                     try:
-                        value = dos_values_normalized[idx]
+                        value = dos_values[idx]
                     except IndexError:
                         break
                     if value > value_threshold:
                         idx = idx if idx == idx_ascend else idx - 1
-                        info.energy_lowest_unoccupied = dos.energies[idx]
+                        info.energy_lowest_unoccupied = dos_energies[idx]
                         break
                     idx += 1

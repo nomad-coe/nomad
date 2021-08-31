@@ -51,8 +51,8 @@ export default function VibrationalPropertiesCard({entryMetadata, archive}) {
   const bsData = archive?.results?.properties?.vibrational?.band_structure_phonon
   if (bsData) {
     bs = {}
-    bs.segments = resolveRef(bsData.segments, archive)
-    bs.m_path = `${archiveUrl}/${refPath(bsData.segments[0].split('/').slice(0, -1).join('/'))}`
+    bs.segment = resolveRef(bsData.segment, archive)
+    bs.m_path = `${archiveUrl}/${refPath(bsData.segment[0].split('/').slice(0, -1).join('/'))}`
   }
 
   let energyFree = hasEnergyFree ? null : false

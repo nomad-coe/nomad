@@ -196,8 +196,8 @@ const BrillouinZone = React.memo(({
     }
     let previousPoint
     let segment = []
-    for (let seg of data.segments) {
-      let labels = [seg.kpoints_labels[0], seg.kpoints_labels.pop()]
+    for (let seg of data.segment) {
+      let labels = [seg.kpoints_labels[0], seg.kpoints_labels[seg.kpoints_labels.length - 1]]
       const start = seg.kpoints[0]
       const end = seg.kpoints.slice(-1)[0]
       if (!previousPoint || (previousPoint && distance(start, previousPoint) >= 1e-8)) {
@@ -280,7 +280,7 @@ BrillouinZone.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
   data: PropTypes.shape({
     reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
-    segments: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
+    segment: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
   }),
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download

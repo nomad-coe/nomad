@@ -444,9 +444,8 @@ class ResultsNormalizer(Normalizer):
         considered.
 
        Band structure is reported only under the following conditions:
-          - There is a non-empty array of band_k_points.
-          - There is a non-empty array of band_energies.
-          - The reported band_structure_kind is not "vibrational".
+          - There is a non-empty array of kpoints.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "band_structure_electronic"]
         for bs in self.traverse_reversed(path):
@@ -484,7 +483,6 @@ class ResultsNormalizer(Normalizer):
        DOS is reported only under the following conditions:
           - There is a non-empty array of dos_values_normalized.
           - There is a non-empty array of dos_energies.
-          - The reported dos_kind is not "vibrational".
         """
         path = ["run", "calculation", "dos_electronic"]
         for dos in self.traverse_reversed(path):
@@ -512,9 +510,8 @@ class ResultsNormalizer(Normalizer):
         considered.
 
        Band structure is reported only under the following conditions:
-          - There is a non-empty array of band_k_points.
-          - There is a non-empty array of band_energies.
-          - The reported band_structure_kind is "vibrational".
+          - There is a non-empty array of kpoints.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "band_structure_phonon"]
         for bs in self.traverse_reversed(path):
@@ -540,19 +537,17 @@ class ResultsNormalizer(Normalizer):
         multiple valid data sources, only the latest one is reported.
 
        DOS is reported only under the following conditions:
-          - There is a non-empty array of dos_values_normalized.
-          - There is a non-empty array of dos_energies.
-          - The reported dos_kind is "vibrational".
+          - There is a non-empty array of values.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "dos_phonon"]
         for dos in self.traverse_reversed(path):
             energies = dos.energies
             values = np.array([d.value.magnitude for d in dos.total])
             if valid_array(energies) and valid_array(values):
-                # Fill dos data to the newer, improved data layout
                 dos_new = DOSPhonon()
                 dos_new.energies = dos
-                dos_new.densities = [d.value for d in dos.total]
+                dos_new.total = dos.total
                 return dos_new
 
         return None
