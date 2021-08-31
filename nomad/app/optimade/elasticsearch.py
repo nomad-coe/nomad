@@ -1,30 +1,107 @@
-from typing import Tuple, List, Union, Dict, Set, Any
+from typing import Optional, Tuple, List, Union, Dict, Set, Any
 from fastapi import HTTPException
+from pydantic import create_model
 from elasticsearch_dsl import Search, Q
+from datetime import datetime
+import numpy as np
 
 from optimade.filterparser import LarkParser
 from optimade.server.entry_collections import EntryCollection
 from optimade.server.query_params import EntryListingQueryParams, SingleEntryQueryParams
 from optimade.server.exceptions import BadRequest
 from optimade.server.mappers import StructureMapper
-from optimade.models import StructureResource
+from optimade.models import StructureResource, StructureResourceAttributes
+from optimade.models.utils import OptimadeField, SupportLevel
+from optimade.server.schemas import ENTRY_INFO_SCHEMAS
 
-from nomad import datamodel, files, search, utils
+from nomad import datamodel, files, search, utils, metainfo, config
 from nomad.normalizing.optimade import (
     optimade_chemical_formula_reduced, optimade_chemical_formula_anonymous,
     optimade_chemical_formula_hill)
 
 from .filterparser import _get_transformer as get_transformer
+from .common import provider_specific_fields
 
 
 logger = utils.get_logger(__name__)
+float64 = np.dtype('float64')
+
+
+class StructureResourceAttributesByAlias(StructureResourceAttributes):
+    nmd_entry_page_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_entry_page_url',
+        description='The url for the NOMAD gui entry page for this structure.',
+        support=SupportLevel.OPTIONAL)
+
+    nmd_raw_file_download_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_raw_file_download_url',
+        description='The url to download all calculation raw files as .zip file.',
+        support=SupportLevel.OPTIONAL)
+
+    nmd_archive_url: Optional[str] = OptimadeField(
+        None,
+        alias='_nmd_archive_url',
+        description='The url to the NOMAD archive json of this structure.',
+        support=SupportLevel.OPTIONAL)
+
+    def dict(self, *args, **kwargs):
+        kwargs['by_alias'] = True
+        return super().dict(*args, **kwargs)
+
+
+def create_nomad_structure_resource_attributes_cls():
+    fields: Dict[str, Tuple[type, OptimadeField]] = {}
+
+    for name, search_quantity in provider_specific_fields():
+        quantity = search_quantity.definition
+
+        pydantic_type: type
+        if not quantity.is_scalar:
+            pydantic_type = list
+        elif quantity.type in [str, int, float, bool]:
+            pydantic_type = quantity.type if quantity.type != float64 else float
+        elif quantity.type == metainfo.Datetime:
+            pydantic_type = datetime
+        elif isinstance(quantity.type, metainfo.MEnum):
+            pydantic_type = str
+        elif isinstance(quantity.type, metainfo.Reference):
+            continue
+        else:
+            raise NotImplementedError('Search quantity type not support in optimade API')
+
+        field = Optional[pydantic_type], OptimadeField(
+            None,
+            alias=f'_nmd_{name}',
+            sortable=False,
+            description=quantity.description if quantity.description else 'Not available. Will be added soon.',
+            support=SupportLevel.OPTIONAL,
+            queryable=SupportLevel.OPTIONAL)
+
+        fields[f'nmd_{name}'] = field
+
+    return create_model(
+        'NomadStructureResourceAttributes',
+        __base__=StructureResourceAttributesByAlias,
+        **fields)
+
+
+NomadStructureResourceAttributes = create_nomad_structure_resource_attributes_cls()
+
+
+class NomadStructureResource(StructureResource):
+    attributes: NomadStructureResourceAttributes  # type: ignore
+
+
+ENTRY_INFO_SCHEMAS['structures'] = NomadStructureResource.schema
 
 
 class StructureCollection(EntryCollection):
 
     def __init__(self):
         super().__init__(
-            resource_cls=StructureResource,
+            resource_cls=NomadStructureResource,
             resource_mapper=StructureMapper,
             transformer=get_transformer(nomad_properties='dft', without_prefix=False))
 
@@ -134,6 +211,18 @@ class StructureCollection(EntryCollection):
         if response_fields is not None:
             for request_field in response_fields:
                 if not request_field.startswith('_nmd_'):
+                    continue
+
+                if request_field == '_nmd_archive_url':
+                    attrs[request_field] = config.api_url() + f'/archive/{upload_id}/{calc_id}'
+                    continue
+
+                if request_field == '_nmd_entry_page_url':
+                    attrs[request_field] = config.gui_url(f'entry/id/{upload_id}/{calc_id}')
+                    continue
+
+                if request_field == '_nmd_raw_file_download_url':
+                    attrs[request_field] = config.api_url() + f'/raw/calc/{upload_id}/{calc_id}'
                     continue
 
                 try:

@@ -648,7 +648,7 @@ class Calc(Proc):
         self._entry_metadata.processed = True
 
         if self.upload.publish_directly:
-            self._entry_metadata.published |= True
+            self._entry_metadata.published = False
 
         try:
             self._read_metadata_from_file(logger)
@@ -1385,8 +1385,22 @@ class Upload(Proc):
                 os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
 
             with self.entries_metadata(self.metadata) as calcs:
+                with utils.timer(logger, 'upload metadata updated'):
+                    def create_update(calc):
+                        calc.published = True
+                        calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
+                        return UpdateOne(
+                            {'_id': calc.calc_id},
+                            {'$set': {'metadata': calc.m_to_dict(
+                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
+
+                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
+
                 with utils.timer(logger, 'upload staging files packed'):
                     self.upload_files.pack(calcs)
+
+                with utils.timer(logger, 'index updated'):
+                    search.publish(calcs)
 
             with utils.timer(logger, 'upload staging files deleted'):
                 self.upload_files.delete()
