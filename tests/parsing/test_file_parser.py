@@ -5,7 +5,7 @@ from nomad.units import ureg
 
 from nomad.parsing.file_parser import TextParser, Quantity, ParsePattern,\
     XMLParser, BasicParser
-from nomad.datamodel.metainfo.run.system import Atoms
+from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel import EntryArchive
 
 

@@ -47,13 +47,13 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     bs = bands_unpolarized_no_gap.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
     assert len(bs.band_gap) == 1
-    assert bs.info[0].band_gap == 0
+    assert bs.channel_info[0].band_gap == 0
 
     # Polarized, no gaps
     bs = bands_polarized_no_gap.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
-    assert len(bs.info) == 1
-    assert bs.info[0].band_gap == 0
+    assert len(bs.channel_info) == 2
+    assert bs.channel_info[0].band_gap == 0
 
     # Unpolarized, finite gap, indirect
     bs = bands_unpolarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
@@ -67,14 +67,14 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     # Polarized, finite gap, indirect
     bs = bands_polarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
-    assert len(bs.band_gap) == 1
-    # gap_up = bs.band_gap[0]
-    gap_down = bs.band_gap[0]
-    # gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
+    assert len(bs.band_gap) == 2
+    gap_up = bs.band_gap[0]
+    gap_down = bs.band_gap[1]
+    gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
     gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
-    # assert gap_up.type == "indirect"
+    assert gap_up.type == "indirect"
     assert gap_down.type == "indirect"
-    # assert gap_up_ev == pytest.approx(1, 0.01)
+    assert gap_up_ev == pytest.approx(1, 0.01)
     assert gap_down_ev == pytest.approx(0.8, 0.01)
 
 
@@ -96,8 +96,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
     ])
     bs = band_path_cF.run[0].calculation[0].band_structure_electronic[0]
     for i, segment in enumerate(bs.segment):
-        labels = segment.kpoints_labels
-        labels = [labels[0], labels[-1]]
+        labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
     # Tetragonal (TET, tP)
@@ -114,8 +113,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
     ])
     bs = band_path_tP.run[0].calculation[0].band_structure_electronic[0]
     for i, segment in enumerate(bs.segment):
-        labels = segment.kpoints_labels
-        labels = [labels[0], labels[-1]]
+        labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
     # Hexagonal (HEX, hP)
@@ -132,8 +130,7 @@ def test_paths(band_path_cF, band_path_tP, band_path_hP):
     ])
     bs = band_path_hP.run[0].calculation[0].band_structure_electronic[0]
     for i, segment in enumerate(bs.segment):
-        labels = segment.kpoints_labels
-        labels = [labels[0], labels[-1]]
+        labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
 
@@ -143,7 +140,7 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
     # The ordering of the lattice does not follow the standard: a, b <= c. No labels defined.
     bs = band_path_mP_nonstandard.run[0].calculation[0].band_structure_electronic[0]
     for segment in bs.segment:
-        labels = segment.kpoints_labels
+        labels = segment.endpoints_labels
         assert labels is None
 
     # Existing labels should not be overridden
@@ -156,8 +153,7 @@ def test_non_standard(band_path_mP_nonstandard, band_path_cF_nonstandard):
     ])
     bs = band_path_cF_nonstandard.run[0].calculation[0].band_structure_electronic[0]
     for i, segment in enumerate(bs.segment):
-        labels = segment.kpoints_labels
-        labels = [labels[0], labels[-1]]
+        labels = segment.endpoints_labels
         assert np.array_equal(labels, assumed_labels[i, :])
 
 

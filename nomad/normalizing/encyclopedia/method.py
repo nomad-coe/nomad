@@ -205,16 +205,8 @@ class MethodDFTNormalizer(MethodNormalizer):
         https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info/wikis/metainfo/XC-functional
         """
         linked_methods = [repr_method]
-        try:
-            refs = repr_method.method_ref
-        except KeyError:
-            pass
-        else:
-            for ref in refs:
-                method_to_method_kind = ref.kind
-                referenced_method = ref.value
-                if method_to_method_kind == "core_settings":
-                    linked_methods.append(referenced_method)
+        if repr_method.core_method_ref is not None:
+            linked_methods.append(repr_method.core_method_ref)
 
         xc_functional = config.services.unavailable_value
         for method in linked_methods:
@@ -420,17 +412,10 @@ class MethodGWNormalizer(MethodDFTNormalizer):
     """A base class that is used for processing GW calculations.
     """
     def gw_starting_point(self, method: Method, repr_method: Section) -> None:
-        try:
-            ref = repr_method.method_ref[0]
-            method_to_method_kind = ref.kind
-            start_method = ref.value
-        except KeyError:
-            pass
-        else:
-            if method_to_method_kind == "starting_point":
-                methods = self.section_run.method
-                xc_functional = MethodDFTNormalizer.functional_long_name_from_method(start_method, methods)
-                method.gw_starting_point = xc_functional
+        if repr_method.starting_method_ref is not None:
+            methods = self.section_run.method
+            xc_functional = MethodDFTNormalizer.functional_long_name_from_method(repr_method.starting_method_ref, methods)
+            method.gw_starting_point = xc_functional
 
     def functional_type(self, method: Method) -> None:
         method.functional_type = "GW"

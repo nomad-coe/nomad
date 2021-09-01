@@ -28,7 +28,7 @@ from collections import OrderedDict
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
 from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
-from nomad.datamodel.metainfo.run.system import Atoms, ChemicalComposition
+from nomad.datamodel.metainfo.simulation.system import Atoms, System
 
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
@@ -185,9 +185,9 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         # formulas
         optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(
-            get_value(ChemicalComposition.value_reduced, source=system.chemical_composition))
+            get_value(System.chemical_composition_reduced, source=system))
         optimade.chemical_formula_hill = optimade_chemical_formula_hill(
-            get_value(ChemicalComposition.value, source=system.chemical_composition))
+            get_value(System.chemical_composition_hill, source=system))
         optimade.chemical_formula_descriptive = optimade.chemical_formula_hill
         optimade.chemical_formula_anonymous = optimade_chemical_formula_anonymous(
             optimade.chemical_formula_reduced)

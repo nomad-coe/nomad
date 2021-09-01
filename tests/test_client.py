@@ -21,7 +21,7 @@ import pytest
 from nomad.client import query_archive
 from nomad.metainfo import MSection, SubSection
 from nomad.datamodel import EntryArchive, User
-from nomad.datamodel.metainfo.run.run import Run
+from nomad.datamodel.metainfo.simulation.run import Run
 
 from tests.app.flask.conftest import client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import

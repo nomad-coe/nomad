@@ -28,8 +28,8 @@ import os.path
 
 from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, DFTMetadata, Results
-from nomad.datamodel.metainfo.run.run import Run, Program
-from nomad.datamodel.metainfo.run.system import System, Atoms
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from tests.normalizing.conftest import run_normalize
 
 

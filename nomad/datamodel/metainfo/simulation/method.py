@@ -23,47 +23,10 @@ from pint.util import SharedRegistryObject                 # pylint: disable=unu
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
+from ..common import FastAccess
 
 
 m_package = Package()
-
-
-class MethodReference(MSection):
-    '''
-    Section that describes the relationship between the current method to other method
-    sections. For instance, one calculation is a perturbation performed using a
-    self-consistent field (SCF) calculation as starting point, or a simulated system is
-    partitioned in regions with different but connected Hamiltonians (e.g., QM/MM, or a
-    region treated via Kohn-Sham DFT embedded into a region treated via orbital-free DFT).
-
-    The kind of relationship between the method defined in this section and the referenced
-    one is described by kind. The referenced method is given by value (typically used for
-    a method section in the same section run) or external_url.
-    '''
-
-    m_def = Section(validate=False)
-
-    external_url = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        URL used to reference an externally stored method section.
-        ''')
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Defines the kind of relationship between the referenced section method with the
-        present section.
-        ''')
-
-    value = Quantity(
-        type=Reference(SectionProxy('Method')),
-        shape=[],
-        description='''
-        Value of the referenced section method.
-        ''')
 
 
 class KMesh(MSection):
@@ -1124,7 +1087,41 @@ class Method(MSection):
         * analytic
         ''')
 
-    method_ref = SubSection(sub_section=MethodReference.m_def, repeats=True)
+    starting_method_ref = Quantity(
+        type=Reference(SectionProxy('Method')),
+        shape=[],
+        description='''
+        Links the current section method to a section method containing the starting
+        parameters.
+        ''',
+        categories=[FastAccess])
+
+    core_method_ref = Quantity(
+        type=Reference(SectionProxy('Method')),
+        shape=[],
+        description='''
+        Links the current section method to a section method containing the core settings.
+        ''',
+        categories=[FastAccess])
+
+    n_references = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of references to the current method.
+        ''')
+
+    methods_ref = Quantity(
+        type=Reference(SectionProxy('Method')),
+        shape=['n_references'],
+        description='''
+        Links the section method to other method sections. For instance, one calculation
+        is a perturbation performed using a self-consistent field (SCF) calculation as
+        starting point, or a simulated system is partitioned in regions with different but
+        connected Hamiltonians (e.g., QM/MM, or a region treated via Kohn-Sham DFT
+        embedded into a region treated via orbital-free DFT).
+        ''',
+        categories=[FastAccess])
 
     dft = SubSection(sub_section=DFT.m_def)
 

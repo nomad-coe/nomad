@@ -100,7 +100,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if workflow:
             try:
                 iscc = workflow.calculation_result_ref
-                system = iscc.system_ref[-1].value
+                system = iscc.system_ref
                 if system is not None:
                     scc = iscc
             except Exception:
@@ -112,7 +112,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             try:
                 sccs = self.section_run.calculation
                 for iscc in reversed(sccs):
-                    isys = iscc.system_ref[-1].value
+                    isys = iscc.system_ref
                     if isys is not None:
                         system = isys
                         scc = iscc
@@ -135,10 +135,9 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         # analyze. Currently used in phonon calculations.
         if system is not None:
             try:
-                system_ref = system.system_ref[0]
-                ref_kind = system_ref.kind
-                if ref_kind == "subsystem":
-                    system = system_ref.value
+                system_ref = system.sub_system_ref
+                if system_ref is not None:
+                    system = system_ref
             except Exception:
                 pass
 

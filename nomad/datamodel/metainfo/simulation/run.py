@@ -21,9 +21,9 @@ import typing                 # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
-from nomad.datamodel.metainfo.run.method import Method
-from nomad.datamodel.metainfo.run.system import System
-from nomad.datamodel.metainfo.run.calculation import Calculation
+from nomad.datamodel.metainfo.simulation.method import Method
+from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.calculation import Calculation
 
 
 m_package = Package()

@@ -25,13 +25,13 @@ import ase.build
 from nomad.units import ureg
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.run.run import Run, Program
-from nomad.datamodel.metainfo.run.method import (
-    Method, BasisSet, Electronic, DFT, XCFunctional, Functional, MethodReference,
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import (
+    Method, BasisSet, Electronic, DFT, XCFunctional, Functional,
     Electronic, Smearing, Scf, XCFunctional, Functional, GW)
-from nomad.datamodel.metainfo.run.system import (
-    System, Atoms as AtomsMethod, SystemReference)
-from nomad.datamodel.metainfo.run.calculation import (
+from nomad.datamodel.metainfo.simulation.system import (
+    System, Atoms as AtomsMethod)
+from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization
 
@@ -90,8 +90,8 @@ def get_template() -> EntryArchive:
         labels=["Br", "K", "Si", "Si"],
         periodic=[True, True, True])
     scc = run.m_create(Calculation)
-    scc.system_ref.append(SystemReference(value=system))
-    scc.method_ref.append(MethodReference(value=method))
+    scc.system_ref = system
+    scc.method_ref = method
     scc.energy = Energy(
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
@@ -323,8 +323,8 @@ def dft_method_referenced() -> EntryArchive:
     method_ref = run.m_create(Method)
     method_ref.basis_set.append(BasisSet(type="plane waves"))
     method_ref.electronic = Electronic(method="DFT")
-    method_ref.method_ref.append(MethodReference(kind="core_settings", value=method_dft))
-    run.calculation[0].method_ref.append(MethodReference(value=method_ref))
+    method_ref.core_method_ref = method_dft
+    run.calculation[0].method_ref = method_ref
 
     return run_normalize(template)
 
@@ -369,7 +369,7 @@ def gw() -> EntryArchive:
     method_gw = run.m_create(Method)
     method_gw.electronic = Electronic(method="G0W0")
     method_gw.gw = GW(type="G0W0", starting_point="GGA_C_PBE GGA_X_PBE")
-    method_gw.method_ref.append(MethodReference(kind="starting_point", value=run.method[0]))
+    method_gw.starting_method_ref = run.method[0]
     return run_normalize(template)
 
 
@@ -449,10 +449,10 @@ def geometry_optimization() -> EntryArchive:
     scc2 = run.m_create(Calculation)
     scc1.energy = Energy(total=EnergyEntry(value=1e-19), total_t0=EnergyEntry(value=1e-19))
     scc2.energy = Energy(total=EnergyEntry(value=0.5e-19), total_t0=EnergyEntry(value=0.5e-19))
-    scc1.system_ref.append(SystemReference(value=sys1))
-    scc2.system_ref.append(SystemReference(value=sys2))
-    scc1.method_ref.append(MethodReference(value=run.method[0]))
-    scc2.method_ref.append(MethodReference(value=run.method[0]))
+    scc1.system_ref = sys1
+    scc2.system_ref = sys2
+    scc1.method_ref = run.method[0]
+    scc2.method_ref = run.method[0]
     run.m_add_sub_section(Run.system, sys1)
     run.m_add_sub_section(Run.system, sys2)
     workflow = template.m_create(Workflow)

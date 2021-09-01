@@ -27,7 +27,7 @@ from nomad.metainfo.search_extension import Search
 m_package = Package()
 
 from nomad.datamodel.metainfo.common import FastAccess  # noqa
-from nomad.datamodel.metainfo.run.calculation import BandStructure, Dos, Thermodynamics  # noqa
+from nomad.datamodel.metainfo.simulation.calculation import BandStructure, Dos, Thermodynamics  # noqa
 
 
 class WyckoffVariables(MSection):

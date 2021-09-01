@@ -117,8 +117,8 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
 
 
 def test_common_metainfo():
-    from nomad.datamodel.metainfo.run.run import Run
-    from nomad.datamodel.metainfo.run.system import System, Atoms
+    from nomad.datamodel.metainfo.simulation.run import Run
+    from nomad.datamodel.metainfo.simulation.system import System, Atoms
 
     run = Run()
     system = run.m_create(System)
@@ -128,7 +128,7 @@ def test_common_metainfo():
 
 
 def test_vasp_metainfo():
-    from nomad.datamodel.metainfo.run import Run
+    from nomad.datamodel.metainfo.simulation.run import Run
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
     run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities

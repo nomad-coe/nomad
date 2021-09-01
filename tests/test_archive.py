@@ -336,11 +336,7 @@ def archive():
                     ],
                     "calculation": [
                         {
-                            "system_ref": [
-                                {
-                                    "value": "/run/0/system/1"
-                                }
-                            ],
+                            "system_ref": "/run/0/system/1",
                             "energy": {
                                 "total": {
                                     "value": 0.1
@@ -348,11 +344,7 @@ def archive():
                             }
                         },
                         {
-                            "system_ref": [
-                                {
-                                    "value": "/run/0/system/1"
-                                }
-                            ],
+                            "system_ref": "/run/0/system/1",
                             "energy": {
                                 "total": {
                                     "value": 0.2
@@ -367,11 +359,7 @@ def archive():
                             ]
                         },
                         {
-                            "system_ref": [
-                                {
-                                    "value": "/run/0/system/1"
-                                }
-                            ],
+                            "system_ref": "/run/0/system/1",
                             "energy": {
                                 "total": {
                                     "value": 0.1
@@ -567,7 +555,7 @@ def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     assert archive.workflow[0].calculation_result_ref.energy.total is not None
     assert len(archive.workflow[0].calculation_result_ref.eigenvalues) == 0
     # test refs of refs
-    system = archive.workflow[0].calculation_result_ref.system_ref[0].value
+    system = archive.workflow[0].calculation_result_ref.system_ref
     assert system.atoms.labels == ['H']
     assert system.symmetry[0].space_group_number == 221
 
@@ -605,9 +593,7 @@ def test_compute_required_with_referenced(archive):
                 'energy': {
                     'total': '*'
                 },
-                'system_ref': {
-                    'value': '*'
-                }
+                'system_ref': '*'
             }
         }
     })
@@ -621,9 +607,7 @@ def test_compute_required_with_referenced(archive):
                 'energy': {
                     'total': '*'
                 },
-                'system_ref': {
-                    'value': '*'
-                }
+                'system_ref': '*'
             },
             'system': '*'
         }
@@ -651,9 +635,7 @@ def test_compute_required_incomplete(archive):
                     'total': '*'
                 },
                 'system_ref': {
-                    'value': {
-                        'symmetry': '*'
-                    }
+                    'symmetry': '*'
                 }
             }
         }

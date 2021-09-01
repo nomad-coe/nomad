@@ -79,9 +79,9 @@ def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_hig
     highest = highest[0] if highest else highest
     archive = get_template_dos(ranges, fermi, highest, lowest, n)
     dos = archive.run[0].calculation[0].dos_electronic[0]
-    n_channels = 1
+    n_channels = len(dos.total)
     for i_channel in range(n_channels):
-        info = dos.info[i_channel]
+        info = dos.channel_info[i_channel]
         assert info.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
             expected_highest[i_channel]
         )

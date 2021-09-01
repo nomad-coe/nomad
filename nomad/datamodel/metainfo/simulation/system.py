@@ -27,40 +27,6 @@ from ..common import FastAccess
 m_package = Package()
 
 
-class SystemReference(MSection):
-    '''
-    Section that provides a link between a section to a section system. Such a link is
-    necessary for example between the supercell and the reference unit cell in a phonon
-    calculation. The relationship should be described by kind and the referred section
-    system is given by value. An external url can also be provided in place of value.
-    '''
-
-    m_def = Section(validate=False)
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Defines the relationship between the referenced section system and the present
-        section.
-        ''')
-
-    external_url = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        URL used to reference an externally stored section system.
-        ''')
-
-    value = Quantity(
-        type=Reference(SectionProxy('System')),
-        categories=[FastAccess],
-        shape=[],
-        description='''
-        Value of the referenced section system.
-        ''')
-
-
 class Atoms(MSection):
     '''
     Describes the atomic structure of the physical system. This includes the atom
@@ -401,36 +367,6 @@ class SpringerMaterial(MSection):
         ''')
 
 
-class ChemicalComposition(MSection):
-    '''
-    Contains information on the chemical composition of the system.
-    '''
-
-    m_def = Section(validate=False)
-
-    value = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        The chemical composition as full formula of the system, based on atom species.
-        ''')
-
-    value_reduced = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        The chemical composition as reduced formula of the system, based on atom species.
-        ''')
-
-    value_bulk_reduced = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        The chemical composition as reduced bulk formula of the system, based on atom
-        species.
-        ''')
-
-
 class Constraint(MSection):
     '''
     Section describing a constraint between arbitrary atoms.
@@ -520,9 +456,62 @@ class System(MSection):
         representative where chosen to be representative for all systems in the run.
         ''')
 
+    n_references = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of references to the current section system.
+        ''')
+
+    sub_system_ref = Quantity(
+        type=Reference(SectionProxy('System')),
+        shape=[],
+        description='''
+        Links the current section system to a sub system.
+        ''',
+        categories=[FastAccess])
+
+    systems_ref = Quantity(
+        type=Reference(SectionProxy('System')),
+        shape=['n_references'],
+        description='''
+        Links the current section system to other section systems. Such a link is
+        necessary for example between the supercell and the reference unit cell in a phonon
+        calculation. The relationship should be described by kind and the referred section
+        system is given by value. An external url can also be provided in place of value.
+        ''',
+        categories=[FastAccess])
+
     atoms = SubSection(sub_section=Atoms.m_def, categories=[FastAccess])
 
-    chemical_composition = SubSection(sub_section=ChemicalComposition.m_def, categories=[FastAccess])
+    chemical_composition = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The full chemical composition of the system, based on atom species.
+        ''')
+
+    chemical_composition_hill = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The chemical composition in the hill convention of the system, based on atom species.
+        ''')
+
+    chemical_composition_reduced = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The chemical composition as reduced formula of the system, based on atom species.
+        ''')
+
+    chemical_composition_anonymous = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The chemical composition without explicit element names of the system, based on
+        atom species.
+        ''')
 
     constraint = SubSection(sub_section=Constraint.m_def, repeats=True)
 
@@ -534,9 +523,6 @@ class System(MSection):
 
     symmetry = SubSection(
         sub_section=Symmetry.m_def, repeats=True, categories=[FastAccess])
-
-    system_ref = SubSection(
-        sub_section=SystemReference.m_def, repeats=True)
 
 
 m_package.__init_metainfo__()

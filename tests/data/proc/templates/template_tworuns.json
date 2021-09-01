@@ -72,16 +72,8 @@
             ],
             "calculation": [
                 {
-                    "system_ref": [
-                        {
-                            "value": "/run/0/system/0"
-                        }
-                    ],
-                    "method_ref": [
-                        {
-                            "value": "/run/0/method/0"
-                        }
-                    ],
+                    "system_ref": "/run/0/system/0",
+                    "method_ref": "/run/0/method/0",
                     "energy": {
                         "total": {
                             "value": -1.5935696296699573e-18
@@ -168,16 +160,8 @@
             ],
             "calculation": [
                 {
-                    "system_ref": [
-                        {
-                            "value": "/run/1/system/0"
-                        }
-                    ],
-                    "method_ref": [
-                        {
-                            "value": "/run/1/method/0"
-                        }
-                    ],
+                    "system_ref": "/run/1/system/0",
+                    "method_ref": "/run/1/method/0",
                     "energy": {
                         "total": {
                             "value": -1.5935696296699573e-18

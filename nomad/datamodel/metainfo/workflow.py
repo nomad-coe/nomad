@@ -5,9 +5,8 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum, derived)
 from nomad.metainfo.search_extension import Search
-from nomad.datamodel.metainfo.run.calculation import Calculation
-from nomad.datamodel.metainfo.run.run import RunReference
-
+from nomad.datamodel.metainfo.simulation.calculation import Calculation
+from nomad.datamodel.metainfo.simulation.run import RunReference
 from .common import FastAccess
 
 
@@ -362,15 +361,7 @@ class DebyeModel(MSection):
         type=np.dtype(np.int32),
         shape=[],
         description='''
-        Number of temperature sampling points
-        ''')
-
-    temperatures = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='kelvin',
-        description='''
-        Calculated value of the thermal conductity.
+        Number of temperature evaluations.
         ''')
 
     thermal_conductivity = Quantity(
@@ -418,54 +409,6 @@ class DebyeModel(MSection):
         unit='pascal',
         description='''
         Calculated value of the static bulk modulus.
-        ''')
-
-    free_energy_gibbs = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule',
-        description='''
-        Calculated value of the Gibbs free energy, G.
-        ''')
-
-    free_energy_vibrational = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule',
-        description='''
-        Calculated value of the vibrational free energy, F_vib.
-        ''')
-
-    internal_energy_vibrational = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule',
-        description='''
-        Calculated value of the vibrational internal energy, U_vib.
-        ''')
-
-    entropy_vibrational = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule / kelvin',
-        description='''
-        Calculated value of the vibrational entropy, S.
-        ''')
-
-    heat_capacity_C_v = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule / kelvin',
-        description='''
-        Stores the heat capacity per cell unit at constant volume.
-        ''')
-
-    heat_capacity_C_p = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_temperatures'],
-        unit='joule / kelvin',
-        description='''
-        Stores the heat capacity per cell unit at constant pressure.
         ''')
 
 
@@ -979,6 +922,14 @@ class Thermodynamics(MSection):
         Helmholtz free energy per unit cell at constant volume.
         ''')
 
+    heat_capacity_c_p = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / kelvin',
+        description='''
+        Heat capacity per cell unit at constant pressure.
+        ''')
+
     heat_capacity_c_v = Quantity(
         type=np.dtype(np.float64),
         shape=['n_values'],
@@ -1002,7 +953,7 @@ class Thermodynamics(MSection):
         """
         import nomad.atomutils
         workflow = self.m_parent
-        system = workflow.calculations_ref[0].system_ref[0].value
+        system = workflow.calculations_ref[0].system_ref
         atomic_numbers = system.atoms.species
         mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
         heat_capacity = self.heat_capacity_c_v
@@ -1029,12 +980,44 @@ class Thermodynamics(MSection):
     def specific_vibrational_free_energy_at_constant_volume(self) -> NDArray:
         import nomad.atomutils
         workflow = self.m_parent
-        system = workflow.calculations_ref[0].system_ref[0].value
+        system = workflow.calculations_ref[0].system_ref
         atomic_numbers = system.atoms.species
         mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
         free_energy = self.vibrational_free_energy_at_constant_volume
         specific_free_energy = free_energy / mass_per_unit_cell
         return specific_free_energy
+
+    vibrational_free_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Calculated value of the vibrational free energy, F_vib.
+        ''')
+
+    vibrational_internal_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Calculated value of the vibrational internal energy, U_vib.
+        ''')
+
+    vibrational_entropy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / kelvin',
+        description='''
+        Calculated value of the vibrational entropy, S.
+        ''')
+
+    gibbs_free_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Calculated value of the Gibbs free energy, G.
+        ''')
 
 
 class MolecularDynamics(MSection):

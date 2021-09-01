@@ -29,9 +29,9 @@ from nomad.metainfo.search_extension import Search
 from .optimade import OptimadeEntry
 from .metainfo.workflow import Workflow
 from .metainfo.common import FastAccess
-from .metainfo.run.run import Run
-from .metainfo.run.method import Functional
-from .metainfo.run.calculation import Energy
+from .metainfo.simulation.run import Run
+from .metainfo.simulation.method import Functional
+from .metainfo.simulation.calculation import Energy
 
 
 xc_treatments = {
@@ -381,8 +381,8 @@ class DFTMetadata(MSection):
 
         if section_system:
             self.system = get_value(section_system.type)
-            if section_system.chemical_composition is not None:
-                entry.formula = get_value(section_system.chemical_composition.value_bulk_reduced)
+            if section_system.chemical_composition_reduced is not None:
+                entry.formula = get_value(section_system.chemical_composition_reduced)
 
         # metrics and quantities
         quantities = set()

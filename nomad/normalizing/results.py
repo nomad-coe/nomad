@@ -27,8 +27,8 @@ from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.datamodel.optimade import OptimadeEntry, Species
-from nomad.datamodel.metainfo.run.system import System, Symmetry as SystemSymmetry
-from nomad.datamodel.metainfo.run.method import Electronic
+from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
+from nomad.datamodel.metainfo.simulation.method import Electronic
 from nomad.datamodel.results import (
     ChannelInfo,
     Results,
@@ -396,20 +396,14 @@ class ResultsNormalizer(Normalizer):
             # Method referencing another as "core_settings". If core method was
             # given, create new merged method containing all the information.
             for sec_method in methods:
-                refs = sec_method.method_ref
-                if refs:
-                    core_method = None
-                    for ref in refs:
-                        method_to_method_kind = ref.kind
-                        if method_to_method_kind == "core_settings":
-                            core_method = ref.value
-                    if core_method:
-                        if sec_method.electronic:
-                            electronic = core_method.electronic
-                            electronic = electronic if electronic else core_method.m_create(Electronic)
-                            core_method.electronic.method = sec_method.electronic.method
-                        repr_method = core_method
-                        method_name = repr_method.electronic.method
+                core_method = sec_method.core_method_ref
+                if core_method is not None:
+                    if sec_method.electronic:
+                        electronic = core_method.electronic
+                        electronic = electronic if electronic else core_method.m_create(Electronic)
+                        core_method.electronic.method = sec_method.electronic.method
+                    repr_method = core_method
+                    method_name = repr_method.electronic.method
 
         if method_name in {"G0W0", "scGW"}:
             method.method_name = "GW"
@@ -471,7 +465,7 @@ class ResultsNormalizer(Normalizer):
                 bs_new.reciprocal_cell = bs
                 bs_new.segments = bs.segment
                 bs_new.spin_polarized = bs_new.segments[0].energies.shape[0] > 1
-                for info in bs.info:
+                for info in bs.channel_info:
                     info_new = bs_new.m_create(ChannelInfo)
                     info_new.index = info.index
                     info_new.band_gap = info.band_gap
@@ -502,7 +496,7 @@ class ResultsNormalizer(Normalizer):
                 dos_new.densities = [d.value for d in dos.total]
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
-                for info in dos.info:
+                for info in dos.channel_info:
                     info_new = dos_new.m_create(ChannelInfo)
                     info_new.index = info.index
                     info_new.energy_highest_occupied = info.energy_highest_occupied
@@ -623,9 +617,7 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_prop = GeometryOptimizationProperties()
                 geo_opt_prop.trajectory = workflow.calculations_ref
                 system_ref = workflow.calculation_result_ref.system_ref
-                structure_optimized = self.structure_optimized(
-                    system_ref[-1].value if system_ref else None
-                )
+                structure_optimized = self.structure_optimized(system_ref)
                 if structure_optimized:
                     geo_opt_prop.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:

@@ -21,7 +21,7 @@ import ase.build
 from nomad import datamodel, config
 from nomad.datamodel import EntryArchive
 from nomad.app.flask import dump_json
-from nomad.datamodel.metainfo.run.system import SpringerMaterial
+from nomad.datamodel.metainfo.simulation.system import SpringerMaterial
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -197,20 +197,20 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
             frames = archive.workflow[0].calculations_ref
         except Exception:
             scc = archive.run[0].calculation[-1]
-            repr_system = scc.system_ref[-1].value
+            repr_system = scc.system_ref
         else:
             if archive.workflow[0].type == "molecular_dynamics":
                 scc = frames[0]
             else:
                 scc = frames[-1]
-            repr_system = scc.system_ref[-1].value
+            repr_system = scc.system_ref
 
         # If the selected system refers to a subsystem, choose it instead.
         try:
-            system_ref = repr_system.system_ref[0]
-            ref_kind = system_ref.kind
-            if ref_kind == "subsystem":
-                repr_system = system_ref.value
+            system = repr_system.sub_system_ref
+            if system is None:
+                system = repr_system.systems_ref[0]
+            repr_system = system
         except Exception:
             pass
 
@@ -234,7 +234,7 @@ def test_reduced_chemical_formula():
     archive = run_normalize(archive)
     expected_red_chem_formula = 'C6H12O6'
     sec_system = archive.run[0].system[0]
-    reduced_chemical_formula = sec_system.chemical_composition.value_bulk_reduced
+    reduced_chemical_formula = sec_system.chemical_composition_hill
     assert expected_red_chem_formula == reduced_chemical_formula
 
 

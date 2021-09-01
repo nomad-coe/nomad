@@ -115,7 +115,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         archive = read_partial_archive_from_mongo(calc.calc_id)
         assert archive.metadata is not None
         assert archive.workflow[0].calculation_result_ref \
-            .system_ref[0].value.atoms.labels is not None
+            .system_ref.atoms.labels is not None
 
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()

@@ -20,10 +20,10 @@ from nptyping import NDArray
 import numpy as np
 import ase
 
-from nomad.datamodel.metainfo.run.calculation import (
-    BandStructure, BrillouinZone, BandGap, ElectronicStructureInfo
+from nomad.datamodel.metainfo.simulation.calculation import (
+    BandStructure, BrillouinZone, BandGap, ChannelInfo
 )
-from nomad.datamodel.metainfo.run.system import System
+from nomad.datamodel.metainfo.simulation.system import System
 from nomad.normalizing.normalizer import Normalizer
 from nomad import config, atomutils
 from nomad.constants import pi
@@ -57,7 +57,6 @@ class BandStructureNormalizer(Normalizer):
             # In order to resolve the special points and the reciprocal cell,
             # we need information about the system.
             system = scc.system_ref
-            system = system[0].value if system else None
             for band in scc.band_structure_electronic:
                 valid_band = self.validate_band(band)
                 if valid_band:
@@ -176,13 +175,15 @@ class BandStructureNormalizer(Normalizer):
 
         # Create energy reference sections for each spin channel, add fermi
         # energy if present
-        info = band.info[0] if band.info else band.m_create(ElectronicStructureInfo)
-        if energy_fermi is not None:
-            info.energy_fermi = energy_fermi
-        if energy_highest is not None:
-            info.energy_highest_occupied = energy_highest
-        if energy_lowest is not None:
-            info.energy_lowest_unoccupied = energy_lowest
+        n_channels = band.segment[0].energies.shape[0]
+        for n in range(n_channels):
+            info = band.channel_info[n] if len(band.channel_info) > n else band.m_create(ChannelInfo)
+            if energy_fermi is not None:
+                info.energy_fermi = energy_fermi
+            if energy_highest is not None:
+                info.energy_highest_occupied = energy_highest
+            if energy_lowest is not None:
+                info.energy_lowest_unoccupied = energy_lowest
 
         # Use a reference energy (fermi or highest occupied) to determine the
         # energy references from the band structure (discretization will affect
@@ -207,12 +208,11 @@ class BandStructureNormalizer(Normalizer):
         path = np.concatenate(path, axis=0)
         energies = np.concatenate(energies, axis=2)
 
-        n_channels = band.segment[0].energies.shape[0]
-        energy_hi_lo = [-np.inf, np.inf]
-        gap_idx = [None, None]
         # Handle spin channels separately to find gaps for spin up and down
-        for i_channel in range(n_channels):
-            channel_energies = energies[i_channel, :, :]
+        for n in range(n_channels):
+            i_energy_highest = None
+            i_energy_lowest = None
+            channel_energies = energies[n, :, :]
             num_bands = channel_energies.shape[0]
             band_indices = np.arange(num_bands)
             band_minima_idx = channel_energies.argmin(axis=1)
@@ -237,49 +237,46 @@ class BandStructureNormalizer(Normalizer):
                 # Whole band below Fermi level, save the current highest
                 # occupied band point
                 elif band_min_tol <= eref and band_max_tol <= eref:
-                    if band_max > energy_hi_lo[0]:
-                        energy_hi_lo[0] = band_max
-                        gap_idx[0] = band_maxima_idx[band_idx]
+                    i_energy_highest = band_max
+                    gap_lower_idx = band_maxima_idx[band_idx]
                 # Whole band above Fermi level, save the current lowest
                 # unoccupied band point
                 elif band_min_tol >= eref:
-                    if band_min < energy_hi_lo[1]:
-                        energy_hi_lo[1] = band_min
-                        gap_idx[1] = band_minima_idx[band_idx]
+                    i_energy_lowest = band_min
+                    gap_upper_idx = band_minima_idx[band_idx]
                     break
 
-        # Save the found energy references
-        if abs(energy_hi_lo[0]) != np.inf:
-            band.info[0].energy_highest_occupied = energy_hi_lo[0]
-        if abs(energy_hi_lo[1]) != np.inf:
-            band.info[0].energy_lowest_unoccupied = energy_hi_lo[1]
+            # Save the found energy references
+            if i_energy_highest is not None:
+                band.channel_info[n].energy_highest_occupied = i_energy_highest
+            if i_energy_lowest is not None:
+                band.channel_info[n].energy_lowest_unoccupied = i_energy_lowest
 
-        # If highest occupied energy and a lowest unoccupied energy are
-        # found, and the difference between them is positive, save
-        # information about the band gap.
-        gap = band.m_create(BandGap)
-        gap_value = 0.0
-        info = band.info[0]
-        if np.inf not in np.abs(energy_hi_lo):
-            gap_value = float(energy_hi_lo[1] - energy_hi_lo[0])
-            if gap_value > 0:
-                # See if the gap is direct or indirect by comparing the k-point
-                # locations with some tolerance
-                k_point_lower = path[gap_idx[0]]
-                k_point_upper = path[gap_idx[1]]
-                k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-                is_direct_gap = k_point_distance <= config.normalize.k_space_precision
+            # If highest occupied energy and a lowest unoccupied energy are
+            # found, and the difference between them is positive, save
+            # information about the band gap.
+            gap = band.m_create(BandGap)
+            gap_value = 0.0
+            info = band.channel_info[n]
+            if i_energy_lowest is not None and i_energy_highest is not None:
+                gap_value = float(i_energy_lowest - i_energy_highest)
+                if gap_value > 0:
+                    # See if the gap is direct or indirect by comparing the k-point
+                    # locations with some tolerance
+                    k_point_lower = path[gap_lower_idx]
+                    k_point_upper = path[gap_upper_idx]
+                    k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
+                    is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
-                band_gap_type = "direct" if is_direct_gap else "indirect"
-                gap.type = band_gap_type
-                info.band_gap_type = band_gap_type
-                gap.conduction_band_min_k_point = k_point_upper
-                gap.conduction_band_min_energy = float(energy_hi_lo[1])
-                gap.valence_band_max_k_point = k_point_lower
-                gap.valence_band_max_energy = float(energy_hi_lo[0])
-        gap.value = gap_value
-        # TODO why necessary to report gap twice?
-        info.band_gap = gap_value
+                    band_gap_type = "direct" if is_direct_gap else "indirect"
+                    gap.type = band_gap_type
+                    info.band_gap_type = band_gap_type
+                    gap.conduction_band_min_k_point = k_point_upper
+                    gap.conduction_band_min_energy = float(i_energy_lowest)
+                    gap.valence_band_max_k_point = k_point_lower
+                    gap.valence_band_max_energy = float(i_energy_highest)
+            gap.value = gap_value
+            info.band_gap = gap_value
 
     def add_path_labels(self, band: BandStructure, system: System) -> None:
         """Adds special high symmmetry point labels to the band path. Only k
@@ -288,7 +285,7 @@ class BandStructureNormalizer(Normalizer):
         """
         # If labels are already set by the parser dot nothing.
         for segment in band.segment:
-            labels = segment.kpoints_labels
+            labels = segment.endpoints_labels
             if labels is not None:
                 self.logger.info("Existing band segment labels detected, skipping label detection.")
                 return
@@ -340,9 +337,7 @@ class BandStructureNormalizer(Normalizer):
                 end_label = ""
             else:
                 end_label = special_point_labels[end_index]
-            labels = [None] * len(segment.kpoints)
-            labels[0], labels[-1] = start_label, end_label
-            segment.kpoints_labels = labels
+            segment.endpoints_labels = [start_label, end_label]
 
     def get_special_points(self, bravais_lattice, cell, eps=1e-4):
         """Return dict of special points.
