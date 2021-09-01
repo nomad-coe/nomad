@@ -30,7 +30,7 @@ export const MethodDetails = React.memo(({data}) => {
         if (value.length > 0) {
           methodQuantities.push({
             quantity: `${parentKey}.${key}`,
-            label: key.replaceAll('_', ' ')
+            label: key.replace(/_/g, ' ')
           })
         }
       } else if (value instanceof Object) {

@@ -321,9 +321,9 @@ class ResultsNormalizer(Normalizer):
                 i_species.chemical_symbols = [symbol]
             i_species.concentration = [1.0]
 
-    def basis_set_type(self) -> Union[str, None]:
+    def basis_set_type(self, repr_method) -> Union[str, None]:
         try:
-            name = self.section_run.method[0].basis_set[0].type
+            name = repr_method.basis_set[0].type
         except Exception:
             name = None
         if name:
@@ -334,6 +334,13 @@ class ResultsNormalizer(Normalizer):
                 'planewaves': 'plane waves'
             }
             name = name_mapping.get(key, name)
+        return name
+
+    def basis_set_name(self, repr_method) -> Union[str, None]:
+        try:
+            name = repr_method.basis_set[0].name
+        except Exception:
+            name = None
         return name
 
     def core_electron_treatment(self) -> str:
@@ -414,7 +421,8 @@ class ResultsNormalizer(Normalizer):
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"
             dft = DFT()
-            dft.basis_set_type = self.basis_set_type()
+            dft.basis_set_type = self.basis_set_type(repr_method)
+            dft.basis_set_name = self.basis_set_name(repr_method)
             dft.core_electron_treatment = self.core_electron_treatment()
             if repr_method.electronic is not None:
                 if repr_method.electronic.smearing is not None:
