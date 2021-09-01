@@ -239,9 +239,9 @@ def assert_processing_fails(client, upload_id, user_auth):
     return response_data
 
 
-def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **query_args):
-    with_embargo = query_args.get('with_embargo', True)
-    embargo_length = query_args.get('embargo_length', 36)
+def assert_gets_published(
+        client, upload_id, user_auth, from_oasis=False, expected_embargo_length=0, **query_args):
+    embargo_length = query_args.get('embargo_length', expected_embargo_length)
 
     block_until_completed(client, upload_id, user_auth)
 
@@ -249,12 +249,11 @@ def assert_gets_published(client, upload_id, user_auth, from_oasis=False, **quer
     assert upload_proc is not None
     assert upload_proc.published is True
     assert upload_proc.from_oasis == from_oasis
-    if with_embargo:
-        assert upload_proc.embargo_length == embargo_length
+    assert upload_proc.embargo_length == embargo_length
 
     with upload_proc.entries_metadata() as entries:
         for entry in entries:
-            assert entry.with_embargo == with_embargo
+            assert entry.with_embargo == (embargo_length > 0)
 
     assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
 
@@ -1002,6 +1001,7 @@ def test_put_upload_metadata(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         upload = Upload.get(upload_id)
+        upload.block_until_complete()
         with upload.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
                 if 'name' in query_args:
@@ -1015,14 +1015,16 @@ def test_put_upload_metadata(
                     assert entry_metadata.upload_time == upload.upload_time
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
+                    assert entry_metadata.with_embargo == (upload.embargo_length > 0)
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
     pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, False, True, 200, id='multipart'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='multipart-no-name'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='multipart-token'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, False, True, 200, id='stream'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='stream-no-name'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=0, name='test_name'), 'test_user', False, False, True, 200, id='stream-no-embargo'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=7), 'test_user', False, False, True, 200, id='stream-no-name-embargoed'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=37), 'test_user', False, False, True, 400, id='stream-invalid-embargo'),
     pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='stream-token'),
     pytest.param('local_path', example_file_vasp_with_binary, dict(), 'admin_user', False, False, True, 200, id='local_path'),
     pytest.param('local_path', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 401, id='local_path-not-admin'),
@@ -1077,7 +1079,7 @@ def test_post_upload(
         if source_path == empty_file:
             assert not upload_proc.published
         else:
-            assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], with_embargo=False)
+            assert_gets_published(client, upload_id, test_auth_dict['test_user'][0], **query_args)
 
 
 @pytest.mark.parametrize('kwargs', [
@@ -1087,7 +1089,7 @@ def test_post_upload(
         id='no-args'),
     pytest.param(
         dict(
-            query_args={'with_embargo': True, 'embargo_length': 12},
+            query_args={'embargo_length': 12},
             expected_status_code=200),
         id='non-standard-embargo'),
     pytest.param(
@@ -1102,7 +1104,7 @@ def test_post_upload(
         id='illegal-embargo-length'),
     pytest.param(
         dict(
-            query_args={'with_embargo': False},
+            query_args={'embargo_length': 0},
             expected_status_code=200),
         id='no-embargo'),
     pytest.param(
@@ -1153,7 +1155,7 @@ def test_post_upload_action_publish(
         assert upload['current_process'] == 'publish_upload'
         assert upload['process_running']
 
-        assert_gets_published(client, upload_id, user_auth, **query_args)
+        assert_gets_published(client, upload_id, user_auth, expected_embargo_length=12, **query_args)
 
 
 @pytest.mark.parametrize('kwargs', [

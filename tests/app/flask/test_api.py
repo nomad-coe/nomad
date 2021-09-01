@@ -253,7 +253,7 @@ class TestUploads:
         assert_upload_files(upload_id, entries, files.StagingUploadFiles)
         assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
-    def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
+    def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}, embargo_length=None):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -276,7 +276,10 @@ class TestUploads:
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
-        assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
+        if embargo_length is not None:
+            assert upload_proc.embargo_length == embargo_length
+        else:
+            assert upload_proc.embargo_length == metadata.get('embargo_length', 0)
 
         with upload_proc.entries_metadata() as entries:
             for entry in entries:
@@ -458,7 +461,7 @@ class TestUploads:
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(embargo_length=12, with_embargo=True)
+        metadata = dict(embargo_length=12)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     @pytest.mark.parametrize('user', ['test_user', 'admin_user'])
@@ -479,9 +482,9 @@ class TestUploads:
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(with_embargo=True)
+        metadata = dict(embargo_length=12)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
-        self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {})
+        self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {}, embargo_length=12)
 
     def test_post_re_process(self, api, published, test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')

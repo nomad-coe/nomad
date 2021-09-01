@@ -240,6 +240,7 @@ class Calc(Proc):
         entry_metadata.uploader = self.upload.user_id
         entry_metadata.upload_time = self.upload.upload_time
         entry_metadata.upload_name = self.upload.name
+        entry_metadata.with_embargo = (self.upload.embargo_length > 0)
 
     def _read_metadata_from_file(self, logger):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
@@ -764,7 +765,7 @@ class Upload(Proc):
 
     upload_id = StringField(primary_key=True)
     pending_operations = ListField(DictField(), default=[])
-    embargo_length = IntField(default=36)
+    embargo_length = IntField(default=0, required=True)
 
     name = StringField(default=None)
     upload_time = DateTimeField()
@@ -938,7 +939,7 @@ class Upload(Proc):
         return ProcessStatus.DELETED  # Signal deletion to the process framework
 
     @process
-    def publish_upload(self, with_embargo: bool = None, embargo_length: int = None):
+    def publish_upload(self, embargo_length: int = None):
         '''
         Moves the upload out of staging to the public area. It will
         pack the staging upload files in to public upload files.
@@ -948,16 +949,20 @@ class Upload(Proc):
         logger = self.get_logger(upload_size=self.upload_files.size)
         logger.info('started to publish')
 
+        if embargo_length is not None:
+            assert 0 <= embargo_length <= 36, 'Invalid embargo length, must be between 0 and 36 months'
+            self.embargo_length = embargo_length
+
         with utils.lnr(logger, 'publish failed'):
             with self.entries_metadata() as calcs:
 
                 with utils.timer(logger, 'upload metadata updated'):
                     def create_update(calc):
                         calc.published = True
-                        if with_embargo is not None:
-                            calc.with_embargo = with_embargo
-                        elif calc.with_embargo is None:
-                            calc.with_embargo = False
+                        if embargo_length is not None:
+                            calc.with_embargo = (embargo_length > 0)
+                        else:
+                            assert calc.with_embargo is not None, 'with_embargo flag is None'
                         return UpdateOne(
                             {'_id': calc.calc_id},
                             {'$set': {'metadata': calc.m_to_dict(
@@ -974,10 +979,6 @@ class Upload(Proc):
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
-                        if embargo_length is not None:
-                            self.embargo_length = embargo_length
-                        if self.embargo_length is None:
-                            self.embargo_length = 36  # Default
                         self.upload_files.delete()
                         self.published = True
                         self.publish_time = datetime.utcnow()
@@ -1072,9 +1073,9 @@ class Upload(Proc):
         self.last_status_message = 'Successfully uploaded to central NOMAD.'
 
     @process
-    def publish_externally(self, with_embargo: bool = None, embargo_length: int = None):
+    def publish_externally(self, embargo_length: int = None):
         '''
-        Uploads the already published upload to a different NOMAD deployment. This allows
+        Uploads the already published upload to a different NOMAD deployment. This is used
         to push uploads from an OASIS to the central NOMAD. Makes use of the upload bundle
         functionality.
         '''
@@ -1108,10 +1109,9 @@ class Upload(Proc):
             # upload to central NOMAD
             oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
             upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
-            upload_parameters = dict(
-                with_embargo=with_embargo,
-                embargo_length=embargo_length)
-            upload_parameters = {k: v for k, v in upload_parameters.items() if v is not None}
+            upload_parameters: Dict[str, Any] = {}
+            if embargo_length is not None:
+                upload_parameters.update(embargo_length=embargo_length)
             upload_url = '%s/uploads/bundle?%s' % (
                 config.oasis.central_nomad_api_url,
                 urllib.parse.urlencode(upload_parameters))
@@ -1151,10 +1151,13 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        return self._process_upload(reprocess_settings)
+        return self.process_upload_local(reprocess_settings)
 
-    def _process_upload(self, reprocess_settings: Dict[str, Any]):
-        ''' The function doing the actual processing'''
+    def process_upload_local(self, reprocess_settings: Dict[str, Any]):
+        '''
+        The function doing the actual processing, but locally, not as a @process.
+        See :func:`process_upload`
+        '''
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
@@ -1614,23 +1617,36 @@ class Upload(Proc):
         '''
         return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
 
-    def set_upload_metadata(self, upload_metadata: UploadMetadata):
+    @process
+    def set_upload_metadata(self, metadata: Dict[str, Any]):
         '''
-        Sets upload level metadata (metadata that is only stored on the upload, or
-        stored on the upload and mirrored to the entries).
+        A @process which sets upload level metadata (metadata that is editable and set
+        on the upload level, rather than the entry level. Some of these fields are mirrored
+        from the upload to the entry metadata, however).
 
         Arguments:
-            upload_metadata: a :class:`datamodel.UploadMetadata` object with metadata to set.
+            metadata: a dictionary with metadata to set. See the class
+                :class:`datamodel.UploadMetadata` for possible values.
+                Keys with None-values are left unchanged.
+        '''
+        self.set_upload_metadata_local(metadata)
+
+    def set_upload_metadata_local(self, metadata: Dict[str, Any]):
+        '''
+        The method that actually sets the upload metadata, but locally, not as a @process.
+        See :func:`set_upload_metadata`.
         '''
         logger = self.get_logger()
+        upload_metadata = UploadMetadata.m_from_dict(metadata)
 
         new_entry_metadata = {}
         if upload_metadata.upload_name is not None:
             self.name = upload_metadata.upload_name
             new_entry_metadata['upload_name'] = upload_metadata.upload_name
         if upload_metadata.embargo_length is not None:
-            assert 1 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 1 and 36 months'
+            assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
             self.embargo_length = upload_metadata.embargo_length
+            new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
         if upload_metadata.uploader is not None:
             self.user_id = upload_metadata.uploader.user_id
             new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
@@ -1749,8 +1765,7 @@ class Upload(Proc):
 
     @process
     def import_bundle(
-            self, bundle_path: str, move_files: bool = False,
-            with_embargo: bool = None, embargo_length: int = None,
+            self, bundle_path: str, move_files: bool = False, embargo_length: int = None,
             settings: config.NomadConfig = config.bundle_import.default_settings):
         '''
         A *process* that imports data from an upload bundle to the current upload (which should
@@ -1769,10 +1784,9 @@ class Upload(Proc):
             bundle_path: The path to the bundle to import.
             move_files: If the files should be moved to the new location, rather than
                 copied (only applicable if the bundle is created from a folder).
-            with_embargo: Used to set the embargo flag. If set to None, the value will be
-                imported from the bundle.
             embargo_length: Used to set the embargo length. If set to None, the value will be
-                imported from the bundle.
+                imported from the bundle. The value should be between 0 and 36. A value of
+                0 means no embargo.
             settings: A dictionary structure defining how to import, see
                 `config.import_bundle.default_settings` for available options. There,
                 the default settings are also defined
@@ -1795,11 +1809,12 @@ class Upload(Proc):
                 'export_options.include_datasets',
                 'upload._id', 'upload.user_id', 'upload.published',
                 'upload.create_time', 'upload.upload_time', 'upload.process_status',
+                'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
                 '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
             required_keys_entry_metadata = (
-                'uploader', 'upload_time', 'published', 'calc_hash')
+                'uploader', 'upload_time', 'published', 'with_embargo', 'calc_hash')
             required_keys_datasets = (
                 'dataset_id', 'name', 'user_id')
 
@@ -1887,16 +1902,12 @@ class Upload(Proc):
                         dataset_id_mapping[dataset_id] = dataset_id
             # Entries
             entries = []
-            with_embargo_values = set()
             for entry_dict in bundle_info['entries']:
                 keys_exist(entry_dict, required_keys_entry_level, 'Missing key for entry: {key}')
                 assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
                     f'Invalid entry `process_status`')
                 entry_metadata_dict = entry_dict['metadata']
-                if with_embargo is not None:
-                    entry_metadata_dict['with_embargo'] = with_embargo
                 keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
-                with_embargo_values.add(entry_metadata_dict.get('with_embargo'))
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
@@ -1905,10 +1916,14 @@ class Upload(Proc):
                 for k, v in (
                         ('upload_name', self.name),
                         ('uploader', self.user_id),
-                        ('published', self.published)):
+                        ('published', self.published),
+                        ('with_embargo', self.embargo_length > 0)):
                     assert entry_metadata_dict.get(k) == v, f'Inconsistent entry metadata: {k}'
                 check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
+                if embargo_length is not None:
+                    # Update the embargo flag on the entry level
+                    entry_metadata_dict['with_embargo'] = (embargo_length > 0)
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = (
                     'upload_id', 'mainfile', 'parser', 'metadata', 'errors', 'warnings',
@@ -1938,16 +1953,13 @@ class Upload(Proc):
                 entries.append(entry)
 
             # Validate embargo settings
-            assert len(with_embargo_values) == 1, 'Different embargo settings for different entries'
-            with_embargo = with_embargo_values.pop()
-            assert with_embargo is None or type(with_embargo) == bool, 'Invalid with_embargo value'
-            if self.published:
-                assert type(with_embargo) == bool, 'Invalid `with_embargo` value (must be boolean)'
-                if with_embargo:
-                    if embargo_length is not None:
-                        self.embargo_length = embargo_length
-                    assert self.embargo_length is not None, 'Missing required `embargo_length`'
-                    assert 1 <= self.embargo_length <= 36, 'Invalid `embargo_length`'
+            if embargo_length is not None:
+                if (upload_dict['embargo_length'] == 0) != (embargo_length == 0):
+                    assert not published, (
+                        'Changing embargo flag of a published upload is not yet supported!')
+                    # TODO: Temporary, should support this when file structure has been unified
+                assert 0 <= embargo_length <= 36, 'Invalid embargo_length, must be between 0 and 36 months'
+                self.embargo_length = embargo_length  # Set the flag also on the Upload level
 
             # Import the files
             upload_files = bundle.import_upload_files(
@@ -1977,7 +1989,7 @@ class Upload(Proc):
             if settings.trigger_processing:
                 reprocess_settings = {
                     k: v for k, v in settings.items() if k in config.reprocess}
-                return self._process_upload(reprocess_settings)
+                return self.process_upload_local(reprocess_settings)
 
         except Exception as e:
             if settings.get('delete_upload_on_fail'):

@@ -178,15 +178,17 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     try:
         processed.block_until_complete(interval=.01)
     except Exception:
         pass
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -208,8 +210,10 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     processed.block_until_complete(interval=.01)
     assert Upload.get('examples_template') is not None
 
@@ -217,7 +221,7 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     processed.block_until_complete(interval=.01)
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -232,15 +236,17 @@ def test_publish_failed(
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     try:
         processed.block_until_complete(interval=.01)
     except Exception:
         pass
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
@@ -390,9 +396,12 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
 
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
+
     with published.entries_metadata() as entries_generator:
         entries = list(entries_generator)
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
 
     if with_failure != 'not-matched':
         for archive_file in old_archive_files:
@@ -736,7 +745,9 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
         metadata_to_set['uploader'] = test_users_dict[metadata_to_set['uploader']].user_id
     upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
     try:
-        upload.set_upload_metadata(upload_metadata)
+        upload.set_upload_metadata(upload_metadata.m_to_dict())
+        upload.block_until_complete()
+        assert upload.process_status == ProcessStatus.SUCCESS
     except Exception:
         assert not should_succeed
         return
@@ -755,3 +766,4 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
                 assert entry_metadata.upload_time == upload.upload_time
             if 'embargo_length' in metadata_to_set:
                 assert upload.embargo_length == metadata_to_set['embargo_length']
+                assert entry_metadata.with_embargo == (upload.embargo_length > 0)

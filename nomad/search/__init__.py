@@ -225,20 +225,6 @@ def update_metadata(
     return failed
 
 
-def lift_embargo(query: dict, refresh=True, **kwargs):
-    '''
-    Removes the embargo flag based on a query.
-    '''
-    update_by_query(
-        index=None,
-        update_script='ctx._source.with_embargo = false;',
-        query=query,
-        **kwargs)
-
-    if refresh:
-        _refresh()
-
-
 def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
     '''
     Deletes the given upload.

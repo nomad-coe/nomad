@@ -328,7 +328,8 @@ def derive_authors(entry):
 
 class UploadMetadata(metainfo.MSection):
     '''
-    Metadata that is set on the upload level. Some of the fields are also mirrored to the entries.
+    Metadata that is set on the upload level and can be edited. Some of the fields are
+    also mirrored to the entries.
     '''
     upload_name = metainfo.Quantity(
         type=str,
@@ -341,7 +342,7 @@ class UploadMetadata(metainfo.MSection):
         description='The uploader of the entry')
     embargo_length = metainfo.Quantity(
         type=int,
-        description='The length of the embargo period in months')
+        description='The length of the embargo period in months (0-36)')
 
 
 class EntryMetadata(metainfo.MSection):
