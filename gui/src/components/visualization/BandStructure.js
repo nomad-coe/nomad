@@ -24,7 +24,7 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { add, distance, mergeObjects } from '../../utils'
-import { toUnitSystem } from '../../units'
+import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 
@@ -46,8 +46,7 @@ const BandStructure = React.memo(({
 }) => {
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
-
-  // Styles
+  const energyUnit = useMemo(() => new Unit('joule'), [])
   const style = useStyles(classes)
   const theme = useTheme()
 
@@ -62,10 +61,10 @@ const BandStructure = React.memo(({
       if (!data.energy_highest_occupied === undefined) {
         return [0, false]
       } else {
-        return [toUnitSystem(data.energy_highest_occupied, 'joule', units, false), true]
+        return [toUnitSystem(data.energy_highest_occupied, energyUnit, units, false), true]
       }
     }
-  }, [data, units, type])
+  }, [data, energyUnit, units, type])
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff as a side effect, the first render containing
@@ -132,7 +131,7 @@ const BandStructure = React.memo(({
 
       // Create plot data entry for each band
       for (let band of bands) {
-        band = toUnitSystem(band, 'joule', units, false)
+        band = toUnitSystem(band, energyUnit, units, false)
         if (energyHighestOccupied !== 0) {
           band = add(band, -energyHighestOccupied)
         }
@@ -169,7 +168,7 @@ const BandStructure = React.memo(({
 
     // Create plot data entry for each band
     for (let band of bands) {
-      band = toUnitSystem(band, 'joule', units, false)
+      band = toUnitSystem(band, energyUnit, units, false)
       if (energyHighestOccupied !== 0) {
         band = add(band, -energyHighestOccupied)
       }
@@ -205,7 +204,7 @@ const BandStructure = React.memo(({
     }
 
     setFinalData(plotData)
-  }, [data, theme, units, type, normalized, energyHighestOccupied])
+  }, [data, theme, units, energyUnit, type, normalized, energyHighestOccupied])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -219,7 +218,7 @@ const BandStructure = React.memo(({
       },
       yaxis: {
         title: {
-          text: 'Energy (eV)'
+          text: `Energy (${energyUnit.label(units)})`
         },
         zeroline: type === 'vibrational'
       },
@@ -237,7 +236,7 @@ const BandStructure = React.memo(({
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, type])
+  }, [layout, type, energyUnit, units])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
@@ -253,7 +252,6 @@ const BandStructure = React.memo(({
         ? segment.endpoints_labels[0]
         : ''
       if (iSegment === 0) {
-        // If label is not defined, use empty string
         labels.push(startLabel)
         labelKPoints.push(pathSegments[iSegment][0])
       } else {

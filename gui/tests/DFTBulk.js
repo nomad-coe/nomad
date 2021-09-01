@@ -145,8 +145,8 @@ const resultsDftBulk = {
 // Section run
 const run = [{
   program: {
-    name: 'VASP',
-    version: 'VASP'
+    name: programName,
+    version: programVersion
   },
   method: [
     {

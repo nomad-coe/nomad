@@ -52,16 +52,16 @@ export default function VibrationalPropertiesCard({entryMetadata, archive}) {
   if (bsData) {
     bs = {}
     bs.segment = resolveRef(bsData.segment, archive)
-    bs.m_path = `${archiveUrl}/${refPath(bsData.segment[0].split('/').slice(0, -1).join('/'))}`
+    bs.m_path = `${archiveUrl}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
   }
 
   let energyFree = hasEnergyFree ? null : false
-  const eneryFreeData = archive?.results?.properties?.vibrational?.energy_free_helmholtz
-  if (eneryFreeData) {
+  const energyFreeData = archive?.results?.properties?.vibrational?.energy_free_helmholtz
+  if (energyFreeData) {
     energyFree = {}
-    energyFree.energies = resolveRef(eneryFreeData.energies, archive)
-    energyFree.temperatures = resolveRef(eneryFreeData.temperatures, archive)
-    energyFree.m_path = `${archiveUrl}/${refPath(eneryFreeData.temperatures.split('/').slice(0, -1).join('/'))}`
+    energyFree.energies = resolveRef(energyFreeData.energies, archive)
+    energyFree.temperatures = resolveRef(energyFreeData.temperatures, archive)
+    energyFree.m_path = `${archiveUrl}/${refPath(energyFreeData.energies)}`
   }
 
   let heatCapacity = hasHeatCapacity ? null : false
@@ -70,7 +70,7 @@ export default function VibrationalPropertiesCard({entryMetadata, archive}) {
     heatCapacity = {}
     heatCapacity.heat_capacities = resolveRef(heatCapacityData.heat_capacities, archive)
     heatCapacity.temperatures = resolveRef(heatCapacityData.temperatures, archive)
-    heatCapacity.m_path = `${archiveUrl}/${refPath(heatCapacityData.temperatures.split('/').slice(0, -1).join('/'))}`
+    heatCapacity.m_path = `${archiveUrl}/${refPath(heatCapacityData.heat_capacities)}`
   }
 
   return <PropertyCard title="Vibrational properties">
