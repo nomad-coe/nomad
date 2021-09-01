@@ -285,6 +285,7 @@ def test_band_structure_electronic():
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
     assert len(channel_info) == 0
+    print(bs.segment)
     assert bs.segment[0].energies.shape == (1, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
 
@@ -294,10 +295,10 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 1
     assert channel_info[0].band_gap == 0
     assert channel_info[0].band_gap_type is None
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert bs.segment[0].energies.shape == (1, 100, 2)
@@ -309,13 +310,12 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 2
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert channel_info[0].band_gap == 0
     assert channel_info[0].band_gap_type is None
-    assert channel_info[1].energy_fermi is not None
     assert channel_info[1].energy_highest_occupied is not None
     assert channel_info[1].energy_lowest_unoccupied is not None
     assert channel_info[1].band_gap == 0
@@ -331,8 +331,8 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 1
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert channel_info[0].band_gap == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
@@ -348,8 +348,8 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 1
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert channel_info[0].band_gap == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
@@ -366,13 +366,12 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 2
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert channel_info[0].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
     assert channel_info[0].band_gap_type == gap_type
-    assert channel_info[1].energy_fermi is not None
     assert channel_info[1].energy_highest_occupied is not None
     assert channel_info[1].energy_lowest_unoccupied is not None
     assert channel_info[1].band_gap == pytest.approx((gap2 * ureg.electron_volt).to(ureg.joule).magnitude)
@@ -389,13 +388,12 @@ def test_band_structure_electronic():
     channel_info = bs.channel_info
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is True
+    assert bs.energy_fermi is not None
     assert len(channel_info) == 2
-    assert channel_info[0].energy_fermi is not None
     assert channel_info[0].energy_highest_occupied is not None
     assert channel_info[0].energy_lowest_unoccupied is not None
     assert channel_info[0].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
     assert channel_info[0].band_gap_type == gap_type
-    assert channel_info[1].energy_fermi is not None
     assert channel_info[1].energy_highest_occupied is not None
     assert channel_info[1].energy_lowest_unoccupied is not None
     assert channel_info[1].band_gap == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)

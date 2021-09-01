@@ -653,14 +653,6 @@ class ChannelInfo(MSection):
         Type of band gap.
         ''')
 
-    energy_fermi = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=[],
-        description="""
-        Fermi energy.
-        """)
-
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
         unit="joule",
@@ -783,6 +775,14 @@ class BandStructure(MSection):
         ''')
 
     channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
+
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """)
 
     segment = SubSection(sub_section=BandEnergies.m_def, repeats=True)
 
@@ -907,6 +907,14 @@ class Dos(Atomic):
         ''')
 
     channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
+
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """)
 
     total = SubSection(sub_section=DosValues.m_def, repeats=True)
 

@@ -249,8 +249,8 @@ const BandStructure = React.memo(({
     let labelKPoints = []
     for (let iSegment = 0; iSegment < data.segment.length; ++iSegment) {
       let segment = data.segment[iSegment]
-      const startLabel = segment.kpoints_labels
-        ? segment.kpoints_labels[0]
+      const startLabel = segment.endpoints_labels
+        ? segment.endpoints_labels[0]
         : ''
       if (iSegment === 0) {
         // If label is not defined, use empty string
@@ -262,8 +262,8 @@ const BandStructure = React.memo(({
           labels[labels.length - 1] = `${prevLabel}|${startLabel}`
         }
       }
-      const endLabel = segment.kpoints_labels
-        ? segment.kpoints_labels[segment.kpoints_labels.length - 1]
+      const endLabel = segment.endpoints_labels
+        ? segment.endpoints_labels[1]
         : ''
       labels.push(endLabel)
       labelKPoints.push(pathSegments[iSegment].slice(-1)[0])

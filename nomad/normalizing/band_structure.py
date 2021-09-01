@@ -147,11 +147,14 @@ class BandStructureNormalizer(Normalizer):
         determines the band gap and energy references separately for all spin
         channels.
         """
+        band.energy_fermi = energy_fermi
+
         # No reference data available
         eref = energy_highest if energy_fermi is None else energy_fermi
         if eref is None:
             self.logger.info("could not resolve energy references or band gaps for band structure")
             return
+        eref = eref.magnitude
 
         # Create energy reference sections for each spin channel, add fermi
         # energy if present
@@ -228,15 +231,15 @@ class BandStructureNormalizer(Normalizer):
 
             # Save the found energy references
             if i_energy_highest is not None:
-                band.info[i_channel].energy_highest_occupied = i_energy_highest
+                band.channel_info[i_channel].energy_highest_occupied = i_energy_highest
             if i_energy_lowest is not None:
-                band.info[i_channel].energy_lowest_unoccupied = i_energy_lowest
+                band.channel_info[i_channel].energy_lowest_unoccupied = i_energy_lowest
 
             # If highest occupied energy and a lowest unoccupied energy are
             # found, and the difference between them is positive, save
             # information about the band gap.
             gap_value = 0.0
-            info = band.info[i_channel]
+            info = band.channel_info[i_channel]
             if i_energy_lowest is not None and i_energy_highest is not None:
                 gap_value = float(i_energy_lowest - i_energy_highest)
                 if gap_value > 0:

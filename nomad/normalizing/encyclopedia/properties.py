@@ -68,7 +68,7 @@ class PropertiesNormalizer():
 
             # Add band gap information to metadata if present. The channel with
             # smallest band gap index is chosen as a representative one.
-            channel_info = properties.electronic_band_structure.info
+            channel_info = properties.electronic_band_structure.channel_info
             if channel_info is not None and len(channel_info) > 0:
                 min_gap_index = 0
                 min_gap = float("Inf")

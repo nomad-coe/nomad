@@ -462,8 +462,9 @@ class ResultsNormalizer(Normalizer):
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructureElectronic()
                 bs_new.reciprocal_cell = bs
-                bs_new.segments = bs.segment
-                bs_new.spin_polarized = bs_new.segments[0].energies.shape[0] > 1
+                bs_new.segment = bs.segment
+                bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
+                bs_new.energy_fermi = bs.energy_fermi
                 for info in bs.channel_info:
                     info_new = bs_new.m_create(ChannelInfo)
                     info_new.index = info.index
@@ -471,7 +472,6 @@ class ResultsNormalizer(Normalizer):
                     info_new.band_gap_type = info.band_gap_type
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                    info_new.energy_fermi = info.energy_fermi
                 return bs_new
 
         return None
@@ -494,12 +494,12 @@ class ResultsNormalizer(Normalizer):
                 dos_new.total = dos.total
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
+                dos_new.energy_fermi = dos.energy_fermi
                 for info in dos.channel_info:
                     info_new = dos_new.m_create(ChannelInfo)
                     info_new.index = info.index
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None

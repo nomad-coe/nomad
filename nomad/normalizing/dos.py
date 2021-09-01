@@ -87,7 +87,7 @@ class DosNormalizer(Normalizer):
 
                 # Calculate the DOS fingerprint for successfully normalized DOS
                 normalization_reference = None
-                for info in dos.info:
+                for info in dos.channel_info:
                     energy_highest = info.energy_highest_occupied
                     if energy_highest is not None:
                         if normalization_reference is None:
@@ -123,6 +123,7 @@ class DosNormalizer(Normalizer):
         """Given the band structure and information about energy references,
         determines the energy references separately for all spin channels.
         """
+        dos.energy_fermi = energy_fermi
         eref = energy_highest if energy_fermi is None else energy_fermi
         # No reference available
         if eref is None:
@@ -136,11 +137,9 @@ class DosNormalizer(Normalizer):
         for i_channel in range(n_channels):
             info = dos.channel_info[i_channel] if len(dos.channel_info) > i_channel else dos.m_create(ChannelInfo)
             info.index = i_channel
-            if info.energy_fermi is None and energy_fermi is not None:
-                info.energy_fermi = energy_fermi
-            if info.energy_highest_occupied is None and energy_highest is not None:
+            if energy_highest is not None:
                 info.energy_highest_occupied = energy_highest
-            if info.energy_lowest_unoccupied is None and energy_lowest is not None:
+            if energy_lowest is not None:
                 info.energy_lowest_unoccupied = energy_lowest
 
         # Use a reference energy (fermi or highest occupied) to determine the
@@ -152,7 +151,7 @@ class DosNormalizer(Normalizer):
 
         for i_channel in range(n_channels):
             dos_values = dos_values_normalized[i_channel]
-            info = dos.info[i_channel]
+            info = dos.channel_info[i_channel]
             fermi_idx = (np.abs(dos.energies - eref)).argmin()
 
             # First check that the closest dos energy to energy reference
