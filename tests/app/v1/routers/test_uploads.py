@@ -21,7 +21,7 @@ import io
 import os
 import time
 import zipfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
@@ -36,6 +36,7 @@ from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 from nomad.archive import write_archive, read_archive
+from nomad.search.v1 import search
 
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -958,6 +959,7 @@ def test_delete_upload_raw_path(
 
 @pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
     pytest.param('test_user', 'id_unpublished_w', dict(name='test_name', embargo_length=13), False, 200, id='ok'),
+    pytest.param('test_user', 'id_published_w', dict(embargo_length=0), False, 200, id='lift-embargo'),
     pytest.param('admin_user', 'id_unpublished_w', 'PROTECTED', False, 200, id='protected-admin'),
     pytest.param('test_user', 'id_unpublished_w', 'PROTECTED', False, 401, id='protected-not-admin'),
     pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), True, 200, id='use-token'),
@@ -982,10 +984,15 @@ def test_put_upload_metadata(
     except KeyError:
         pass
 
+    if upload_id == 'id_published_w':
+        assert Calc.get('id_published_w_entry').metadata['with_embargo']
+        es_data = search(owner=None, query=dict(entry_id='id_published_w_entry')).data[0]
+        assert es_data['with_embargo']
+
     if query_args == 'PROTECTED':
         # Arguments for testing changing protected fields
         query_args = dict(
-            upload_time=upload.upload_time - timedelta(hours=3, seconds=14),
+            upload_time=(upload.upload_time - timedelta(hours=3, seconds=14)).isoformat(),
             uploader=test_users_dict['other_test_user'].user_id)
     user_auth, token = test_auth_dict[user]
     if use_upload_token:
@@ -1004,18 +1011,20 @@ def test_put_upload_metadata(
         upload.block_until_complete()
         with upload.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
+                es_data = search(owner=None, query=dict(entry_id=entry_metadata.calc_id)).data[0]
                 if 'name' in query_args:
                     assert upload.name == query_args.get('name')
-                    assert entry_metadata.upload_name == upload.name
+                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.name
                 if 'uploader' in query_args:
                     assert upload.user_id == query_args['uploader']
-                    assert entry_metadata.uploader.user_id == upload.user_id
+                    assert entry_metadata.uploader.user_id == es_data['uploader']['user_id'] == upload.user_id
                 if 'upload_time' in query_args:
-                    assert upload.upload_time == query_args['upload_time']
+                    assert upload.upload_time == datetime.fromisoformat(query_args['upload_time'])
                     assert entry_metadata.upload_time == upload.upload_time
+                    assert datetime.fromisoformat(es_data['upload_time']) == upload.upload_time
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
-                    assert entry_metadata.with_embargo == (upload.embargo_length > 0)
+                    assert entry_metadata.with_embargo == es_data['with_embargo'] == (upload.embargo_length > 0)
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [

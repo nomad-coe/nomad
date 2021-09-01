@@ -1748,57 +1748,6 @@ class TestEditRepo():
         assert rv.status_code != 200
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo(api, published, test_user_auth, no_warn):
-    example_calc = Calc.objects(upload_id=published.upload_id).first()
-    assert example_calc.metadata['with_embargo']
-    elastic_calc = next(
-        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
-    assert elastic_calc['with_embargo'] is True
-    with pytest.raises(files.Restricted):
-        with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
-            archive[example_calc.calc_id].to_dict()
-
-    rv = api.post(
-        '/repo/edit', headers=test_user_auth, content_type='application/json',
-        data=json.dumps({
-            'actions': {
-                'with_embargo': {}
-            }
-        }))
-
-    assert rv.status_code == 200, rv.data
-    assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
-
-    Upload.get(published.upload_id).block_until_complete()
-
-    elastic_calc = next(
-        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
-    assert elastic_calc['with_embargo'] is False
-
-    # should not raise Restricted anymore
-    with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
-        archive[example_calc.calc_id].to_dict()
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo_unnecessary(api, published_wo_user_metadata, other_test_user_auth):
-    example_calc = Calc.objects(upload_id=published_wo_user_metadata.upload_id).first()
-    assert not example_calc.metadata['with_embargo']
-    rv = api.post(
-        '/repo/edit', headers=other_test_user_auth, content_type='application/json',
-        data=json.dumps({
-            'actions': {
-                'with_embargo': {
-                    'value': 'lift'
-                }
-            }
-        }))
-    assert rv.status_code == 400
-    data = json.loads(rv.data)
-    assert not data['actions']['with_embargo']['success']
-
-
 class TestRaw(UploadFilesBasedTests):
 
     def test_raw_file_from_calc(self, api, non_empty_processed, test_user_auth):
