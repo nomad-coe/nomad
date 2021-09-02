@@ -322,9 +322,15 @@ def get_authentication_filters_material():
     """
     # Handle authentication
     # filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
+    # if g.user is not None and g.user.user_id is not None:
+        # q = filters[0] & filters[1]
+        # q = q | Q('term', calculations__owners=g.user.user_id)
+        # return [q]
+    # return filters
+
     filters = [Q('term', calculations__published=True)]
     if g.user is not None and g.user.user_id is not None:
-        q = filters[0] & filters[1]
+        q = filters[0]
         q = q | Q('term', calculations__owners=g.user.user_id)
         return [q]
     return filters
@@ -1345,7 +1351,11 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            filter=get_authentication_filters_calc() + [
+            # filter=get_authentication_filters_calc() + [
+                # Q("term", encyclopedia__material__material_id=material_id),
+                # Q("term", calc_id=calc_id),
+            # ]
+            filter=[
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
@@ -1401,10 +1411,6 @@ class EncCalculationResource(Resource):
                 .format(calc_id, material_id))
             )
 
-        # response = jsonify({'message': response[0]})
-        # response.status_code = 400
-        # return response
-
         # Add references that are to be read from the archive
         for ref in references:
             arch_path = response[0]
@@ -1440,35 +1446,37 @@ class EncCalculationResource(Resource):
                         specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
                         new_value["specific_heat_capacity"] = specific_heat_capacity
                         new_value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
-
                     # Normalized DOS
-                    if key == "electronic_dos":
+                    elif key == "electronic_dos" or key == "phonon_dos":
                         new_value = {}
-                        energy_highest_occupied = max([info.energy_highest_occupied.magnitude for info in value.channel_info])
-                        new_value["dos_energies"] = (value.energies.magnitude - energy_highest_occupied).tolist()
+                        new_value["dos_energies"] = value.energies.magnitude.tolist()
                         new_value["dos_values"] = [(d.value.magnitude / d.normalization_factor).tolist() for d in value.total]
-
-                    # Pre-calculate k-path length to be used as x-coordinate in
-                    # plots. If the VBM and CBM information is needed later, it
-                    # can be added as indices along the path. The exact k-points
-                    # and occupations are removed to save some bandwidth.
-                    if key == "electronic_band_structure" or key == "phonon_band_structure":
-
-                        # "reciprocal_cell": fields.List(fields.List(fields.Float)),
-                        # "brillouin_zone": fields.Raw,
-                        # "section_k_band_segment": fields.Raw,
-                        # "section_band_gap": fields.Raw,
-
-                        new_value = {}
+                        if key == "electronic_dos":
+                            energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in value.channel_info])
+                            new_value["energy_highest_occupied"] = energy_highest_occupied
+                    # Normalized band structure with precalculated k-path
+                    # length to be used as x-coordinate in the plots.
+                    elif key == "electronic_band_structure" or key == "phonon_band_structure":
                         new_segments = []
                         k_path_length = 0
-                        for segment in value["segment"]:
-                            k_points = segment["kpoints"].magnitude
+                        for segment in value.segment:
+                            new_segment = {}
+                            k_points = np.array(segment.kpoints)
                             segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
                             k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
                             k_path_length += segment_length
                             new_segment["k_path_distances"] = k_path_distances.tolist()
-                            new_segment["reciprocal_cell"] = segment.reciprocal_cell.magnitude.tolist()
+                            new_segment["band_energies"] = segment.energies.magnitude.tolist()
+                            new_segment["band_segm_labels"] = segment.endpoints_labels
+                            new_segments.append(new_segment)
+                        new_value = {
+                            "reciprocal_cell": value.reciprocal_cell.magnitude.tolist(),
+                            "section_k_band_segment": new_segments
+                        }
+                        if key == "electronic_band_structure":
+                            energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in value.channel_info])
+                            new_value["band_gap"] = [x.m_to_dict() for x in value["channel_info"]]
+                            new_value["energy_highest_occupied"] = energy_highest_occupied
                     else:
                         if isinstance(value, list):
                             new_value = [x.m_to_dict() for x in value]
