@@ -502,8 +502,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
     upload: Upload = non_empty_processed
 
     if published:
-        upload.embargo_length = 0
-        upload.publish_upload()
+        upload.publish_upload(embargo_length=0)
         try:
             upload.block_until_complete(interval=.01)
         except Exception:
@@ -684,19 +683,16 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         calc_2 = dict(
             comment='Calculation 2 of 3',
             references=['http://ttest'],
-            with_embargo=False,
             external_id='external_id_2')
         with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_2/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_3/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
         metadata = {
-            'with_embargo': True,
             'entries': {
                 'examples/calc_3/template.json': {
                     'comment': 'Calculation 3 of 3',
                     'references': ['http://ttest'],
-                    'with_embargo': False,
                     'external_id': 'external_id_3'
                 }
             }
@@ -710,14 +706,12 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    with_embargo = [True, False, False, True]
     references = [['http://test'], ['http://ttest'], ['http://ttest'], None]
     coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].full_entry_metadata(upload.upload_files)
         assert entry_metadata.comment == comment[i]
-        assert entry_metadata.with_embargo == with_embargo[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
         entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]

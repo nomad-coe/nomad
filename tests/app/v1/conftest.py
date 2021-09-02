@@ -57,7 +57,8 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_upload(
         upload_id='id_embargo',
         name='name_embargo',
-        published=True)
+        published=True,
+        embargo_length=12)
     data.create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo',

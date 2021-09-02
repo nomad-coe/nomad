@@ -213,6 +213,7 @@ class ExampleData:
             'upload_time': self._next_time_stamp(),
             'complete_time': self._next_time_stamp(),
             'last_update': self._next_time_stamp(),
+            'embargo_length': 0,
             'published': False,
             'published_to': []}
         upload_dict.update(kwargs)
@@ -340,6 +341,11 @@ class ExampleData:
 
         if entry_archive.results.material.material_id is None:
             entry_archive.results.material.material_id = material_id
+
+        if upload_id in self.uploads:
+            # Check embargo consistency
+            with_embargo = (self.uploads[upload_id]['embargo_length'] > 0)
+            assert entry_metadata.with_embargo == with_embargo, 'Inconsistent embargo flags'
 
         self.archives[entry_id] = entry_archive
         self.entries[entry_id] = entry_metadata

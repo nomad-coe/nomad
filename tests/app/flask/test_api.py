@@ -1502,7 +1502,7 @@ class TestEditRepo():
         example_data.create_entry(
             upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
         example_data.create_entry(
-            upload_id='upload_2', uploader=test_user, published=False, with_embargo=False)
+            upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
         example_data.create_entry(
             upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
 

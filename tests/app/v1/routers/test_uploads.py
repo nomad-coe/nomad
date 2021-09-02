@@ -241,8 +241,8 @@ def assert_processing_fails(client, upload_id, user_auth):
 
 
 def assert_gets_published(
-        client, upload_id, user_auth, from_oasis=False, expected_embargo_length=0, **query_args):
-    embargo_length = query_args.get('embargo_length', expected_embargo_length)
+        client, upload_id, user_auth, from_oasis=False, current_embargo_length=0, **query_args):
+    embargo_length = query_args.get('embargo_length', current_embargo_length)
 
     block_until_completed(client, upload_id, user_auth)
 
@@ -1164,7 +1164,7 @@ def test_post_upload_action_publish(
         assert upload['current_process'] == 'publish_upload'
         assert upload['process_running']
 
-        assert_gets_published(client, upload_id, user_auth, expected_embargo_length=12, **query_args)
+        assert_gets_published(client, upload_id, user_auth, current_embargo_length=12, **query_args)
 
 
 @pytest.mark.parametrize('kwargs', [

@@ -83,20 +83,15 @@ def enc_upload(test_user_bravado_client, proc_infra, test_user_auth, api, mongo_
     upload('tests/data/api/enc_si_private.zip', False, test_user_bravado_client, proc_infra, test_user_auth, api)
     upload_id = upload('tests/data/api/enc_si_embargo.zip', True, test_user_bravado_client, proc_infra, test_user_auth, api)
 
-    # Place upload entries on embargo in MongoDB
-    calculations = mongo_infra["test_db"]['calc']
-    calculations.update_many(
-        {'upload_id': upload_id},
-        {'$set': {'metadata.with_embargo': True}}
-    )
+    # Place upload entries on embargo
+    embargoed = proc.Upload.get(upload_id)
+    embargoed.set_upload_metadata_local(dict(embargo_length=36))
 
     # Place upload entries on embargo in ES
-    embargoed = proc.Upload.get(upload_id)
     with embargoed.entries_metadata() as calcs:
         def elastic_updates():
             for calc in calcs:
                 entry = calc.a_elastic.create_index_entry()
-                entry.with_embargo = True
                 entry = entry.to_dict(include_meta=True)
                 source = entry.pop('_source')
                 entry['doc'] = source

@@ -581,7 +581,7 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoMetadata, EditableUserMetadata])
 
     with_embargo = metainfo.Quantity(
-        type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
+        type=bool, default=False, categories=[MongoMetadata],
         description='Indicated if this entry is under an embargo',
         a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
