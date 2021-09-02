@@ -1000,6 +1000,7 @@ class Upload(Proc):
             'Only published uploads can be published to the central NOMAD.'
         assert config.oasis.central_nomad_deployment_id not in self.published_to, \
             'Upload is already published to the central NOMAD.'
+        assert self.embargo_length == 0, 'Upload must not be under embargo'
 
         from nomad.cli.client.client import _create_client as create_client
         central_nomad_client = create_client(
@@ -1018,8 +1019,6 @@ class Upload(Proc):
                 for key, value in calc.metadata.items()
                 if key in _editable_metadata or key in _oasis_metadata})
             entry_metadata['calc_id'] = calc.calc_id
-            if entry_metadata.get('with_embargo'):
-                continue
             upload_metadata_entries[calc.mainfile] = entry_metadata
             if 'datasets' in entry_metadata:
                 for dataset_id in entry_metadata['datasets']:

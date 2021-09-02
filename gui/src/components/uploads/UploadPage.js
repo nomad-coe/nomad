@@ -359,7 +359,6 @@ function UploadPage() {
 
   const handlePublish = ({embargo_length}) => {
     api.post(`/uploads/${uploadId}/action/publish`, {
-      with_embargo: embargo_length > 0,
       embargo_length: embargo_length
     })
       .then(results => setUpload(results.data))

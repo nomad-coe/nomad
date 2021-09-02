@@ -1388,10 +1388,9 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         if not upload.published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - not published yet.'''))
-        for entry in Calc.objects(upload_id=upload_id):
-            if entry.metadata.get('with_embargo'):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                    You do not have access to the specified upload - published with embargo.'''))
+        if upload.published and upload.embargo_length > 0:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - published with embargo.'''))
         return upload
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''

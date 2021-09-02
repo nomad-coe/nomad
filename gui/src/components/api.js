@@ -615,7 +615,6 @@ class Api {
         payload: {
           operation: 'publish',
           metadata: {
-            with_embargo: embargoLength > 0,
             embargo_length: embargoLength
           }
         }
