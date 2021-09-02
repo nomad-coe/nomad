@@ -947,7 +947,7 @@ class Thermodynamics(MSection):
         ''',
         cached=True
     )
-    def specific_heat_capacity(self) -> NDArray:
+    def heat_capacity_c_v_specific(self) -> NDArray:
         """Returns the specific heat capacity by dividing the heat capacity per
         cell with the mass of the atoms in the cell.
         """
@@ -977,7 +977,7 @@ class Thermodynamics(MSection):
         ''',
         cached=True
     )
-    def specific_vibrational_free_energy_at_constant_volume(self) -> NDArray:
+    def vibrational_free_energy_at_constant_volume_specific(self) -> NDArray:
         import nomad.atomutils
         workflow = self.m_parent
         system = workflow.calculations_ref[0].system_ref

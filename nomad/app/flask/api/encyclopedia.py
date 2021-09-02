@@ -27,7 +27,7 @@ from typing import List
 from collections import defaultdict
 
 from flask_restplus import Resource, abort, fields, marshal
-from flask import request, g
+from flask import request, g, jsonify
 from elasticsearch_dsl import Search, Q, A, Text, Keyword, Boolean
 from elasticsearch_dsl.query import Bool, Nested
 from elasticsearch_dsl.utils import AttrDict
@@ -260,7 +260,8 @@ class MaterialSearch():
         # Filter out calculations based on their visibility
         visible_calcs = []
         for calc in material.calculations:
-            if calc.published and not calc.with_embargo:
+            # if calc.published and not calc.with_embargo:
+            if calc.published:
                 visible_calcs.append(calc)
             elif g.user is not None and g.user.user_id in calc.owners:
                 visible_calcs.append(calc)
@@ -320,7 +321,8 @@ def get_authentication_filters_material():
     out unpublished (of other users) or embargoed materials.
     """
     # Handle authentication
-    filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
+    # filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
+    filters = [Q('term', calculations__published=True)]
     if g.user is not None and g.user.user_id is not None:
         q = filters[0] & filters[1]
         q = q | Q('term', calculations__owners=g.user.user_id)
@@ -1328,7 +1330,7 @@ class EncCalculationResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "OK", calculation_property_result)
     @api.expect(calculation_property_query, validate=False)
-    @api.marshal_with(calculation_property_result, skip_none=True)
+    # @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("get_calculation")
     @authenticate()
     def post(self, material_id, calc_id):
@@ -1399,6 +1401,10 @@ class EncCalculationResource(Resource):
                 .format(calc_id, material_id))
             )
 
+        # response = jsonify({'message': response[0]})
+        # response.status_code = 400
+        # return response
+
         # Add references that are to be read from the archive
         for ref in references:
             arch_path = response[0]
@@ -1410,6 +1416,7 @@ class EncCalculationResource(Resource):
         # If any of the requested properties require data from the Archive, the
         # file is opened and read.
         result = {}
+
         if len(arch_properties) != 0:
             entry = response[0]
             upload_id = entry.upload_id
@@ -1424,52 +1431,53 @@ class EncCalculationResource(Resource):
                 try:
                     value = root[arch_path]
 
-                    # Replace unnormalized thermodynamical properties with
-                    # normalized ones and turn into dict
+                    # Normalized thermodynamical properties
                     if key == "thermodynamical_properties":
-                        specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
-                        specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
+                        new_value = {}
+                        specific_heat_capacity = value.heat_capacity_c_v_specific.magnitude.tolist()
+                        specific_free_energy = value.vibrational_free_energy_at_constant_volume_specific.magnitude.tolist()
                         specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
                         specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
-                    if isinstance(value, list):
-                        value = [x.m_to_dict() for x in value]
-                    else:
-                        value = value.m_to_dict()
-                    if key == "thermodynamical_properties":
-                        del value["thermodynamical_property_heat_capacity_C_v"]
-                        del value["vibrational_free_energy_at_constant_volume"]
-                        value["specific_heat_capacity"] = specific_heat_capacity
-                        value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
+                        new_value["specific_heat_capacity"] = specific_heat_capacity
+                        new_value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
 
-                    # DOS results are simplified.
+                    # Normalized DOS
                     if key == "electronic_dos":
-                        if "dos_energies_normalized" in value:
-                            value["dos_energies"] = value["dos_energies_normalized"]
-                            del value["dos_energies_normalized"]
-                        if "dos_values_normalized" in value:
-                            value["dos_values"] = value["dos_values_normalized"]
-                            del value["dos_values_normalized"]
+                        new_value = {}
+                        energy_highest_occupied = max([info.energy_highest_occupied.magnitude for info in value.channel_info])
+                        new_value["dos_energies"] = (value.energies.magnitude - energy_highest_occupied).tolist()
+                        new_value["dos_values"] = [(d.value.magnitude / d.normalization_factor).tolist() for d in value.total]
 
                     # Pre-calculate k-path length to be used as x-coordinate in
                     # plots. If the VBM and CBM information is needed later, it
                     # can be added as indices along the path. The exact k-points
                     # and occupations are removed to save some bandwidth.
                     if key == "electronic_band_structure" or key == "phonon_band_structure":
-                        segments = value["section_k_band_segment"]
+
+                        # "reciprocal_cell": fields.List(fields.List(fields.Float)),
+                        # "brillouin_zone": fields.Raw,
+                        # "section_k_band_segment": fields.Raw,
+                        # "section_band_gap": fields.Raw,
+
+                        new_value = {}
+                        new_segments = []
                         k_path_length = 0
-                        for segment in segments:
-                            k_points = np.array(segment["band_k_points"])
+                        for segment in value["segment"]:
+                            k_points = segment["kpoints"].magnitude
                             segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
                             k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
                             k_path_length += segment_length
-                            segment["k_path_distances"] = k_path_distances.tolist()
-                            del segment["band_k_points"]
-                            if "band_occupations" in segment:
-                                del segment["band_occupations"]
+                            new_segment["k_path_distances"] = k_path_distances.tolist()
+                            new_segment["reciprocal_cell"] = segment.reciprocal_cell.magnitude.tolist()
+                    else:
+                        if isinstance(value, list):
+                            new_value = [x.m_to_dict() for x in value]
+                        else:
+                            new_value = value.m_to_dict()
 
-                    result[key] = value
-                except (AttributeError, KeyError):
-                    abort(500, "Could not find the requested resource.")
+                    result[key] = new_value
+                except Exception as e:
+                    abort(500, message="Could not find the requested resource.")
 
         # Add results from ES
         for prop, es_source in es_properties.items():
