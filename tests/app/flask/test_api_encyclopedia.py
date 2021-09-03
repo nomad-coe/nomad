@@ -248,6 +248,15 @@ class TestEncyclopedia():
         for calc_id in group:
             exists(calc_id)
 
+        # Test query for a specific EOS group.
+        rv = api.get('/materials/{}/groups/eos/{}'.format(silicon_id, eos_id))
+        assert rv.status_code == 200
+        group = rv.json
+        assert len(group['calculations']) == 5
+        assert len(group['energies']) == 5
+        assert len(group['volumes']) == 5
+
+        # TODO: parameter variation groups should be tested at some point.
         # Test that parameter variation groups are found.
         # rv = api.get('/materials/{}/groups'.format(silicon_id))
         # assert rv.status_code == 200
@@ -260,13 +269,6 @@ class TestEncyclopedia():
         # for calc_id in group:
             # exists(calc_id)
 
-        # # Test query for a specific group.
-        # rv = api.get('/materials/{}/groups/eos/{}'.format(silicon_id, eos_id))
-        # assert rv.status_code == 200
-        # group = rv.json
-        # assert len(group['calculations']) == 5
-        # assert len(group['energies']) == 5
-        # assert len(group['volumes']) == 5
         # rv = api.get('/materials/{}/groups/par/{}'.format(silicon_id, par_id))
         # assert rv.status_code == 200
         # group = rv.json
@@ -347,8 +349,6 @@ class TestEncyclopedia():
             ]}),
             content_type='application/json'
         )
-        print(rv.json)
-        raise
         assert rv.status_code == 200
         calc = rv.json
 
@@ -405,7 +405,6 @@ class TestEncyclopedia():
 
         # Test that invalid query parameters raise code 400
 
-    @pytest.mark.skip(reason='this still fails due to metainfo refactor and needs fixing')
     def test_complex_search(self, enc_upload, elastic_infra, api, test_user_auth):
         # Test an elaborate boolean query for elements
         query = json.dumps({"query": """(

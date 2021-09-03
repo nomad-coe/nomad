@@ -121,17 +121,17 @@ class MethodNormalizer():
         # using the atom labels and positions we assume that their
         # order/translation/rotation does not change.
         geom_dict: OrderedDict = OrderedDict()
-        sec_sys = repr_system
 
         try:
-            atom_labels = sec_sys['atom_labels']
-            geom_dict['atom_labels'] = ', '.join(atom_labels)
-            atom_positions = sec_sys['atom_positions']
+            atoms = repr_system["atoms"]
+            atom_labels = atoms['labels']
+            geom_dict['atom_labels'] = ', '.join(sorted(atom_labels))
+            atom_positions = atoms['positions']
             geom_dict['atom_positions'] = np.array2string(
                 atom_positions.to(ureg.angstrom).magnitude,  # convert to Angstrom
                 formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore
             ).replace('\n', '')
-            cell = sec_sys['lattice_vectors']
+            cell = atoms['lattice_vectors']
             geom_dict['simulation_cell'] = np.array2string(
                 cell.to(ureg.angstrom).magnitude,  # convert to Angstrom
                 formatter={'float_kind': lambda x: "%.6f" % x},  # type: ignore

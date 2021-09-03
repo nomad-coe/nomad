@@ -27,7 +27,7 @@ from typing import List
 from collections import defaultdict
 
 from flask_restplus import Resource, abort, fields, marshal
-from flask import request, g, jsonify
+from flask import request, g
 from elasticsearch_dsl import Search, Q, A, Text, Keyword, Boolean
 from elasticsearch_dsl.query import Bool, Nested
 from elasticsearch_dsl.utils import AttrDict
@@ -260,8 +260,7 @@ class MaterialSearch():
         # Filter out calculations based on their visibility
         visible_calcs = []
         for calc in material.calculations:
-            # if calc.published and not calc.with_embargo:
-            if calc.published:
+            if calc.published and not calc.with_embargo:
                 visible_calcs.append(calc)
             elif g.user is not None and g.user.user_id in calc.owners:
                 visible_calcs.append(calc)
@@ -321,16 +320,9 @@ def get_authentication_filters_material():
     out unpublished (of other users) or embargoed materials.
     """
     # Handle authentication
-    # filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
-    # if g.user is not None and g.user.user_id is not None:
-        # q = filters[0] & filters[1]
-        # q = q | Q('term', calculations__owners=g.user.user_id)
-        # return [q]
-    # return filters
-
-    filters = [Q('term', calculations__published=True)]
+    filters = [Q('term', calculations__published=True), Q('term', calculations__with_embargo=False)]
     if g.user is not None and g.user.user_id is not None:
-        q = filters[0]
+        q = filters[0] & filters[1]
         q = q | Q('term', calculations__owners=g.user.user_id)
         return [q]
     return filters
@@ -1305,13 +1297,14 @@ energies = api.model("energies", {
 })
 electronic_band_structure = api.model("electronic_band_structure", {
     "reciprocal_cell": fields.List(fields.List(fields.Float)),
-    "brillouin_zone": fields.Raw,
     "section_k_band_segment": fields.Raw,
-    "section_band_gap": fields.Raw,
+    "band_gap": fields.Raw,
+    "energy_highest_occupied": fields.Float,
 })
 electronic_dos = api.model("electronic_dos", {
     "dos_energies": fields.List(fields.Float),
     "dos_values": fields.List(fields.List(fields.Float)),
+    "energy_highest_occupied": fields.Float,
 })
 calculation_property_result = api.model("calculation_property_result", {
     "lattice_parameters": fields.Nested(lattice_parameters, skip_none=True),
@@ -1336,7 +1329,7 @@ class EncCalculationResource(Resource):
     @api.response(400, "Bad request")
     @api.response(200, "OK", calculation_property_result)
     @api.expect(calculation_property_query, validate=False)
-    # @api.marshal_with(calculation_property_result, skip_none=True)
+    @api.marshal_with(calculation_property_result, skip_none=True)
     @api.doc("get_calculation")
     @authenticate()
     def post(self, material_id, calc_id):
@@ -1351,11 +1344,7 @@ class EncCalculationResource(Resource):
         s = Search(index=config.elastic.index_name)
         query = Q(
             "bool",
-            # filter=get_authentication_filters_calc() + [
-                # Q("term", encyclopedia__material__material_id=material_id),
-                # Q("term", calc_id=calc_id),
-            # ]
-            filter=[
+            filter=get_authentication_filters_calc() + [
                 Q("term", encyclopedia__material__material_id=material_id),
                 Q("term", calc_id=calc_id),
             ]
@@ -1422,7 +1411,6 @@ class EncCalculationResource(Resource):
         # If any of the requested properties require data from the Archive, the
         # file is opened and read.
         result = {}
-
         if len(arch_properties) != 0:
             entry = response[0]
             upload_id = entry.upload_id
