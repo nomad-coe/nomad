@@ -267,7 +267,7 @@ class TestEncyclopedia():
         # exists(par_id)
         # assert len(group) == 2
         # for calc_id in group:
-            # exists(calc_id)
+        # exists(calc_id)
 
         # rv = api.get('/materials/{}/groups/par/{}'.format(silicon_id, par_id))
         # assert rv.status_code == 200
