@@ -59,12 +59,14 @@ def test_index_normalized_calc_with_metadata(
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
-    entry_metadata.apply_user_metadata(internal_example_user_metadata)
+    metadata_with_embargo = internal_example_user_metadata.copy()
+    metadata_with_embargo['with_embargo'] = True
+    entry_metadata.apply_user_metadata(metadata_with_embargo)
 
     entry = create_entry(entry_metadata)
 
-    assert getattr(entry, 'with_embargo') == internal_example_user_metadata['with_embargo']
-    assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
+    assert getattr(entry, 'with_embargo') == metadata_with_embargo['with_embargo']
+    assert getattr(entry, 'comment') == metadata_with_embargo['comment']
 
 
 def test_index_normalized_calc_with_author(

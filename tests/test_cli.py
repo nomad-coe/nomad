@@ -25,7 +25,6 @@ import time
 
 from nomad import utils, processing as proc, files
 from nomad.search import v0 as search
-import nomad.search.v1
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
@@ -95,13 +94,13 @@ class TestAdmin:
     #     # TODO test new index pair
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
-    @pytest.mark.parametrize('upload_time,dry,lifted', [
+    @pytest.mark.parametrize('publish_time,dry,lifted', [
         (datetime.datetime.now(), False, False),
         (datetime.datetime(year=2012, month=1, day=1), True, False),
         (datetime.datetime(year=2012, month=1, day=1), False, True)])
-    def test_lift_embargo(self, published, upload_time, dry, lifted):
+    def test_lift_embargo(self, published, publish_time, dry, lifted):
         upload_id = published.upload_id
-        published.upload_time = upload_time
+        published.publish_time = publish_time
         published.save()
         calc = Calc.objects(upload_id=upload_id).first()
 
@@ -278,43 +277,11 @@ class TestAdminUploads:
         assert 'changing' in result.stdout
 
         upload = Upload.objects(upload_id=upload_id).first()
+        upload.block_until_complete()
         calc.reload()
 
         assert upload.user_id == other_test_user.user_id
         assert calc.metadata['uploader'] == other_test_user.user_id
-
-    def test_edit(self, published):
-        upload_id = published.upload_id
-
-        def assert_calcs(publish, with_embargo):
-            calcs = Calc.objects(upload_id=upload_id)
-            for calc in calcs:
-                assert calc.metadata['published'] == publish
-                assert calc.metadata['with_embargo'] == with_embargo
-
-            for calc in nomad.search.v1.search(owner=None, query=dict(upload_id=upload_id)).data:
-                assert calc['published'] == publish
-                assert calc['with_embargo'] == with_embargo
-
-        assert_calcs(True, True)
-
-        def perform_test(publish, with_embargo):
-            if publish:
-                params = ['--publish', 'with-embargo' if with_embargo else 'no-embargo']
-            else:
-                assert not with_embargo
-                params = ['--unpublish']
-
-            result = click.testing.CliRunner().invoke(
-                cli, ['admin', 'uploads', 'edit'] + params, catch_exceptions=False)
-
-            assert result.exit_code == 0
-            assert 'editing' in result.stdout
-            assert_calcs(publish, with_embargo)
-
-        perform_test(False, False)
-        perform_test(True, False)
-        perform_test(True, True)
 
     @pytest.mark.parametrize('with_calcs,success,failure', [
         (True, False, False),

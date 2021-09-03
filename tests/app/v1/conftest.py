@@ -57,7 +57,8 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.create_upload(
         upload_id='id_embargo',
         name='name_embargo',
-        published=True)
+        published=True,
+        embargo_length=12)
     data.create_entry(
         upload_id='id_embargo',
         calc_id='id_embargo',
@@ -138,7 +139,8 @@ def example_data_writeable(mongo, test_user, normalized):
     # one upload with one entry, published
     data.create_upload(
         upload_id='id_published_w',
-        published=True)
+        published=True,
+        embargo_length=12)
     data.create_entry(
         upload_id='id_published_w',
         calc_id='id_published_w_entry',
@@ -149,7 +151,8 @@ def example_data_writeable(mongo, test_user, normalized):
     # one upload with one entry, unpublished
     data.create_upload(
         upload_id='id_unpublished_w',
-        published=False)
+        published=False,
+        embargo_length=12)
     data.create_entry(
         upload_id='id_unpublished_w',
         calc_id='id_unpublished_w_entry',

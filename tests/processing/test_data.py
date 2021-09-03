@@ -178,15 +178,17 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     try:
         processed.block_until_complete(interval=.01)
     except Exception:
         pass
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -208,8 +210,10 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     processed.block_until_complete(interval=.01)
     assert Upload.get('examples_template') is not None
 
@@ -217,7 +221,7 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     processed.block_until_complete(interval=.01)
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
@@ -232,15 +236,17 @@ def test_publish_failed(
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
 
-    processed.publish_upload()
+    processed.publish_upload(embargo_length=36)
     try:
         processed.block_until_complete(interval=.01)
     except Exception:
         pass
 
     with processed.entries_metadata() as entries:
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
@@ -390,9 +396,12 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         for archive_file in os.listdir(published.upload_files.os_path)
         if 'archive' in archive_file)
 
+    metadata_to_check = internal_example_user_metadata.copy()
+    metadata_to_check['with_embargo'] = True
+
     with published.entries_metadata() as entries_generator:
         entries = list(entries_generator)
-        assert_user_metadata(entries, internal_example_user_metadata)
+        assert_user_metadata(entries, metadata_to_check)
 
     if with_failure != 'not-matched':
         for archive_file in old_archive_files:
@@ -493,8 +502,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
     upload: Upload = non_empty_processed
 
     if published:
-        upload.embargo_length = 0
-        upload.publish_upload()
+        upload.publish_upload(embargo_length=0)
         try:
             upload.block_until_complete(interval=.01)
         except Exception:
@@ -675,19 +683,16 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         calc_2 = dict(
             comment='Calculation 2 of 3',
             references=['http://ttest'],
-            with_embargo=False,
             external_id='external_id_2')
         with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_2/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_3/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
         metadata = {
-            'with_embargo': True,
             'entries': {
                 'examples/calc_3/template.json': {
                     'comment': 'Calculation 3 of 3',
                     'references': ['http://ttest'],
-                    'with_embargo': False,
                     'external_id': 'external_id_3'
                 }
             }
@@ -701,14 +706,12 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    with_embargo = [True, False, False, True]
     references = [['http://test'], ['http://ttest'], ['http://ttest'], None]
     coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].full_entry_metadata(upload.upload_files)
         assert entry_metadata.comment == comment[i]
-        assert entry_metadata.with_embargo == with_embargo[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
         entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
@@ -736,7 +739,9 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
         metadata_to_set['uploader'] = test_users_dict[metadata_to_set['uploader']].user_id
     upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
     try:
-        upload.set_upload_metadata(upload_metadata)
+        upload.set_upload_metadata(upload_metadata.m_to_dict())
+        upload.block_until_complete()
+        assert upload.process_status == ProcessStatus.SUCCESS
     except Exception:
         assert not should_succeed
         return
@@ -755,3 +760,4 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
                 assert entry_metadata.upload_time == upload.upload_time
             if 'embargo_length' in metadata_to_set:
                 assert upload.embargo_length == metadata_to_set['embargo_length']
+                assert entry_metadata.with_embargo == (upload.embargo_length > 0)
