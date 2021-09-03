@@ -182,12 +182,11 @@ class Api {
                 structures: '*',
                 electronic: 'include-resolved',
                 vibrational: 'include-resolved',
-                // We do not want to include the resolved trajectory in the
-                // response, so we explicitly specify which parts we want
-                geometry_optimization: 'include-resolved',
-                // geometry_optimization: {
-                //   energies: 'include-resolved'
-                // },
+                // We require only the energies: trajectory, optimized
+                // structure, etc. are unnecessary.
+                geometry_optimization: {
+                  energies: 'include-resolved'
+                },
                 spectra: 'include-resolved'
               }
             }
