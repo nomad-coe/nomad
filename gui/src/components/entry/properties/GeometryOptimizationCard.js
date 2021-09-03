@@ -33,7 +33,7 @@ export default function GeometryOptimizationCard({entryMetadata, archive}) {
     return null
   }
 
-  let geometryOptimization = false
+  let geometryOptimization = hasGeometryOptimization ? null : false
   const geoOptProps = archive?.results?.properties?.geometry_optimization
   const geoOptMethod = entryMetadata.results.method?.simulation?.geometry_optimization
   if (geoOptProps) {
