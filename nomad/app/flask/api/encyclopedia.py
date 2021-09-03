@@ -1445,15 +1445,21 @@ class EncCalculationResource(Resource):
                         specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
                         specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
                         new_value["specific_heat_capacity"] = specific_heat_capacity
+                        new_value["thermodynamical_property_temperature"] = value.temperature.magnitude.tolist()
                         new_value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
                     # Normalized DOS
                     elif key == "electronic_dos" or key == "phonon_dos":
                         new_value = {}
                         new_value["dos_energies"] = value.energies.magnitude.tolist()
-                        new_value["dos_values"] = [(d.value.magnitude / d.normalization_factor).tolist() for d in value.total]
+                        new_value["dos_values"] = [(d.value.magnitude * d.normalization_factor.magnitude).tolist() for d in value.total]
                         if key == "electronic_dos":
-                            energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in value.channel_info])
-                            new_value["energy_highest_occupied"] = energy_highest_occupied
+                            try:
+                                channel_info = value.channel_info
+                            except Exception:
+                                channel_info = None
+                            if channel_info:
+                                energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in channel_info])
+                                new_value["energy_highest_occupied"] = energy_highest_occupied
                     # Normalized band structure with precalculated k-path
                     # length to be used as x-coordinate in the plots.
                     elif key == "electronic_band_structure" or key == "phonon_band_structure":
@@ -1465,18 +1471,24 @@ class EncCalculationResource(Resource):
                             segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
                             k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
                             k_path_length += segment_length
+                            new_segment["band_k_points"] = k_points.tolist()
                             new_segment["k_path_distances"] = k_path_distances.tolist()
                             new_segment["band_energies"] = segment.energies.magnitude.tolist()
                             new_segment["band_segm_labels"] = segment.endpoints_labels
                             new_segments.append(new_segment)
                         new_value = {
-                            "reciprocal_cell": value.reciprocal_cell.magnitude.tolist(),
                             "section_k_band_segment": new_segments
                         }
                         if key == "electronic_band_structure":
-                            energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in value.channel_info])
-                            new_value["band_gap"] = [x.m_to_dict() for x in value["channel_info"]]
-                            new_value["energy_highest_occupied"] = energy_highest_occupied
+                            new_value["reciprocal_cell"] = value.reciprocal_cell.magnitude.tolist()
+                            try:
+                                channel_info = value.channel_info
+                            except Exception:
+                                channel_info = None
+                            if channel_info:
+                                energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in channel_info])
+                                new_value["band_gap"] = [x.m_to_dict() for x in channel_info]
+                                new_value["energy_highest_occupied"] = energy_highest_occupied
                     else:
                         if isinstance(value, list):
                             new_value = [x.m_to_dict() for x in value]

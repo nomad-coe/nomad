@@ -852,6 +852,7 @@ class DosValues(AtomicValues):
     normalization_factor = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='1 / (m ** 3)',
         description='''
         Normalization factor for DOS values to get a cell-independent intensive DOS.
         For total dos, this is given by 1 / (unit cell volume).

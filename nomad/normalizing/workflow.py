@@ -383,7 +383,7 @@ class ThermodynamicsNormalizer(TaskNormalizer):
                         values.append(quantity.magnitude if hasattr(quantity, 'magnitude') else quantity)
                 except Exception:
                     pass
-            unit = quantity.magnitude if hasattr(quantity, 'magnitude') else 1.0
+            unit = quantity.unit if hasattr(quantity, 'unit') else 1.0
             setattr(self.section, name, np.array(values) * unit)
 
         if not self.section.temperature:
