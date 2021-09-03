@@ -56,8 +56,8 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
     }
 
     // Convert energies into the correct units and calculate the total difference
-    let energyDiffTotal = diffTotal(data.energies)
-    energyDiffTotal = toUnitSystem(energyDiffTotal, energyUnit, units)
+    let energyDiffTotal = toUnitSystem(diffTotal(data.energies), energyUnit, units)
+    let convergenceCriteria = toUnitSystem(data?.convergence_tolerance_energy_difference, energyUnit, units)
 
     let steps = [...Array(data.energies.length).keys()]
     const energyDiff = []
@@ -89,10 +89,13 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         }
       }
     ]
-    if (data?.energy_change_criteria) {
+    if (convergenceCriteria) {
       traces.push({
         x: [steps[0], steps[steps.length - 1]],
-        y: [data?.energy_change_criteria, data?.energy_change_criteria],
+        y: [
+          convergenceCriteria,
+          convergenceCriteria
+        ],
         yaxis: 'y2',
         name: 'Convergence criteria',
         showlegend: true,
@@ -182,7 +185,7 @@ GeometryOptimization.propTypes = {
     PropTypes.bool, // Set to False to show NoData component
     PropTypes.shape({
       energies: PropTypes.array.isRequired, // Energies in SI units
-      energy_change_criteria: PropTypes.number // Energy change criteria in SI units
+      convergence_tolerance_energy_difference: PropTypes.number // Energy change criteria in SI units
     })
   ]),
   className: PropTypes.string,

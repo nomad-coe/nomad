@@ -5,7 +5,7 @@ from nomad.units import ureg
 
 from nomad.parsing.file_parser import TextParser, Quantity, ParsePattern,\
     XMLParser, BasicParser
-from nomad.datamodel.metainfo.public import section_system
+from nomad.datamodel.metainfo.simulation.system import Atoms
 from nomad.datamodel import EntryArchive
 
 
@@ -254,13 +254,13 @@ class TestTextParser:
 
     def test_quantity_metainfo(self, parser):
         quantity = Quantity(
-            section_system.lattice_vectors,
+            Atoms.lattice_vectors,
             r'Lattice vectors \(cartesian\) :\s*([\d\s\.]+)', repeats=False)
 
         parser.quantities = [quantity]
         lattice_vectors = parser.get(quantity.name)
-        assert list(lattice_vectors.shape) == section_system.lattice_vectors.shape
-        assert lattice_vectors.dtype == section_system.lattice_vectors.type
+        assert list(lattice_vectors.shape) == Atoms.lattice_vectors.shape
+        assert lattice_vectors.dtype == Atoms.lattice_vectors.type
 
 
 class TestXMLParser:
@@ -330,8 +330,8 @@ class TestBasicParser:
         archive = EntryArchive()
         onetep_parser.parse('tests/data/parsers/onetep/fluor/12-difluoroethane.out', archive, None)
 
-        assert archive.section_run[0].program_version == '4.5.3.32'
-        assert len(archive.section_run[0].section_single_configuration_calculation) == 4
-        sec_system = archive.section_run[0].section_system[0]
-        assert sec_system.atom_labels[7] == 'H'
-        assert np.shape(sec_system.atom_positions) == (8, 3)
+        assert archive.run[0].program.version == '4.5.3.32'
+        assert len(archive.run[0].calculation) == 4
+        sec_system = archive.run[0].system[0]
+        assert sec_system.atoms.labels[7] == 'H'
+        assert np.shape(sec_system.atoms.positions) == (8, 3)

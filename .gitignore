@@ -34,9 +34,9 @@ parser.osio.log
 gui/src/metainfo.json
 gui/src/searchQuantities.json
 gui/src/toolkitMetadata.json
+gui/src/unitsData.js
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
 */node_modules/
 
-dependencies/parsers/xps

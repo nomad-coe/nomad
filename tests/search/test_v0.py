@@ -40,7 +40,7 @@ def test_index_skeleton_calc(elastic):
 
 
 def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
@@ -55,21 +55,23 @@ def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
 
 def test_index_normalized_calc_with_metadata(
         elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(normalized)
-    entry_metadata.apply_user_metadata(internal_example_user_metadata)
+    metadata_with_embargo = internal_example_user_metadata.copy()
+    metadata_with_embargo['with_embargo'] = True
+    entry_metadata.apply_user_metadata(metadata_with_embargo)
 
     entry = create_entry(entry_metadata)
 
-    assert getattr(entry, 'with_embargo') == internal_example_user_metadata['with_embargo']
-    assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
+    assert getattr(entry, 'with_embargo') == metadata_with_embargo['with_embargo']
+    assert getattr(entry, 'comment') == metadata_with_embargo['comment']
 
 
 def test_index_normalized_calc_with_author(
         elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id',
         coauthors=[dict(first_name='Howard', last_name='Wolowitz')])
@@ -85,7 +87,7 @@ def test_index_upload(elastic, processed: processing.Upload):
 
 @pytest.fixture()
 def example_search_data(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
+    entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id', published=True,
         upload_time=datetime.now())
@@ -98,7 +100,7 @@ def example_search_data(elastic, normalized: datamodel.EntryArchive):
 
 @pytest.fixture()
 def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
-    entry_metadata = parsed_ems.section_metadata
+    entry_metadata = parsed_ems.metadata
     entry_metadata.m_update(
         domain='ems', upload_id='test upload id', calc_id='test id')
     entry_metadata.apply_domain_metadata(parsed_ems)

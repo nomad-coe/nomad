@@ -24,7 +24,7 @@
  * - Electronic band structure
  */
 
-// Indexed data that is shared between section_metadata and section_results
+// Indexed data that is shared between metadata and results
 const common = {
   domain: 'dft',
   upload_id: 'mock',
@@ -42,17 +42,27 @@ const common = {
   formula: 'Si2'
 }
 
-const workflow = {
-  workflow_type: 'phonon',
-  calculation_result_ref: '/section_run/0/section_single_configuration_calculation/0'
-}
-
 const materialName = 'Silicon'
 const materialType = 'bulk'
 const crystalSystem = 'cubic'
 const vdwMethod = 'G06'
 const relativityMethod = 'scalar_relativistic_atomic_ZORA'
 const basisSetName = 'STO-3G'
+const basisSetType = 'plane waves'
+const programName = 'VASP'
+const programVersion = '1'
+
+const workflow = [{
+  thermodynamics: [
+    {
+      heat_capacity_c_v: [0, 1],
+      vibrational_free_energy_at_constant_volume: [0, 1],
+      temperature: [0, 100]
+    }
+  ],
+  workflow_type: 'phonon',
+  calculation_result_ref: '/run/0/calculation/0'
+}]
 
 // Indexed data that is specific to results
 const resultsDftBulk = {
@@ -67,16 +77,16 @@ const resultsDftBulk = {
     symmetry: {
       crystal_system: crystalSystem,
       space_group_symbol: 'Fd-3m',
-      space_group_number: 227,
+      space_group_number: 227
     }
   },
   method: {
     method_name: 'DFT',
     simulation: {
-      program_name: 'VASP',
-      program_version: '1',
+      program_name: programName,
+      program_version: programVersion,
       dft: {
-        basis_set_type: 'plane waves',
+        basis_set_type: basisSetType,
         basis_set_name: basisSetName,
         van_der_Waals_method: vdwMethod,
         relativity_method: relativityMethod,
@@ -96,15 +106,15 @@ const resultsDftBulk = {
     ],
     electronic: {
       dos_electronic: {
-        energies: "/section_run/0/section_single_configuration_calculation/0/section_dos/0/dos_energies_normalized",
-        densities: "/section_run/0/section_single_configuration_calculation/0/section_dos/0/dos_values_normalized",
+        energies: '/run/0/calculation/0/dos_electronic/0/energies',
+        total: '/run/0/calculation/0/dos_electronic/0/total',
         channel_info: [{
           energy_highest_occupied: 0
         }]
       },
       band_structure_electronic: {
-        segments: ["/section_run/0/section_single_configuration_calculation/0/section_k_band/0/section_k_band_segment/0"],
-        reciprocal_cell: "/section_run/0/section_single_configuration_calculation/0/section_k_band/0/reciprocal_cell",
+        segment: ['/run/0/calculation/0/band_structure_electronic/0/segment/0'],
+        reciprocal_cell: '/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell',
         channel_info: [{
           energy_highest_occupied: 0,
           band_gap: 1e-19,
@@ -114,19 +124,19 @@ const resultsDftBulk = {
     },
     vibrational: {
       dos_phonon: {
-        energies: "/section_run/0/section_single_configuration_calculation/0/section_dos/1/dos_energies",
-        densities: "/section_run/0/section_single_configuration_calculation/0/section_dos/1/dos_values_normalized",
+        energies: '/run/0/calculation/0/dos_phonon/0/energies',
+        total: '/run/0/calculation/0/dos_phonon/0/total'
       },
       band_structure_phonon: {
-        segments: ["/section_run/0/section_single_configuration_calculation/0/section_k_band/1/section_k_band_segment/0"],
+        segment: ['/run/0/calculation/0/band_structure_phonon/0/segment/0']
       },
       heat_capacity_constant_volume: {
-        heat_capacities: "/section_run/0/section_frame_sequence/0/section_thermodynamical_properties/0/thermodynamical_property_heat_capacity_C_v",
-        temperatures: "/section_run/0/section_frame_sequence/0/section_thermodynamical_properties/0/thermodynamical_property_temperature"
+        heat_capacities: '/workflow/0/thermodynamics/0/heat_capacity_c_v',
+        temperatures: '/workflow/0/thermodynamics/0/temperature'
       },
       energy_free_helmholtz: {
-        energies: "/section_run/0/section_frame_sequence/0/section_thermodynamical_properties/0/vibrational_free_energy_at_constant_volume",
-        temperatures: "/section_run/0/section_frame_sequence/0/section_thermodynamical_properties/0/thermodynamical_property_temperature"
+        energies: '/workflow/0/thermodynamics/0/vibrational_free_energy_at_constant_volume',
+        temperatures: '/workflow/0/thermodynamics/0/temperature'
       }
     }
   }
@@ -134,74 +144,92 @@ const resultsDftBulk = {
 
 // Section run
 const run = [{
-    program_name: "VASP",
-    section_method: [
-      {
-        electronic_structure_method: "DFT",
-        basis_set: basisSetName,
+  program: {
+    name: programName,
+    version: programVersion
+  },
+  method: [
+    {
+      dft: {
+        xc_functional: {
+          correlation: [{name: 'GGA_C_PBE'}],
+          exchange: [{name: 'GGA_X_PBE'}]
+        }
+      },
+      electronic: {
         van_der_Waals_method: vdwMethod,
-        relativity_method: relativityMethod
-      }
-    ],
-    section_frame_sequence: [{
-      section_thermodynamical_properties: [{
-        thermodynamical_property_heat_capacity_C_v: [0, 1],
-        vibrational_free_energy_at_constant_volume: [0, 1],
-        thermodynamical_property_temperature: [0, 100]
-      }]
-    }],
-    section_single_configuration_calculation: [
-      {
-        section_dos: [
-          {
-            dos_kind: 'electronic',
-            dos_energies: [0, 1e-19],
-            dos_energies_normalized: [0, 1e-19],
-            dos_values: [[0, 1e18]],
-            dos_values_normalized: [[0, 1e18]],
-            channel_info: [{
-              energy_highest_occupied: 0
-            }]
-          },
-          {
-            dos_kind: 'vibrational',
-            dos_energies: [0, 1e-19],
-            dos_energies_normalized: [0, 1e-19],
-            dos_values: [[0, 1e18]],
-            dos_values_normalized: [[0, 1e18]],
-          }
-        ],
-        section_k_band: [
-          {
-            band_structure_kind: 'electronic',
-            reciprocal_cell: [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
-            section_k_band_segment: [
-              {
-                band_energies: [[[0], [1e-19]]],
-                band_k_points: [[0, 0, 0], [0.5, 0.5, 0.5]],
-                band_segm_labels: ["L", "K"]
-              }
-            ],
-            channel_info: [{
-              energy_highest_occupied: 0,
-              band_gap: 1e-19,
-              band_gap_type: 'indirect'
-            }]
-          },
-          {
-            band_structure_kind: 'vibrational',
-            section_k_band_segment: [
-              {
-                band_energies: [[[0], [1e-19]]],
-                band_k_points: [[0, 0, 0], [0.5, 0.5, 0.5]],
-                band_segm_labels: ["L", "K"]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
+        relativity_method: relativityMethod,
+        method: 'DFT'
+      },
+      basis_set: [
+        {
+          name: basisSetName,
+          type: basisSetType
+        }
+      ]
+    }
+  ],
+  calculation: [
+    {
+      dos_electronic: [
+        {
+          energies: [0, 1e-19],
+          total: [
+            {
+              value: [0, 1e18],
+              normalization_factor: 1e-19,
+              spin: 0
+            }
+          ],
+          channel_info: [{
+            energy_highest_occupied: 0,
+            index: 0
+          }]
+        }
+      ],
+      dos_phonon: [
+        {
+          energies: [0, 1e-19],
+          total: [
+            {
+              value: [0, 1e18],
+              normalization_factor: 1e-19
+            }
+          ]
+        }
+      ],
+      band_structure_electronic: [
+        {
+          reciprocal_cell: [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
+          segment: [
+            {
+              energies: [[[0], [1e-19]]],
+              kpoints: [[0, 0, 0], [0.5, 0.5, 0.5]],
+              endpoints_labels: ['L', 'K']
+            }
+          ],
+          channel_info: [{
+            energy_highest_occupied: 0,
+            band_gap: 1e-19,
+            band_gap_type: 'indirect'
+          }]
+        }
+      ],
+      band_structure_phonon: [
+        {
+          reciprocal_cell: [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
+          segment: [
+            {
+              energies: [[[0], [1e-19]]],
+              kpoints: [[0, 0, 0], [0.5, 0.5, 0.5]],
+              endpoints_labels: ['L', 'K']
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 ]
 
 // Results for a repository API query
@@ -212,10 +240,10 @@ export const repoDftBulk = {
 
 // Result for an archive API query
 export const archiveDftBulk = {
-  section_metadata: {
-    ...common,
+  metadata: {
+    ...common
   },
-  section_workflow: {...workflow},
+  workflow: {...workflow},
   results: {...resultsDftBulk},
-  section_run: run
+  run: run
 }

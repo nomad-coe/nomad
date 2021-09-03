@@ -15,10 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import sys
-from nomad.metainfo import Environment
-import nomad.datamodel.metainfo.common_dft
-
-m_env = Environment()
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.metainfo.common_dft'].m_package)  # type: ignore
+from .simulation import m_env

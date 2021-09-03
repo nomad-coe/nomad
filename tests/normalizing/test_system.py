@@ -21,7 +21,7 @@ import ase.build
 from nomad import datamodel, config
 from nomad.datamodel import EntryArchive
 from nomad.app.flask import dump_json
-from nomad.datamodel.metainfo.public import section_springer_material as SpringerMaterial
+from nomad.datamodel.metainfo.simulation.system import SpringerMaterial
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -88,7 +88,7 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 def assert_normalized(entry_archive: datamodel.EntryArchive):
 
-    metadata = entry_archive.section_metadata
+    metadata = entry_archive.metadata
     metadata.apply_domain_metadata(entry_archive)
     parser_name = metadata.parser_name
     exceptions = parser_exceptions.get(parser_name, [])
@@ -148,7 +148,7 @@ def test_normalizer_unknown_atom_label(caplog, no_warn):
     '''
     archive = parse_file(unknown_atom_label)
     run_normalize(archive)
-    assert archive.section_run[0].m_xpath('section_system[*].atom_labels')[0][3] == 'Za'
+    assert archive.run[0].m_xpath('system[*].atoms.labels')[0][3] == 'Za'
 
 
 def test_symmetry_classification_fcc():
@@ -159,7 +159,7 @@ def test_symmetry_classification_fcc():
     expected_bravais_lattice = 'cF'
     expected_point_group = 'm-3m'
     expected_origin_shift = [0, 0, 0]
-    sec_symmetry = archive.section_run[0].section_system[0].section_symmetry[0]
+    sec_symmetry = archive.run[0].system[0].symmetry[0]
     crystal_system = sec_symmetry.crystal_system
     assert crystal_system == expected_crystal_system
     bravais_lattice = sec_symmetry.bravais_lattice
@@ -174,17 +174,17 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     """Tests that the system classification is correct for different kind of systems
     """
     # Atom
-    assert atom.section_run[0].section_system[-1].system_type == "atom"
+    assert atom.run[0].system[-1].type == "atom"
     # Molecule
-    assert molecule.section_run[0].section_system[-1].system_type == "molecule / cluster"
+    assert molecule.run[0].system[-1].type == "molecule / cluster"
     # 1D system
-    assert one_d.section_run[0].section_system[-1].system_type == "1D"
+    assert one_d.run[0].system[-1].type == "1D"
     # 2D system
-    assert two_d.section_run[0].section_system[-1].system_type == "2D"
+    assert two_d.run[0].system[-1].type == "2D"
     # Surface
-    assert surface.section_run[0].section_system[-1].system_type == "surface"
+    assert surface.run[0].system[-1].type == "surface"
     # Bulk system
-    assert bulk.section_run[0].section_system[-1].system_type == "bulk"
+    assert bulk.run[0].system[-1].type == "bulk"
 
 
 def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
@@ -194,30 +194,29 @@ def test_representative_systems(single_point, molecular_dynamics, geometry_optim
     def check_representative_frames(archive):
         # For systems with multiple frames the first and two last should be processed.
         try:
-            frames = archive.section_run[0].section_frame_sequence[0].frame_sequence_local_frames_ref
+            frames = archive.workflow[0].calculations_ref
         except Exception:
-            scc = archive.section_run[0].section_single_configuration_calculation[-1]
-            repr_system = scc.single_configuration_calculation_to_system_ref
+            scc = archive.run[0].calculation[-1]
+            repr_system = scc.system_ref
         else:
-            sampling_method = archive.section_run[0].section_sampling_method[0].sampling_method
-            if sampling_method == "molecular_dynamics":
+            if archive.workflow[0].type == "molecular_dynamics":
                 scc = frames[0]
             else:
                 scc = frames[-1]
-            repr_system = scc.single_configuration_calculation_to_system_ref
+            repr_system = scc.system_ref
 
         # If the selected system refers to a subsystem, choose it instead.
         try:
-            system_ref = repr_system.section_system_to_system_refs[0]
-            ref_kind = system_ref.system_to_system_kind
-            if ref_kind == "subsystem":
-                repr_system = system_ref.system_to_system_ref
+            system = repr_system.sub_system_ref
+            if system is None:
+                system = repr_system.systems_ref[0]
+            repr_system = system
         except Exception:
             pass
 
         # Check that only the representative system has been labels with
         # "is_representative"
-        for system in archive.section_run[0].section_system:
+        for system in archive.run[0].system:
             if system.m_parent_index == repr_system.m_parent_index:
                 assert system.is_representative is True
             else:
@@ -234,8 +233,8 @@ def test_reduced_chemical_formula():
     archive = parse_file(glucose_atom_labels)
     archive = run_normalize(archive)
     expected_red_chem_formula = 'C6H12O6'
-    sec_system = archive.section_run[0].section_system[0]
-    reduced_chemical_formula = sec_system.chemical_composition_bulk_reduced
+    sec_system = archive.run[0].system[0]
+    reduced_chemical_formula = sec_system.chemical_composition_hill
     assert expected_red_chem_formula == reduced_chemical_formula
 
 
@@ -247,7 +246,7 @@ def test_vasp_incar_system():
     archive = run_normalize(archive)
     expected_value = 'SrTiO3'  # material's formula in vasp.xml
 
-    backend_value = archive.section_run[0].section_method[0].x_vasp_incar_in['SYSTEM']
+    backend_value = archive.run[0].method[0].x_vasp_incar_in['SYSTEM']
 
     assert expected_value == backend_value
 
@@ -258,9 +257,9 @@ def test_aflow_prototypes():
     def get_proto(atoms):
         archive = get_template_for_structure(atoms)
         try:
-            sec_proto = archive.section_run[0].section_system[0].section_prototype[0]
-            prototype_aflow_id = sec_proto.prototype_aflow_id
-            prototype_label = sec_proto.prototype_label
+            sec_proto = archive.run[0].system[0].prototype[0]
+            prototype_aflow_id = sec_proto.aflow_id
+            prototype_label = sec_proto.label
         except Exception:
             prototype_aflow_id = None
             prototype_label = None
@@ -326,8 +325,8 @@ def test_springer_normalizer():
     archive = run_normalize(archive)
 
     springer = SpringerMaterial.m_from_dict(
-        archive.section_run[0].m_xpath('section_system[*].section_springer_material')[0][0])
+        archive.run[0].m_xpath('system[*].springer_material')[0][0])
 
-    assert springer.springer_id == 'sd_0305232'
-    assert springer.springer_alphabetical_formula == 'O3SrTi'
-    assert springer.springer_url == 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'
+    assert springer.id == 'sd_0305232'
+    assert springer.alphabetical_formula == 'O3SrTi'
+    assert springer.url == 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'

@@ -96,8 +96,8 @@ The archive query object can be treated as a Python list-like. You use indices a
 to select results. Here we iterate through a slice and print the calculated energies
 from the first calculation of the entries. Each result is a Python object with attributes
 governed by the NOMAD Metainfo. Quantities yield numbers, string, or numpy arrays, while
-sub-sections return lists of further objects. Here we navigate the sections ``section_run`` and
-sub-section ``section_system`` to access the quantity ``energy_total``. This quantity is a
+sub-sections return lists of further objects. Here we navigate the sections ``run`` and
+sub-section ``energy`` and sub-section ``total`` to access the quantity ``value``. This quantity is a
 number with an attached unit (Joule), which can be converted to something else (e.g. Hartree).
 
 The create query object keeps all results in memory. Keep this in mind, when you are
@@ -348,7 +348,7 @@ class ArchiveQuery(collections.abc.Sequence):
             self.query.append(query)
 
         self.raise_errors = raise_errors
-        self.required = required if required is not None else dict(section_run='*')
+        self.required = required if required is not None else dict(run='*')
         if required is not None and isinstance(required, dict):
             # We try to add all required properties to the query to ensure that only
             # results with those properties are returned.
@@ -572,4 +572,4 @@ def query_archive(*args, **kwargs):
 
 if __name__ == '__main__':
     run = query_archive()[1]
-    run.section_system[1].atom_labels
+    run.system[1].atoms.labels

@@ -72,26 +72,19 @@ def metainfo():
 def metainfo_undecorated():
     from nomad.metainfo import Package, Environment
 
-    # TODO the __init_metainfo__() should not be necessary and automatically performed
-    # Also load and initialize the datamodel definitions
-    import nomad.metainfo.metainfo
-    import nomad.datamodel.datamodel
-    import nomad.datamodel.dft
-    import nomad.datamodel.ems
-    import nomad.datamodel.optimade
-    import nomad.datamodel.encyclopedia
-    nomad.metainfo.metainfo.m_package.__init_metainfo__()
-    nomad.datamodel.datamodel.m_package.__init_metainfo__()
-    nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
-    nomad.datamodel.results.m_package.__init_metainfo__()
-
     # TODO similar to before, due to lazyloading, we need to explicily access parsers
     # to actually import all parsers and indirectly all metainfo packages
     from nomad.parsing import parsers
     parsers.parsers
+
+    # TODO we call __init_metainfo__() for all packages where this has been forgotten
+    # by the package author. Ideally this would not be necessary and we fix the
+    # actual package definitions.
+    for module_key in list(sys.modules):
+        pkg: Package = getattr(sys.modules[module_key], 'm_package', None)
+        if pkg is not None and isinstance(pkg, Package):
+            if (pkg.name not in Package.registry):
+                pkg.__init_metainfo__()
 
     export = Environment()
     for package in Package.registry.values():
@@ -498,6 +491,12 @@ def units(ctx):
             "label": "Weber",
             "abbreviation": "Wb",
         },
+        # Magnetic dipole
+        "bohr_magneton": {
+            "dimension": "magnetic_dipole",
+            "label": "Bohr magneton",
+            "abbreviation": "Bm",
+        },
         # Inductance
         "henry": {
             "dimension": "inductance",
@@ -632,6 +631,12 @@ def units(ctx):
             ],
             "multipliers": {},
         },
+        "magnetic_dipole": {
+            "units": [
+                "bohr_magneton",
+            ],
+            "multipliers": {},
+        },
         "inductance": {
             "dimension": "inductance",
             "units": [
@@ -738,7 +743,7 @@ def units(ctx):
     units = set()
     packages = all_metainfo["packages"]
     for package in packages:
-        sections = package["section_definitions"]
+        sections = package.get("section_definitions", [])
         for section in sections:
             quantities = section.get("quantities", [])
             for quantity in quantities:
@@ -755,6 +760,9 @@ def units(ctx):
                         if not is_operator and not is_number:
                             units.add(part)
     for unit in units:
+        if unit == 'byte':
+            continue
+
         assert unit in unit_map, "The unit '{}' is not defined in the unit definitions.".format(unit)
 
     # Print unit conversion table and unit systems as a Javascript source file

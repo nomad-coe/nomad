@@ -168,7 +168,7 @@ def index(
         _refresh()
 
 
-# TODO this depends on how we merge section_metadata
+# TODO this depends on how we merge section metadata
 def publish(entries: Iterable[EntryMetadata], index: str = None) -> int:
     '''
     Publishes the given entries based on their entry metadata. Sets publishes to true,
@@ -193,7 +193,7 @@ def update_metadata(
         for entry_metadata in entries:
             entry_archive = entry_metadata.m_parent
             if entry_archive is None:
-                entry_archive = EntryArchive(section_metadata=entry_metadata)
+                entry_archive = EntryArchive(metadata=entry_metadata)
             entry_doc = entry_type.create_index_doc(entry_archive)
 
             entry_doc.update(**kwargs)
@@ -223,20 +223,6 @@ def update_metadata(
         _refresh()
 
     return failed
-
-
-def lift_embargo(query: dict, refresh=True, **kwargs):
-    '''
-    Removes the embargo flag based on a query.
-    '''
-    update_by_query(
-        index=None,
-        update_script='ctx._source.with_embargo = false;',
-        query=query,
-        **kwargs)
-
-    if refresh:
-        _refresh()
 
 
 def delete_upload(upload_id: str, refresh: bool = False, **kwargs):

@@ -28,7 +28,8 @@ import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 
 export function formatSubSectionName(name) {
-  return name.startsWith('section_') ? name.slice(8) : name
+  // return name.startsWith('section_') ? name.slice(8) : name
+  return name
 }
 
 export class Adaptor {

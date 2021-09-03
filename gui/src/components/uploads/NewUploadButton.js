@@ -17,14 +17,16 @@
  */
 import { Button } from '@material-ui/core'
 import React, { useState } from 'react'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useLocation } from 'react-router-dom'
 import { useApi } from '../apiV1'
 import { useErrors } from '../errors'
+import { getUrl } from '../nav/Routes'
 
 export default function NewUploadButton({...props}) {
   const api = useApi()
   const errors = useErrors()
   const history = useHistory()
+  const location = useLocation()
 
   const [clicked, setClicked] = useState(false)
 
@@ -32,7 +34,7 @@ export default function NewUploadButton({...props}) {
     setClicked(true)
     api.post('/uploads')
       .then((upload) => {
-        history.push(`/uploads/${upload.upload_id}`)
+        history.push(getUrl(`upload/id/${upload.upload_id}`, location))
       })
       .catch(errors.raiseError)
       .finally(() => {

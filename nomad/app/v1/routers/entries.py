@@ -71,21 +71,21 @@ _archive_required_field = Body(
         the directive `"*"`), you can determine what sections and what quantities should
         be returned. The default is the whole archive, i.e., `"*"`.
 
-        For example to specify that you are only interested in the `section_metadata`
+        For example to specify that you are only interested in the `metadata`
         use:
 
         ```
         {
-            "section_metadata": "*"
+            "metadata": "*"
         }
         ```
 
         Or to only get the `energy_total` from each individual calculations, use:
         ```
         {
-            "section_run": {
-                "section_single_configuration_calculation": {
-                    "energy_total": "*"
+            "run": {
+                "configuration": {
+                    "energy": "*"
                 }
             }
         }
@@ -94,8 +94,8 @@ _archive_required_field = Body(
         You can also request certain parts of a list, e.g. the last calculation:
         ```
         {
-            "section_run": {
-                "section_single_configuration_calculation[-1]": "*"
+            "run": {
+                "calculation[-1]": "*"
             }
         }
         ```
@@ -107,11 +107,13 @@ _archive_required_field = Body(
         calculation:
         ```
         {
-            "section_workflow": {
+            "workflow": {
                 "calculation_result_ref": {
-                    "energy_total": "*",
-                    "single_configuration_calculation_to_system_ref": {
-                        "chemical_composition_reduced": "*"
+                    "energy": "*",
+                    "system_ref": {
+                        "value": {
+                            "chemical_composition": "*"
+                        }
                     }
                 }
             }
@@ -123,7 +125,7 @@ _archive_required_field = Body(
         in referenced sections:
         ```
         {
-            "section_workflow":
+            "workflow":
                 "calculation_result_ref": "include-resolved"
             }
         }
@@ -139,20 +141,20 @@ _archive_required_field = Body(
         ```
         {
             "resolve-inplace": true,
-            "section_workflow":
+            "workflow":
                 "calculation_result_ref": "include-resolved"
             }
         }
         ```
     '''),
     example={
-        'section_run': {
-            'section_single_configuration_calculation[-1]': {
-                'energy_total': '*'
+        'run': {
+            'calculation[-1]': {
+                'energy': '*'
             },
-            'section_system[-1]': '*'
+            'system[-1]': '*'
         },
-        'section_metadata': '*'
+        'metadata': '*'
     })
 
 

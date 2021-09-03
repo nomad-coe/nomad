@@ -24,7 +24,6 @@ meta-data.
 from typing import List, Dict, Any
 from flask_restplus import Resource, abort, fields
 from flask import request, g
-from elasticsearch_dsl import Q
 from elasticsearch.exceptions import NotFoundError
 from datetime import datetime
 
@@ -564,7 +563,6 @@ class EditRepoCalcsResource(Resource):
         json_data['success'] = True
         mongo_update = {}
         uploader_ids = None
-        lift_embargo = False
         has_error = False
         removed_datasets = None
 
@@ -595,19 +593,7 @@ class EditRepoCalcsResource(Resource):
                     action_value = action_value if action_value is None else action_value.strip()
 
                     if action_quantity_name == 'with_embargo':
-                        # ignore the actual value ... just lift the embargo
-                        mongo_value = False
-                        lift_embargo = True
-
-                        # check if necessary
-                        search_request = search.SearchRequest()
-                        apply_search_parameters(search_request, parsed_query)
-                        search_request.q = search_request.q & Q('term', with_embargo=True)
-                        if search_request.execute()['total'] == 0:
-                            action['success'] = False
-                            has_error = True
-                            action['message'] = 'There is no embargo to lift'
-                            continue
+                        abort(400, 'Updating the embargo flag on entry level is no longer allowed.')
 
                     elif action_value is None:
                         mongo_value = None
@@ -695,13 +681,7 @@ class EditRepoCalcsResource(Resource):
 
         # perform the change
         mongo_update['metadata__last_edit'] = datetime.utcnow()
-        upload_ids = edit(parsed_query, mongo_update, True)
-
-        # lift embargo
-        if lift_embargo:
-            for upload_id in upload_ids:
-                upload = proc.Upload.get(upload_id)
-                upload.re_pack()
+        edit(parsed_query, mongo_update, True)
 
         # remove potentially empty old datasets
         if removed_datasets is not None:

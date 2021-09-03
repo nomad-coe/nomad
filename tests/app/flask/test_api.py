@@ -253,7 +253,7 @@ class TestUploads:
         assert_upload_files(upload_id, entries, files.StagingUploadFiles)
         assert_search_upload(entries, additional_keys=['atoms', 'dft.system'])
 
-    def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}):
+    def assert_published(self, api, test_user_auth, upload_id, proc_infra, metadata={}, embargo_length=None):
         rv = api.get('/uploads/%s' % upload_id, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
 
@@ -276,7 +276,10 @@ class TestUploads:
         upload_proc = Upload.objects(upload_id=upload_id).first()
         assert upload_proc is not None
         assert upload_proc.published is True
-        assert upload_proc.embargo_length == min(36, metadata.get('embargo_length', 36))
+        if embargo_length is not None:
+            assert upload_proc.embargo_length == embargo_length
+        else:
+            assert upload_proc.embargo_length == metadata.get('embargo_length', 0)
 
         with upload_proc.entries_metadata() as entries:
             for entry in entries:
@@ -458,7 +461,7 @@ class TestUploads:
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(embargo_length=12, with_embargo=True)
+        metadata = dict(embargo_length=12)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
 
     @pytest.mark.parametrize('user', ['test_user', 'admin_user'])
@@ -479,9 +482,9 @@ class TestUploads:
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
         upload = self.assert_upload(rv.data)
         self.assert_processing(api, test_user_auth, upload['upload_id'])
-        metadata = dict(with_embargo=True)
+        metadata = dict(embargo_length=12)
         self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, metadata)
-        self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {})
+        self.assert_published(api, admin_user_auth, upload['upload_id'], proc_infra, {}, embargo_length=12)
 
     def test_post_re_process(self, api, published, test_user_auth, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
@@ -733,8 +736,8 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data is not None
-        assert 'section_metadata' in data
-        assert 'section_run' in data
+        assert 'metadata' in data
+        assert 'run' in data
 
     @UploadFilesBasedTests.ignore_authorization
     def test_get_signed(self, api, upload, _, test_user_signature_token):
@@ -790,7 +793,7 @@ class TestArchive(UploadFilesBasedTests):
         assert rv.status_code == 200
         assert_zip_file(rv, files=1)
 
-    @pytest.mark.parametrize('required', [{'section_workflow': '*'}, {'section_run': '*'}])
+    @pytest.mark.parametrize('required', [{'workflow': '*'}, {'run': '*'}])
     def test_archive_query_paginated(self, api, published_wo_user_metadata, required):
         data = {'required': required, 'pagination': {'per_page': 5}}
         uri = '/archive/query'
@@ -828,9 +831,9 @@ class TestArchive(UploadFilesBasedTests):
     def test_archive_query_aggregated(self, api, published_wo_user_metadata):
         uri = '/archive/query'
         schema = {
-            'section_run': {
-                'section_single_configuration_calculation': {
-                    'energy_total': '*'}}}
+            'run': {
+                'calculation': {
+                    'energy': '*'}}}
 
         query = {'required': schema, 'aggregation': {'per_page': 1}}
 
@@ -889,7 +892,7 @@ class TestArchive(UploadFilesBasedTests):
             '$and': [
                 {'dft.code_name': 'VASP'},
                 {'$gte': {'n_atoms': 3}},
-                {'$lte': {'dft.workflow.section_geometry_optimization.final_energy_difference': 1e-24}}
+                {'$lte': {'dft.workflow.geometry_optimization.final_energy_difference': 1e-24}}
             ]}, 0, id='client-example')
     ])
     def test_post_archive_query(self, api, example_upload, query_expression, nresults):
@@ -916,7 +919,7 @@ class TestArchive(UploadFilesBasedTests):
 
 class TestMetainfo():
     @pytest.mark.parametrize('package', [
-        'nomad.datamodel.metainfo.common_dft',
+        'nomad.datamodel.metainfo.simulation.calculation',
         'vaspparser.metainfo.vasp'])
     def test_get_package(self, api, package):
         rv = api.get(f'/metainfo/{package}')
@@ -947,7 +950,7 @@ class TestRepo():
             domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
         entry_metadata.files = ['test/mainfile.txt']
         entry_metadata.apply_domain_metadata(normalized)
-        entry_metadata.encyclopedia = normalized.section_metadata.encyclopedia
+        entry_metadata.encyclopedia = normalized.metadata.encyclopedia
 
         entry_metadata.m_update(datasets=[example_dataset.dataset_id])
 
@@ -1118,7 +1121,7 @@ class TestRepo():
         (2, 'files', 'test/mainfile.txt', 'test_user'),
         (2, 'paths', 'mainfile.txt', 'test_user'),
         (2, 'paths', 'test', 'test_user'),
-        (2, 'dft.quantities', ['wyckoff_letters_primitive', 'hall_number'], 'test_user'),
+        (2, 'dft.quantities', ['wyckoff_letters', 'hall_number'], 'test_user'),
         (0, 'dft.quantities', 'dos', 'test_user'),
         (2, 'external_id', 'external_2,external_3', 'other_test_user'),
         (1, 'external_id', 'external_2', 'test_user'),
@@ -1499,7 +1502,7 @@ class TestEditRepo():
         example_data.create_entry(
             upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
         example_data.create_entry(
-            upload_id='upload_2', uploader=test_user, published=False, with_embargo=False)
+            upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
         example_data.create_entry(
             upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
 
@@ -1743,57 +1746,6 @@ class TestEditRepo():
     def test_admin_only(self, other_test_user):
         rv = self.perform_edit(uploader=other_test_user.user_id)
         assert rv.status_code != 200
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo(api, published, test_user_auth, no_warn):
-    example_calc = Calc.objects(upload_id=published.upload_id).first()
-    assert example_calc.metadata['with_embargo']
-    elastic_calc = next(
-        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
-    assert elastic_calc['with_embargo'] is True
-    with pytest.raises(files.Restricted):
-        with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
-            archive[example_calc.calc_id].to_dict()
-
-    rv = api.post(
-        '/repo/edit', headers=test_user_auth, content_type='application/json',
-        data=json.dumps({
-            'actions': {
-                'with_embargo': {}
-            }
-        }))
-
-    assert rv.status_code == 200, rv.data
-    assert not Calc.objects(calc_id=example_calc.calc_id).first().metadata['with_embargo']
-
-    Upload.get(published.upload_id).block_until_complete()
-
-    elastic_calc = next(
-        SearchRequest().search_parameters(calc_id=example_calc.calc_id).execute_scan())
-    assert elastic_calc['with_embargo'] is False
-
-    # should not raise Restricted anymore
-    with files.UploadFiles.get(published.upload_id).read_archive(example_calc.calc_id) as archive:
-        archive[example_calc.calc_id].to_dict()
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_edit_lift_embargo_unnecessary(api, published_wo_user_metadata, other_test_user_auth):
-    example_calc = Calc.objects(upload_id=published_wo_user_metadata.upload_id).first()
-    assert not example_calc.metadata['with_embargo']
-    rv = api.post(
-        '/repo/edit', headers=other_test_user_auth, content_type='application/json',
-        data=json.dumps({
-            'actions': {
-                'with_embargo': {
-                    'value': 'lift'
-                }
-            }
-        }))
-    assert rv.status_code == 400
-    data = json.loads(rv.data)
-    assert not data['actions']['with_embargo']['success']
 
 
 class TestRaw(UploadFilesBasedTests):
@@ -2210,7 +2162,7 @@ class TestDataset:
         example_data.save()
         from nomad import files
         assert files.UploadFiles.get('1') is not None
-        assert example_entry.section_metadata.datasets[0].dataset_id == '1'
+        assert example_entry.metadata.datasets[0].dataset_id == '1'
 
         # entry_archive = EntryArchive()
         # entry_metadata = entry_archive.m_create(
@@ -2221,7 +2173,7 @@ class TestDataset:
         #     calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
         #     metadata=entry_metadata.m_to_dict()).save()
         # upload_files = files.StagingUploadFiles(upload_id='1', create=True)
-        # upload_files.write_archive('1', dict(section_metadata=entry_metadata.m_to_dict()))
+        # upload_files.write_archive('1', dict(metadata=entry_metadata.m_to_dict()))
         # upload_files.close()
         # index(entry_archive)
 

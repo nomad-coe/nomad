@@ -117,19 +117,20 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
 
 
 def test_common_metainfo():
-    from nomad.datamodel.metainfo import common_dft
+    from nomad.datamodel.metainfo.simulation.run import Run
+    from nomad.datamodel.metainfo.simulation.system import System, Atoms
 
-    run = common_dft.Run()
-    system = run.m_create(common_dft.System)
-    system.atom_labels = ['H', 'H', 'O']
+    run = Run()
+    system = run.m_create(System)
+    system.atoms = Atoms(labels=['H', 'H', 'O'])
 
-    assert run.section_system[0].atom_labels == ['H', 'H', 'O']
+    assert run.system[0].atoms.labels == ['H', 'H', 'O']
 
 
 def test_vasp_metainfo():
-    from nomad.datamodel.metainfo import common_dft
+    from nomad.datamodel.metainfo.simulation.run import Run
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
-    run = common_dft.Run()
+    run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities
 
 
@@ -167,7 +168,7 @@ if __name__ == '__main__':
                         f.write('this is a generated test file')
 
             upload_files.write_archive(calc.calc_id, {
-                'section_run': [{'test': 'this is a generated test files'}],
+                'run': [{'test': 'this is a generated test files'}],
                 'processing_logs': [{'event': 'this is a generated test file'}]
             })
 

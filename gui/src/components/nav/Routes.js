@@ -185,7 +185,7 @@ export const routes = [
         routes: uploadRoutes,
         help: {
           title: 'How to upload data to NOMAD',
-          help: uploadsHelp
+          content: uploadsHelp
         }
       },
       {
@@ -298,11 +298,7 @@ export const routes = [
     ]
   },
   ...datasetRoutes,
-  ...entryRoutes,
-  {
-    path: '',
-    redirect: '/about/information'
-  }
+  ...entryRoutes
 ]
 
 /**
@@ -312,7 +308,10 @@ export const routes = [
 export const allRoutes = []
 
 function addRoute(route, pathPrefix) {
-  const path = route.path && `${pathPrefix}/${route.path}`
+  let path = ''
+  if (!(route.path === '' && pathPrefix === '')) {
+    path = route.path && `${pathPrefix}/${route.path}`
+  }
   if (route.routes) {
     route.routes.forEach(childRoute => addRoute(childRoute, path))
   }
@@ -327,14 +326,24 @@ routes.forEach(route => addRoute(route, ''))
 export const Routes = React.memo(function Routes() {
   return <Switch>
     {allRoutes
-      .filter(route => route.path && (route.component || route.render || route.children))
-      .map((route, i) => <Route
-        key={i}
-        path={route.path} exact={route.exact}
-        component={route.component} render={route.render}
-      >
-        {route.children || (route.redirect && <Redirect to={route.redirect}/>) || undefined}
-      </Route>)}
+      .filter(route => route.path && (route.component || route.render || route.redirect || route.children))
+      .map((route, i) => {
+        if (route.redirect) {
+          return <Redirect
+            key={i}
+            path={route.path} exact={route.exact}
+            to={route.redirect}
+          />
+        }
+        return <Route
+          key={i}
+          path={route.path} exact={route.exact}
+          component={route.component} render={route.render}
+        >
+          {route.children || undefined}
+        </Route>
+      })}
+    <Redirect from="/" to="/about/information" />
   </Switch>
 })
 
@@ -349,7 +358,7 @@ export const Routes = React.memo(function Routes() {
  * @param {*} location The current react-router location object, e.g. from `useLocation()`.
  * @returns The full url. E.g., that can be put into react-router `<Link to={...}>`.
  */
-function getUrl(path, location) {
+export function getUrl(path, location) {
   const commonPathPrefix = path.split('/')[0]
   const pathname = location?.pathname
   const match = pathname && allRoutes
@@ -359,6 +368,7 @@ function getUrl(path, location) {
 
   return `${url}/${path}`
 }
+routes.forEach(route => addRoute(route, ''))
 
 export const RouteButton = React.forwardRef(function RouteButton(props, ref) {
   const {component, path, ...moreProps} = props

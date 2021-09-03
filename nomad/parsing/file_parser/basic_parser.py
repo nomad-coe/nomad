@@ -23,7 +23,11 @@ from ase.data import chemical_symbols
 from nomad.datamodel import EntryArchive
 from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity
-from nomad.datamodel.metainfo.common_dft import Run, Method, System, SingleConfigurationCalculation
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import Method
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
+from nomad.datamodel.metainfo.simulation.calculation import (
+    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics)
 
 
 class BasicParser(FairdiParser):
@@ -94,7 +98,9 @@ class BasicParser(FairdiParser):
             if value is None:
                 return
             try:
-                if not hasattr(value, 'units'):
+                if hasattr(value, 'm_def'):
+                    pass
+                elif not hasattr(value, 'units'):
                     value = np.reshape(np.array(
                         value, dtype=np.dtype(dtype)), shape) if shape is not None else dtype(value)
                     value = value * unit if unit is not None else value
@@ -120,10 +126,10 @@ class BasicParser(FairdiParser):
                     empty = False
                     break
                 if empty:
-                    sec_run.m_remove_sub_section(definition, n)
+                    sections[n].m_parent.m_remove_sub_section(definition, n)
 
         sec_run = self.archive.m_create(Run)
-        sec_run.program_name = self.specifications.get('code_name', '')
+        sec_run.program = Program(name=self.specifications.get('code_name', ''))
 
         energy_unit = self.units_mapping.get('energy', 1.0)
         length_unit = self.units_mapping.get('length', 1.0)
@@ -143,28 +149,46 @@ class BasicParser(FairdiParser):
             # set header quantities
             set_value(sec_run, key, values[0])
             for n, value in enumerate(values):
-                # method related quantities
-                if len(sec_run.section_method) <= n:
+                if len(sec_run.method) <= n:
                     sec_run.m_create(Method)
-                sec_method = sec_run.section_method[n]
-                set_value(sec_method, key, value)
+                sec_method = sec_run.method[n]
+
+                if len(sec_run.system) <= n:
+                    sec_run.m_create(System)
+                    sec_run.system[-1].m_create(Atoms)
+                sec_system = sec_run.system[n]
+
+                if len(sec_run.calculation) <= n:
+                    sec_run.m_create(Calculation)
+                    sec_run.calculation[-1].m_create(Energy)
+                    sec_run.calculation[-1].m_create(Forces)
+                    sec_run.calculation[-1].m_create(Thermodynamics)
+                sec_scc = sec_run.calculation[n]
+
+                # method related quantities
+                if hasattr(Method, key):
+                    set_value(sec_method, key, value)
 
                 # system related quantities
-                if len(sec_run.section_system) <= n:
-                    sec_run.m_create(System)
-                sec_system = sec_run.section_system[n]
-                set_value(sec_system, key, value)
+                elif hasattr(System, key):
+                    set_value(sec_system, key, value)
 
                 # calculation related quantities
-                if len(sec_run.section_single_configuration_calculation) <= n:
-                    sec_run.m_create(SingleConfigurationCalculation)
-                sec_scc = sec_run.section_single_configuration_calculation[n]
-                set_value(sec_scc, key, value)
+                elif hasattr(Calculation, key):
+                    set_value(sec_scc, key, value)
+
+                elif hasattr(Thermodynamics, key):
+                    set_value(sec_scc.thermodynamics, key, value)
 
                 # specific quantities that need formatting
+                if 'program' in key:
+                    set_value(sec_run.program, key.replace('program_', ''), value)
+
                 if 'energy' in key:
-                    shape = np.shape(value) if key == 'energy_reference_fermi' else None
-                    set_value(sec_scc, key, value, energy_unit, shape, np.float64)
+                    shape = None
+                    val = value[-1] if 'fermi' in key else EnergyEntry(value=value * energy_unit)
+                    sub_key = 'fermi' if 'fermi' in key else key.replace('energy_', '').lower()
+                    set_value(sec_scc.energy, sub_key, val, energy_unit, shape, np.float64)
 
                 if 'atom_forces' in key:
                     val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*', 'atom_forces')
@@ -172,13 +196,14 @@ class BasicParser(FairdiParser):
                         unit = mass_unit * length_unit / time_unit ** 2
                     else:
                         unit = energy_unit / length_unit
-                    set_value(sec_scc, 'atom_forces', val, unit, (np.size(val) // 3, 3), np.float64)
+                    sec_scc.forces.total = ForcesEntry()
+                    set_value(sec_scc.forces.total, 'value', val, unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'lattice_vectors' in key:
                     val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'lattice_vectors')
-                    set_value(sec_system, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
+                    set_value(sec_system.atoms, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
                     if val is not None:
-                        sec_system.configuration_periodic_dimensions = [True, True, True]
+                        sec_system.atoms.periodic = [True, True, True]
 
                 if 'atom_positions' in key:
                     sub_key = 'atom_positions_scaled' if 'atom_positions_scaled' in key else 'atom_positions'
@@ -186,28 +211,38 @@ class BasicParser(FairdiParser):
                     unit = length_unit
                     if sub_key == 'atom_positions_scaled':
                         try:
-                            val = np.dot(np.array(val, dtype=np.dtype(np.float64)), sec_system.lattice_vectors.magnitude)
+                            val = np.dot(np.array(val, dtype=np.dtype(np.float64)), sec_system.atoms.lattice_vectors.magnitude)
                             unit = 1.0
                         except Exception:
                             pass
-                    set_value(sec_system, 'atom_positions', val, unit, (np.size(val) // 3, 3), np.float64)
+                    set_value(sec_system.atoms, 'positions', val, unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'atom_velocities' in key:
                     val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_velocities')
-                    set_value(sec_system, 'atom_velocities', val, length_unit / time_unit, (np.size(val) // 3, 3), np.float64)
+                    set_value(sec_system.atoms, 'velocities', val, length_unit / time_unit, (np.size(val) // 3, 3), np.float64)
 
                 if 'atom_labels' in key:
                     val = get_value(value, r'([A-Z][a-z]*)\s', 'atom_labels')
                     val = [val] if isinstance(val, str) else val
-                    set_value(sec_system, 'atom_labels', val, shape=(len(val)), dtype=str)
+                    set_value(sec_system.atoms, 'labels', val, shape=(len(val)), dtype=str)
 
                 if 'atom_atom_number' in key:
                     val = get_value(value, r'(\d+)\s', 'atom_atom_number')
                     val = [val] if isinstance(val, str) else val
-                    set_value(sec_system, 'atom_atom_number', val, shape=(len(val)), dtype=np.int32)
-                    set_value(sec_system, 'atom_labels', [chemical_symbols[int(n)] for n in sec_system.atom_atom_number], shape=(len(val)))
+                    set_value(sec_system.atoms, 'atomic_numbers', val, shape=(len(val)), dtype=np.int32)
+                    set_value(sec_system.atoms, 'labels', [chemical_symbols[int(n)] for n in sec_system.atoms.atomic_numbers], shape=(len(val)))
 
         # remove unfilled sections
-        remove_empty_section(sec_run.section_method, Run.section_method)
-        remove_empty_section(sec_run.section_system, Run.section_system)
-        remove_empty_section(sec_run.section_single_configuration_calculation, Run.section_single_configuration_calculation)
+        for system in sec_run.system:
+            if len(system.atoms.values()) == 0:
+                system.m_remove_sub_section(System.atoms, 0)
+        for calculation in sec_run.calculation:
+            if len(calculation.energy.values()) == 0:
+                calculation.m_remove_sub_section(Calculation.energy, 0)
+            if len(calculation.forces.values()) == 0:
+                calculation.m_remove_sub_section(Calculation.forces, 0)
+            if len(calculation.thermodynamics) > 0 and len(calculation.thermodynamics[0].values()) == 0:
+                calculation.m_remove_sub_section(Calculation.thermodynamics, 0)
+        remove_empty_section(sec_run.method, Run.method)
+        remove_empty_section(sec_run.system, Run.system)
+        remove_empty_section(sec_run.calculation, Run.calculation)

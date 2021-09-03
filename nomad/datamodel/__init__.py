@@ -108,17 +108,17 @@ domains = {
     'dft': {
         'metadata': DFTMetadata,
         'metainfo_all_package': 'common',
-        'root_section': 'section_run'
+        'root_section': 'run'
     },
     'ems': {
         'metadata': EMSMetadata,
         'metainfo_all_package': 'common_experimental',
-        'root_section': 'section_experiment'
+        'root_section': 'section_measurement'
     },
     'qcms': {
         'metadata': QCMSMetadata,
         'metainfo_all_package': 'general_qcms',
-        'root_section': 'section_quantum_cms'
+        'root_section': 'quantum_cms'
     }
 }
 

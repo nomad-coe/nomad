@@ -19,13 +19,14 @@
 
 import typing
 import click
-import datetime
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import elasticsearch_dsl
 import elasticsearch
 import sys
 import threading
 
-from nomad import processing as proc, infrastructure, utils, config, datamodel
+from nomad import processing as proc, infrastructure, utils, config
 from nomad.cli.cli import cli
 
 
@@ -156,7 +157,7 @@ def reset_processing(zero_complete_time):
             worker_hostname=None,
             celery_task_id=None,
             errors=[], warnings=[],
-            complete_time=datetime.datetime.fromtimestamp(0) if zero_complete_time else datetime.datetime.now())
+            complete_time=datetime.fromtimestamp(0) if zero_complete_time else datetime.now())
 
     reset_collection(proc.Calc)
     reset_collection(proc.Upload)
@@ -167,7 +168,6 @@ def reset_processing(zero_complete_time):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def lift_embargo(dry, parallel):
     from nomad.search.v0 import SearchRequest
-    from nomad.search import update_metadata
 
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -181,27 +181,17 @@ def lift_embargo(dry, parallel):
     for upload_id in result['quantities']['upload_id']['values']:
         upload = proc.Upload.get(upload_id)
         embargo_length = upload.embargo_length
-        if embargo_length is None:
-            embargo_length = 36
-            upload.embargo_length = 36
 
-        if upload.upload_time + datetime.timedelta(days=int(embargo_length * 365 / 12)) < datetime.datetime.now():
-            print('need to lift the embargo of %s (upload_time=%s, embargo=%d)' % (
-                upload.upload_id, upload.upload_time, embargo_length))
+        if upload.publish_time + relativedelta(months=embargo_length) < datetime.now():
+            print('need to lift the embargo of %s (publish_time=%s, embargo=%d)' % (
+                upload.upload_id, upload.publish_time, embargo_length))
 
             if not dry:
-                proc.Calc._get_collection().update_many(
-                    {'upload_id': upload_id},
-                    {'$set': {'metadata.with_embargo': False}})
+                upload.set_upload_metadata_local({'embargo_length': 0})
                 uploads_to_repack.append(upload)
-                upload.save()
-
-                entries = [
-                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata)
-                    for calc in proc.Calc.objects(upload_id=upload_id)]
-                update_metadata(entries, with_embargo=False, update_materials=True, refresh=True)
 
     if not dry:
+        # TODO: When repackaging is no more needed, this can be removed, and we should use the set_upload_metadata instead of ..._local
         __run_processing(
             uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing',
             wait_until_complete=False)
@@ -289,7 +279,7 @@ def index_materials(threads, code, dry, in_place, n, source):
         mongo_db = infrastructure.mongo_client[config.mongo.db_name]
         mongo_collection = mongo_db['archive']
         if code:
-            collection = mongo_collection.find({"section_metadata.dft.code_name": {"$in": code}})
+            collection = mongo_collection.find({"metadata.dft.code_name": {"$in": code}})
         else:
             collection = mongo_collection.find()
         all_calcs = collection.count()
@@ -309,14 +299,14 @@ def index_materials(threads, code, dry, in_place, n, source):
                     # Do not process entries that do not have the material
                     # information
                     try:
-                        status = mongo_archive["section_metadata"]["encyclopedia"]["status"]
+                        status = mongo_archive["metadata"]["encyclopedia"]["status"]
                         if status != EncyclopediaMetadata.status.type.success:
                             raise AttributeError
                     except (KeyError, AttributeError, IndexError):
                         continue
 
                     # Create material information
-                    metadata = mongo_archive["section_metadata"]
+                    metadata = mongo_archive["metadata"]
                     encyclopedia = EncyclopediaMetadata.m_from_dict(metadata["encyclopedia"])
                     dft = metadata["dft"]
                     material: Material = Material()
@@ -582,7 +572,7 @@ def similarity():
 @ops.command(help=('Dump the mongo (calculation metadata) db.'))
 @click.option('--restore', is_flag=True, help='Do not dump, but restore.')
 def dump(restore: bool):
-    date_str = datetime.datetime.utcnow().strftime('%Y_%m_%d')
+    date_str = datetime.utcnow().strftime('%Y_%m_%d')
     print('mongodump --host {} --port {} --db {} -o /backup/fairdi/mongo/{}'.format(
         config.mongo.host, config.mongo.port, config.mongo.db_name, date_str))
 

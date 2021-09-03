@@ -27,8 +27,11 @@ from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
 from .optimade import OptimadeEntry
-from .metainfo.common_dft import Workflow, FastAccess
-from .metainfo.common_dft import section_XC_functionals
+from .metainfo.workflow import Workflow
+from .metainfo.common import FastAccess
+from .metainfo.simulation.run import Run
+from .metainfo.simulation.method import Functional
+from .metainfo.simulation.calculation import Energy
 
 
 xc_treatments = {
@@ -72,8 +75,8 @@ _mechanical_quantities = [
 ]
 
 _thermal_quantities = [
-    'thermodynamical_property_heat_capacity_C_v',
-    'vibrational_free_energy_at_constant_volume',
+    'heat_capacity_c_v',
+    'helmholtz_free_energy',
     'phonon_band_structure',
     'phonon_dos',
 ]
@@ -305,9 +308,9 @@ class DFTMetadata(MSection):
         if entry_archive is None:
             return
 
-        section_run = entry_archive.section_run
+        section_run = entry_archive.run
         if not section_run:
-            logger.warn('no section_run found')
+            logger.warn('no section run found')
             return
         section_run = section_run[0]
 
@@ -319,14 +322,14 @@ class DFTMetadata(MSection):
         self.xc_functional = config.services.unavailable_value
 
         section_system = None
-        for section in section_run.section_system:
+        for section in section_run.system:
             if section.is_representative:
                 section_system = section
                 break
 
         # code and code specific ids
         try:
-            code_name = section_run.program_name
+            code_name = section_run.program.name
             if code_name:
                 self.code_name = code_name
             else:
@@ -335,7 +338,7 @@ class DFTMetadata(MSection):
             logger.warn('archive without program_name', exc_info=e)
 
         try:
-            version = section_run.program_version
+            version = section_run.program.version
             if version:
                 self.code_version = simplify_version(version)
             else:
@@ -351,7 +354,7 @@ class DFTMetadata(MSection):
             entry.raw_id = raw_id
 
         # metadata (system, method, chemistry)
-        atom_labels = section_system.atom_labels if section_system else []
+        atom_labels = section_system.atoms.labels if section_system else []
         atoms = atom_labels if atom_labels else []
         entry.n_atoms = len(atoms)
         atoms = list(set(normalized_atom_labels(set(atoms))))
@@ -364,20 +367,22 @@ class DFTMetadata(MSection):
         self.spacegroup_symbol = config.services.unavailable_value
 
         section_symmetry = None
-        if section_system and len(section_system.section_symmetry) > 0:
-            section_symmetry = section_system.section_symmetry[0]
+        if section_system and len(section_system.symmetry) > 0:
+            section_symmetry = section_system.symmetry[0]
             self.crystal_system = get_value(section_symmetry.crystal_system)
             spacegroup = section_symmetry.space_group_number
             self.spacegroup = 0 if not spacegroup else int(spacegroup)
             self.spacegroup_symbol = get_value(section_symmetry.international_short_symbol)
 
-        program_basis_set_type = section_run.program_basis_set_type
-        if program_basis_set_type:
-            self.basis_set = map_basis_set_to_basis_set_label(program_basis_set_type)
+        if section_run.method and section_run.method[0].basis_set:
+            program_basis_set_type = section_run.method[0].basis_set[0].type
+            if program_basis_set_type:
+                self.basis_set = map_basis_set_to_basis_set_label(program_basis_set_type)
 
         if section_system:
-            self.system = get_value(section_system.system_type)
-            entry.formula = get_value(section_system.chemical_composition_bulk_reduced)
+            self.system = get_value(section_system.type)
+            if section_system.chemical_composition_reduced is not None:
+                entry.formula = get_value(section_system.chemical_composition_reduced)
 
         # metrics and quantities
         quantities = set()
@@ -399,21 +404,21 @@ class DFTMetadata(MSection):
             if property_name in _searchable_quantities:
                 searchable_quantities.add(property_name)
 
-            if property_def == section_XC_functionals.XC_functional_name:
+            if property_def == Functional.name:
                 xc_functional = getattr(section, property_name)
                 if xc_functional:
                     xc_functionals.add(xc_functional)
 
-            if property_name == 'energy_total':
+            if property_def == Energy.total:
                 n_total_energies += 1
 
             if property_name == 'configuration_raw_gid':
                 geometries.add(section.m_get(property_def))
 
-            if property_name == 'section_single_configuration_calculation':
+            if property_name == Run.calculation:
                 n_calculations += 1
 
-            if property_name == 'section_system':
+            if property_def == Run.system:
                 n_geometries += 1
 
         # Special handling for electronic/vibrational DOS and band structure:
@@ -454,9 +459,9 @@ class DFTMetadata(MSection):
         compounds = set()
         classifications = set()
         if section_system:
-            for section in section_system.section_springer_material:
-                compounds.update(section.springer_compound_class)
-                classifications.update(section.springer_classification)
+            for section in section_system.springer_material:
+                compounds.update(section.compound_class)
+                classifications.update(section.classification)
 
         for compound in compounds:
             self.labels.append(Label(label=compound, type='compound_class', source='springer'))
@@ -466,17 +471,17 @@ class DFTMetadata(MSection):
         self.labels_springer_classification = list(classifications)
 
         aflow_id, aflow_label = None, None
-        section_prototype = section_system.section_prototype if section_system else []
+        section_prototype = section_system.prototype if section_system else []
         if section_prototype:
-            aflow_id = get_value(section_prototype[0].prototype_aflow_id)
-            aflow_label = get_value(section_prototype[0].prototype_label)
+            aflow_id = get_value(section_prototype[0].aflow_id)
+            aflow_label = get_value(section_prototype[0].label)
 
         if aflow_id is not None and aflow_label is not None:
             self.labels.append(Label(label=aflow_label, type='prototype', source='aflow_prototype_library'))
             self.labels.append(Label(label=aflow_id, type='prototype_id', source='aflow_prototype_library'))
 
-        if entry_archive.section_workflow:
-            self.workflow = entry_archive.section_workflow
+        if entry_archive.workflow:
+            self.workflow = entry_archive.workflow[-1]
 
     def band_structure_electronic(self, entry_archive):
         """Returns whether a valid electronic band structure can be found. In
@@ -488,16 +493,13 @@ class DFTMetadata(MSection):
           - There is a non-empty array of band_energies.
           - The reported band_structure_kind is not "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        path = ["run", "calculation", "band_structure_electronic"]
         valid = False
         for bs in self.traverse_reversed(entry_archive, path):
-            kind = bs.band_structure_kind
-            if kind == "vibrational" or not bs.section_k_band_segment:
-                continue
             valid = True
-            for segment in bs.section_k_band_segment:
-                energies = segment.band_energies
-                k_points = segment.band_k_points
+            for segment in bs.segment:
+                energies = segment.energies
+                k_points = segment.kpoints
                 if not valid_array(energies) or not valid_array(k_points):
                     valid = False
                     break
@@ -514,12 +516,11 @@ class DFTMetadata(MSection):
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is not "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        path = ["run", "calculation", "dos_electronic"]
         for dos in self.traverse_reversed(entry_archive, path):
-            kind = dos.dos_kind
-            energies = dos.dos_energies
-            values = dos.dos_values_normalized
-            if kind != "vibrational" and valid_array(energies) and valid_array(values):
+            energies = dos.energies
+            values = dos.total[-1].value
+            if valid_array(energies) and valid_array(values):
                 return True
 
         return False
@@ -534,16 +535,13 @@ class DFTMetadata(MSection):
           - There is a non-empty array of band_energies.
           - The reported band_structure_kind is "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_k_band"]
+        path = ["run", "calculation", "band_structure_phonon"]
         valid = False
         for bs in self.traverse_reversed(entry_archive, path):
-            kind = bs.band_structure_kind
-            if kind != "vibrational" or not bs.section_k_band_segment:
-                continue
             valid = True
-            for segment in bs.section_k_band_segment:
-                energies = segment.band_energies
-                k_points = segment.band_k_points
+            for segment in bs.segment:
+                energies = segment.energies
+                k_points = segment.kpoints
                 if not valid_array(energies) or not valid_array(k_points):
                     valid = False
                     break
@@ -561,12 +559,11 @@ class DFTMetadata(MSection):
           - There is a non-empty array of dos_energies.
           - The reported dos_kind is "vibrational".
         """
-        path = ["section_run", "section_single_configuration_calculation", "section_dos"]
+        path = ["run", "calculation", "dos_phonon"]
         for dos in self.traverse_reversed(entry_archive, path):
-            kind = dos.dos_kind
-            energies = dos.dos_energies
-            values = dos.dos_values
-            if kind == "vibrational" and valid_array(energies) and valid_array(values):
+            energies = dos.energies
+            values = dos.total[-1].value
+            if valid_array(energies) and valid_array(values):
                 return True
 
         return False

@@ -32,7 +32,7 @@ def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
     with published.upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
-        assert data['section_metadata']['dft']['optimade'] is not None
+        assert data['metadata']['dft']['optimade'] is not None
 
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
     assert 'dft.optimade.chemical_formula_hill' in utils.flat(search_result)

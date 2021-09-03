@@ -289,19 +289,19 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def material_classification(self, material: Material, section_system: Section) -> None:
         try:
-            sec_springer = section_system["section_springer_material"][0]
+            sec_springer = section_system["springer_material"][0]
         except Exception:
             return
 
         classes: Dict[str, List[str]] = {}
         try:
-            classifications = sec_springer['springer_classification']
+            classifications = sec_springer['classification']
         except KeyError:
             pass
         else:
             classes["material_class_springer"] = classifications
         try:
-            compound_classes = sec_springer['springer_compound_class']
+            compound_classes = sec_springer['compound_class']
         except KeyError:
             pass
         else:
@@ -311,7 +311,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def structure_type(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             notes = sec_prototype.m_cache['prototype_notes']
         except Exception:
             return
@@ -345,7 +345,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def structure_prototype(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             name = sec_prototype.m_cache['prototype_name']
         except Exception:
             return
@@ -354,7 +354,7 @@ class MaterialBulkNormalizer(MaterialNormalizer):
 
     def strukturbericht_designation(self, bulk: Bulk, section_system: Section) -> None:
         try:
-            sec_prototype = section_system["section_prototype"][0]
+            sec_prototype = section_system["prototype"][0]
             strukturbericht = sec_prototype.m_cache["strukturbericht_designation"]
         except Exception:
             return
@@ -381,11 +381,11 @@ class MaterialBulkNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         properties = sec_enc.properties
-        sec_symmetry = sec_system["section_symmetry"][0]
-        symmetry_analyzer = sec_system["section_symmetry"][0].m_cache["symmetry_analyzer"]
+        sec_symmetry = sec_system["symmetry"][0]
+        symmetry_analyzer = sec_system["symmetry"][0].m_cache["symmetry_analyzer"]
         spg_number = symmetry_analyzer.get_space_group_number()
         std_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
@@ -415,12 +415,12 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.crystal_system(bulk, sec_symmetry)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
         self.lattice_parameters(ideal, std_atoms)
-        self.material_name(material, names, reduced_counts)
+        self.material_name(material, names, reduced_counts)  # type: ignore
         self.material_classification(material, sec_system)
         self.periodicity(ideal)
         self.point_group(bulk, sec_symmetry)
@@ -511,7 +511,7 @@ class Material2DNormalizer(MaterialNormalizer):
 
     def normalize(self, context: Context) -> None:
         # Fetch resources
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = context.representative_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         try:
@@ -539,9 +539,9 @@ class Material2DNormalizer(MaterialNormalizer):
         self.lattice_vectors(ideal, std_atoms)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
@@ -736,7 +736,7 @@ class Material1DNormalizer(MaterialNormalizer):
     def normalize(self, context: Context) -> None:
         # Fetch resources
         sec_system = context.representative_system
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         material = sec_enc.material
         repr_atoms = sec_system.m_cache["representative_atoms"]  # Temporary value stored by SystemNormalizer
         symmetry_analyzer = self.get_symmetry_analyzer(repr_atoms)
@@ -756,8 +756,8 @@ class Material1DNormalizer(MaterialNormalizer):
         self.atom_positions(ideal, std_atoms)
         self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.material_id_1d(material, std_atoms)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)

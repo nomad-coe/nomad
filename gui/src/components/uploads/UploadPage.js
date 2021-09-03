@@ -26,7 +26,7 @@ import { appBase } from '../../config'
 import { CodeList } from '../About'
 import { DoesNotExist, useApi, withLoginRequired } from '../apiV1'
 import { useParams } from 'react-router'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useLocation } from 'react-router-dom'
 import FilesBrower from './FilesBrowser'
 import { useErrors } from '../errors'
 import ProcessingTable from './ProcessingTable'
@@ -39,6 +39,7 @@ import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
 import EditUserMetadataDialog from '../EditUserMetadataDialog'
 import Page from '../Page'
+import { getUrl } from '../nav/Routes'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -295,6 +296,7 @@ function UploadPage() {
   const api = useApi()
   const errors = useErrors()
   const history = useHistory()
+  const location = useLocation()
 
   const [pagination, setPagination] = useState({
     page_size: 5, page: 1, order: 'asc', order_by: 'process_status'
@@ -314,12 +316,12 @@ function UploadPage() {
       .then(results => setData(results))
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
-          history.push('/uploads')
+          history.push(getUrl('uploads', location))
         } else {
           errors.raiseError(error)
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, history, errors])
+  }, [api, uploadId, pagination, deleteClicked, history, errors, location])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
@@ -357,7 +359,6 @@ function UploadPage() {
 
   const handlePublish = ({embargo_length}) => {
     api.post(`/uploads/${uploadId}/action/publish`, {
-      with_embargo: embargo_length > 0,
       embargo_length: embargo_length
     })
       .then(results => setUpload(results.data))

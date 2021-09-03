@@ -40,7 +40,7 @@ def get_basis_set(context, entry_archive, logger) -> RestrictedDict:
         returns None.
     """
     settings: BasisSet = None
-    program_name = entry_archive.section_run[0].program_name
+    program_name = entry_archive.run[0].program.name
     if program_name == "exciting":
         settings = BasisSetExciting(context, entry_archive, logger)
     elif program_name == "FHI-aims":
@@ -101,6 +101,11 @@ class BasisSetFHIAims(BasisSet):
     def to_dict(self):
         # Get basis set settings for each species
         aims_bs = self._ctx.representative_method.x_fhi_aims_section_controlIn_basis_set
+        if not aims_bs:
+            try:
+                aims_bs = self._ctx.representative_method.method_ref.x_fhi_aims_section_controlIn_basis_set
+            except Exception:
+                pass
         if aims_bs is not None:
             bs_by_species = {}
             for this_aims_bs in aims_bs:

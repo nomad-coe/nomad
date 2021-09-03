@@ -102,7 +102,7 @@ def normalize_all(entry_archive, logger=None):
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
     for normalizer in normalizing.normalizers:
-        if normalizer.domain is None or normalizer.domain == entry_archive.section_metadata.domain:
+        if normalizer.domain is None or normalizer.domain == entry_archive.metadata.domain:
             normalize(normalizer, entry_archive, logger=logger)
 
 
@@ -120,12 +120,12 @@ def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, 
 
     if not skip_normalizers:
         normalize_all(entry_archive)
-        entry_archive.section_metadata.apply_domain_metadata(entry_archive)
+        entry_archive.metadata.apply_domain_metadata(entry_archive)
 
     if show_archive:
         json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
     if show_metadata:
-        metadata = entry_archive.section_metadata
+        metadata = entry_archive.metadata
         metadata.apply_domain_metadata(entry_archive)
         json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

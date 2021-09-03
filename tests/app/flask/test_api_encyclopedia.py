@@ -83,20 +83,15 @@ def enc_upload(test_user_bravado_client, proc_infra, test_user_auth, api, mongo_
     upload('tests/data/api/enc_si_private.zip', False, test_user_bravado_client, proc_infra, test_user_auth, api)
     upload_id = upload('tests/data/api/enc_si_embargo.zip', True, test_user_bravado_client, proc_infra, test_user_auth, api)
 
-    # Place upload entries on embargo in MongoDB
-    calculations = mongo_infra["test_db"]['calc']
-    calculations.update_many(
-        {'upload_id': upload_id},
-        {'$set': {'metadata.with_embargo': True}}
-    )
+    # Place upload entries on embargo
+    embargoed = proc.Upload.get(upload_id)
+    embargoed.set_upload_metadata_local(dict(embargo_length=36))
 
     # Place upload entries on embargo in ES
-    embargoed = proc.Upload.get(upload_id)
     with embargoed.entries_metadata() as calcs:
         def elastic_updates():
             for calc in calcs:
                 entry = calc.a_elastic.create_index_entry()
-                entry.with_embargo = True
                 entry = entry.to_dict(include_meta=True)
                 source = entry.pop('_source')
                 entry['doc'] = source
@@ -120,6 +115,7 @@ def enc_upload(test_user_bravado_client, proc_infra, test_user_auth, api, mongo_
 
 class TestEncyclopedia():
 
+    # @pytest.mark.skip(reason='this still fails due to metainfo refactor and needs fixing')
     def test_material(self, enc_upload, elastic_infra, api, test_user_auth):
         # Correctly found material returns all required values.
         rv = api.get('/materials/{}'.format(silicon_id))
@@ -247,31 +243,33 @@ class TestEncyclopedia():
         for calc_id in group:
             exists(calc_id)
 
-        # Test that parameter variation groups are found.
-        rv = api.get('/materials/{}/groups'.format(silicon_id))
-        assert rv.status_code == 200
-        groups = rv.json
-        groups_par = groups["groups_par"]
-        assert len(groups_par) == 1
-        par_id, group = list(groups_par.items())[0]
-        exists(par_id)
-        assert len(group) == 2
-        for calc_id in group:
-            exists(calc_id)
-
-        # Test query for a specific group.
+        # Test query for a specific EOS group.
         rv = api.get('/materials/{}/groups/eos/{}'.format(silicon_id, eos_id))
         assert rv.status_code == 200
         group = rv.json
         assert len(group['calculations']) == 5
         assert len(group['energies']) == 5
         assert len(group['volumes']) == 5
-        rv = api.get('/materials/{}/groups/par/{}'.format(silicon_id, par_id))
-        assert rv.status_code == 200
-        group = rv.json
-        assert len(group['calculations']) == 2
-        assert len(group['energies']) == 2
-        assert len(group['volumes']) == 2
+
+        # TODO: parameter variation groups should be tested at some point.
+        # Test that parameter variation groups are found.
+        # rv = api.get('/materials/{}/groups'.format(silicon_id))
+        # assert rv.status_code == 200
+        # groups = rv.json
+        # groups_par = groups["groups_par"]
+        # assert len(groups_par) == 1
+        # par_id, group = list(groups_par.items())[0]
+        # exists(par_id)
+        # assert len(group) == 2
+        # for calc_id in group:
+        # exists(calc_id)
+
+        # rv = api.get('/materials/{}/groups/par/{}'.format(silicon_id, par_id))
+        # assert rv.status_code == 200
+        # group = rv.json
+        # assert len(group['calculations']) == 2
+        # assert len(group['energies']) == 2
+        # assert len(group['volumes']) == 2
 
         # Test suggestions
         rv = api.get('/suggestions?property=structure_type')

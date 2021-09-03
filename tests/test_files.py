@@ -51,8 +51,8 @@ example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
 example_file_corrupt_zip = 'tests/data/proc/examples_corrupt_zip.zip'
 empty_file = 'tests/data/proc/empty.zip'
 example_archive_contents = {
-    "section_run": [],
-    "section_metadata": {},
+    "run": [],
+    "metadata": {},
     "processing_logs": [{"entry": "test"}]
 }
 
@@ -538,7 +538,7 @@ def create_test_upload_files(
 
     for archive in archives:
         # create a copy of the given template files for each archive
-        mainfile = archive.section_metadata.mainfile
+        mainfile = archive.metadata.mainfile
         assert mainfile is not None, 'Archives to create test upload must have a mainfile'
         target = upload_raw_files.join_file(os.path.dirname(mainfile)).os_path
         if os.path.exists(target):
@@ -551,7 +551,7 @@ def create_test_upload_files(
             os.path.join(target, os.path.basename(mainfile)))
 
         # create an archive "file" for each archive
-        calc_id = archive.section_metadata.calc_id
+        calc_id = archive.metadata.calc_id
         assert calc_id is not None, 'Archives to create test upload must have a calc id'
         upload_files.write_archive(calc_id, archive.m_to_dict())
 
@@ -559,7 +559,7 @@ def create_test_upload_files(
     shutil.rmtree(source)
 
     if published:
-        upload_files.pack([archive.section_metadata for archive in archives])
+        upload_files.pack([archive.metadata for archive in archives])
         upload_files.delete()
         return UploadFiles.get(upload_id)
 
@@ -593,7 +593,7 @@ def test_test_upload_files(raw_files_infra):
     try:
         assert_upload_files(
             upload_id,
-            [archive.section_metadata for archive in archives],
+            [archive.metadata for archive in archives],
             PublicUploadFiles)
     finally:
         if upload_files.exists():

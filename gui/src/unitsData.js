@@ -167,6 +167,11 @@ export const unitMap = {
     label: 'Weber',
     abbreviation: 'Wb'
   },
+  bohr_magneton: {
+    dimension: 'magnetic_dipole',
+    label: 'Bohr magneton',
+    abbreviation: 'Bm'
+  },
   henry: {
     dimension: 'inductance',
     label: 'Henry',
@@ -454,6 +459,16 @@ export const conversionMap = {
     multipliers: {
       weber: {
         weber: 1
+      }
+    }
+  },
+  magnetic_dipole: {
+    units: [
+      'bohr_magneton'
+    ],
+    multipliers: {
+      bohr_magneton: {
+        bohr_magneton: 1
       }
     }
   },

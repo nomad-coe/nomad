@@ -563,7 +563,6 @@ def empty_upload():
 def example_user_metadata(other_test_user, test_user) -> dict:
     return {
         'comment': 'test comment',
-        'with_embargo': True,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
         'coauthors': [other_test_user.user_id],
         '_pid': '256',
@@ -692,10 +691,10 @@ def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: User, pr
 @pytest.fixture(scope='function')
 def published(non_empty_processed: processing.Upload, internal_example_user_metadata) -> processing.Upload:
     '''
-    Provides a processed upload. Upload was uploaded with test_user.
+    Provides a processed published upload. Upload was uploaded with test_user and is embargoed.
     '''
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
-    non_empty_processed.publish_upload()
+    non_empty_processed.publish_upload(embargo_length=12)
     try:
         non_empty_processed.block_until_complete(interval=.01)
     except Exception:

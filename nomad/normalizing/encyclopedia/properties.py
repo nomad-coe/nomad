@@ -40,28 +40,26 @@ class PropertiesNormalizer():
         """
         try:
             representative_scc = context.representative_scc
-            bands = representative_scc.section_k_band
+            bands = representative_scc.band_structure_electronic
             if bands is None:
                 return
 
             representative_band = None
+            valid = True
             for band in reversed(bands):
-                kind = band.band_structure_kind
-                if kind != "vibrational":
-                    valid = True
-                    if not band.section_k_band_segment:
+                if not band.segment:
+                    valid = False
+                    break
+                for segment in band.segment:
+                    energies = segment.energies
+                    k_points = segment.kpoints
+                    labels = segment.endpoints_labels
+                    if energies is None or k_points is None or labels is None:
                         valid = False
                         break
-                    for segment in band.section_k_band_segment:
-                        energies = segment.band_energies
-                        k_points = segment.band_k_points
-                        labels = segment.band_segm_labels
-                        if energies is None or k_points is None or labels is None:
-                            valid = False
-                            break
-                    if valid:
-                        representative_band = band
-                        break
+                if valid:
+                    representative_band = band
+                    break
 
         except Exception:
             return
@@ -70,20 +68,20 @@ class PropertiesNormalizer():
 
             # Add band gap information to metadata if present. The channel with
             # smallest band gap index is chosen as a representative one.
-            band_gaps = properties.electronic_band_structure.section_band_gap
-            if band_gaps is not None and len(band_gaps) > 0:
+            channel_info = properties.electronic_band_structure.channel_info
+            if channel_info is not None and len(channel_info) > 0:
                 min_gap_index = 0
                 min_gap = float("Inf")
-                for i, gap in enumerate(band_gaps):
-                    value = gap.value
-                    if value < min_gap:
+                for i, info in enumerate(channel_info):
+                    band_gap = info.band_gap.magnitude
+                    if band_gap is not None and band_gap < min_gap:
                         min_gap_index = i
-                        min_gap = value
-                representative_gap = band_gaps[min_gap_index]
-                bg_value = representative_gap.value
+                        min_gap = band_gap
+                representative_channel = channel_info[min_gap_index]
+                bg_value = representative_channel.band_gap
                 if bg_value is not None:
-                    properties.band_gap = representative_gap.value
-                    properties.band_gap_direct = representative_gap.type == "direct"
+                    properties.band_gap = bg_value
+                    properties.band_gap_direct = representative_channel.band_gap_type == "direct"
 
     def electronic_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative electonic density
@@ -92,16 +90,15 @@ class PropertiesNormalizer():
         """
         try:
             representative_scc = context.representative_scc
-            doses = representative_scc.section_dos
+            doses = representative_scc.dos_electronic
             if doses is None:
                 return
 
             representative_dos = None
             for dos in reversed(doses):
-                kind = dos.dos_kind
-                energies = dos.dos_energies
-                values = dos.dos_values
-                if kind != "vibrational" and energies is not None and values is not None:
+                energies = dos.energies
+                values = dos.total
+                if energies is not None and len(values) > 0:
                     representative_dos = dos
                     break
 
@@ -138,15 +135,12 @@ class PropertiesNormalizer():
         """
         try:
             resolved_section = None
-            frame_sequences = self.entry_archive.section_run[0].section_frame_sequence
-            for frame_sequence in reversed(frame_sequences):
-                thermodynamical_props = frame_sequence.section_thermodynamical_properties
-                for thermodynamical_prop in thermodynamical_props:
-                    if resolved_section is None:
-                        resolved_section = thermodynamical_prop
-                    else:
-                        self.logger("Could not unambiguously select data to display for specific heat.")
-                        return
+            for workflow in reversed(self.entry_archive.workflow):
+                if workflow.thermodynamics is not None:
+                    resolved_section = workflow.thermodynamics
+            if resolved_section is None:
+                self.logger("Could not unambiguously select data to display for specific heat.")
+                return
         except Exception:
             return
         if resolved_section is not None:
@@ -159,24 +153,22 @@ class PropertiesNormalizer():
         """
         try:
             representative_scc = context.representative_scc
-            bands = representative_scc.section_k_band
+            bands = representative_scc.band_structure_phonon
             if bands is None:
                 return
 
             representative_phonon_band = None
             for band in reversed(bands):
-                kind = band.band_structure_kind
-                if kind == "vibrational":
-                    valid = True
-                    for segment in band.section_k_band_segment:
-                        energies = segment.band_energies
-                        k_points = segment.band_k_points
-                        labels = segment.band_segm_labels
-                        if energies is None or k_points is None or labels is None or "?" in labels:
-                            valid = False
-                    if valid:
-                        representative_phonon_band = band
-                        break
+                valid = True
+                for segment in band.segment:
+                    energies = segment.energies
+                    k_points = segment.kpoints
+                    labels = segment.endpoints_labels
+                    if energies is None or k_points is None or labels is None or "?" in labels:
+                        valid = False
+                if valid:
+                    representative_phonon_band = band
+                    break
 
         except Exception:
             return
@@ -189,23 +181,21 @@ class PropertiesNormalizer():
         """
         try:
             representative_scc = context.representative_scc
-            doses = representative_scc.section_dos
+            doses = representative_scc.dos_phonon
             if doses is None:
                 return
 
             representative_phonon_dos = None
             for dos in reversed(doses):
-                kind = dos.dos_kind
-                energies = dos.dos_energies
-                values = dos.dos_values
-                if kind == "vibrational" and energies is not None and values is not None:
+                energies = dos.energies
+                values = dos.total
+                if energies is not None and len(values) > 0:
                     if representative_phonon_dos is None:
                         representative_phonon_dos = dos
-                    else:
-                        self.logger("Could not unambiguously select data to display for phonon density of states.")
-                        return
+                        break
 
         except Exception:
+            self.logger("Could not unambiguously select data to display for phonon density of states.")
             return
         if representative_phonon_dos is not None:
             properties.phonon_dos = representative_phonon_dos.m_path()
@@ -214,13 +204,15 @@ class PropertiesNormalizer():
         if representative_scc is not None:
             energies = Energies()
             energy_found = False
-            for energy_name in ["energy_total", "energy_total_T0", "energy_free"]:
-                energy_value = getattr(representative_scc, energy_name)
-                if energy_value is not None:
-                    energy_found = True
-
-                    # The energies are normalized to be per atom
-                    setattr(energies, energy_name, energy_value.magnitude / n_atoms)
+            energy = representative_scc.energy
+            if energy is not None:
+                if energy.total is not None:
+                    energies.energy_total = energy.total.value
+                if energy.total_t0 is not None:
+                    energies.energy_total_T0 = energy.total_t0.value
+                if energy.free is not None:
+                    energies.energy_free = energy.free.value
+                energy_found = True
             if energy_found:
                 properties.m_add_sub_section(Properties.energies, energies)
 
@@ -231,17 +223,18 @@ class PropertiesNormalizer():
             return
 
         # Fetch resources
-        sec_enc = self.entry_archive.section_metadata.encyclopedia
+        sec_enc = self.entry_archive.metadata.encyclopedia
         properties = sec_enc.properties
         calc_type = context.calc_type
         material_type = context.material_type
         sec_system = context.representative_system
-        n_atoms = len(sec_system.atom_labels)
 
         # Save metainfo
         self.electronic_band_structure(properties, calc_type, material_type, context, sec_system)
         self.electronic_dos(properties, context)
-        self.energies(properties, n_atoms, representative_scc)
+        if sec_system.atoms is not None:
+            n_atoms = len(sec_system.atoms.labels)
+            self.energies(properties, n_atoms, representative_scc)
 
         # Phonon calculations have a specific set of properties to extract
         if context.calc_type == Calculation.calculation_type.type.phonon_calculation:

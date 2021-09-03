@@ -27,7 +27,7 @@ from nomad import metainfo, config
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.datamodel.metainfo.common_dft import FastAccess
+from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
@@ -41,7 +41,8 @@ m_package = metainfo.Package()
 
 from .results import Results  # noqa
 from .encyclopedia import EncyclopediaMetadata  # noqa
-from .metainfo.common_dft import Run, Workflow  # noqa
+from .metainfo.simulation.run import Run  # noqa
+from .metainfo.workflow import Workflow  # noqa
 from .metainfo.common_experimental import Measurement  # noqa
 from .metainfo.common_qcms import QuantumCMS  # noqa
 
@@ -327,7 +328,8 @@ def derive_authors(entry):
 
 class UploadMetadata(metainfo.MSection):
     '''
-    Metadata that is set on the upload level. Some of the fields are also mirrored to the entries.
+    Metadata that is set on the upload level and can be edited. Some of the fields are
+    also mirrored to the entries.
     '''
     upload_name = metainfo.Quantity(
         type=str,
@@ -340,7 +342,7 @@ class UploadMetadata(metainfo.MSection):
         description='The uploader of the entry')
     embargo_length = metainfo.Quantity(
         type=int,
-        description='The length of the embargo period in months')
+        description='The length of the embargo period in months (0-36)')
 
 
 class EntryMetadata(metainfo.MSection):
@@ -579,7 +581,7 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoMetadata, EditableUserMetadata])
 
     with_embargo = metainfo.Quantity(
-        type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
+        type=bool, default=False, categories=[MongoMetadata],
         description='Indicated if this entry is under an embargo',
         a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -672,14 +674,14 @@ class EntryMetadata(metainfo.MSection):
 class EntryArchive(metainfo.MSection):
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
-        derived=lambda entry: entry.section_metadata.calc_id,
+        derived=lambda entry: entry.metadata.calc_id,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    section_run = metainfo.SubSection(sub_section=Run, repeats=True)
+    run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
-    section_quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
-    section_workflow = metainfo.SubSection(sub_section=Workflow, categories=[FastAccess])
-    section_metadata = metainfo.SubSection(
+    quantum_cms = metainfo.SubSection(sub_section=QuantumCMS)
+    workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
+    metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],
         a_elasticsearch=Elasticsearch())
 
@@ -689,6 +691,7 @@ class EntryArchive(metainfo.MSection):
 
     results = metainfo.SubSection(
         sub_section=Results,
+        categories=[FastAccess],
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
 
 

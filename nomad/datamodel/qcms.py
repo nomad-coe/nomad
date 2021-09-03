@@ -43,7 +43,7 @@ class QCMSMetadata(MSection):
 
         entry = self.m_parent
 
-        root_section = entry_archive.section_quantum_cms
+        root_section = entry_archive.quantum_cms
         entry.formula = root_section.chemical_formula
         if not entry.formula:
             entry.formula = config.services.unavailable_value

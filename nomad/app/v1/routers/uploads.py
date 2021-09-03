@@ -855,11 +855,15 @@ async def post_upload(
         elif upload_path:
             metadata.name = os.path.basename(upload_path)
 
+    checked_upload_metadata = _check_upload_metadata(
+        metadata, is_admin=user.is_admin, published=False, current_embargo_length=0)
+
     upload = Upload.create(
         upload_id=upload_id,
-        user=user,
-        name=metadata.name,
-        upload_time=datetime.utcnow(),
+        user=checked_upload_metadata.uploader or user,
+        name=checked_upload_metadata.upload_name,
+        upload_time=checked_upload_metadata.upload_time or datetime.utcnow(),
+        embargo_length=checked_upload_metadata.embargo_length or 0,
         publish_directly=publish_directly)
 
     # Create staging files
@@ -899,41 +903,20 @@ async def put_upload_metadata(
         metadata: UploadMetadata = Depends(upload_metadata_parameters),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Updates the metadata of the specified upload. Only admins can update the metadata of
-    published uploads. Moreover, some of the system generated metadata fields can only ever
-    be changed by admins.
+    Updates the upload-level metadata of the specified upload. Note, if the upload is
+    published, the only operation permitted for non-admin users is to reduce the `embargo_length`,
+    i.e. to shorten the embargo or lift it entirely by setting the value to 0. Moreover,
+    some of the fields can only be set by admins.
     '''
     upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=True)
+        upload_id, user, include_published=True, published_requires_admin=False)
 
     _check_upload_not_processing(upload)
 
-    upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
-    if metadata.name is not None:
-        upload_metadata.upload_name = metadata.name
-    if metadata.embargo_length is not None:
-        if not 1 <= metadata.embargo_length <= 36:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`embargo_length` must be between 1 and 36 months.')
-        upload_metadata.embargo_length = metadata.embargo_length
-    if metadata.uploader is not None or metadata.upload_time is not None:
-        if not user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='`uploader` and `upload_time` can only be updated by an admin user.')
-    if metadata.uploader is not None:
-        try:
-            uploader = datamodel.User.get(user_id=metadata.uploader)
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`uploader` is not a valid user id.')
-        upload_metadata.uploader = uploader
-    if metadata.upload_time is not None:
-        upload_metadata.upload_time = metadata.upload_time
+    checked_upload_metadata = _check_upload_metadata(
+        metadata, user.is_admin, upload.published, upload.embargo_length)
 
-    upload.set_upload_metadata(upload_metadata)
+    upload.set_upload_metadata(checked_upload_metadata.m_to_dict())
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
@@ -987,14 +970,11 @@ async def post_upload_action_publish(
             ...,
             description=strip('''
                 The unique id of the upload to publish.''')),
-        with_embargo: bool = FastApiQuery(
-            True,
-            description=strip('''
-                If the data is published with an embargo.''')),
         embargo_length: int = FastApiQuery(
-            36,
+            None,
             description=strip('''
-                Length of the requested embargo in months.''')),
+                If provided, updates the embargo length of the upload. The value should
+                be between 0 and 36 months. 0 means no embargo.''')),
         to_central_nomad: bool = FastApiQuery(
             False,
             description=strip('''
@@ -1003,8 +983,10 @@ async def post_upload_action_publish(
                 on the OASIS.''')),
         user: User = Depends(create_user_dependency(required=True))):
     '''
-    Publishes an upload. The upload cannot be modified after this point, and after the
-    embargo period (if any) is expired, the generated archive entries will be publicly visible.
+    Publishes an upload. The upload cannot be modified after this point (except for special
+    cases, like when lifting the embargo prematurely, and by admins). After the upload is
+    published and the embargo period (if any) is expired, the generated archive entries
+    will be publicly visible.
     '''
     upload = _get_upload_with_write_access(
         upload_id, user, include_published=True, published_requires_admin=False)
@@ -1024,6 +1006,10 @@ async def post_upload_action_publish(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload without any resulting entries.')
+    if embargo_length is not None and not 0 <= embargo_length <= 36:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid embargo_length. Must be between 0 and 36 months.')
 
     if to_central_nomad:
         # Publish from an OASIS to the central repository
@@ -1036,19 +1022,15 @@ async def post_upload_action_publish(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload must be published on the OASIS first.')
         # Everything looks ok, try to publish it to the central NOMAD!
-        upload.publish_externally()
+        upload.publish_externally(embargo_length=embargo_length)
     else:
         # Publish to this repository
         if upload.published:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload is already published.')
-        if not 1 <= embargo_length <= 36 and not (embargo_length == 0 and with_embargo is False):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Invalid embargo_length. Must be between 1 and 36 months.')
         try:
-            upload.publish_upload(with_embargo=with_embargo, embargo_length=embargo_length)
+            upload.publish_upload(embargo_length=embargo_length)
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1157,16 +1139,12 @@ async def post_upload_bundle(
             None,
             description=strip('''
             Internal/Admin use only.''')),
-        with_embargo: Optional[bool] = FastApiQuery(
-            None,
-            description=strip('''
-                Specifies the embargo flag to set on the upload. If omitted, the value
-                specified in the bundle will be used.''')),
         embargo_length: Optional[int] = FastApiQuery(
             None,
             description=strip('''
                 Specifies the embargo length in months to set on the upload. If omitted,
-                the value specified in the bundle will be used.''')),
+                the value specified in the bundle will be used. A value of 0 means no
+                embargo.''')),
         include_raw_files: Optional[bool] = FastApiQuery(
             None,
             description=strip('''
@@ -1209,8 +1187,8 @@ async def post_upload_bundle(
     endpoint expects an upload bundle attached as a zipfile.
 
     **NOTE:** This endpoint is restricted to admin users and oasis admins. Further, all
-    settings except `with_embargo` and `embargo_length` requires an admin user to change
-    (these settings have default values specified by the system configuration).
+    settings except `embargo_length` requires an admin user to change (these settings
+    have default values specified by the system configuration).
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. See the POST `uploads` endpoint for
@@ -1261,7 +1239,7 @@ async def post_upload_bundle(
         upload = Upload.create_skeleton_from_bundle(bundle)
         bundle.close()
         upload.import_bundle(
-            bundle_path, move_files=False, with_embargo=with_embargo, embargo_length=embargo_length,
+            bundle_path, move_files=False, embargo_length=embargo_length,
             settings=settings_dict)
 
         return UploadProcDataResponse(
@@ -1410,10 +1388,9 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         if not upload.published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - not published yet.'''))
-        for entry in Calc.objects(upload_id=upload_id):
-            if entry.metadata.get('with_embargo'):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                    You do not have access to the specified upload - published with embargo.'''))
+        if upload.published and upload.embargo_length > 0:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - published with embargo.'''))
         return upload
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
@@ -1469,3 +1446,61 @@ def _check_upload_not_processing(upload: Upload):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently being processed, operation not allowed.')
+
+
+def _check_upload_metadata(
+        metadata: UploadMetadata, is_admin: bool, published: bool,
+        current_embargo_length: int) -> datamodel.UploadMetadata:
+    '''
+    Performs sanity checks and permission checks of the provided :class:`UploadMetadata`
+    and creates a :class:`datamodel.UploadMetadata` with validated values. Raises a
+    HTTPException if the checks fail.
+
+    Arguments:
+        metadata: the metadata to check.
+        is_admin: if the user trying to set this metadata is an admin user.
+        published: if the upload is published.
+        current_embargo_length: the current embargo_length of the upload.
+    '''
+    if not is_admin:
+        for field in ('uploader', 'upload_time'):
+            if getattr(metadata, field) is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f'Must be admin to change {field}')
+        if published:
+            for field in ('name',):
+                if getattr(metadata, field) is not None:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail=f'Upload is published, changing {field} requires admin.')
+    if metadata.uploader is not None:
+        try:
+            uploader = datamodel.User.get(user_id=metadata.uploader)
+        except KeyError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='`uploader` is not a valid user id.')
+    else:
+        uploader = None
+    if metadata.embargo_length is not None:
+        if not 0 <= metadata.embargo_length <= 36:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid `embargo_length`. Must be between 0 and 36 months')
+        if published and not is_admin:
+            if current_embargo_length == 0 and metadata.embargo_length > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Cannot put an embargo on an upload after it has been published.')
+            if metadata.embargo_length >= current_embargo_length:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Upload is published, embargo can only be shortened or lifted.')
+
+    upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
+    upload_metadata.upload_name = metadata.name
+    upload_metadata.embargo_length = metadata.embargo_length
+    upload_metadata.uploader = uploader
+    upload_metadata.upload_time = metadata.upload_time
+    return upload_metadata

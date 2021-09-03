@@ -16,9 +16,7 @@
 # limitations under the License.
 #
 
-from io import StringIO
 import json
-import numpy as np
 import pytest
 import os
 from shutil import copyfile
@@ -42,7 +40,7 @@ parser_examples = [
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/fhi-vibes', 'tests/data/parsers/fhi-vibes/molecular_dynamics.nc'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
-    ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
+    # ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
@@ -70,7 +68,7 @@ parser_examples = [
     ('parser/fleur', 'tests/data/parsers/fleur/out'),
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
-    ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
+    ('parser/onetep', 'tests/data/parsers/onetep/fluor/12-difluoroethane.out'),
     ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/xps', 'tests/data/parsers/xps/multiple_channels.xy'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
@@ -108,7 +106,7 @@ def assert_parser_result(caplog):
                 warnings_exist = True
         assert has_errors == errors_exist
         if has_warnings is not None:
-            assert has_warnings == has_warnings
+            assert has_warnings == warnings_exist
 
     return _assert
 
@@ -154,7 +152,7 @@ def parsed_example(request) -> EntryArchive:
 
 
 def add_calculation_info(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
-    entry_metadata = entry_archive.section_metadata
+    entry_metadata = entry_archive.metadata
     entry_metadata.upload_id = 'test_upload_id'
     entry_metadata.calc_id = 'test_calc_id'
     entry_metadata.calc_hash = 'test_calc_hash'

@@ -37,7 +37,7 @@ from tests.normalizing.conftest import get_template_for_structure
 def test_geometry_optimization(geometry_optimization: EntryArchive):
     """Tests that geometry optimizations are correctly processed."
     """
-    enc = geometry_optimization.section_metadata.encyclopedia
+    enc = geometry_optimization.metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
     assert calc_type == "geometry optimization"
 
@@ -45,7 +45,7 @@ def test_geometry_optimization(geometry_optimization: EntryArchive):
 def test_molecular_dynamics(molecular_dynamics: EntryArchive):
     """Tests that molecular dynamics are correctly processed."
     """
-    enc = molecular_dynamics.section_metadata.encyclopedia
+    enc = molecular_dynamics.metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
     assert calc_type == "molecular dynamics"
 
@@ -53,7 +53,7 @@ def test_molecular_dynamics(molecular_dynamics: EntryArchive):
 def test_1d_metainfo(one_d: EntryArchive):
     """Tests that metainfo for 1D systems is correctly processed.
     """
-    enc = one_d.section_metadata.encyclopedia
+    enc = one_d.metadata.encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "1D"
@@ -73,7 +73,7 @@ def test_1d_metainfo(one_d: EntryArchive):
 def test_2d_metainfo(two_d: EntryArchive):
     """Tests that metainfo for 2D systems is correctly processed.
     """
-    enc = two_d.section_metadata.encyclopedia
+    enc = two_d.metadata.encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "2D"
@@ -99,7 +99,7 @@ def test_2d_metainfo(two_d: EntryArchive):
 def test_bulk_metainfo(bulk: EntryArchive):
     """Tests that metainfo for bulk systems is correctly processed.
     """
-    enc = bulk.section_metadata.encyclopedia
+    enc = bulk.metadata.encyclopedia
     # Material
     material = enc.material
     assert material.material_type == "bulk"
@@ -140,20 +140,20 @@ def test_bulk_metainfo(bulk: EntryArchive):
 def test_1d_material_identification():
     # Original nanotube
     nanotube1 = ase.build.nanotube(4, 4, vacuum=4)
-    enc = get_template_for_structure(nanotube1).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube1).metadata.encyclopedia
     hash1 = enc.material.material_id
 
     # Rotated copy
     nanotube2 = nanotube1.copy()
     nanotube2.rotate(90, "z", rotate_cell=True)
-    enc = get_template_for_structure(nanotube2).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube2).metadata.encyclopedia
     hash2 = enc.material.material_id
     assert hash2 == hash1
 
     # Longer copy
     nanotube3 = nanotube1.copy()
     nanotube3 *= [1, 1, 2]
-    enc = get_template_for_structure(nanotube3).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube3).metadata.encyclopedia
     hash3 = enc.material.material_id
     assert hash3 == hash1
 
@@ -164,7 +164,7 @@ def test_1d_material_identification():
         pos = nanotube4.get_positions()
         pos += 0.2 * np.random.rand(pos.shape[0], pos.shape[1])
         nanotube4.set_positions(pos)
-        enc = get_template_for_structure(nanotube4).section_metadata.encyclopedia
+        enc = get_template_for_structure(nanotube4).metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == hash1
 
@@ -174,7 +174,7 @@ def test_1d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     nanotube5.set_positions(pos)
-    enc = get_template_for_structure(nanotube5).section_metadata.encyclopedia
+    enc = get_template_for_structure(nanotube5).metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != hash1
 
@@ -207,13 +207,13 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    enc = get_template_for_structure(graphene).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene).metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Graphene orthogonal supercell
     graphene2 = graphene.copy()
     graphene2 *= [2, 1, 2]
-    enc = get_template_for_structure(graphene2).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene2).metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Graphene primitive cell
@@ -230,7 +230,7 @@ def test_2d_material_identification():
         ],
         pbc=True
     )
-    enc = get_template_for_structure(graphene3).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene3).metadata.encyclopedia
     assert enc.material.material_id == graphene_material_id
 
     # Slightly distorted system should match
@@ -241,7 +241,7 @@ def test_2d_material_identification():
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         graphene4.set_positions(pos)
         entry_archive = get_template_for_structure(graphene4)
-        enc = entry_archive.section_metadata.encyclopedia
+        enc = entry_archive.metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == graphene_material_id
 
@@ -251,7 +251,7 @@ def test_2d_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     graphene5.set_positions(pos)
-    enc = get_template_for_structure(graphene5).section_metadata.encyclopedia
+    enc = get_template_for_structure(graphene5).metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != graphene_material_id
 
@@ -298,32 +298,32 @@ def test_2d_material_identification():
         pbc=True
     )
     entry_archive = get_template_for_structure(atoms)
-    enc = entry_archive.section_metadata.encyclopedia
+    enc = entry_archive.metadata.encyclopedia
     assert enc.material.material_id == mos2_material_id
 
     # MoS2 orthogonal supercell
     atoms *= [2, 3, 1]
-    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).metadata.encyclopedia
     assert enc.material.material_id == mos2_material_id
 
 
 def test_bulk_material_identification():
     # Original system
     wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
-    enc = get_template_for_structure(wurtzite).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite).metadata.encyclopedia
     hash1 = enc.material.material_id
 
     # Rotated
     wurtzite2 = wurtzite.copy()
     wurtzite2.rotate(90, "z", rotate_cell=True)
-    enc = get_template_for_structure(wurtzite2).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite2).metadata.encyclopedia
     hash2 = enc.material.material_id
     assert hash2 == hash1
 
     # Supercell
     wurtzite3 = wurtzite.copy()
     wurtzite3 *= [2, 3, 1]
-    enc = get_template_for_structure(wurtzite3).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite3).metadata.encyclopedia
     hash3 = enc.material.material_id
     assert hash3 == hash1
 
@@ -334,7 +334,7 @@ def test_bulk_material_identification():
         pos = wurtzite4.get_positions()
         pos += 0.05 * np.random.rand(pos.shape[0], pos.shape[1])
         wurtzite4.set_positions(pos)
-        enc = get_template_for_structure(wurtzite4).section_metadata.encyclopedia
+        enc = get_template_for_structure(wurtzite4).metadata.encyclopedia
         hash4 = enc.material.material_id
         assert hash4 == hash1
 
@@ -344,7 +344,7 @@ def test_bulk_material_identification():
     np.random.seed(4)
     pos += 1 * np.random.rand(pos.shape[0], pos.shape[1])
     wurtzite5.set_positions(pos)
-    enc = get_template_for_structure(wurtzite5).section_metadata.encyclopedia
+    enc = get_template_for_structure(wurtzite5).metadata.encyclopedia
     hash5 = enc.material.material_id
     assert hash5 != hash1
 
@@ -366,7 +366,7 @@ def test_1d_idealized_structure():
         ],
         pbc=True
     )
-    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).metadata.encyclopedia
 
     expected_cell = [
         [0, 0, 0],
@@ -406,7 +406,7 @@ def test_2d_idealized_structure():
         ],
         pbc=True
     )
-    enc = get_template_for_structure(atoms).section_metadata.encyclopedia
+    enc = get_template_for_structure(atoms).metadata.encyclopedia
 
     expected_cell = [
         [2e-10, 0, 0],
@@ -429,14 +429,14 @@ def test_2d_idealized_structure():
 
 
 def test_method_dft_metainfo(dft):
-    enc = dft.section_metadata.encyclopedia
+    enc = dft.metadata.encyclopedia
     assert enc.method.core_electron_treatment == "pseudopotential"
     assert enc.method.functional_long_name == "1.0*GGA_C_PBE+1.0*GGA_X_PBE"
     assert enc.method.functional_type == "GGA"
 
 
 def test_method_gw_metainfo(gw):
-    enc = gw.section_metadata.encyclopedia
+    enc = gw.metadata.encyclopedia
     assert enc.method.gw_type == "G0W0"
     assert enc.method.gw_starting_point == "1.0*GGA_C_PBE+1.0*GGA_X_PBE"
 
@@ -445,7 +445,7 @@ def test_hashes_exciting(hash_exciting):
     """Tests that the hashes has been successfully created for calculations
     from exciting.
     """
-    enc = hash_exciting.section_metadata.encyclopedia
+    enc = hash_exciting.metadata.encyclopedia
     method_id = enc.method.method_id
     group_eos_id = enc.method.group_eos_id
     group_parametervariation_id = enc.method.group_parametervariation_id
@@ -458,7 +458,7 @@ def test_hashes_undefined(hash_vasp):
     """Tests that the hashes are not present when the method settings cannot be
     determined at a sufficient accuracy.
     """
-    enc = hash_vasp.section_metadata.encyclopedia
+    enc = hash_vasp.metadata.encyclopedia
     method_id = enc.method.method_id
     group_eos_id = enc.method.group_eos_id
 
@@ -474,11 +474,12 @@ def test_dos(dos_unpolarized_vasp, dos_polarized_vasp):
     """
     def generaltests(dos, n_channels):
         assert dos is not None
-        assert dos.dos_values_normalized.shape == (n_channels, 301)
-        assert dos.dos_energies_normalized.shape == (301,)
+        assert len(dos.total) == n_channels
+        assert dos.total[n_channels - 1].value.shape == (301,)
+        assert dos.energies.shape == (301,)
 
-    generaltests(dos_unpolarized_vasp.section_metadata.encyclopedia.properties.electronic_dos, n_channels=1)
-    generaltests(dos_polarized_vasp.section_metadata.encyclopedia.properties.electronic_dos, n_channels=2)
+    generaltests(dos_unpolarized_vasp.metadata.encyclopedia.properties.electronic_dos, n_channels=1)
+    generaltests(dos_polarized_vasp.metadata.encyclopedia.properties.electronic_dos, n_channels=2)
 
 
 def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band_path_cF_nonstandard):
@@ -486,18 +487,18 @@ def test_electronic_bands(bands_unpolarized_no_gap, bands_polarized_no_gap, band
     """
     def generaltests(band):
         assert band is not None
-        for segment in band.section_k_band_segment:
-            assert segment.band_energies is not None
-            assert segment.band_k_points is not None
-            assert segment.band_segm_labels is not None
+        for segment in band.segment:
+            assert segment.energies is not None
+            assert segment.kpoints is not None
+            assert segment.endpoints_labels is not None
 
     # VASP bands
-    generaltests(bands_unpolarized_no_gap.section_metadata.encyclopedia.properties.electronic_band_structure)
-    generaltests(bands_polarized_no_gap.section_metadata.encyclopedia.properties.electronic_band_structure)
+    generaltests(bands_unpolarized_no_gap.metadata.encyclopedia.properties.electronic_band_structure)
+    generaltests(bands_polarized_no_gap.metadata.encyclopedia.properties.electronic_band_structure)
 
     # Band structure from exciting calculation where there are multiple sccs
     # and multiple bands present for some reason...
-    generaltests(band_path_cF_nonstandard.section_metadata.encyclopedia.properties.electronic_band_structure)
+    generaltests(band_path_cF_nonstandard.metadata.encyclopedia.properties.electronic_band_structure)
 
 
 def test_phonon(test_user, proc_infra):
@@ -519,7 +520,7 @@ def test_phonon(test_user, proc_infra):
     phonon_archive = archive_reader[phonon_id].to_dict()
     phonon = EntryArchive.m_from_dict(phonon_archive)
 
-    enc = phonon.section_metadata.encyclopedia
+    enc = phonon.metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
     status = enc.status
     prop = enc.properties
@@ -531,7 +532,7 @@ def test_phonon(test_user, proc_infra):
     assert status == EncyclopediaMetadata.status.type.success
 
     # There should be a reference to the external calculation
-    assert phonon.section_run[0].section_single_configuration_calculation[0].section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url is not None
+    assert phonon.run[0].calculation[0].calculations_path[0] is not None
 
     # The method information should have been read from the referenced
     # calculation
@@ -542,24 +543,23 @@ def test_phonon(test_user, proc_infra):
 
     # Check dos
     assert dos is not None
-    assert dos.dos_kind == "vibrational"
-    assert dos.dos_energies is not None
-    assert dos.dos_values is not None
+    assert dos.energies is not None
+    assert len(dos.total) > 0
 
     # Check band structure
     assert band is not None
-    assert band.band_structure_kind == "vibrational"
-    for segment in band.section_k_band_segment:
-        assert segment.band_energies is not None
-        assert segment.band_k_points is not None
-        assert segment.band_segm_labels is not None
+    for segment in band.segment:
+        assert segment.energies is not None
+        assert segment.kpoints is not None
+        assert segment.endpoints_labels is not None
 
     # Check thermodynamical properties
     assert thermo_props is not None
-    assert thermo_props.thermodynamical_property_heat_capacity_C_v is not None
-    assert thermo_props.specific_heat_capacity is not None
-    assert thermo_props.thermodynamical_property_temperature is not None
+    assert thermo_props.heat_capacity_c_v is not None
+    assert thermo_props.heat_capacity_c_v_specific is not None
+    assert thermo_props.temperature is not None
     assert thermo_props.vibrational_free_energy_at_constant_volume is not None
+    assert thermo_props.vibrational_free_energy_at_constant_volume_specific is not None
 
 
 def test_elastic(elastic: EntryArchive):
@@ -567,7 +567,7 @@ def test_elastic(elastic: EntryArchive):
     now, the method information is not being processed, as it requires an
     additional processing step similar to phonon calculations.
     """
-    enc = elastic.section_metadata.encyclopedia
+    enc = elastic.metadata.encyclopedia
     calc_type = enc.calculation.calculation_type
     status = enc.status
     assert calc_type == Calculation.calculation_type.type.elastic_constants

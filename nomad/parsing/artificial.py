@@ -31,7 +31,9 @@ import os
 import signal
 
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.common_dft import Run
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.method import Electronic, XCFunctional, DFT
+from nomad.datamodel.metainfo.simulation.system import Atoms
 
 from .parser import Parser, MatchingParser
 
@@ -44,7 +46,7 @@ class EmptyParser(MatchingParser):
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
         run = archive.m_create(Run)
-        run.program_name = self.code_name
+        run.program = Program(name=self.code_name)
 
 
 class TemplateParser(Parser):
@@ -70,8 +72,8 @@ class TemplateParser(Parser):
 
         template_json = json.load(open(mainfile, 'r'))
         loaded_archive = EntryArchive.m_from_dict(template_json)
-        archive.m_add_sub_section(EntryArchive.section_run, loaded_archive.section_run[0])
-        archive.m_add_sub_section(EntryArchive.section_workflow, loaded_archive.section_workflow)
+        archive.m_add_sub_section(EntryArchive.run, loaded_archive.run[0])
+        archive.m_add_sub_section(EntryArchive.workflow, loaded_archive.workflow[0])
 
         if 'warning' in mainfile:
             logger.warn('a test warning.')
@@ -162,9 +164,9 @@ class GenerateRandomParser(TemplateParser):
         random.seed(seed)
         numpy.random.seed(seed)
 
-        run = archive.section_run[0]
+        run = archive.run[0]
 
-        for system in run.section_system:
+        for system in run.system:
             atoms = []
             atom_positions = []
             # different atoms
@@ -176,11 +178,10 @@ class GenerateRandomParser(TemplateParser):
                     atoms.append(atom)
                     atom_positions.append([.0, .0, .0])
 
-            system.atom_labels = atoms
-            system.atom_positions = atom_positions
+            system.atoms = Atoms(labels=atoms, positions=atom_positions)
 
         run.program_basis_set_type = random.choice(GenerateRandomParser.basis_set_types)
 
-        for method in run.section_method:
-            method.electronic_structure_method = random.choice(GenerateRandomParser.electronic_structure_methods)
-            method.XC_functional_name = random.choice(GenerateRandomParser.XC_functional_names)
+        for method in run.method:
+            method.electronic = Electronic(method=random.choice(GenerateRandomParser.electronic_structure_methods))
+            method.dft = DFT(xc_functional=XCFunctional(name=random.choice(GenerateRandomParser.XC_functional_names)))

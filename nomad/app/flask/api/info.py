@@ -35,7 +35,7 @@ ns = api.namespace('info', description='Access to nomad configuration details.')
 
 metainfo_model = api.model('Metainfo', {
     'all_package': fields.String(description='Name of the metainfo package that references all available packages, i.e. the complete metainfo.'),
-    'root_section': fields.String(description='Name of the topmost section, e.g. section_run for computational material science data.')
+    'root_section': fields.String(description='Name of the topmost section, e.g. section run for computational material science data.')
 })
 
 domain_model = api.model('Domain', {
