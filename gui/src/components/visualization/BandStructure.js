@@ -24,7 +24,7 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { add, distance, mergeObjects } from '../../utils'
-import { toUnitSystem } from '../../units'
+import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { normalizationWarning } from '../../config'
 
@@ -46,11 +46,25 @@ const BandStructure = React.memo(({
 }) => {
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
-  const [normalizedToHOE, setNormalizedToHOE] = useState(false)
-
-  // Styles
+  const energyUnit = useMemo(() => new Unit('joule'), [])
   const style = useStyles(classes)
   const theme = useTheme()
+
+  // Determine the energy reference and normalization
+  const [energyHighestOccupied, normalized] = useMemo(() => {
+    if (!data) {
+      return [undefined, undefined]
+    }
+    if (type === 'vibrational') {
+      return [0, true]
+    } else {
+      if (!data.energy_highest_occupied === undefined) {
+        return [0, false]
+      } else {
+        return [toUnitSystem(data.energy_highest_occupied, energyUnit, units, false), true]
+      }
+    }
+  }, [data, energyUnit, units, type])
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff as a side effect, the first render containing
@@ -60,33 +74,18 @@ const BandStructure = React.memo(({
       return
     }
 
-    // Determine the energy reference.
-    let energyHighestOccupied
-    if (type === 'vibrational') {
-      energyHighestOccupied = 0
-      setNormalizedToHOE(true)
-    } else {
-      if (!data.energy_highest_occupied === undefined) {
-        energyHighestOccupied = 0
-        setNormalizedToHOE(false)
-      } else {
-        energyHighestOccupied = toUnitSystem(data.energy_highest_occupied, 'joule', units, false)
-        setNormalizedToHOE(true)
-      }
-    }
-    const energyName = 'band_energies'
-    const kpointName = 'band_k_points'
-
-    let plotData = []
-    let nChannels = data.segments[0][energyName].length
-    let nBands = data.segments[0][energyName][0][0].length
+    const energyName = 'energies'
+    const kpointName = 'kpoints'
+    const plotData = []
+    const nChannels = data.segment[0][energyName].length
+    const nBands = data.segment[0][energyName][0][0].length
 
     // Calculate distances in k-space if missing. These distances in k-space
     // define the plot x-axis spacing.
     let tempSegments = []
-    if (data.segments[0].k_path_distances === undefined) {
+    if (data.segment[0].k_path_distances === undefined) {
       let length = 0
-      for (let segment of data.segments) {
+      for (let segment of data.segment) {
         const k_path_distances = []
         const nKPoints = segment[energyName][0].length
         let start = segment[kpointName][0]
@@ -102,7 +101,7 @@ const BandStructure = React.memo(({
         tempSegments.push(k_path_distances)
       }
     } else {
-      for (let segment of data.segments) {
+      for (let segment of data.segment) {
         tempSegments.push(segment.k_path_distances)
       }
     }
@@ -110,7 +109,7 @@ const BandStructure = React.memo(({
 
     // Path
     let path = []
-    for (let segment of data.segments) {
+    for (let segment of data.segment) {
       path = path.concat(segment.k_path_distances)
       tempSegments.push(segment.k_path_distances)
     }
@@ -121,7 +120,7 @@ const BandStructure = React.memo(({
       for (let iBand = 0; iBand < nBands; ++iBand) {
         bands.push([])
       }
-      for (let segment of data.segments) {
+      for (let segment of data.segment) {
         for (let iBand = 0; iBand < nBands; ++iBand) {
           let nKPoints = segment[energyName][1].length
           for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
@@ -132,7 +131,7 @@ const BandStructure = React.memo(({
 
       // Create plot data entry for each band
       for (let band of bands) {
-        band = toUnitSystem(band, 'joule', units, false)
+        band = toUnitSystem(band, energyUnit, units, false)
         if (energyHighestOccupied !== 0) {
           band = add(band, -energyHighestOccupied)
         }
@@ -157,7 +156,7 @@ const BandStructure = React.memo(({
     for (let iBand = 0; iBand < nBands; ++iBand) {
       bands.push([])
     }
-    for (let segment of data.segments) {
+    for (let segment of data.segment) {
       for (let iBand = 0; iBand < nBands; ++iBand) {
         let nKPoints = segment[energyName][0].length
         for (let iKPoint = 0; iKPoint < nKPoints; ++iKPoint) {
@@ -169,7 +168,7 @@ const BandStructure = React.memo(({
 
     // Create plot data entry for each band
     for (let band of bands) {
-      band = toUnitSystem(band, 'joule', units, false)
+      band = toUnitSystem(band, energyUnit, units, false)
       if (energyHighestOccupied !== 0) {
         band = add(band, -energyHighestOccupied)
       }
@@ -189,7 +188,7 @@ const BandStructure = React.memo(({
     }
 
     // Normalization line
-    if (type !== 'vibrational' && normalizedToHOE) {
+    if (type !== 'vibrational' && normalized) {
       plotData.push({
         x: [path[0], path[path.length - 1]],
         y: [0, 0],
@@ -205,7 +204,7 @@ const BandStructure = React.memo(({
     }
 
     setFinalData(plotData)
-  }, [data, theme, units, type, normalizedToHOE])
+  }, [data, theme, units, energyUnit, type, normalized, energyHighestOccupied])
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -219,7 +218,7 @@ const BandStructure = React.memo(({
       },
       yaxis: {
         title: {
-          text: 'Energy (eV)'
+          text: `Energy (${energyUnit.label(units)})`
         },
         zeroline: type === 'vibrational'
       },
@@ -237,7 +236,7 @@ const BandStructure = React.memo(({
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, type])
+  }, [layout, type, energyUnit, units])
 
   // Compute layout that depends on data.
   const computedLayout = useMemo(() => {
@@ -247,11 +246,12 @@ const BandStructure = React.memo(({
     // Set new layout that contains the segment labels
     let labels = []
     let labelKPoints = []
-    for (let iSegment = 0; iSegment < data.segments.length; ++iSegment) {
-      let segment = data.segments[iSegment]
-      const startLabel = segment.band_segm_labels ? segment.band_segm_labels[0] : ''
+    for (let iSegment = 0; iSegment < data.segment.length; ++iSegment) {
+      let segment = data.segment[iSegment]
+      const startLabel = segment.endpoints_labels
+        ? segment.endpoints_labels[0]
+        : ''
       if (iSegment === 0) {
-        // If label is not defined, use empty string
         labels.push(startLabel)
         labelKPoints.push(pathSegments[iSegment][0])
       } else {
@@ -260,10 +260,13 @@ const BandStructure = React.memo(({
           labels[labels.length - 1] = `${prevLabel}|${startLabel}`
         }
       }
-      const endLabel = segment.band_segm_labels ? segment.band_segm_labels[1] : ''
+      const endLabel = segment.endpoints_labels
+        ? segment.endpoints_labels[1]
+        : ''
       labels.push(endLabel)
       labelKPoints.push(pathSegments[iSegment].slice(-1)[0])
     }
+
     let shapes = []
     for (let iShape = 1; iShape < labelKPoints.length - 1; ++iShape) {
       let labelKPoint = labelKPoints[iShape]
@@ -304,7 +307,7 @@ const BandStructure = React.memo(({
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
-        warning={normalizedToHOE ? null : normalizationWarning}
+        warning={normalized ? null : normalizationWarning}
         placeholderStyle={placeholderStyle}
         metaInfoLink={data?.m_path}
         {...other}
@@ -318,7 +321,7 @@ BandStructure.propTypes = {
   data: PropTypes.oneOfType([
     PropTypes.bool, // Set to False to show NoData component
     PropTypes.shape({
-      segments: PropTypes.array.isRequired, // Array of section_k_band_segments in SI units
+      segment: PropTypes.array.isRequired, // Array of segments in SI units
       energy_highest_occupied: PropTypes.number, // Highest occupied energy.
       m_path: PropTypes.string // Path of the section containing the data in the Archive
     })

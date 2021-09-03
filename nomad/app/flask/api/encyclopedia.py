@@ -1297,13 +1297,14 @@ energies = api.model("energies", {
 })
 electronic_band_structure = api.model("electronic_band_structure", {
     "reciprocal_cell": fields.List(fields.List(fields.Float)),
-    "brillouin_zone": fields.Raw,
     "section_k_band_segment": fields.Raw,
-    "section_band_gap": fields.Raw,
+    "band_gap": fields.Raw,
+    "energy_highest_occupied": fields.Float,
 })
 electronic_dos = api.model("electronic_dos", {
     "dos_energies": fields.List(fields.Float),
     "dos_values": fields.List(fields.List(fields.Float)),
+    "energy_highest_occupied": fields.Float,
 })
 calculation_property_result = api.model("calculation_property_result", {
     "lattice_parameters": fields.Nested(lattice_parameters, skip_none=True),
@@ -1424,52 +1425,67 @@ class EncCalculationResource(Resource):
                 try:
                     value = root[arch_path]
 
-                    # Replace unnormalized thermodynamical properties with
-                    # normalized ones and turn into dict
+                    # Normalized thermodynamical properties
                     if key == "thermodynamical_properties":
-                        specific_heat_capacity = value.specific_heat_capacity.magnitude.tolist()
-                        specific_free_energy = value.specific_vibrational_free_energy_at_constant_volume.magnitude.tolist()
+                        new_value = {}
+                        specific_heat_capacity = value.heat_capacity_c_v_specific.magnitude.tolist()
+                        specific_free_energy = value.vibrational_free_energy_at_constant_volume_specific.magnitude.tolist()
                         specific_heat_capacity = [x if np.isfinite(x) else None for x in specific_heat_capacity]
                         specific_free_energy = [x if np.isfinite(x) else None for x in specific_free_energy]
-                    if isinstance(value, list):
-                        value = [x.m_to_dict() for x in value]
-                    else:
-                        value = value.m_to_dict()
-                    if key == "thermodynamical_properties":
-                        del value["thermodynamical_property_heat_capacity_C_v"]
-                        del value["vibrational_free_energy_at_constant_volume"]
-                        value["specific_heat_capacity"] = specific_heat_capacity
-                        value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
-
-                    # DOS results are simplified.
-                    if key == "electronic_dos":
-                        if "dos_energies_normalized" in value:
-                            value["dos_energies"] = value["dos_energies_normalized"]
-                            del value["dos_energies_normalized"]
-                        if "dos_values_normalized" in value:
-                            value["dos_values"] = value["dos_values_normalized"]
-                            del value["dos_values_normalized"]
-
-                    # Pre-calculate k-path length to be used as x-coordinate in
-                    # plots. If the VBM and CBM information is needed later, it
-                    # can be added as indices along the path. The exact k-points
-                    # and occupations are removed to save some bandwidth.
-                    if key == "electronic_band_structure" or key == "phonon_band_structure":
-                        segments = value["section_k_band_segment"]
+                        new_value["specific_heat_capacity"] = specific_heat_capacity
+                        new_value["thermodynamical_property_temperature"] = value.temperature.magnitude.tolist()
+                        new_value["specific_vibrational_free_energy_at_constant_volume"] = specific_free_energy
+                    # Normalized DOS
+                    elif key == "electronic_dos" or key == "phonon_dos":
+                        new_value = {}
+                        new_value["dos_energies"] = value.energies.magnitude.tolist()
+                        new_value["dos_values"] = [(d.value.magnitude * d.normalization_factor.magnitude).tolist() for d in value.total]
+                        if key == "electronic_dos":
+                            try:
+                                channel_info = value.channel_info
+                            except Exception:
+                                channel_info = None
+                            if channel_info:
+                                energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in channel_info])
+                                new_value["energy_highest_occupied"] = energy_highest_occupied
+                    # Normalized band structure with precalculated k-path
+                    # length to be used as x-coordinate in the plots.
+                    elif key == "electronic_band_structure" or key == "phonon_band_structure":
+                        new_segments = []
                         k_path_length = 0
-                        for segment in segments:
-                            k_points = np.array(segment["band_k_points"])
+                        for segment in value.segment:
+                            new_segment = {}
+                            k_points = np.array(segment.kpoints)
                             segment_length = np.linalg.norm(k_points[-1, :] - k_points[0, :])
                             k_path_distances = k_path_length + np.linalg.norm(k_points - k_points[0, :], axis=1)
                             k_path_length += segment_length
-                            segment["k_path_distances"] = k_path_distances.tolist()
-                            del segment["band_k_points"]
-                            if "band_occupations" in segment:
-                                del segment["band_occupations"]
+                            new_segment["band_k_points"] = k_points.tolist()
+                            new_segment["k_path_distances"] = k_path_distances.tolist()
+                            new_segment["band_energies"] = segment.energies.magnitude.tolist()
+                            new_segment["band_segm_labels"] = segment.endpoints_labels
+                            new_segments.append(new_segment)
+                        new_value = {
+                            "section_k_band_segment": new_segments
+                        }
+                        if key == "electronic_band_structure":
+                            new_value["reciprocal_cell"] = value.reciprocal_cell.magnitude.tolist()
+                            try:
+                                channel_info = value.channel_info
+                            except Exception:
+                                channel_info = None
+                            if channel_info:
+                                energy_highest_occupied = max([x.energy_highest_occupied.magnitude.item() for x in channel_info])
+                                new_value["band_gap"] = [x.m_to_dict() for x in channel_info]
+                                new_value["energy_highest_occupied"] = energy_highest_occupied
+                    else:
+                        if isinstance(value, list):
+                            new_value = [x.m_to_dict() for x in value]
+                        else:
+                            new_value = value.m_to_dict()
 
-                    result[key] = value
-                except (AttributeError, KeyError):
-                    abort(500, "Could not find the requested resource.")
+                    result[key] = new_value
+                except Exception as e:
+                    abort(500, message="Could not find the requested resource.")
 
         # Add results from ES
         for prop, es_source in es_properties.items():

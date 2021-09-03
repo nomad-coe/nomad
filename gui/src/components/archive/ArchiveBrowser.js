@@ -15,25 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, FormControl, RadioGroup, Radio } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, List, Adaptor, formatSubSectionName } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
-import Structure from '../visualization/Structure'
-import BrillouinZone from '../visualization/BrillouinZone'
-import BandStructure from '../visualization/BandStructure'
-import EELS from '../visualization/EELS'
-import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
-import { getHighestOccupiedEnergy } from '../../utils'
+import { Overview } from './Overview'
 import { toUnitSystem, useUnits } from '../../units'
-import { electronicRange } from '../../config'
 
 export const configState = atom({
   key: 'config',
@@ -43,10 +37,6 @@ export const configState = atom({
     'showAllDefined': false
   }
 })
-
-// Contains details about the currently visualized system. Used to detect if a
-// reload is needed for the StructureViewer.
-const visualizedSystem = {}
 
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
@@ -356,186 +346,6 @@ QuantityValue.propTypes = ({
   units: PropTypes.object
 })
 
-/**
- * An optional overview for a section displayed directly underneath the section
- * title.
- */
-function Overview({section, def, parent, units}) {
-  // States
-  const [mode, setMode] = useState('bs')
-
-  // Styles
-  const useStyles = makeStyles(
-    {
-      bands: {
-        width: '30rem',
-        height: '30rem',
-        margin: 'auto'
-      },
-      structure: {
-        width: '28rem',
-        margin: 'auto'
-      },
-      dos: {
-        width: '20rem',
-        height: '40rem',
-        margin: 'auto'
-      },
-      eels: {
-        width: '30rem',
-        height: '15rem',
-        margin: 'auto'
-      },
-      radio: {
-        display: 'flex',
-        justifyContent: 'center'
-      }
-    }
-  )
-  const style = useStyles()
-
-  const toggleMode = useCallback((event) => {
-    setMode(event.target.value)
-  }, [setMode])
-
-  // Structure visualization for section_system
-  if (def.name === 'System') {
-    let url = window.location.href
-    let name = 'section_system'
-    let rootIndex = url.indexOf(name) + name.length
-    let sectionPath = url.substring(0, rootIndex)
-    let tmp = url.substring(rootIndex)
-    let tmpIndex = tmp.indexOf('/')
-    let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
-
-    // The section is incomplete, we leave the overview empty
-    if (!section.atom_species) {
-      return null
-    }
-    const nAtoms = section.atom_species.length
-    let system = {
-      'species': section.atom_species,
-      'cell': section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}) : undefined,
-      'positions': toUnitSystem(section.atom_positions, 'meter', {length: 'angstrom'}),
-      'pbc': section.configuration_periodic_dimensions
-    }
-    visualizedSystem.sectionPath = sectionPath
-    visualizedSystem.index = index
-    visualizedSystem.nAtoms = nAtoms
-
-    return <Structure
-      aspectRatio={4 / 3}
-      className={style.structure}
-      data={system}
-    ></Structure>
-  // Structure visualization for idealized_structure
-  } else if (def.name === 'IdealizedStructure') {
-    // The section is incomplete, we leave the overview empty
-    if (!section.atom_labels) {
-      return null
-    }
-    const system = {
-      species: section.atom_labels,
-      cell: section.lattice_vectors ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'}) : undefined,
-      positions: section.atom_positions,
-      fractional: true,
-      pbc: section.periodicity
-    }
-    return <Structure
-      data={system}
-      className={style.structure}
-      aspectRatio={1}>
-    </Structure>
-  // Band structure plot for section_k_band
-  } else if (def.name === 'KBand') {
-    return section.band_structure_kind !== 'vibrational'
-      ? <>
-        {mode === 'bs'
-          ? <Box>
-            <BandStructure
-              className={style.bands}
-              data={{
-                energy_highest_occupied: getHighestOccupiedEnergy(section, parent),
-                segments: section.section_k_band_segment,
-                reciprocal_cell: section.reciprocal_cell
-              }}
-              layout={{yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units)}}}
-              aspectRatio={1}
-              units={units}
-            ></BandStructure>
-          </Box>
-          : <BrillouinZone
-            className={style.bands}
-            data={section}
-            aspectRatio={1}
-          ></BrillouinZone>
-        }
-        <FormControl component="fieldset" className={style.radio}>
-          <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
-            <FormControlLabel
-              value="bs"
-              control={<Radio color="primary" />}
-              label="Band structure"
-              labelPlacement="end"
-            />
-            <FormControlLabel
-              value="bz"
-              control={<Radio color="primary" />}
-              label="Brillouin zone"
-              labelPlacement="end"
-            />
-          </RadioGroup>
-        </FormControl>
-      </>
-      : <Box>
-        <BandStructure
-          className={style.bands}
-          data={{
-            segments: section.section_k_band_segment,
-            reciprocal_cell: section.reciprocal_cell
-          }}
-          aspectRatio={1}
-          units={units}
-          type='vibrational'
-        ></BandStructure>
-      </Box>
-  // DOS plot for section_dos
-  } else if (def.name === 'Dos') {
-    const isVibrational = section.dos_kind === 'vibrational'
-    const layout = isVibrational
-      ? undefined
-      : {yaxis: {autorange: false, range: toUnitSystem(electronicRange, 'electron_volt', units)}}
-    return <DOS
-      className={style.dos}
-      layout={layout}
-      data={{
-        energies: section.dos_energies_normalized,
-        densities: section.dos_values_normalized,
-        energy_highest_occupied: 0
-      }}
-      aspectRatio={1 / 2}
-      units={units}
-      type={isVibrational ? 'vibrational' : null}
-    ></DOS>
-  // EELS data
-  } else if (def.name === 'Spectrum') {
-    return <EELS
-      className={style.eels}
-      data={section}
-      layout={{yaxis: {autorange: true}}}
-      aspectRatio={2}
-      units={units}
-    ></EELS>
-  }
-  return null
-}
-Overview.propTypes = ({
-  def: PropTypes.object,
-  section: PropTypes.object,
-  parent: PropTypes.object,
-  units: PropTypes.object
-})
-
 function Section({section, def, parent, units}) {
   const config = useRecoilValue(configState)
 
@@ -554,7 +364,7 @@ function Section({section, def, parent, units}) {
 
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    <Overview def={def} section={section} parent={parent} units={units}></Overview>
+    <Overview section={section} def={def} units={units}/>
     <Compartment title="sub sections">
       {sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)

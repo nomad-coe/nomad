@@ -68,20 +68,20 @@ class PropertiesNormalizer():
 
             # Add band gap information to metadata if present. The channel with
             # smallest band gap index is chosen as a representative one.
-            band_gaps = properties.electronic_band_structure.band_gap
-            if band_gaps is not None and len(band_gaps) > 0:
+            channel_info = properties.electronic_band_structure.channel_info
+            if channel_info is not None and len(channel_info) > 0:
                 min_gap_index = 0
                 min_gap = float("Inf")
-                for i, gap in enumerate(band_gaps):
-                    value = gap.value
-                    if value < min_gap:
+                for i, info in enumerate(channel_info):
+                    band_gap = info.band_gap.magnitude
+                    if band_gap is not None and band_gap < min_gap:
                         min_gap_index = i
-                        min_gap = value
-                representative_gap = band_gaps[min_gap_index]
-                bg_value = representative_gap.value
+                        min_gap = band_gap
+                representative_channel = channel_info[min_gap_index]
+                bg_value = representative_channel.band_gap
                 if bg_value is not None:
-                    properties.band_gap = representative_gap.value
-                    properties.band_gap_direct = representative_gap.type == "direct"
+                    properties.band_gap = bg_value
+                    properties.band_gap_direct = representative_channel.band_gap_type == "direct"
 
     def electronic_dos(self, properties: Properties, context: Context) -> None:
         """Tries to resolve a reference to a representative electonic density

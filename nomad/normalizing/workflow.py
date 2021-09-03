@@ -187,8 +187,9 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             energies = []
             invalid = False
             for step in range(n_steps):
-                energy = trajectory[step].energy_total
-                if energy is None:
+                try:
+                    energy = trajectory[step].energy.total.value
+                except (IndexError, AttributeError):
                     invalid = True
                     break
                 energies.append(energy.magnitude)
@@ -382,7 +383,7 @@ class ThermodynamicsNormalizer(TaskNormalizer):
                         values.append(quantity.magnitude if hasattr(quantity, 'magnitude') else quantity)
                 except Exception:
                     pass
-            unit = quantity.magnitude if hasattr(quantity, 'magnitude') else 1.0
+            unit = quantity.unit if hasattr(quantity, 'unit') else 1.0
             setattr(self.section, name, np.array(values) * unit)
 
         if not self.section.temperature:
@@ -453,6 +454,15 @@ class WorkflowNormalizer(Normalizer):
             sec_run = sec_workflow.run_ref
             sec_run = sec_run[-1].value if sec_run else self.entry_archive.run[-1]
 
+            scc = sec_run.calculation
+            if not sec_workflow.calculation_result_ref:
+                if scc:
+                    sec_workflow.calculation_result_ref = scc[-1]
+
+            if not sec_workflow.calculations_ref:
+                if scc:
+                    sec_workflow.calculations_ref = scc
+
             if sec_workflow.type is None:
                 workflow_type = self._resolve_workflow_type(sec_run)
                 sec_workflow.type = workflow_type
@@ -471,15 +481,6 @@ class WorkflowNormalizer(Normalizer):
 
             elif sec_workflow.type == 'single_point':
                 SinglePointNormalizer(self.entry_archive, n).normalize()
-
-            scc = sec_run.calculation
-            if not sec_workflow.calculation_result_ref:
-                if scc:
-                    sec_workflow.calculation_result_ref = scc[-1]
-
-            if not sec_workflow.calculations_ref:
-                if scc:
-                    sec_workflow.calculations_ref = scc
 
             # add thermodynamics data
             ThermodynamicsNormalizer(self.entry_archive, n).normalize()

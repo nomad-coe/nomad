@@ -98,7 +98,7 @@ def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive,
     """
     def get_dos_values_normalized(archive):
         total_dos = archive.run[0].calculation[-1].dos_electronic[-1].total
-        return np.array([d.value / d.normalization_factor for d in total_dos])
+        return np.array([d.value * d.normalization_factor for d in total_dos])
 
     dos_vasp = get_dos_values_normalized(dos_si_vasp)
     dos_exciting = get_dos_values_normalized(dos_si_exciting)

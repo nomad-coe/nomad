@@ -49,7 +49,7 @@ function expectPlotButtons(plot) {
   expect(within(plot).getByRole('button', {name: 'View data in the archive'})).toBeInTheDocument()
 }
 
-test.skip('correctly renders metadata and all properties', async () => {
+test('correctly renders metadata and all properties', async () => {
   const entry = repoDftBulk
   const results = entry.results
 
@@ -79,7 +79,7 @@ test.skip('correctly renders metadata and all properties', async () => {
   const basis_set_type = screen.getByTitle('The used basis set functions.')
   expect(within(basis_set_type).getByText('basis set type')).toBeInTheDocument()
   expect(within(basis_set_type).getByText(method.dft.basis_set_type)).toBeInTheDocument()
-  const basis_set_name = screen.getByTitle('Unique string identifying the basis set used for the final wavefunctions calculated with XC_method. It might identify a class of basis sets, often matches one of the strings given in any of basis_set_name.')
+  const basis_set_name = screen.getByTitle('Identifies the basis set.')
   expect(within(basis_set_name).getByText('basis set name')).toBeInTheDocument()
   expect(within(basis_set_name).getByText(method.dft.basis_set_name)).toBeInTheDocument()
   const vdw = screen.getByTitle('The used van der Waals method.')
@@ -180,7 +180,7 @@ test.skip('correctly renders metadata and all properties', async () => {
   await waitFor(() => { expect(energyFreePlaceholder).not.toBeInTheDocument() })
 
   // The test DOM does not support canvas or WebGL, and trying to add mocks for
-  // them does not seem to work ATM.  Thus we expect a message saying that the
+  // them does not seem to work ATM. Thus we expect a message saying that the
   // 3D viewers are disabled.
   const msgs = screen.getAllByText('Could not display the visualization as your browser does not support WebGL content.')
   expect(msgs).toHaveLength(2)
@@ -190,8 +190,6 @@ test.skip('correctly renders metadata and all properties', async () => {
   expectPlotButtons(dosElectronic)
   const bsElectronic = screen.getByTestId('bs-electronic')
   expectPlotButtons(bsElectronic)
-
-  // Check that plot buttons are displayed
   const bsPhonon = screen.getByTestId('bs-phonon')
   expectPlotButtons(bsPhonon)
   const dosPhonon = screen.getByTestId('dos-phonon')

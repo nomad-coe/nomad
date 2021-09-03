@@ -40,13 +40,12 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     """
     def test_generic(bs):
         """Generic tests for band structure data."""
-        assert bs.brillouin_zone is not None
         assert bs.reciprocal_cell.shape == (3, 3)
 
     # Unpolarized, no gaps
     bs = bands_unpolarized_no_gap.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
-    assert len(bs.band_gap) == 1
+    assert len(bs.channel_info) == 1
     assert bs.channel_info[0].band_gap == 0
 
     # Polarized, no gaps
@@ -54,26 +53,28 @@ def test_band_gaps(bands_unpolarized_no_gap, bands_polarized_no_gap, bands_unpol
     test_generic(bs)
     assert len(bs.channel_info) == 2
     assert bs.channel_info[0].band_gap == 0
+    assert bs.channel_info[1].band_gap == 0
 
     # Unpolarized, finite gap, indirect
     bs = bands_unpolarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
-    assert len(bs.band_gap) == 1
-    gap = bs.band_gap[0]
-    gap_ev = (gap.value * ureg.J).to(ureg.eV).magnitude
+    assert len(bs.channel_info) == 1
+    info = bs.channel_info[0]
+    gap_joule = info.band_gap
+    gap_ev = gap_joule.to(ureg.eV).magnitude
     assert gap_ev == pytest.approx(1, 0.001)
-    assert gap.type == "indirect"
+    assert info.band_gap_type == "indirect"
 
     # Polarized, finite gap, indirect
     bs = bands_polarized_gap_indirect.run[0].calculation[0].band_structure_electronic[0]
     test_generic(bs)
-    assert len(bs.band_gap) == 2
-    gap_up = bs.band_gap[0]
-    gap_down = bs.band_gap[1]
-    gap_up_ev = (gap_up.value * ureg.J).to(ureg.eV).magnitude
-    gap_down_ev = (gap_down.value * ureg.J).to(ureg.eV).magnitude
-    assert gap_up.type == "indirect"
-    assert gap_down.type == "indirect"
+    assert len(bs.channel_info) == 2
+    channel_up = bs.channel_info[0]
+    channel_down = bs.channel_info[1]
+    gap_up_ev = channel_up.band_gap.to(ureg.eV).magnitude
+    gap_down_ev = channel_down.band_gap.to(ureg.eV).magnitude
+    assert channel_up.band_gap_type == "indirect"
+    assert channel_down.band_gap_type == "indirect"
     assert gap_up_ev == pytest.approx(1, 0.01)
     assert gap_down_ev == pytest.approx(0.8, 0.01)
 
@@ -162,4 +163,4 @@ def test_phonon_band(phonon):
     """
     bs = phonon.run[0].calculation[0].band_structure_phonon[0]
     assert bs.path_standard is None
-    assert len(bs.band_gap) == 0
+    assert len(bs.channel_info) == 0

@@ -653,14 +653,6 @@ class ChannelInfo(MSection):
         Type of band gap.
         ''')
 
-    energy_fermi = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=[],
-        description="""
-        Fermi energy.
-        """)
-
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
         unit="joule",
@@ -756,86 +748,6 @@ class BandEnergies(MSection):
         ''')
 
 
-class BrillouinZone(MSection):
-    '''
-    Defines a polyhedra for the Brillouin zone in reciprocal space.
-    '''
-
-    m_def = Section(validate=False)
-
-    vertices = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3, '1..*'],
-        description='''
-        The vertices of the Brillouin zone corners as 3D coordinates in reciprocal space.
-        ''')
-
-    faces = Quantity(
-        type=np.dtype(np.int32),
-        shape=['1..*', '3..*'],
-        description='''
-        The faces of the Brillouin zone polyhedron as vertex indices. The surface normal
-        is determined by a right-hand ordering of the points.
-        ''')
-
-
-class BandGap(MSection):
-    '''
-    Contains information for band gaps detected in the band structure. Contains a
-    section for each spin channel in the same order as reported for the band energies.
-    For channels without a band gap, a band gap value of zero is reported.
-    '''
-
-    m_def = Section(validate=False)
-
-    value = Quantity(
-        type=float,
-        shape=[],
-        unit='joule',
-        description='''
-        Band gap energy. Value of zero corresponds to a band structure without a band gap.
-        ''')
-
-    type = Quantity(
-        type=MEnum('direct', 'indirect'),
-        shape=[],
-        description='''
-        Type of band gap.
-        ''')
-
-    conduction_band_min_energy = Quantity(
-        type=float,
-        shape=[],
-        unit='joule',
-        description='''
-        Conduction band minimum energy.
-        ''')
-
-    valence_band_max_energy = Quantity(
-        type=float,
-        shape=[],
-        unit='joule',
-        description='''
-        Valence band maximum energy.
-        ''')
-
-    conduction_band_min_k_point = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3],
-        unit='1 / meter',
-        description='''
-        Coordinate of the conduction band minimum in k-space.
-        ''')
-
-    valence_band_max_k_point = Quantity(
-        type=np.dtype(np.float64),
-        shape=[3],
-        unit='1 / meter',
-        description='''
-        Coordinate of the valence band minimum in k-space.
-        ''')
-
-
 class BandStructure(MSection):
     '''
     This section stores information on a band structure evaluation along one-dimensional
@@ -864,11 +776,15 @@ class BandStructure(MSection):
 
     channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
 
-    brillouin_zone = SubSection(sub_section=BrillouinZone.m_def, repeats=False)
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """)
 
     segment = SubSection(sub_section=BandEnergies.m_def, repeats=True)
-
-    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
 
 
 class DosFingerprint(MSection):
@@ -936,6 +852,7 @@ class DosValues(AtomicValues):
     normalization_factor = Quantity(
         type=np.dtype(np.float64),
         shape=[],
+        unit='1 / (m ** 3)',
         description='''
         Normalization factor for DOS values to get a cell-independent intensive DOS.
         For total dos, this is given by 1 / (unit cell volume).
@@ -991,6 +908,14 @@ class Dos(Atomic):
         ''')
 
     channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
+
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """)
 
     total = SubSection(sub_section=DosValues.m_def, repeats=True)
 

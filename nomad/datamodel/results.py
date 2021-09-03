@@ -38,7 +38,10 @@ m_package = Package()
 
 from nomad.datamodel.optimade import Species  # noqa
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Dos, BandStructure as BandStructureCalculation, BandEnergies,
+    Dos,
+    BandStructure as BandStructureCalculation,
+    BandEnergies,
+    DosValues,
     Calculation)  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
@@ -769,9 +772,11 @@ class GeometryOptimizationMethod(MSection):
         properties presented in results.properties.geometry_optimization.
         """,
     )
-    geometry_optimization_type = GeometryOptimization.type.m_copy()
-    input_energy_difference_tolerance = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
-    input_force_maximum_tolerance = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    type = GeometryOptimization.type.m_copy()
+    convergence_tolerance_energy_difference = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
+    convergence_tolerance_energy_difference.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
+    convergence_tolerance_force_maximum = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    convergence_tolerance_force_maximum.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
 
 
 class MolecularDynamicsMethod(MSection):
@@ -892,8 +897,9 @@ class DOS(MSection):
         states (DOS).
         """,
     )
-    densities = Quantity(
-        type=np.dtype(np.float64),
+    total = Quantity(
+        type=DosValues,
+        shape=["*"],
         description="""
         Density of states (DOS) values normalized with unit cell volume and
         number of atoms.
@@ -930,6 +936,14 @@ class DOSElectronic(DOS):
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """
+    )
 
 
 class BandStructure(MSection):
@@ -945,7 +959,7 @@ class BandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         """,
     )
-    segments = Quantity(
+    segment = Quantity(
         type=BandEnergies,
         shape=["*"],
         description="""
@@ -995,6 +1009,14 @@ class BandStructureElectronic(BandStructure):
         sub_section=ChannelInfo.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+    energy_fermi = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule",
+        shape=[],
+        description="""
+        Fermi energy.
+        """
     )
 
 

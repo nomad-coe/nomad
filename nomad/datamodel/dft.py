@@ -75,8 +75,8 @@ _mechanical_quantities = [
 ]
 
 _thermal_quantities = [
-    'thermodynamical_property_heat_capacity_C_v',
-    'vibrational_free_energy_at_constant_volume',
+    'heat_capacity_c_v',
+    'helmholtz_free_energy',
     'phonon_band_structure',
     'phonon_dos',
 ]

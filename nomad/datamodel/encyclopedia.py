@@ -527,7 +527,7 @@ class Energies(MSection):
     )
     energy_total = Quantity(
         type=np.dtype(np.float64),
-        unit="eV",
+        unit="J",
         description="""
         Total energy.
         """,
@@ -535,7 +535,7 @@ class Energies(MSection):
     )
     energy_total_T0 = Quantity(
         type=np.dtype(np.float64),
-        unit="eV",
+        unit="J",
         description="""
         Total energy projected to T=0.
         """,
@@ -543,7 +543,7 @@ class Energies(MSection):
     )
     energy_free = Quantity(
         type=np.dtype(np.float64),
-        unit="eV",
+        unit="J",
         description="""
         Free energy.
         """,
@@ -578,7 +578,7 @@ class Properties(MSection):
     )
     band_gap = Quantity(
         type=np.dtype(np.float64),
-        unit="eV",
+        unit="J",
         description="""
         Band gap value. If multiple spin channels are present, this value is
         taken from the channel with smallest band gap value.

@@ -29,7 +29,7 @@ import { createBrowserHistory } from 'history'
 
 // Map from entry_id/calc_id to an archive
 export const archives = new Map()
-archives.set(archiveDftBulk.section_metadata.entry_id, archiveDftBulk)
+archives.set(archiveDftBulk.metadata.entry_id, archiveDftBulk)
 
 // TODO is the keycloak mock realy necessary/used? Test should not require this because
 // its all in the API and can be mocked there.

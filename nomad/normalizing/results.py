@@ -321,9 +321,9 @@ class ResultsNormalizer(Normalizer):
                 i_species.chemical_symbols = [symbol]
             i_species.concentration = [1.0]
 
-    def basis_set_type(self) -> Union[str, None]:
+    def basis_set_type(self, repr_method) -> Union[str, None]:
         try:
-            name = self.section_run.method[0].basis_set[0].type
+            name = repr_method.basis_set[0].type
         except Exception:
             name = None
         if name:
@@ -334,6 +334,13 @@ class ResultsNormalizer(Normalizer):
                 'planewaves': 'plane waves'
             }
             name = name_mapping.get(key, name)
+        return name
+
+    def basis_set_name(self, repr_method) -> Union[str, None]:
+        try:
+            name = repr_method.basis_set[0].name
+        except Exception:
+            name = None
         return name
 
     def core_electron_treatment(self) -> str:
@@ -414,7 +421,8 @@ class ResultsNormalizer(Normalizer):
         elif method_name in {"DFT", "DFT+U"}:
             method.method_name = "DFT"
             dft = DFT()
-            dft.basis_set_type = self.basis_set_type()
+            dft.basis_set_type = self.basis_set_type(repr_method)
+            dft.basis_set_name = self.basis_set_name(repr_method)
             dft.core_electron_treatment = self.core_electron_treatment()
             if repr_method.electronic is not None:
                 if repr_method.electronic.smearing is not None:
@@ -444,9 +452,8 @@ class ResultsNormalizer(Normalizer):
         considered.
 
        Band structure is reported only under the following conditions:
-          - There is a non-empty array of band_k_points.
-          - There is a non-empty array of band_energies.
-          - The reported band_structure_kind is not "vibrational".
+          - There is a non-empty array of kpoints.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "band_structure_electronic"]
         for bs in self.traverse_reversed(path):
@@ -463,8 +470,9 @@ class ResultsNormalizer(Normalizer):
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructureElectronic()
                 bs_new.reciprocal_cell = bs
-                bs_new.segments = bs.segment
-                bs_new.spin_polarized = bs_new.segments[0].energies.shape[0] > 1
+                bs_new.segment = bs.segment
+                bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
+                bs_new.energy_fermi = bs.energy_fermi
                 for info in bs.channel_info:
                     info_new = bs_new.m_create(ChannelInfo)
                     info_new.index = info.index
@@ -472,7 +480,6 @@ class ResultsNormalizer(Normalizer):
                     info_new.band_gap_type = info.band_gap_type
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                    info_new.energy_fermi = info.energy_fermi
                 return bs_new
 
         return None
@@ -484,7 +491,6 @@ class ResultsNormalizer(Normalizer):
        DOS is reported only under the following conditions:
           - There is a non-empty array of dos_values_normalized.
           - There is a non-empty array of dos_energies.
-          - The reported dos_kind is not "vibrational".
         """
         path = ["run", "calculation", "dos_electronic"]
         for dos in self.traverse_reversed(path):
@@ -493,15 +499,15 @@ class ResultsNormalizer(Normalizer):
             if valid_array(energies) and valid_array(values):
                 dos_new = DOSElectronic()
                 dos_new.energies = dos
-                dos_new.densities = [d.value for d in dos.total]
+                dos_new.total = dos.total
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
+                dos_new.energy_fermi = dos.energy_fermi
                 for info in dos.channel_info:
                     info_new = dos_new.m_create(ChannelInfo)
                     info_new.index = info.index
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
-                    info_new.energy_fermi = info.energy_fermi
                 return dos_new
 
         return None
@@ -512,9 +518,8 @@ class ResultsNormalizer(Normalizer):
         considered.
 
        Band structure is reported only under the following conditions:
-          - There is a non-empty array of band_k_points.
-          - There is a non-empty array of band_energies.
-          - The reported band_structure_kind is "vibrational".
+          - There is a non-empty array of kpoints.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "band_structure_phonon"]
         for bs in self.traverse_reversed(path):
@@ -530,7 +535,7 @@ class ResultsNormalizer(Normalizer):
             if valid:
                 # Fill band structure data to the newer, improved data layout
                 bs_new = BandStructurePhonon()
-                bs_new.segments = bs.segment
+                bs_new.segment = bs.segment
                 return bs_new
 
         return None
@@ -540,19 +545,17 @@ class ResultsNormalizer(Normalizer):
         multiple valid data sources, only the latest one is reported.
 
        DOS is reported only under the following conditions:
-          - There is a non-empty array of dos_values_normalized.
-          - There is a non-empty array of dos_energies.
-          - The reported dos_kind is "vibrational".
+          - There is a non-empty array of values.
+          - There is a non-empty array of energies.
         """
         path = ["run", "calculation", "dos_phonon"]
         for dos in self.traverse_reversed(path):
             energies = dos.energies
             values = np.array([d.value.magnitude for d in dos.total])
             if valid_array(energies) and valid_array(values):
-                # Fill dos data to the newer, improved data layout
                 dos_new = DOSPhonon()
                 dos_new.energies = dos
-                dos_new.densities = [d.value for d in dos.total]
+                dos_new.total = dos.total
                 return dos_new
 
         return None
@@ -610,7 +613,9 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_wf = workflow.geometry_optimization
                 if geo_opt_wf is not None:
                     geo_opt_meth = GeometryOptimizationMethod()
-                    geo_opt_meth.geometry_optimization_type = geo_opt_wf.type
+                    geo_opt_meth.type = geo_opt_wf.type
+                    geo_opt_meth.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
+                    geo_opt_meth.convergence_tolerance_force_maximum = geo_opt_wf.convergence_tolerance_force_maximum
                     method.simulation.geometry_optimization = geo_opt_meth
 
                 # Properties
