@@ -556,9 +556,10 @@ def test_phonon(test_user, proc_infra):
     # Check thermodynamical properties
     assert thermo_props is not None
     assert thermo_props.heat_capacity_c_v is not None
-    assert thermo_props.specific_heat_capacity is not None
+    assert thermo_props.heat_capacity_c_v_specific is not None
     assert thermo_props.temperature is not None
     assert thermo_props.vibrational_free_energy_at_constant_volume is not None
+    assert thermo_props.vibrational_free_energy_at_constant_volume_specific is not None
 
 
 def test_elastic(elastic: EntryArchive):
