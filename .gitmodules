@@ -207,3 +207,6 @@
 [submodule "dependencies/parsers/xps"]
 	path = dependencies/parsers/xps
 	url = https://github.com/nomad-coe/nomad-parser-xps.git
+[submodule "dependencies/parsers/aflow"]
+	path = dependencies/parsers/aflow
+	url = https://github.com/nomad-coe/nomad-parser-aflow.git
