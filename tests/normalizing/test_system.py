@@ -74,7 +74,8 @@ parser_exceptions = {
     'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parser/onetep': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
     'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/xps': ['formula', 'atoms']
+    'parsers/xps': ['formula', 'atoms'],
+    'parsers/aflow': ['dft.basis_set', 'dft.xc_functional']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
