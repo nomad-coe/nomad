@@ -414,12 +414,12 @@ class MaterialBulkNormalizer(MaterialNormalizer):
         self.crystal_system(bulk, sec_symmetry)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.has_free_wyckoff_parameters(bulk, symmetry_analyzer)
         self.lattice_parameters(ideal, std_atoms)
-        self.material_name(material, names, reduced_counts)
+        self.material_name(material, names, reduced_counts)  # type: ignore
         self.material_classification(material, sec_system)
         self.periodicity(ideal)
         self.point_group(bulk, sec_symmetry)
@@ -538,9 +538,9 @@ class Material2DNormalizer(MaterialNormalizer):
         self.lattice_vectors(ideal, std_atoms)
         self.lattice_vectors_primitive(ideal, prim_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
 
 
@@ -755,8 +755,8 @@ class Material1DNormalizer(MaterialNormalizer):
         self.atom_positions(ideal, std_atoms)
         self.lattice_vectors(ideal, std_atoms)
         self.formula(material, names, counts)
-        self.formula_reduced(material, names, reduced_counts)
+        self.formula_reduced(material, names, reduced_counts)  # type: ignore
         self.species(material, names)
-        self.species_and_counts(material, names, reduced_counts)
+        self.species_and_counts(material, names, reduced_counts)  # type: ignore
         self.material_id_1d(material, std_atoms)
         self.lattice_parameters(ideal, std_atoms, ideal.periodicity)
