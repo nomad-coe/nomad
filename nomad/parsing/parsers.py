@@ -72,6 +72,7 @@ from qboxparser import QboxParser
 from openkimparser import OpenKIMParser
 from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
+from aflowparser import AFLOWParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -216,6 +217,7 @@ parsers = [
     # APTFIMParser(),
     EELSDBParser(),
     XPSParser(),
+    AFLOWParser(),
     ArchiveParser()
 ]
 

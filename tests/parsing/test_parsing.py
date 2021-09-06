@@ -40,7 +40,7 @@ parser_examples = [
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
     ('parsers/fhi-vibes', 'tests/data/parsers/fhi-vibes/molecular_dynamics.nc'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
-    # ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
+    ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
     ('parsers/nwchem', 'tests/data/parsers/nwchem/single_point/output.out'),
     ('parsers/bigdft', 'tests/data/parsers/bigdft/n2_output.out'),
@@ -71,9 +71,10 @@ parser_examples = [
     ('parser/onetep', 'tests/data/parsers/onetep/fluor/12-difluoroethane.out'),
     ('parsers/eels', 'tests/data/parsers/eels.json'),
     ('parsers/xps', 'tests/data/parsers/xps/multiple_channels.xy'),
+    ('parsers/aflow', 'tests/data/parsers/aflow/aflow_agl.out'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
-    ('parsers/archive', 'tests/data/parsers/archive.json')
+    ('parsers/archive', 'tests/data/parsers/archive.json'),
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -84,7 +85,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 116
+correct_num_output_files = 117
 
 
 def create_reference(data, pretty):

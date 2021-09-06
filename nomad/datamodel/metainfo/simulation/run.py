@@ -24,7 +24,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
-
+from nomad.datamodel.metainfo.common import FastAccess
 
 m_package = Package()
 
@@ -175,41 +175,6 @@ class MessageRun(MSection):
         ''')
 
 
-class RunReference(MSection):
-    '''
-    Section that describes the relationship between the current section to other run
-    sections.
-
-    The kind of relationship between the the current section and the referenced section
-    run is described by kind. The referenced section is given by value (typically used for
-    a run section in the same archive) or external_url.
-    '''
-
-    m_def = Section(validate=False)
-
-    external_url = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        URL used to reference an externally stored run section.
-        ''')
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Defines the kind of relationship between the referenced section run with the
-        present section.
-        ''')
-
-    value = Quantity(
-        type=Reference(SectionProxy('Run')),
-        shape=[],
-        description='''
-        Value of the referenced section run.
-        ''')
-
-
 class Run(MSection):
     '''
     Every section run represents a single call of a program.
@@ -240,6 +205,31 @@ class Run(MSection):
         An optional calculation id, if one is found in the code input/output files.
         ''')
 
+    starting_run_ref = Quantity(
+        type=Reference(SectionProxy('Run')),
+        shape=[],
+        description='''
+        Links the current section run to a section run containing the calculations from
+        which the current section starts.
+        ''',
+        categories=[FastAccess])
+
+    n_references = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+         Number of references to the current section calculation.
+        ''')
+
+    runs_ref = Quantity(
+        type=Reference(SectionProxy('Run')),
+        shape=['n_references'],
+        description='''
+        Links the the current section to other run sections. Such a link is necessary for
+        example for workflows that may contain a series of runs.
+        ''',
+        categories=[FastAccess])
+
     program = SubSection(sub_section=Program.m_def)
 
     time_run = SubSection(sub_section=TimeRun.m_def)
@@ -251,8 +241,6 @@ class Run(MSection):
     system = SubSection(sub_section=System.m_def, repeats=True)
 
     calculation = SubSection(sub_section=Calculation.m_def, repeats=True)
-
-    run_ref = SubSection(sub_section=RunReference.m_def, repeats=True)
 
 
 m_package.__init_metainfo__()

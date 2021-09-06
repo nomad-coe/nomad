@@ -6,7 +6,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, MEnum, derived)
 from nomad.metainfo.search_extension import Search
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
-from nomad.datamodel.metainfo.simulation.run import RunReference
+from nomad.datamodel.metainfo.simulation.run import Run
 from .common import FastAccess
 
 
@@ -1141,40 +1141,6 @@ class SinglePoint(MSection):
         ''')
 
 
-class WorkflowReference(MSection):
-    '''
-    Section that provides a link between a section to a section workflow. Such a link is
-    necessary for example between an Debye model that uses a the poisson ratio calculated
-    from an elastic workflow. The relationship should be described by kind and the
-    referred section workflow is given by value. An external url can also be provided in
-    place of value.
-    '''
-
-    m_def = Section(validate=False)
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Defines the relationship between the referenced section workflow and the present
-        section.
-        ''')
-
-    external_url = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        URL used to reference an externally stored section workflow.
-        ''')
-
-    value = Quantity(
-        type=Reference(SectionProxy('Workflow')),
-        shape=[],
-        description='''
-        Value of the referenced section wofklow.
-        ''')
-
-
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -1223,6 +1189,31 @@ class Workflow(MSection):
         List of references to each section single_configuration_calculation in the
         simulation.
         ''')
+
+    run_ref = Quantity(
+        type=Reference(Run.m_def),
+        shape=[],
+        description='''
+        Links the section workflow to the section run that contains the calculations.
+        ''',
+        categories=[FastAccess])
+
+    n_references = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+         Number of references to the current section workflow.
+        ''')
+
+    workflows_ref = Quantity(
+        type=Reference(SectionProxy('Workflow')),
+        shape=['n_references'],
+        description='''
+        Links the the current section to other workflow sections. Such a link is necessary
+        for example between an Debye model that uses a the poisson ratio calculated
+        from an elastic workflow.
+        ''',
+        categories=[FastAccess])
 
     single_point = SubSection(
         sub_section=SinglePoint.m_def,
@@ -1280,9 +1271,3 @@ class Workflow(MSection):
     thermodynamics = SubSection(
         sub_section=Thermodynamics.m_def,
         repeats=False)
-
-    workflow_ref = SubSection(
-        sub_section=WorkflowReference.m_def, repeats=True)
-
-    run_ref = SubSection(
-        sub_section=RunReference.m_def, repeats=True)

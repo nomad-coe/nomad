@@ -1472,7 +1472,7 @@ class BaseCalculation(MSection):
         categories=[FastAccess])
 
     n_references = Quantity(
-        type=np.dtype(np.float64),
+        type=np.dtype(np.int32),
         shape=[],
         description='''
          Number of references to the current section calculation.
