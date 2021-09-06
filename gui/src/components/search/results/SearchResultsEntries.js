@@ -19,8 +19,8 @@ import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Link, Typography, Tooltip, IconButton } from '@material-ui/core'
-import { useHistory, Link as RouterLink } from 'react-router-dom'
-import NavigateNextIcon from '@material-ui/icons/NavigateNext'
+import { Link as RouterLink } from 'react-router-dom'
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
 import EditUserMetadataDialog from '../../EditUserMetadataDialog'
@@ -255,8 +255,6 @@ const SearchResultsEntries = React.memo(({
   const [selected, setSelected] = useState([])
   const styles = useStyles()
   const total = data?.pagination && data.pagination.total
-  const history = useHistory()
-  const entryPagePathPrefix = undefined
 
   // The access column is hidden if user is not logged in
   const visibleColumns = useMemo(() => {
@@ -280,24 +278,19 @@ const SearchResultsEntries = React.memo(({
     return true
   }, [user])
 
-  const handleViewEntryPage = useCallback((event, row) => {
-    event.stopPropagation()
-    const prefix = entryPagePathPrefix || ''
-    const url = `${prefix}/entry/id/${row.upload_id}/${row.calc_id}`
-    history.push(url)
-  }, [entryPagePathPrefix, history])
-
   const renderEntryActions = useCallback((row, selected) => {
     if (showEntryActions(row)) {
       return <Tooltip title="Show raw files and archive">
-        <IconButton style={selected ? {color: 'white'} : null} onClick={event => handleViewEntryPage(event, row)}>
-          <NavigateNextIcon />
-        </IconButton>
+        <EntryButton
+          style={selected ? {color: 'white'} : null} component={IconButton}
+          entryId={row.entry_id} uploadId={row.upload_id}
+        >
+          <DetailsIcon />
+        </EntryButton>
       </Tooltip>
-    } else {
-      return ''
     }
-  }, [handleViewEntryPage, showEntryActions])
+    return null
+  }, [showEntryActions])
 
   const renderEntryDetails = useCallback((row) => {
     const domain = (row.domain && domainData[row.domain]) || domainData.dft

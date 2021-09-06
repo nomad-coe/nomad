@@ -20,7 +20,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { Route, Switch } from 'react-router'
 import { matchPath, useLocation, Redirect, useHistory } from 'react-router-dom'
-import { Button } from '@material-ui/core'
+import { Button, Tooltip } from '@material-ui/core'
 import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
@@ -427,6 +427,35 @@ export const UploadButton = React.forwardRef(function DatasetButton(props, ref) 
 })
 UploadButton.propTypes = {
   uploadId: PropTypes.string.isRequired
+}
+
+/**
+ * A button that allows to navigate to the material page (currently an external link).
+ * @param {string} materialId
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const MaterialButton = ({materialId, component, tooltip, ...rest}) => {
+  const href = `${appBase}/encyclopedia/#/material/${materialId}`
+  const props = component
+    ? {href: href, ...rest}
+    : {href: href, color: 'primary', ...rest}
+  let comp = React.createElement(component || Button, props)
+
+  if (tooltip) {
+    return <Tooltip title={tooltip}>
+      {comp}
+    </Tooltip>
+  }
+  return comp
+}
+
+MaterialButton.propTypes = {
+  materialId: PropTypes.string.isRequired,
+  component: PropTypes.elementType,
+  tooltip: PropTypes.string
+}
+MaterialButton.defaultProps = {
+  tooltip: 'View this material in the Encyclopedia'
 }
 
 export default Routes

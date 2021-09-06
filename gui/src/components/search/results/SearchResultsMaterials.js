@@ -15,9 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useCallback } from 'react'
 import PropTypes from 'prop-types'
+import { IconButton } from '@material-ui/core'
+import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import searchQuantities from '../../../searchQuantities'
+import { encyclopediaEnabled } from '../../../config'
+import { MaterialButton } from '../../nav/Routes'
 import NewDataTable from '../../NewDataTable'
 
 /**
@@ -83,6 +87,16 @@ const SearchResultsMaterials = React.memo(({
   ...rest
 }) => {
   const total = data?.pagination && data.pagination.total
+
+  const renderActions = useCallback((row, selected) => (
+    <MaterialButton
+      materialId={row.material_id}
+      component={IconButton}
+    >
+      <DetailsIcon/>
+    </MaterialButton>
+  ), [])
+
   return <NewDataTable
     entityLabels={['material', 'materials']}
     id={row => row.material_id}
@@ -90,6 +104,7 @@ const SearchResultsMaterials = React.memo(({
     columns={columns}
     selectedColumns={selectedColumns}
     selectedColumnsKey="materials"
+    entryActions={encyclopediaEnabled ? renderActions : undefined}
     data={data?.data || []}
     rows={data?.data.length || 0}
     {...rest}
