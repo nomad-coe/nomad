@@ -15,14 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Tuple, Generator
+from typing import Tuple, Generator, cast
 
+from nomad.metainfo.metainfo import Quantity, Reference
 from nomad.metainfo.search_extension import Search
 from nomad.search import search_quantities
 
 
 def provider_specific_fields() -> Generator[Tuple[str, Search], None, None]:
     for search_quantity in search_quantities.values():
+        quantity = cast(Quantity, search_quantity.definition)
+        if isinstance(quantity.type, Reference):
+            # we can't yet support those
+            continue
+
         nmd_name = search_quantity.qualified_name
         nmd_name_split = nmd_name.split('.')
 
