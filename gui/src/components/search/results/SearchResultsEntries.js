@@ -18,7 +18,7 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import { Link, Typography, Tooltip, IconButton, Button } from '@material-ui/core'
+import { Link, Typography, Tooltip, IconButton } from '@material-ui/core'
 import { useHistory, Link as RouterLink } from 'react-router-dom'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import PublicIcon from '@material-ui/icons/Public'
@@ -28,10 +28,11 @@ import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import DownloadButton from '../../DownloadButton'
 import { domainData } from '../../domainData'
-import { domainComponents } from '../../domainComponents'
+import EntryDetails from '../../entry/EntryDetails'
 import { authorList, nameList } from '../../../utils'
 import NewDataTable from '../../NewDataTable'
 import { useApi } from '../../apiV1'
+import { EntryButton } from '../../nav/Routes'
 import Quantity from '../../Quantity'
 import searchQuantities from '../../../searchQuantities'
 
@@ -300,12 +301,11 @@ const SearchResultsEntries = React.memo(({
 
   const renderEntryDetails = useCallback((row) => {
     const domain = (row.domain && domainData[row.domain]) || domainData.dft
-    const domainComponent = (row.domain && domainComponents[row.domain]) || domainComponents.dft
 
     return (<div className={styles.entryDetails}>
       <div className={styles.entryDetailsContents}>
         <div className={styles.entryDetailsRow}>
-          <domainComponent.EntryDetails data={row} />
+          <EntryDetails data={row} />
         </div>
 
         <div className={styles.entryDetailsRow} style={{flexGrow: 1}}>
@@ -342,20 +342,24 @@ const SearchResultsEntries = React.memo(({
             <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
             <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
             <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard />
+            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard>
+              <Typography style={{flexGrow: 1}}>
+                <Link component={RouterLink} to={`/uploads/${row.upload_id}`}>{row.upload_id}</Link>
+              </Typography>
+            </Quantity>
           </Quantity>
         </div>
       </div>
 
       <div className={styles.entryDetailsActions}>
         {showEntryActions(row) &&
-          <Button color="primary" onClick={event => handleViewEntryPage(event, row)}>
+          <EntryButton color="primary" entryId={row.entry_id} uploadId={row.upload_id}>
             Show raw files and archive
-          </Button>
+          </EntryButton>
         }
       </div>
     </div>)
-  }, [handleViewEntryPage, showEntryActions, styles])
+  }, [showEntryActions, styles])
 
   const totalNumber = total || 0
   const example = selected && selected.length > 0 ? data?.data.find(d => d.calc_id === selected[0]) : data?.data[0]

@@ -858,7 +858,7 @@ class GW(MSection):
         ''')
 
     type = Quantity(
-        type=str,
+        type=MEnum(["G0W0", "scGW", "scGW0", "scG0W", "ev-scGW", "qp-scGW"]),
         shape=[],
         description='''
         GW methodology: G0W0; ev-scGW: (eigenvalues self-consistent GW) – Phys.Rev.B 34,

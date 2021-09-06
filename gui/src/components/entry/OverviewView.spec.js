@@ -32,11 +32,13 @@ jest.mock('../apiV1')
 
 beforeAll(() => {
   useApi.mockReturnValue({
-    results: entry_id => wait(archives.get(entry_id)),
-    entry: () => wait({
-      entry_id: repoDftBulk.entry_id,
-      data: repoDftBulk
-    })
+    api: {
+      results: entry_id => wait(archives.get(entry_id)),
+      entry: () => wait({
+        entry_id: repoDftBulk.entry_id,
+        data: repoDftBulk
+      })
+    }
   })
 })
 
@@ -135,7 +137,7 @@ test('correctly renders metadata and all properties', async () => {
   const material_name = screen.getByTitle('Meaningful names for this a material if any can be assigned.')
   expect(within(material_name).getByText('material name')).toBeInTheDocument()
   expect(within(material_name).getByText(material.material_name)).toBeInTheDocument()
-  const crystal_system = screen.getByTitle('Name of the crystal system. Can be one of the following: triclinic, monoclinic, orthorhombic, tetragonal, trigonal, hexagonal or cubic.')
+  const crystal_system = screen.getByTitle('Name of the crystal system.')
   expect(within(crystal_system).getByText('crystal system')).toBeInTheDocument()
   expect(within(crystal_system).getByText(material.symmetry.crystal_system)).toBeInTheDocument()
   const space_group = screen.getByTitle('Space group symbol and number')
