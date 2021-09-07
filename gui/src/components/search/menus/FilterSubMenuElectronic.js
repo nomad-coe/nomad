@@ -57,7 +57,7 @@ const FilterSubMenuElectronic = React.memo(({
         <InputCheckboxes
           label="available electronic properties"
           description="The electronic properties that are present in an entry."
-          quantity="results.properties.available_properties"
+          quantity="electronic_properties"
           options={options}
           visible={visible}
         />

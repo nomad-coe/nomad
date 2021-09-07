@@ -39,9 +39,9 @@ const FilterSubMenuElectronic = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <InputCheckboxes
+          quantity="vibrational_properties"
           label="available vibrational properties"
           description="The vibrational properties that are present."
-          quantity="results.properties.available_properties"
           options={options}
           visible={visible}
         />

@@ -46,7 +46,7 @@ const FilterSubMenuElements = React.memo(({
   const [exclusive, setExclusive] = useExclusiveState()
   const [filter, setFilter] = useFilterState('results.material.elements')
   const [filterEx, setFilterEx] = useFilterState('results.material.elements_exclusive')
-  const data = useAgg('results.material.elements', 'terms', false, visible)
+  const data = useAgg('results.material.elements', false, visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}

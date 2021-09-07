@@ -53,8 +53,8 @@ const InputCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
-  const availableOptions = useAgg(quantity, 'terms', true, visible)
-  const initialAgg = useInitialAgg(quantity, 'terms')
+  const availableOptions = useAgg(quantity, true, visible)
+  const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
   const finalOptions = useMemo(() => {
     // If explicit options provided, use them

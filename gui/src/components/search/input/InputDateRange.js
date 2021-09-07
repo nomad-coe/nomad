@@ -77,7 +77,8 @@ const InputDateRange = React.memo(({
   const [error, setError] = useState()
   const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
-  const [startGlobal, endGlobal] = useAgg(quantity, 'min_max', true, visible)
+  const agg = useAgg(quantity, true, visible)
+  const [startGlobal, endGlobal] = agg || [undefined, undefined]
   const disabled = startGlobal === null || endGlobal === null
 
   // If no filter has been specified by the user, the range is automatically

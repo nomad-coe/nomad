@@ -30,19 +30,23 @@ import {
   isEmpty,
   isArray,
   isPlainObject,
-  isNil
+  isNil,
+  isString
 } from 'lodash'
 import qs from 'qs'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../apiV1'
 import { setToArray, formatMeta, parseMeta } from '../../utils'
+import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'
 
 let index = 0
 export const quantities = new Set()
 export const quantityGroups = new Map()
-export const quantityAggregations = new Map()
+export const quantityAggregations = {}
+export const quantityAggGets = {}
+export const quantityAggSets = {}
 export const quantityAbbreviations = new Map()
 export const quantityFullnames = new Map()
 export const quantityMaterialNames = {}
@@ -64,7 +68,10 @@ export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 
 /**
- * This function is used to register a quantity within the FilterContext.
+ * This function is used to register a "quantity" within the FilterContext.
+ * Quantities are entities that can be searched throuh the filter panel and the
+ * search bar, and can be encoded in the URL. Notice that a quantity in this
+ * context does not have to correspond to a quantity in the metainfo.
  *
  * Only registered quantities may be searched for. The registration must happen
  * before any components use the filters associated with quantities. This is
@@ -79,19 +86,17 @@ export const labelIDs = 'IDs'
  * @param {string} quantity Name of the quantity. Should exist in searchQuantities.json.
  * @param {string} group The group into which the quantity belongs to. Groups
  * are used to e.g. in showing FilterSummaries about a group of filters.
- * @param {string} agg Possible aggregation associated with the quantity. If
- * provided, the initial aggregation value will be prefetched for this quantity.
- * @param {string} multiple Whether this quantity supports several values
- * @param {string} postfix The default postfix applied to filters with several values
+ * @param {string|object} agg Custom setter/getter for the aggregation value. As a
+ * shortcut you can provide an ES aggregation type as a string,
+ * @param {object} value Custom setter/getter for the quantity value.
+ * @param {bool} multiple Whether this quantity supports several values:
+ * controls whether setting the value appends or overwrites.
  */
-function registerQuantity(name, group, agg, multiple = true, postfix = 'any') {
+function registerQuantity(name, group, agg, value, multiple = true) {
   // Store the available quantities, their grouping, and the initial aggregation
   // types.
   quantities.add(name)
   quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
-  if (agg) {
-    quantityAggregations[name] = agg
-  }
 
   // Register mappings from full name to abbreviation and vice versa
   const abbreviation = name.split('.').pop()
@@ -105,34 +110,39 @@ function registerQuantity(name, group, agg, multiple = true, postfix = 'any') {
     quantityAbbreviations.set(oldName, oldName)
   }
 
-  // Material and entry queries target slightly different fields. Here we
-  // prebuild the mapping.
-  const prefix = 'results.material.'
-  let materialName
-  if (name.startsWith(prefix)) {
-    materialName = name.substring(prefix.length)
-  } else {
-    materialName = `entries.${name}`
+  // Store the string/function that is used to getch the aggregation data for
+  // this quantity.
+  if (agg) {
+    let aggSet, aggGet
+    if (isString(agg)) {
+      aggSet = {[name]: agg}
+      aggGet = (aggs) => (aggs[name][agg].data)
+    } else {
+      aggSet = agg.set
+      aggGet = agg.get
+    }
+    quantityAggSets[name] = aggSet
+    quantityAggGets[name] = aggGet
   }
-  quantityMaterialNames[name] = materialName
-  quantityEntryNames[materialName] = name
 
   // Store the default query postfixes (any/all) for each quantity
   const data = quantityData[name] || {}
-  data.postfix = postfix
+  if (value) {
+    data.valueGet = value.get
+    data.valueSet = value.set
+  }
   data.multiple = multiple
   quantityData[name] = data
 }
 
+// Quantities that directly correspond to a metainfo value
 registerQuantity('results.material.structural_type', labelMaterial, 'terms')
 registerQuantity('results.material.functional_type', labelMaterial, 'terms')
 registerQuantity('results.material.compound_type', labelMaterial, 'terms')
 registerQuantity('results.material.material_name', labelMaterial)
-registerQuantity('results.material.elements', labelElements, 'terms', true, 'all')
-registerQuantity('results.material.elements_exclusive', labelElements, 'terms')
 registerQuantity('results.material.chemical_formula_hill', labelElements)
 registerQuantity('results.material.chemical_formula_anonymous', labelElements)
-registerQuantity('results.material.n_elements', labelElements, 'min_max', false)
+registerQuantity('results.material.n_elements', labelElements, 'min_max', undefined, false)
 registerQuantity('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
 registerQuantity('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
 registerQuantity('results.material.symmetry.structure_name', labelSymmetry, 'terms')
@@ -149,19 +159,99 @@ registerQuantity('results.method.simulation.dft.core_electron_treatment', labelD
 registerQuantity('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
 registerQuantity('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
 registerQuantity('results.method.simulation.gw.gw_type', labelGW, 'terms')
-registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', false)
 registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
-registerQuantity('results.properties.available_properties', labelElectronic, 'terms', 'all')
+registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
 registerQuantity('external_db', labelAuthor, 'terms')
 registerQuantity('authors.name', labelAuthor)
-registerQuantity('upload_time', labelAuthor, 'min_max', false)
+registerQuantity('upload_time', labelAuthor, 'min_max', undefined, false)
 registerQuantity('datasets.name', labelDataset)
 registerQuantity('datasets.doi', labelDataset)
 registerQuantity('entry_id', labelIDs)
-registerQuantity('visibility', labelAccess, undefined, false)
 registerQuantity('upload_id', labelIDs)
 registerQuantity('results.material.material_id', labelIDs)
 registerQuantity('datasets.dataset_id', labelIDs)
+
+// In regular element query we use the 'all'-postfix.
+registerQuantity(
+  'results.material.elements',
+  labelElements,
+  'terms',
+  { set: (query, value) => (query['results.material.elements:all'] = value) }
+)
+// In exclusive element query the elements names are sorted and concatenated
+// into a single string.
+registerQuantity(
+  'results.material.elements_exclusive',
+  labelElements,
+  undefined,
+  {
+    set: (query, value) => {
+      if (value.size !== 0) {
+        query['results.material.elements_exclusive'] = setToArray(value).sort().join(' ')
+      }
+    }
+  }
+)
+// Electronic properties: subset of results.properties.available_properties
+registerQuantity(
+  'electronic_properties',
+  labelElectronic,
+  {
+    set: {'results.properties.available_properties': 'terms'},
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+  },
+  {
+    set: (query, value) => {
+      const data = query['results.properties.available_properties'] || new Set()
+      value.forEach((item) => { data.add(item) })
+      query['results.properties.available_properties'] = data
+    },
+    get: (data) => (data.results.properties.available_properties)
+  }
+)
+// Vibrational properties: subset of results.properties.available_properties
+registerQuantity(
+  'vibrational_properties',
+  labelVibrational,
+  {
+    set: {'results.properties.available_properties': 'terms'},
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+  },
+  {
+    set: (query, value) => {
+      const data = query['results.properties.available_properties'] || new Set()
+      value.forEach((item) => { data.add(item) })
+      query['results.properties.available_properties'] = data
+    },
+    get: (data) => (data.results.properties.available_properties)
+  }
+)
+// Visibility: controls the 'owner'-parameter in the API query, not part of the
+// query itself.
+registerQuantity(
+  'visibility',
+  labelAccess,
+  undefined,
+  {
+    set: () => {},
+    get: () => {}
+  },
+  false
+)
+
+// Material and entry queries target slightly different fields. Here we prebuild
+// the mapping.
+for (const name of Object.keys(searchQuantities)) {
+  const prefix = 'results.material.'
+  let materialName
+  if (name.startsWith(prefix)) {
+    materialName = name.substring(prefix.length)
+  } else {
+    materialName = `entries.${name}`
+  }
+  quantityMaterialNames[name] = materialName
+  quantityEntryNames[materialName] = name
+}
 
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
@@ -198,16 +288,12 @@ export const SearchContext = React.memo(({
 
   // Fetch initial aggregation data. We include all data here.
   useEffect(() => {
-    let aggRequest = {}
-    for (const [quantity, agg] of Object.entries(quantityAggregations)) {
-      aggRequest[quantity] = {
-        [agg]: {
-          quantity: quantity,
-          size: 500
-        }
-      }
+    const aggRequest = {}
+    const aggNames = Object.keys(quantityAggGets)
+    for (const quantity of aggNames) {
+      toAPIAgg(aggRequest, quantity, resource)
     }
-    aggRequest = toAPIAgg(aggRequest, resource)
+
     const search = {
       owner: 'visible',
       query: {},
@@ -217,7 +303,7 @@ export const SearchContext = React.memo(({
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data, resource)
+        data = toGUIAgg(data.aggregations, aggNames, resource)
         setInitialAggs(data)
       })
   }, [api, setInitialAggs, resource])
@@ -551,9 +637,9 @@ export const initialAggsState = atom({
  *
  * @returns {object} Object containing the search object.
  */
-export function useInitialAgg(quantity, agg) {
+export function useInitialAgg(quantity) {
   const aggs = useRecoilValue(initialAggsState)
-  return getAggData(aggs, quantity, agg)
+  return aggs?.[quantity]
 }
 
 /**
@@ -571,10 +657,10 @@ export function useInitialAgg(quantity, agg) {
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(quantity, type, restrict = false, update = true, delay = 500) {
+export function useAgg(quantity, restrict = false, update = true, delay = 500) {
   const {api} = useApi()
   const { resource } = useSearchContext()
-  const [results, setResults] = useState(type === 'min_max' ? [undefined, undefined] : undefined)
+  const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
   const query = useQuery()
   const exclusive = useExclusive()
@@ -589,19 +675,11 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     // be returned.
     let queryCleaned = {...query}
     if (restrict && query && quantity in query) {
-      queryCleaned[quantity] = undefined
+      delete queryCleaned[quantity]
     }
-    queryCleaned = toAPIQuery(queryCleaned, exclusive, resource)
-    let aggRequest = {
-      [quantity]: {
-        [type]: {
-          quantity: quantity,
-          size: 500
-        }
-      }
-    }
-
-    aggRequest = toAPIAgg(aggRequest, resource)
+    queryCleaned = toAPIQuery(queryCleaned, resource)
+    const aggRequest = {}
+    toAPIAgg(aggRequest, quantity, resource)
     const search = {
       owner: query.visibility || 'visible',
       query: queryCleaned,
@@ -612,12 +690,11 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data, resource)
-        data = getAggData(data, quantity, type)
+        data = toGUIAgg(data.aggregations, [quantity], resource)
         firstLoad.current = false
-        setResults(data)
+        setResults(data[quantity])
       })
-  }, [api, quantity, restrict, type, resource])
+  }, [api, quantity, restrict, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -632,7 +709,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
       // Fetch the initial aggregation values if no query
       // is specified.
       if (isEmpty(query)) {
-        setResults(getAggData(initialAggs, quantity, type))
+        setResults(initialAggs[quantity])
       // Make an immediate request for the aggregation values if query has been
       // specified.
       } else {
@@ -641,7 +718,7 @@ export function useAgg(quantity, type, restrict = false, update = true, delay = 
     } else {
       debounced(query, exclusive)
     }
-  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs, type])
+  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs])
 
   return results
 }
@@ -677,7 +754,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // one with the data.
   const apiCall = useCallback((query, pageSize, orderBy, order, exclusive) => {
     pageAfterValue.current = undefined
-    const cleanedQuery = toAPIQuery(query, exclusive, resource)
+    const cleanedQuery = toAPIQuery(query, resource)
     const search = {
       owner: query.visibility || 'visible',
       query: cleanedQuery,
@@ -748,7 +825,6 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // results in the new order. The amount of fetched results is based on the
   // already loaded amount.
   // TODO
-
   return {
     results: results,
     next: next,
@@ -770,48 +846,39 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIQuery(query, exclusive, resource) {
-  let newQuery = {}
+export function toAPIQuery(query, resource) {
+  // Perform custom transformations
+  let queryCustomized = {}
   for (let [k, v] of Object.entries(query)) {
-    let newValue
-    // Some quantities are not included in the query, e.g. the visibility.
-    if (k === 'visibility') {
-    // If a regular elements query is made, we add the ':all'-prefix.
+    const setter = quantityData[k]?.valueSet
+    if (setter) {
+      setter(queryCustomized, v)
     } else {
-      if (k === 'results.material.elements') {
-        if (v.size === 0) {
-          continue
-        }
-        newValue = setToArray(v)
-      // If an exlusive elements query is made, we sort the elements and
-      // concatenate them into a single string. This value we can then use to
-      // target the special field reserved for exclusive queries. TODO: Maybe the
-      // API could directly support an ':only'-postfix?
-      } else if (k === 'results.material.elements_exclusive') {
-        if (v.size === 0) {
-          continue
-        }
-        newValue = setToArray(v).sort().join(' ')
-      } else {
-        if (isPlainObject(v)) {
-          newValue = {}
-          if (!isNil(v.lte)) {
-            newValue.lte = toAPIQueryValue(v.lte)
-          }
-          if (!isNil(v.gte)) {
-            newValue.gte = toAPIQueryValue(v.gte)
-          }
-        } else {
-          newValue = toAPIQueryValue(v)
-        }
-      }
-      const postfix = isArray(newValue) ? quantityData[k]?.postfix : undefined
-      k = resource === 'materials' ? quantityMaterialNames[k] : k
-      k = postfix ? `${k}:${postfix}` : k
-      newQuery[k] = newValue
+      queryCustomized[k] = v
     }
   }
-  return newQuery
+
+  // Transform sets into lists and Quantities into SI values and modify keys
+  // according to target resource (entries/materials).
+  let queryNormalized = {}
+  for (let [k, v] of Object.entries(queryCustomized)) {
+    let newValue
+    if (isPlainObject(v)) {
+      newValue = {}
+      if (!isNil(v.lte)) {
+        newValue.lte = toAPIQueryValue(v.lte)
+      }
+      if (!isNil(v.gte)) {
+        newValue.gte = toAPIQueryValue(v.gte)
+      }
+    } else {
+      newValue = toAPIQueryValue(v)
+    }
+    k = resource === 'materials' ? quantityMaterialNames[k.split(':')[0]] : k
+    queryNormalized[k] = newValue
+  }
+
+  return queryNormalized
 }
 
 /**
@@ -845,51 +912,65 @@ function toAPIQueryValue(value) {
 }
 
 /**
- * Cleans the aggregation request into a format that is usable by the API.
+ * Used to transform a GUI aggregation query into a form that is usable by the
+ * API.
  *
- * @returns {object} A copy of the object with the correct quantity names used
- * by the API.
+ * @param {object} aggs The aggregation data in which the modifications are
+ * made.
+ * @param {string} quantity The quantity name
+ * @param {string} resource The resource we are looking at: entries or materials.
  */
-function toAPIAgg(aggs, resource) {
-  if (resource === 'materials') {
-    let newAggs = {}
-    for (let [label, agg] of Object.entries(aggs)) {
-      label = resource === 'materials' ? quantityMaterialNames[label] : label
-      for (let v of Object.values(agg)) {
-        v.quantity = label
+function toAPIAgg(aggs, quantity, resource) {
+  const aggSet = quantityAggSets[quantity]
+  if (aggSet) {
+    for (const [key, type] of Object.entries(aggSet)) {
+      const name = resource === 'materials' ? quantityMaterialNames[key.split(':')[0]] : key
+      const agg = aggs[name] || {}
+      agg[type] = {
+        quantity: name,
+        size: 500
       }
-      newAggs[label] = agg
+      aggs[name] = agg
     }
-    return newAggs
   }
-  return aggs
 }
 
 /**
- * Cleans the aggregation response into a format that is usable by the GUI.
+ * Used to transform an API aggregation query into a form that is usable by the
+ * GUI.
  *
- * @returns {object} A copy of the object with the correct quantity names used
- * by the GUI.
+ * @param {object} aggs The aggregation data as returned by the API.
+ * @param {string} quantity The quantity name
+ * @param {string} resource The resource we are looking at: entries or materials.
+ *
+ * @returns {object} Aggregation data for the given quantity.
  */
-function toGUIAgg(response, resource) {
+function toGUIAgg(aggs, quantities, resource) {
+  if (isEmpty(aggs)) {
+    return aggs
+  }
+  // Modify keys according to target resource (entries/materials).
+  let aggsNormalized
   if (resource === 'materials') {
-    const newAggs = {}
-    for (let [label, agg] of Object.entries(response.aggregations)) {
-      label = resource === 'materials' ? quantityEntryNames[label] : label
-      for (let v of Object.values(agg)) {
-        v.quantity = label
-      }
-      newAggs[label] = agg
+    aggsNormalized = {}
+    for (const key of Object.keys(aggs)) {
+      const name = resource === 'materials' ? quantityEntryNames[key] : key
+      aggs[key].quantity = name
+      aggsNormalized[name] = aggs[key]
     }
-    response.aggregations = newAggs
+  } else {
+    aggsNormalized = aggs
   }
-  return response
-}
 
-function getAggData(aggs, quantity, type) {
-  let agg = aggs && aggs.aggregations?.[quantity]?.[type]?.data
-  if (type === 'min_max' && !agg) {
-    agg = [undefined, undefined]
+  // Perform custom transformations
+  const aggsCustomized = {}
+  for (const name of quantities) {
+    const aggGet = quantityAggGets[name]
+    if (aggGet) {
+      let agg
+      agg = aggGet(aggsNormalized)
+      aggsCustomized[name] = agg
+    }
   }
-  return agg
+  return aggsCustomized
 }
