@@ -138,16 +138,34 @@ const InputSlider = React.memo(({
     let min
     let max
     if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+      // When no filter is set, use the whole available range
       if (isNil(filter)) {
         gte = minGlobalSI
         lte = maxGlobalSI
         min = minGlobalSI
         max = maxGlobalSI
+      // A single specific value is given
+      } else if (filter instanceof Quantity) {
+        gte = filter.toSI()
+        lte = filter.toSI()
+        min = Math.min(gte, minGlobalSI)
+        max = Math.max(lte, maxGlobalSI)
+      // A range is given
       } else {
         gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
         lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
-        min = isNil(gte) ? minGlobalSI : Math.min(gte, minGlobalSI)
-        max = isNil(lte) ? maxGlobalSI : Math.max(lte, maxGlobalSI)
+        if (isNil(gte)) {
+          min = minGlobalSI
+          gte = minGlobalSI
+        } else {
+          min = Math.min(gte, minGlobalSI)
+        }
+        if (isNil(lte)) {
+          max = maxGlobalSI
+          lte = maxGlobalSI
+        } else {
+          max = Math.max(lte, maxGlobalSI)
+        }
       }
       setMinLocal(min)
       setMaxLocal(max)

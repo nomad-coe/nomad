@@ -96,7 +96,9 @@ function registerQuantity(name, group, agg, value, multiple = true) {
   // Store the available quantities, their grouping, and the initial aggregation
   // types.
   quantities.add(name)
-  quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
+  if (group) {
+    quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
+  }
 
   // Register mappings from full name to abbreviation and vice versa
   const abbreviation = name.split('.').pop()
@@ -128,7 +130,6 @@ function registerQuantity(name, group, agg, value, multiple = true) {
   // Store the default query postfixes (any/all) for each quantity
   const data = quantityData[name] || {}
   if (value) {
-    data.valueGet = value.get
     data.valueSet = value.set
   }
   data.multiple = multiple
@@ -140,7 +141,6 @@ registerQuantity('results.material.structural_type', labelMaterial, 'terms')
 registerQuantity('results.material.functional_type', labelMaterial, 'terms')
 registerQuantity('results.material.compound_type', labelMaterial, 'terms')
 registerQuantity('results.material.material_name', labelMaterial)
-registerQuantity('results.material.elements', labelElements, 'terms')
 registerQuantity('results.material.chemical_formula_hill', labelElements)
 registerQuantity('results.material.chemical_formula_anonymous', labelElements)
 registerQuantity('results.material.n_elements', labelElements, 'min_max', undefined, false)
@@ -175,13 +175,17 @@ registerQuantity('datasets.dataset_id', labelIDs)
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
 registerQuantity(
-  'results.material.elements_exclusive',
+  'results.material.elements',
   labelElements,
-  undefined,
+  'terms',
   {
-    set: (query, value) => {
-      if (value.size !== 0) {
-        query['results.material.elements_exclusive'] = setToArray(value).sort().join(' ')
+    set: (newQuery, oldQuery, value) => {
+      if (oldQuery.exclusive) {
+        if (value.size !== 0) {
+          newQuery['results.material.elements_exclusive'] = setToArray(value).sort().join(' ')
+        }
+      } else {
+        newQuery['results.material.elements'] = value
       }
     }
   }
@@ -195,10 +199,10 @@ registerQuantity(
     get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
   },
   {
-    set: (query, value) => {
-      const data = query['results.properties.available_properties'] || new Set()
+    set: (newQuery, oldQuery, value) => {
+      const data = newQuery['results.properties.available_properties'] || new Set()
       value.forEach((item) => { data.add(item) })
-      query['results.properties.available_properties'] = data
+      newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
   }
@@ -226,21 +230,24 @@ registerQuantity(
   'visibility',
   labelAccess,
   undefined,
-  {
-    set: () => {},
-    get: () => {}
-  },
+  {set: () => {}},
   false
 )
-// Restricted: controls whether materiarls search is done in a restricted mode.
+// Restricted: controls whether materials search is done in a restricted mode.
 registerQuantity(
   'restricted',
-  'Restricted',
   undefined,
-  {
-    set: () => {},
-    get: () => {}
-  },
+  undefined,
+  {set: () => {}},
+  false
+)
+
+// Exclusive: controls the way elements search is done.
+registerQuantity(
+  'exclusive',
+  undefined,
+  undefined,
+  {set: () => {}},
   false
 )
 
@@ -378,38 +385,6 @@ export const initializedState = atom({
   default: false
 })
 
-// Exclusive search state
-export const exclusive = atom({
-  key: 'exclusive',
-  default: false
-})
-export function useExclusive() {
-  return useRecoilValue(exclusive)
-}
-export function useExclusiveState() {
-  const value = useRecoilValue(exclusive)
-  const setter = useSetExclusive()
-  return [value, setter]
-}
-export function useSetExclusive() {
-  const setter = useSetRecoilState(exclusive)
-  const [elements, setElements] = useRecoilState(queryFamily('results.material.elements'))
-  const [elementsEx, setElementsEx] = useRecoilState(queryFamily('results.material.elements_exclusive'))
-
-  const set = useCallback((exclusive) => {
-    setter(exclusive)
-    if (exclusive) {
-      setElements(new Set())
-      setElementsEx(elements)
-    } else {
-      setElements(elementsEx)
-      setElementsEx(new Set())
-    }
-  }, [elements, elementsEx, setElements, setElementsEx, setter])
-
-  return set
-}
-
 /**
  * Returns a function that can be called to reset all current filters.
  *
@@ -420,7 +395,6 @@ export function useResetFilters() {
     for (let filter of quantities) {
       reset(queryFamily(filter))
     }
-    reset(exclusive)
   }, [])
   return reset
 }
@@ -742,7 +716,7 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
  * @returns {object} Object containing the search results under 'results' and
  * the used query under 'search'.
  */
-export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 500) {
+export function useScrollResults(pageSize, orderBy, order, delay = 500) {
   const {api} = useApi()
   const {resource} = useSearchContext()
   const firstRender = useRef(true)
@@ -859,7 +833,7 @@ export function toAPIQuery(query, resource, restricted) {
   for (let [k, v] of Object.entries(query)) {
     const setter = quantityData[k]?.valueSet
     if (setter) {
-      setter(queryCustomized, v)
+      setter(queryCustomized, query, v)
     } else {
       queryCustomized[k] = v
     }
@@ -885,7 +859,7 @@ export function toAPIQuery(query, resource, restricted) {
     // The query key postfixes and key remapping is done here. By default query
     // items with array values get the 'any'-postfix.
     let postfix
-    if (isArray(v)) {
+    if (isArray(newValue)) {
       const quantityPostfixMap = {
         'results.properties.available_properties': 'all',
         'results.material.elements': 'all'

@@ -21,10 +21,9 @@ import periodicTableData from './PeriodicTableData'
 import {
   Typography,
   Button,
-  Tooltip,
-  FormControlLabel,
-  Checkbox
+  Tooltip
 } from '@material-ui/core'
+import InputCheckbox from './InputCheckbox'
 import { useTheme, makeStyles } from '@material-ui/core/styles'
 
 const elements = []
@@ -175,8 +174,6 @@ const useTableStyles = makeStyles(theme => ({
 const InputPeriodicTable = React.memo(({
   availableValues,
   values,
-  exclusive,
-  onExclusiveChanged,
   onChanged
 }) => {
   const styles = useTableStyles()
@@ -216,7 +213,13 @@ const InputPeriodicTable = React.memo(({
         </tbody>
       </table>
       <div className={styles.formContainer}>
-        <Tooltip title={
+        <InputCheckbox
+          quantity="exclusive"
+          label="only composition that exclusively contain these atoms"
+          description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
+          initialValue={false}
+        ></InputCheckbox>
+        {/* <Tooltip title={
           'Search for entries with compositions that only (exclusively) contain the ' +
           'selected atoms. The default is to return all entries that have at least ' +
           '(inclusively) the selected atoms.'}>
@@ -227,7 +230,7 @@ const InputPeriodicTable = React.memo(({
             />}
             label={'only composition that exclusively contain these atoms'}
           />
-        </Tooltip>
+        </Tooltip> */}
       </div>
     </div>
   )
@@ -236,9 +239,7 @@ const InputPeriodicTable = React.memo(({
 InputPeriodicTable.propTypes = {
   availableValues: PropTypes.object,
   values: PropTypes.object,
-  onChanged: PropTypes.func.isRequired,
-  exclusive: PropTypes.bool,
-  onExclusiveChanged: PropTypes.func.isRequired
+  onChanged: PropTypes.func.isRequired
 }
 
 export default InputPeriodicTable

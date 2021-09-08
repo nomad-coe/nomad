@@ -253,7 +253,6 @@ const NewSearchBar = React.memo(({
     if (valid) {
       // Submit to search context on successful validation. Whether we append or
       // replace the value is determined during quantity registration.
-      console.log(quantityData[quantityFullname])
       if (quantityData[quantityFullname].multiple) {
         setFilter([quantityFullname, old => {
           let newValue

@@ -24,7 +24,7 @@ import {
 } from '@material-ui/core'
 import SearchResultsMaterials from './SearchResultsMaterials'
 import SearchResultsEntries from './SearchResultsEntries'
-import { useExclusive, useScrollResults, useSearchContext } from '../FilterContext'
+import { useScrollResults, useSearchContext } from '../FilterContext'
 
 /**
  * Displays the list of search results
@@ -42,14 +42,13 @@ const SearchResults = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const exclusive = useExclusive()
   const { resource } = useSearchContext()
   const page_size = 30
   // eslint-disable-next-line no-unused-vars
   const [orderBy, setOrderBy] = useState(orderByMap[resource])
   // eslint-disable-next-line no-unused-vars
   const [order, setOrder] = useState('desc')
-  const {results, next, page, total} = useScrollResults(30, orderBy, order, exclusive)
+  const {results, next, page, total} = useScrollResults(30, orderBy, order)
 
   // When bottom of results reached, fetch the next set of results.
   const handleBottom = useCallback(() => {
