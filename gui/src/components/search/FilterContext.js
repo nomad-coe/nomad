@@ -140,6 +140,7 @@ registerQuantity('results.material.structural_type', labelMaterial, 'terms')
 registerQuantity('results.material.functional_type', labelMaterial, 'terms')
 registerQuantity('results.material.compound_type', labelMaterial, 'terms')
 registerQuantity('results.material.material_name', labelMaterial)
+registerQuantity('results.material.elements', labelElements, 'terms')
 registerQuantity('results.material.chemical_formula_hill', labelElements)
 registerQuantity('results.material.chemical_formula_anonymous', labelElements)
 registerQuantity('results.material.n_elements', labelElements, 'min_max', undefined, false)
@@ -171,13 +172,6 @@ registerQuantity('upload_id', labelIDs)
 registerQuantity('results.material.material_id', labelIDs)
 registerQuantity('datasets.dataset_id', labelIDs)
 
-// In regular element query we use the 'all'-postfix.
-registerQuantity(
-  'results.material.elements',
-  labelElements,
-  'terms',
-  { set: (query, value) => (query['results.material.elements:all'] = value) }
-)
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
 registerQuantity(
@@ -231,6 +225,17 @@ registerQuantity(
 registerQuantity(
   'visibility',
   labelAccess,
+  undefined,
+  {
+    set: () => {},
+    get: () => {}
+  },
+  false
+)
+// Restricted: controls whether materiarls search is done in a restricted mode.
+registerQuantity(
+  'restricted',
+  'Restricted',
   undefined,
   {
     set: () => {},
@@ -415,6 +420,7 @@ export function useResetFilters() {
     for (let filter of quantities) {
       reset(queryFamily(filter))
     }
+    reset(exclusive)
   }, [])
   return reset
 }
@@ -557,13 +563,14 @@ export function useUpdateQueryString() {
  * datatypes that are directly compatible with the filter components.
  */
 function qsToQuery(queryString) {
-  const query = qs.parse(queryString, { comma: true })
+  const query = qs.parse(queryString, {comma: true})
   const newQuery = {}
   for (let [key, value] of Object.entries(query)) {
     const split = key.split(':')
     key = split[0]
     let newKey = quantityFullnames.get(key) || key
-    const {type, parser} = parseMeta(newKey)
+    let multiple = quantityData[newKey].multiple
+    const {parser} = parseMeta(newKey)
     if (split.length !== 1) {
       const op = split[1]
       const oldValue = newQuery[newKey]
@@ -574,7 +581,7 @@ function qsToQuery(queryString) {
       }
     } else {
       if (isArray(value)) {
-        value = new Set(value)
+        value = new Set(value.map(parser))
       } else if (isPlainObject(value)) {
         if (!isNil(value.gte)) {
           value.gte = parser(value.gte)
@@ -584,7 +591,7 @@ function qsToQuery(queryString) {
         }
       } else {
         value = parser(value)
-        if (type !== 'number' && type !== 'timestamp' && key !== 'visibility') {
+        if (multiple) {
           value = new Set([value])
         }
       }
@@ -663,13 +670,12 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
   const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
   const query = useQuery()
-  const exclusive = useExclusive()
   const firstLoad = useRef(true)
 
   // Pretty much all of the required pre-processing etc. should be done in this
   // function, as it is the final one that gets called after the debounce
   // interval.
-  const apiCall = useCallback((query, exclusive) => {
+  const apiCall = useCallback((query) => {
     // If the restrict option is enabled, the filters targeting the specified
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
@@ -677,7 +683,7 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
     if (restrict && query && quantity in query) {
       delete queryCleaned[quantity]
     }
-    queryCleaned = toAPIQuery(queryCleaned, resource)
+    queryCleaned = toAPIQuery(queryCleaned, resource, query.restricted)
     const aggRequest = {}
     toAPIAgg(aggRequest, quantity, resource)
     const search = {
@@ -713,12 +719,12 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
       // Make an immediate request for the aggregation values if query has been
       // specified.
       } else {
-        apiCall(query, exclusive)
+        apiCall(query)
       }
     } else {
-      debounced(query, exclusive)
+      debounced(query)
     }
-  }, [apiCall, quantity, debounced, query, exclusive, update, initialAggs])
+  }, [apiCall, quantity, debounced, query, update, initialAggs])
 
   return results
 }
@@ -752,9 +758,10 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback((query, pageSize, orderBy, order, exclusive) => {
+  const apiCall = useCallback((query, pageSize, orderBy, order) => {
     pageAfterValue.current = undefined
-    const cleanedQuery = toAPIQuery(query, resource)
+    const restricted = query.restricted
+    const cleanedQuery = toAPIQuery(query, resource, restricted)
     const search = {
       owner: query.visibility || 'visible',
       query: cleanedQuery,
@@ -814,12 +821,12 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
       return
     }
     if (firstRender.current) {
-      apiCall(query, pageSize, orderBy, order, exclusive)
+      apiCall(query, pageSize, orderBy, order)
       firstRender.current = false
     } else {
-      debounced(query, pageSize, orderBy, order, exclusive)
+      debounced(query, pageSize, orderBy, order)
     }
-  }, [apiCall, debounced, query, exclusive, pageSize, order, orderBy])
+  }, [apiCall, debounced, query, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
   // results in the new order. The amount of fetched results is based on the
@@ -846,7 +853,7 @@ export function useScrollResults(pageSize, orderBy, order, exclusive, delay = 50
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIQuery(query, resource) {
+export function toAPIQuery(query, resource, restricted) {
   // Perform custom transformations
   let queryCustomized = {}
   for (let [k, v] of Object.entries(query)) {
@@ -858,10 +865,10 @@ export function toAPIQuery(query, resource) {
     }
   }
 
-  // Transform sets into lists and Quantities into SI values and modify keys
-  // according to target resource (entries/materials).
   let queryNormalized = {}
-  for (let [k, v] of Object.entries(queryCustomized)) {
+  for (const [k, v] of Object.entries(queryCustomized)) {
+    // Transform sets into lists and Quantities into SI values and modify keys
+    // according to target resource (entries/materials).
     let newValue
     if (isPlainObject(v)) {
       newValue = {}
@@ -874,8 +881,61 @@ export function toAPIQuery(query, resource) {
     } else {
       newValue = toAPIQueryValue(v)
     }
-    k = resource === 'materials' ? quantityMaterialNames[k.split(':')[0]] : k
-    queryNormalized[k] = newValue
+
+    // The query key postfixes and key remapping is done here. By default query
+    // items with array values get the 'any'-postfix.
+    let postfix
+    if (isArray(v)) {
+      const quantityPostfixMap = {
+        'results.properties.available_properties': 'all',
+        'results.material.elements': 'all'
+      }
+      postfix = quantityPostfixMap[k] || 'any'
+    }
+
+    // For material query the keys are remapped.
+    let newKey = resource === 'materials' ? quantityMaterialNames[k] : k
+    newKey = postfix ? `${newKey}:${postfix}` : newKey
+    queryNormalized[newKey] = newValue
+  }
+
+  if (resource === 'materials') {
+    // In restricted search we simply move all method/properties filters
+    // inside a single entries-subsection.
+    if (restricted) {
+      const entrySearch = {}
+      for (const [k, v] of Object.entries(queryNormalized)) {
+        if (k.startsWith('entries.')) {
+          const name = k.split('entries.').pop()
+          entrySearch[name] = v
+          delete queryNormalized[k]
+        }
+      }
+      if (!isEmpty(entrySearch)) {
+        queryNormalized.entries = entrySearch
+      }
+    // In unrestricted search we have to split each filter and each filter value
+    // into it's own separate entries query. These queries are then joined with
+    // 'and'.
+    } else {
+      const entrySearch = []
+      for (const [k, v] of Object.entries(queryNormalized)) {
+        if (k.startsWith('entries.')) {
+          const newKey = k.split(':')[0]
+          if (isArray(v)) {
+            for (const item of v) {
+              entrySearch.push({[newKey]: item})
+            }
+          } else {
+            entrySearch.push({[newKey]: v})
+          }
+          delete queryNormalized[k]
+        }
+      }
+      if (entrySearch.length > 0) {
+        queryNormalized.and = entrySearch
+      }
+    }
   }
 
   return queryNormalized

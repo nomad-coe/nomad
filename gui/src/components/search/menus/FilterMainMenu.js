@@ -23,7 +23,7 @@ import {
   FilterMenuItems,
   FilterSubMenus
 } from './FilterMenu'
-
+import { makeStyles } from '@material-ui/core/styles'
 import FilterSubMenuMaterial from './FilterSubMenuMaterial'
 import FilterSubMenuElements from './FilterSubMenuElements'
 import FilterSubMenuSymmetry from './FilterSubMenuSymmetry'
@@ -51,13 +51,20 @@ import {
   labelAuthor,
   labelDataset,
   labelIDs,
-  labelAccess
+  labelAccess,
+  useSearchContext
 } from '../FilterContext'
+import InputCheckbox from '../input/InputCheckbox'
 
 /**
  * Swipable menu that shows the available filters on the left side of the
  * screen.
  */
+const useStyles = makeStyles(theme => ({
+  restricted: {
+    paddingLeft: theme.spacing(2)
+  }
+}))
 const FilterMainMenu = React.memo(({
   open,
   onOpenChange,
@@ -67,6 +74,8 @@ const FilterMainMenu = React.memo(({
   onResultTypeChange
 }) => {
   const [value, setValue] = React.useState()
+  const {resource} = useSearchContext()
+  const styles = useStyles()
 
   return <FilterMenu
     selected={value}
@@ -91,6 +100,15 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
       <FilterMenuItem value={labelIDs} depth={0}/>
+      {resource === 'materials' &&
+        <InputCheckbox
+          quantity="restricted"
+          label="Restricted"
+          description="If selected, the query will return materials that have individual calculations simultaneously matching your methodology and properties criteria."
+          initialValue={true}
+          className={styles.restricted}
+        ></InputCheckbox>
+      }
     </FilterMenuItems>
     <FilterSubMenus>
       <FilterSubMenuMaterial value={labelMaterial}/>

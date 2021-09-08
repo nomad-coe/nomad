@@ -144,15 +144,10 @@ const InputSlider = React.memo(({
         min = minGlobalSI
         max = maxGlobalSI
       } else {
-        if (filter instanceof Quantity) {
-          gte = filter.toSI()
-          lte = filter.toSI()
-        } else {
-          gte = filter.gte ? filter.gte.toSI() : minGlobalSI
-          lte = filter.lte ? filter.lte.toSI() : maxGlobalSI
-        }
-        min = Math.min(gte, minGlobalSI)
-        max = Math.max(lte, maxGlobalSI)
+        gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
+        lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
+        min = isNil(gte) ? minGlobalSI : Math.min(gte, minGlobalSI)
+        max = isNil(lte) ? maxGlobalSI : Math.max(lte, maxGlobalSI)
       }
       setMinLocal(min)
       setMaxLocal(max)

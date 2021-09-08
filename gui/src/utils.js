@@ -479,7 +479,16 @@ export function parseMeta(quantity, pretty = true) {
     }
   } else {
     type = 'unknown'
-    parser = (value) => value
+    parser = (value) => {
+      const keywords = {
+        true: true,
+        false: false
+      }
+      if (value in keywords) {
+        return keywords[value]
+      }
+      return value
+    }
   }
   return {type, parser}
 }
