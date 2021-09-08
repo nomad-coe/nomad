@@ -204,3 +204,6 @@
 [submodule "dependencies/parsers/lobster"]
 	path = dependencies/parsers/lobster
 	url = https://github.com/ondracka/nomad_parser_lobster.git
+[submodule "dependencies/parsers/openmx"]
+	path = dependencies/parsers/openmx
+	url = https://github.com/ondracka/nomad-parser-openmx.git

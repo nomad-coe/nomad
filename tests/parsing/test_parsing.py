@@ -74,6 +74,7 @@ parser_examples = [
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
     ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
+    ('parsers/openmx', 'tests/data/parsers/openmx/AlN_ionic_optimization/AlN.out'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
 ]
 
@@ -86,7 +87,7 @@ for parser, mainfile in parser_examples:
 parser_examples = fixed_parser_examples
 
 
-correct_num_output_files = 118
+correct_num_output_files = 119
 
 
 def create_reference(data, pretty):
