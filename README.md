@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.7
+- adding OpenMX parser
+
 ### v0.10.6
 - support for NOMAD fields in optimade
 
