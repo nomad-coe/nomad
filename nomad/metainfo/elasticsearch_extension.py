@@ -753,10 +753,13 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     # Here we manually add the material_entry_type mapping as a nested field
     # inside the material index. We also need to manually specify the
     # additional nested fields that come with this: the entries + all
-    # nested_object_keys from material_entry_type.
+    # nested_object_keys from material_entry_type. Notice that we need to sort
+    # the list: the API expects a list sorted by name length in ascending
+    # order.
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
-    material_type.nested_object_keys += material_entry_type.nested_object_keys + ['entries']
+    material_type.nested_object_keys += ['entries'] + material_entry_type.nested_object_keys
+    material_type.nested_object_keys.sort(key=lambda item: len(item))
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
