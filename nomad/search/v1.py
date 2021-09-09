@@ -230,6 +230,7 @@ def _api_to_es_aggregation(
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
+            break
 
     es_agg = None
     if isinstance(agg, TermsAggregation):
@@ -378,6 +379,7 @@ def _es_to_api_aggregation(
         if agg.quantity.startswith(nested_key):
             es_aggs = es_response.aggs[f'nested_agg:{name}']
             nested = True
+            break
 
     aggregation_dict = agg.dict(by_alias=True)
     has_no_pagination = getattr(agg, 'pagination', None) is None
