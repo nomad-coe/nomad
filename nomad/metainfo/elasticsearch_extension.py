@@ -749,9 +749,14 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     entry_type.create_mapping(entry_section_def)
     material_type.create_mapping(material_section_def, auto_include_subsections=True)
     material_entry_type.create_mapping(entry_section_def, prefix='entries')
+
+    # Here we manually add the material_entry_type mapping as a nested field
+    # inside the material index. We also need to manually specify the
+    # additional nested fields that come with this: the entries + all
+    # nested_object_keys from material_entry_type.
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
-    material_type.nested_object_keys += ['entries'] + material_entry_type.nested_object_keys
+    material_type.nested_object_keys += material_entry_type.nested_object_keys + ['entries']
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
