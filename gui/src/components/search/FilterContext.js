@@ -276,7 +276,7 @@ export const SearchContext = React.memo(({
 
   useEffect(() => {
     reset()
-  }, [])
+  }, [reset])
 
   // Read the target resource and initial query from the URL
   const [resourceFinal, query] = useMemo(() => {
