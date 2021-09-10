@@ -68,10 +68,10 @@ export function getDimension(quantity) {
  * Helper class for persisting unit information.
  */
 export class Unit {
-  constructor(unit, system = undefined) {
-    this.unitDef = this.getUnitDefinition(unit, system)
+  constructor(unit, system = undefined, validate = true) {
+    this.unitDef = this.getUnitDefinition(unit, system, validate)
   }
-  getUnitDefinition(unit, system = undefined) {
+  getUnitDefinition(unit, system = undefined, validate) {
     // Modify unit definition to comply with math.js evaluation
     const from = unit.replace('**', '^')
 
@@ -90,6 +90,9 @@ export class Unit {
           if (unitFromInfo) {
             node.name = fullName
           }
+        }
+        if (validate && unitFromInfo === undefined) {
+          throw Error(`Unknown unit: ${node.name}`)
         }
         // If unit system is given, perform the translation.
         if (system && unitFromInfo !== undefined) {

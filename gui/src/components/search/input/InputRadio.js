@@ -28,7 +28,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import InputLabel from './InputLabel'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState } from '../FilterContext'
+import { useFilterState, useFilterLocked } from '../FilterContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -53,6 +53,7 @@ const InputRadio = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
+  const locked = useFilterLocked(quantity)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -67,7 +68,7 @@ const InputRadio = React.memo(({
     <InputLabel label={title} description={desc}/>
     <RadioGroup aria-label={label} name={label} value={filter || initialValue} onChange={handleChange}>
       {options && Object.entries(options).map(([key, value]) =>
-        <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={
+        <FormControlLabel key={key} value={key} control={<Radio disabled={locked || value.disabled}/>} label={
           <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
             <Typography>{value.label}</Typography>
           </Tooltip>

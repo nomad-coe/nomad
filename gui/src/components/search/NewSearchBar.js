@@ -34,11 +34,12 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
 import { useUnits, getDimension, Quantity } from '../../units'
-import { isMetaNumber } from '../../utils'
+import { isMetaNumber, isMetaTimestamp } from '../../utils'
 import {
   useFiltersState,
   filterFullnames,
   filterAbbreviations,
+  toGUIFilter,
   filterData
 } from './FilterContext'
 import searchQuantities from '../../searchQuantities'
@@ -160,19 +161,11 @@ const NewSearchBar = React.memo(({
         setError(`Unknown quantity name`)
         return
       }
-      // Numerical values have to be separately parsed and validated.
-      const isNumeric = isMetaNumber(quantityFullname)
-      if (isNumeric) {
-        try {
-          queryValue = Number.parseFloat(equals[2])
-        } catch (error) {
-          setError(`Invalid numerical value. Please check your syntax.`)
-          return
-        }
-        const dimension = getDimension(quantityFullname)
-        queryValue = dimension ? new Quantity(queryValue, units[dimension]) : queryValue
-      } else {
-        queryValue = equals[2]
+      try {
+        queryValue = toGUIFilter(quantityFullname, equals[2], units)
+      } catch (error) {
+        setError(`Invalid value for this metainfo. Please check your syntax.`)
+        return
       }
       valid = true
     }
@@ -193,20 +186,19 @@ const NewSearchBar = React.memo(({
           return
         }
         quantityFullname = isAQuantity ? aFullname : bFullname
-        const info = searchQuantities[quantityFullname]
-        const quantityValue = Number.parseFloat(isAQuantity ? b : a)
-        if (isNaN(quantityValue)) {
-          setError(`Invalid number`)
-          return
-        }
-        const type = info.type
-        const dimension = getDimension(quantityFullname)
-        if (!type.type_data.startsWith('int') && !type.type_data.startsWith('float')) {
+        if (!isMetaNumber(quantityFullname) && !isMetaTimestamp(quantityFullname)) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
+        let quantityValue
+        try {
+          quantityValue = toGUIFilter(quantityFullname, isAQuantity ? b : a, units)
+        } catch (error) {
+          setError(`Invalid value for this metainfo. Please check your syntax.`)
+          return
+        }
         queryValue = {}
-        queryValue[opMap[op]] = dimension ? new Quantity(quantityValue, units[dimension]) : quantityValue
+        queryValue[opMap[op]] = quantityValue
         valid = true
       }
     }
@@ -221,55 +213,34 @@ const NewSearchBar = React.memo(({
         const op2 = ltegteSandwich[4]
         const c = ltegteSandwich[5]
         quantityFullname = filterFullnames[b]
-        const dimension = getDimension(quantityFullname)
+        if (!isMetaNumber(quantityFullname) && !isMetaTimestamp(quantityFullname)) {
+          setError(`Cannot perform range query for a non-numeric quantity.`)
+          return
+        }
         const isBQuantity = quantitySet.has(quantityFullname)
         if (!isBQuantity) {
           setError(`Unknown quantity name`)
           return
         }
-        let aValue = Number.parseFloat(a)
-        let cValue = Number.parseFloat(c)
-        if (isNaN(aValue) || isNaN(cValue)) {
-          setError(`Invalid number`)
-          return
-        }
-        const type = searchQuantities[quantityFullname].type
-        if (!type.type_data.startsWith('int') && !type.type_data.startsWith('float')) {
-          setError(`Cannot perform range query for a non-numeric quantity.`)
-          return
-        }
 
         queryValue = {}
-        if (dimension) {
-          aValue = new Quantity(aValue, units[dimension])
-          cValue = new Quantity(cValue, units[dimension])
+        try {
+          queryValue[opMapReverse[op1]] = toGUIFilter(quantityFullname, a, units)
+          queryValue[opMap[op2]] = toGUIFilter(quantityFullname, c, units)
+        } catch (error) {
+          setError(`Invalid value for this metainfo. Please check your syntax.`)
+          return
         }
-        queryValue[opMapReverse[op1]] = aValue
-        queryValue[opMap[op2]] = cValue
         valid = true
       }
     }
 
     if (valid) {
-      // Submit to search context on successful validation. Whether we append or
-      // replace the value is determined during quantity registration.
-      if (filterData[quantityFullname].multiple) {
-        setFilter([quantityFullname, old => {
-          let newValue
-          if (Array.isArray(old)) {
-            newValue = [...old]
-            newValue.push(queryValue)
-          } else if (old instanceof Set) {
-            newValue = new Set(old)
-            newValue.add(queryValue)
-          } else {
-            return new Set([queryValue])
-          }
-          return newValue
-        }])
-      } else {
-        setFilter([quantityFullname, queryValue])
-      }
+      // Submit to search context on successful validation.
+      setFilter([quantityFullname, old => {
+        const multiple = filterData[quantityFullname].multiple
+        return multiple ? new Set([...old, queryValue]) : queryValue
+      }])
       setInputValue('')
       setOpen(false)
     } else {

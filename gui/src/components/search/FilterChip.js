@@ -18,6 +18,7 @@
 import React from 'react'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
+import LockIcon from '@material-ui/icons/Lock'
 import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 
@@ -29,16 +30,18 @@ const useStyles = makeStyles(theme => ({
 const FilterChip = React.memo(({
   label,
   onDelete,
-  className
+  className,
+  locked
 }) => {
   const styles = useStyles()
 
   return <div className={clsx(className, styles.root)}>
     <Chip
       label={label}
-      onDelete={onDelete}
-      color="primary"
+      onDelete={locked ? undefined : onDelete}
+      color={'primary'}
       className={styles.root}
+      icon={locked ? <LockIcon/> : undefined}
     />
   </div>
 })
@@ -46,7 +49,8 @@ const FilterChip = React.memo(({
 FilterChip.propTypes = {
   label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onDelete: PropTypes.func,
-  className: PropTypes.string
+  className: PropTypes.string,
+  locked: PropTypes.bool
 }
 
 export default FilterChip

@@ -46,7 +46,7 @@ const DOS = React.memo(({
 }) => {
   const energyUnit = useMemo(() => new Unit('joule'), [])
   const valueUnit = useMemo(() => new Unit('1/joule'), [])
-  const valueDisplayUnit = useMemo(() => new Unit('states/joule'), [])
+  const valueDisplayUnit = useMemo(() => new Unit('state/joule', undefined, false), [])
 
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {

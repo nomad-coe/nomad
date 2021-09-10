@@ -205,10 +205,10 @@ registerFilter(
     get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
   },
   {
-    set: (query, value) => {
-      const data = query['results.properties.available_properties'] || new Set()
+    set: (newQuery, oldQuery, value) => {
+      const data = newQuery['results.properties.available_properties'] || new Set()
       value.forEach((item) => { data.add(item) })
-      query['results.properties.available_properties'] = data
+      newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
   }
@@ -262,6 +262,7 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const setQuery = useSetRecoilState(queryState)
+  const setLocked = useSetRecoilState(lockedState)
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
@@ -285,10 +286,19 @@ export const SearchContext = React.memo(({
     return [resource || path.split('/').pop(), query]
   }, [resource])
 
-  // Save the initial query. Cannot be done inside useMemo due to bad setState.
+  // Save the initial query and locked filters. Cannot be done inside useMemo
+  // due to bad setState.
   useEffect(() => {
     setQuery(query)
-  }, [setQuery, query])
+    // Transform the locked values into a GUI-suitable format and store them
+    if (filtersLocked) {
+      const filtersLockedGUI = {}
+      for (const [key, value] of Object.entries(filtersLocked)) {
+        filtersLockedGUI[key] = toGUIFilter(key, value)
+      }
+      setLocked(filtersLockedGUI)
+    }
+  }, [setLocked, setQuery, query, filtersLocked])
 
   // Fetch initial aggregation data.
   useEffect(() => {
@@ -345,6 +355,10 @@ export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
+export const lockedFamily = atomFamily({
+  key: 'lockedFamily',
+  default: false
+})
 
 // Menu open state
 export const menuOpen = atom({
@@ -385,11 +399,14 @@ export const initializedState = atom({
  * @returns Function for resetting all filters.
  */
 export function useResetFilters() {
+  const locked = useRecoilValue(lockedState)
   const reset = useRecoilCallback(({reset}) => () => {
     for (let filter of filters) {
-      reset(queryFamily(filter))
+      if (!locked[filter]) {
+        reset(queryFamily(filter))
+      }
     }
-  }, [])
+  }, [locked])
   return reset
 }
 
@@ -404,6 +421,71 @@ export function useResetFilters() {
 export function useFilterValue(name) {
   return useRecoilValue(queryFamily(name))
 }
+
+/**
+ * This hook will expose a function for reading if the filter is locked.
+ *
+ * @param {string} name Name of the filter.
+ * @returns Whether the filter is locked or not.
+ */
+export function useFilterLocked(name) {
+  return useRecoilValue(lockedFamily(name))
+}
+
+/**
+ * This hook will expose a function for reading if the given set of filters are
+ * locked.
+ *
+ * @param {string} names Names of the filters.
+ * @returns Array containing the filter values in a map and a setter function.
+ */
+let indexLocked = 0
+export function useFiltersLockedState(names) {
+  // We dynamically create a Recoil.js selector that is subscribed to the
+  // filters specified in the input. This way only the specified filters will
+  // cause a render. Recoil.js requires that each selector/atom has an unique
+  // id. Because this hook can be called dynamically, we simply generate the ID
+  // sequentially.
+  const filterState = useMemo(() => {
+    const id = `locked_selector${indexLocked}`
+    indexLocked += 1
+    return selector({
+      key: id,
+      get: ({get}) => {
+        const query = {}
+        for (let key of names) {
+          const filter = get(lockedFamily(key))
+          query[key] = filter
+        }
+        return query
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return useRecoilValue(filterState)
+}
+
+// Used to set the locked state of several filters at once
+const lockedState = selector({
+  key: 'lockedState',
+  get: ({get}) => {
+    const locks = {}
+    for (let key of filters) {
+      const filter = get(lockedFamily(key))
+      locks[key] = filter
+    }
+    return locks
+  },
+  set: ({ get, set, reset }, data) => {
+    if (data) {
+      for (const [key, value] of Object.entries(data)) {
+        set(queryFamily(key), value)
+        set(lockedFamily(key), true)
+      }
+    }
+  }
+})
 
 /**
  * This hook will expose a function for setting a filter value. Use this hook if
@@ -436,17 +518,16 @@ export function useFilterState(name) {
  * @param {string} names Names of the filters.
  * @returns Array containing the filter values in a map and a setter function.
  */
-let index = 0
+let indexFilters = 0
 export function useFiltersState(names) {
   // We dynamically create a Recoil.js selector that is subscribed to the
   // filters specified in the input. This way only the specified filters will
-  // cause a render.
-
-  // Recoil.js requires that each selector/atom has an unique id. Because this
-  // hook can be called dynamically, we simply generate the ID sequentially.
-  const id = `dynamic_selector${index}`
-  index += 1
+  // cause a render. Recoil.js requires that each selector/atom has an unique
+  // id. Because this hook can be called dynamically, we simply generate the ID
+  // sequentially.
   const filterState = useMemo(() => {
+    const id = `dynamic_selector${indexFilters}`
+    indexFilters += 1
     return selector({
       key: id,
       get: ({get}) => {
@@ -535,33 +616,17 @@ function qsToQuery(queryString) {
     const split = key.split(':')
     key = split[0]
     let newKey = filterFullnames[key] || key
-    let multiple = filterData[newKey].multiple
-    const {parser} = parseMeta(newKey)
+    const valueGUI = toGUIFilter(newKey, value)
     if (split.length !== 1) {
       const op = split[1]
       const oldValue = newQuery[newKey]
       if (!oldValue) {
-        newQuery[newKey] = {[op]: parser(value)}
+        newQuery[newKey] = {[op]: valueGUI}
       } else {
-        newQuery[newKey][op] = parser(value)
+        newQuery[newKey][op] = valueGUI
       }
     } else {
-      if (isArray(value)) {
-        value = new Set(value.map(parser))
-      } else if (isPlainObject(value)) {
-        if (!isNil(value.gte)) {
-          value.gte = parser(value.gte)
-        }
-        if (!isNil(value.lte)) {
-          value.lte = parser(value.lte)
-        }
-      } else {
-        value = parser(value)
-        if (multiple) {
-          value = new Set([value])
-        }
-      }
-      newQuery[newKey] = value
+      newQuery[newKey] = valueGUI
     }
   }
   return newQuery
@@ -931,6 +996,37 @@ function toAPIQueryValue(value) {
     }
   } else {
     newValue = value
+  }
+  return newValue
+}
+
+/**
+ * Cleans a filter value into a form that is supported by the GUI. This includes:
+ * - Arrays are are transformed into Sets
+ * - If multiple values are supported, scalar values are stored inside sets.
+ * - Numerical values with units are transformed into Quantities.
+ *
+ * @returns {any} The filter value in a format that is suitable for the GUI.
+ */
+export function toGUIFilter(name, value, units = undefined) {
+  let multiple = filterData[name].multiple
+  let newValue
+  const {parser} = parseMeta(name)
+  if (isArray(value)) {
+    newValue = new Set(value.map((v) => parser(v, units)))
+  } else if (isPlainObject(value)) {
+    newValue = {}
+    if (!isNil(value.gte)) {
+      newValue.gte = parser(value.gte, units)
+    }
+    if (!isNil(value.lte)) {
+      newValue.lte = parser(value.lte, units)
+    }
+  } else {
+    newValue = parser(value, units)
+    if (multiple) {
+      newValue = new Set([newValue])
+    }
   }
   return newValue
 }
