@@ -71,8 +71,7 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 `
 
 const filtersLocked = {
-  'visibility': 'visible',
-  'results.material.structural_type': 'bulk'
+  'visibility': 'visible'
 }
 function UserdataPage() {
   return <SearchContext

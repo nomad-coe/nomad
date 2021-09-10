@@ -17,10 +17,7 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Tooltip,
-  FormHelperText
-} from '@material-ui/core'
+import { FormHelperText } from '@material-ui/core'
 import {
   KeyboardDatePicker
 } from '@material-ui/pickers'
@@ -28,8 +25,9 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
 import searchQuantities from '../../../searchQuantities'
-import FilterLabel from './InputLabel'
-import { useAgg, useFilterState } from '../FilterContext'
+import InputLabel from './InputLabel'
+import InputTooltip from './InputTooltip'
+import { useAgg, useFilterState, useFilterLocked } from '../FilterContext'
 import { getTime } from 'date-fns'
 import { dateFormat } from '../../../config'
 
@@ -77,9 +75,10 @@ const InputDateRange = React.memo(({
   const [error, setError] = useState()
   const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
+  const locked = useFilterLocked(quantity)
   const agg = useAgg(quantity, true, visible)
   const [startGlobal, endGlobal] = agg || [undefined, undefined]
-  const disabled = startGlobal === null || endGlobal === null
+  const disabled = locked || (startGlobal === null || endGlobal === null)
 
   // If no filter has been specified by the user, the range is automatically
   // adjusted according to global min/max of the field. If filter is set, the
@@ -157,9 +156,9 @@ const InputDateRange = React.memo(({
     handleAccept(startDate, endDate)
   }, [startDate, endDate, handleAccept])
 
-  return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
+  return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <FilterLabel label={title} description={desc}/>
+      <InputLabel label={title} description={desc}/>
       <div className={styles.row}>
         <KeyboardDatePicker
           error={!!error}
@@ -199,7 +198,7 @@ const InputDateRange = React.memo(({
         {error}
       </FormHelperText>}
     </div>
-  </Tooltip>
+  </InputTooltip>
 })
 
 InputDateRange.propTypes = {

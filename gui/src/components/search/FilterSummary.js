@@ -65,7 +65,7 @@ const FilterSummary = React.memo(({
       const filterValue = filters[quantity]
       const locked = filtersLocked[quantity]
       const filterAbbr = quantity.split('.').pop()
-      if (!filterValue) {
+      if (isNil(filterValue)) {
         continue
       }
       // Is query has multiple elements, we display a chip for each. For numerical

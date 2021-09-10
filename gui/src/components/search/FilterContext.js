@@ -266,10 +266,17 @@ export const SearchContext = React.memo(({
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
-  // Reset the query when entering the search context for the first time
+  // Reset the query/locks when entering the search context for the first time
+  const reset = useRecoilCallback(({reset}) => () => {
+    for (let filter of filters) {
+      reset(queryFamily(filter))
+      reset(lockedFamily(filter))
+    }
+  }, [])
+
   useEffect(() => {
-    setQuery(undefined)
-  }, [setQuery])
+    reset()
+  }, [])
 
   // Read the target resource and initial query from the URL
   const [resourceFinal, query] = useMemo(() => {

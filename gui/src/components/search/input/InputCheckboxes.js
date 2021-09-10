@@ -26,6 +26,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
+import InputTooltip from './InputTooltip'
 import {
   useFilterState,
   useAgg,
@@ -137,12 +138,14 @@ const InputCheckboxes = React.memo(({
     </Grid>
   })
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputLabel label={title} description={desc}/>
-    <Grid container spacing={0}>
-      {checkboxes}
-    </Grid>
-  </div>
+  return <InputTooltip locked={locked} disabled={false}>
+    <div className={clsx(className, styles.root)} data-testid={testID}>
+      <InputLabel label={title} description={desc}/>
+      <Grid container spacing={0}>
+        {checkboxes}
+      </Grid>
+    </div>
+  </InputTooltip>
 })
 
 InputCheckboxes.propTypes = {
