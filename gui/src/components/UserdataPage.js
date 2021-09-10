@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import { withApi } from './api'
-import Search from './search/Search'
-import { encyclopediaEnabled } from '../config'
+import { SearchContext } from './search/FilterContext'
+import NewSearch from './search/NewSearch'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
@@ -70,18 +70,16 @@ DOI, they will be redirected to a NOMAD view that shows the dataset and allows i
 Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
+const filtersLocked = {
+  visibility: 'visible'
+}
 function UserdataPage() {
-  return <Search
-    ownerTypes={['user', 'shared', 'staging']}
-    initialOwner="user"
-    initialRequest={{order_by: 'upload_time', uploads_grouped: true}}
-    initialResultTab="uploads"
-    availableResultTabs={['uploads', 'datasets', 'entries', ...(encyclopediaEnabled ? ['materials'] : [])]}
-    resultListProps={{
-      selectedColumnsKey: 'userEntries',
-      entryPagePathPrefix: '/userdata',
-      selectedColumns: ['formula', 'upload_time', 'mainfile', 'published', 'co_authors', 'references', 'datasets']}}
-  />
+  return <SearchContext
+    resource="entries"
+    filtersLocked={filtersLocked}
+  >
+    <NewSearch/>
+  </SearchContext>
 }
 
-export default withApi(true, false, 'To manage you data, you must log in.')(UserdataPage)
+export default withApi(true, false, 'Please login to search your data.')(UserdataPage)

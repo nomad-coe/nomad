@@ -23,7 +23,7 @@ import FilterMainMenu from './menus/FilterMainMenu'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './results/SearchResults'
 import {
-  quantities,
+  filters,
   useMenuOpenState
 } from './FilterContext'
 
@@ -105,8 +105,8 @@ const useStyles = makeStyles(theme => {
 })
 
 const NewSearch = React.memo(({
-  owner,
-  collapsed
+  collapsed,
+  header
 }) => {
   const styles = useStyles()
   const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
@@ -122,8 +122,9 @@ const NewSearch = React.memo(({
       />
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
+      {header}
       <NewSearchBar
-        quantities={quantities}
+        quantities={filters}
         className={styles.searchBar}
       />
       <SearchResults
@@ -134,8 +135,8 @@ const NewSearch = React.memo(({
   </div>
 })
 NewSearch.propTypes = {
-  owner: PropTypes.string,
-  collapsed: PropTypes.bool
+  collapsed: PropTypes.bool,
+  header: PropTypes.node
 }
 
 export default NewSearch

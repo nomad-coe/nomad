@@ -37,9 +37,9 @@ import { useUnits, getDimension, Quantity } from '../../units'
 import { isMetaNumber } from '../../utils'
 import {
   useFiltersState,
-  quantityFullnames,
-  quantityAbbreviations,
-  quantityData
+  filterFullnames,
+  filterAbbreviations,
+  filterData
 } from './FilterContext'
 import searchQuantities from '../../searchQuantities'
 
@@ -132,7 +132,7 @@ const NewSearchBar = React.memo(({
     const suggestions = []
     for (let q of quantities) {
       suggestions.push({
-        value: quantityAbbreviations.get(q) || q,
+        value: filterAbbreviations[q] || q,
         category: 'quantity name'
       })
     }
@@ -155,7 +155,7 @@ const NewSearchBar = React.memo(({
     const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
     if (equals) {
       const quantityName = equals[1]
-      quantityFullname = quantityFullnames.get(quantityName) || quantityName
+      quantityFullname = filterFullnames[quantityName] || quantityName
       if (!quantitySet.has(quantityFullname)) {
         setError(`Unknown quantity name`)
         return
@@ -184,8 +184,8 @@ const NewSearchBar = React.memo(({
         const a = ltegte[1]
         const op = ltegte[2]
         const b = ltegte[3]
-        const aFullname = quantityFullnames.get(a)
-        const bFullname = quantityFullnames.get(b)
+        const aFullname = filterFullnames[a]
+        const bFullname = filterFullnames[b]
         const isAQuantity = quantitySet.has(aFullname)
         const isBQuantity = quantitySet.has(bFullname)
         if (!isAQuantity && !isBQuantity) {
@@ -220,7 +220,7 @@ const NewSearchBar = React.memo(({
         const b = ltegteSandwich[3]
         const op2 = ltegteSandwich[4]
         const c = ltegteSandwich[5]
-        quantityFullname = quantityFullnames.get(b)
+        quantityFullname = filterFullnames[b]
         const dimension = getDimension(quantityFullname)
         const isBQuantity = quantitySet.has(quantityFullname)
         if (!isBQuantity) {
@@ -253,7 +253,7 @@ const NewSearchBar = React.memo(({
     if (valid) {
       // Submit to search context on successful validation. Whether we append or
       // replace the value is determined during quantity registration.
-      if (quantityData[quantityFullname].multiple) {
+      if (filterData[quantityFullname].multiple) {
         setFilter([quantityFullname, old => {
           let newValue
           if (Array.isArray(old)) {
@@ -314,7 +314,7 @@ const NewSearchBar = React.memo(({
       .then(data => {
         let res = []
         for (let q of filteredList) {
-          const name = quantityAbbreviations.get(q) || q
+          const name = filterAbbreviations[q] || q
           const esSuggestions = data[q]
           if (esSuggestions) {
             res = res.concat(esSuggestions.map(suggestion => ({
@@ -356,7 +356,7 @@ const NewSearchBar = React.memo(({
     let quantityList = [...quantities]
     if (split.length === 2) {
       const quantityName = split[0].trim()
-      const quantityFullname = quantityFullnames.get(quantityName)
+      const quantityFullname = filterFullnames[quantityName]
       if (quantitySet.has(quantityName)) {
         quantityList = [quantityName]
         value = split[1].trim()

@@ -41,17 +41,11 @@ import { setToArray, formatMeta, parseMeta } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'
 
-let index = 0
-export const quantities = new Set()
-export const quantityGroups = new Map()
-export const quantityAggregations = {}
-export const quantityAggGets = {}
-export const quantityAggSets = {}
-export const quantityAbbreviations = new Map()
-export const quantityFullnames = new Map()
-export const quantityMaterialNames = {}
-export const quantityEntryNames = {}
-export const quantityData = {}
+export const filters = new Set() // Contains the full names of all the available filters
+export const filterGroups = [] // Mapping from filter full name -> group
+export const filterAbbreviations = [] // Mapping of filter full name -> abbreviation
+export const filterFullnames = [] // Mapping of filter abbreviation -> full name
+export const filterData = {} // Stores data for each registered filter
 export const labelMaterial = 'Material'
 export const labelElements = 'Elements / Formula'
 export const labelSymmetry = 'Symmetry'
@@ -68,52 +62,50 @@ export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 
 /**
- * This function is used to register a "quantity" within the FilterContext.
- * Quantities are entities that can be searched throuh the filter panel and the
- * search bar, and can be encoded in the URL. Notice that a quantity in this
+ * This function is used to register a new filter within the FilterContext.
+ * Filters are entities that can be searched throuh the filter panel and the
+ * search bar, and can be encoded in the URL. Notice that a filter in this
  * context does not have to correspond to a quantity in the metainfo.
  *
- * Only registered quantities may be searched for. The registration must happen
- * before any components use the filters associated with quantities. This is
- * because:
+ * Only registered filters may be searched for. The registration must happen
+ * before any components use the filters. This is because:
  *  - The initial aggregation results must be fetched before any components
  *  using the filter values are rendered.
- *  - Several components need to know the list of available filter (e.g. the
- *  search bar and  the search panel). If quantities are only registered during
+ *  - Several components need to know the list of available filters (e.g. the
+ *  search bar and  the search panel). If filters are only registered during
  *  component initialization, it may already be too late to update other
  *  components.
  *
- * @param {string} quantity Name of the quantity. Should exist in searchQuantities.json.
- * @param {string} group The group into which the quantity belongs to. Groups
+ * @param {string} name Name of the filter.
+ * @param {string} group The group into which the filter belongs to. Groups
  * are used to e.g. in showing FilterSummaries about a group of filters.
  * @param {string|object} agg Custom setter/getter for the aggregation value. As a
  * shortcut you can provide an ES aggregation type as a string,
- * @param {object} value Custom setter/getter for the quantity value.
- * @param {bool} multiple Whether this quantity supports several values:
+ * @param {object} value Custom setter/getter for the filter value.
+ * @param {bool} multiple Whether this filter supports several values:
  * controls whether setting the value appends or overwrites.
  */
-function registerQuantity(name, group, agg, value, multiple = true) {
-  // Store the available quantities, their grouping, and the initial aggregation
-  // types.
-  quantities.add(name)
+function registerFilter(name, group, agg, value, multiple = true) {
+  filters.add(name)
   if (group) {
-    quantityGroups.has(group) ? quantityGroups.get(group).add(name) : quantityGroups.set(group, new Set([name]))
+    filterGroups[group]
+      ? filterGroups[group].add(name)
+      : filterGroups[group] = new Set([name])
   }
 
   // Register mappings from full name to abbreviation and vice versa
   const abbreviation = name.split('.').pop()
-  const oldName = quantityAbbreviations.get(abbreviation)
-  if (oldName === undefined) {
-    quantityAbbreviations.set(name, abbreviation)
-    quantityFullnames.set(abbreviation, name)
+  const oldName = filterAbbreviations[abbreviation]
+  if (!oldName) {
+    filterAbbreviations[name] = abbreviation
+    filterFullnames[abbreviation] = name
   } else {
-    quantityFullnames.delete(abbreviation)
-    quantityAbbreviations.set(name, name)
-    quantityAbbreviations.set(oldName, oldName)
+    delete filterFullnames[abbreviation]
+    filterAbbreviations[name] = name
+    filterAbbreviations[oldName] = oldName
   }
 
-  // Store the string/function that is used to getch the aggregation data for
-  // this quantity.
+  const data = filterData[name] || {}
   if (agg) {
     let aggSet, aggGet
     if (isString(agg)) {
@@ -123,58 +115,55 @@ function registerQuantity(name, group, agg, value, multiple = true) {
       aggSet = agg.set
       aggGet = agg.get
     }
-    quantityAggSets[name] = aggSet
-    quantityAggGets[name] = aggGet
+    data.aggSet = aggSet
+    data.aggGet = aggGet
   }
-
-  // Store the default query postfixes (any/all) for each quantity
-  const data = quantityData[name] || {}
   if (value) {
     data.valueSet = value.set
   }
   data.multiple = multiple
-  quantityData[name] = data
+  filterData[name] = data
 }
 
-// Quantities that directly correspond to a metainfo value
-registerQuantity('results.material.structural_type', labelMaterial, 'terms')
-registerQuantity('results.material.functional_type', labelMaterial, 'terms')
-registerQuantity('results.material.compound_type', labelMaterial, 'terms')
-registerQuantity('results.material.material_name', labelMaterial)
-registerQuantity('results.material.chemical_formula_hill', labelElements)
-registerQuantity('results.material.chemical_formula_anonymous', labelElements)
-registerQuantity('results.material.n_elements', labelElements, 'min_max', undefined, false)
-registerQuantity('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
-registerQuantity('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
-registerQuantity('results.material.symmetry.structure_name', labelSymmetry, 'terms')
-registerQuantity('results.material.symmetry.strukturbericht_designation', labelSymmetry, 'terms')
-registerQuantity('results.material.symmetry.space_group_symbol', labelSymmetry)
-registerQuantity('results.material.symmetry.point_group', labelSymmetry)
-registerQuantity('results.material.symmetry.hall_symbol', labelSymmetry)
-registerQuantity('results.material.symmetry.prototype_aflow_id', labelSymmetry)
-registerQuantity('results.method.method_name', labelMethod, 'terms')
-registerQuantity('results.method.simulation.program_name', labelMethod, 'terms')
-registerQuantity('results.method.simulation.program_version', labelMethod)
-registerQuantity('results.method.simulation.dft.basis_set_type', labelDFT, 'terms')
-registerQuantity('results.method.simulation.dft.core_electron_treatment', labelDFT, 'terms')
-registerQuantity('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
-registerQuantity('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
-registerQuantity('results.method.simulation.gw.gw_type', labelGW, 'terms')
-registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
-registerQuantity('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
-registerQuantity('external_db', labelAuthor, 'terms')
-registerQuantity('authors.name', labelAuthor)
-registerQuantity('upload_time', labelAuthor, 'min_max', undefined, false)
-registerQuantity('datasets.name', labelDataset)
-registerQuantity('datasets.doi', labelDataset)
-registerQuantity('entry_id', labelIDs)
-registerQuantity('upload_id', labelIDs)
-registerQuantity('results.material.material_id', labelIDs)
-registerQuantity('datasets.dataset_id', labelIDs)
+// Filters that directly correspond to a metainfo value
+registerFilter('results.material.structural_type', labelMaterial, 'terms')
+registerFilter('results.material.functional_type', labelMaterial, 'terms')
+registerFilter('results.material.compound_type', labelMaterial, 'terms')
+registerFilter('results.material.material_name', labelMaterial)
+registerFilter('results.material.chemical_formula_hill', labelElements)
+registerFilter('results.material.chemical_formula_anonymous', labelElements)
+registerFilter('results.material.n_elements', labelElements, 'min_max', undefined, false)
+registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
+registerFilter('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
+registerFilter('results.material.symmetry.structure_name', labelSymmetry, 'terms')
+registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, 'terms')
+registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry)
+registerFilter('results.material.symmetry.point_group', labelSymmetry)
+registerFilter('results.material.symmetry.hall_symbol', labelSymmetry)
+registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry)
+registerFilter('results.method.method_name', labelMethod, 'terms')
+registerFilter('results.method.simulation.program_name', labelMethod, 'terms')
+registerFilter('results.method.simulation.program_version', labelMethod)
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, 'terms')
+registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, 'terms')
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
+registerFilter('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
+registerFilter('results.method.simulation.gw.gw_type', labelGW, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
+registerFilter('external_db', labelAuthor, 'terms')
+registerFilter('authors.name', labelAuthor)
+registerFilter('upload_time', labelAuthor, 'min_max', undefined, false)
+registerFilter('datasets.name', labelDataset)
+registerFilter('datasets.doi', labelDataset)
+registerFilter('entry_id', labelIDs)
+registerFilter('upload_id', labelIDs)
+registerFilter('results.material.material_id', labelIDs)
+registerFilter('datasets.dataset_id', labelIDs)
 
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
-registerQuantity(
+registerFilter(
   'results.material.elements',
   labelElements,
   'terms',
@@ -191,7 +180,7 @@ registerQuantity(
   }
 )
 // Electronic properties: subset of results.properties.available_properties
-registerQuantity(
+registerFilter(
   'electronic_properties',
   labelElectronic,
   {
@@ -208,7 +197,7 @@ registerQuantity(
   }
 )
 // Vibrational properties: subset of results.properties.available_properties
-registerQuantity(
+registerFilter(
   'vibrational_properties',
   labelVibrational,
   {
@@ -226,7 +215,7 @@ registerQuantity(
 )
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
-registerQuantity(
+registerFilter(
   'visibility',
   labelAccess,
   undefined,
@@ -234,16 +223,15 @@ registerQuantity(
   false
 )
 // Restricted: controls whether materials search is done in a restricted mode.
-registerQuantity(
+registerFilter(
   'restricted',
   undefined,
   undefined,
   {set: () => {}},
   false
 )
-
 // Exclusive: controls the way elements search is done.
-registerQuantity(
+registerFilter(
   'exclusive',
   undefined,
   undefined,
@@ -253,6 +241,8 @@ registerQuantity(
 
 // Material and entry queries target slightly different fields. Here we prebuild
 // the mapping.
+const materialNames = {} // Mapping of field name from entry -> material
+const entryNames = {} // Mapping of field name from material -> entry
 for (const name of Object.keys(searchQuantities)) {
   const prefix = 'results.material.'
   let materialName
@@ -261,12 +251,14 @@ for (const name of Object.keys(searchQuantities)) {
   } else {
     materialName = `entries.${name}`
   }
-  quantityMaterialNames[name] = materialName
-  quantityEntryNames[materialName] = name
+  materialNames[name] = materialName
+  entryNames[materialName] = name
 }
 
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
+  resource,
+  filtersLocked,
   children
 }) => {
   const setQuery = useSetRecoilState(queryState)
@@ -279,7 +271,7 @@ export const SearchContext = React.memo(({
   }, [setQuery])
 
   // Read the target resource and initial query from the URL
-  const [resource, query] = useMemo(() => {
+  const [resourceFinal, query] = useMemo(() => {
     const location = window.location.href
     const split = location.split('?')
     let qs, path, query
@@ -290,20 +282,20 @@ export const SearchContext = React.memo(({
       [path, qs] = split
       query = qsToQuery(qs)
     }
-    return [path.split('/').pop(), query]
-  }, [])
+    return [resource || path.split('/').pop(), query]
+  }, [resource])
 
   // Save the initial query. Cannot be done inside useMemo due to bad setState.
   useEffect(() => {
     setQuery(query)
   }, [setQuery, query])
 
-  // Fetch initial aggregation data. We include all data here.
+  // Fetch initial aggregation data.
   useEffect(() => {
     const aggRequest = {}
-    const aggNames = Object.keys(quantityAggGets)
-    for (const quantity of aggNames) {
-      toAPIAgg(aggRequest, quantity, resource)
+    const aggNames = [...filters].filter(name => filterData[name].aggGet)
+    for (const filter of aggNames) {
+      toAPIAgg(aggRequest, filter, resourceFinal)
     }
 
     const search = {
@@ -313,22 +305,24 @@ export const SearchContext = React.memo(({
       pagination: {page_size: 0}
     }
 
-    api.query(resource, search, false)
+    api.query(resourceFinal, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, aggNames, resource)
+        data = toGUIAgg(data.aggregations, aggNames, resourceFinal)
         setInitialAggs(data)
       })
-  }, [api, setInitialAggs, resource])
+  }, [api, setInitialAggs, resourceFinal])
 
   const values = useMemo(() => ({
-    resource
-  }), [resource])
+    resource: resourceFinal
+  }), [resourceFinal])
 
   return <searchContext.Provider value={values}>
     {children}
   </searchContext.Provider>
 })
 SearchContext.propTypes = {
+  resource: PropTypes.string,
+  filtersLocked: PropTypes.object,
   children: PropTypes.node
 }
 
@@ -337,11 +331,11 @@ export function useSearchContext() {
 }
 
 /**
- * Each search quantity is here mapped into a separate Recoil.js Atom. This
+ * Each search filter is here mapped into a separate Recoil.js Atom. This
  * allows components to hook into individual search parameters (both for setting
  * and reading their value). This performs much better than having one large
  * Atom for the entire query, as this would cause all of the hooked components
- * to render even if they are not affected by some other search quantity.
+ * to render even if they are not affected by some other search filter.
  * Re-renders became problematic with large and complex components (e.g. the
  * periodic table), for which the re-rendering takes significant time. Another
  * approach would have been to try and Memoize each sufficiently complex
@@ -392,7 +386,7 @@ export const initializedState = atom({
  */
 export function useResetFilters() {
   const reset = useRecoilCallback(({reset}) => () => {
-    for (let filter of quantities) {
+    for (let filter of filters) {
       reset(queryFamily(filter))
     }
   }, [])
@@ -400,52 +394,50 @@ export function useResetFilters() {
 }
 
 /**
- * This hook will expose a function for reading filter values for a specific
- * quantity. Use this hook if you intend to only view the filter values and are
- * not interested in setting the filter.
+ * This hook will expose a function for reading filter values. Use this hook if
+ * you intend to only view the filter values and are not interested in setting
+ * the filter.
  *
- * @param {*} quantity Name of the quantity. Should exist in searchQuantities.json.
+ * @param {string} name Name of the filter.
  * @returns currently set filter value.
  */
-export function useFilterValue(quantity) {
-  return useRecoilValue(queryFamily(quantity))
+export function useFilterValue(name) {
+  return useRecoilValue(queryFamily(name))
 }
 
 /**
- * This hook will expose a function for setting filter values for a specific
- * quantity. Use this hook if you intend to only set the filter value and are
- * not interested in the query results.
+ * This hook will expose a function for setting a filter value. Use this hook if
+ * you intend to only set the filter value and are not interested in the query
+ * results.
  *
- * @param {*} quantity Name of the quantity to set. Should exist in searchQuantities.json.
- * @param {Set} set An optional Set that keeps track of hooked filters.
+ * @param {string} name Name of the quantity to set.
  * @returns function for setting the value for the given quantity
  */
-export function useSetFilter(quantity) {
-  return useSetRecoilState(queryFamily(quantity))
+export function useSetFilter(name) {
+  return useSetRecoilState(queryFamily(name))
 }
 
 /**
- * This hook will expose a function for getting and setting filter values for a
- * specific quantity. Use this hook if you intend to both read and write the
- * filter value.
+ * This hook will expose a function for getting and setting filter values. Use
+ * this hook if you intend to both read and write the filter value.
  *
- * @param {*} quantity Name of the quantity to set. Should exist in searchQuantities.json.
- * @returns array containing the filter value and setter function for it.
+ * @param {string} name Name of the filter.
+ * @returns Array containing the filter value and setter function for it.
  */
-export function useFilterState(quantity) {
-  return useRecoilState(queryFamily(quantity))
+export function useFilterState(name) {
+  return useRecoilState(queryFamily(name))
 }
 
 /**
  * This hook will expose a function for getting and setting filter values for
- * the specified list of quantities. Use this hook if you intend to both read
- * and write the filter values.
+ * the specified list of filters. Use this hook if you intend to both read and
+ * write the filter values.
  *
- * @param {*} quantities Names of the quantities. Should exist in searchQuantities.json.
- * @param {string} id Unique ID for this set of Filters (needed by Recoil.js)
- * @returns array containing the filter value and setter function for it.
+ * @param {string} names Names of the filters.
+ * @returns Array containing the filter values in a map and a setter function.
  */
-export function useFiltersState(quantities) {
+let index = 0
+export function useFiltersState(names) {
   // We dynamically create a Recoil.js selector that is subscribed to the
   // filters specified in the input. This way only the specified filters will
   // cause a render.
@@ -459,7 +451,7 @@ export function useFiltersState(quantities) {
       key: id,
       get: ({get}) => {
         const query = {}
-        for (let key of quantities) {
+        for (let key of names) {
           const filter = get(queryFamily(key))
           query[key] = filter
         }
@@ -486,7 +478,7 @@ const queryState = selector({
       return undefined
     }
     let query = {}
-    for (let key of quantities) {
+    for (let key of filters) {
       const filter = get(queryFamily(key))
       if (filter !== undefined) {
         query[key] = filter
@@ -495,7 +487,7 @@ const queryState = selector({
     return query
   },
   set: ({ get, set, reset }, data) => {
-    for (let filter of quantities) {
+    for (let filter of filters) {
       reset(queryFamily(filter))
     }
     if (data) {
@@ -542,8 +534,8 @@ function qsToQuery(queryString) {
   for (let [key, value] of Object.entries(query)) {
     const split = key.split(':')
     key = split[0]
-    let newKey = quantityFullnames.get(key) || key
-    let multiple = quantityData[newKey].multiple
+    let newKey = filterFullnames[key] || key
+    let multiple = filterData[newKey].multiple
     const {parser} = parseMeta(newKey)
     if (split.length !== 1) {
       const op = split[1]
@@ -586,7 +578,7 @@ function queryToQs(query) {
   for (const [key, value] of Object.entries(query)) {
     const {formatter} = formatMeta(key, false)
     let newValue
-    const newKey = quantityAbbreviations.get(key)
+    const newKey = filterAbbreviations[key]
     if (isPlainObject(value)) {
       if (!isNil(value.gte)) {
         newQuery[`${newKey}:gte`] = formatter(value.gte)
@@ -614,31 +606,30 @@ export const initialAggsState = atom({
 })
 
 /**
- * Hook for returning the current search object.
+ * Hook for returning an initial aggregation value for a filter.
  *
- * @returns {object} Object containing the search object.
+ * @returns {array} Array containing the aggregation data.
  */
-export function useInitialAgg(quantity) {
+export function useInitialAgg(name) {
   const aggs = useRecoilValue(initialAggsState)
-  return aggs?.[quantity]
+  return aggs?.[name]
 }
 
 /**
  * Hook for retrieving the most up-to-date aggregation results for a specific
- * quantity, taking into account the current search context.
+ * filter, taking into account the current search context.
  *
- * @param {string} quantity The quantity name
- * @param {string} type ElasticSearch aggregation type
- * @param {bool} restrict If true, the query filters targeting this particular
- * quantity will be removed. This makes it possible to return all possible
- * values for dropdowns etc.
+ * @param {string} name The filter name
+ * @param {bool} restrict If true, the ES query targeting this particular filter
+ * will be removed. This makes it possible to return all possible values for
+ * dropdowns etc.
  * @param {bool} update Whether the hook needs to react to changes in the
  * current query context. E.g. if the component showing the data is not visible,
  * this can be set to false.
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(quantity, restrict = false, update = true, delay = 500) {
+export function useAgg(name, restrict = false, update = true, delay = 500) {
   const {api} = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(undefined)
@@ -654,12 +645,12 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
     let queryCleaned = {...query}
-    if (restrict && query && quantity in query) {
-      delete queryCleaned[quantity]
+    if (restrict && query && name in query) {
+      delete queryCleaned[name]
     }
     queryCleaned = toAPIQuery(queryCleaned, resource, query.restricted)
     const aggRequest = {}
-    toAPIAgg(aggRequest, quantity, resource)
+    toAPIAgg(aggRequest, name, resource)
     const search = {
       owner: query.visibility || 'visible',
       query: queryCleaned,
@@ -670,11 +661,11 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, [quantity], resource)
+        data = toGUIAgg(data.aggregations, [name], resource)
         firstLoad.current = false
-        setResults(data[quantity])
+        setResults(data[name])
       })
-  }, [api, quantity, restrict, resource])
+  }, [api, name, restrict, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -689,7 +680,7 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
       // Fetch the initial aggregation values if no query
       // is specified.
       if (isEmpty(query)) {
-        setResults(initialAggs[quantity])
+        setResults(initialAggs[name])
       // Make an immediate request for the aggregation values if query has been
       // specified.
       } else {
@@ -698,7 +689,7 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
     } else {
       debounced(query)
     }
-  }, [apiCall, quantity, debounced, query, update, initialAggs])
+  }, [apiCall, name, debounced, query, update, initialAggs])
 
   return results
 }
@@ -707,14 +698,13 @@ export function useAgg(quantity, restrict = false, update = true, delay = 500) {
  * Hook for returning a set of results based on the currently set query together
  * with a function for retrieving a new set of results.
  *
- * @param {object} pagination The pagination settings as used by the API. Notice
- * that 'page', and 'page_after_value' will be ignored, as they are controlled
- * by the hook.
- * @param {bool} exclusive Whether to use exclusive element search.
+ * @param {int} pageSize The number of results to return with one scroll.
+ * @param {string} orderBy The field used for sorting.
+ * @param {string} order Ascending or descending order.
  * @param {number} delay The debounce delay in milliseconds.
  *
- * @returns {object} Object containing the search results under 'results' and
- * the used query under 'search'.
+ * @returns {object} Object containing the search results and a function for
+ * scrolling to next set of results.
  */
 export function useScrollResults(pageSize, orderBy, order, delay = 500) {
   const {api} = useApi()
@@ -831,7 +821,7 @@ export function toAPIQuery(query, resource, restricted) {
   // Perform custom transformations
   let queryCustomized = {}
   for (let [k, v] of Object.entries(query)) {
-    const setter = quantityData[k]?.valueSet
+    const setter = filterData[k]?.valueSet
     if (setter) {
       setter(queryCustomized, query, v)
     } else {
@@ -856,19 +846,19 @@ export function toAPIQuery(query, resource, restricted) {
       newValue = toAPIQueryValue(v)
     }
 
-    // The query key postfixes and key remapping is done here. By default query
-    // items with array values get the 'any'-postfix.
+    // The postfixes are added here. By default query items with array values
+    // get the 'any'-postfix.
     let postfix
     if (isArray(newValue)) {
-      const quantityPostfixMap = {
+      const fieldPostfixMap = {
         'results.properties.available_properties': 'all',
         'results.material.elements': 'all'
       }
-      postfix = quantityPostfixMap[k] || 'any'
+      postfix = fieldPostfixMap[k] || 'any'
     }
 
     // For material query the keys are remapped.
-    let newKey = resource === 'materials' ? quantityMaterialNames[k] : k
+    let newKey = resource === 'materials' ? materialNames[k] : k
     newKey = postfix ? `${newKey}:${postfix}` : newKey
     queryNormalized[newKey] = newValue
   }
@@ -951,14 +941,14 @@ function toAPIQueryValue(value) {
  *
  * @param {object} aggs The aggregation data in which the modifications are
  * made.
- * @param {string} quantity The quantity name
+ * @param {string} filter The filter name
  * @param {string} resource The resource we are looking at: entries or materials.
  */
-function toAPIAgg(aggs, quantity, resource) {
-  const aggSet = quantityAggSets[quantity]
+function toAPIAgg(aggs, filter, resource) {
+  const aggSet = filterData[filter].aggSet
   if (aggSet) {
     for (const [key, type] of Object.entries(aggSet)) {
-      const name = resource === 'materials' ? quantityMaterialNames[key.split(':')[0]] : key
+      const name = resource === 'materials' ? materialNames[key.split(':')[0]] : key
       const agg = aggs[name] || {}
       agg[type] = {
         quantity: name,
@@ -974,12 +964,12 @@ function toAPIAgg(aggs, quantity, resource) {
  * GUI.
  *
  * @param {object} aggs The aggregation data as returned by the API.
- * @param {string} quantity The quantity name
+ * @param {array} filters The filters to take into account.
  * @param {string} resource The resource we are looking at: entries or materials.
  *
- * @returns {object} Aggregation data for the given quantity.
+ * @returns {object} Aggregation data that is usable by the GUI.
  */
-function toGUIAgg(aggs, quantities, resource) {
+function toGUIAgg(aggs, filters, resource) {
   if (isEmpty(aggs)) {
     return aggs
   }
@@ -988,7 +978,7 @@ function toGUIAgg(aggs, quantities, resource) {
   if (resource === 'materials') {
     aggsNormalized = {}
     for (const key of Object.keys(aggs)) {
-      const name = resource === 'materials' ? quantityEntryNames[key] : key
+      const name = resource === 'materials' ? entryNames[key] : key
       aggs[key].quantity = name
       aggsNormalized[name] = aggs[key]
     }
@@ -998,8 +988,8 @@ function toGUIAgg(aggs, quantities, resource) {
 
   // Perform custom transformations
   const aggsCustomized = {}
-  for (const name of quantities) {
-    const aggGet = quantityAggGets[name]
+  for (const name of filters) {
+    const aggGet = filterData[name].aggGet
     if (aggGet) {
       let agg
       agg = aggGet(aggsNormalized)
