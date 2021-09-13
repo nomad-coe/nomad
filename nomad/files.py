@@ -698,10 +698,14 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
                 super().add_rawfiles(raw_file_zip.os_path, force_archive=True)
 
             if include_archive:
-                with self.public_upload_files._open_msg_file(access) as archive:
-                    for calc_id, data in archive.items():
-                        calc_id = calc_id.strip()
-                        self.write_archive(calc_id, data.to_dict())
+                try:
+                    with self.public_upload_files._open_msg_file(access) as archive:
+                        for calc_id, data in archive.items():
+                            calc_id = calc_id.strip()
+                            self.write_archive(calc_id, data.to_dict())
+                except FileNotFoundError:
+                    # ignore missing archive file and assume equivalent to empty archive file
+                    pass
 
     def add_rawfiles(self, *args, **kwargs) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
