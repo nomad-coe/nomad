@@ -1723,6 +1723,16 @@ class TestEditRepo():
         rv = self.perform_edit(uploader=other_test_user.user_id)
         assert rv.status_code != 200
 
+    @pytest.mark.parametrize('entries, success', [
+        (['test_calc_id_2'], False),
+        (['test_calc_id_2', 'test_calc_id_3'], True),
+        (['test_calc_id_2', 'test_calc_id_4'], False)
+    ])
+    def test_consistent_upload(self, entries, success):
+        rv = self.perform_edit(
+            with_embargo='false', verify=True, query=dict(calc_id=entries))
+        self.assert_edit(rv, quantity='with_embargo', success=success, message=not success)
+
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
