@@ -81,7 +81,7 @@ python linting:
 
 gui linting:
   stage: test
-  image: node
+  image: node:14
   script:
     - cd gui
     - yarn
@@ -127,7 +127,7 @@ python tests:
 
 gui tests:
   stage: test
-  image: node
+  image: node:14
   script:
     - git submodule sync
     - git submodule update --init -- gui/materia
