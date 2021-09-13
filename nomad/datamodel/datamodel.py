@@ -231,6 +231,10 @@ class Dataset(metainfo.MSection):
         type=metainfo.MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
         a_search=Search())
+    query = metainfo.Quantity(
+        type=metainfo.JSON, a_mongo=Mongo())
+    entries = metainfo.Quantity(
+        type=str, shape=['*'], a_mongo=Mongo())
 
 
 class DatasetReference(metainfo.Reference):

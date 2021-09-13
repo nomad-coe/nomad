@@ -37,7 +37,7 @@ from typing import Any, Dict, List
 
 from .metainfo import (
     DefinitionAnnotation, SectionAnnotation, Annotation, MSection, Datetime, Quantity,
-    MEnum)
+    MEnum, JSON)
 
 
 class Mongo(DefinitionAnnotation):
@@ -103,6 +103,8 @@ class MongoDocument(SectionAnnotation):
                 field = me.DateTimeField
             elif isinstance(quantity.type, MEnum):
                 field = me.StringField
+            elif quantity.type == JSON:
+                field = me.DictField
             else:
                 raise NotImplementedError
 
