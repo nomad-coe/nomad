@@ -21,7 +21,14 @@ import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import InputCheckboxes from '../input/InputCheckboxes'
 
-const FilterSubMenuDFT = React.memo(({
+const options = {
+  dos_phonon: {label: 'phonon density of states'},
+  band_structure_phonon: {label: 'phonon band structure'},
+  energy_free_helmholtz: {label: 'Helmholtz free energy'},
+  heat_capacity_constant_volume: {label: 'heat capacity constant volume'}
+}
+
+const FilterSubMenuElectronic = React.memo(({
   value,
   ...rest
 }) => {
@@ -32,36 +39,18 @@ const FilterSubMenuDFT = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <InputCheckboxes
-          quantity="results.method.simulation.dft.xc_functional_type"
-          label="XC Functional Type"
-          visible={visible}
-          xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.basis_set_type"
-          visible={visible}
-          xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.core_electron_treatment"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.relativity_method"
+          quantity="vibrational_properties"
+          label="available vibrational properties"
+          description="The vibrational properties that are present."
+          options={options}
           visible={visible}
         />
       </Grid>
     </Grid>
   </FilterSubMenu>
 })
-FilterSubMenuDFT.propTypes = {
+FilterSubMenuElectronic.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuDFT
+export default FilterSubMenuElectronic

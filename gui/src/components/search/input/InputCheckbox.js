@@ -19,14 +19,12 @@ import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   FormControlLabel,
-  RadioGroup,
-  Radio,
+  Checkbox,
   Tooltip,
   Typography
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import InputLabel from './InputLabel'
 import searchQuantities from '../../../searchQuantities'
 import { useFilterState } from '../FilterContext'
 
@@ -40,12 +38,11 @@ const useStyles = makeStyles(theme => ({
     boxSizing: 'border-box'
   }
 }))
-const InputRadio = React.memo(({
+const InputCheckbox = React.memo(({
   quantity,
   label,
   description,
   initialValue,
-  options,
   className,
   classes,
   'data-testid': testID
@@ -64,28 +61,23 @@ const InputRadio = React.memo(({
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputLabel label={title} description={desc}/>
-    <RadioGroup aria-label={label} name={label} value={filter || initialValue} onChange={handleChange}>
-      {options && Object.entries(options).map(([key, value]) =>
-        <FormControlLabel key={key} value={key} control={<Radio disabled={value.disabled}/>} label={
-          <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
-            <Typography>{value.label}</Typography>
-          </Tooltip>
-        }/>
-      )}
-    </RadioGroup>
+    <Tooltip title={desc}>
+      <FormControlLabel
+        control={<Checkbox checked={filter === undefined ? initialValue : filter} onChange={handleChange}/>}
+        label={<Typography>{title}</Typography>}
+      />
+    </Tooltip>
   </div>
 })
 
-InputRadio.propTypes = {
+InputCheckbox.propTypes = {
   quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
-  initialValue: PropTypes.string,
-  options: PropTypes.object, // Mapping from option name to show label and tooltip
+  initialValue: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
-export default InputRadio
+export default InputCheckbox

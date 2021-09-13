@@ -555,7 +555,7 @@ class EntryMetadata(metainfo.MSection):
             description='The full name of the authors for exact searches',
             metric='cardinality',
             many_or='append', search_field='authors.name.keyword'),
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     shared_with = metainfo.Quantity(
         type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
@@ -611,7 +611,7 @@ class EntryMetadata(metainfo.MSection):
                 group='datasets_grouped',
                 metric='cardinality', metric_name='datasets',
                 description='A list of user curated datasets this entry belongs to for exact name search')],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     external_id = metainfo.Quantity(
         type=str, categories=[MongoMetadata, UserProvidableMetadata],

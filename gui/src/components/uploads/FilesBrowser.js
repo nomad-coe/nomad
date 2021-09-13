@@ -148,7 +148,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function FilesBrower({uploadId, disabled}) {
   const classes = useStyles()
-  const api = useApi()
+  const {api} = useApi()
   const errors = useErrors()
   const [renderCounter, setRenderCounter] = useState(-1)
   const [previewPath, setPreviewPath] = useState(null)

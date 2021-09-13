@@ -22,8 +22,8 @@ import PropertyCard from './PropertyCard'
 import { toMateriaStructure } from '../../../utils'
 import Quantity from '../../Quantity'
 import { Box, Grid, makeStyles, Typography } from '@material-ui/core'
-import { normalizeDisplayValue, encyclopediaEnabled, appBase } from '../../../config'
-import { Actions } from '../../Actions'
+import { normalizeDisplayValue, encyclopediaEnabled } from '../../../config'
+import { MaterialButton } from '../../nav/Routes'
 import Structure from '../../visualization/Structure'
 
 export function Formula({data}) {
@@ -51,7 +51,8 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
     display: 'flex',
     justifyContent: 'space-between',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    alignItems: 'flex-start'
   }
 }))
 
@@ -112,18 +113,9 @@ export default function MaterialCard({entryMetadata, archive}) {
             }
           </Quantity>
           {encyclopediaEnabled && materialId &&
-            <Actions
-              justifyContent='flex-start'
-              color='primary'
-              variant='text'
-              size='medium'
-              actions={[{
-                tooltip: 'View this material in the Encyclopedia',
-                content: 'Encyclopedia',
-                href: `${appBase}/encyclopedia/#/material/${materialId}`
-              }]}
-            >
-            </Actions>
+            <MaterialButton materialId={materialId}>
+              Encyclopedia
+            </MaterialButton>
           }
         </Box>
       </Grid>
@@ -131,7 +123,7 @@ export default function MaterialCard({entryMetadata, archive}) {
         <Structure
           data={structures}
           materialType={entryMetadata.results?.material?.structural_type}
-          aspectRatio={1.5}
+          aspectRatio={1.4}
           data-testid="viewer-material"
         />
       </Grid>

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo, useContext } from 'react'
+import React, { useMemo, useContext } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
@@ -25,8 +25,7 @@ import InputText from '../input/InputText'
 import InputSlider from '../input/InputSlider'
 import {
   useFilterState,
-  useAgg,
-  useExclusiveState
+  useAgg
 } from '../FilterContext'
 import { useUnits } from '../../../units'
 
@@ -43,10 +42,8 @@ const FilterSubMenuElements = React.memo(({
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
   const styles = useStyles()
-  const [exclusive, setExclusive] = useExclusiveState()
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const [filterEx, setFilterEx] = useFilterState('results.material.elements_exclusive')
-  const data = useAgg('results.material.elements', 'terms', false, visible)
+  const data = useAgg('results.material.elements', false, visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}
@@ -54,17 +51,11 @@ const FilterSubMenuElements = React.memo(({
     return elementCountMap
   }, [data])
 
-  const handleElementsChanged = useCallback(elements => {
-    exclusive ? setFilterEx(elements) : setFilter(elements)
-  }, [exclusive, setFilterEx, setFilter])
-
   return <FilterSubMenu value={value} {...rest}>
     <InputPeriodicTable
       availableValues={availableValues}
-      values={exclusive ? filterEx : filter}
-      exclusive={exclusive}
-      onChanged={handleElementsChanged}
-      onExclusiveChanged={setExclusive}
+      values={filter}
+      onChanged={setFilter}
     />
     <Grid container spacing={2} className={styles.grid}>
       <Grid item xs={6}>

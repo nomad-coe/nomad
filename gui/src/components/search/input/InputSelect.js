@@ -77,7 +77,7 @@ const InputSelect = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const options = useAgg(quantity, 'terms', true, visible)
+  const options = useAgg(quantity, true, visible)
   const [filter, setFilter] = useFilterState(quantity)
   const disabled = !(options && options.length > 0)
 

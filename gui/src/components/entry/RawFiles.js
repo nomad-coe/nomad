@@ -101,7 +101,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
   const [files, setFiles] = useState(null)
   const [loading, setLoading] = useState(false)
   const [doesNotExist, setDoesNotExist] = useState(false)
-  const apiv1 = useApi()
+  const {api: apiv1} = useApi()
 
   useEffect(() => {
     setSelectedFiles([])

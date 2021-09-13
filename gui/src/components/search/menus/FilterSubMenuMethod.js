@@ -19,9 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputText from '../input/InputText'
 import InputCheckboxes from '../input/InputCheckboxes'
-import InputSelect from '../input/InputSelect'
 
 const FilterSubMenuMethod = React.memo(({
   value,
@@ -37,17 +35,6 @@ const FilterSubMenuMethod = React.memo(({
           quantity="results.method.method_name"
           visible={visible}
           xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputSelect
-          quantity="results.method.simulation.program_name"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputText
-          quantity="results.method.simulation.program_version"
         />
       </Grid>
     </Grid>

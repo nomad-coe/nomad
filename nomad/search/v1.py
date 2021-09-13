@@ -227,9 +227,11 @@ def _api_to_es_aggregation(
     agg_name = f'agg:{name}'
     quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
     es_aggs = es_search.aggs
+    longest_nested_key = None
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
+            longest_nested_key = nested_key
 
     es_agg = None
     if isinstance(agg, TermsAggregation):
@@ -352,7 +354,7 @@ def _api_to_es_aggregation(
     if isinstance(agg, BucketAggregation):
         for metric_name in agg.metrics:
             metrics = doc_type.metrics
-            if nested_key == 'entries':
+            if longest_nested_key == 'entries':
                 metrics = material_entry_type.metrics
             if metric_name not in metrics:
                 raise QueryValidationError(
@@ -372,12 +374,12 @@ def _es_to_api_aggregation(
     '''
     quantity = validate_quantity(agg.quantity, doc_type=doc_type)
 
-    nested = False
     es_aggs = es_response.aggs
+    longest_nested_key = None
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_response.aggs[f'nested_agg:{name}']
-            nested = True
+            longest_nested_key = nested_key
 
     aggregation_dict = agg.dict(by_alias=True)
     has_no_pagination = getattr(agg, 'pagination', None) is None
@@ -404,8 +406,8 @@ def _es_to_api_aggregation(
 
             entries = None
             if 'entries' in es_bucket:
-                if nested:
-                    entries = [{nested_key: item['_source']} for item in es_bucket.entries.hits.hits]
+                if longest_nested_key:
+                    entries = [{longest_nested_key: item['_source']} for item in es_bucket.entries.hits.hits]
                 else:
                     entries = [item['_source'] for item in es_bucket.entries.hits.hits]
 

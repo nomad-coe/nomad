@@ -91,7 +91,8 @@ const InputSlider = React.memo(({
   const endChanged = useRef(false)
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
-  const [minGlobalSI, maxGlobalSI] = useAgg(quantity, 'min_max', true, visible)
+  const agg = useAgg(quantity, true, visible)
+  const [minGlobalSI, maxGlobalSI] = agg || [undefined, undefined]
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
   const [minLocal, setMinLocal] = useState(0)
@@ -137,21 +138,34 @@ const InputSlider = React.memo(({
     let min
     let max
     if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+      // When no filter is set, use the whole available range
       if (isNil(filter)) {
         gte = minGlobalSI
         lte = maxGlobalSI
         min = minGlobalSI
         max = maxGlobalSI
-      } else {
-        if (filter instanceof Quantity) {
-          gte = filter.toSI()
-          lte = filter.toSI()
-        } else {
-          gte = filter.gte ? filter.gte.toSI() : minGlobalSI
-          lte = filter.lte ? filter.lte.toSI() : maxGlobalSI
-        }
+      // A single specific value is given
+      } else if (filter instanceof Quantity) {
+        gte = filter.toSI()
+        lte = filter.toSI()
         min = Math.min(gte, minGlobalSI)
         max = Math.max(lte, maxGlobalSI)
+      // A range is given
+      } else {
+        gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
+        lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
+        if (isNil(gte)) {
+          min = minGlobalSI
+          gte = minGlobalSI
+        } else {
+          min = Math.min(gte, minGlobalSI)
+        }
+        if (isNil(lte)) {
+          max = maxGlobalSI
+          lte = maxGlobalSI
+        } else {
+          max = Math.max(lte, maxGlobalSI)
+        }
       }
       setMinLocal(min)
       setMaxLocal(max)

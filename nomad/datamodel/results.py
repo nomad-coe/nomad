@@ -54,14 +54,39 @@ from nomad.datamodel.metainfo.workflow import (
 unavailable = "unavailable"
 not_processed = "not processed"
 structure_classes = [
-    "1D",
-    "2D",
-    "atom",
     "bulk",
-    "molecule / cluster",
     "surface",
+    "2D",
+    "1D",
+    "molecule / cluster",
+    "atom",
     unavailable,
     not_processed,
+]
+bravais_lattices = [
+    "aP",
+    "mP",
+    "mS",
+    "oP",
+    "oS",
+    "oF",
+    "oI",
+    "tP",
+    "tI",
+    "hP",
+    "hR",
+    "cP",
+    "cF",
+    "cI",
+]
+crystal_systems = [
+    "triclinic",
+    "monoclinic",
+    "orthorhombic",
+    "tetragonal",
+    "trigonal",
+    "hexagonal",
+    "cubic",
 ]
 xc_treatments = {
     "gga": "GGA",
@@ -405,7 +430,7 @@ class Symmetry(MSection):
         """
     )
     bravais_lattice = Quantity(
-        type=str,
+        type=MEnum(bravais_lattices),
         shape=[],
         description="""
         Identifier for the Bravais lattice in Pearson notation. The first lowercase letter
@@ -421,11 +446,10 @@ class Symmetry(MSection):
         ],
     )
     crystal_system = Quantity(
-        type=str,
+        type=MEnum(crystal_systems),
         shape=[],
         description="""
-        Name of the crystal system. Can be one of the following: triclinic, monoclinic,
-        orthorhombic, tetragonal, trigonal, hexagonal or cubic.
+        Name of the crystal system.
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),

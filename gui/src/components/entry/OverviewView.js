@@ -79,12 +79,12 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...moreProps}) {
-  const api = useApi()
   const { raiseError } = useErrors()
   const [entry, setEntry] = useState(null)
   const [exists, setExists] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const [archive, setArchive] = useState(null)
+  const {api} = useApi()
 
   useEffect(() => {
     api.entry(entryId).then(response => {

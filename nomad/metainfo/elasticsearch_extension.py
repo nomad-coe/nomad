@@ -749,9 +749,17 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     entry_type.create_mapping(entry_section_def)
     material_type.create_mapping(material_section_def, auto_include_subsections=True)
     material_entry_type.create_mapping(entry_section_def, prefix='entries')
+
+    # Here we manually add the material_entry_type mapping as a nested field
+    # inside the material index. We also need to manually specify the
+    # additional nested fields that come with this: the entries + all
+    # nested_object_keys from material_entry_type. Notice that we need to sort
+    # the list: the API expects a list sorted by name length in ascending
+    # order.
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
-    material_type.nested_object_keys = ['entries'] + material_type.nested_object_keys
+    material_type.nested_object_keys += ['entries'] + material_entry_type.nested_object_keys
+    material_type.nested_object_keys.sort(key=lambda item: len(item))
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
     material_index.create_index()
@@ -799,22 +807,34 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     if not update_materials:
         return
 
+    def get_material_id(entry):
+        material_id = None
+        try:
+            material_id = entry.results.material.material_id
+        except AttributeError:
+            pass
+        return material_id
+
     # Get all entry and material ids.
     entry_ids, material_ids = set(), set()
     entries_dict = {}
     for entry in entries:
         entries_dict[entry.entry_id] = entry
         entry_ids.add(entry.entry_id)
-        if entry.results.material is not None:
-            material_ids.add(entry.results.material.material_id)
+        material_id = get_material_id(entry)
+        if material_id is not None:
+            material_ids.add(material_id)
 
     # Get existing materials for entries' material ids (i.e. the entry needs to be added
     # or updated).
-    elasticsearch_results = material_index.mget(body={
-        'docs': [dict(_id=material_id) for material_id in material_ids]
-    })
-    existing_material_docs = [
-        doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+    if material_ids:
+        elasticsearch_results = material_index.mget(body={
+            'docs': [dict(_id=material_id) for material_id in material_ids]
+        })
+        existing_material_docs = [
+            doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+    else:
+        existing_material_docs = []
 
     # Get old materials that still have one of the entries, but the material id has changed
     # (i.e. the materials where entries need to be removed due entries having different
@@ -871,7 +891,8 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
                 # material quantities like new AFLOW prototypes
                 material_doc.update(**material_type.create_index_doc(entry.results.material))
 
-            if entry.results.material.material_id != material_id:
+            new_material_id = get_material_id(entry)
+            if new_material_id != material_id:
                 # Remove the entry, it moved to another material. But the material cannot
                 # run empty, because another entry had this material id.
                 material_entries_to_remove.append(index)
@@ -887,20 +908,21 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     for entry_id in remaining_entry_ids:
         entry = entries_dict.get(entry_id)
-        material_id = entry.results.material.material_id
-        material_doc = material_docs_dict.get(material_id)
-        if material_doc is None:
-            # The material does not yet exist. Create it.
-            material_doc = material_type.create_index_doc(entry.results.material)
-            material_docs_dict[material_id] = material_doc
-            actions_and_docs.append(dict(create=dict(_id=material_id)))
-            actions_and_docs.append(material_doc)
-        # The material does exist (now), but the entry is new.
-        material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
+        material_id = get_material_id(entry)
+        if material_id is not None:
+            material_doc = material_docs_dict.get(material_id)
+            if material_doc is None:
+                # The material does not yet exist. Create it.
+                material_doc = material_type.create_index_doc(entry.results.material)
+                material_docs_dict[material_id] = material_doc
+                actions_and_docs.append(dict(create=dict(_id=material_id)))
+                actions_and_docs.append(material_doc)
+            # The material does exist (now), but the entry is new.
+            material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
 
     # Second, we go through the old materials. The following cases need to be covered:
     # - the old materials are empty (standard case)
-    # - an entry needs to be removed but the material still as entries (new material id case 1)
+    # - an entry needs to be removed but the material still has entries (new material id case 1)
     # - an entry needs to be removed and the material is now "empty" (new material id case 2)
     for material_doc in old_material_docs:
         material_id = material_doc['material_id']

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Grid,
@@ -27,6 +27,7 @@ import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import { useFilterState, useAgg, useInitialAgg } from '../FilterContext'
+import { isArray } from 'lodash'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -52,10 +53,33 @@ const InputCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
-  const initialAgg = useInitialAgg(quantity, 'terms')
-  const availableOptions = useAgg(quantity, 'terms', true, visible)
+  const availableOptions = useAgg(quantity, true, visible)
+  const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
-  const firstFetch = useRef(true)
+  const finalOptions = useMemo(() => {
+    // If explicit options provided, use them
+    if (options) {
+      return options
+    }
+    // If the metainfo has enumerable options, use them
+    const quantities = searchQuantities?.[quantity]?.type?.type_data
+    if (isArray(quantities) && quantities.length > 0) {
+      const opt = {}
+      for (const name of quantities) {
+        opt[name] = {label: name}
+      }
+      return opt
+    }
+    // As a last resort, use the initial aggregation results as options.
+    if (initialAgg) {
+      const opt = {}
+      for (const value of initialAgg) {
+        opt[value.value] = {label: value.value}
+      }
+      return opt
+    }
+    return {}
+  }, [options, quantity, initialAgg])
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -63,61 +87,30 @@ const InputCheckboxes = React.memo(({
   const name = label || def?.name
   const title = name
 
-  // Save the available options when retrieved for the first time (without any
-  // filters)
+  // Modify the checkboxes according to changing filters, changing aggregation
+  // results or change in the available options.
   useEffect(() => {
-    if (initialAgg && firstFetch.current) {
-      const opt = {}
-      for (let option of initialAgg) {
-        if (option.count > 0) {
-          if (!options || options[option.value]) {
-            opt[option.value] = {
-              checked: false,
-              disabled: false,
-              label: options && options[option.value].label
-            }
-          }
-        }
+    const opt = {}
+    for (let [key, value] of Object.entries(finalOptions)) {
+      opt[key] = {
+        checked: filter ? filter.has(key) : false,
+        label: value.label,
+        disabled: true
       }
-      setVisibleOptions(opt)
-      firstFetch.current = false
     }
-  }, [options, initialAgg])
-
-  // React to changing filters
-  useEffect(() => {
-    setVisibleOptions(old => {
-      const newOptions = {}
-      if (old === undefined) {
-        return old
-      }
-      for (let key of Object.keys(old)) {
-        newOptions[key] = old[key]
-        newOptions[key].checked = filter ? filter.has(key) : false
-      }
-      return newOptions
-    })
-  }, [filter])
-
-  // React to changes in aggregation results. Options which were not selected
-  // beforehand will be disabled/enabled according to the aggregation data.
-  useEffect(() => {
-    if (initialAgg && availableOptions) {
-      const valueSet = new Set()
+    if (availableOptions) {
       for (let value of availableOptions) {
-        if (value.count) {
-          valueSet.add(value.value)
+        const key = value.value
+        const selected = filter ? filter.has(key) : false
+        const oldState = opt[key]
+        const disabled = selected ? false : value.count === 0
+        if (oldState) {
+          oldState.disabled = disabled
         }
       }
-      setVisibleOptions(old => {
-        const newOptions = {...old}
-        for (let key of Object.keys(old)) {
-          newOptions[key].disabled = !newOptions[key].checked && !valueSet.has(key)
-        }
-        return newOptions
-      })
     }
-  }, [availableOptions, initialAgg])
+    setVisibleOptions(opt)
+  }, [availableOptions, filter, finalOptions])
 
   const handleChange = useCallback((event) => {
     const newOptions = {...visibleOptions}

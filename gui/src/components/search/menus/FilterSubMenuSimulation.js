@@ -19,11 +19,10 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputText from '../input/InputText'
-import InputCheckboxes from '../input/InputCheckboxes'
 import InputSelect from '../input/InputSelect'
+import InputText from '../input/InputText'
 
-const FilterSubMenuSymmetry = React.memo(({
+const FilterSubMenuDFT = React.memo(({
   value,
   ...rest
 }) => {
@@ -33,56 +32,21 @@ const FilterSubMenuSymmetry = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <InputCheckboxes
-          quantity="results.material.symmetry.bravais_lattice"
-          visible={visible}
-          xs={4}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputCheckboxes
-          quantity="results.material.symmetry.crystal_system"
-          visible={visible}
-          xs={6}
-        />
-      </Grid>
-      <Grid item xs={12}>
         <InputSelect
-          quantity="results.material.symmetry.structure_name"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputSelect
-          quantity="results.material.symmetry.strukturbericht_designation"
+          quantity="results.method.simulation.program_name"
           visible={visible}
         />
       </Grid>
       <Grid item xs={12}>
         <InputText
-          quantity="results.material.symmetry.space_group_symbol"
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputText
-          quantity="results.material.symmetry.point_group"
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputText
-          quantity="results.material.symmetry.hall_symbol"
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputText
-          quantity="results.material.symmetry.prototype_aflow_id"
+          quantity="results.method.simulation.program_version"
         />
       </Grid>
     </Grid>
   </FilterSubMenu>
 })
-FilterSubMenuSymmetry.propTypes = {
+FilterSubMenuDFT.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuSymmetry
+export default FilterSubMenuDFT

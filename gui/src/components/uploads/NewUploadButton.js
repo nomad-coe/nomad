@@ -23,7 +23,7 @@ import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 
 export default function NewUploadButton({...props}) {
-  const api = useApi()
+  const {api} = useApi()
   const errors = useErrors()
   const history = useHistory()
   const location = useLocation()

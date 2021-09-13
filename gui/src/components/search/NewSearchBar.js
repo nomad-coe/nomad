@@ -18,7 +18,7 @@
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isPlainObject, debounce } from 'lodash'
+import { debounce } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
@@ -34,11 +34,12 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../apiV1'
 import { useUnits, getDimension, Quantity } from '../../units'
-import { isMetaNumber, isMetaTimestamp } from '../../utils'
+import { isMetaNumber } from '../../utils'
 import {
   useFiltersState,
   quantityFullnames,
-  quantityAbbreviations
+  quantityAbbreviations,
+  quantityData
 } from './FilterContext'
 import searchQuantities from '../../searchQuantities'
 
@@ -124,7 +125,7 @@ const NewSearchBar = React.memo(({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
   const [showExamples, setShowExamples] = useState(false)
-  const api = useApi()
+  const {api} = useApi()
   const setFilter = useFiltersState(quantities)[1]
   const quantitySet = useMemo(() => new Set(quantities), [quantities])
   const quantitySuggestions = useMemo(() => {
@@ -250,12 +251,9 @@ const NewSearchBar = React.memo(({
     }
 
     if (valid) {
-      // Submit to search context on successful validation. Ranges and numeric
-      // values simply override any previous value (sliders cannot show multiple
-      // values at once).
-      if (isPlainObject(queryValue) || isMetaNumber(quantityFullname) || isMetaTimestamp(quantityFullname)) {
-        setFilter([quantityFullname, queryValue])
-      } else {
+      // Submit to search context on successful validation. Whether we append or
+      // replace the value is determined during quantity registration.
+      if (quantityData[quantityFullname].multiple) {
         setFilter([quantityFullname, old => {
           let newValue
           if (Array.isArray(old)) {
@@ -269,6 +267,8 @@ const NewSearchBar = React.memo(({
           }
           return newValue
         }])
+      } else {
+        setFilter([quantityFullname, queryValue])
       }
       setInputValue('')
       setOpen(false)
@@ -309,7 +309,7 @@ const NewSearchBar = React.memo(({
     setLoading(true)
     // If some input is given, and the quantity supports suggestions, we use
     // input suggester to suggest values
-    const filteredList = quantityList.filter(q => searchQuantities[q].suggestion)
+    const filteredList = quantityList.filter(q => searchQuantities[q]?.suggestion)
     api.suggestions(filteredList, value)
       .then(data => {
         let res = []
