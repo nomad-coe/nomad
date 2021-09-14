@@ -724,3 +724,8 @@ def test_read_adminmetadata_from_file(proc_infra, tmp, test_user, other_test_use
 
     calc = Calc.objects(upload_id=upload.upload_id).first()
     assert calc.metadata['uploader'] == uploader.user_id
+
+
+def test_skip_matching(proc_infra, test_user):
+    upload = run_processing(('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user)
+    assert upload.total_calcs == 1

@@ -615,7 +615,7 @@ class Calc(Proc):
             logger.info('Apply user metadata from nomad.yaml/json file')
 
         for key, val in metadata.items():
-            if key == 'entries':
+            if key in ['entries', 'skip_matching']:
                 continue
 
             definition = _editable_metadata.get(key, None)
@@ -1247,10 +1247,19 @@ class Upload(Proc):
         Returns:
             Tuples of mainfile, filename, and parsers
         '''
+        metadata = self.metadata_file_cached(
+            os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+        skip_matching = metadata.get('skip_matching', False)
+        entries_metadata = metadata.get('entries', {})
+
         directories_with_match: Dict[str, str] = dict()
         upload_files = self.upload_files.to_staging_upload_files()
         for filename in upload_files.raw_file_manifest():
             self._preprocess_files(filename)
+
+            if skip_matching and filename not in entries_metadata:
+                continue
+
             try:
                 parser = match_parser(upload_files.raw_file_object(filename).os_path)
                 if parser is not None:
