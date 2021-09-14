@@ -733,7 +733,8 @@ class EditRepoCalcsResource(Resource):
         if lift_embargo:
             for upload_id in upload_ids:
                 upload = proc.Upload.get(upload_id)
-                upload.re_pack()
+                if upload.published:
+                    upload.re_pack()
 
         # remove potentially empty old datasets
         if removed_datasets is not None:
