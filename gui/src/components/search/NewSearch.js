@@ -23,7 +23,6 @@ import FilterMainMenu from './menus/FilterMainMenu'
 import NewSearchBar from './NewSearchBar'
 import SearchResults from './results/SearchResults'
 import {
-  filters,
   useMenuOpenState
 } from './FilterContext'
 
@@ -129,7 +128,6 @@ const NewSearch = React.memo(({
         {header}
       </div>
       <NewSearchBar
-        quantities={filters}
         className={styles.searchBar}
       />
       <SearchResults

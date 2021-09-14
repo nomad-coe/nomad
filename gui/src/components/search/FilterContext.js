@@ -417,25 +417,24 @@ export function useResetFilters() {
 }
 
 /**
- * This hook will expose a function for reading filter values. Use this hook if
- * you intend to only view the filter values and are not interested in setting
- * the filter.
- *
- * @param {string} name Name of the filter.
- * @returns currently set filter value.
- */
-export function useFilterValue(name) {
-  return useRecoilValue(queryFamily(name))
-}
-
-/**
- * This hook will expose a function for reading if the filter is locked.
+ * This hook will expose a function for reading if the given filter is locked.
  *
  * @param {string} name Name of the filter.
  * @returns Whether the filter is locked or not.
  */
 export function useFilterLocked(name) {
   return useRecoilValue(lockedFamily(name))
+}
+
+/**
+ * This hook will expose a function for reading the locked status of all
+ * filters.
+ *
+ * @returns An object containing a mapping from filter name to a boolean
+ * indicating whether it is locked or not.
+ */
+export function useFiltersLocked() {
+  return useRecoilValue(lockedState)
 }
 
 /**
@@ -494,6 +493,18 @@ const lockedState = selector({
 })
 
 /**
+ * This hook will expose a function for reading filter values. Use this hook if
+ * you intend to only view the filter values and are not interested in setting
+ * the filter.
+ *
+ * @param {string} name Name of the filter.
+ * @returns currently set filter value.
+ */
+export function useFilterValue(name) {
+  return useRecoilValue(queryFamily(name))
+}
+
+/**
  * This hook will expose a function for setting a filter value. Use this hook if
  * you intend to only set the filter value and are not interested in the query
  * results.
@@ -515,6 +526,32 @@ export function useSetFilter(name) {
 export function useFilterState(name) {
   return useRecoilState(queryFamily(name))
 }
+
+/**
+ * This hook will expose a function for setting the values of all filters.
+ *
+ * @returns An object containing a mapping from filter name to a boolean
+ * indicating whether it is locked or not.
+ */
+export function useSetFilters() {
+  return useSetRecoilState(filtersState)
+}
+
+// Used to get/set the locked state of all filters at once
+const filtersState = selector({
+  key: 'filtersState',
+  get: ({get}) => {
+    const query = {}
+    for (let key of filters) {
+      const filter = get(queryFamily(key))
+      query[key] = filter
+    }
+    return query
+  },
+  set: ({set}, [key, value]) => {
+    set(queryFamily(key), value)
+  }
+})
 
 /**
  * This hook will expose a function for getting and setting filter values for

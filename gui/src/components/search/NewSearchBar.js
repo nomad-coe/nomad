@@ -18,7 +18,7 @@
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { debounce } from 'lodash'
+import { debounce, isNil } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
@@ -36,11 +36,13 @@ import { useApi } from '../apiV1'
 import { useUnits } from '../../units'
 import { isMetaNumber, isMetaTimestamp } from '../../utils'
 import {
-  useFiltersState,
+  useSetFilters,
+  useFiltersLocked,
   filterFullnames,
   filterAbbreviations,
   toGUIFilter,
-  filterData
+  filterData,
+  filters
 } from './FilterContext'
 import searchQuantities from '../../searchQuantities'
 
@@ -108,13 +110,10 @@ const useStyles = makeStyles(theme => ({
 }))
 
 /**
- * This searchbar component shows a searchbar with autocomplete functionality. The
- * searchbar also includes a status line about the current results. It uses the
- * search context to manipulate the current query and display results. It does its on
- * API calls to provide autocomplete suggestion options.
+ * This component shows a searchbar with autocomplete functionality. It does its
+ * on API calls to provide autocomplete suggestion options.
  */
 const NewSearchBar = React.memo(({
-  quantities,
   className
 }) => {
   const styles = useStyles()
@@ -127,18 +126,19 @@ const NewSearchBar = React.memo(({
   const [error, setError] = useState(false)
   const [showExamples, setShowExamples] = useState(false)
   const {api} = useApi()
-  const setFilter = useFiltersState(quantities)[1]
-  const quantitySet = useMemo(() => new Set(quantities), [quantities])
+  const filtersLocked = useFiltersLocked()
+  const setFilter = useSetFilters()
+  const quantitySet = filters
   const quantitySuggestions = useMemo(() => {
     const suggestions = []
-    for (let q of quantities) {
+    for (let q of filters) {
       suggestions.push({
         value: filterAbbreviations[q] || q,
         category: 'quantity name'
       })
     }
     return suggestions
-  }, [quantities])
+  }, [])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -235,11 +235,17 @@ const NewSearchBar = React.memo(({
       }
     }
 
+    // Check if filter is locked
+    if (filtersLocked[quantityFullname]) {
+      setError(`Cannot change the filter as it is locked in the current search context.`)
+      return
+    }
+
     if (valid) {
       // Submit to search context on successful validation.
       setFilter([quantityFullname, old => {
         const multiple = filterData[quantityFullname].multiple
-        return multiple ? new Set([...old, queryValue]) : queryValue
+        return (isNil(old) || !multiple) ? queryValue : new Set([...old, ...queryValue])
       }])
       setInputValue('')
       setOpen(false)
@@ -324,7 +330,7 @@ const NewSearchBar = React.memo(({
     // If the input is prefixed with a proper quantity name and an equals-sign,
     // we extract the quantity name and the typed input
     const split = value.split('=', 2)
-    let quantityList = [...quantities]
+    let quantityList = [...filters]
     if (split.length === 2) {
       const quantityName = split[0].trim()
       const quantityFullname = filterFullnames[quantityName]
@@ -346,7 +352,7 @@ const NewSearchBar = React.memo(({
     // use terms aggregation.
     } else {
     }
-  }, [quantities, quantitySet, suggestionDebounced])
+  }, [quantitySet, suggestionDebounced])
 
   // This determines the order: notice that items should be sorted by group
   // first in order for the grouping to work correctly.
@@ -419,7 +425,6 @@ const NewSearchBar = React.memo(({
 })
 
 NewSearchBar.propTypes = {
-  quantities: PropTypes.object, // The set of search quantities over which the suggestions are served.
   className: PropTypes.string
 }
 
