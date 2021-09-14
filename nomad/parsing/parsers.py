@@ -72,6 +72,7 @@ from libatomsparser import LibAtomsParser
 from atkparser import ATKParser
 from qboxparser import QboxParser
 from openkimparser import OpenKIMParser
+from openmxparser import OpenmxParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -212,6 +213,7 @@ parsers = [
     AsapParser(),
     FploParser(),
     MopacParser(),
+    OpenmxParser(),
     ArchiveParser()
 ]
 

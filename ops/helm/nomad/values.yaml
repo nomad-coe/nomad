@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.10.6"
+  label: "0.10.7"
   isTest: false
   isBeta: false
   usesBetaData: false
@@ -171,6 +171,7 @@ springerDbPath: /nomad/fairdi/db/data/springer.msg
 # Will reprocess calculations with their old matched parser, even if they do not
 # match this parser anymore
 reprocess_unmatched: true
+reprocess_match: false
 
 datacite:
   enabled: false

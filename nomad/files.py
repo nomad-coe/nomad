@@ -63,6 +63,7 @@ import hashlib
 import io
 import pickle
 import json
+from more_itertools import peekable
 
 from nomad import config, utils, datamodel
 from nomad.archive import write_archive, read_archive, ArchiveReader
@@ -461,8 +462,10 @@ class StagingUploadFiles(UploadFiles):
                 mode='w')
 
         def write_msgfile(access: str, size: int, data: Iterable[Tuple[str, Any]]):
-            file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
-            write_archive(file_object.os_path, size, data)
+            data = peekable(data)
+            if data:
+                file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
+                write_archive(file_object.os_path, size, data)
 
         # zip archives
         if not skip_archive:
@@ -503,13 +506,13 @@ class StagingUploadFiles(UploadFiles):
         return restricted, public
 
     def _pack_raw_files(self, entries: Iterable[datamodel.EntryMetadata], create_zipfile):
-        raw_public_zip = create_zipfile('public')
-        raw_restricted_zip = create_zipfile('restricted')
+        raw_public_zip, raw_restricted_zip = None, None
 
         try:
             # 1. add all public raw files
             # 1.1 collect all public mainfiles and aux files
             public_files: Dict[str, str] = {}
+            restricted_files: Dict[str, str] = {}
             for calc in entries:
                 if not calc.with_embargo:
                     mainfile = calc.mainfile
@@ -519,28 +522,51 @@ class StagingUploadFiles(UploadFiles):
                         for filepath in self.calc_files(mainfile, with_cutoff=False):
                             if not always_restricted(filepath):
                                 public_files[filepath] = None
+
             # 1.2 remove the non public mainfiles that have been added as auxfiles of public mainfiles
             for calc in entries:
                 if calc.with_embargo:
                     mainfile = calc.mainfile
                     assert mainfile is not None
+                    restricted_files[mainfile] = None
                     if mainfile in public_files:
                         del(public_files[mainfile])
-            # 1.3 zip all remaining public
+                    else:
+                        for filepath in self.calc_files(mainfile, with_cutoff=False):
+                            restricted_files[filepath] = None
+
+            # 1.3 zip all public
             for filepath in public_files.keys():
+                if raw_public_zip is None:
+                    raw_public_zip = create_zipfile('public')
                 raw_public_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
-            # 2. everything else becomes restricted
+            # 1.4 zip all restructed
+            for filepath in restricted_files.keys():
+                if raw_restricted_zip is None:
+                    raw_restricted_zip = create_zipfile('restricted')
+                raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+
+            # 2. everything else becomes restricted (or public if everything else was public)
+            if raw_restricted_zip is None:
+                raw_zip = raw_public_zip
+            else:
+                if raw_restricted_zip is None:
+                    raw_restricted_zip = create_zipfile('restricted')
+                raw_zip = raw_restricted_zip
+
             for filepath in self.raw_file_manifest():
-                if filepath not in public_files:
-                    raw_restricted_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
+                if filepath not in public_files and filepath not in restricted_files:
+                    raw_zip.write(self._raw_dir.join_file(filepath).os_path, filepath)
 
         except Exception as e:
             self.logger.error('exception during packing raw files', exc_info=e)
 
         finally:
-            raw_restricted_zip.close()
-            raw_public_zip.close()
+            if raw_restricted_zip is not None:
+                raw_restricted_zip.close()
+            if raw_public_zip is not None:
+                raw_public_zip.close()
 
     def raw_file_manifest(self, path_prefix: str = None) -> Generator[str, None, None]:
         upload_prefix_len = len(self._raw_dir.os_path) + 1
@@ -698,10 +724,14 @@ class PublicUploadFilesBasedStagingUploadFiles(StagingUploadFiles):
                 super().add_rawfiles(raw_file_zip.os_path, force_archive=True)
 
             if include_archive:
-                with self.public_upload_files._open_msg_file(access) as archive:
-                    for calc_id, data in archive.items():
-                        calc_id = calc_id.strip()
-                        self.write_archive(calc_id, data.to_dict())
+                try:
+                    with self.public_upload_files._open_msg_file(access) as archive:
+                        for calc_id, data in archive.items():
+                            calc_id = calc_id.strip()
+                            self.write_archive(calc_id, data.to_dict())
+                except FileNotFoundError:
+                    # ignore missing archive file and assume equivalent to empty archive file
+                    pass
 
     def add_rawfiles(self, *args, **kwargs) -> None:
         assert False, 'do not add_rawfiles to a %s' % self.__class__.__name__
@@ -939,8 +969,10 @@ class PublicUploadFiles(UploadFiles):
             return zipfile.ZipFile(file.os_path, mode='w')
 
         def write_msgfile(access: str, size: int, data: Iterable[Tuple[str, Any]]):
-            file = self._msg_file_object(access, suffix='repacked')
-            write_archive(file.os_path, size, data)
+            data = peekable(data)
+            if data:
+                file = self._msg_file_object(access, suffix='repacked')
+                write_archive(file.os_path, size, data)
 
         # perform the repacking
         try:
@@ -954,6 +986,9 @@ class PublicUploadFiles(UploadFiles):
 
         # replace the original files with the repacked ones
         for repacked_file, public_file in files:
-            shutil.move(
-                repacked_file.os_path,
-                public_file.os_path)
+            if repacked_file.exists():
+                shutil.move(
+                    repacked_file.os_path,
+                    public_file.os_path)
+            elif public_file.exists():
+                public_file.delete()

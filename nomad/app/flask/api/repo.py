@@ -663,6 +663,24 @@ class EditRepoCalcsResource(Resource):
                     else:
                         mongo_value = action_value
 
+                    # verify if the edit action creates consistent shared_with and with_embargo for
+                    # whole uploads
+                    if action_quantity_name == 'shared_with' or action_quantity_name == 'with_embargo':
+                        search_request = search.SearchRequest()
+                        apply_search_parameters(search_request, parsed_query)
+                        search_request.quantity('upload_id')
+                        uploads = search_request.execute()['quantities']['upload_id']['values']
+                        for upload_id, upload_data in uploads.items():
+                            search_request = search.SearchRequest().search_parameters(upload_id=upload_id)
+                            entries = search_request.execute()['total']
+                            if entries != upload_data['total']:
+                                action['success'] = False
+                                action['message'] = json_data.get('message', '') + (
+                                    'Edit would create an upload with inconsistent shared_with or with_embargo. '
+                                    'You can only set those for all entries of an upload.')
+                                has_error = True
+                                continue
+
                     if len(quantity.shape) == 0:
                         mongo_update[mongo_key] = mongo_value
                     else:
@@ -715,7 +733,8 @@ class EditRepoCalcsResource(Resource):
         if lift_embargo:
             for upload_id in upload_ids:
                 upload = proc.Upload.get(upload_id)
-                upload.re_pack()
+                if upload.published:
+                    upload.re_pack()
 
         # remove potentially empty old datasets
         if removed_datasets is not None:

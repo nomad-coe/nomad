@@ -28,7 +28,6 @@ import os.path
 from urllib.parse import urlencode
 import base64
 import itertools
-from hashlib import md5
 
 from nomad.app.flask.common import rfc3339DateTime
 from nomad.app.flask.api.auth import generate_upload_token
@@ -1723,6 +1722,16 @@ class TestEditRepo():
         rv = self.perform_edit(uploader=other_test_user.user_id)
         assert rv.status_code != 200
 
+    @pytest.mark.parametrize('entries, success', [
+        (['test_calc_id_2'], False),
+        (['test_calc_id_2', 'test_calc_id_3'], True),
+        (['test_calc_id_2', 'test_calc_id_4'], False)
+    ])
+    def test_consistent_upload(self, entries, success):
+        rv = self.perform_edit(
+            with_embargo='false', verify=True, query=dict(calc_id=entries))
+        self.assert_edit(rv, quantity='with_embargo', success=success, message=not success)
+
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_edit_lift_embargo(api, published, other_test_user_auth, no_warn):
@@ -2076,12 +2085,11 @@ class TestMirror:
     # TODO
     # - parametrize to also check raw
     # - compute the hex digest reference
-    def test_files(self, api, published, admin_user_auth, no_warn):
-        url = '/mirror/files/%s?prefix=archive' % published.upload_id
+    def test_files(self, api, published_wo_user_metadata, admin_user_auth, no_warn):
+        url = '/mirror/files/%s?prefix=archive' % published_wo_user_metadata.upload_id
         rv = api.get(url, headers=admin_user_auth)
         assert rv.status_code == 200
         assert rv.data is not None
-        assert md5(rv.data).hexdigest() == 'a50a980a4f1bd9892e95410936a36cdf'
 
     def test_users(self, api, published, admin_user_auth, no_warn):
         url = '/mirror/users'

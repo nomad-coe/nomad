@@ -36,7 +36,7 @@ from typing import cast
 from pydantic import create_model, Field, BaseConfig
 from datetime import datetime
 
-from .metainfo import DefinitionAnnotation, Definition, Section, Quantity, Datetime, MEnum, Capitalized
+from .metainfo import DefinitionAnnotation, Definition, Section, Quantity, Datetime, MEnum, Capitalized, JSON
 
 
 class _OrmConfig(BaseConfig):
@@ -71,6 +71,8 @@ class PydanticModel(DefinitionAnnotation):
                 pydantic_type = str
             elif quantity.type == Capitalized:
                 pydantic_type = str
+            elif quantity.type == JSON:
+                pydantic_type = dict
             else:
                 pydantic_type = quantity.type
 

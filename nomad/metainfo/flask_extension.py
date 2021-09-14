@@ -20,7 +20,7 @@ from flask_restplus import fields
 
 from nomad.app.flask.common import RFC3339DateTime
 
-from .metainfo import Section, Quantity, Datetime, Capitalized, MEnum
+from .metainfo import Section, Quantity, Datetime, Capitalized, MEnum, JSON
 
 
 def field(quantity: Quantity):
@@ -38,6 +38,8 @@ def field(quantity: Quantity):
         field = RFC3339DateTime
     elif isinstance(quantity.type, MEnum):
         field = fields.String
+    elif quantity.type == JSON:
+        field = fields.Arbitrary
     else:
         raise NotImplementedError
 

@@ -197,7 +197,7 @@ async def post_datasets(
     '''
 
     now = datetime.now()
-    dataset_type = create.dataset_type if create.dataset_type is not None else 'owned'
+    dataset_type = create.dataset_type if create.dataset_type is not None else DatasetType.owned
 
     # check if name already exists
     existing_dataset = DatasetDefinitionCls.m_def.a_mongo.objects(
@@ -217,22 +217,28 @@ async def post_datasets(
         dataset_type=dataset_type)
     dataset.a_mongo.create()
 
-    # add dataset to entries in mongo and elastic
-    # TODO this should be part of a new edit API
-    if create.entries is not None:
-        es_query = cast(Query, {'calc_id': Any_(any=create.entries)})
-        mongo_query = {'_id': {'$in': create.entries}}
-        empty = len(create.entries) == 0
-    elif create.query is not None:
-        es_query = create.query
-        entries = _do_exaustive_search(
-            owner=Owner.public, query=create.query, user=user,
-            include=['calc_id'])
-        entry_ids = [entry['calc_id'] for entry in entries]
-        mongo_query = {'_id': {'$in': entry_ids}}
-        empty = len(entry_ids) == 0
-    else:
+    if dataset_type != DatasetType.owned:
+        dataset.query = create.query
+        dataset.entrys = create.entries
         empty = True
+    else:
+        # add dataset to entries in mongo and elastic
+        # TODO this should be part of a new edit API
+        if create.entries is not None:
+            es_query = cast(Query, {'calc_id': Any_(any=create.entries)})
+        elif create.query is not None:
+            es_query = create.query
+        else:
+            es_query = None
+
+        if es_query is None:
+            empty = True
+        else:
+            entries = _do_exaustive_search(
+                owner=Owner.user, query=es_query, user=user, include=['calc_id'])
+            entry_ids = [entry['calc_id'] for entry in entries]
+            mongo_query = {'_id': {'$in': entry_ids}}
+            empty = len(entry_ids) == 0
 
     if not empty:
         processing.Calc._get_collection().update_many(
