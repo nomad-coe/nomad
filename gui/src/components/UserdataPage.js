@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { withApi } from './api'
+import { withLoginRequired } from './apiV1'
 import { SearchContext } from './search/FilterContext'
 import NewSearch from './search/NewSearch'
 
@@ -73,13 +73,13 @@ Once you assigned a DOI to a dataset, no entries can be removed or added to the 
 const filtersLocked = {
   'visibility': 'user'
 }
-function UserdataPage() {
+const UserdataPage = React.memo(() => {
   return <SearchContext
     resource="entries"
     filtersLocked={filtersLocked}
   >
     <NewSearch/>
   </SearchContext>
-}
+})
 
-export default withApi(true, false, 'Please login to search your data.')(UserdataPage)
+export default withLoginRequired(UserdataPage, 'Please login to search your data.')

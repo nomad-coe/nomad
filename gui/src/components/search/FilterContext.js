@@ -278,20 +278,19 @@ export const SearchContext = React.memo(({
     reset()
   }, [reset])
 
-  // Read the target resource and initial query from the URL
-  const [resourceFinal, query] = useMemo(() => {
+  // Read the initial query from the URL
+  const query = useMemo(() => {
     const location = window.location.href
     const split = location.split('?')
-    let qs, path, query
+    let qs, query
     if (split.length === 1) {
-      path = split.pop()
       query = {}
     } else {
-      [path, qs] = split
+      qs = split.pop()
       query = qsToQuery(qs)
     }
-    return [resource || path.split('/').pop(), query]
-  }, [resource])
+    return query
+  }, [])
 
   // Save the initial query and locked filters. Cannot be done inside useMemo
   // due to bad setState.
@@ -312,7 +311,7 @@ export const SearchContext = React.memo(({
     const aggRequest = {}
     const aggNames = [...filters].filter(name => filterData[name].aggGet)
     for (const filter of aggNames) {
-      toAPIAgg(aggRequest, filter, resourceFinal)
+      toAPIAgg(aggRequest, filter, resource)
     }
 
     const search = {
@@ -322,16 +321,16 @@ export const SearchContext = React.memo(({
       pagination: {page_size: 0}
     }
 
-    api.query(resourceFinal, search, false)
+    api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, aggNames, resourceFinal)
+        data = toGUIAgg(data.aggregations, aggNames, resource)
         setInitialAggs(data)
       })
-  }, [api, setInitialAggs, resourceFinal])
+  }, [api, setInitialAggs, resource])
 
   const values = useMemo(() => ({
-    resource: resourceFinal
-  }), [resourceFinal])
+    resource: resource
+  }), [resource])
 
   return <searchContext.Provider value={values}>
     {children}
@@ -601,8 +600,8 @@ export function useQuery() {
 export function useUpdateQueryString() {
   const history = useHistory()
 
-  const updateQueryString = useCallback((query) => {
-    const queryString = queryToQs(query)
+  const updateQueryString = useCallback((query, locked) => {
+    const queryString = queryToQs(query, locked)
     history.replace(history.location.pathname + '?' + queryString)
   }, [history])
 
@@ -645,9 +644,12 @@ function qsToQuery(queryString) {
  * filters.
  * @returns URL querystring, not encoded if possible to improve readability.
  */
-function queryToQs(query) {
+function queryToQs(query, locked) {
   const newQuery = {}
   for (const [key, value] of Object.entries(query)) {
+    if (locked[key]) {
+      continue
+    }
     const {formatter} = formatMeta(key, false)
     let newValue
     const newKey = filterAbbreviations[key]
@@ -785,6 +787,7 @@ export function useScrollResults(pageSize, orderBy, order, delay = 500) {
   const [results, setResults] = useState()
   const pageNumber = useRef(1)
   const query = useQuery(true)
+  const locked = useRecoilValue(lockedState)
   const updateQueryString = useUpdateQueryString()
   const pageAfterValue = useRef()
   const searchRef = useRef()
@@ -794,7 +797,7 @@ export function useScrollResults(pageSize, orderBy, order, delay = 500) {
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback((query, pageSize, orderBy, order) => {
+  const apiCall = useCallback((query, locked, pageSize, orderBy, order) => {
     pageAfterValue.current = undefined
     const restricted = query.restricted
     const cleanedQuery = toAPIQuery(query, resource, restricted)
@@ -823,8 +826,8 @@ export function useScrollResults(pageSize, orderBy, order, delay = 500) {
     // the query string causes quite an intensive render (not sure why), so it
     // is better to debounce this value as well to keep the user interaction
     // smoother.
-    updateQueryString(query)
-  }, [api, updateQueryString, resource])
+    updateQueryString(query, locked)
+  }, [resource, api, updateQueryString])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -857,12 +860,12 @@ export function useScrollResults(pageSize, orderBy, order, delay = 500) {
       return
     }
     if (firstRender.current) {
-      apiCall(query, pageSize, orderBy, order)
+      apiCall(query, locked, pageSize, orderBy, order)
       firstRender.current = false
     } else {
-      debounced(query, pageSize, orderBy, order)
+      debounced(query, locked, pageSize, orderBy, order)
     }
-  }, [apiCall, debounced, query, pageSize, order, orderBy])
+  }, [apiCall, debounced, query, locked, pageSize, order, orderBy])
 
   // Whenever the ordering changes, we perform a single API call that fetches
   // results in the new order. The amount of fetched results is based on the

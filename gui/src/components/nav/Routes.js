@@ -29,7 +29,8 @@ import UploadPage from '../uploads/UploadPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
-import NewSearchPage, {help as searchHelp} from '../search/NewSearchPage'
+import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
+import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
 import { aitoolkitEnabled, appBase, oasis } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
@@ -121,7 +122,7 @@ const datasetRoutes = [
         routes: entryRoutes,
         help: {
           title: 'Datasets',
-          help: datasetHelp
+          content: datasetHelp
         }
       },
       {
@@ -191,9 +192,9 @@ export const routes = [
       {
         path: 'search',
         exact: true,
-        menu: 'Your data',
+        menu: 'Search your data',
         breadcrumb: 'Search your data',
-        tooltip: 'Manage your uploaded data',
+        tooltip: 'Search the data you have uploaded',
         help: {
           title: 'How to manage your data',
           content: userdataHelp
@@ -211,23 +212,27 @@ export const routes = [
       {
         path: 'entries',
         exact: true,
-        component: NewSearchPage,
+        component: SearchPageEntries,
         menu: 'Entries Repository',
         tooltip: 'Search individual database entries',
         breadcrumb: 'Entries search',
         help: {
           title: 'How to find and download data',
-          content: searchHelp
+          content: searchEntriesHelp
         },
         routes: entryRoutes
       },
       {
         path: 'materials',
         exact: true,
-        component: NewSearchPage,
+        component: SearchPageMaterials,
         menu: 'Material Encyclopedia',
         tooltip: 'Search materials',
-        breadcrumb: 'Materials search'
+        breadcrumb: 'Materials search',
+        help: {
+          title: 'How to find and download data',
+          content: searchMaterialsHelp
+        }
       }
     ]
   },

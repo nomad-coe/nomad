@@ -63,6 +63,9 @@ const useStyles = makeStyles(theme => {
     spacer: {
       flexGrow: 1
     },
+    header: {
+      marginTop: theme.spacing(2)
+    },
     searchBar: {
       marginTop: theme.spacing(2),
       display: 'flex',
@@ -122,7 +125,9 @@ const NewSearch = React.memo(({
       />
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
-      {header}
+      <div className={styles.header}>
+        {header}
+      </div>
       <NewSearchBar
         quantities={filters}
         className={styles.searchBar}

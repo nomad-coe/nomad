@@ -19,7 +19,7 @@ import React from 'react'
 import NewSearch from './NewSearch'
 import { SearchContext } from './FilterContext'
 
-const help = `
+export const help = `
 This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
 search allows you to screen data by filtering based on desired properties. This
 is different from basic *text-search* that traditional search engines offer.
@@ -50,10 +50,11 @@ individual entries or even download selections of the data. The arrow button
 shown for each entry will navigate you to that entry's page.  This entry page
 will show more metadata, raw files, the entry's archive, and processing logs.
 `
-export {help}
 
-export default function NewSearchPage() {
-  return <SearchContext>
+const SearchPageMaterials = React.memo(() => {
+  return <SearchContext resource="materials">
     <NewSearch/>
   </SearchContext>
-}
+})
+
+export default SearchPageMaterials

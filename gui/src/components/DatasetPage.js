@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 import React, { useContext, useState, useEffect, useMemo } from 'react'
+import PropTypes from 'prop-types'
+import { Typography, makeStyles } from '@material-ui/core'
 import { errorContext } from './errors'
 import { useApi } from './apiV1'
 import NewSearch from './search/NewSearch'
 import { SearchContext } from './search/FilterContext'
-import { Typography, makeStyles } from '@material-ui/core'
 import { DOI } from './search/results/DatasetList'
 
 export const help = `
@@ -29,122 +30,50 @@ to explore a dataset with similar controls that the search page offers.
 `
 
 const useStyles = makeStyles(theme => ({
-  description: {
-    flexGrow: 1,
-    marginRight: theme.spacing(1)
-  },
   header: {
     display: 'flex',
-    flexDirection: 'row',
-    padding: theme.spacing(3)
+    flexDirection: 'column'
   }
 }))
-const UserdataPage = React.memo(() => {
+const UserdataPage = React.memo(({match}) => {
   const styles = useStyles()
-  const [dataset, setDataset] = useState({})
+  const [dataset, setDataset] = useState()
   const {raiseError} = useContext(errorContext)
   const {api} = useApi()
 
-  // Read dataset id from URL.
-  const datasetId = useMemo(() => {
-    const location = window.location.href
-    const split = location.split('?')
-    return split.length === 1 ? split.pop() : split[0]
-  }, [])
+  // Router provides the URL parameters via props, here we read the dataset ID.
+  const datasetId = match?.params?.datasetId
+  const datasetFilter = useMemo(() => ({'datasets.dataset_id': datasetId}), [datasetId])
 
   // Fetch the dataset information from API.
   useEffect(() => {
-    api.search({
-      owner: 'all',
-      dataset_id: datasetId,
-      page: 1,
-      per_page: 1
-    }).then(data => {
-      const entry = data.results[0]
-      const dataset = entry && entry.datasets.find(ds => ds.dataset_id + '' === datasetId)
-      if (!dataset) {
-        setDataset({isEmpty: true})
-      }
-      setDataset({...dataset, example: entry})
-    }).catch(error => {
-      setDataset({})
-      raiseError(error)
-    })
+    api.datasets(datasetId)
+      .then(setDataset)
+      .catch(error => {
+        setDataset(undefined)
+        raiseError(error)
+      })
   }, [datasetId, api, raiseError])
 
   // Shows basic dataset information above the searchbar
-  const header = <div className={styles.header}>
-    <div className={styles.description}>
-      <Typography variant="h4">{dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}</Typography>
-      <Typography>
-        dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
-      </Typography>
-    </div>
-  </div>
-
-  return <SearchContext
+  return dataset && <SearchContext
     resource="entries"
-    query={undefined}
-    filtersLocked={{dataset_id: datasetId}}
-    header={header}
+    filtersLocked={datasetFilter}
   >
-    <NewSearch/>
+    <NewSearch header={
+      <div className={styles.header}>
+        <Typography variant="h4">
+          {dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}
+        </Typography>
+        <Typography>
+          dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
+        </Typography>
+      </div>}
+    />
   </SearchContext>
 })
+UserdataPage.propTypes = {
+  match: PropTypes.object
+}
 
 export default UserdataPage
-
-// export default function DatasetPage() {
-//   const classes = useStyles()
-//   const [dataset, setDataset] = useState({})
-
-//   const {api} = useContext(apiContext)
-//   const {raiseError} = useContext(errorContext)
-//   const location = useLocation()
-//   const match = useRouteMatch()
-
-//   const {datasetId} = match.params
-
-//   useEffect(() => {
-//     api.search({
-//       owner: 'all',
-//       dataset_id: datasetId,
-//       page: 1,
-//       per_page: 1
-//     }).then(data => {
-//       const entry = data.results[0]
-//       const dataset = entry && entry.datasets.find(ds => ds.dataset_id + '' === datasetId)
-//       if (!dataset) {
-//         setDataset({isEmpty: true})
-//       }
-//       setDataset({...dataset, example: entry})
-//     }).catch(error => {
-//       setDataset({})
-//       raiseError(error)
-//     })
-//   }, [datasetId, location.pathname, api, raiseError])
-
-//   if (!dataset) {
-//     return <div>loading...</div>
-//   }
-
-//   return <div>
-//     <div className={classes.header}>
-//       <div className={classes.description}>
-//         <Typography variant="h4">{dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}</Typography>
-//         <Typography>
-//           dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}
-//         </Typography>
-//       </div>
-//     </div>
-
-//     <Search
-//       initialQuery={{owner: 'all'}}
-//       query={{dataset_id: [datasetId]}}
-//       ownerTypes={['all', 'public']}
-//       initialResultTab="entries"
-//       resultListProps={{showAccessColumn: true}}
-//       availableResultTabs={['entries', 'groups', 'datasets']}
-//     />
-//   </div>
-// }

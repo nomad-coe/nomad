@@ -158,6 +158,25 @@ class Api {
   }
 
   /**
+   * Returns the data related to the specified dataset.
+   *
+   * @param {string} datasetID
+   * @returns Object containing the search index contents.
+   */
+  async datasets(datasetId) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.get(`/datasets/${datasetId}`, auth)
+      return entry.data.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
+  }
+
+  /**
    * Returns section_results from the archive corresponding to the given entry.
    * Some large quantities which are not required by the GUI are filtered out.
    * All references within the section are resolved by the server before
@@ -335,7 +354,8 @@ function parse(result) {
 }
 
 /**
- * Hook that returns a shared instance of the API class.
+ * Hook that returns a shared instance of the API class and information about
+ * the currently logged in user.
 */
 let api = null
 let user = null
@@ -410,6 +430,13 @@ LoginRequired.propTypes = {
   ]).isRequired
 }
 
+/**
+ * HOC for wrapping components that require a login. Without login will return
+ * the given message together with a login link.
+ *
+ * @param {*} Component
+ * @param {*} message The message to display
+ */
 export function withLoginRequired(Component, message) {
   return ({...props}) => <LoginRequired message={message}>
     <Component {...props} />
