@@ -26,7 +26,13 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
-import { useFilterState, useAgg, useInitialAgg } from '../FilterContext'
+import InputTooltip from './InputTooltip'
+import {
+  useFilterState,
+  useAgg,
+  useInitialAgg,
+  useFilterLocked
+} from '../SearchContext'
 import { isArray } from 'lodash'
 
 const useStyles = makeStyles(theme => ({
@@ -56,6 +62,7 @@ const InputCheckboxes = React.memo(({
   const availableOptions = useAgg(quantity, true, visible)
   const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
+  const locked = useFilterLocked(quantity)
   const finalOptions = useMemo(() => {
     // If explicit options provided, use them
     if (options) {
@@ -103,14 +110,14 @@ const InputCheckboxes = React.memo(({
         const key = value.value
         const selected = filter ? filter.has(key) : false
         const oldState = opt[key]
-        const disabled = selected ? false : value.count === 0
+        const disabled = locked || (selected ? false : value.count === 0)
         if (oldState) {
           oldState.disabled = disabled
         }
       }
     }
     setVisibleOptions(opt)
-  }, [availableOptions, filter, finalOptions])
+  }, [availableOptions, filter, finalOptions, locked])
 
   const handleChange = useCallback((event) => {
     const newOptions = {...visibleOptions}
@@ -131,12 +138,14 @@ const InputCheckboxes = React.memo(({
     </Grid>
   })
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputLabel label={title} description={desc}/>
-    <Grid container spacing={0}>
-      {checkboxes}
-    </Grid>
-  </div>
+  return <InputTooltip locked={locked} disabled={false}>
+    <div className={clsx(className, styles.root)} data-testid={testID}>
+      <InputLabel label={title} description={desc}/>
+      <Grid container spacing={0}>
+        {checkboxes}
+      </Grid>
+    </div>
+  </InputTooltip>
 })
 
 InputCheckboxes.propTypes = {

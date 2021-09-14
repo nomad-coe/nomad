@@ -32,7 +32,8 @@ import { Unit } from '../../../units'
 import { useApi } from '../../apiV1'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
-import { useSetFilter } from '../FilterContext'
+import InputTooltip from './InputTooltip'
+import { useSetFilter, useFilterLocked } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -81,6 +82,7 @@ const InputText = React.memo(({
 
   // Attach the filter hook
   const setFilter = useSetFilter(quantity)
+  const locked = useFilterLocked(quantity)
 
   const filterOptions = useCallback((options, {inputValue}) => {
     const trimmed = inputValue.trim().toLowerCase()
@@ -189,57 +191,60 @@ const InputText = React.memo(({
     }
   }, [fetchSuggestions])
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputLabel label={title} description={desc}/>
-    <Autocomplete
-      freeSolo
-      clearOnBlur={false}
-      inputValue={inputValue}
-      value={null}
-      open={open}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-      fullWidth
-      disableClearable
-      classes={{endAdornment: styles.endAdornment}}
-      filterOptions={filterOptions}
-      options={suggestions}
-      onBlur={handleBlur}
-      onInputChange={handleInputChange}
-      onHighlightChange={handleHighlight}
-      getOptionLabel={option => option.value}
-      getOptionSelected={(option, value) => false}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          variant="outlined"
-          placeholder=""
-          label={error || undefined}
-          error={!!error}
-          onKeyDown={handleEnter}
-          InputLabelProps={{ shrink: true }}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (<>
-              {loading ? <CircularProgress color="inherit" size={20} /> : null}
-              {(inputValue?.length || null) && <>
-                <Tooltip title="Clear">
-                  <IconButton
-                    size="small"
-                    onClick={handleClose}
-                    className={styles.iconButton}
-                    aria-label="clear"
-                  >
-                    <CloseIcon/>
-                  </IconButton>
-                </Tooltip>
-              </>}
-            </>)
-          }}
-        />
-      )}
-    />
-  </div>
+  return <InputTooltip locked={locked}>
+    <div className={clsx(className, styles.root)} data-testid={testID}>
+      <InputLabel label={title} description={desc}/>
+      <Autocomplete
+        freeSolo
+        disabled={locked}
+        clearOnBlur={false}
+        inputValue={inputValue}
+        value={null}
+        open={open}
+        onOpen={() => setOpen(true)}
+        onClose={() => setOpen(false)}
+        fullWidth
+        disableClearable
+        classes={{endAdornment: styles.endAdornment}}
+        filterOptions={filterOptions}
+        options={suggestions}
+        onBlur={handleBlur}
+        onInputChange={handleInputChange}
+        onHighlightChange={handleHighlight}
+        getOptionLabel={option => option.value}
+        getOptionSelected={(option, value) => false}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="outlined"
+            placeholder=""
+            label={error || undefined}
+            error={!!error}
+            onKeyDown={handleEnter}
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (<>
+                {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                {(inputValue?.length || null) && <>
+                  <Tooltip title="Clear">
+                    <IconButton
+                      size="small"
+                      onClick={handleClose}
+                      className={styles.iconButton}
+                      aria-label="clear"
+                    >
+                      <CloseIcon/>
+                    </IconButton>
+                  </Tooltip>
+                </>}
+              </>)
+            }}
+          />
+        )}
+      />
+    </div>
+  </InputTooltip>
 })
 
 InputText.propTypes = {

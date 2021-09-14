@@ -23,15 +23,15 @@ import {
   MenuItem,
   Checkbox,
   ListItemText,
-  OutlinedInput,
-  Tooltip
+  OutlinedInput
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import FilterChip from '../FilterChip'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
-import { useFilterState, useAgg } from '../FilterContext'
+import InputTooltip from './InputTooltip'
+import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 // This forces the menu to have a fixed anchor instead of jumping around
 const MenuProps = {
@@ -79,7 +79,8 @@ const InputSelect = React.memo(({
   const styles = useStyles({classes: classes, theme: theme})
   const options = useAgg(quantity, true, visible)
   const [filter, setFilter] = useFilterState(quantity)
-  const disabled = !(options && options.length > 0)
+  const locked = useFilterLocked(quantity)
+  const disabled = locked || (!(options && options.length > 0))
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -107,7 +108,7 @@ const InputSelect = React.memo(({
     setFilter(new Set(event.target.value))
   }, [setFilter])
 
-  return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
+  return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <InputLabel label={title} description={desc}/>
       <Select
@@ -121,14 +122,14 @@ const InputSelect = React.memo(({
         MenuProps={MenuProps}
         renderValue={(selected) => (
           <div className={styles.chips}>
-            {selected.map((value) => <FilterChip key={value} label={value}/>)}
+            {selected.map((value) => <FilterChip locked={locked} key={value} label={value}/>)}
           </div>
         )}
       >
         {menuItems}
       </Select>
     </div>
-  </Tooltip>
+  </InputTooltip>
 })
 
 InputSelect.propTypes = {

@@ -21,17 +21,17 @@ import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Slider,
   TextField,
-  FormHelperText,
-  Tooltip
+  FormHelperText
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import FilterLabel from './InputLabel'
+import InputLabel from './InputLabel'
+import InputTooltip from './InputTooltip'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useAgg } from '../FilterContext'
+import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 function format(value) {
   return formatNumber(value, 'float', 6, true)
@@ -91,6 +91,7 @@ const InputSlider = React.memo(({
   const endChanged = useRef(false)
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
+  const locked = useFilterLocked(quantity)
   const agg = useAgg(quantity, true, visible)
   const [minGlobalSI, maxGlobalSI] = agg || [undefined, undefined]
   const [minText, setMinText] = useState('')
@@ -111,7 +112,7 @@ const InputSlider = React.memo(({
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
   const stepSI = step instanceof Quantity ? step.toSI() : step
-  const disabled = minGlobalSI === null || maxGlobalSI === null || range === undefined
+  const disabled = locked || (minGlobalSI === null || maxGlobalSI === null || range === undefined)
 
   // The slider minimum and maximum are set according to global min/max of the
   // field.
@@ -148,23 +149,23 @@ const InputSlider = React.memo(({
       } else if (filter instanceof Quantity) {
         gte = filter.toSI()
         lte = filter.toSI()
-        min = Math.min(gte, minGlobalSI)
-        max = Math.max(lte, maxGlobalSI)
+        min = Math.min(minGlobalSI, gte)
+        max = Math.max(maxGlobalSI, lte)
       // A range is given
       } else {
         gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
         lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
         if (isNil(gte)) {
-          min = minGlobalSI
-          gte = minGlobalSI
+          min = Math.min(minGlobalSI, lte)
+          gte = Math.min(minGlobalSI, lte)
         } else {
-          min = Math.min(gte, minGlobalSI)
+          min = Math.min(minGlobalSI, gte)
         }
         if (isNil(lte)) {
-          max = maxGlobalSI
-          lte = maxGlobalSI
+          max = Math.max(maxGlobalSI, gte)
+          lte = Math.max(maxGlobalSI, gte)
         } else {
-          max = Math.max(lte, maxGlobalSI)
+          max = Math.max(maxGlobalSI, lte)
         }
       }
       setMinLocal(min)
@@ -260,9 +261,9 @@ const InputSlider = React.memo(({
     setError()
   }, [])
 
-  return <Tooltip title={disabled ? 'No values available with current query.' : ''}>
+  return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <FilterLabel label={title} description={desc}/>
+      <InputLabel label={title} description={desc}/>
       <div className={styles.inputRow}>
         <TextField
           disabled={disabled}
@@ -306,7 +307,7 @@ const InputSlider = React.memo(({
         {error}
       </FormHelperText>}
     </div>
-  </Tooltip>
+  </InputTooltip>
 })
 
 InputSlider.propTypes = {

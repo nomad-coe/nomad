@@ -16,10 +16,6 @@
  * limitations under the License.
  */
 import React from 'react'
-import {
-  DFTSystemVisualizations, DFTPropertyVisualizations, DFTMethodVisualizations
-} from './dft/DFTVisualizations'
-import EMSVisualizations from './ems/EMSVisualizations'
 import { Link, Typography } from '@material-ui/core'
 import { amber } from '@material-ui/core/colors'
 
@@ -42,27 +38,6 @@ export const domainData = ({
         ? data.dft.code_name.charAt(0).toUpperCase() + data.dft.code_name.slice(1) + ' run'
         : 'Code run',
     searchPlaceholder: 'enter atoms, codes, functionals, or other quantity values',
-    /**
-     * A set of components and metadata that is used to present tabs of search visualizations
-     * in addition to the globally available elements and users view.
-     */
-    searchVisualizations: {
-      'system': {
-        component: DFTSystemVisualizations,
-        label: 'System',
-        description: 'Shows histograms on system metadata'
-      },
-      'method': {
-        component: DFTMethodVisualizations,
-        label: 'Method',
-        description: 'Shows histograms on method metadata'
-      },
-      'properties': {
-        component: DFTPropertyVisualizations,
-        label: 'Properties',
-        description: 'Shows histograms on the availability of key properties'
-      }
-    },
     searchMetrics: {
       code_runs: {
         label: 'Entries',
@@ -178,13 +153,6 @@ export const domainData = ({
     entryLabelPlural: 'entries',
     entryTitle: () => 'Experiment',
     searchPlaceholder: 'enter atoms, experimental methods, or other quantity values',
-    searchVisualizations: {
-      'metadata': {
-        component: EMSVisualizations,
-        label: 'Metadata',
-        description: 'Shows histograms on system metadata'
-      }
-    },
     /**
      * Metrics are used to show values for aggregations. Each metric has a key (used
      * for API calls), a label (used in the select form), and result string (to show
@@ -250,8 +218,6 @@ export const domainData = ({
     entryLabelPlural: 'calculations',
     entryTitle: () => 'Quantum-computer calculation',
     searchPlaceholder: 'enter atoms',
-    searchVisualizations: {
-    },
     /**
      * Metrics are used to show values for aggregations. Each metric has a key (used
      * for API calls), a label (used in the select form), and result string (to show

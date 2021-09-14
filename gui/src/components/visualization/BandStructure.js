@@ -26,7 +26,7 @@ import Plot from '../visualization/Plot'
 import { add, distance, mergeObjects } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
-import { normalizationWarning } from '../../config'
+import { msgNormalizationWarning } from '../../config'
 
 const useStyles = makeStyles({
   root: {
@@ -307,7 +307,7 @@ const BandStructure = React.memo(({
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle={'Band structure'}
-        warning={normalized ? null : normalizationWarning}
+        warning={normalized ? null : msgNormalizationWarning}
         placeholderStyle={placeholderStyle}
         metaInfoLink={data?.m_path}
         {...other}

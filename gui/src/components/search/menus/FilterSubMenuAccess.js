@@ -42,7 +42,7 @@ const FilterSubMenuAccess = React.memo(({
             public: {label: 'Public', disabled: false, tooltip: 'Consider all entries that can be publically downloaded, i.e. only published entries without embargo.'},
             visible: {label: 'Visible', disabled: !authenticated, tooltip: 'Consider all entries that are visible to you. This includes entries with embargo or unpublished entries that belong to you or are shared with you.'},
             shared: {label: 'Shared', disabled: !authenticated, tooltip: 'Only consider entries that belong to you or are shared with you.'},
-            user: {label: 'Private', disabled: !authenticated, tooltip: 'Only consider entries that belong to you.'},
+            user: {label: 'User', disabled: !authenticated, tooltip: 'Only consider entries that belong to you.'},
             staging: {label: 'Unpublished', disabled: !authenticated, tooltip: 'Only search through unpublished entries.'}
           }}
         ></InputRadio>

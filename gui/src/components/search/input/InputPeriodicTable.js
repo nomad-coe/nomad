@@ -17,7 +17,7 @@
  */
 import React, { useCallback } from 'react'
 import PropTypes from 'prop-types'
-import periodicTableData from './PeriodicTableData'
+import elementData from '../../../elementData'
 import {
   Typography,
   Button,
@@ -30,7 +30,7 @@ const elements = []
 for (var i = 0; i < 10; i++) {
   elements[i] = Array.apply(null, Array(18))
 }
-periodicTableData.elements.forEach(element => {
+elementData.elements.forEach(element => {
   elements[element.ypos - 1][element.xpos - 1] = element
   element.category = element.category.replace(' ', '')
 })
@@ -219,18 +219,6 @@ const InputPeriodicTable = React.memo(({
           description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
           initialValue={false}
         ></InputCheckbox>
-        {/* <Tooltip title={
-          'Search for entries with compositions that only (exclusively) contain the ' +
-          'selected atoms. The default is to return all entries that have at least ' +
-          '(inclusively) the selected atoms.'}>
-          <FormControlLabel
-            control={<Checkbox
-              checked={exclusive}
-              onChange={(event) => { onExclusiveChanged(event.target.checked) }}
-            />}
-            label={'only composition that exclusively contain these atoms'}
-          />
-        </Tooltip> */}
       </div>
     </div>
   )

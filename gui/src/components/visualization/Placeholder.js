@@ -78,7 +78,7 @@ const Placeholder = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={stylesDynamic.containerOuter}>
       <div className={styles.placeholder}>
-        <Skeleton className={styles.skeleton} {...other}/>
+        <Skeleton className={styles.skeleton} {...other} />
       </div>
     </div>
   </div>

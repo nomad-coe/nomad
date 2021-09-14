@@ -18,18 +18,17 @@
  */
 import React from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import FilterChip from './FilterChip'
-import { useFiltersState } from './FilterContext'
+import { useFiltersState, useFiltersLockedState } from './SearchContext'
 import { formatMeta } from '../../utils'
 import { useUnits } from '../../units'
 
 /**
- * Displays an interactable summary for a given subset of filters
- * (=searchQuantities).
+ * Displays a summary for the given subset of filters. Each filter value is
+ * displayed as a chip.
  */
 const useStyles = makeStyles(theme => {
   const padding = theme.spacing(2)
@@ -55,6 +54,7 @@ const FilterSummary = React.memo(({
   classes
 }) => {
   const [filters, setFilter] = useFiltersState(quantities)
+  const filtersLocked = useFiltersLockedState(quantities)
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
@@ -63,8 +63,9 @@ const FilterSummary = React.memo(({
   if (quantities) {
     for (let quantity of quantities) {
       const filterValue = filters[quantity]
+      const locked = filtersLocked[quantity]
       const filterAbbr = quantity.split('.').pop()
-      if (!filterValue) {
+      if (isNil(filterValue)) {
         continue
       }
       // Is query has multiple elements, we display a chip for each. For numerical
@@ -78,6 +79,7 @@ const FilterSummary = React.memo(({
           const displayValue = formatter(value, units)
           const item = <FilterChip
             key={chips.length}
+            locked={locked}
             label={metaType === 'number' ? `${filterAbbr} = ${displayValue}` : displayValue}
             onDelete={() => {
               if (isSet) {
@@ -109,6 +111,7 @@ const FilterSummary = React.memo(({
         }
         const item = <FilterChip
           key={chips.length}
+          locked={locked}
           label={label}
           onDelete={() => {
             setFilter([quantity, undefined])
@@ -120,6 +123,7 @@ const FilterSummary = React.memo(({
       } else {
         const item = <FilterChip
           key={chips.length}
+          locked={locked}
           label={`${filterAbbr}=${formatter(filterValue)}`}
           onDelete={() => {
             setFilter([quantity, undefined])

@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet, isNil, isString } from 'lodash'
-import { toUnitSystem, Quantity } from './units'
+import { cloneDeep, merge, isSet, isNil, isString, isNumber } from 'lodash'
+import { toUnitSystem, Quantity, getDimension } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import searchQuantities from './searchQuantities.json'
@@ -458,6 +458,7 @@ export function parseMeta(quantity, pretty = true) {
   let parser
   if (isMetaNumber(quantity)) {
     type = 'number'
+    const dimension = getDimension(quantity)
     parser = (value, units) => {
       if (isNil(value)) {
         return value
@@ -465,7 +466,14 @@ export function parseMeta(quantity, pretty = true) {
       if (isString(value)) {
         const split = value.split(' ')
         value = Number(split[0])
-        return split.length === 1 ? value : new Quantity(value, split[1])
+        if (isNaN(value)) {
+          throw Error(`Could not parse the number ${split[0]}`)
+        }
+        return split.length === 1
+          ? new Quantity(value, units?.[dimension] || 'dimensionless')
+          : new Quantity(value, split[1])
+      } if (isNumber) {
+        return new Quantity(value, units?.[dimension] || 'dimensionless')
       }
       return pretty ? formatNumber(value) : value
     }

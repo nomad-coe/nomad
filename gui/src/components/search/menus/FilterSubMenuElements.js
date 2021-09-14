@@ -26,7 +26,7 @@ import InputSlider from '../input/InputSlider'
 import {
   useFilterState,
   useAgg
-} from '../FilterContext'
+} from '../SearchContext'
 import { useUnits } from '../../../units'
 
 const useStyles = makeStyles(theme => ({

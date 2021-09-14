@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import {
   FilterMenu,
@@ -53,7 +53,7 @@ import {
   labelIDs,
   labelAccess,
   useSearchContext
-} from '../FilterContext'
+} from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
 
 /**
@@ -69,13 +69,20 @@ const FilterMainMenu = React.memo(({
   open,
   onOpenChange,
   collapsed,
-  onCollapsedChange,
-  resultType,
-  onResultTypeChange
+  onCollapsedChange
 }) => {
   const [value, setValue] = React.useState()
   const {resource} = useSearchContext()
   const styles = useStyles()
+  const [loaded, setLoaded] = useState(false)
+
+  // Rendering the submenus is delayed: this makes loading the search page more
+  // responsive. SetTimeout is required in order to force the submenu render to
+  // the next render cycle. In the future, React Concurrency Mode could help in
+  // prioritizing the rendering order.
+  useEffect(() => {
+    setTimeout(() => { setLoaded(true) }, 0)
+  }, [])
 
   return <FilterMenu
     selected={value}
@@ -111,19 +118,21 @@ const FilterMainMenu = React.memo(({
       }
     </FilterMenuItems>
     <FilterSubMenus>
-      <FilterSubMenuMaterial value={labelMaterial}/>
-      <FilterSubMenuElements value={labelElements} size="large"/>
-      <FilterSubMenuSymmetry value={labelSymmetry}/>
-      <FilterSubMenuMethod value={labelMethod}/>
-      <FilterSubMenuSimulation value={labelSimulation}/>
-      <FilterSubMenuDFT value={labelDFT}/>
-      <FilterSubMenuGW value={labelGW}/>
-      <FilterSubMenuElectronic value={labelElectronic}/>
-      <FilterSubMenuVibrational value={labelVibrational}/>
-      <FilterSubMenuAuthor value={labelAuthor}/>
-      <FilterSubMenuDataset value={labelDataset}/>
-      <FilterSubMenuAccess value={labelAccess}/>
-      <FilterSubMenuIDs value={labelIDs}/>
+      {loaded && <>
+        <FilterSubMenuMaterial value={labelMaterial}/>
+        <FilterSubMenuElements value={labelElements} size="large"/>
+        <FilterSubMenuSymmetry value={labelSymmetry}/>
+        <FilterSubMenuMethod value={labelMethod}/>
+        <FilterSubMenuSimulation value={labelSimulation}/>
+        <FilterSubMenuDFT value={labelDFT}/>
+        <FilterSubMenuGW value={labelGW}/>
+        <FilterSubMenuElectronic value={labelElectronic}/>
+        <FilterSubMenuVibrational value={labelVibrational}/>
+        <FilterSubMenuAuthor value={labelAuthor}/>
+        <FilterSubMenuDataset value={labelDataset}/>
+        <FilterSubMenuAccess value={labelAccess}/>
+        <FilterSubMenuIDs value={labelIDs}/>
+      </>}
     </FilterSubMenus>
   </FilterMenu>
 })
@@ -131,9 +140,7 @@ FilterMainMenu.propTypes = {
   open: PropTypes.bool,
   onOpenChange: PropTypes.func,
   collapsed: PropTypes.bool,
-  onCollapsedChange: PropTypes.func,
-  resultType: PropTypes.string,
-  onResultTypeChange: PropTypes.func
+  onCollapsedChange: PropTypes.func
 }
 
 export default FilterMainMenu

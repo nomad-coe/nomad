@@ -35,7 +35,7 @@ import ClearIcon from '@material-ui/icons/Clear'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import { Actions, Action } from '../../Actions'
-import { quantityGroups, useResetFilters } from '../FilterContext'
+import { filterGroups, useResetFilters } from '../SearchContext'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more
@@ -290,7 +290,7 @@ export const FilterMenuItem = React.memo(({
 }) => {
   const styles = useFilterMenuItemStyles()
   const theme = useTheme()
-  const groupFinal = group || quantityGroups.get(value)
+  const groupFinal = group || filterGroups[value]
   const { selected, open, onChange } = useContext(filterMenuContext)
   const handleClick = disableButton ? undefined : (onClick || onChange)
   const opened = open && value === selected

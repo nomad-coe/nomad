@@ -24,7 +24,7 @@ import {
 } from '@material-ui/core'
 import SearchResultsMaterials from './SearchResultsMaterials'
 import SearchResultsEntries from './SearchResultsEntries'
-import { useScrollResults, useSearchContext } from '../FilterContext'
+import { useScrollResults, useSearchContext } from '../SearchContext'
 
 /**
  * Displays the list of search results
@@ -65,7 +65,6 @@ const SearchResults = React.memo(({
   // re-render the results list only when the actual results have changed, and
   // not just when the search query changes. Has a significant effect on
   // performance.
-  // const component = resource === 'materials' ? MaterialResults : NewEntryList
   const result = useMemo(() => {
     const Component = resource === 'materials' ? SearchResultsMaterials : SearchResultsEntries
     return <Paper className={clsx(className, styles.root)}>

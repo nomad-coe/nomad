@@ -26,7 +26,7 @@ import Plot from '../visualization/Plot'
 import { add, mergeObjects } from '../../utils'
 import { Unit, toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
-import { normalizationWarning } from '../../config'
+import { msgNormalizationWarning } from '../../config'
 
 const useStyles = makeStyles({
   root: {}
@@ -46,7 +46,7 @@ const DOS = React.memo(({
 }) => {
   const energyUnit = useMemo(() => new Unit('joule'), [])
   const valueUnit = useMemo(() => new Unit('1/joule'), [])
-  const valueDisplayUnit = useMemo(() => new Unit('states/joule'), [])
+  const valueDisplayUnit = useMemo(() => new Unit('state/joule', undefined, false), [])
 
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
@@ -194,7 +194,7 @@ const DOS = React.memo(({
         layout={finalLayout}
         aspectRatio={aspectRatio}
         floatTitle="Density of states"
-        warning={normalizedToHOE === false ? normalizationWarning : null}
+        warning={normalizedToHOE === false ? msgNormalizationWarning : null}
         metaInfoLink={data?.m_path}
         data-testid={testID}
         {...other}
