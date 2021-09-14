@@ -18,6 +18,7 @@ data:
       {{ if .Values.meta.deployment }}
       deployment: "{{ .Values.meta.deployment }}"
       {{ end }}
+    reprocess_match: {{ .Values.reprocess_match }}
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     reprocess_rematch: {{ .Values.reprocess_rematch }}
     process_reuse_parser: {{ .Values.process_reuse_parser }}
