@@ -17,7 +17,7 @@
  */
 import React, { useCallback } from 'react'
 import PropTypes from 'prop-types'
-import periodicTableData from './PeriodicTableData'
+import elementData from '../../../elementData'
 import {
   Typography,
   Button,
@@ -30,7 +30,7 @@ const elements = []
 for (var i = 0; i < 10; i++) {
   elements[i] = Array.apply(null, Array(18))
 }
-periodicTableData.elements.forEach(element => {
+elementData.elements.forEach(element => {
   elements[element.ypos - 1][element.xpos - 1] = element
   element.category = element.category.replace(' ', '')
 })

@@ -20,8 +20,8 @@ import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
 import { errorContext } from './errors'
 import { useApi } from './apiV1'
-import NewSearch from './search/NewSearch'
-import { SearchContext } from './search/FilterContext'
+import Search from './search/Search'
+import { SearchContext } from './search/SearchContext'
 import { DOI } from './search/results/DatasetList'
 
 export const help = `
@@ -60,7 +60,7 @@ const UserdataPage = React.memo(({match}) => {
     resource="entries"
     filtersLocked={datasetFilter}
   >
-    <NewSearch header={
+    <Search header={
       <div className={styles.header}>
         <Typography variant="h4">
           {dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}

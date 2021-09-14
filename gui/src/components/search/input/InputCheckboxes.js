@@ -32,7 +32,7 @@ import {
   useAgg,
   useInitialAgg,
   useFilterLocked
-} from '../FilterContext'
+} from '../SearchContext'
 import { isArray } from 'lodash'
 
 const useStyles = makeStyles(theme => ({

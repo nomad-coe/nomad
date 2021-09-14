@@ -33,7 +33,7 @@ import { useApi } from '../../apiV1'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
-import { useSetFilter, useFilterLocked } from '../FilterContext'
+import { useSetFilter, useFilterLocked } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {

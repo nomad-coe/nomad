@@ -22,13 +22,13 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import FilterChip from './FilterChip'
-import { useFiltersState, useFiltersLockedState } from './FilterContext'
+import { useFiltersState, useFiltersLockedState } from './SearchContext'
 import { formatMeta } from '../../utils'
 import { useUnits } from '../../units'
 
 /**
- * Displays an interactable summary for a given subset of filters
- * (=searchQuantities).
+ * Displays a summary for the given subset of filters. Each filter value is
+ * displayed as a chip.
  */
 const useStyles = makeStyles(theme => {
   const padding = theme.spacing(2)

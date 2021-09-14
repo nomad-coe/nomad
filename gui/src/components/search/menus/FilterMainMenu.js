@@ -53,7 +53,7 @@ import {
   labelIDs,
   labelAccess,
   useSearchContext
-} from '../FilterContext'
+} from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
 
 /**

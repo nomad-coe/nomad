@@ -31,7 +31,7 @@ import InputTooltip from './InputTooltip'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked, useAgg } from '../FilterContext'
+import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 function format(value) {
   return formatNumber(value, 'float', 6, true)

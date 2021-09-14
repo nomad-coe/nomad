@@ -31,7 +31,7 @@ import FilterChip from '../FilterChip'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
-import { useFilterState, useFilterLocked, useAgg } from '../FilterContext'
+import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 // This forces the menu to have a fixed anchor instead of jumping around
 const MenuProps = {

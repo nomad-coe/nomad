@@ -22,6 +22,10 @@ import LockIcon from '@material-ui/icons/Lock'
 import { Chip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 
+/**
+ * Thin wrapper for MUI Chip that is used for displaying (and possibly removing)
+ * filter values.
+ */
 const useStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(0.5)

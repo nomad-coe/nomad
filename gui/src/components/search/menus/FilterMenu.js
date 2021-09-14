@@ -35,7 +35,7 @@ import ClearIcon from '@material-ui/icons/Clear'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import { Actions, Action } from '../../Actions'
-import { filterGroups, useResetFilters } from '../FilterContext'
+import { filterGroups, useResetFilters } from '../SearchContext'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more

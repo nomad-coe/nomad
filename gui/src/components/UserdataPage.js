@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import { withLoginRequired } from './apiV1'
-import { SearchContext } from './search/FilterContext'
-import NewSearch from './search/NewSearch'
+import { SearchContext } from './search/SearchContext'
+import Search from './search/Search'
 
 export const help = `
 This page allows you to **inspect** and **manage** you own data. It is similar to the
@@ -78,7 +78,7 @@ const UserdataPage = React.memo(() => {
     resource="entries"
     filtersLocked={filtersLocked}
   >
-    <NewSearch/>
+    <Search/>
   </SearchContext>
 })
 

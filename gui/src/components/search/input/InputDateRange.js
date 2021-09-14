@@ -27,7 +27,7 @@ import { isNil } from 'lodash'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
-import { useAgg, useFilterState, useFilterLocked } from '../FilterContext'
+import { useAgg, useFilterState, useFilterLocked } from '../SearchContext'
 import { getTime } from 'date-fns'
 import { dateFormat } from '../../../config'
 

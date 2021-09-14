@@ -26,7 +26,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked } from '../FilterContext'
+import { useFilterState, useFilterLocked } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {

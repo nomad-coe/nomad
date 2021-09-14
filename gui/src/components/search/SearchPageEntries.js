@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 import React from 'react'
-import NewSearch from './NewSearch'
-import { SearchContext } from './FilterContext'
+import Search from './Search'
+import { SearchContext } from './SearchContext'
 
 export const help = `
 This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
@@ -53,7 +53,7 @@ will show more metadata, raw files, the entry's archive, and processing logs.
 
 const SearchPageEntries = React.memo(() => {
   return <SearchContext resource="entries">
-    <NewSearch/>
+    <Search/>
   </SearchContext>
 })
 
