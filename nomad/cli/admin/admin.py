@@ -177,7 +177,6 @@ def lift_embargo(dry, parallel):
     request.quantity('upload_id', 1000)
     result = request.execute()
 
-    uploads_to_repack = []
     for upload_id in result['quantities']['upload_id']['values']:
         upload = proc.Upload.get(upload_id)
         embargo_length = upload.embargo_length
@@ -187,14 +186,7 @@ def lift_embargo(dry, parallel):
                 upload.upload_id, upload.publish_time, embargo_length))
 
             if not dry:
-                upload.set_upload_metadata_local({'embargo_length': 0})
-                uploads_to_repack.append(upload)
-
-    if not dry:
-        # TODO: When repackaging is no more needed, this can be removed, and we should use the set_upload_metadata instead of ..._local
-        __run_processing(
-            uploads_to_repack, parallel, lambda upload: upload.re_pack(), 're-packing',
-            wait_until_complete=False)
+                upload.set_upload_metadata({'embargo_length': 0})
     return
 
 

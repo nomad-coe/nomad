@@ -140,7 +140,7 @@ def assert_file_upload_and_processing(
 
             # Check that files got copied as expected
             if source_path:
-                upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+                upload_files = files.UploadFiles.get(upload_id)
                 file_name = os.path.basename(source_path)
                 if zipfile.is_zipfile(source_path):
                     with open(source_path, 'rb') as f:
@@ -946,7 +946,7 @@ def test_delete_upload_raw_path(
     if expected_status_code == 200:
         assert_processing(client, upload_id, user_auth)
         # Check that path to remove has disappeared
-        upload_files = StagingUploadFiles(upload_id, is_authorized=lambda: True)
+        upload_files = StagingUploadFiles(upload_id)
         if path == '':
             # Deleting the root folder = the folder itself should be emptied, but not deleted.
             assert not list(upload_files.raw_directory_list(''))
@@ -1221,7 +1221,7 @@ def test_post_upload_action_publish_to_central_nomad(
         else:
             archive_path = os.path.join(upload_files.os_path, 'archive')
         for file_name in os.listdir(archive_path):
-            if file_name.endswith('.msg'):
+            if file_name.endswith('.msg') and 'public' in file_name:
                 full_path = os.path.join(archive_path, file_name)
                 data = read_archive(full_path)
                 new_data = []
@@ -1345,9 +1345,6 @@ def test_delete_upload(
         'id_published_w', 'other_test_user', dict(),
         401, id='published-not-owner'),
     pytest.param(
-        'id_published_w', 'other_test_user', dict(include_protected_raw_files=False),
-        401, id='published-not-owner-exclude-protected'),
-    pytest.param(
         'id_published_w', 'test_user', dict(include_raw_files=False),
         200, id='published-owner-exclude-raw'),
     pytest.param(
@@ -1361,10 +1358,7 @@ def test_delete_upload(
         200, id='unpublished-admin'),
     pytest.param(
         'id_unpublished_w', 'other_test_user', dict(),
-        401, id='unpublished-not-owner'),
-    pytest.param(
-        'id_unpublished_w', 'test_user', dict(include_protected_raw_files=False),
-        400, id='unpublished-owner-exclude-protected')])
+        401, id='unpublished-not-owner')])
 def test_get_upload_bundle(
         client, proc_infra, example_data_writeable, test_auth_dict,
         upload_id, user, query_args, expected_status_code):
@@ -1423,8 +1417,7 @@ def test_post_upload_bundle(
     export_args_with_defaults = dict(
         export_as_stream=False, export_path=export_path,
         zipped=True, move_files=False, overwrite=True,
-        include_raw_files=True, include_protected_raw_files=True,
-        include_archive_files=True, include_datasets=True)
+        include_raw_files=True, include_archive_files=True, include_datasets=True)
     export_args_with_defaults.update(export_args)
     upload.export_bundle(**export_args_with_defaults)
     if not test_duplicate:

@@ -303,37 +303,35 @@ def with_signature_token(func):
     return wrapper
 
 
-def create_authorization_predicate(upload_id, calc_id=None):
-    '''
-    Returns a predicate that determines if the logged in user has the authorization
-    to access the given upload and calculation.
-    '''
-    def func():
-        if g.user is None:
-            # guest users don't have authorized access to anything
-            return False
-        elif g.user.is_admin:
-            # the admin user does have authorization to access everything
+def has_read_access(upload_id: str, calc_id: str = None):
+    if g.user and g.user.is_admin:
+        # the admin user does have authorization to access everything
+        return True
+
+    # look in mongo
+    try:
+        upload = processing.Upload.get(upload_id)
+
+        if upload.published and upload.embargo_length == 0:
             return True
 
-        # look in mongo
-        try:
-            upload = processing.Upload.get(upload_id)
-            if g.user.user_id == upload.user_id:
-                return True
-
-            if calc_id is not None:
-                try:
-                    calc = processing.Calc.get(calc_id)
-                except KeyError:
-                    return False
-                return g.user.user_id in calc.metadata.get('shared_with', [])
-
+        if g.user is None:
+            # guest users don't have authorized access to anything embargoed/unpublished
             return False
 
-        except KeyError as e:
-            logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)
-            logger.error('Upload files without respective db entry')
-            raise e
+        if g.user.user_id == upload.user_id:
+            return True
 
-    return func
+        if calc_id is not None:
+            try:
+                calc = processing.Calc.get(calc_id)
+            except KeyError:
+                return False
+            return g.user.user_id in calc.metadata.get('shared_with', [])
+
+        return False
+
+    except KeyError as e:
+        logger = utils.get_logger(__name__, upload_id=upload_id, calc_id=calc_id)
+        logger.error('Upload files without respective db entry')
+        raise e

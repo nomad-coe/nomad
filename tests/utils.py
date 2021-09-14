@@ -145,6 +145,38 @@ class ExampleData:
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
 
+        # Consistency checks
+        uploads_published: Dict[str, bool] = {}
+        uploads_embargo_length: Dict[str, int] = {}
+        for upload_id in set(list(self.uploads) + list(self.upload_entries)):
+            entry_ids = self.upload_entries.get(upload_id, [])
+            embargo_length = self.uploads.get(upload_id, {}).get('embargo_length')
+            # Check entries must have consistent published and with_embargo
+            entry_published_values = set()
+            entry_with_embargo_values = set()
+            for entry_id in entry_ids:
+                entry_published_values.add(self.entries[entry_id].published)
+                entry_with_embargo_values.add(self.entries[entry_id].with_embargo)
+            # Check/default published and with_embargo
+            if len(entry_ids) > 0:
+                assert len(entry_published_values) == 1, 'Inconsistent published flags'
+                assert len(entry_with_embargo_values) == 1, 'Inconsistent embargo flags'
+                published = entry_published_values.pop()
+                with_embargo = entry_with_embargo_values.pop()
+                if upload_id in self.uploads:
+                    assert embargo_length is not None, 'No embargo provided on upload'
+                    assert (embargo_length > 0) == with_embargo, 'Inconsistent embargo'
+                else:
+                    # No uploads created. Just generate it
+                    embargo_length = 36 if with_embargo else 0
+            else:
+                published = False
+                if embargo_length is None:
+                    embargo_length = 0
+            uploads_published[upload_id] = published
+            uploads_embargo_length[upload_id] = embargo_length
+
+        # Save
         if with_mongo:
             for upload_id, upload_dict in self.uploads.items():
                 mongo_upload = proc.Upload(**upload_dict)
@@ -173,16 +205,14 @@ class ExampleData:
         if with_files:
             for upload_id in set(list(self.uploads) + list(self.upload_entries)):
                 entry_ids = self.upload_entries.get(upload_id, [])
-                published = self.uploads.get(upload_id, {}).get('published', True)
-                if len(entry_ids) > 0:
-                    published = True
                 archives = []
                 for entry_id in entry_ids:
-                    published &= self.entries[entry_id].published
                     if entry_id in self.archives:
                         archives.append(self.archives[entry_id])
 
-                create_test_upload_files(upload_id, archives, published=published)
+                create_test_upload_files(
+                    upload_id, archives, published=uploads_published[upload_id],
+                    embargo_length=uploads_embargo_length[upload_id])
                 from nomad import files
                 assert files.UploadFiles.get(upload_id) is not None
 

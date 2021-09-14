@@ -36,7 +36,6 @@ from functools import wraps
 
 from nomad import config, datamodel, utils
 from nomad.app.optimade import filterparser
-from nomad.files import Restricted
 from nomad.search import v0 as search
 
 from ..common import rfc3339DateTime
@@ -337,10 +336,6 @@ def streamed_zipfile(
                         f.close()
                 except KeyError:
                     # files that are not found, will not be returned
-                    pass
-                except Restricted:
-                    # due to the streaming nature, we cannot raise 401 here
-                    # we just leave it out in the download
                     pass
                 except Exception as e:
                     utils.get_logger('__name__').error(

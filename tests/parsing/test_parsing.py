@@ -189,7 +189,7 @@ def with_latin_1_file(raw_files):
 
 def test_match(raw_files, with_latin_1_file, no_warn):
     example_upload_id = 'example_upload_id'
-    upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
+    upload_files = files.StagingUploadFiles(example_upload_id, create=True)
     upload_files.add_rawfiles('tests/data/parsers')
 
     matched_mainfiles = {}

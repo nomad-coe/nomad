@@ -574,7 +574,7 @@ async def get_upload_raw_path(
     upload = _get_upload_with_read_access(upload_id, user)
     _check_upload_not_processing(upload)
     # Get upload files
-    upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    upload_files = UploadFiles.get(upload_id)
     try:
         if not upload_files.raw_path_exists(path):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
@@ -584,8 +584,9 @@ async def get_upload_raw_path(
             if files_params.compress:
                 media_type = 'application/zip'
                 download_item = DownloadItem(
-                    upload_id=upload_id, is_authorized=True,
-                    raw_path=path, zip_path=os.path.basename(path))
+                    upload_id=upload_id,
+                    raw_path=path,
+                    zip_path=os.path.basename(path))
                 content = create_download_stream_zipped(
                     download_item, upload_files, compress=True)
             else:
@@ -605,7 +606,7 @@ async def get_upload_raw_path(
             if files_params.compress:
                 # Stream directory content, compressed.
                 download_item = DownloadItem(
-                    upload_id=upload_id, is_authorized=True, raw_path=path, zip_path='')
+                    upload_id=upload_id, raw_path=path, zip_path='')
                 content = create_download_stream_zipped(
                     download_item, upload_files,
                     re_pattern=files_params.re_pattern, recursive=True,
@@ -761,7 +762,7 @@ async def delete_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
-    upload_files = StagingUploadFiles(upload_id, is_authorized=lambda: True)
+    upload_files = StagingUploadFiles(upload_id)
 
     if not upload_files.raw_path_exists(path):
         raise HTTPException(
@@ -867,7 +868,7 @@ async def post_upload(
         publish_directly=publish_directly)
 
     # Create staging files
-    files.StagingUploadFiles(upload_id=upload_id, is_authorized=lambda: True, create=True)
+    files.StagingUploadFiles(upload_id=upload_id, create=True)
 
     logger.info('upload created', upload_id=upload_id)
 
@@ -1085,11 +1086,6 @@ async def get_upload_bundle(
             True,
             description=strip('''
                 If raw files should be included in the bundle (true by default).''')),
-        include_protected_raw_files: Optional[bool] = FastApiQuery(
-            True,
-            description=strip('''
-                If protected raw files (like POTCAR files) should be included in the bundle
-                (true by default).''')),
         include_archive_files: Optional[bool] = FastApiQuery(
             True,
             description=strip('''
@@ -1106,18 +1102,13 @@ async def get_upload_bundle(
     can be used to export and import uploads between different NOMAD deployments.
     '''
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
-    full_access = user and (user.is_admin or upload.user_id == str(user.user_id))
     _check_upload_not_processing(upload)
-    if include_protected_raw_files and not full_access:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            You do not have access to protected raw files for this upload - cannot have
-            `include_protected_raw_files` set to true.'''))
 
     try:
         stream = upload.export_bundle(
             export_as_stream=True, export_path=None, zipped=True, move_files=False, overwrite=False,
-            include_raw_files=include_raw_files, include_protected_raw_files=include_protected_raw_files,
-            include_archive_files=include_archive_files, include_datasets=include_datasets)
+            include_raw_files=include_raw_files, include_archive_files=include_archive_files,
+            include_datasets=include_datasets)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
             Could not export due to error: ''' + str(e)))

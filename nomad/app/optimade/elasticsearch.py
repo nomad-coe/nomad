@@ -173,7 +173,7 @@ class StructureCollection(EntryCollection):
         upload_files = upload_files_cache.get(upload_id)
 
         if upload_files is None:
-            upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
+            upload_files = files.UploadFiles.get(upload_id)
             if upload_files is None:
                 logger.error('missing upload', upload_id=upload_id)
                 return None

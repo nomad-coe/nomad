@@ -80,7 +80,6 @@ def parameter_dependency_from_model(name: str, model_cls):
 class DownloadItem(BaseModel):
     ''' Defines an object (file or folder) for download. '''
     upload_id: str
-    is_authorized: bool
     raw_path: str
     zip_path: str
     entry_metadata: Optional[Dict[str, Any]]
@@ -119,9 +118,7 @@ def create_download_stream_zipped(
                     upload_files = None
                 if not upload_files:
                     # Open the requested upload.
-                    upload_files = UploadFiles.get(
-                        download_item.upload_id,
-                        is_authorized=lambda *args, **kwargs: download_item.is_authorized)
+                    upload_files = UploadFiles.get(download_item.upload_id)
 
                 all_filtered = True
                 files_found = False

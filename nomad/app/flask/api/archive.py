@@ -28,7 +28,7 @@ from flask_restplus import abort, Resource, fields
 import orjson
 import urllib.parse
 
-from nomad.files import UploadFiles, Restricted
+from nomad.files import UploadFiles
 from nomad.archive import (
     query_archive, ArchiveQueryError, filter_archive, read_partial_archives_from_mongo,
     compute_required_with_referenced)
@@ -36,7 +36,7 @@ from nomad import config
 from nomad.search import v0 as search
 
 from .. import common
-from .auth import authenticate, create_authorization_predicate
+from .auth import authenticate, has_read_access
 from .api import api
 from .common import calc_route, streamed_zipfile, search_model, add_search_parameters,\
     apply_search_parameters
@@ -62,18 +62,17 @@ class ArchiveCalcLogResource(Resource):
         '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
-        upload_files = UploadFiles.get(
-            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+        upload_files = UploadFiles.get(upload_id)
 
         if upload_files is None:
             abort(404, message='Upload %s does not exist.' % upload_id)
+        if not has_read_access(upload_id, calc_id):
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         try:
             with upload_files.read_archive(calc_id) as archive:
                 return [entry.to_dict() for entry in archive[calc_id]['processing_logs']]
 
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
             abort(404, message='Calculation %s does not exist.' % archive_id)
 
@@ -93,11 +92,12 @@ class ArchiveCalcResource(Resource):
         '''
         archive_id = '%s/%s' % (upload_id, calc_id)
 
-        upload_files = UploadFiles.get(
-            upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+        upload_files = UploadFiles.get(upload_id)
 
         if upload_files is None:
             abort(404, message='Archive %s does not exist.' % upload_id)
+        if not has_read_access(upload_id, calc_id):
+            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
 
         try:
             with upload_files.read_archive(calc_id) as archive:
@@ -106,8 +106,6 @@ class ArchiveCalcResource(Resource):
                     for key, value in archive[calc_id].to_dict().items()
                     if key != 'processing_logs'}
 
-        except Restricted:
-            abort(401, message='Not authorized to access %s/%s.' % (upload_id, calc_id))
         except KeyError:
             abort(404, message='Calculation %s does not exist.' % archive_id)
 
@@ -176,15 +174,13 @@ class ArchiveDownloadResource(Resource):
                         if upload_files is not None:
                             upload_files.close()
 
-                        upload_files = UploadFiles.get(
-                            upload_id, create_authorization_predicate(upload_id))
+                        upload_files = UploadFiles.get(upload_id)
 
                         if upload_files is None:
                             common.logger.error('upload files do not exist', upload_id=upload_id)
                             continue
 
-                    upload_files._is_authorized = create_authorization_predicate(
-                        upload_id=upload_id, calc_id=calc_id)
+                    assert has_read_access(upload_id, calc_id)
                     with upload_files.read_archive(calc_id) as archive:
                         f = BytesIO(orjson.dumps(
                             archive[calc_id].to_dict(),
@@ -313,8 +309,6 @@ class ArchiveQueryResource(Resource):
             required = required_with_references
 
         for entry in calcs:
-            with_embargo = entry['with_embargo']
-
             upload_id = entry['upload_id']
             calc_id = entry['calc_id']
 
@@ -322,8 +316,7 @@ class ArchiveQueryResource(Resource):
                 if upload_files is not None:
                     upload_files.close()
 
-                upload_files = UploadFiles.get(
-                    upload_id, create_authorization_predicate(upload_id))
+                upload_files = UploadFiles.get(upload_id)
 
                 if upload_files is None:
                     return []
@@ -358,15 +351,13 @@ class ArchiveQueryResource(Resource):
                     common.logger.error(
                         str(e), upload_id=upload_id, calc_id=calc_id, exc_info=e)
 
-            if with_embargo:
-                access = 'restricted'
-                upload_files._is_authorized = create_authorization_predicate(
-                    upload_id=upload_id, calc_id=calc_id)
-            else:
-                access = 'public'
-
+            if not has_read_access(upload_id, calc_id):
+                # this should not happen
+                common.logger.error(
+                    'supposedly unreachable code', upload_id=upload_id, calc_id=calc_id)
+                abort(401, f'No read access to upload {upload_id}')
             try:
-                with upload_files.read_archive(calc_id, access) as archive:
+                with upload_files.read_archive(calc_id) as archive:
                     data.append({
                         'calc_id': calc_id,
                         'parser_name': entry['parser_name'],
@@ -379,10 +370,6 @@ class ArchiveQueryResource(Resource):
                     abort(404, 'Archive for entry %s does not exist' % calc_id)
                 # We simply skip this entry
                 pass
-            except Restricted:
-                # this should not happen
-                common.logger.error(
-                    'supposedly unreachable code', upload_id=upload_id, calc_id=calc_id)
             except Exception as e:
                 if raise_errors:
                     raise e

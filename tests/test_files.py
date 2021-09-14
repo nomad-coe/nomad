@@ -26,14 +26,15 @@ import zipfile
 import re
 
 from nomad import config, datamodel, utils
-from nomad.files import DirectoryObject, PathObject
-from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles, Restricted
+from nomad.files import DirectoryObject, PathObject, empty_zip_file_size, empty_archive_file_size
+from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles
+from nomad.processing import Upload
 
 
 CalcWithFiles = Tuple[datamodel.EntryMetadata, str]
-UploadWithFiles = Tuple[str, Iterable[datamodel.EntryMetadata], UploadFiles]
-StagingUploadWithFiles = Tuple[str, Iterable[datamodel.EntryMetadata], StagingUploadFiles]
-PublicUploadWithFiles = Tuple[str, Iterable[datamodel.EntryMetadata], PublicUploadFiles]
+UploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], UploadFiles]
+StagingUploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], StagingUploadFiles]
+PublicUploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], PublicUploadFiles]
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
@@ -206,27 +207,15 @@ class UploadFilesContract(UploadFilesFixtures):
     def test_rawfile(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
         for calc in entries:
-            try:
-                for file_path in calc.files:
-                    with upload_files.raw_file(file_path) as f:
-                        assert len(f.read()) > 0
-                    if not upload_files._is_authorized():
-                        assert not calc.with_embargo
-            except Restricted:
-                assert not upload_files._is_authorized()
-                assert calc.with_embargo
+            for file_path in calc.files:
+                with upload_files.raw_file(file_path) as f:
+                    assert len(f.read()) > 0
 
     def test_rawfile_size(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
         for calc in entries:
-            try:
-                for file_path in calc.files:
-                    assert upload_files.raw_file_size(file_path) > 0
-                    if not upload_files._is_authorized():
-                        assert not calc.with_embargo
-            except Restricted:
-                assert not upload_files._is_authorized()
-                assert calc.with_embargo
+            for file_path in calc.files:
+                assert upload_files.raw_file_size(file_path) > 0
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
     def test_raw_directory_list_prefix(self, test_upload: UploadWithFiles, prefix: str):
@@ -241,7 +230,7 @@ class UploadFilesContract(UploadFilesFixtures):
         raw_files = list(upload_files.raw_directory_list(path, files_only=True))
         if path is None:
             assert len(raw_files) == 0
-        elif upload_files._is_authorized() or len(raw_files) > 0:
+        else:
             assert '1.aux' in list(os.path.basename(path_info.path) for path_info in raw_files)
             for path_info in raw_files:
                 if path_info.path.endswith('.aux'):
@@ -252,25 +241,13 @@ class UploadFilesContract(UploadFilesFixtures):
 
     @pytest.mark.parametrize('with_access', [False, True])
     def test_read_archive(self, test_upload: UploadWithFiles, with_access: str):
-        _, entries, upload_files = test_upload
-        calcs_dict = {entry.calc_id: entry for entry in entries}
+        _, _, upload_files = test_upload
 
-        access = None
-        if with_access:
-            access = 'restricted' if calcs_dict.get(example_calc_id).with_embargo else 'public'
-
-        try:
-            with upload_files.read_archive(example_calc_id, access=access) as archive:
-                assert archive[example_calc_id].to_dict() == example_archive_contents
-
-            if not upload_files._is_authorized():
-                assert not calcs_dict.get(example_calc_id).with_embargo
-        except Restricted:
-            assert not upload_files._is_authorized()
-            assert calcs_dict.get(example_calc_id).with_embargo
+        with upload_files.read_archive(example_calc_id) as archive:
+            assert archive[example_calc_id].to_dict() == example_archive_contents
 
 
-def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithFiles:
+def create_staging_upload(upload_id: str, calc_specs: str, embargo_length: int = 0) -> StagingUploadWithFiles:
     '''
     Create an upload according to given spec. Additional arguments are given to
     the StagingUploadFiles contstructor.
@@ -283,14 +260,14 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithF
             First calc is at top level, following calcs will be put under 1/, 2/, etc.
             All calcs with capital `P`/`R` will be put in the same directory under multi/.
     '''
-    upload_files = StagingUploadFiles(upload_id, create=True, is_authorized=lambda: True)
+    upload_files = StagingUploadFiles(upload_id, create=True)
     calcs = []
 
     prefix = 0
     for calc_spec in calc_specs:
         is_multi = calc_spec in ['R', 'P']
         calc_spec = calc_spec.lower()
-
+        assert (calc_spec == 'r') == (embargo_length > 0)
         if is_multi or prefix == 0:
             directory = 'examples_template'
         else:
@@ -298,7 +275,7 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithF
 
         calc, calc_file = generate_example_calc(
             prefix, with_mainfile_prefix=is_multi, subdirectory=directory,
-            with_embargo=calc_spec == 'r')
+            with_embargo=embargo_length > 0)
 
         upload_files.add_rawfiles(calc_file)
         upload_files.write_archive(calc.calc_id, example_archive_contents)
@@ -312,17 +289,18 @@ def create_staging_upload(upload_id: str, calc_specs: str) -> StagingUploadWithF
 
 class TestStagingUploadFiles(UploadFilesContract):
 
-    @pytest.fixture(scope='function', params=['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'])
+    @pytest.fixture(scope='function', params=['r', 'rr', 'p', 'pp', 'RR', 'PP'])
     def test_upload(self, request, test_upload_id: str) -> StagingUploadWithFiles:
-        return create_staging_upload(test_upload_id, calc_specs=request.param)
+        embargo_length = 12 if 'r' in request.param.lower() else 0
+        return create_staging_upload(test_upload_id, calc_specs=request.param, embargo_length=embargo_length)
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> UploadFiles:
-        return StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
+        return StagingUploadFiles(test_upload_id, create=True)
 
     @pytest.mark.parametrize('target_dir', ['', 'subdir'])
     def test_add_rawfiles_zip(self, test_upload_id, target_dir):
-        test_upload = StagingUploadFiles(test_upload_id, create=True, is_authorized=lambda: True)
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
         test_upload.add_rawfiles(example_file, target_dir=target_dir)
         for filepath in example_file_contents:
             filepath = os.path.join(target_dir, filepath) if target_dir else filepath
@@ -333,7 +311,28 @@ class TestStagingUploadFiles(UploadFilesContract):
 
     def test_pack(self, test_upload: StagingUploadWithFiles):
         _, entries, upload_files = test_upload
-        upload_files.pack(entries)
+        upload_files.pack(entries, with_embargo=entries[0].with_embargo)
+
+    @pytest.mark.parametrize('calc_specs', ['r', 'p'])
+    def test_pack_potcar(self, calc_specs):
+        embargo_length = 12 if 'r' in calc_specs.lower() else 0
+        upload_id, entries, upload_files = create_staging_upload(
+            'test_potcar', calc_specs=calc_specs, embargo_length=embargo_length)
+        # Add potcar files: one stripped and one unstripped
+        filenames = ('POTCAR', 'POTCAR.stripped')
+        for filename in filenames:
+            with open(os.path.join(upload_files.os_path, 'raw', 'examples_template', filename), 'w') as f:
+                f.write('some content')
+        upload_files.pack(entries, with_embargo=embargo_length > 0)
+        upload_files.delete()
+        upload_files = PublicUploadFiles(upload_id)
+        for filename in filenames:
+            try:
+                pf = upload_files.raw_file('examples_template/' + filename)
+                pf.read()
+                assert filename.endswith('.stripped'), 'Non-stripped POTCAR file could be read'
+            except KeyError:
+                assert not filename.endswith('.stripped'), 'Only non-stripped file should be removed'
 
     @pytest.mark.parametrize('with_mainfile', [True, False])
     def test_calc_files(self, test_upload: StagingUploadWithFiles, with_mainfile):
@@ -349,8 +348,7 @@ class TestStagingUploadFiles(UploadFilesContract):
         assert not upload_files.exists()
 
     def test_add_rawfiles(self, test_upload_id):
-        test_upload = StagingUploadFiles(
-            test_upload_id, create=True)
+        test_upload = StagingUploadFiles(test_upload_id, create=True)
         assert test_upload.is_empty()
         test_upload.add_rawfiles(example_file)
         path_infos = test_upload.raw_directory_list(recursive=True, files_only=True)
@@ -381,12 +379,18 @@ class TestStagingUploadFiles(UploadFilesContract):
 
 
 def create_public_upload(
-        upload_id: str, calc_specs: str, **kwargs) -> PublicUploadWithFiles:
+        upload_id: str, calc_specs: str, embargo_length: int = 0, with_upload: bool = True) -> PublicUploadWithFiles:
 
-    _, entries, upload_files = create_staging_upload(upload_id, calc_specs)
-    upload_files.pack(entries)
+    _, entries, upload_files = create_staging_upload(upload_id, calc_specs, embargo_length)
+
+    upload_files.pack(entries, with_embargo=(embargo_length > 0))
     upload_files.delete()
-    return upload_id, entries, PublicUploadFiles(upload_id, **kwargs)
+    if with_upload:
+        upload = Upload.get(upload_id)
+        upload.published = True
+        assert upload.embargo_length == embargo_length, 'Wrong embargo_length provided'
+        upload.save()
+    return upload_id, entries, PublicUploadFiles(upload_id)
 
 
 class TestPublicUploadFiles(UploadFilesContract):
@@ -394,35 +398,38 @@ class TestPublicUploadFiles(UploadFilesContract):
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id: str) -> UploadFiles:
         _, _, upload_files = create_public_upload(
-            test_upload_id, calc_specs='', is_authorized=lambda: True)
+            test_upload_id, calc_specs='', with_upload=False)
 
         return upload_files
 
     @pytest.fixture(scope='function', params=itertools.product(
-        ['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'], [True, False], [True, False]))
+        ['r', 'rr', 'p', 'pp', 'RR', 'PP'], [True, False]))
     def test_upload(self, request, test_upload_id: str) -> PublicUploadWithFiles:
-        calc_specs, protected, public_and_restricted = request.param
-        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs=calc_specs)
-        upload_files.pack(entries)
+        calc_specs, both_accesses = request.param
+        embargo_length = 12 if 'r' in calc_specs.lower() else 0
+        _, entries, upload_files = create_staging_upload(
+            test_upload_id, calc_specs=calc_specs, embargo_length=embargo_length)
+        upload_files.pack(entries, with_embargo=embargo_length > 0)
         upload_files.delete()
-
-        if not public_and_restricted:
-            public_upload_files = PublicUploadFiles(test_upload_id)
-
-            for access in ['public', 'restricted']:
-                file_object = public_upload_files.raw_file_object(access)
-                if file_object.exists() and file_object.size <= 22:
-                    file_object.delete()
-
-            for access in ['public', 'restricted']:
-                file_object = public_upload_files.msg_file_object(access)
-                if file_object.exists() and file_object.size <= 32:
-                    file_object.delete()
-
-        return test_upload_id, entries, PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
+        public_upload_files = PublicUploadFiles(test_upload_id)
+        if both_accesses:
+            # Artificially create an empty archive files and raw zip file with the opposite access
+            # TODO: This should only be needed for an interim period
+            other_access = 'public' if embargo_length else 'restricted'
+            other_raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(
+                public_upload_files, other_access)
+            other_msg_file_object = PublicUploadFiles._create_msg_file_object(
+                public_upload_files, other_access)
+            # Fill them with dummy content (we should never try to open them)
+            with open(other_raw_zip_file_object.os_path, mode='wb') as f:
+                f.write(b'-' * empty_zip_file_size)
+            with open(other_msg_file_object.os_path, mode='wb') as f:
+                f.write(b'-' * empty_archive_file_size)
+        return test_upload_id, entries, PublicUploadFiles(test_upload_id)
 
     def test_to_staging_upload_files(self, test_upload):
         _, entries, upload_files = test_upload
+        access = upload_files.access
         assert upload_files.to_staging_upload_files() is None
         staging_upload_files = upload_files.to_staging_upload_files(create=True)
         assert staging_upload_files is not None
@@ -436,20 +443,28 @@ class TestPublicUploadFiles(UploadFilesContract):
 
         # We override the public files before packing to see what packing does to the files
         for f in all_files:
-            with open(f, 'wt') as fh:
-                fh.write('')
+            with open(f, 'wb') as fh:
+                if access in os.path.basename(f):
+                    fh.write(b'-' * 50)
+                else:
+                    fh.write(b'')
 
-        staging_upload_files.pack(entries, create=False, include_raw=False)
+        staging_upload_files.pack(entries, with_embargo=entries[0].with_embargo, create=False, include_raw=False)
         staging_upload_files.delete()
 
-        # We do a very simple check. We made all files empty, those that are rezipped
-        # by pack, should not be empty anymore.
-        new_sizes = list(os.path.getsize(f) for f in all_files)
-        for file_name, new in zip(all_files, new_sizes):
-            if 'archive' in file_name:
-                assert new > 0, file_name
+        # We do a very simple check. Files that are expected to be modified by pack
+        # should have a different size, and files that have been removed should have the wrong access.
+        for file_name in all_files:
+            if not os.path.exists(file_name):
+                assert access not in os.path.basename(file_name)
+            elif access in os.path.basename(file_name):
+                if 'archive' in file_name:
+                    assert os.path.getsize(file_name) > 100, 'Archive files should have been packed'
+                else:
+                    assert os.path.getsize(file_name) == 50, 'Raw file should not have been changed'
             else:
-                assert new == 0, file_name
+                # other access
+                assert os.path.getsize(file_name) <= empty_archive_file_size, 'Files with other access should be empty'
 
         assert upload_files.to_staging_upload_files() is None
 
@@ -457,27 +472,25 @@ class TestPublicUploadFiles(UploadFilesContract):
         upload_id, entries, upload_files = test_upload
         for calc in entries:
             calc.with_embargo = False
-        upload_files.re_pack(entries)
+        upload_files.re_pack(with_embargo=False)
         assert_upload_files(upload_id, entries, PublicUploadFiles, with_embargo=False)
-        assert len(os.listdir(upload_files.os_path)) == 4
+        assert upload_files.access == 'public'
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 
     def test_archive_version_suffix(self, monkeypatch, test_upload_id):
         monkeypatch.setattr('nomad.config.fs.archive_version_suffix', 'test_suffix')
-        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs='rp')
-        upload_files.pack(entries)
+        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs='p')
+        upload_files.pack(entries, with_embargo=False)
         upload_files.delete()
 
-        public_upload_files = PublicUploadFiles(test_upload_id, is_authorized=lambda: False)
+        public_upload_files = PublicUploadFiles(test_upload_id)
 
         assert os.path.exists(public_upload_files.join_file('raw-public.plain.zip').os_path)
-        assert os.path.exists(public_upload_files.join_file('raw-restricted.plain.zip').os_path)
         assert not os.path.exists(public_upload_files.join_file('raw-public-test_suffix.plain.zip').os_path)
         assert not os.path.exists(public_upload_files.join_file('raw-restricted-test_suffix.plain.zip').os_path)
         assert os.path.exists(public_upload_files.join_file('archive-public-test_suffix.msg.msg').os_path)
-        assert os.path.exists(public_upload_files.join_file('archive-restricted-test_suffix.msg.msg').os_path)
-        assert not os.path.exists(public_upload_files.join_file('archive-public-test.msg.msg').os_path)
+        assert not os.path.exists(public_upload_files.join_file('archive-public.msg.msg').os_path)
         assert not os.path.exists(public_upload_files.join_file('archive-restricted.msg.msg').os_path)
 
         assert_upload_files(test_upload_id, entries, PublicUploadFiles)
@@ -495,26 +508,21 @@ def assert_upload_files(
         n_calcs: The number of expected calcs in the upload
         **kwargs: Key, value pairs that each calc metadata should have
     '''
-    upload_files = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    upload_files = UploadFiles.get(upload_id)
     assert upload_files is not None
     assert isinstance(upload_files, cls)
 
     upload_files = UploadFiles.get(upload_id)
     for calc in entries:
+        with upload_files.raw_file(calc.mainfile, 'rb') as f:
+            f.read()
+
         try:
-            with upload_files.raw_file(calc.mainfile) as f:
-                f.read()
+            archive = upload_files.read_archive(calc.calc_id)
+            assert calc.calc_id in archive
 
-            try:
-                archive = upload_files.read_archive(calc.calc_id)
-                assert calc.calc_id in archive
-
-            except KeyError:
-                assert no_archive
-
-            assert not calc.with_embargo and isinstance(upload_files, PublicUploadFiles)
-        except Restricted:
-            assert calc.with_embargo or isinstance(upload_files, StagingUploadFiles)
+        except KeyError:
+            assert no_archive
 
     upload_files.close()
 
@@ -523,6 +531,7 @@ def create_test_upload_files(
         upload_id: str,
         archives: List[datamodel.EntryArchive],
         published: bool = True,
+        embargo_length: int = 0,
         template_files: str = example_file,
         template_mainfile: str = example_file_mainfile) -> UploadFiles:
     '''
@@ -537,6 +546,7 @@ def create_test_upload_files(
         published: Creates a :class:`PublicUploadFiles` object with published files
             instead of a :class:`StagingUploadFiles` object with staging files. Default
             is published.
+        embargo_length: The embargo length
         template_files: A zip file with example files in it. One directory will be used
             as a template. It will be copied for each given archive.
         template_mainfile: Path of the template mainfile within the given template_files.
@@ -573,7 +583,7 @@ def create_test_upload_files(
     shutil.rmtree(source)
 
     if published:
-        upload_files.pack([archive.metadata for archive in archives])
+        upload_files.pack([archive.metadata for archive in archives], with_embargo=embargo_length > 0)
         upload_files.delete()
         return UploadFiles.get(upload_id)
 
@@ -581,14 +591,17 @@ def create_test_upload_files(
 
 
 def append_raw_files(upload_id: str, path_source: str, path_in_upload: str):
-    ''' Used to append published zip files, for testing purposes. '''
+    '''
+    Used to append files to the raw files of an upload (published or not), for
+    testing purposes.
+    '''
     upload_files = UploadFiles.get(upload_id)
     if isinstance(upload_files, PublicUploadFiles):
-        zip_path = upload_files.raw_file_object('public').os_path  # type: ignore
+        zip_path = upload_files.raw_zip_file_object().os_path  # type: ignore
         with zipfile.ZipFile(zip_path, 'a') as zf:
             zf.write(path_source, path_in_upload)
     else:
-        path = upload_files.raw_file_object('public').os_path  # type: ignore
+        path = upload_files._raw_dir.os_path  # type: ignore
         shutil.copy(path_source, os.path.join(path, path_in_upload))
 
 
@@ -602,7 +615,7 @@ def test_test_upload_files(raw_files_infra):
         metadata.mainfile = 'test/test/calc_%d/mainfile_%d.json' % (index, index)
         archives.append(archive)
 
-    upload_files = create_test_upload_files(upload_id, archives)
+    upload_files = create_test_upload_files(upload_id, archives, embargo_length=0)
 
     try:
         assert_upload_files(

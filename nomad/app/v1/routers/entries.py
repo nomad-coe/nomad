@@ -388,8 +388,7 @@ class _Uploads():
             self._upload_files.close()
 
         if self._upload_files is None or self._upload_files.upload_id != upload_id:
-            self._upload_files = files.UploadFiles.get(
-                upload_id, is_authorized=lambda *args, **kwargs: True)
+            self._upload_files = files.UploadFiles.get(upload_id)
 
         return self._upload_files
 
@@ -477,7 +476,6 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
                 mainfile_dir = os.path.dirname(mainfile)
                 yield DownloadItem(
                     upload_id=upload_id,
-                    is_authorized=True,
                     raw_path=mainfile_dir,
                     zip_path=os.path.join(upload_id, mainfile_dir),
                     entry_metadata=entry_metadata)
@@ -948,7 +946,7 @@ async def get_entry_raw_download_file(
     entry_metadata = response.data[0]
     upload_id, mainfile = entry_metadata['upload_id'], entry_metadata['mainfile']
     # The user is allowed to access all files, because the entry is in the "visible" scope
-    upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda *args, **kwargs: True)
+    upload_files = files.UploadFiles.get(upload_id)
 
     entry_path = os.path.dirname(mainfile)
     path = os.path.join(entry_path, path)

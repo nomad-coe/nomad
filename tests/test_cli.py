@@ -107,15 +107,13 @@ class TestAdmin:
         assert published.upload_files.exists()
         assert calc.metadata['with_embargo']
         assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
-        with pytest.raises(Exception):
-            with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id):
-                pass
 
         result = click.testing.CliRunner().invoke(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
             catch_exceptions=False)
 
         assert result.exit_code == 0
+        published.block_until_complete()
         assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
         assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
         if lifted:

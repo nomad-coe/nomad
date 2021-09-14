@@ -359,6 +359,7 @@ class Proc(Document):
         Should be used with care as it can block indefinitely. Just intended for testing
         purposes.
         '''
+        self.reload()
         while self.process_running:
             time.sleep(interval)
             self.reload()

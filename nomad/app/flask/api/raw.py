@@ -32,12 +32,12 @@ import urllib.parse
 
 from nomad import utils, config
 from nomad.search import v0 as search
-from nomad.files import UploadFiles, Restricted
+from nomad.files import UploadFiles
 from nomad.processing import Calc
 
 from .. import common
 from .api import api
-from .auth import authenticate, create_authorization_predicate
+from .auth import authenticate, has_read_access
 from .common import streamed_zipfile, add_search_parameters, apply_search_parameters,\
     search_model
 
@@ -113,11 +113,13 @@ class FileView:
 
 
 def get_raw_file_from_upload_path(
-        upload_files, upload_filepath, authorization_predicate, mainfile: str = None):
+        upload_files, upload_filepath, mainfile: str = None):
     '''
     Helper method used by func:`RawFileFromUploadPathResource.get` and
     func:`RawFileFromCalcPathResource.get`.
     '''
+    if not has_read_access(upload_files.upload_id):
+        abort(401, f'No read access to upload {upload_files.upload_id}')
     upload_filepath = upload_filepath.rstrip('/')
 
     if upload_filepath[-1:] == '*':
@@ -173,8 +175,6 @@ def get_raw_file_from_upload_path(
             as_attachment=True,
             cache_timeout=0,
             attachment_filename=os.path.basename(upload_filepath))
-    except Restricted:
-        abort(401, message='Not authorized to access all files in %s.' % upload_files.upload_id)
     except KeyError:
         directory_files = list(upload_files.raw_directory_list(upload_filepath, files_only=True))
         if len(directory_files) == 0:
@@ -236,18 +236,11 @@ class RawFileFromUploadPathResource(Resource):
 
         upload_filepath = path
 
-        # TODO find a better way to all access to certain files
-        if os.path.basename(path).endswith('.png'):
-            def authorization_predicate(*args, **kwargs):
-                return True
-        else:
-            authorization_predicate = create_authorization_predicate(upload_id)
-
-        upload_files = UploadFiles.get(upload_id, authorization_predicate)
+        upload_files = UploadFiles.get(upload_id)
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 
-        return get_raw_file_from_upload_path(upload_files, upload_filepath, authorization_predicate)
+        return get_raw_file_from_upload_path(upload_files, upload_filepath)
 
 
 @ns.route('/calc/<string:upload_id>/<string:calc_id>/<path:path>')
@@ -278,8 +271,7 @@ class RawFileFromCalcPathResource(Resource):
             path = urllib.parse.unquote(path)
 
         calc_filepath = path if path is not None else ''
-        authorization_predicate = create_authorization_predicate(upload_id, calc_id=calc_id)
-        upload_files = UploadFiles.get(upload_id, authorization_predicate)
+        upload_files = UploadFiles.get(upload_id)
         if upload_files is None:
             abort(404, message='The upload with id %s does not exist.' % upload_id)
 
@@ -293,7 +285,7 @@ class RawFileFromCalcPathResource(Resource):
 
         upload_filepath = os.path.join(os.path.dirname(calc.mainfile), calc_filepath)
         return get_raw_file_from_upload_path(
-            upload_files, upload_filepath, authorization_predicate,
+            upload_files, upload_filepath,
             mainfile=os.path.basename(calc.mainfile))
 
 
@@ -541,23 +533,22 @@ def respond_to_raw_files_query(search_request, args, logger):
                     def open_file(upload_filename):
                         return upload_files.raw_file(upload_filename, 'rb')
 
-                upload_files._is_authorized = create_authorization_predicate(
-                    upload_id=upload_id, calc_id=entry['calc_id'])
                 directory = os.path.dirname(mainfile)
                 directory_w_upload = os.path.join(upload_files.upload_id, directory)
                 if directory_w_upload not in directories:
                     streamed += 1
                     directories.add(directory_w_upload)
-                    for path_info in upload_files.raw_directory_list(directory, files_only=True):
-                        filename = path_info.path
-                        filename_w_upload = os.path.join(upload_files.upload_id, filename)
-                        filename_wo_prefix = filename_w_upload[common_prefix_len:]
-                        if len(patterns) == 0 or any(
-                                fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
-                                for pattern in patterns):
-                            yield (
-                                filename_wo_prefix, filename, manifest, open_file,
-                                lambda *args, **kwargs: path_info.size)
+                    if has_read_access(upload_id, entry['calc_id']):
+                        for path_info in upload_files.raw_directory_list(directory, files_only=True):
+                            filename = path_info.path
+                            filename_w_upload = os.path.join(upload_files.upload_id, filename)
+                            filename_wo_prefix = filename_w_upload[common_prefix_len:]
+                            if len(patterns) == 0 or any(
+                                    fnmatch.fnmatchcase(os.path.basename(filename_wo_prefix), pattern)
+                                    for pattern in patterns):
+                                yield (
+                                    filename_wo_prefix, filename, manifest, open_file,
+                                    lambda *args, **kwargs: path_info.size)
                 else:
                     skipped += 1
 
@@ -576,10 +567,11 @@ def respond_to_raw_files_query(search_request, args, logger):
 
 
 def respond_to_get_raw_files(upload_id, files, compress=False, strip=False):
-    upload_files = UploadFiles.get(
-        upload_id, create_authorization_predicate(upload_id))
+    upload_files = UploadFiles.get(upload_id)
     if upload_files is None:
         abort(404, message='The upload with id %s does not exist.' % upload_id)
+    if not has_read_access(upload_id):
+        abort(401, 'No read access to the specified upload')
 
     if strip:
         common_prefix_len = len(utils.common_prefix(files))

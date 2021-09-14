@@ -28,7 +28,6 @@ import os.path
 from urllib.parse import urlencode
 import base64
 import itertools
-from hashlib import md5
 
 from nomad.app.flask.common import rfc3339DateTime
 from nomad.app.flask.api.auth import generate_upload_token
@@ -514,7 +513,7 @@ class TestUploads:
 
     @pytest.mark.parametrize('ending', ['', '.gz', '.xz'])
     def test_potcar(self, api, proc_infra, test_user_auth, tmp, ending):
-        # only the owner, shared with people are supposed to download the original potcar file
+        # Potcar files should be removed when publishing
         example_file = create_template_upload_file(
             tmp, directory='examples_potcar', more_files=f'tests/data/proc/POTCAR{ending}')
         rv = api.put('/uploads/?local_path=%s' % example_file, headers=test_user_auth)
@@ -522,11 +521,11 @@ class TestUploads:
         upload = self.assert_upload(rv.data)
         upload_id = upload['upload_id']
         self.assert_processing(api, test_user_auth, upload_id)
-        self.assert_published(api, test_user_auth, upload_id, proc_infra)
-        rv = api.get('/raw/%s/examples_potcar/POTCAR%s' % (upload_id, ending))
-        assert rv.status_code == 401
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s' % (upload_id, ending), headers=test_user_auth)
         assert rv.status_code == 200
+        self.assert_published(api, test_user_auth, upload_id, proc_infra)
+        rv = api.get('/raw/%s/examples_potcar/POTCAR%s' % (upload_id, ending))
+        assert rv.status_code == 404
         rv = api.get('/raw/%s/examples_potcar/POTCAR%s.stripped' % (upload_id, ending))
         assert rv.status_code == 200
 
@@ -718,11 +717,14 @@ class UploadFilesBasedTests:
             auth_headers = None
 
         calc_specs = 'r' if restricted else 'p'
-        Upload.create(user=test_user, upload_id='test_upload')
+        embargo_length = 36 if restricted else 0
+        Upload.create(user=test_user, upload_id='test_upload', embargo_length=embargo_length)
         if in_staging:
-            _, _, upload_files = create_staging_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_staging_upload(
+                'test_upload', calc_specs=calc_specs, embargo_length=embargo_length)
         else:
-            _, _, upload_files = create_public_upload('test_upload', calc_specs=calc_specs)
+            _, _, upload_files = create_public_upload(
+                'test_upload', calc_specs=calc_specs, embargo_length=embargo_length)
 
         yield 'test_upload', authorized, auth_headers
 
@@ -2053,7 +2055,10 @@ class TestMirror:
         rv = api.get(url, headers=admin_user_auth)
         assert rv.status_code == 200
         assert rv.data is not None
-        assert md5(rv.data).hexdigest() == 'a50a980a4f1bd9892e95410936a36cdf'
+        upload_files = UploadFiles.get(published.upload_id)
+        msg_file_path = PublicUploadFiles._create_msg_file_object(upload_files, 'restricted').os_path
+        with open(msg_file_path, 'rb') as f:
+            assert f.read() == rv.data
 
     def test_users(self, api, published, admin_user_auth, no_warn):
         url = '/mirror/users'

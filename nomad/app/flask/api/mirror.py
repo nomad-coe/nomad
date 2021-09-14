@@ -161,10 +161,10 @@ class MirrorFilesResource(Resource):
             upload_files = PublicUploadFiles(upload_id)
 
             if prefix == 'raw':
-                fileobj = upload_files.raw_file_object('public')
+                fileobj = upload_files.raw_zip_file_object()
 
             elif prefix == 'archive':
-                fileobj = upload_files.msg_file_object('public')
+                fileobj = upload_files.msg_file_object()
 
             else:
                 abort(400, message='Unsupported prefix.')

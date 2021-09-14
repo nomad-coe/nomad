@@ -103,8 +103,7 @@ class CalcProcReproduction:
         else:
             self.logger.info('Calc already downloaded.')
 
-        self.upload_files = files.StagingUploadFiles(
-            upload_id='tmp_%s' % archive_id, create=True, is_authorized=lambda: True)
+        self.upload_files = files.StagingUploadFiles(upload_id=f'tmp_{archive_id}', create=True)
 
     def __enter__(self):
         # open/extract upload file

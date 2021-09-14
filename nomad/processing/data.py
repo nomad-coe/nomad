@@ -360,7 +360,7 @@ class Calc(Proc):
     @property
     def upload_files(self) -> StagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
+            self._upload_files = StagingUploadFiles(self.upload_id)
         return self._upload_files
 
     def get_logger(self, **kwargs):
@@ -475,7 +475,7 @@ class Calc(Proc):
             # 2b. Keep published entry as it is
             self.set_process_step('Preserving entry data')
             try:
-                upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
+                upload_files = PublicUploadFiles(self.upload_id)
                 with upload_files.read_archive(self.calc_id) as archive:
                     self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
 
@@ -566,7 +566,7 @@ class Calc(Proc):
             logger = self.get_logger(parser=self.parser, step=self.parser)
 
             # Open the archive of the phonon calculation.
-            upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
+            upload_files = StagingUploadFiles(self.upload_id)
             with upload_files.read_archive(self.calc_id) as archive:
                 arch = archive[self.calc_id]
                 phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
@@ -975,7 +975,7 @@ class Upload(Proc):
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.staging_upload_files.pack(calcs)
+                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
 
                 with utils.timer(logger, 'index updated'):
                     search.publish(calcs)
@@ -1046,7 +1046,7 @@ class Upload(Proc):
         # add oasis metadata to the upload
         public_upload_files = cast(PublicUploadFiles, self.upload_files)
         public_upload_files.add_metadata_file(upload_metadata)
-        file_to_upload = public_upload_files.public_raw_data_file
+        file_to_upload = public_upload_files.raw_zip_file_object().os_path
 
         self.last_status_message = 'Prepared the upload for uploading to central NOMAD.'
         self.save()
@@ -1102,8 +1102,7 @@ class Upload(Proc):
             self.export_bundle(
                 export_as_stream=False, export_path=bundle_path,
                 zipped=True, move_files=False, overwrite=False,
-                include_raw_files=True, include_protected_raw_files=True,
-                include_archive_files=True, include_datasets=True)
+                include_raw_files=True, include_archive_files=True, include_datasets=True)
 
             self.last_status_message = 'Bundle created.'
             self.save()
@@ -1131,12 +1130,6 @@ class Upload(Proc):
             self.last_status_message = 'Successfully uploaded to central NOMAD.'
         finally:
             PathObject(tmp_dir).delete()
-
-    @process
-    def re_pack(self):
-        ''' A *process* that repacks the raw and archive data based on the current embargo data. '''
-        assert self.published
-        self.upload_files.re_pack(self.entries_user_and_system_metadata())
 
     @process
     def process_upload(self, reprocess_settings: Dict[str, Any] = None):
@@ -1216,8 +1209,7 @@ class Upload(Proc):
         upload_files_class = StagingUploadFiles if not self.published else PublicUploadFiles
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
-            self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True)
+            self._upload_files = upload_files_class(self.upload_id)
 
         return self._upload_files
 
@@ -1241,7 +1233,7 @@ class Upload(Proc):
                 self.upload_files.to_staging_upload_files(create=True)
         elif not StagingUploadFiles.exists_for(self.upload_id):
             # Create staging files
-            StagingUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
+            StagingUploadFiles(self.upload_id, create=True)
 
         staging_upload_files = self.staging_upload_files
         # Execute any pending operations
@@ -1498,7 +1490,10 @@ class Upload(Proc):
             logger.info('started to repack re-processed upload')
 
             with utils.timer(logger, 'staged upload files re-packed'):
-                self.staging_upload_files.pack(self.entries_user_and_system_metadata(), create=False, include_raw=False)
+                self.staging_upload_files.pack(
+                    self.entries_user_and_system_metadata(),
+                    with_embargo=(self.embargo_length > 0),
+                    create=False, include_raw=False)
 
             self._cleanup_staging_files()
             self.last_update = datetime.utcnow()
@@ -1511,7 +1506,7 @@ class Upload(Proc):
             with utils.lnr(logger, 'publish failed'):
                 with self.entries_metadata() as calcs:
                     with utils.timer(logger, 'upload staging files packed'):
-                        self.staging_upload_files.pack(calcs)
+                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
 
                 with utils.timer(logger, 'upload staging files deleted'):
                     self.staging_upload_files.delete()
@@ -1607,7 +1602,7 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
-    def entries_metadata(self) -> Iterator[Iterable[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[List[datamodel.EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
@@ -1622,7 +1617,7 @@ class Upload(Proc):
         finally:
             upload_files.close()
 
-    def entries_user_and_system_metadata(self) -> Iterable[datamodel.EntryMetadata]:
+    def entries_user_and_system_metadata(self) -> List[datamodel.EntryMetadata]:
         '''
         Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the user and
         system metadata only, for all entries of this upload.
@@ -1651,12 +1646,15 @@ class Upload(Proc):
         logger = self.get_logger()
         upload_metadata = UploadMetadata.m_from_dict(metadata)
 
+        need_to_repack = False
         new_entry_metadata = {}
         if upload_metadata.upload_name is not None:
             self.name = upload_metadata.upload_name
             new_entry_metadata['upload_name'] = upload_metadata.upload_name
         if upload_metadata.embargo_length is not None:
             assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
+            if self.published:
+                need_to_repack = (self.embargo_length > 0) != (upload_metadata.embargo_length > 0)
             self.embargo_length = upload_metadata.embargo_length
             new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
         if upload_metadata.uploader is not None:
@@ -1667,6 +1665,9 @@ class Upload(Proc):
             new_entry_metadata['upload_time'] = upload_metadata.upload_time
 
         self.save()
+
+        if need_to_repack:
+            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
 
         if new_entry_metadata and self.total_calcs > 0:
             # Update entries and elastic search
@@ -1691,8 +1692,7 @@ class Upload(Proc):
     def export_bundle(
             self, export_as_stream: bool, export_path: str,
             zipped: bool, move_files: bool, overwrite: bool,
-            include_raw_files: bool, include_protected_raw_files: bool,
-            include_archive_files: bool, include_datasets: bool) -> Iterable[bytes]:
+            include_raw_files: bool, include_archive_files: bool, include_datasets: bool) -> Iterable[bytes]:
         '''
         Method for exporting an upload as an *upload bundle*. Upload bundles are file bundles
         used to export and import uploads between different NOMAD installations.
@@ -1713,8 +1713,6 @@ class Upload(Proc):
                 If the target file/folder should be overwritten by this operation. Not
                 applicable if `export_as_stream` is True.
             include_raw_files: If the "raw" files should be included.
-            include_protected_raw_files: If protected raw files (e.g. POTCAR files) should
-                be included.
             include_archive_files: If the archive files (produced by parsing the raw files)
                 should be included.
             include_datasets: If datasets referring to entries from this upload should be
@@ -1729,7 +1727,7 @@ class Upload(Proc):
             assert overwrite or not os.path.exists(export_path), '`export_path` alredy exists.'
         if move_files:
             # Special case, for quickly migrating uploads between two local NOMAD installations
-            assert include_raw_files and include_protected_raw_files and include_archive_files, (
+            assert include_raw_files and include_archive_files, (
                 'Must export entire upload when using `move_files`.')
             assert not zipped and not export_as_stream, (
                 'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
@@ -1742,7 +1740,6 @@ class Upload(Proc):
             source=config.meta,  # Information about the source system, i.e. this NOMAD installation
             export_options=dict(
                 include_raw_files=include_raw_files,
-                include_protected_raw_files=include_protected_raw_files,
                 include_archive_files=include_archive_files,
                 include_datasets=include_datasets),
             upload=self.to_mongo().to_dict(),
@@ -1764,7 +1761,7 @@ class Upload(Proc):
 
         # Assemble the files
         file_source = self.upload_files.files_to_bundle(
-            bundle_info, include_raw_files, include_protected_raw_files, include_archive_files)
+            bundle_info, include_raw_files, include_archive_files)
 
         # Export
         if export_as_stream:
@@ -1816,7 +1813,6 @@ class Upload(Proc):
             required_keys_root_level = (
                 'upload_id', 'source.version', 'source.commit', 'source.deployment', 'source.deployment_id',
                 'export_options.include_raw_files',
-                'export_options.include_protected_raw_files',
                 'export_options.include_archive_files',
                 'export_options.include_datasets',
                 'upload._id', 'upload.user_id', 'upload.published',
@@ -1966,10 +1962,6 @@ class Upload(Proc):
 
             # Validate embargo settings
             if embargo_length is not None:
-                if (upload_dict['embargo_length'] == 0) != (embargo_length == 0):
-                    assert not published, (
-                        'Changing embargo flag of a published upload is not yet supported!')
-                    # TODO: Temporary, should support this when file structure has been unified
                 assert 0 <= embargo_length <= 36, 'Invalid embargo_length, must be between 0 and 36 months'
                 self.embargo_length = embargo_length  # Set the flag also on the Upload level
 
@@ -1977,6 +1969,10 @@ class Upload(Proc):
             upload_files = bundle.import_upload_files(
                 settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
                 move_files)
+
+            if self.published and embargo_length is not None:
+                # Repack the upload
+                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
 
             # Check the archive metadata, if included
             if settings.include_archive_files:

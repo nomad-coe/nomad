@@ -515,7 +515,7 @@ def test_phonon(test_user, proc_infra):
         if calc.parser == "parsers/phonopy":
             phonon_id = calc.calc_id
             break
-    upload_file = UploadFiles.get(upload_id, is_authorized=lambda: True)
+    upload_file = UploadFiles.get(upload_id)
     archive_reader = upload_file.read_archive(phonon_id)
     phonon_archive = archive_reader[phonon_id].to_dict()
     phonon = EntryArchive.m_from_dict(phonon_archive)

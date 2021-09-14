@@ -85,7 +85,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
     assert len(upload.errors) == 0
     assert upload.process_status == ProcessStatus.SUCCESS
 
-    upload_files = UploadFiles.get(upload.upload_id, is_authorized=lambda: True)
+    upload_files = UploadFiles.get(upload.upload_id)
     if published:
         assert isinstance(upload_files, PublicUploadFiles)
     else:
@@ -503,10 +503,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
 
     if published:
         upload.publish_upload(embargo_length=0)
-        try:
-            upload.block_until_complete(interval=.01)
-        except Exception:
-            pass
+        upload.block_until_complete(interval=.01)
 
     upload.reset()
     assert upload.total_calcs == 1, upload.total_calcs
@@ -515,7 +512,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         import zipfile
 
         upload_files = UploadFiles.get(upload.upload_id)
-        zip_path = upload_files.raw_file_object(access='public').os_path
+        zip_path = upload_files.raw_zip_file_object().os_path
         with zipfile.ZipFile(zip_path, mode='a') as zf:
             zf.write('tests/data/parsers/vasp/vasp.xml', 'vasp.xml')
     else:
@@ -523,10 +520,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
 
     upload.process_upload()
-    try:
-        upload.block_until_complete(interval=.01)
-    except Exception:
-        pass
+    upload.block_until_complete(interval=.01)
 
     assert upload.total_calcs == 2
     if not published:
@@ -535,22 +529,20 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
             assert not calc.metadata['with_embargo']
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
-@pytest.mark.parametrize('with_failure', [None, 'before', 'after'])
-def test_re_pack(published: Upload, monkeypatch, with_failure):
+def test_re_pack(published: Upload):
     upload_id = published.upload_id
+    upload_files: PublicUploadFiles = published.upload_files  # type: ignore
+    assert upload_files.access == 'restricted'
+    # Lift embargo
     calc = Calc.objects(upload_id=upload_id).first()
     assert calc.metadata['with_embargo']
     calc.metadata['with_embargo'] = False
     calc.save()
+    published.embargo_length = 0
+    published.save()
+    upload_files.re_pack(with_embargo=False)
 
-    published.re_pack()
-    try:
-        published.block_until_complete(interval=.01)
-    except Exception:
-        pass
-
-    upload_files = PublicUploadFiles(upload_id)
+    assert upload_files.access == 'public'
     for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
         with upload_files.raw_file(path_info.path) as f:
             f.read()
@@ -560,7 +552,6 @@ def test_re_pack(published: Upload, monkeypatch, with_failure):
             archive[calc.calc_id].to_dict()
 
     published.reload()
-    assert published.process_status == ProcessStatus.SUCCESS
 
 
 def mock_failure(cls, function_name, monkeypatch):

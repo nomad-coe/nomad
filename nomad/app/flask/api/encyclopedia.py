@@ -43,7 +43,7 @@ from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.material import Material, Bulk, Method
 from .materialtransformer import MElasticTransformer, MQuantity
 from .api import api
-from .auth import authenticate, create_authorization_predicate
+from .auth import authenticate, has_read_access
 
 ns = api.namespace("encyclopedia", description="Access materials data.")
 missing_material_msg = "The specified material {} could not be retrieved. It either does not exists or requires authentication."
@@ -405,8 +405,9 @@ def read_archive(upload_id: str, calc_id: str) -> EntryArchive:
         For each path, a dictionary containing the path as key and the returned
         section as value.
     """
-    upload_files = UploadFiles.get(
-        upload_id, is_authorized=create_authorization_predicate(upload_id, calc_id))
+    upload_files = UploadFiles.get(upload_id)
+    if not has_read_access(upload_id, calc_id):
+        abort(401, f'No access to upload {upload_id}')
 
     with upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]

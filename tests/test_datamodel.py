@@ -70,7 +70,7 @@ def _gen_ref():
     return random.choice(references)
 
 
-def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> datamodel.EntryMetadata:
+def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with_embargo=None) -> datamodel.EntryMetadata:
     random.seed(pid)
 
     entry = datamodel.EntryMetadata()
@@ -85,7 +85,7 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None) -> d
     entry.files = list([entry.mainfile] + random.choices(filepaths, k=random.choice(low_numbers_for_files)))
     entry.uploader = _gen_user()
 
-    entry.with_embargo = random.choice([True, False])
+    entry.with_embargo = with_embargo if with_embargo is not None else random.choice([True, False])
     entry.published = True
     entry.coauthors = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
     entry.shared_with = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
@@ -152,13 +152,13 @@ if __name__ == '__main__':
 
     for calcs_per_upload in utils.chunks(range(0, n_calcs), int(n_calcs / n_uploads)):
         upload_id = utils.create_uuid()
-        upload_files = files.StagingUploadFiles(
-            upload_id=upload_id, create=True, is_authorized=lambda: True)
+        with_embargo = random.choice([True, False])
+        upload_files = files.StagingUploadFiles(upload_id=upload_id, create=True)
 
         search_entries = []
         calcs = []
         for _ in calcs_per_upload:
-            calc = generate_calc(pid, upload_id=upload_id)
+            calc = generate_calc(pid, upload_id=upload_id, with_embargo=with_embargo)
             assert calc.upload_id == upload_id
             calc.published = True
 
@@ -186,5 +186,5 @@ if __name__ == '__main__':
             infrastructure.elastic_client,
             [entry.to_dict(include_meta=True) for entry in search_entries])
 
-        upload_files.pack(calcs)
+        upload_files.pack(calcs, with_embargo=with_embargo)
         upload_files.delete()
