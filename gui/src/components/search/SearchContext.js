@@ -325,8 +325,11 @@ export const SearchContext = React.memo(({
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, aggNames, resource)
-        setInitialAggs(data)
+        const newData = {
+          total: data.pagination.total,
+          data: toGUIAgg(data.aggregations, aggNames, resource)
+        }
+        setInitialAggs(newData)
       })
   }, [api, setInitialAggs, resource])
 
@@ -786,9 +789,12 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, [name], resource)
+        const newData = {
+          total: data.pagination.total,
+          data: toGUIAgg(data.aggregations, [name], resource)[name]
+        }
         firstLoad.current = false
-        setResults(data[name])
+        setResults(newData)
       })
   }, [api, name, restrict, resource])
 
@@ -804,7 +810,7 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
     if (firstLoad.current) {
       // Fetch the initial aggregation values if no query
       // is specified.
-      if (isEmpty(query)) {
+      if (isEmpty(query) && !isNil(initialAggs?.[name])) {
         setResults(initialAggs[name])
       // Make an immediate request for the aggregation values if query has been
       // specified.

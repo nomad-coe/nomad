@@ -77,10 +77,10 @@ const InputSelect = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const options = useAgg(quantity, true, visible)
+  const agg = useAgg(quantity, true, visible)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const disabled = locked || (!(options && options.length > 0))
+  const disabled = locked || (!(agg?.data && agg.data.length > 0))
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -90,8 +90,8 @@ const InputSelect = React.memo(({
   // Create a list of options
   const menuItems = useMemo(() => {
     const items = []
-    if (options) {
-      for (let option of options) {
+    if (agg?.data) {
+      for (let option of agg.data) {
         const value = option.value
         if (option.count > 0) {
           items.push(<MenuItem key={value} value={value}>
@@ -102,7 +102,7 @@ const InputSelect = React.memo(({
       }
     }
     return items
-  }, [options, filter])
+  }, [agg, filter])
 
   const handleChange = useCallback((event) => {
     setFilter(new Set(event.target.value))

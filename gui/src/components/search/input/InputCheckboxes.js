@@ -34,6 +34,7 @@ import {
   useFilterLocked
 } from '../SearchContext'
 import { isArray } from 'lodash'
+import InputStatisticsBar from './InputStatisticsBar'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -43,6 +44,16 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
+  },
+  gridItem: {
+    position: 'relative'
+  },
+  bar: {
+    position: 'absolute',
+    left: theme.spacing(3.1),
+    right: theme.spacing(1),
+    top: theme.spacing(1),
+    bottom: theme.spacing(1)
   }
 }))
 const InputCheckboxes = React.memo(({
@@ -59,7 +70,7 @@ const InputCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
-  const availableOptions = useAgg(quantity, true, visible)
+  const agg = useAgg(quantity, true, visible)
   const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -105,19 +116,20 @@ const InputCheckboxes = React.memo(({
         disabled: true
       }
     }
-    if (availableOptions) {
-      for (let value of availableOptions) {
+    if (agg?.data) {
+      for (let value of agg.data) {
         const key = value.value
         const selected = filter ? filter.has(key) : false
         const oldState = opt[key]
         const disabled = locked || (selected ? false : value.count === 0)
         if (oldState) {
+          oldState.count = value.count
           oldState.disabled = disabled
         }
       }
     }
     setVisibleOptions(opt)
-  }, [availableOptions, filter, finalOptions, locked])
+  }, [agg, filter, finalOptions, locked])
 
   const handleChange = useCallback((event) => {
     const newOptions = {...visibleOptions}
@@ -129,7 +141,12 @@ const InputCheckboxes = React.memo(({
   }, [setFilter, visibleOptions])
 
   const checkboxes = visibleOptions && Object.entries(visibleOptions).map(([key, value]) => {
-    return <Grid item xs={xs} key={key}>
+    return <Grid item xs={xs} key={key} className={styles.gridItem}>
+      <InputStatisticsBar
+        className={styles.bar}
+        max={agg?.total}
+        value={value.count}
+      />
       <FormControlLabel
         control={<Checkbox checked={value.checked} onChange={handleChange} name={key}/>}
         label={value.label || key}

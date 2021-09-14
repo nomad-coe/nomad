@@ -43,13 +43,13 @@ const FilterSubMenuElements = React.memo(({
   const visible = value === selected
   const styles = useStyles()
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const data = useAgg('results.material.elements', false, visible)
+  const agg = useAgg('results.material.elements', false, visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}
-    data && data.forEach((value) => { elementCountMap[value.value] = value.count })
+    agg?.data && agg.data.forEach((value) => { elementCountMap[value.value] = value.count })
     return elementCountMap
-  }, [data])
+  }, [agg])
 
   return <FilterSubMenu value={value} {...rest}>
     <InputPeriodicTable
