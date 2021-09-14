@@ -18,14 +18,12 @@
 import React, { useState } from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
+import { Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import SearchBar from './SearchBar'
 import SearchResults from './results/SearchResults'
-import {
-  useMenuOpenState
-} from './SearchContext'
-import { Box } from '@material-ui/core'
+import { useSearchContext } from './SearchContext'
 
 /**
  * The primary search interface that is reused throughout the application in
@@ -67,7 +65,7 @@ const Search = React.memo(({
   header
 }) => {
   const styles = useStyles()
-  const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
+  const {isMenuOpen, setIsMenuOpen} = useSearchContext()
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
 
   return <div className={styles.root}>

@@ -76,7 +76,7 @@ const InputDateRange = React.memo(({
   const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, true, visible)
+  const agg = useAgg(quantity, visible)
   const [startGlobal, endGlobal] = agg?.data || [undefined, undefined]
   const disabled = locked || (startGlobal === null || endGlobal === null)
 

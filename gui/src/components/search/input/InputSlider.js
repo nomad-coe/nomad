@@ -92,7 +92,7 @@ const InputSlider = React.memo(({
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, true, visible)
+  const agg = useAgg(quantity, visible)
   const [minGlobalSI, maxGlobalSI] = agg?.data || [undefined, undefined]
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
@@ -280,6 +280,7 @@ const InputSlider = React.memo(({
         <div className={styles.spacer}>
           <Slider
             disabled={disabled}
+            color="secondary"
             min={minLocal}
             max={maxLocal}
             step={stepSI}

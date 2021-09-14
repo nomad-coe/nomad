@@ -43,7 +43,7 @@ const FilterSubMenuElements = React.memo(({
   const visible = value === selected
   const styles = useStyles()
   const [filter, setFilter] = useFilterState('results.material.elements')
-  const agg = useAgg('results.material.elements', false, visible)
+  const agg = useAgg('results.material.elements', visible)
   const units = useUnits()
   const availableValues = useMemo(() => {
     const elementCountMap = {}

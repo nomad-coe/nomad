@@ -86,8 +86,9 @@ export const labelIDs = 'IDs'
  * @param {object} value Custom setter/getter for the filter value.
  * @param {bool} multiple Whether this filter supports several values:
  * controls whether setting the value appends or overwrites.
+ * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
  */
-function registerFilter(name, group, agg, value, multiple = true) {
+function registerFilter(name, group, agg, value, multiple = true, exclusive = true) {
   filters.add(name)
   if (group) {
     filterGroups[group]
@@ -124,6 +125,7 @@ function registerFilter(name, group, agg, value, multiple = true) {
     data.valueSet = value.set
   }
   data.multiple = multiple
+  data.exclusive = exclusive
   filterData[name] = data
 }
 
@@ -179,7 +181,9 @@ registerFilter(
         newQuery['results.material.elements'] = value
       }
     }
-  }
+  },
+  true,
+  false
 )
 // Electronic properties: subset of results.properties.available_properties
 registerFilter(
@@ -196,7 +200,9 @@ registerFilter(
       newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
-  }
+  },
+  true,
+  false
 )
 // Vibrational properties: subset of results.properties.available_properties
 registerFilter(
@@ -213,7 +219,9 @@ registerFilter(
       newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
-  }
+  },
+  true,
+  false
 )
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
@@ -267,6 +275,8 @@ export const SearchContext = React.memo(({
   const setLocked = useSetRecoilState(lockedState)
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [menuPath, setMenuPath] = useState('Filters')
 
   // Reset the query/locks when entering the search context for the first time
   const reset = useRecoilCallback(({reset}) => () => {
@@ -334,8 +344,12 @@ export const SearchContext = React.memo(({
   }, [api, setInitialAggs, resource])
 
   const values = useMemo(() => ({
-    resource: resource
-  }), [resource])
+    resource,
+    isMenuOpen,
+    setIsMenuOpen,
+    menuPath,
+    setMenuPath
+  }), [resource, isMenuOpen, menuPath])
 
   return <searchContext.Provider value={values}>
     {children}
@@ -370,33 +384,6 @@ export const lockedFamily = atomFamily({
   key: 'lockedFamily',
   default: false
 })
-
-// Menu open state
-export const menuOpen = atom({
-  key: 'isMenuOpen',
-  default: false
-})
-export function useMenuOpenState() {
-  return useRecoilState(menuOpen)
-}
-export function useSetMenuOpen() {
-  return useSetRecoilState(menuOpen)
-}
-
-// Current menu path
-export const menuPath = atom({
-  key: 'menuPath',
-  default: 'Filters'
-})
-export function useMenuPathState() {
-  return useRecoilState(menuPath)
-}
-export function useMenuPath() {
-  return useRecoilValue(menuPath)
-}
-export function useSetMenuPath() {
-  return useSetRecoilState(menuPath)
-}
 
 // Whether the search is initialized.
 export const initializedState = atom({
@@ -748,20 +735,18 @@ export function useInitialAgg(name) {
  * filter, taking into account the current search context.
  *
  * @param {string} name The filter name
- * @param {bool} restrict If true, the ES query targeting this particular filter
- * will be removed. This makes it possible to return all possible values for
- * dropdowns etc.
  * @param {bool} update Whether the hook needs to react to changes in the
  * current query context. E.g. if the component showing the data is not visible,
  * this can be set to false.
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(name, restrict = false, update = true, delay = 500) {
+export function useAgg(name, update = true, delay = 500) {
   const {api} = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
+  const restrict = filterData[name].exclusive
   const query = useQuery()
   const firstLoad = useRef(true)
 
