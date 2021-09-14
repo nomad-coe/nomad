@@ -284,6 +284,10 @@ class Calc(Proc):
             if definition is None and self.upload.from_oasis:
                 definition = _oasis_metadata.get(key, None)
 
+            if key == 'uploader':
+                if datamodel.User.get(self.upload.user_id).is_admin:
+                    definition = datamodel.EntryMetadata.uploader
+
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
                 continue
@@ -1294,8 +1298,18 @@ class Upload(Proc):
             Tuples of (mainfile raw path, parser)
         '''
         staging_upload_files = self.staging_upload_files
+
+        metadata = self.metadata_file_cached(
+            os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+        skip_matching = metadata.get('skip_matching', False)
+        entries_metadata = metadata.get('entries', {})
+
         for path_info in staging_upload_files.raw_directory_list(recursive=True, files_only=True):
             self._preprocess_files(path_info.path)
+
+            if skip_matching and path_info.path not in entries_metadata:
+                continue
+
             try:
                 parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
                 if parser is not None:

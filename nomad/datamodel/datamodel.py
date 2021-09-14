@@ -258,6 +258,10 @@ class Dataset(metainfo.MSection):
         a_mongo=Mongo(index=True),
         a_search=Search(),
         a_elasticsearch=Elasticsearch())
+    query = metainfo.Quantity(
+        type=metainfo.JSON, a_mongo=Mongo())
+    entries = metainfo.Quantity(
+        type=str, shape=['*'], a_mongo=Mongo())
 
 
 class DatasetReference(metainfo.Reference):

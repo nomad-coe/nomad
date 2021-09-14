@@ -52,7 +52,7 @@ def assert_search_upload(
         for hit in search_results['hits']:
             hit = utils.flat(hit['_source'])
             for key, value in kwargs.items():
-                assert hit.get(key, None) == value
+                assert hit.get(key, None) == value, key
 
             if 'pid' in hit:
                 assert int(hit.get('pid')) > 0

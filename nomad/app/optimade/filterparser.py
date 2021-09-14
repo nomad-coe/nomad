@@ -25,7 +25,7 @@ from optimade.filtertransformers.elasticsearch import (
     Quantity, ElasticTransformer as OPTElasticTransformer)
 from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 
-from nomad.search.v0 import search_quantities
+from .common import provider_specific_fields
 
 
 _parser = LarkParser(version=(0, 10, 1))
@@ -58,14 +58,7 @@ def _get_transformer(nomad_properties, without_prefix):
     quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
     if nomad_properties is not None:
-        for search_quantity in search_quantities.values():
-            name = search_quantity.name
-            if '.' in name:
-                if name.startswith(nomad_properties):
-                    name = name[len(nomad_properties) + 1:]
-                else:
-                    continue
-
+        for name, search_quantity in provider_specific_fields():
             names = ['_nmd_' + name]
             if without_prefix:
                 names.append(name)

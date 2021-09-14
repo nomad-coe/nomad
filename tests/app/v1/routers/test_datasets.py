@@ -24,7 +24,7 @@ from datetime import datetime
 from nomad.datamodel import Dataset
 from nomad import processing
 from nomad.search.v1 import search
-from nomad.app.v1.models import Query
+from nomad.app.v1.models import Query, Any_
 
 from tests.conftest import admin_user_id
 from tests.utils import ExampleData
@@ -121,26 +121,35 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
     mongo_dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
     assert mongo_dataset is not None
     for quantity in Dataset.m_def.quantities:  # pylint: disable=not-an-iterable
-        if quantity in [Dataset.pid, Dataset.doi]:
+        if quantity in [Dataset.query, Dataset.entries]:
+            if dataset.get('dataset_type') == 'owned':
+                quantity.name not in dataset
+            else:
+                quantity.name in dataset
+        elif quantity in [Dataset.pid, Dataset.doi]:
             assert quantity.name not in dataset or dataset[quantity.name] is not None
         else:
             assert quantity.name in dataset
             assert dataset[quantity.name] is not None
 
     if entries is not None:
-        n_entries = len(entries)
+        search_results = search(
+            owner='user', query={'calc_id': Any_(any=entries)}, user_id=dataset['user_id'])
+        n_entries = search_results.pagination.total
+        assert n_entries <= len(entries)
     if query is not None:
         search_results = search(
-            owner='public', query=query, user_id=dataset['user_id'])
+            owner='user', query=query, user_id=dataset['user_id'])
         n_entries = search_results.pagination.total
 
     if n_entries == -1:
         return
 
-    search_results = search(
-        owner='public', query={'datasets.dataset_id': dataset_id}, user_id=dataset['user_id'])
-    assert search_results.pagination.total == n_entries
-    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == n_entries
+    search_results = search(owner='public', query={'datasets.dataset_id': dataset_id})
+
+    expected_n_entries = n_entries if dataset['dataset_type'] == 'owned' else 0
+    assert search_results.pagination.total == expected_n_entries
+    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == expected_n_entries
 
 
 def assert_dataset_deleted(dataset_id):
@@ -196,8 +205,11 @@ def test_dataset(client, data, dataset_id, result, status_code):
     pytest.param('another test dataset', 'foreign', None, None, None, 401, id='no-user'),
     pytest.param('test dataset 1', 'foreign', None, None, 'test_user', 400, id='exists'),
     pytest.param('another test dataset', 'owned', None, None, 'test_user', 200, id='owned'),
-    pytest.param('another test dataset', 'foreign', {}, None, 'test_user', 200, id='foreign-query-owner'),
-    pytest.param('another test dataset', 'foreign', {}, None, 'other_test_user', 200, id='foreign-query'),
+    pytest.param('another test dataset', 'owned', {}, None, 'test_user', 200, id='owned-owner-query'),
+    pytest.param('another test dataset', 'owned', {}, None, 'other_test_user', 200, id='owned-non-owner-query'),
+    pytest.param('another test dataset', 'owned', None, ['id_01', 'id_02'], 'test_user', 200, id='owned-owner-entries'),
+    pytest.param('another test dataset', 'owned', None, ['id_01', 'id_02'], 'other_test_user', 200, id='owned-non-owner-entries'),
+    pytest.param('another test dataset', 'foreign', {}, None, 'test_user', 200, id='foreign-query'),
     pytest.param('another test dataset', 'foreign', None, ['id_01', 'id_02'], 'test_user', 200, id='foreign-entries')
 ])
 def test_post_datasets(

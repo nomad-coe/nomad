@@ -74,7 +74,7 @@ parser_examples = [
     ('parsers/aflow', 'tests/data/parsers/aflow/aflow_agl.out'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
-    ('parsers/archive', 'tests/data/parsers/archive.json'),
+    ('parsers/archive', 'tests/data/parsers/archive.json')
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist

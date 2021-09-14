@@ -1217,10 +1217,13 @@ class PublicUploadFiles(UploadFiles):
                     staging_upload_files.add_rawfiles(raw_file_zip.os_path)
 
                 if include_archive:
-                    with self._open_msg_file(access) as archive:
-                        for calc_id, data in archive.items():
-                            calc_id = calc_id.strip()
-                            staging_upload_files.write_archive(calc_id, data.to_dict())
+                    try:
+                        with self._open_msg_file(access) as archive:
+                            for calc_id, data in archive.items():
+                                calc_id = calc_id.strip()
+                                staging_upload_files.write_archive(calc_id, data.to_dict())
+                    except FileNotFoundError:
+                        pass
 
         if exists and create:
             raise FileExistsError('Staging upload does already exist')

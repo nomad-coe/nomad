@@ -52,6 +52,12 @@ Omitted versions are plain bugfix releases with only minor changes and fixes.
 - refactored metainfo and parsers
 - new upload UI and incremental uploads
 
+### v0.10.7
+- adding OpenMX parser
+
+### v0.10.6
+- support for NOMAD fields in optimade
+
 ### v0.10.4
 - new "basic" parser to cover codes without proper parser
 - removed old nomad-coe parser dependencies

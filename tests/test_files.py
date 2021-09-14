@@ -399,12 +399,26 @@ class TestPublicUploadFiles(UploadFilesContract):
         return upload_files
 
     @pytest.fixture(scope='function', params=itertools.product(
-        ['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'], [True, False]))
+        ['r', 'rr', 'pr', 'rp', 'p', 'pp', 'RP', 'RR', 'PP'], [True, False], [True, False]))
     def test_upload(self, request, test_upload_id: str) -> PublicUploadWithFiles:
-        calc_specs, protected = request.param
+        calc_specs, protected, public_and_restricted = request.param
         _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs=calc_specs)
         upload_files.pack(entries)
         upload_files.delete()
+
+        if not public_and_restricted:
+            public_upload_files = PublicUploadFiles(test_upload_id)
+
+            for access in ['public', 'restricted']:
+                file_object = public_upload_files.raw_file_object(access)
+                if file_object.exists() and file_object.size <= 22:
+                    file_object.delete()
+
+            for access in ['public', 'restricted']:
+                file_object = public_upload_files.msg_file_object(access)
+                if file_object.exists() and file_object.size <= 32:
+                    file_object.delete()
+
         return test_upload_id, entries, PublicUploadFiles(test_upload_id, is_authorized=lambda: not protected)
 
     def test_to_staging_upload_files(self, test_upload):

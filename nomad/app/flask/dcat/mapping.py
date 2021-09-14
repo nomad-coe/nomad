@@ -33,7 +33,7 @@ HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
 def get_optional_entry_prop(entry, name):
     try:
         return entry[name]
-    except KeyError:
+    except (KeyError, AttributeError):
         return 'unavailable'
 
 
@@ -92,15 +92,18 @@ class Mapping():
         if slim:
             return dataset
 
-        self.g.add((dataset, DCAT.landing_page, URIRef('%s/entry/id/%s/%s' % (
+        self.g.add((dataset, DCAT.landingPage, URIRef('%s/entry/id/%s/%s' % (
             config.gui_url(), entry.upload_id, entry.calc_id))))
 
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
         self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
         self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
-        for author in entry.authors:
-            self.g.add((dataset, DCT.creator, self.map_user(author)))
+        try:
+            for author in entry.authors:
+                self.g.add((dataset, DCT.creator, self.map_user(author)))
+        except (KeyError, AttributeError):
+            pass
         self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry.uploader)))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
@@ -138,7 +141,7 @@ class Mapping():
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
-        self.g.add((person, VCARD.organizationName, Literal('unavailable' if user.affiliation is None else user.affiliation)))
+        self.g.add((person, VCARD.organization, Literal(get_optional_entry_prop(user, 'affiliation'))))
         # address = BNode()
         # self.g.add((address, RDF.type, VCARD.Address))
         # self.g.add((address, VCARD.street_address, )) # affiliation_address?
@@ -163,7 +166,7 @@ class Mapping():
 
             # Distribution over API
             dist = BNode()
-            self.g.add((dist, DCT.title, Literal('unavailable' if entry.formula is None else entry.formula + '_api')))
+            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_api')))
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCAT.accessService, service))
         elif dist_kind == 'json':
