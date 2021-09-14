@@ -463,7 +463,8 @@ class TestPublicUploadFiles(UploadFilesContract):
             calc.with_embargo = False
         upload_files.re_pack(entries)
         assert_upload_files(upload_id, entries, PublicUploadFiles, with_embargo=False)
-        assert len(os.listdir(upload_files.os_path)) == 4
+        consistent_embargo = any(calc.with_embargo for calc in entries) and any(not calc.with_embargo for calc in entries)
+        assert len(os.listdir(upload_files.os_path)) == 2 if consistent_embargo else 4
         with pytest.raises(KeyError):
             StagingUploadFiles(upload_files.upload_id)
 

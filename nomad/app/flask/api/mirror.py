@@ -174,13 +174,13 @@ class MirrorFilesResource(Resource):
 
             return send_file(
                 open(fileobj.os_path, 'rb'),
-                mimetype='application/zip',
+                mimetype='application/binary',
                 as_attachment=True,
                 cache_timeout=0,
                 attachment_filename=fileobj.os_path)
 
         except KeyError:
-            abort(404, message='Upload %d does not exist' % upload_id)
+            abort(404, message='Upload %s does not exist' % upload_id)
 
 
 @ns.route('/users')
