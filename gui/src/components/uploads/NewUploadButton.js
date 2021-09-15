@@ -18,7 +18,7 @@
 import { Button } from '@material-ui/core'
 import React, { useState } from 'react'
 import { useHistory, useLocation } from 'react-router-dom'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 

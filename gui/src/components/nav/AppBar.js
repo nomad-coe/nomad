@@ -28,7 +28,7 @@ import {
 import LoginLogout from '../LoginLogout'
 import UnitSelector from '../UnitSelector'
 import MainMenu from './MainMenu'
-import { useLoading } from '../apiV1'
+import { useLoading } from '../api'
 import { guiBase } from '../../config'
 import Breadcrumbs from './Breadcrumbs'
 

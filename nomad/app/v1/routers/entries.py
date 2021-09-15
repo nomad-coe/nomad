@@ -16,24 +16,30 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union, Dict, Iterator, Any, List
+from datetime import datetime
+
+from typing import Optional, Set, Union, Dict, Iterator, Any, List
 from fastapi import (
     APIRouter, Depends, Path, status, HTTPException, Request, Query as QueryParameter,
     Body)
 from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 import os.path
 import io
 import json
 import orjson
+from pydantic.main import create_model
+from starlette.responses import Response
 
-from nomad import files, config, utils
+from nomad import files, config, utils, metainfo, processing as proc
+from nomad import datamodel
+from nomad.datamodel import EditableUserMetadata
 from nomad.files import StreamedFile, create_zipstream
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 from nomad.archive import ArchiveQueryError
-from nomad.search import AuthenticationRequiredError, SearchError
+from nomad.search import AuthenticationRequiredError, SearchError, update_metadata as es_update_metadata
 from nomad.search.v1 import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
@@ -42,7 +48,7 @@ from ..utils import (
     create_download_stream_zipped, create_download_stream_raw_file,
     DownloadItem, create_responses)
 from ..models import (
-    PaginationResponse, MetadataPagination, WithQuery, WithQueryAndPagination, MetadataRequired,
+    Aggregation, Pagination, PaginationResponse, MetadataPagination, TermsAggregation, WithQuery, WithQueryAndPagination, MetadataRequired,
     MetadataResponse, Metadata, Files, Query, User, Owner,
     QueryParameters, metadata_required_parameters, files_parameters, metadata_pagination_parameters,
     HTTPExceptionModel)
@@ -228,6 +234,37 @@ class EntryMetadataResponse(BaseModel):
         None, description=strip('''The entry metadata as dictionary.'''))
 
 
+class EntryMetadataEditActionField(BaseModel):
+    value: str = Field(None, description='The value/values that is set as a string.')
+    success: Optional[bool] = Field(None, description='If this can/could be done. Only in API response.')
+    message: Optional[str] = Field(None, descriptin='A message that details the action result. Only in API response.')
+
+
+EntryMetadataEditActions = create_model('EntryMetadataEditActions', **{  # type: ignore
+    quantity.name: (
+        Optional[EntryMetadataEditActionField]
+        if quantity.is_scalar else Optional[List[EntryMetadataEditActionField]], None)
+    for quantity in EditableUserMetadata.m_def.definitions
+    if isinstance(quantity, metainfo.Quantity)
+})
+
+
+class EntryMetadataEdit(WithQuery):
+    verify: Optional[bool] = Field(False, description='If true, no action is performed.')
+    actions: EntryMetadataEditActions = Field(  # type: ignore
+        None,
+        description='Each action specifies a single value (even for multi valued quantities).')
+
+    @validator('owner')
+    def validate_query(cls, owner):  # pylint: disable=no-self-argument
+        return Owner.user
+
+
+class EntryMetadataEditResponse(EntryMetadataEdit):
+    success: bool = Field(None, description='If the overall edit can/could be done. Only in API response.')
+    message: str = Field(None, description='A message that details the overall edit result. Only in API response.')
+
+
 _bad_owner_response = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
@@ -258,11 +295,17 @@ _raw_download_file_response = 200, {
         on the file contents.
     ''')}
 
-_archive_download_response = 200, {
+_archives_download_response = 200, {
     'content': {'application/zip': {}},
     'description': strip('''
         A zip file with the requested archive files. The file is streamed.
         The content length is not known in advance.
+    ''')}
+
+_archive_download_response = 200, {
+    'content': {'application/json': {}},
+    'description': strip('''
+        A json body with the requested archive.
     ''')}
 
 
@@ -270,6 +313,12 @@ _bad_archive_required_response = status.HTTP_400_BAD_REQUEST, {
     'model': HTTPExceptionModel,
     'description': strip('''
         The given required specification could not be understood.''')}
+
+
+_bad_metadata_edit_response = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The given edit actions cannot be performed by you on the given query.''')}
 
 
 def perform_search(*args, **kwargs):
@@ -591,7 +640,7 @@ async def post_entries_raw_download_query(
 async def get_entries_raw_download(
         with_query: WithQuery = Depends(query_parameters),
         files: Files = Depends(files_parameters),
-        user: User = Depends(create_user_dependency())):
+        user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
 
     return _answer_entries_raw_download_request(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
@@ -792,7 +841,7 @@ _entries_archive_download_docstring = strip('''
     description=_entries_archive_download_docstring,
     response_class=StreamingResponse,
     responses=create_responses(
-        _archive_download_response, _bad_owner_response, _bad_archive_required_response))
+        _archives_download_response, _bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_download_query(
         data: EntriesArchiveDownload, user: User = Depends(create_user_dependency())):
 
@@ -807,11 +856,11 @@ async def post_entries_archive_download_query(
     description=_entries_archive_download_docstring,
     response_class=StreamingResponse,
     responses=create_responses(
-        _archive_download_response, _bad_owner_response, _bad_archive_required_response))
+        _archives_download_response, _bad_owner_response, _bad_archive_required_response))
 async def get_entries_archive_download(
         with_query: WithQuery = Depends(query_parameters),
         files: Files = Depends(files_parameters),
-        user: User = Depends(create_user_dependency())):
+        user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
 
     return _answer_entries_archive_download_request(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
@@ -857,7 +906,6 @@ async def get_entry_metadata(
     response_model_exclude_none=True)
 async def get_entry_raw(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
-        files: Files = Depends(files_parameters),
         user: User = Depends(create_user_dependency())):
     '''
     Returns the file metadata for all input and output files (including auxiliary files)
@@ -890,7 +938,7 @@ async def get_entry_raw(
 async def get_entry_raw_download(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         files: Files = Depends(files_parameters),
-        user: User = Depends(create_user_dependency())):
+        user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Streams a .zip file with the raw files from the requested entry.
     '''
@@ -928,7 +976,7 @@ async def get_entry_raw_download_file(
         decompress: Optional[bool] = QueryParameter(
             False, description=strip('''
                 Attempt to decompress the contents, if the file is .gz or .xz.''')),
-        user: User = Depends(create_user_dependency())):
+        user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Streams the contents of an individual file from the requested entry.
     '''
@@ -1021,6 +1069,21 @@ async def get_entry_archive(
     return _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
 
 
+@router.get(
+    '/{entry_id}/archive/download',
+    tags=[archive_tag],
+    summary='Get the archive for an entry by its id as plain archive json',
+    responses=create_responses(_bad_id_response, _archive_download_response))
+async def get_entry_archive_download(
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
+        user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
+    '''
+    Returns the full archive for the given `entry_id`.
+    '''
+    response = _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
+    return response['data']['archive']
+
+
 @router.post(
     '/{entry_id}/archive/query',
     tags=[archive_tag],
@@ -1038,3 +1101,225 @@ async def post_entry_archive_query(
     in the body.
     '''
     return _answer_entry_archive_request(entry_id=entry_id, required=data.required, user=user)
+
+
+def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
+    # get all calculations that have to change
+    entry_ids: List[str] = []
+    upload_ids: Set[str] = set()
+    with utils.timer(logger, 'edit query executed'):
+        all_entries = _do_exaustive_search(
+            owner=Owner.user, query=query, include=['entry_id', 'upload_id'], user=user)
+
+        for entry in all_entries:
+            entry_ids.append(entry['entry_id'])
+            upload_ids.add(entry['upload_id'])
+
+    # perform the update on the mongo db
+    with utils.timer(logger, 'edit mongo update executed', size=len(entry_ids)):
+        if mongo_update is not None:
+            n_updated = proc.Calc.objects(calc_id__in=entry_ids).update(multi=True, **mongo_update)
+            if n_updated != len(entry_ids):
+                logger.error('edit repo did not update all entries', payload=mongo_update)
+
+    # re-index the affected entries in elastic search
+    with utils.timer(logger, 'edit elastic update executed', size=len(entry_ids)):
+        if re_index:
+            updated_metadata: List[datamodel.EntryMetadata] = []
+            for calc in proc.Calc.objects(calc_id__in=entry_ids):
+                updated_metadata.append(
+                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata))
+
+            failed = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
+
+            if failed > 0:
+                logger.error(
+                    'edit repo with failed elastic updates',
+                    payload=mongo_update, nfailed=failed)
+
+    return list(upload_ids)
+
+
+def get_quantity_values(quantity, **kwargs):
+    ''' Get all the uploader from the query, to check coauthers and shared_with for uploaders. '''
+    response = perform_search(
+        **kwargs,
+        aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity=quantity))),
+        pagination=Pagination(page_size=0))
+    terms = response.aggregations['agg'].terms  # pylint: disable=no-member
+    return [bucket.value for bucket in terms.data]
+
+
+_editable_quantities = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions}
+
+
+@router.post(
+    '/edit',
+    tags=[archive_tag],
+    summary='Edit the user metadata of a set of entries',
+    response_model=EntryMetadataEditResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_bad_metadata_edit_response))
+async def post_entry_metadata_edit(
+        response: Response,
+        data: EntryMetadataEdit,
+        user: User = Depends(create_user_dependency())):
+
+    '''
+    Performs or validates edit actions on a set of entries that match a given query.
+    '''
+
+    # checking the edit actions and preparing a mongo update on the fly
+    query = data.query
+    data = EntryMetadataEditResponse(**data.dict())
+    data.query = query  # to dict from dict does not work with the op aliases in queries
+    actions = data.actions
+    verify = data.verify
+    data.success = True
+    mongo_update = {}
+    uploader_ids = None
+    has_error = False
+    removed_datasets = None
+
+    with utils.timer(logger, 'edit verified'):
+        for action_quantity_name in actions.dict():  # type: ignore
+            quantity_actions = getattr(actions, action_quantity_name, None)
+            if quantity_actions is None:
+                continue
+
+            quantity = _editable_quantities.get(action_quantity_name)
+            if quantity is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Unknown quantity %s' % action_quantity_name)
+
+            # TODO this does not work. Because the quantities are not in EditableUserMetadata
+            # they are also not in the model and ignored by fastapi. This probably
+            # also did not work in the old API.
+            if action_quantity_name in ['uploader', 'upload_time']:
+                if not user.is_admin():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail='Only the admin user can set %s' % quantity.name)
+
+            if isinstance(quantity_actions, list) == quantity.is_scalar:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Wrong shape for quantity %s' % action_quantity_name)
+
+            if not isinstance(quantity_actions, list):
+                quantity_actions = [quantity_actions]
+
+            verify_reference = None
+            if isinstance(quantity.type, metainfo.Reference):
+                verify_reference = quantity.type.target_section_def.section_cls
+
+            mongo_key = 'metadata__%s' % quantity.name
+            has_error = False
+            for action in quantity_actions:
+                action.success = True
+                action.message = None
+                action_value = action.value
+                action_value = action_value if action_value is None else action_value.strip()
+
+                if action_quantity_name == 'with_embargo':
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail='Updating the embargo flag on entry level is no longer allowed.')
+
+                if action_value is None:
+                    mongo_value = None
+
+                elif action_value == '':
+                    mongo_value = None
+
+                elif verify_reference in [datamodel.User, datamodel.Author]:
+                    try:
+                        mongo_value = datamodel.User.get(user_id=action_value).user_id
+                    except KeyError:
+                        action.success = False
+                        has_error = True
+                        action.message = 'User does not exist'
+                        continue
+
+                    if uploader_ids is None:
+                        uploader_ids = get_quantity_values(
+                            quantity='uploader.user_id', owner=Owner.user, query=data.query, user_id=user.user_id)
+                    if action_value in uploader_ids:
+                        action.success = False
+                        has_error = True
+                        action.message = 'This user is already an uploader of one entry in the query'
+                        continue
+
+                elif verify_reference == datamodel.Dataset:
+                    try:
+                        mongo_value = datamodel.Dataset.m_def.a_mongo.get(
+                            user_id=user.user_id, name=action_value).dataset_id
+                    except KeyError:
+                        action.message = 'Dataset does not exist and will be created'
+                        mongo_value = None
+                        if not verify:
+                            dataset = datamodel.Dataset(
+                                dataset_id=utils.create_uuid(), user_id=user.user_id,
+                                name=action_value, created=datetime.utcnow())
+                            dataset.a_mongo.create()
+                            mongo_value = dataset.dataset_id
+
+                else:
+                    mongo_value = action_value
+
+                if len(quantity.shape) == 0:
+                    mongo_update[mongo_key] = mongo_value
+                else:
+                    mongo_values = mongo_update.setdefault(mongo_key, [])
+                    if mongo_value is not None:
+                        if mongo_value in mongo_values:
+                            action.success = False
+                            has_error = True
+                            action.message = 'Duplicate values are not allowed'
+                            continue
+                        mongo_values.append(mongo_value)
+
+            if len(quantity_actions) == 0 and len(quantity.shape) > 0:
+                mongo_update[mongo_key] = []
+
+            if action_quantity_name == 'datasets':
+                # check if datasets edit is allowed and if datasets have to be removed
+                old_datasets = get_quantity_values(
+                    quantity='datasets.dataset_id', owner=Owner.user, query=data.query, user_id=user.user_id)
+
+                removed_datasets = []
+                for dataset_id in old_datasets:
+                    if dataset_id not in mongo_update.get(mongo_key, []):
+                        removed_datasets.append(dataset_id)
+
+                doi_ds = datamodel.Dataset.m_def.a_mongo.objects(
+                    dataset_id__in=removed_datasets, doi__ne=None).first()
+                if doi_ds is not None:
+                    data.success = False
+                    data.message = (data.message if data.message else '') + (
+                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.name)
+                    has_error = True
+
+    # stop here, if client just wants to verify its actions
+    if verify:
+        return data
+
+    # stop if the action were not ok
+    if has_error:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return data
+
+    # perform the change
+    mongo_update['metadata__last_edit'] = datetime.utcnow()
+    edit(data.query, user, mongo_update, True)
+
+    # remove potentially empty old datasets
+    if removed_datasets is not None:
+        for dataset in removed_datasets:
+            if proc.Calc.objects(metadata__datasets=dataset).first() is None:
+                datamodel.Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
+
+    return data

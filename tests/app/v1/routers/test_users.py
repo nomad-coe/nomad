@@ -30,3 +30,35 @@ def test_me_auth_required(client):
 def test_me_auth_bad_token(client):
     response = client.get('users/me', headers={'Authentication': 'Bearer NOTATOKEN'})
     assert response.status_code == 401
+
+
+def test_invite(client, test_user_auth, no_warn):
+    rv = client.put(
+        'users/invite', headers=test_user_auth, json={
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'affiliation': 'Affiliation',
+            'email': 'john.doe@affiliation.edu'
+        })
+    assert rv.status_code == 200
+    data = rv.json()
+    keys = data.keys()
+    required_keys = ['name', 'email', 'user_id']
+    assert all(key in keys for key in required_keys)
+
+
+def test_users(client):
+    rv = client.get('users?prefix=Sheldon')
+    assert rv.status_code == 200
+
+    data = rv.json()
+    assert len(data['data']) == 1
+    user = data['data'][0]
+
+    for key in ['name', 'user_id']:
+        assert key in user
+
+    for value in user.values():
+        assert value is not None
+
+    assert 'email' not in user

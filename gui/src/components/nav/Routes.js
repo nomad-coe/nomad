@@ -373,7 +373,6 @@ export function getUrl(path, location) {
 
   return `${url}/${path}`
 }
-routes.forEach(route => addRoute(route, ''))
 
 export const RouteButton = React.forwardRef(function RouteButton(props, ref) {
   const {component, path, ...moreProps} = props

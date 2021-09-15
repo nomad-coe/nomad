@@ -25,14 +25,13 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogTitle from '@material-ui/core/DialogTitle'
 import PropTypes from 'prop-types'
 import { IconButton, Tooltip, withStyles, Paper, MenuItem, Popper, CircularProgress,
-  FormGroup, Checkbox, FormLabel } from '@material-ui/core'
+  FormGroup, Checkbox } from '@material-ui/core'
 import EditIcon from '@material-ui/icons/Edit'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Delete'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
-import { compose } from 'recompose'
 import { withApi } from './api'
 
 const local_users = {}
@@ -269,9 +268,9 @@ class UserInputUnstyled extends React.Component {
     const {api} = this.props
     query = query.toLowerCase()
     return api.getUsers(query)
-      .then(result => {
-        result.users.forEach(user => update_local_user(user))
-        const withQueryInName = result.users.filter(
+      .then(users => {
+        users.forEach(user => update_local_user(user))
+        const withQueryInName = users.filter(
           user => user.name.toLowerCase().indexOf(query) !== -1)
         withQueryInName.sort((a, b) => {
           const aValue = a.name.toLowerCase()
@@ -322,7 +321,7 @@ class UserInputUnstyled extends React.Component {
   }
 }
 
-const UserInput = withApi(false)(UserInputUnstyled)
+const UserInput = withApi(UserInputUnstyled)
 
 class DatasetInputUnstyled extends React.Component {
   static propTypes = {
@@ -373,7 +372,7 @@ class DatasetInputUnstyled extends React.Component {
   }
 }
 
-const DatasetInput = withApi(false)(DatasetInputUnstyled)
+const DatasetInput = withApi(DatasetInputUnstyled)
 
 class ReferenceInput extends React.Component {
   static propTypes = {
@@ -479,7 +478,7 @@ class ListTextInputUnstyled extends React.Component {
     values: PropTypes.arrayOf(PropTypes.object).isRequired,
     label: PropTypes.string,
     onChange: PropTypes.func,
-    component: PropTypes.func
+    component: PropTypes.any
   }
 
   static styles = theme => ({
@@ -611,15 +610,10 @@ class InviteUserDialogUnstyled extends React.Component {
     this.props.api.inviteUser(this.state.data).then(() => {
       this.handleClose()
     }).catch(error => {
-      // get message in quotes
-      console.error(error)
-      try {
-        let message = ('' + error).match(/'([^']+)'/)[1]
-        try {
-          message = JSON.parse(message).errorMessage
-        } catch (e) {}
-        this.setState({error: message, submitting: false, submitEnabled: false})
-      } catch (e) {
+      const detail = error?.response?.data?.detail
+      if (detail) {
+        this.setState({error: detail, submitting: false, submitEnabled: false})
+      } else {
         this.setState({error: '' + error, submitting: false, submitEnabled: false})
       }
     })
@@ -692,7 +686,7 @@ class InviteUserDialogUnstyled extends React.Component {
   }
 }
 
-const InviteUserDialog = compose(withApi(true, false), withStyles(InviteUserDialogUnstyled.styles))(InviteUserDialogUnstyled)
+const InviteUserDialog = withApi(withStyles(InviteUserDialogUnstyled.styles)(InviteUserDialogUnstyled))
 
 class UserMetadataFieldUnstyled extends React.PureComponent {
   static propTypes = {
@@ -749,7 +743,6 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     disabled: PropTypes.bool,
     title: PropTypes.string,
     info: PropTypes.object,
-    withoutLiftEmbargo: PropTypes.bool,
     text: PropTypes.string
   }
 
@@ -770,9 +763,6 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       left: '50%',
       marginTop: -12,
       marginLeft: -12
-    },
-    liftEmbargoLabel: {
-      marginTop: theme.spacing(3)
     }
   })
 
@@ -788,10 +778,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       references: [],
       coauthors: [],
       shared_with: [],
-      datasets: [],
-      with_embargo: {
-        value: 'lift'
-      }
+      datasets: []
     }
     this.unmounted = false
   }
@@ -1019,7 +1006,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     return (
       <React.Fragment>
         {!this.props.text &&
-          <IconButton {...buttonProps}>
+          <IconButton {...allButtonProps}>
             <Tooltip {...tooltipProps}>
               <EditIcon />
             </Tooltip>
@@ -1085,9 +1072,6 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="Datasets"
                 />
               </UserMetadataField>
-              {!this.props.withoutLiftEmbargo && <UserMetadataField classes={{container: classes.liftEmbargoLabel}} {...metadataFieldProps('with_embargo', true, 'lift')}>
-                <FormLabel>Lift embargo</FormLabel>
-              </UserMetadataField>}
             </DialogContent>
             {this.renderDialogActions(submitting, submitEnabled)}
           </Dialog>
@@ -1126,4 +1110,4 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 }
 
-export default compose(withApi(false, false), withStyles(EditUserMetadataDialogUnstyled.styles))(EditUserMetadataDialogUnstyled)
+export default withApi(withStyles(EditUserMetadataDialogUnstyled.styles)(EditUserMetadataDialogUnstyled))

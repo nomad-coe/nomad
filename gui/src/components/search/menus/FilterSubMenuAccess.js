@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { Grid } from '@material-ui/core'
 import { FilterSubMenu } from './FilterMenu'
 import InputRadio from '../input/InputRadio'
-import { useApi } from '../../apiV1'
+import { useApi } from '../../api'
 
 const FilterSubMenuAccess = React.memo(({
   value,

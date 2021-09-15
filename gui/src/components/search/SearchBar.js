@@ -32,7 +32,7 @@ import {
   Typography
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import { useUnits } from '../../units'
 import { isMetaNumber, isMetaTimestamp } from '../../utils'
 import {

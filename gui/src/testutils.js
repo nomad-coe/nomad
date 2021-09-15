@@ -20,7 +20,6 @@ import React from 'react'
 import { RecoilRoot } from 'recoil'
 import { compose } from 'recompose'
 import { render } from '@testing-library/react'
-import { apiContext as apiContextV0 } from './components/api'
 import { Router } from 'react-router-dom'
 import {
   archiveDftBulk
@@ -94,22 +93,6 @@ export function withKeycloakMock(Component) {
 }
 
 /**
- * HOC for injecting a mocked API implementation.
- */
-export function withApiV0Mock(Component) {
-  const apiValue = {
-    api: {
-      archive: (upload_id, calc_id) => {
-        return wait(archives.get(calc_id))
-      }
-    }
-  }
-  return <apiContextV0.Provider value={apiValue}>
-    {Component}
-  </apiContextV0.Provider>
-}
-
-/**
  * HOC for Router dependency injection
  */
 export function withRouterMock(Component) {
@@ -133,8 +116,7 @@ export function withRecoilRoot(Component) {
 export function renderWithAPIRouter(component) {
   return render(compose(
     withRecoilRoot,
-    withRouterMock,
-    withApiV0Mock
+    withRouterMock
   )(component))
 }
 

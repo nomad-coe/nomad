@@ -427,7 +427,9 @@ def test_entries_raw(client, data, query, files, total, files_per_entry, status_
     pytest.param({}, {'re_pattern': 'test_entry_02/.*\\.json'}, 1, 1, 200, id='re-filter-entries-and-files'),
     pytest.param({}, {'glob_pattern': '*.json', 're_pattern': '.*\\.aux'}, 23, 4, 200, id='re-overwrites-glob'),
     pytest.param({}, {'re_pattern': '**'}, -1, -1, 422, id='bad-re-pattern'),
-    pytest.param({}, {'compress': True}, 23, 5, 200, id='compress')
+    pytest.param({}, {'compress': True}, 23, 5, 200, id='compress'),
+    pytest.param({}, {'include_files': ['1.aux']}, 23, 1, 200, id='file'),
+    pytest.param({}, {'include_files': ['1.aux', '2.aux']}, 23, 2, 200, id='files')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_download_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
@@ -463,7 +465,10 @@ def test_entry_raw(client, data, entry_id, files_per_entry, status_code):
     pytest.param('id_01', {'glob_pattern': '*.json'}, 1, 200, id='glob'),
     pytest.param('id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
     pytest.param('id_01', {'re_pattern': '**'}, -1, 422, id='bad-re-pattern'),
-    pytest.param('id_01', {'compress': True}, 5, 200, id='compress')])
+    pytest.param('id_01', {'compress': True}, 5, 200, id='compress'),
+    pytest.param('id_01', {'include_files': ['1.aux']}, 1, 200, id='file'),
+    pytest.param('id_01', {'include_files': ['1.aux', '2.aux']}, 2, 200, id='files')
+])
 def test_entry_raw_download(client, data, entry_id, files, files_per_entry, status_code):
     response = client.get('entries/%s/raw/download?%s' % (entry_id, urlencode(files, doseq=True)))
     assert_response(response, status_code)
@@ -601,6 +606,19 @@ def test_entry_archive(client, data, entry_id, status_code):
         assert_archive_response(response.json())
 
 
+@pytest.mark.parametrize('entry_id, status_code', [
+    pytest.param('id_01', 200, id='id'),
+    pytest.param('id_02', 404, id='404-not-visible'),
+    pytest.param('doesnotexist', 404, id='404-does-not-exist')])
+def test_entry_archive_download(client, data, entry_id, status_code):
+    response = client.get('entries/%s/archive/download' % entry_id)
+    assert_response(response, status_code)
+    if status_code == 200:
+        archive = response.json()
+        assert 'metadata' in archive
+        assert 'run' in archive
+
+
 @pytest.mark.parametrize('entry_id, required, status_code', [
     pytest.param('id_01', '*', 200, id='full'),
     pytest.param('id_02', '*', 404, id='404'),
@@ -625,7 +643,9 @@ n_elements = 'results.material.n_elements'
 
 
 @pytest.mark.parametrize('query, status_code, total', post_query_test_parameters(
-    'entry_id', total=23, material_prefix='results.material.', entry_prefix=''))
+    'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
+    pytest.param({'pid': '123'}, 200, 1, id='number-valued-string')
+])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_download_test, id='raw-download'),

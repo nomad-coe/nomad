@@ -116,6 +116,10 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
 
         assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
 
+    assert entry_archive.metadata
+    assert entry_archive.metadata.quantities
+    assert len(entry_archive.metadata.quantities) > 0
+
     # check if the result can be dumped
     dump_json(entry_archive.m_to_dict())
 

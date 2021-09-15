@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import { withStyles, Link, Typography, Tooltip, IconButton, TablePagination } from '@material-ui/core'
 import { compose } from 'recompose'
@@ -31,17 +31,17 @@ import UploaderIcon from '@material-ui/icons/AccountCircle'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { domainData } from '../domainData'
-import { apiContext, withApi } from '../api'
 import { authorList, nameList } from '../../utils'
 import EntryDetails from '../entry/EntryDetails'
 import { EntryButton } from '../nav/Routes'
+import { useApi, withApi } from '../api'
 
 export function Published(props) {
-  const api = useContext(apiContext)
+  const {user} = useApi()
   const {entry} = props
   if (entry.published) {
     if (entry.with_embargo) {
-      if (api.user && entry.uploader.user_id === api.user.sub) {
+      if (user && entry.uploader.user_id === user.sub) {
         if (entry.owners.length === 1) {
           return <Tooltip title="published with embargo by you and only accessible by you">
             <UploaderIcon color="error" />
@@ -51,12 +51,12 @@ export function Published(props) {
             <SharedIcon color="error" />
           </Tooltip>
         }
-      } else if (api.user && entry.owners.find(user => user.user_id === api.user.sub)) {
+      } else if (user && entry.owners.find(user => user.user_id === user.sub)) {
         return <Tooltip title="published with embargo and shared with you">
           <SharedIcon color="error" />
         </Tooltip>
       } else {
-        if (api.user) {
+        if (user) {
           return <Tooltip title="published with embargo and not accessible by you">
             <PrivateIcon color="error" />
           </Tooltip>
@@ -424,6 +424,6 @@ export class EntryListUnstyled extends React.Component {
   }
 }
 
-const EntryList = compose(withRouter, withApi(false, false), withStyles(EntryListUnstyled.styles))(EntryListUnstyled)
+const EntryList = withApi(compose(withRouter, withStyles(EntryListUnstyled.styles))(EntryListUnstyled))
 
 export default EntryList

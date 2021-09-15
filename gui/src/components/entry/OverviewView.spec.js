@@ -25,10 +25,10 @@ import '@testing-library/jest-dom/extend-expect'
 import {
   repoDftBulk
 } from '../../../tests/DFTBulk'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import OverviewView from './OverviewView'
 
-jest.mock('../apiV1')
+jest.mock('../api')
 
 beforeAll(() => {
   useApi.mockReturnValue({
@@ -42,7 +42,7 @@ beforeAll(() => {
   })
 })
 
-afterAll(() => jest.unmock('../apiV1'))
+afterAll(() => jest.unmock('../api'))
 
 function expectPlotButtons(plot) {
   expect(within(plot).getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
