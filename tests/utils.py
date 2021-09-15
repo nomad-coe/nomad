@@ -195,7 +195,7 @@ class ExampleData:
                     # Mirror fields from upload
                     entry_metadata.uploader = upload_dict['user_id']
                     entry_metadata.upload_time = upload_dict['upload_time']
-                mongo_entry.apply_entry_metadata(entry_metadata)
+                mongo_entry._apply_metadata_to_mongo_entry(entry_metadata)
                 mongo_entry.save()
 
         if with_es:

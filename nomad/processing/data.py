@@ -212,37 +212,14 @@ class Calc(Proc):
         Existing values in self.metadata are loaded first, then generated system values are
         applied.
         '''
-        self._entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
-        self._set_system_metadata(self._entry_metadata)
-        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        self._entry_metadata.last_processing = datetime.utcnow()
-        self._entry_metadata.processing_errors = []
+        self._entry_metadata = datamodel.EntryMetadata()
+        self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
+        self._apply_metadata_from_process(self._entry_metadata)
 
         self._parser_results = EntryArchive()
         self._parser_results.metadata = self._entry_metadata
 
-    def _set_system_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        '''
-        Sets the system metadata on the given :class:`nomad.datamodel.EntryMetadata`, except
-        for some metadata values that are only set when an Entry starts processing.
-        '''
-        if self.parser is not None:
-            entry_metadata.parser_name = self.parser
-            parser = parser_dict[self.parser]
-            if parser.domain:
-                entry_metadata.domain = parser_dict[self.parser].domain
-        entry_metadata.upload_id = self.upload_id
-        entry_metadata.calc_id = self.calc_id
-        entry_metadata.mainfile = self.mainfile
-        entry_metadata.nomad_version = config.meta.version
-        entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.uploader = self.upload.user_id
-        entry_metadata.upload_time = self.upload.upload_time
-        entry_metadata.upload_name = self.upload.name
-        entry_metadata.with_embargo = (self.upload.embargo_length > 0)
-
-    def _read_metadata_from_file(self, logger):
+    def _apply_metadata_from_file(self, logger):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
@@ -301,10 +278,53 @@ class Calc(Proc):
                     'Could not apply user metadata from nomad.yaml/json file',
                     quantitiy=definition.name, exc_info=e)
 
+    def _apply_metadata_from_process(self, entry_metadata: datamodel.EntryMetadata):
+        '''
+        Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
+        '''
+        entry_metadata.nomad_version = config.meta.version
+        entry_metadata.nomad_commit = config.meta.commit
+        entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+        entry_metadata.last_processing = datetime.utcnow()
+        entry_metadata.processing_errors = []
+
+    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: datamodel.EntryMetadata):
+        '''
+        Loads entry metadata from mongo (that is: from `self` and the provided `upload` object)
+        and applies the values to `entry_metadata`.
+        '''
+        assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
+        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten
+        # Upload metadata
+        entry_metadata.upload_id = upload.upload_id
+        entry_metadata.uploader = upload.user_id
+        entry_metadata.upload_time = upload.upload_time
+        entry_metadata.upload_name = upload.name
+        entry_metadata.with_embargo = (upload.embargo_length > 0)
+        # Entry metadata
+        if self.parser is not None:
+            entry_metadata.parser_name = self.parser
+            parser = parser_dict[self.parser]
+            if parser.domain:
+                entry_metadata.domain = parser_dict[self.parser].domain
+        entry_metadata.calc_id = self.calc_id
+        entry_metadata.mainfile = self.mainfile
+
+    def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
+        '''
+        Applies the metadata fields that are stored on the mongo entry level to self.
+        In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
+        but excluding upload level metadata.
+        '''
+        self.metadata = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
+
     def full_entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
         '''
         Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
-        the user metadata, system metadata, and metadata from the archive.
+        both the mongo metadata and the metadata from the archive.
 
         Arguments:
             upload_files:
@@ -333,29 +353,17 @@ class Calc(Proc):
             if self._entry_metadata is not None:
                 return self._entry_metadata
             else:
-                return self.user_and_system_metadata()
+                return self.mongo_metadata(self.upload)
 
-    def user_and_system_metadata(self) -> datamodel.EntryMetadata:
+    def mongo_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with user metadata and system
-        metadata only, no archive metadata. That is: the metadata that is stored on this
-        Mongo document, i.e. in the `self.metadata` dictionary. Generated system values
-        are also included if not set yet.
+        Returns a :class:`nomad.datamodel.EntryMetadata` with mongo metadata only
+        (fetched from `self` and `upload`), no archive metadata.
         '''
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
         entry_metadata = datamodel.EntryMetadata()
-        self._set_system_metadata(entry_metadata)  # Apply standard system generated values.
-        entry_metadata.m_update_from_dict(self.metadata)  # Apply any values stored in self.metadata
-
+        self._apply_metadata_from_mongo(upload, entry_metadata)
         return entry_metadata
-
-    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        '''
-        Applies the given user and system metadata to the mongo document, i.e. to
-        `self.metadata`.
-        '''
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
 
     @property
     def upload_files(self) -> StagingUploadFiles:
@@ -493,7 +501,7 @@ class Calc(Proc):
             self._entry_metadata.processed = False
 
             try:
-                self.apply_entry_metadata(self._entry_metadata)
+                self._apply_metadata_to_mongo_entry(self._entry_metadata)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply entry metadata to entry', exc_info=e)
@@ -624,7 +632,7 @@ class Calc(Proc):
         finally:
             # persist the calc metadata
             with utils.timer(logger, 'calc metadata saved'):
-                self.apply_entry_metadata(self._entry_metadata)
+                self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
@@ -674,13 +682,13 @@ class Calc(Proc):
             self._entry_metadata.published |= True
 
         try:
-            self._read_metadata_from_file(logger)
+            self._apply_metadata_from_file(logger)
         except Exception as e:
             logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
 
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
-            self.apply_entry_metadata(self._entry_metadata)
+            self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
@@ -1491,7 +1499,7 @@ class Upload(Proc):
 
             with utils.timer(logger, 'staged upload files re-packed'):
                 self.staging_upload_files.pack(
-                    self.entries_user_and_system_metadata(),
+                    self.entries_mongo_metadata(),
                     with_embargo=(self.embargo_length > 0),
                     create=False, include_raw=False)
 
@@ -1617,12 +1625,12 @@ class Upload(Proc):
         finally:
             upload_files.close()
 
-    def entries_user_and_system_metadata(self) -> List[datamodel.EntryMetadata]:
+    def entries_mongo_metadata(self) -> List[datamodel.EntryMetadata]:
         '''
-        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the user and
-        system metadata only, for all entries of this upload.
+        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the mongo metadata
+        only, for all entries of this upload.
         '''
-        return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
+        return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
 
     @process
     def set_upload_metadata(self, metadata: Dict[str, Any]):
@@ -1954,7 +1962,7 @@ class Upload(Proc):
                         entry_metadata_dict['datasets'] = []
                     entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
                     entry_metadata.upload_time = self.upload_time  # Set same upload_time everywhere
-                    entry.apply_entry_metadata(entry_metadata)
+                    entry._apply_metadata_to_mongo_entry(entry_metadata)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
                     assert False, 'Invalid entry metadata: ' + str(e)
