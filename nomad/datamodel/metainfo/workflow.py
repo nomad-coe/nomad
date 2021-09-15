@@ -7,6 +7,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.metainfo.search_extension import Search
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
+from nomad.datamodel.metainfo.simulation.system import System
 from .common import FastAccess
 
 
@@ -562,6 +563,57 @@ class Phonon(MSection):
         ''',
         a_search=Search())
 
+    n_bands = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of phonon bands.
+        ''')
+
+    n_qpoints = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of q points for which phonon properties are evaluated.
+        ''')
+
+    qpoints = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_qpoints', 3],
+        description='''
+        Value of the qpoints.
+        ''')
+
+    group_velocity = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_qpoints', 'n_bands', 3],
+        unit='meter / second',
+        description='''
+        Calculated value of the group velocity at each qpoint.
+        ''')
+
+    n_displacements = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of independent displacements.
+        ''')
+
+    n_atoms = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of atoms in the simulation cell.
+        ''')
+
+    displacements = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_displacements', 'n_atoms', 3],
+        unit='meter',
+        description='''
+        Value of the displacements applied to each atom in the simulation cell.
+        ''')
+
 
 class StrainDiagrams(MSection):
     '''
@@ -882,6 +934,44 @@ class Elastic(MSection):
         repeats=True)
 
 
+class Stability(MSection):
+    '''
+    Section containing information regarding the stability of the system.
+    '''
+
+    m_def = Section(validate=False)
+
+    n_references = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of reference systems.
+        ''')
+
+    systems_ref = Quantity(
+        type=Reference(System.m_def),
+        shape=['n_references'],
+        description='''
+        References to the reference systems.
+        ''')
+
+    formation_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Calculated value of the formation energy of the compound.
+        ''')
+
+    delta_formation_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Difference of the formation energy and the corresponding value at the convex hull.
+        ''')
+
+
 class Thermodynamics(MSection):
     '''
     Section containing the results of a thermodynamics workflow.
@@ -914,7 +1004,7 @@ class Thermodynamics(MSection):
         tensor) corresponding to each property evaluation.
         ''')
 
-    helmholz_free_energy = Quantity(
+    helmholtz_free_energy = Quantity(
         type=np.dtype(np.float64),
         shape=['n_values'],
         unit='joule',
@@ -1018,6 +1108,24 @@ class Thermodynamics(MSection):
         description='''
         Calculated value of the Gibbs free energy, G.
         ''')
+
+    entropy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule / kelvin',
+        description='''
+        Calculated value of the entropy.
+        ''')
+
+    internal_energy = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='joule',
+        description='''
+        Calculated value of the internal energy, U.
+        ''')
+
+    stability = SubSection(sub_section=Stability.m_def, repeats=False)
 
 
 class MolecularDynamics(MSection):
