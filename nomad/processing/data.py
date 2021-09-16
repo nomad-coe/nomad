@@ -319,18 +319,18 @@ class Calc(Proc):
         '''
         self.metadata = entry_metadata.m_to_dict(
             include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
 
-    def full_entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
+    def full_entry_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
         '''
         Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
         both the mongo metadata and the metadata from the archive.
 
         Arguments:
-            upload_files:
-                The :class:`nomad.files.UploadFiles` instance to read the archive from.
+            upload: The :class:`Upload` to which this entry belongs.
         '''
-        archive = upload_files.read_archive(self.calc_id)
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
+        archive = upload.upload_files.read_archive(self.calc_id)
         try:
             # instead of loading the whole archive, it should be enough to load the
             # parts that are referenced by section_metadata/EntryMetadata
@@ -345,7 +345,7 @@ class Calc(Proc):
             if section_results in calc_archive:
                 entry_archive_dict[section_results] = calc_archive[section_results].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
-            entry_metadata.m_update_from_dict(self.metadata)
+            self._apply_metadata_from_mongo(upload, entry_metadata)
             return entry_metadata
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not
@@ -1615,15 +1615,14 @@ class Upload(Proc):
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
         '''
-        upload_files = self.upload_files
         try:
             # read all calc objects first to avoid missing curser errors
             yield [
-                calc.full_entry_metadata(upload_files)
+                calc.full_entry_metadata(self)
                 for calc in list(Calc.objects(upload_id=self.upload_id))]
 
         finally:
-            upload_files.close()
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
     def entries_mongo_metadata(self) -> List[datamodel.EntryMetadata]:
         '''
@@ -1654,42 +1653,47 @@ class Upload(Proc):
         logger = self.get_logger()
         upload_metadata = UploadMetadata.m_from_dict(metadata)
 
+        need_to_reindex = False
         need_to_repack = False
         new_entry_metadata = {}
         if upload_metadata.upload_name is not None:
             self.name = upload_metadata.upload_name
-            new_entry_metadata['upload_name'] = upload_metadata.upload_name
+            need_to_reindex = True
         if upload_metadata.embargo_length is not None:
             assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
-            if self.published:
-                need_to_repack = (self.embargo_length > 0) != (upload_metadata.embargo_length > 0)
+            if self.published and (self.embargo_length > 0) != (upload_metadata.embargo_length > 0):
+                need_to_repack = True
+                need_to_reindex = True
+                new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
             self.embargo_length = upload_metadata.embargo_length
-            new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
         if upload_metadata.uploader is not None:
             self.user_id = upload_metadata.uploader.user_id
             new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
+            need_to_reindex = True
         if upload_metadata.upload_time is not None:
             self.upload_time = upload_metadata.upload_time
             new_entry_metadata['upload_time'] = upload_metadata.upload_time
+            need_to_reindex = True
 
         self.save()
 
         if need_to_repack:
             PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
 
-        if new_entry_metadata and self.total_calcs > 0:
+        if need_to_reindex and self.total_calcs > 0:
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(entry_metadata):
-                        entry_metadata.m_update_from_dict(new_entry_metadata)
-                        return UpdateOne(
-                            {'_id': entry_metadata.calc_id},
-                            {'$set': {'metadata': entry_metadata.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
+                if new_entry_metadata:
+                    with utils.timer(logger, 'upload metadata updated'):
+                        def create_update(entry_metadata):
+                            entry_metadata.m_update_from_dict(new_entry_metadata)
+                            return UpdateOne(
+                                {'_id': entry_metadata.calc_id},
+                                {'$set': {'metadata': entry_metadata.m_to_dict(
+                                    include_defaults=True, categories=[datamodel.MongoMetadata])}})
 
-                    Calc._get_collection().bulk_write([
-                        create_update(entry_metadata) for entry_metadata in entries_metadata])
+                        Calc._get_collection().bulk_write([
+                            create_update(entry_metadata) for entry_metadata in entries_metadata])
 
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
@@ -1812,7 +1816,6 @@ class Upload(Proc):
             logger = self.get_logger(bundle_path=bundle_path)
             settings = config.bundle_import.default_settings.customize(settings)  # Add defaults
             bundle: UploadBundle = None
-            upload_files: UploadFiles = None
             new_datasets: List[datamodel.Dataset] = []
             entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in ES
             bundle = UploadBundle(bundle_path)
@@ -1974,7 +1977,7 @@ class Upload(Proc):
                 self.embargo_length = embargo_length  # Set the flag also on the Upload level
 
             # Import the files
-            upload_files = bundle.import_upload_files(
+            bundle.import_upload_files(
                 settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
                 move_files)
 
@@ -1986,12 +1989,13 @@ class Upload(Proc):
             if settings.include_archive_files:
                 for entry in entries:
                     try:
-                        entry_metadata = entry.full_entry_metadata(upload_files)
+                        entry_metadata = entry.full_entry_metadata(self)
                         entry_data_to_index.append(
                             cast(datamodel.EntryArchive, entry_metadata.m_parent))
                         # TODO: Should we validate the entire ArchiveObject, not just the indexed data?
                     except Exception as e:
                         assert False, 'Invalid metadata in archive entry: ' + str(e)
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
             # Everything looks good - save to mongo.
             self.save()

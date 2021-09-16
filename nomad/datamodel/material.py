@@ -24,7 +24,6 @@ from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.metainfo.search_extension import Search
 from nomad.metainfo.elastic_extension import ElasticDocument
-from nomad.datamodel.datamodel import MongoMetadata, EditableUserMetadata
 
 
 class DOSSimilarity(MSection):
@@ -496,11 +495,10 @@ class Calculation(MSection):
     published = Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        categories=[MongoMetadata],
         a_search=Search()
     )
     with_embargo = Quantity(
-        type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
+        type=bool, default=False,
         description='Indicated if this entry is under an embargo',
         a_search=Search()
     )

@@ -317,7 +317,10 @@ class OasisMetadata(metainfo.MCategory):
 
 
 class MongoMetadata(metainfo.MCategory):
-    ''' NOMAD entry quantities that are stored in mongodb and not necessarely in the archive. '''
+    '''
+    NOMAD entry quantities that are stored in mongodb on the entry level, in the metadata dict,
+    and not necessarely in the archive.
+    '''
     pass
 
 
@@ -611,7 +614,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_name = metainfo.Quantity(
-        type=str, categories=[MongoMetadata],
+        type=str,
         description='The user provided upload name',
         a_search=Search(many_or='append'))
 

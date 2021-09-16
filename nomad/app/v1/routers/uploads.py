@@ -47,7 +47,7 @@ logger = utils.get_logger(__name__)
 
 
 class UploadMetadata(BaseModel):
-    name: Optional[str] = Field(None, description=strip('''
+    upload_name: Optional[str] = Field(None, description=strip('''
         A user-firendly name of the upload. Does not need to be unique'''))
     embargo_length: Optional[int] = Field(None, description=strip('''
         The embargo length in months (max 36).'''))
@@ -323,7 +323,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
     token = generate_upload_token(user)
     api_url = config.api_url(ssl=config.services.https_upload, api='api/v1')
     upload_url = f'{api_url}/uploads?token={token}'
-    upload_url_with_name = upload_url + '&name=<name>'
+    upload_url_with_name = upload_url + '&upload_name=<name>'
     # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
     # It is also easier for the user to unterstand IMHO.
     upload_command = f"curl -X POST '{upload_url}' -T <local_file>"
@@ -842,19 +842,19 @@ async def post_upload(
 
     upload_id = utils.create_uuid()
 
-    if metadata.name and not file_name and files.is_safe_basename(metadata.name):
+    if metadata.upload_name and not file_name and files.is_safe_basename(metadata.upload_name):
         # Try to default the file_name using name
-        file_name = metadata.name
+        file_name = metadata.upload_name
 
     upload_path, method = await _get_file_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not metadata.name:
-        # Try to default name
+    if not metadata.upload_name:
+        # Try to default upload_name
         if method == 2:
-            metadata.name = file_name or None
+            metadata.upload_name = file_name or None
         elif upload_path:
-            metadata.name = os.path.basename(upload_path)
+            metadata.upload_name = os.path.basename(upload_path)
 
     checked_upload_metadata = _check_upload_metadata(
         metadata, is_admin=user.is_admin, published=False, current_embargo_length=0)
@@ -1460,7 +1460,7 @@ def _check_upload_metadata(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f'Must be admin to change {field}')
         if published:
-            for field in ('name',):
+            for field in ('upload_name',):
                 if getattr(metadata, field) is not None:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1490,7 +1490,7 @@ def _check_upload_metadata(
                     detail='Upload is published, embargo can only be shortened or lifted.')
 
     upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
-    upload_metadata.upload_name = metadata.name
+    upload_metadata.upload_name = metadata.upload_name
     upload_metadata.embargo_length = metadata.embargo_length
     upload_metadata.uploader = uploader
     upload_metadata.upload_time = metadata.upload_time
