@@ -17,16 +17,10 @@
  */
 import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  FormControlLabel,
-  RadioGroup,
-  Radio,
-  Tooltip,
-  Typography
-} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import InputLabel from './InputLabel'
+import InputItem from './InputItem'
 import searchQuantities from '../../../searchQuantities'
 import { useFilterState, useFilterLocked } from '../SearchContext'
 
@@ -60,21 +54,24 @@ const InputRadio = React.memo(({
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleChange = useCallback((event, value) => {
+  const handleChange = useCallback((value, selected) => {
     setFilter(value)
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputLabel label={title} description={desc}/>
-    <RadioGroup aria-label={label} name={label} value={filter || initialValue} onChange={handleChange}>
-      {options && Object.entries(options).map(([key, value]) =>
-        <FormControlLabel key={key} value={key} control={<Radio disabled={locked || value.disabled}/>} label={
-          <Tooltip placement="right" enterDelay={500} title={value.tooltip}>
-            <Typography>{value.label}</Typography>
-          </Tooltip>
-        }/>
-      )}
-    </RadioGroup>
+    {options && Object.entries(options).map(([key, value]) =>
+      <InputItem
+        key={key}
+        value={key}
+        label={value.label}
+        disabled={locked || value.disabled}
+        selected={(filter || initialValue) === key}
+        onChange={handleChange}
+        tooltip={value.tooltip}
+        variant="radio"
+      />
+    )}
   </div>
 })
 

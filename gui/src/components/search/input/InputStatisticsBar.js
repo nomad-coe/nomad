@@ -20,6 +20,7 @@ import clsx from 'clsx'
 import { Typography } from '@material-ui/core/'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * A rectangular bar displaying the relative occurence of a specific value. Uses
@@ -28,7 +29,6 @@ import PropTypes from 'prop-types'
  */
 const useStyles = makeStyles(theme => ({
   root: {
-    zIndex: -100
   },
   container: {
     position: 'relative',
@@ -61,11 +61,13 @@ const InputStatisticsBar = React.memo(({
 }) => {
   const styles = useStyles()
   const scale = (value && max) ? value / max : 0
+  const {useIsStatisticsCountEnabled} = useSearchContext()
+  const isStatisticsCountEnabled = useIsStatisticsCountEnabled()
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={styles.container}>
       <div className={styles.rectangle} style={{transform: `scaleX(${scale})`}}></div>
-      <Typography className={styles.value}>{value || ''}</Typography>
+      {isStatisticsCountEnabled && <Typography className={styles.value}>{value || ''}</Typography>}
     </div>
   </div>
 })

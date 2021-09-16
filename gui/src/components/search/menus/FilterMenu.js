@@ -26,6 +26,7 @@ import {
   ListItemIcon,
   Divider,
   Paper,
+  Menu,
   Typography
 } from '@material-ui/core'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
@@ -34,8 +35,10 @@ import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
+import FilterSettings from './FilterSettings'
 import { Actions, Action } from '../../Actions'
 import { filterGroups, useResetFilters } from '../SearchContext'
+import { MoreVert } from '@material-ui/icons'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more
@@ -190,7 +193,17 @@ export const FilterMenuItems = React.memo(({
 }) => {
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const isSettingsOpen = Boolean(anchorEl)
   const resetFilters = useResetFilters()
+
+  // Callbacks
+  const openMenu = useCallback((event) => {
+    setAnchorEl(event.currentTarget)
+  }, [])
+  const closeMenu = useCallback(() => {
+    setAnchorEl(null)
+  }, [])
 
   // Unfortunately the ClickAwayListener does not play nicely together with
   // Menus/Select/Popper. When using Portals, the clicks are registered wrong.
@@ -212,8 +225,27 @@ export const FilterMenuItems = React.memo(({
           >
             <ClearIcon/>
           </Action>
+          <Action
+            tooltip="Options"
+            onClick={openMenu}
+          >
+            <MoreVert/>
+          </Action>
+          <Menu
+            anchorEl={anchorEl}
+            open={isSettingsOpen}
+            onClose={closeMenu}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            keepMounted
+          >
+            <div>
+              <FilterSettings/>
+            </div>
+          </Menu>
           {!collapsed && <Action
-            tooltip={'Close filter menu'}
+            tooltip={'Hide filter menu'}
             onClick={() => {
               onCollapsedChange(old => !old)
               onOpenChange(false)
@@ -232,7 +264,7 @@ export const FilterMenuItems = React.memo(({
     <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
       <Actions className={styles.header}>
         {collapsed && <Action
-          tooltip={'Open filter menu'}
+          tooltip={'Show filter menu'}
           onClick={() => {
             onCollapsedChange(false)
           }}
@@ -426,7 +458,7 @@ export const FilterSubMenus = React.memo(({
             className={styles.header}
           >
             <Action
-              tooltip="Hide filter panel"
+              tooltip="Close submenu"
               onClick={() => { onOpenChange(false) }}
               className={styles.button}
             >

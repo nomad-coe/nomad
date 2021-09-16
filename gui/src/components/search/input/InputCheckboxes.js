@@ -17,16 +17,13 @@
  */
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Grid,
-  FormControlLabel,
-  Checkbox
-} from '@material-ui/core'
+import { Grid } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
+import InputItem from './InputItem'
 import {
   useFilterState,
   useAgg,
@@ -34,7 +31,6 @@ import {
   useFilterLocked
 } from '../SearchContext'
 import { isArray } from 'lodash'
-import InputStatisticsBar from './InputStatisticsBar'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -131,9 +127,9 @@ const InputCheckboxes = React.memo(({
     setVisibleOptions(opt)
   }, [agg, filter, finalOptions, locked])
 
-  const handleChange = useCallback((event) => {
+  const handleChange = useCallback((key, value) => {
     const newOptions = {...visibleOptions}
-    newOptions[event.target.name].checked = event.target.checked
+    newOptions[key].checked = value
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
@@ -142,15 +138,15 @@ const InputCheckboxes = React.memo(({
 
   const checkboxes = visibleOptions && Object.entries(visibleOptions).map(([key, value]) => {
     return <Grid item xs={xs} key={key} className={styles.gridItem}>
-      <InputStatisticsBar
-        className={styles.bar}
-        max={agg?.total}
-        value={value.count}
-      />
-      <FormControlLabel
-        control={<Checkbox checked={value.checked} onChange={handleChange} name={key}/>}
-        label={value.label || key}
+      <InputItem
+        value={key}
+        label={value.label}
+        selected={value.checked}
         disabled={value.disabled}
+        onChange={handleChange}
+        variant="checkbox"
+        total={agg?.total}
+        count={value.count}
       />
     </Grid>
   })

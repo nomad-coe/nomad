@@ -21,8 +21,6 @@ import { makeStyles, useTheme, withStyles } from '@material-ui/core/styles'
 import {
   Select,
   MenuItem,
-  Checkbox,
-  ListItemText,
   OutlinedInput
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
@@ -31,6 +29,7 @@ import FilterChip from '../FilterChip'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
+import InputItem from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 // This forces the menu to have a fixed anchor instead of jumping around
@@ -64,6 +63,16 @@ const useStyles = makeStyles(theme => ({
   },
   icon: {
     right: theme.spacing(1)
+  },
+  bar: {
+    position: 'absolute',
+    left: theme.spacing(0),
+    right: theme.spacing(0),
+    top: theme.spacing(1),
+    bottom: theme.spacing(1)
+  },
+  statsContainer: {
+    position: 'relative'
   }
 }))
 const InputSelect = React.memo(({
@@ -87,6 +96,10 @@ const InputSelect = React.memo(({
   const desc = description || def?.description || ''
   const title = label || def?.name
 
+  const handleChange = useCallback((event) => {
+    setFilter(new Set(event.target.value))
+  }, [setFilter])
+
   // Create a list of options
   const menuItems = useMemo(() => {
     const items = []
@@ -94,19 +107,22 @@ const InputSelect = React.memo(({
       for (let option of agg.data) {
         const value = option.value
         if (option.count > 0) {
-          items.push(<MenuItem key={value} value={value}>
-            <Checkbox checked={filter ? filter.has(value) : false} />
-            <ListItemText primary={value} />
-          </MenuItem>)
+          items.push(
+            <MenuItem key={value} value={value}>
+              <InputItem
+                value={value}
+                selected={filter ? filter.has(value) : false}
+                total={agg.total}
+                variant="checkbox"
+                count={option.count}
+              />
+            </MenuItem>
+          )
         }
       }
     }
     return items
   }, [agg, filter])
-
-  const handleChange = useCallback((event) => {
-    setFilter(new Set(event.target.value))
-  }, [setFilter])
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>

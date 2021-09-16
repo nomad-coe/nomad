@@ -65,7 +65,8 @@ const Search = React.memo(({
   header
 }) => {
   const styles = useStyles()
-  const {isMenuOpen, setIsMenuOpen} = useSearchContext()
+  const {useIsMenuOpen, useSetIsMenuOpen} = useSearchContext()
+  const [isMenuOpen, setIsMenuOpen] = [useIsMenuOpen(), useSetIsMenuOpen()]
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
 
   return <div className={styles.root}>

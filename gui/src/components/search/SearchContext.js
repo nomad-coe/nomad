@@ -265,6 +265,18 @@ for (const name of Object.keys(searchQuantities)) {
   entryNames[materialName] = name
 }
 
+/**
+ * React context that provides access to the search state implemented with
+ * Recoil.js. The purpose of this Context is to hide the Recoil.js
+ * implementation details and provide a clean access to individual states in
+ * order to prevent unnecessary re-renders (if we were to provide state values
+ * and setters in a vanilla React Context, updating a single filter would cause
+ * all components using the context to update.)
+ *
+ * At the moment we use a global set of Recoil.js atoms. These are reused throughout the application.
+ * If in the future we need to use several searchcontexts simultaneously, each
+ * SearchContext could instantiate it's own set of atoms dynamically.
+ */
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
   resource,
@@ -275,8 +287,6 @@ export const SearchContext = React.memo(({
   const setLocked = useSetRecoilState(lockedState)
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [menuPath, setMenuPath] = useState('Filters')
 
   // Reset the query/locks when entering the search context for the first time
   const reset = useRecoilCallback(({reset}) => () => {
@@ -345,11 +355,13 @@ export const SearchContext = React.memo(({
 
   const values = useMemo(() => ({
     resource,
-    isMenuOpen,
-    setIsMenuOpen,
-    menuPath,
-    setMenuPath
-  }), [resource, isMenuOpen, menuPath])
+    useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
+    useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
+    useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
+    useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
+    useIsStatisticsCountEnabled: () => useRecoilValue(isStatisticsCountEnabledState),
+    useSetIsStatisticsCountEnabled: () => useSetRecoilState(isStatisticsCountEnabledState)
+  }), [resource])
 
   return <searchContext.Provider value={values}>
     {children}
@@ -385,9 +397,21 @@ export const lockedFamily = atomFamily({
   default: false
 })
 
-// Whether the search is initialized.
 export const initializedState = atom({
   key: 'initialized',
+  default: false
+})
+
+export const isStatisticsEnabledState = atom({
+  key: 'statisticsEnabled',
+  default: true
+})
+export const isStatisticsCountEnabledState = atom({
+  key: 'statisticsCountEnabled',
+  default: true
+})
+export const isMenuOpenState = atom({
+  key: 'isMenuOpen',
   default: false
 })
 
