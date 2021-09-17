@@ -43,7 +43,7 @@ class TaskNormalizer(Normalizer):
         workflow_index = workflow_index if len(entry_archive.workflow) < workflow_index else -1
         self.workflow = entry_archive.workflow[workflow_index]
         run = self.workflow.run_ref
-        self.run = run[-1].value if run else entry_archive.run[-1]
+        self.run = run if run else entry_archive.run[-1]
 
 
 class SinglePointNormalizer(TaskNormalizer):
@@ -240,7 +240,7 @@ class PhononNormalizer(TaskNormalizer):
             return
         result = 0
         for band_segment in sec_band[0].segment:
-            freq = band_segment.value
+            freq = band_segment.energies.magnitude
             result += np.count_nonzero(np.array(freq) < 0)
         return result
 
@@ -383,22 +383,25 @@ class ThermodynamicsNormalizer(TaskNormalizer):
                         values.append(quantity.magnitude if hasattr(quantity, 'magnitude') else quantity)
                 except Exception:
                     pass
+            if len(values) == 0:
+                return
+
             unit = quantity.units if hasattr(quantity, 'units') else 1.0
             setattr(self.section, name, np.array(values) * unit)
 
-        if not self.section.temperature:
+        if self.section.temperature is None:
             set_thermo_property('temperature')
 
-        if not self.section.pressure:
+        if self.section.pressure is None:
             set_thermo_property('pressure')
 
-        if not self.section.helmholz_free_energy:
-            set_thermo_property('helmholz_free_energy')
+        if self.section.helmholtz_free_energy is None:
+            set_thermo_property('helmholtz_free_energy')
 
-        if not self.section.vibrational_free_energy_at_constant_volume:
+        if self.section.vibrational_free_energy_at_constant_volume is None:
             set_thermo_property('vibrational_free_energy_at_constant_volume')
 
-        if not self.section.heat_capacity_c_v:
+        if self.section.heat_capacity_c_v is None:
             set_thermo_property('heat_capacity_c_v')
 
         # TODO add values for specific energy
@@ -452,7 +455,7 @@ class WorkflowNormalizer(Normalizer):
         for n, sec_workflow in enumerate(self.entry_archive.workflow):
             # we get reference the referenced run from which information can be extracted
             sec_run = sec_workflow.run_ref
-            sec_run = sec_run[-1].value if sec_run else self.entry_archive.run[-1]
+            sec_run = sec_run if sec_run else self.entry_archive.run[-1]
 
             scc = sec_run.calculation
             if not sec_workflow.calculation_result_ref:

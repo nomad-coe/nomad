@@ -959,19 +959,24 @@ class MultipolesEntry(Atomic):
 
     value = Quantity(
         type=np.dtype(np.float64),
-        shape=['n_multipoles'],
+        shape=['n_atoms', 'n_multipoles'],
         description='''
-        Value of the multipoles.
+        Value of the multipoles projected unto the atoms.
         ''')
 
-    atom_projected = SubSection(sub_section=MultipolesValues.m_def, repeats=False)
+    total = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_multipoles'],
+        description='''
+        Total value of the multipoles.
+        ''')
 
-    orbital_projected = SubSection(sub_section=MultipolesValues.m_def, repeats=False)
+    orbital_projected = SubSection(sub_section=MultipolesValues.m_def, repeats=True)
 
 
 class Multipoles(MSection):
     '''
-    Section containing the multipoles (charges/monopoles, dipoles, quadrupoles, ...)
+    Section containing the multipoles (dipoles, quadrupoles, ...)
     for each atom.
     '''
 
