@@ -133,13 +133,18 @@ async def get_datasets(
         name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
+        doi: str = FastApiQuery(None),
+        prefix: str = FastApiQuery(None),
         pagination: DatasetPagination = Depends(dataset_pagination_parameters)):
     '''
     Retrieves all datasets that match the given criteria.
     '''
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(dataset_id=dataset_id, name=name, user_id=user_id, dataset_type=dataset_type)
+    query_params = dict(dataset_id=dataset_id, name=name, user_id=user_id, dataset_type=dataset_type, doi=doi)
+    if prefix and prefix != '':
+        query_params.update(name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
+
     mongodb_query = mongodb_objects(**query_params)
 
     order_by = pagination.order_by if pagination.order_by is not None else 'dataset_id'

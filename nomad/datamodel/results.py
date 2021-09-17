@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-from nomad.datamodel.metainfo.common_experimental import Spectrum
 import numpy as np
 from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
 
 from nomad import config
+from nomad.datamodel.metainfo.common_experimental import Spectrum
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type, material_entry_type
 
 from nomad.metainfo import (

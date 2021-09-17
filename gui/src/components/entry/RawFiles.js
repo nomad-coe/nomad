@@ -30,14 +30,13 @@ import {
   Tooltip
 } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { withApi } from '../api'
-import { compose } from 'recompose'
 import Download from './Download'
 import ReloadIcon from '@material-ui/icons/Cached'
 import ViewIcon from '@material-ui/icons/Search'
 import InfiniteScroll from 'react-infinite-scroller'
 import { ScrollContext } from '../nav/Navigation'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
 
 const useStyles = makeStyles(theme => ({
   root: {},
@@ -92,7 +91,7 @@ function label(file) {
   return file.split('/').reverse()[0]
 }
 
-function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
+export default function RawFiles({data, entryId}) {
   const theme = useTheme()
   const classes = useStyles(theme)
   const [selectedFiles, setSelectedFiles] = useState([])
@@ -101,7 +100,8 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
   const [files, setFiles] = useState(null)
   const [loading, setLoading] = useState(false)
   const [doesNotExist, setDoesNotExist] = useState(false)
-  const {api: apiv1} = useApi()
+  const {raiseError} = useErrors()
+  const {api, user} = useApi()
 
   useEffect(() => {
     setSelectedFiles([])
@@ -110,16 +110,16 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
     setFiles(null)
     setLoading(false)
     setDoesNotExist(false)
-  }, [api, uploadId, entryId])
+  }, [api, entryId])
 
   const update = useCallback(() => {
     // this might accidentally happen, when the user logs out and the ids aren't
     // necessarily available anymore, but the component is still mounted
-    if (!uploadId || !entryId) {
+    if (!entryId) {
       return
     }
 
-    apiv1.getRawFileListFromCalc(entryId).then(data => {
+    api.getRawFileListFromCalc(entryId).then(data => {
       const files = data.data.files.map(file => file.path)
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
@@ -136,7 +136,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
       }
     })
     setLoading(true)
-  }, [uploadId, entryId, raiseError, apiv1])
+  }, [entryId, raiseError, api])
 
   const handleSelectFile = useCallback((file) => {
     setSelectedFiles(prevState => {
@@ -153,10 +153,13 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
   const handleFileClicked = useCallback(file => {
     setShownFile(file)
     setFileContents(null)
-    api.getRawFile(uploadId, entryId, file.split('/').reverse()[0], {length: 16 * 1024})
-      .then(contents => setFileContents(contents))
+    api.get(`/entries/${entryId}/raw/download/${file.split('/').reverse()[0]}`, {length: 16 * 1024, decompress: true})
+      .then(contents => setFileContents({
+        hasMore: true,
+        contents: contents
+      }))
       .catch(raiseError)
-  }, [api, raiseError, uploadId, entryId])
+  }, [api, raiseError, entryId])
 
   const handleLoadMore = useCallback((page) => {
     // The infinite scroll component has the issue if calling load more whenever it
@@ -168,15 +171,15 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
     const initialEntryId = entryId
 
     if (fileContents.contents.length < (page + 1) * 16 * 1024) {
-      api.getRawFile(uploadId, entryId, shownFile.split('/').reverse()[0], {offset: page * 16 * 1024, length: 16 * 1024})
+      api.get(`/entries/${entryId}/raw/download/${shownFile.split('/').reverse()[0]}`, {offset: page * 16 * 1024, length: 16 * 1024, decompress: true})
         .then(contents => {
           // The back-button navigation might cause a scroll event, might cause to loadmore,
           // will set this state, after navigation back to this page, but potentially
           // different entry.
           if (initialEntryId === entryId) {
             setFileContents({
-              ...contents,
-              contents: ((fileContents && fileContents.contents) || '') + contents.contents
+              hasMore: contents.length > 0,
+              contents: ((fileContents && fileContents.contents) || '') + contents
             })
           }
         })
@@ -186,7 +189,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
           raiseError(error)
         })
     }
-  }, [api, uploadId, entryId, shownFile, fileContents, raiseError])
+  }, [api, entryId, shownFile, fileContents, raiseError])
 
   const filterPotcar = useCallback((file) => {
     if (file.substring(file.lastIndexOf('/')).includes('POTCAR') && !file.endsWith('.stripped')) {
@@ -207,18 +210,19 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
     </Typography>
   }
 
+  const file = path => path.substring(path.lastIndexOf('/') + 1)
+
   let downloadUrl
   if (selectedFiles.length === 1) {
     // download the individual file
-    downloadUrl = `raw/${uploadId}/${selectedFiles[0]}`
+    downloadUrl = `entries/${entryId}/raw/download/${file(selectedFiles[0])}`
   } else if (selectedFiles.length === availableFiles.length) {
     // use an endpoint that downloads all files of the calc
-    downloadUrl = `raw/calc/${uploadId}/${entryId}/*?strip=true`
+    downloadUrl = `entries/${entryId}/raw/download`
   } else if (selectedFiles.length > 0) {
-    // use a prefix to shorten the url
-    const prefix = selectedFiles[0].substring(0, selectedFiles[0].lastIndexOf('/'))
-    const files = selectedFiles.map(path => path.substring(path.lastIndexOf('/') + 1)).join(',')
-    downloadUrl = `raw/${uploadId}?files=${encodeURIComponent(files)}&prefix=${prefix}&strip=true`
+    // download specific files
+    const query = selectedFiles.map(file).map(f => `include_files=${encodeURIComponent(f)}`).join('&')
+    downloadUrl = `entries/${entryId}/raw/download?${query}`
   }
 
   return (
@@ -310,16 +314,7 @@ function RawFiles({api, user, data, uploadId, entryId, raiseError}) {
     </div>
   )
 }
-
 RawFiles.propTypes = {
-  uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired,
-  data: PropTypes.object,
-  api: PropTypes.object.isRequired,
-  user: PropTypes.object,
-  raiseError: PropTypes.func.isRequired
+  data: PropTypes.object
 }
-
-export default compose(
-  withApi(false, true)
-)(RawFiles)

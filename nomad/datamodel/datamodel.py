@@ -29,7 +29,7 @@ from nomad.metainfo.elastic_extension import ElasticDocument
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type
 
 from .dft import DFTMetadata
 from .ems import EMSMetadata
@@ -59,6 +59,19 @@ path_analyzer = analyzer(
 
 
 def PathSearch():
+    return [
+        Elasticsearch(_es_field='keyword'),
+        Elasticsearch(
+            mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
+            field='path', _es_field='')]
+
+
+quantity_analyzer = analyzer(
+    'quantity_analyzer',
+    tokenizer=tokenizer('quantity_tokenizer', 'pattern', pattern='.'))
+
+
+def QuantitySearch():
     return [
         Elasticsearch(_es_field='keyword'),
         Elasticsearch(
@@ -440,7 +453,8 @@ class EntryMetadata(metainfo.MSection):
         The unique, sequentially enumerated, integer PID that was used in the legacy
         NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.''',
         categories=[MongoMetadata],
-        a_search=Search(many_or='append'))
+        a_search=Search(many_or='append'),
+        a_elasticsearch=Elasticsearch(entry_type))
 
     raw_id = metainfo.Quantity(
         type=str,
@@ -651,6 +665,14 @@ class EntryMetadata(metainfo.MSection):
         description='The number of atoms in the entry\'s material',
         a_search=Search())
 
+    n_quantities = metainfo.Quantity(
+        type=int, default=0, description='Number of metainfo quantities parsed from the entry.')
+
+    quantities = metainfo.Quantity(
+        type=str, shape=['0..*'],
+        description='All quantities that are used by this entry.',
+        a_elasticsearch=QuantitySearch())
+
     ems = metainfo.SubSection(sub_section=EMSMetadata, a_search=Search())
     dft = metainfo.SubSection(sub_section=DFTMetadata, a_search=Search(), categories=[FastAccess])
     qcms = metainfo.SubSection(sub_section=QCMSMetadata, a_search=Search())
@@ -673,6 +695,36 @@ class EntryMetadata(metainfo.MSection):
             domain_section = self.m_create(domain_section_def.section_cls)
 
         domain_section.apply_domain_metadata(archive)
+
+        quantities = set()
+        n_quantities = 0
+
+        section_paths = {}
+
+        def get_section_path(section):
+            section_path = section_paths.get(section)
+            if section_path is None:
+                parent = section.m_parent
+                if parent:
+                    parent_path = get_section_path(parent)
+                    if parent_path == '':
+                        section_path = section.m_parent_sub_section.name
+                    else:
+                        section_path = f'{parent_path}.{section.m_parent_sub_section.name}'
+                else:
+                    section_path = ''
+                section_paths[section] = section_path
+                quantities.add(section_path)
+
+            return section_path
+
+        for section, property_def, _ in archive.m_traverse():
+            quantity_path = f'{get_section_path(section)}.{property_def.name}'
+            quantities.add(quantity_path)
+            n_quantities += 1
+
+        self.quantities = list(quantities)
+        self.n_quantities = n_quantities
 
 
 class EntryArchive(metainfo.MSection):

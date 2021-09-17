@@ -104,13 +104,17 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         entry_id = 'id_%02d' % i
         material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
+        kwargs = {}
         if i == 11:
             mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
+        if i == 1:
+            kwargs['pid'] = '123'
         data.create_entry(
             upload_id='id_published',
             calc_id=entry_id,
             material_id=material_id,
-            mainfile=mainfile)
+            mainfile=mainfile,
+            **kwargs)
 
         if i == 1:
             archive = data.archives[entry_id]

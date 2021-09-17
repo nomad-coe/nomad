@@ -17,7 +17,7 @@
  */
 import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { Typography, makeStyles, Box, Grid, Link, Divider } from '@material-ui/core'
 import { ApiDialog } from '../ApiDialogButton'
@@ -78,7 +78,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...moreProps}) {
+const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
   const { raiseError } = useErrors()
   const [entry, setEntry] = useState(null)
   const [exists, setExists] = useState(true)
@@ -214,7 +214,6 @@ const OverviewView = React.memo(function OverviewView({uploadId, entryId, ...mor
 })
 
 OverviewView.propTypes = {
-  uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired
 }
 

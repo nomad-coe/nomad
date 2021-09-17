@@ -34,6 +34,7 @@ def post_query_test_parameters(
     program_name = f'{entry_prefix}results.method.simulation.program_name'
     method = f'{entry_prefix}results.method'
     properties = f'{entry_prefix}results.properties'
+    upload_time = f'{entry_prefix}upload_time'
 
     return [
         pytest.param({}, 200, total, id='empty'),
@@ -64,7 +65,10 @@ def post_query_test_parameters(
         pytest.param({method: {'simulation.program_name': 'VASP'}}, 200, total, id='inner-object'),
         pytest.param({f'{properties}.electronic.dos_electronic.spin_polarized': True}, 200, 1, id='nested-implicit'),
         pytest.param({f'{properties}.electronic.dos_electronic': {'spin_polarized': True}}, 200, 1, id='nested-explicit'),
-        pytest.param({properties: {'electronic.dos_electronic': {'spin_polarized': True}}}, 200, 1, id='nested-explicit-explicit')
+        pytest.param({properties: {'electronic.dos_electronic': {'spin_polarized': True}}}, 200, 1, id='nested-explicit-explicit'),
+        pytest.param({f'{upload_time}:gt': '1970-01-01'}, 200, total, id='date-1'),
+        pytest.param({f'{upload_time}:lt': '2099-01-01'}, 200, total, id='date-2'),
+        pytest.param({f'{upload_time}:gt': '2099-01-01'}, 200, 0, id='date-3')
     ]
 
 
@@ -73,6 +77,7 @@ def get_query_test_parameters(
 
     elements = f'{material_prefix}elements'
     n_elements = f'{material_prefix}n_elements'
+    upload_time = f'{entry_prefix}upload_time'
 
     return [
         pytest.param({}, 200, total, id='empty'),
@@ -96,7 +101,8 @@ def get_query_test_parameters(
         pytest.param({'q': f'{n_elements}__gt__2'}, 200, 0, id='q-gt'),
         pytest.param({'q': f'{entry_prefix}upload_time__gt__2014-01-01'}, 200, total, id='datetime'),
         pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, total, id='q-all'),
-        pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all')
+        pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all'),
+        pytest.param({'q': f'{upload_time}__gt__1970-01-01'}, 200, total, id='date')
     ]
 
 
@@ -454,7 +460,6 @@ def assert_aggregations(
             value = bucket['value']
             if agg_type == 'date_histogram': assert re.match(r'\d{4}\-\d{2}\-\d{2}', value)
             elif agg_type == 'histogram': assert isinstance(value, (float, int))
-            else: assert isinstance(value, str)
 
             for metric in agg.get('metrics', []):
                 assert metric in bucket['metrics']

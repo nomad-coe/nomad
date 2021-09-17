@@ -40,8 +40,8 @@ The *log* tab will show you a log of the entry's processing.
 `
 
 const TabRoutes = React.memo(function Routes({match}) {
-  const {params: {uploadId, entryId, tab = 'overview'}} = match
-  const props = {entryId: entryId, uploadId: uploadId}
+  const {params: {entryId, tab = 'overview'}} = match
+  const props = {entryId: entryId}
 
   if (!entryId) {
     return ''

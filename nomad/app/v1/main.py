@@ -24,7 +24,7 @@ import traceback
 from nomad import config, utils
 
 from .common import root_path
-from .routers import users, entries, materials, auth, datasets, uploads, suggestions
+from .routers import users, entries, materials, auth, info, datasets, uploads, suggestions
 
 
 logger = utils.get_logger(__name__)
@@ -157,6 +157,7 @@ async def unicorn_exception_handler(request: Request, e: Exception):
         }
     )
 
+app.include_router(info.router, prefix='/info')
 app.include_router(auth.router, prefix='/auth')
 app.include_router(materials.router, prefix='/materials')
 app.include_router(entries.router, prefix='/entries')

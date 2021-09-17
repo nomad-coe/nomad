@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
+import React, { useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
 import {ReactComponent as AboutSvg} from './about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
-import { apiContext } from './api'
 import packageJson from '../../package.json'
 import { domainData } from './domainData'
 import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 import tutorials from '../toolkitMetadata'
 import parserMetadata from '../parserMetadata'
+import { useApi } from './api'
 
 function CodeInfo({code, ...props}) {
   if (!code) {
@@ -166,7 +166,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function About() {
   const classes = useStyles()
-  const {info} = useContext(apiContext)
+  const {info} = useApi()
   const svg = useRef()
   const history = useHistory()
 

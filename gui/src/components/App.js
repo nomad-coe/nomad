@@ -28,7 +28,6 @@ import { nomadTheme, matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycl
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
-import { ApiProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
 
@@ -57,9 +56,7 @@ export default function App() {
               <ErrorSnacks>
                 <ErrorBoundary>
                   <RecoilRoot>
-                    <ApiProvider>
-                      <Navigation />
-                    </ApiProvider>
+                    <Navigation />
                   </RecoilRoot>
                 </ErrorBoundary>
               </ErrorSnacks>

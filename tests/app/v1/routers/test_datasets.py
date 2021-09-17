@@ -114,7 +114,10 @@ def assert_pagination(pagination):
 
 def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_entries: int = -1, **kwargs):
     for key, value in kwargs.items():
-        assert dataset[key] == value
+        if key == 'prefix':
+            assert dataset['name'].startswith(value)
+        else:
+            assert dataset[key] == value
 
     dataset_id = dataset['dataset_id']
 
@@ -166,7 +169,9 @@ def assert_dataset_deleted(dataset_id):
     pytest.param({}, 4, 200, id='empty'),
     pytest.param({'dataset_id': 'dataset_1'}, 1, 200, id='id'),
     pytest.param({'name': 'test dataset 1'}, 1, 200, id='name'),
+    pytest.param({'prefix': 'test dat'}, 2, 200, id='prefix'),
     pytest.param({'dataset_type': 'foreign'}, 2, 200, id='type'),
+    pytest.param({'doi': 'test_doi'}, 1, 200, id='doi'),
     pytest.param({'dataset_id': 'DOESNOTEXIST'}, 0, 200, id='id-not-exists')
 ])
 def test_datasets(client, data, query, size, status_code):

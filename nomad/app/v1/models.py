@@ -44,8 +44,10 @@ from .utils import parameter_dependency_from_model, update_url_query_arguments
 
 
 User = datamodel.User.m_def.a_pydantic.model
-Value = Union[StrictInt, StrictFloat, StrictBool, datetime.datetime, str]
-ComparableValue = Union[StrictInt, StrictFloat, datetime.datetime, str]
+# It is important that datetime.datetime comes last. Otherwise, number valued strings
+# are interpreted as epoch dates by pydantic
+Value = Union[StrictInt, StrictFloat, StrictBool, str, datetime.datetime]
+ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
 
 
 class HTTPExceptionModel(BaseModel):
@@ -962,6 +964,11 @@ class Files(BaseModel):
         whole path.
 
         A re pattern will replace a given glob pattern.'''))
+    include_files: Optional[List[str]] = Field(
+        None, description=strip('''
+        Optional list of file names. Only files with these names are included in the
+        results. This will overwrite any given glob or re pattern.''')
+    )
 
     @validator('glob_pattern')
     def validate_glob_pattern(cls, glob_pattern):  # pylint: disable=no-self-argument
@@ -986,6 +993,11 @@ class Files(BaseModel):
         # use the compiled glob pattern as re
         if values.get('re_pattern') is None:
             values['re_pattern'] = values.get('glob_pattern')
+
+        if values.get('include_files') is not None:
+            files = values['include_files']
+            values['re_pattern'] = re.compile(f'({"|".join([re.escape(f) for f in files])})$')
+
         return values
 
 
@@ -1005,10 +1017,7 @@ class Bucket(BaseModel):
 
 class BucketAggregationResponse(BaseModel):
     data: List[Bucket] = Field(
-        None, description=strip('''
-        The aggregation data as a dictionary. The key is a string representation of the values.
-        The dictionary values contain the aggregated data depending if `entries` where
-        requested.'''))
+        None, description=strip('''The aggregation data as a list.'''))
 
 
 class TermsAggregationResponse(BucketAggregationResponse, TermsAggregation):

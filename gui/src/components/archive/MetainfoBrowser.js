@@ -23,7 +23,6 @@ import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSec
 import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
 import * as d3 from 'd3'
-import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
 import lime from '@material-ui/core/colors/lime'
@@ -35,6 +34,8 @@ import Histogram from '../Histogram'
 import { appBase } from '../../config'
 import { useHistory, useRouteMatch } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -429,23 +430,45 @@ Definition.propTypes = {
 }
 
 function DefinitionDetails({def, ...props}) {
-  const {api} = useContext(apiContext)
+  const {api} = useApi()
+  const {raiseError} = useErrors()
   const lane = useContext(laneContext)
   const isLast = !lane.next
   const [usage, setUsage] = useState(null)
   const [showUsage, setShowUsage] = useState(false)
 
+  const quantityPath = useMemo(() => {
+    const path = lane.path.split('/')
+    const index = path.indexOf('EntryArchive')
+    if (index >= 0) {
+      return path.slice(index + 1).join('.')
+    }
+    return null
+  }, [lane])
+
   useEffect(() => {
     if (showUsage) {
-      api.quantity_search({
-        'dft.quantities': [def.name],
-        size: 100, // make sure we get all codes
-        quantity: 'dft.code_name'
-      }).then(result => {
-        setUsage(result.quantity.values)
-      })
+      api.post('/entries/query', {
+        owner: 'visible',
+        query: {
+          'quantities:any': [quantityPath]
+        },
+        aggregations: {
+          program_names: {
+            terms: {
+              quantity: 'results.method.simulation.program_name',
+              pagination: {
+                page_size: 100 // make sure we get all codes
+              }
+            }
+          }
+        }
+      }).then(response => {
+        const aggData = response.aggregations.program_names.terms.data
+        setUsage(aggData)
+      }).catch(raiseError)
     }
-  }, [api, def.name, showUsage, setUsage])
+  }, [api, raiseError, showUsage, quantityPath, setUsage])
 
   return <React.Fragment>
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
@@ -461,22 +484,22 @@ function DefinitionDetails({def, ...props}) {
         <VicinityGraph def={def} />
       </Compartment>
     }
-    {isLast && def.m_def !== 'Category' && def.name !== 'EntryArchive' && !def.extends_base_section &&
+    {quantityPath &&
       <Compartment title="usage">
         {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}
         {showUsage && !usage && <Typography><i>loading ...</i></Typography>}
-        {usage && Object.keys(usage).length > 0 && (
+        {usage && usage.length > 0 && (
           <Histogram
-            data={Object.keys(usage).map(key => ({
-              key: key,
-              name: key,
-              value: usage[key].total
+            data={usage.map(use => ({
+              key: use.value,
+              name: use.value,
+              value: use.count
             }))}
             initialScale={0.5}
             title="Metadata use per code"
           />
         )}
-        {usage && Object.keys(usage).length === 0 && (
+        {usage && usage.length === 0 && (
           <Typography color="error"><i>This metadata is not used at all.</i></Typography>
         )}
       </Compartment>

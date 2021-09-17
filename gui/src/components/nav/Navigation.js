@@ -25,7 +25,6 @@ import { amber } from '@material-ui/core/colors'
 import AppBar, { appBarHeight } from './AppBar'
 import { version } from '../../config'
 import { Routes } from './Routes'
-import { withApi } from '../api'
 import { serviceWorkerUpdateHandlerRef } from '../../serviceWorker'
 import { ErrorBoundary } from '../errors'
 
@@ -134,7 +133,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-function Navigation() {
+export default function Navigation() {
   const classes = useStyles()
   const scrollParentRef = useRef(null)
 
@@ -155,5 +154,3 @@ function Navigation() {
     </div>
   )
 }
-
-export default withApi(false)(Navigation)

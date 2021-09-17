@@ -63,7 +63,7 @@ export default function MaterialCard({entryMetadata, archive}) {
   const materialId = entryMetadata.results?.material?.material_id
 
   let structures = null
-  if (archive) {
+  if (archive?.results) {
     structures = []
     const structureKinds = ['original', 'conventional', 'primitive']
     const archiveStructures = archive.results.properties?.structures

@@ -36,7 +36,7 @@ import {
 import qs from 'qs'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import { setToArray, formatMeta, parseMeta } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'

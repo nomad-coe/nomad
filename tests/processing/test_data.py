@@ -126,7 +126,10 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
             with upload_files.raw_file(path) as f:
                 f.read()
 
-        # check some domain metadata
+        # check some (domain) metadata
+        assert entry_metadata.quantities
+        assert len(entry_metadata.quantities) > 0
+
         assert entry_metadata.n_atoms > 0
         assert len(entry_metadata.atoms) > 0
         assert len(entry_metadata.processing_errors) == 0

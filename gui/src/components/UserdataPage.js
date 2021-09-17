@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { withLoginRequired } from './apiV1'
+import { withLoginRequired } from './api'
 import { SearchContext } from './search/SearchContext'
 import Search from './search/Search'
 

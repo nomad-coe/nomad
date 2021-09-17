@@ -19,7 +19,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import { errorContext } from '../errors'
-import { useApi } from '../apiV1'
+import { useApi } from '../api'
 import RawFiles from './RawFiles'
 import Page from '../Page'
 
@@ -29,7 +29,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function RawFileView({uploadId, entryId}) {
+export default function RawFileView({entryId}) {
   const classes = useStyles()
   const {raiseError} = useContext(errorContext)
   const [state, setState] = useState({entryData: null, doesNotExist: false})
@@ -37,7 +37,7 @@ export default function RawFileView({uploadId, entryId}) {
 
   useEffect(() => {
     setState({entryData: null, doesNotExist: false})
-  }, [setState, uploadId, entryId])
+  }, [setState, entryId])
 
   useEffect(() => {
     api.entry(entryId).then(entry => {
@@ -52,7 +52,7 @@ export default function RawFileView({uploadId, entryId}) {
     })
   }, [api, raiseError, entryId, setState])
 
-  const entryData = state.entryData || {uploadId: uploadId, entryId: entryId}
+  const entryData = state.entryData || {entryId: entryId}
 
   if (state.doesNotExist) {
     return <Page>
@@ -67,7 +67,7 @@ export default function RawFileView({uploadId, entryId}) {
       <Card className={classes.root}>
         <CardHeader title="Raw files" />
         <CardContent>
-          <RawFiles data={entryData} entryId={entryId} uploadId={uploadId} />
+          <RawFiles data={entryData} entryId={entryId} />
         </CardContent>
       </Card>
     </Page>
@@ -75,6 +75,5 @@ export default function RawFileView({uploadId, entryId}) {
 }
 
 RawFileView.propTypes = {
-  uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired
 }
