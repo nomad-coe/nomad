@@ -16,17 +16,5 @@
 # limitations under the License.
 #
 
-'''
-The official NOMAD API.
-
-There is a separate documentation for the API endpoints from a client perspective.
-
-.. automodule:: nomad.app.flask.api.api
-.. automodule:: nomad.app.flask.api.auth
-.. automodule:: nomad.app.flask.api.upload
-.. automodule:: nomad.app.flask.api.repo
-.. automodule:: nomad.app.flask.api.archive
-'''
-
-from .api import api, blueprint
-from . import info, auth, upload, repo, archive, encyclopedia, raw, dataset, metainfo
+from .archive import ArchiveQuery, query_archive
+from .auth import Auth, KeycloakAuthenticator

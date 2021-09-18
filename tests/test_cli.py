@@ -23,13 +23,12 @@ import json
 import datetime
 import time
 
-from nomad import utils, processing as proc, files
+from nomad import processing as proc, files
 from nomad.search import v0 as search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
 
-from tests.app.flask.test_app import BlueprintClient
 from tests.app.flask.conftest import (  # pylint: disable=unused-import
     test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
 from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
@@ -343,120 +342,6 @@ class TestClient:
             catch_exceptions=False)
 
         assert result.exit_code == 0
-
-    def test_mirror_dry(self, published, admin_user_bravado_client, monkeypatch):
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--dry'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
-
-    @pytest.mark.parametrize('move, link', [(True, False), (False, True), (False, False)])
-    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move, link):
-        ref_search_results = utils.flat(
-            search.SearchRequest().search_parameters(
-                upload_id=published.upload_id).execute_paginated()['results'][0])
-
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        if move:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--move'], catch_exceptions=False)
-        elif link:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--link'], catch_exceptions=False)
-        else:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
-        assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
-        assert proc.Calc.objects(upload_id=published.upload_id).count() == 1
-        new_search = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()
-        calcs_in_search = new_search['pagination']['total']
-        assert calcs_in_search == 1
-
-        new_search_results = utils.flat(new_search['results'][0])
-        for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing', 'dft.labels', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
-                # There is a sub second change due to date conversions (?).
-                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key]), key
-
-        published.upload_files.exists
-        proc.Upload.objects(upload_id=published.upload_id).first().upload_files.exists
-
-    def test_mirror_staging(self, non_empty_processed, admin_user_bravado_client, monkeypatch):
-        ref_search_results = utils.flat(
-            search.SearchRequest().search_parameters(
-                upload_id=non_empty_processed.upload_id).execute_paginated()['results'][0])
-
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--staging', '--link'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert non_empty_processed.upload_id in result.output
-        assert non_empty_processed.upload_files.os_path in result.output
-        assert proc.Upload.objects(upload_id=non_empty_processed.upload_id).count() == 1
-        assert proc.Calc.objects(upload_id=non_empty_processed.upload_id).count() == 1
-        new_search = search.SearchRequest().search_parameters(upload_id=non_empty_processed.upload_id).execute_paginated()
-        calcs_in_search = new_search['pagination']['total']
-        assert calcs_in_search == 1
-
-        new_search_results = utils.flat(new_search['results'][0])
-        for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
-                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
-
-        non_empty_processed.upload_files.exists
-        proc.Upload.objects(upload_id=non_empty_processed.upload_id).first().upload_files.exists
-
-    def test_mirror_files_only(self, published, admin_user_bravado_client, monkeypatch):
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--files-only'], catch_exceptions=False)
-
-        assert result.exit_code == 0, result.output
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
-
-        published.upload_files.exists
-
-    def test_mirror_datasets(self, client, published_wo_user_metadata, test_user_auth, admin_user_bravado_client, monkeypatch):
-        # use the API to create dataset and DOI
-        api = BlueprintClient(client, '/api')
-        rv = api.post(
-            '/repo/edit', headers=test_user_auth, content_type='application/json',
-            data=json.dumps({
-                'actions': {
-                    'datasets': [{
-                        'value': 'test_dataset'
-                    }]
-                }
-            }))
-        assert rv.status_code == 200
-
-        rv = api.post('/datasets/test_dataset', headers=test_user_auth)
-        assert rv.status_code == 200
-
-        # perform the mirror
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror'], catch_exceptions=False)
-
-        assert result.exit_code == 0, result.output
-        assert published_wo_user_metadata.upload_id in result.output
-        assert published_wo_user_metadata.upload_files.os_path in result.output
-
-        published_wo_user_metadata.upload_files.exists
 
     def test_statistics(self, client, proc_infra, admin_user_bravado_client):
 

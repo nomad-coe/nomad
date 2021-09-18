@@ -18,11 +18,9 @@
 
 import pytest
 import math
-from fastapi.testclient import TestClient
 from bravado.client import SwaggerClient
 
 from nomad.archive import write_partial_archive_to_mongo
-from nomad.app.main import app
 from nomad.processing import ProcessStatus
 
 from tests.utils import ExampleData
@@ -30,8 +28,8 @@ from tests.app.v1.bravado import FastApiTestHttpClient
 
 
 @pytest.fixture(scope='session')
-def client():
-    return TestClient(app, base_url='http://testserver/api/v1/')
+def client(api_v1):
+    return api_v1
 
 
 @pytest.fixture(scope='module')
