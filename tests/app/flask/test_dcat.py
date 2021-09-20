@@ -19,11 +19,9 @@
 import pytest
 from datetime import datetime
 
-from nomad import infrastructure, config
-from nomad.datamodel import EntryMetadata
 from nomad.app.flask.dcat.mapping import Mapping
 
-from tests.conftest import clear_elastic
+from tests.utils import ExampleData
 from tests.app.flask.test_app import BlueprintClient
 
 
@@ -33,10 +31,9 @@ def api(session_client):
 
 
 @pytest.fixture(scope='module')
-def example_entry(test_user, other_test_user):
-
-    entry = EntryMetadata(
-        calc_id='test-id',
+def data(test_user, other_test_user, elastic_infra):
+    example_attrs = dict(
+        entry_id='test-id',
         upload_id='upload-id',
         upload_time=datetime.now(),
         last_processing=datetime.now(),
@@ -46,41 +43,43 @@ def example_entry(test_user, other_test_user):
         formula='H20',
         published=True)
 
-    yield entry
+    data = ExampleData()
+    data.create_entry(**example_attrs)
+
+    for i in range(1, 11):
+        example_attrs.update(
+            entry_id='test-id-%d' % i,
+            upload_time=datetime(2000, 1, 1),
+            last_processing=datetime(2020, 1, i))
+        data.create_entry(**example_attrs)
+
+    data.save(with_files=False, with_mongo=False)
+
+    return data
+
+
+@pytest.fixture(scope='module')
+def example_entry(data):
+    return data.entries['test-id']
 
 
 def test_mapping(example_entry):
     mapping = Mapping()
     mapping.map_entry(example_entry)
     assert mapping.g is not None
-    # print(mapping.g.serialize(format='ttl').decode('utf-8'))
 
 
-def test_get_dataset(elastic_infra, api, example_entry):
-    clear_elastic(elastic_infra)
-    example_entry.a_elastic.index()
+def test_get_dataset(api, example_entry):
     calc_id = 'test-id'
     rv = api.get('/datasets/%s' % calc_id)
     assert rv.status_code == 200
-
-    clear_elastic(elastic_infra)
 
 
 @pytest.mark.parametrize('after,modified_since', [
     (None, None),
     (None, '2020-01-07'),
     ('test-id-3', '2020-01-07')])
-def test_get_catalog(elastic_infra, api, example_entry, after, modified_since):
-    clear_elastic(elastic_infra)
-
-    for i in range(1, 11):
-        example_entry.calc_id = 'test-id-%d' % i
-        example_entry.upload_time = datetime(2000, 1, 1)
-        example_entry.last_processing = datetime(2020, 1, i)
-        example_entry.a_elastic.index()
-
-    infrastructure.elastic_client.indices.refresh(index=config.elastic.index_name)
-
+def test_get_catalog(api, data, after, modified_since):
     url = '/catalog/?format=turtle'
     if after:
         url += '&after=' + after
@@ -88,5 +87,3 @@ def test_get_catalog(elastic_infra, api, example_entry, after, modified_since):
         url += '&modified_since=' + modified_since
     rv = api.get(url)
     assert rv.status_code == 200
-
-    clear_elastic(elastic_infra)
