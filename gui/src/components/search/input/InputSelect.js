@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { makeStyles, useTheme, withStyles } from '@material-ui/core/styles'
 import {
   Select,
@@ -80,6 +80,7 @@ const InputSelect = React.memo(({
   quantity,
   description,
   visible,
+  initialScale,
   className,
   classes,
   'data-testid': testID
@@ -87,6 +88,7 @@ const InputSelect = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const agg = useAgg(quantity, visible)
+  const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const disabled = locked || (!(agg?.data && agg.data.length > 0))
@@ -115,6 +117,7 @@ const InputSelect = React.memo(({
                 total={agg.total}
                 variant="checkbox"
                 count={option.count}
+                scale={scale}
               />
             </MenuItem>
           )
@@ -122,11 +125,16 @@ const InputSelect = React.memo(({
       }
     }
     return items
-  }, [agg, filter])
+  }, [agg, filter, scale])
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel
+        label={title}
+        description={desc}
+        scale={scale}
+        onChangeScale={setScale}
+      />
       <Select
         disabled={disabled}
         multiple
@@ -153,9 +161,14 @@ InputSelect.propTypes = {
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
   visible: PropTypes.bool.isRequired,
+  initialScale: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
+}
+
+InputSelect.defaultProps = {
+  initialScale: 1
 }
 
 export default InputSelect

@@ -62,6 +62,7 @@ const InputItem = React.memo(({
   variant,
   total,
   count,
+  scale,
   className,
   classes,
   'data-testid': testID
@@ -86,6 +87,7 @@ const InputItem = React.memo(({
       className={styles.bar}
       max={total}
       value={count}
+      scale={scale}
     />}
     <FormControlLabel
       className={styles.label}
@@ -112,8 +114,9 @@ InputItem.propTypes = {
   disabled: PropTypes.bool, // Whether the option should be disabled
   tooltip: PropTypes.string, // Tooltip that is shown for label
   variant: PropTypes.oneOf(['radio', 'checkbox']), // The type of item to display
-  total: PropTypes.number, // The total number for statistics
-  count: PropTypes.number, // The count of these values for statistics
+  total: PropTypes.number, // Total number for statistics
+  count: PropTypes.number, // Count of these values for statistics
+  scale: PropTypes.number, // Scaling of the statistics
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

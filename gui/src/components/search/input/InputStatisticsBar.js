@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useMemo } from 'react'
 import clsx from 'clsx'
+import { scalePow } from 'd3-scale'
 import { Typography } from '@material-ui/core/'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
@@ -55,18 +56,25 @@ const useStyles = makeStyles(theme => ({
 const InputStatisticsBar = React.memo(({
   max,
   value,
+  scale,
   className,
   classes,
   'data-testid': testID
 }) => {
-  const styles = useStyles()
-  const scale = (value && max) ? value / max : 0
+  const styles = useStyles(classes)
   const {useIsStatisticsCountEnabled} = useSearchContext()
   const isStatisticsCountEnabled = useIsStatisticsCountEnabled()
 
+  const scaler = useMemo(() => scalePow()
+    .exponent(scale)
+    .domain([0, 1])
+    .range([0, 1])
+  , [scale])
+  const finalScale = scaler(value / max) || 0
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={styles.container}>
-      <div className={styles.rectangle} style={{transform: `scaleX(${scale})`}}></div>
+      <div className={styles.rectangle} style={{transform: `scaleX(${finalScale})`}}></div>
       {isStatisticsCountEnabled && <Typography className={styles.value}>{value || ''}</Typography>}
     </div>
   </div>
@@ -75,6 +83,7 @@ const InputStatisticsBar = React.memo(({
 InputStatisticsBar.propTypes = {
   max: PropTypes.number,
   value: PropTypes.number,
+  scale: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

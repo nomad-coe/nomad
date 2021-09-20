@@ -15,33 +15,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Tooltip, Typography } from '@material-ui/core'
+import { Tooltip, Typography, Select, MenuItem } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { Actions } from '../../Actions'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * The quantity label shown by all filter components.
  */
 const useStaticStyles = makeStyles(theme => ({
   root: {
-    marginBottom: theme.spacing(1)
+    marginBottom: theme.spacing(0.5),
+    height: '2.5rem',
+    width: '100%'
   },
   label: {
     textTransform: 'capitalize',
-    fontSize: '0.85rem',
+    fontSize: '0.9rem',
     color: '#383838'
   }
 }))
+const scales = {
+  'linear': 1,
+  '1/2': 0.5,
+  '1/4': 0.25,
+  '1/8': 0.125
+}
 const FilterLabel = React.memo(({
   label,
   underscores,
   description,
+  disableScale,
+  scale,
+  onChangeScale,
   className,
   classes
 }) => {
   const styles = useStaticStyles({classes: classes})
+  const {useIsStatisticsEnabled} = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
+  const [open, setOpen] = useState(false)
 
   // Remove underscores from name
   const finalLabel = useMemo(
@@ -49,28 +65,57 @@ const FilterLabel = React.memo(({
     [label, underscores]
   )
 
-  return <div className={clsx(className, styles.root)}>
-    <Tooltip title={description || ''} placement="bottom">
-      <Typography
-        className={styles.label}
-        variant="button"
-      >
-        {finalLabel}
-      </Typography>
-    </Tooltip>
-  </div>
+  // The tooltip needs to be controlled: otherwise it won't close as we open the
+  // select menu
+
+  return <Actions
+    className={clsx(className, styles.root)}
+    header={
+      <Tooltip title={description || ''} placement="bottom">
+        <Typography
+          className={styles.label}
+          variant="button"
+        >
+          {finalLabel}
+        </Typography>
+      </Tooltip>
+    }
+  >
+    {(!disableScale && isStatisticsEnabled) &&
+      <Tooltip open={open} title="Select the scaling of the statistics.">
+        <Select
+          value={scale}
+          onChange={(event) => onChangeScale(event.target.value)}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onOpen={() => setOpen(false)}
+          displayEmpty
+          name="scale power"
+        >
+          {Object.entries(scales).map(([key, value]) => (
+            <MenuItem key={key} value={value}>{key}</MenuItem>
+          ))}
+        </Select>
+      </Tooltip>
+    }
+  </Actions>
 })
 
 FilterLabel.propTypes = {
   label: PropTypes.string.isRequired,
   description: PropTypes.string,
   underscores: PropTypes.bool,
+  disableScale: PropTypes.bool,
+  scale: PropTypes.oneOf(Object.values(scales)),
+  onChangeScale: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
 FilterLabel.defaultProps = {
-  underscores: false
+  underscores: false,
+  disableScale: false,
+  scale: 1
 }
 
 export default FilterLabel

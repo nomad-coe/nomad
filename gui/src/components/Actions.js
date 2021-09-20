@@ -25,7 +25,8 @@ const useActionsStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
     width: '100%',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    alignItems: 'center'
   },
   spacer: {
     flexGrow: 1

@@ -59,6 +59,7 @@ const InputCheckboxes = React.memo(({
   options,
   visible,
   xs,
+  initialScale,
   className,
   classes,
   'data-testid': testID
@@ -66,6 +67,7 @@ const InputCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
+  const [scale, setScale] = useState(initialScale)
   const agg = useAgg(quantity, visible)
   const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
@@ -147,13 +149,19 @@ const InputCheckboxes = React.memo(({
         variant="checkbox"
         total={agg?.total}
         count={value.count}
+        scale={scale}
       />
     </Grid>
   })
 
   return <InputTooltip locked={locked} disabled={false}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel
+        label={title}
+        description={desc}
+        scale={scale}
+        onChangeScale={setScale}
+      />
       <Grid container spacing={0}>
         {checkboxes}
       </Grid>
@@ -170,13 +178,15 @@ InputCheckboxes.propTypes = {
   visible: PropTypes.bool,
   xs: PropTypes.number,
   description: PropTypes.string,
+  initialScale: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
 InputCheckboxes.defaultProps = {
-  xs: 12
+  xs: 12,
+  initialScale: 1
 }
 
 export default InputCheckboxes

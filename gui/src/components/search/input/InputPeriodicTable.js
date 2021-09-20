@@ -28,7 +28,8 @@ import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import {
   useFilterState,
-  useAgg
+  useAgg,
+  useSearchContext
 } from '../SearchContext'
 import { isNil } from 'lodash'
 import clsx from 'clsx'
@@ -127,13 +128,19 @@ const Element = React.memo(({
   localFilter
 }) => {
   const styles = useElementStyles()
+  const {useIsStatisticsEnabled} = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
 
   // Dynamically calculated styles. The background color is formed by animating
   // opacity: opacity animation can be GPU-accelerated by the browser unlike
   // animating the color property.
   const useDynamicStyles = makeStyles((theme) => {
     return {
-      bg: { opacity: (isNil(count) || isNil(max)) ? 0 : count / max },
+      bg: { opacity: isStatisticsEnabled
+        ? (isNil(count) || isNil(max))
+          ? 0
+          : count / max
+        : 0.8 },
       disabled: { opacity: disabled ? 1 : 0 }
     }
   })
@@ -163,7 +170,7 @@ const Element = React.memo(({
     <div className={clsx(styles.fit, styles.disabled, dynamicStyles.disabled)}/>
     <div className={clsx(styles.fit, styles.selected, selectedInternal && styles.visible)}/>
     <Tooltip title={element.name}>
-      <span>
+      <span className={styles.fit}>
         <ButtonBase
           className={clsx(
             styles.fit,
@@ -280,7 +287,6 @@ const InputPeriodicTable = React.memo(({quantity, visible}) => {
                   {element
                     ? <Element
                       element={element}
-                      // disabled={!availableValues[element.symbol] && !filter?.has(element.symbol)}
                       disabled={!availableValues[element.symbol]}
                       onClick={() => onElementClicked(element.symbol)}
                       selected={localFilter.current.has(element.symbol)}
@@ -305,6 +311,7 @@ const InputPeriodicTable = React.memo(({quantity, visible}) => {
       ></InputCheckbox>
     </div>
   </div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [agg, availableValues, onElementClicked, styles, update])
 
   return table

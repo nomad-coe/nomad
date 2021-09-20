@@ -158,7 +158,7 @@ const InputDateRange = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel label={title} description={desc} disableScale/>
       <div className={styles.row}>
         <KeyboardDatePicker
           error={!!error}
