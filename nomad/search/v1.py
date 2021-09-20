@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import cast, Any, Dict, Union, List
+from typing import Generator, cast, Any, Dict, Union, List
 from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import Search, A, Q
 from elasticsearch_dsl.query import Query as EsQuery
@@ -28,7 +28,7 @@ from nomad.metainfo.elasticsearch_extension import (
 from nomad.app.optimade import filterparser
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
-    MetadataPagination, Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
+    AggregationPagination, MetadataPagination, Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
     DateHistogramAggregation, MinMaxAggregation, Bucket,
     MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
@@ -630,3 +630,32 @@ def search(
 
 def _index(entries, **kwargs):
     index_entries(entries, **kwargs)
+
+
+def quantity_values(quantity: str, page_size: int = 100, **kwargs) -> Generator[Any, None, None]:
+    '''
+    A generator that uses ``search`` and an aggregation to retrieve all
+    values of a quantity. Will run multiple requests with page_size until all values
+    have been gathered. Kwargs are passed to search, e.g. to change owner or query.
+    '''
+    page_after_value = None
+
+    while True:
+        aggregation = TermsAggregation(quantity=quantity, pagination=AggregationPagination(
+            page_size=page_size, page_after_value=page_after_value))
+
+        search_response = search(
+            aggregations=dict(value_agg=Aggregation(terms=aggregation)),
+            pagination=MetadataPagination(page_size=0),
+            **kwargs)
+
+        value_agg = cast(TermsAggregationResponse, search_response.aggregations['value_agg'].terms)  # pylint: disable=no-member
+        for bucket in value_agg.data:
+            yield bucket.value
+
+        if len(value_agg.data) < page_size:
+            break
+
+        page_after_value = value_agg.pagination.next_page_after_value
+        if page_after_value is None:
+            break
