@@ -25,6 +25,7 @@ from pydantic.error_wrappers import ErrorWrapper
 from nomad.metainfo.elasticsearch_extension import (
     material_type, entry_type, material_entry_type,
     entry_index, Index, index_entries, DocumentType, SearchQuantity)
+from nomad.app.optimade import filterparser
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
     MetadataPagination, Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
@@ -103,6 +104,17 @@ def validate_api_query(
     '''
 
     def match(name: str, value: Value) -> EsQuery:
+        if name == 'optimade_filter':
+            value = str(value)
+            try:
+                return filterparser.parse_filter(
+                    value, nomad_properties='dft', without_prefix=True)
+
+            except filterparser.FilterException as e:
+                raise QueryValidationError(
+                    f'Could not parse optimade filter: {e}',
+                    loc=[name])
+
         # TODO non keyword quantities, quantities with value transformation, type checks
         quantity = validate_quantity(name, value, doc_type=doc_type)
         return Q('match', **{quantity.search_field: value})

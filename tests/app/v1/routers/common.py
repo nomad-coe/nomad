@@ -547,6 +547,7 @@ def perform_metadata_test(
         return
 
     assert 'pagination' in response_json
+
     if total is not None and total >= 0:
         assert response_json['pagination']['total'] == total, response_json['pagination']['total']
 

@@ -263,6 +263,14 @@ class WithQuery(BaseModel):
 
             The searchable quantities are a subset of the NOMAD Archive quantities defined
             in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
+
+            There is also an additional query parameter that you can use to formulate queries based
+            on the optimade filter language:
+            ```
+            {
+                "optimade_filter": "nelements >= 2 AND elements HAS ALL 'Ti', 'O'"
+            }
+            ```
         '''),  # TODO custom documentation for entry and material API
         example={
             'upload_time:gt': '2020-01-01',
@@ -270,7 +278,8 @@ class WithQuery(BaseModel):
             'results.method.simulation.program_name': 'VASP',
             'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
             'results.properties.available_properties': 'section_dos',
-            'results.material.type_structural:any': ['bulk', '2d']
+            'results.material.type_structural:any': ['bulk', '2d'],
+            'optimade_filter': 'nelements >= 2 AND elements HAS ALL "Ti", "O"'
         })
 
     @validator('query')

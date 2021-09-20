@@ -644,7 +644,11 @@ n_elements = 'results.material.n_elements'
 
 @pytest.mark.parametrize('query, status_code, total', post_query_test_parameters(
     'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
-    pytest.param({'pid': '123'}, 200, 1, id='number-valued-string')
+    pytest.param({'pid': '123'}, 200, 1, id='number-valued-string'),
+    pytest.param({'optimade_filter': 'nelements = 2'}, 200, 23, id='optimade-filter-positive'),
+    pytest.param({'optimade_filter': 'nelements < 2'}, 200, 0, id='optimade-filter-negative'),
+    pytest.param({'optimade_filter': '#broken syntax'}, 422, 0, id='optimade-filter-broken-syntax'),
+    pytest.param({'optimade_filter': 'doesnotexist = 1'}, 422, 0, id='optimade-filter-broken-semantics')
 ])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
