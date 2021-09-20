@@ -167,7 +167,7 @@ belong to one *material* based on the simulated system.
 - Uploader are encouraged to upload all relevant files
 - The directory structure of an upload might be used to relate calculations to each other
 - Uploads have a unique randomly choosen `upload_id` (UUID)
-- The `uploader` is the user that provided the upload. There is always one immutable `uploader`
+- The `uploader` is the user that created the upload (always set, and cannot be changed).
 - Currently, uploads can be provided as `.zip` or `.tar.gz` files.
 
 ### Entries (Calculations, Code runs)

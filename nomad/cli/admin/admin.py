@@ -214,7 +214,6 @@ def index_materials(threads, code, dry, in_place, n, source):
     This will only update the v0 materials index.
     """
 
-    from nomad.datamodel.material import Material, Calculation
     from nomad.datamodel.encyclopedia import EncyclopediaMetadata
     from nomad.search.v0 import material_document
     from nomad.datamodel.material import Material, Calculation, Method, Properties, IdealizedStructure, Energies, Workflow, Bulk
@@ -322,7 +321,7 @@ def index_materials(threads, code, dry, in_place, n, source):
                     mongo_calc = proc.Calc.get(calc.calc_id)
                     calc.published = mongo_calc["metadata"]["published"]
                     calc.with_embargo = mongo_calc["metadata"]["with_embargo"]
-                    calc.owners = [mongo_calc["metadata"]["uploader"]] + mongo_calc["metadata"]["shared_with"]
+                    calc.owners = [mongo_calc.upload.user_id] + mongo_calc["metadata"]["shared_with"]
                     enc_idealized_structure = encyclopedia.material.idealized_structure
                     idealized_structure = IdealizedStructure()
                     cell_volume = enc_idealized_structure.cell_volume

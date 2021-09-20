@@ -757,34 +757,6 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
                 assert entry_metadata.with_embargo == (upload.embargo_length > 0)
 
 
-@pytest.mark.parametrize('user,uploader', [
-    ('admin_user', 'other_test_user'),
-    ('test_user', 'test_user')
-])
-def test_read_adminmetadata_from_file(proc_infra, tmp, test_user, other_test_user, admin_user, user, uploader):
-    def user_from_name(user_name):
-        if user_name == 'test_user':
-            return test_user
-        if user_name == 'other_test_user':
-            return other_test_user
-        if user_name == 'admin_user':
-            return admin_user
-
-    user = user_from_name(user)
-    uploader = user_from_name(uploader)
-
-    upload_file = create_template_upload_file(
-        tmp, 'tests/data/proc/templates/template.json')
-    metadata = dict(uploader=other_test_user.user_id)
-    with zipfile.ZipFile(upload_file, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
-
-    upload = run_processing(('test_upload', upload_file), user)
-
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    assert calc.metadata['uploader'] == uploader.user_id
-
-
 def test_skip_matching(proc_infra, test_user):
     upload = run_processing(('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user)
     assert upload.total_calcs == 1

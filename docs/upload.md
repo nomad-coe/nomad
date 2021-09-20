@@ -68,8 +68,8 @@ need to worry about it. We understand that according to your VASP license, POTCA
 not supposed to be visible to the public. Thus, in agreement with Georg Kresse, NOMAD will
 extract the most important information of POTCAR files and store it in the files named
 `POTCAR.stripped`. These files can be assessed and downloaded by anyone, while the original
-POTCAR files are only available to the uploader and assigned co-authors.
-This is done automatically; you don't need to do anything.
+POTCAR files are removed when the upload is published. This is done automatically; you don't
+need to do anything.
 
 ## Preparing an upload file
 

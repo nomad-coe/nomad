@@ -251,7 +251,7 @@ class Calc(Proc):
             metadata[key] = val
 
         if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file')
+            logger.info('Apply user metadata from nomad.yaml/json file(s)')
 
         for key, val in metadata.items():
             if key == 'entries':
@@ -260,10 +260,6 @@ class Calc(Proc):
             definition = _editable_metadata.get(key, None)
             if definition is None and self.upload.from_oasis:
                 definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
 
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
@@ -295,7 +291,7 @@ class Calc(Proc):
         and applies the values to `entry_metadata`.
         '''
         assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
-        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten
+        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten?
         # Upload metadata
         entry_metadata.upload_id = upload.upload_id
         entry_metadata.uploader = upload.user_id
@@ -832,7 +828,7 @@ class Upload(Proc):
         return cls.objects(user_id=str(user.user_id), **kwargs)
 
     @property
-    def uploader(self):
+    def uploader(self) -> datamodel.User:
         return datamodel.User.get(self.user_id)
 
     def get_logger(self, **kwargs):
@@ -1668,7 +1664,6 @@ class Upload(Proc):
             self.embargo_length = upload_metadata.embargo_length
         if upload_metadata.uploader is not None:
             self.user_id = upload_metadata.uploader.user_id
-            new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
             need_to_reindex = True
         if upload_metadata.upload_time is not None:
             self.upload_time = upload_metadata.upload_time
@@ -1833,7 +1828,7 @@ class Upload(Proc):
             required_keys_entry_level = (
                 '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
             required_keys_entry_metadata = (
-                'uploader', 'upload_time', 'published', 'with_embargo', 'calc_hash')
+                'upload_time', 'published', 'with_embargo', 'calc_hash')
             required_keys_datasets = (
                 'dataset_id', 'name', 'user_id')
 
@@ -1933,8 +1928,6 @@ class Upload(Proc):
                 assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
                     'Provided entry id does not match generated value')
                 for k, v in (
-                        ('upload_name', self.name),
-                        ('uploader', self.user_id),
                         ('published', self.published),
                         ('with_embargo', self.embargo_length > 0)):
                     assert entry_metadata_dict.get(k) == v, f'Inconsistent entry metadata: {k}'

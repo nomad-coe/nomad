@@ -1127,8 +1127,7 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
             for calc in proc.Calc.objects(calc_id__in=entry_ids):
-                updated_metadata.append(
-                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata))
+                updated_metadata.append(calc.mongo_metadata(calc.upload))
 
             failed = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
 

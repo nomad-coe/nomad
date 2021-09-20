@@ -18,7 +18,7 @@
 
 ''' All generic entry metadata and related classes. '''
 
-from typing import Any
+from typing import List, Any
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import Keyword, Text, analyzer, tokenizer
 import ase.data
@@ -329,7 +329,7 @@ class DomainMetadata(metainfo.MCategory):
     pass
 
 
-def derive_origin(entry):
+def derive_origin(entry: 'EntryMetadata') -> str:
     if entry.external_db is not None:
         return str(entry.external_db)
 
@@ -339,8 +339,8 @@ def derive_origin(entry):
     return None
 
 
-def derive_authors(entry):
-    uploaders = []
+def derive_authors(entry: 'EntryMetadata') -> List[User]:
+    uploaders: List[User] = []
     if entry.uploader is not None and entry.external_db is None:
         uploaders = [entry.uploader]
     return uploaders + entry.coauthors
@@ -359,7 +359,7 @@ class UploadMetadata(metainfo.MSection):
         description='The date and time this entry was uploaded to nomad')
     uploader = metainfo.Quantity(
         type=user_reference,
-        description='The uploader of the entry')
+        description='The creator of the upload')
     embargo_length = metainfo.Quantity(
         type=int,
         description='The length of the embargo period in months (0-36)')
@@ -537,7 +537,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     uploader = metainfo.Quantity(
-        type=user_reference, categories=[MongoMetadata],
+        type=user_reference,
         description='The uploader of the entry',
         a_flask=dict(admin_only=True, verify=User),
         a_search=[

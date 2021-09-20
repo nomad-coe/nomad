@@ -197,12 +197,6 @@ def update_metadata(
             entry_doc = entry_type.create_index_doc(entry_archive)
 
             entry_doc.update(**kwargs)
-            # TODO this a exception that should be treated differently. None values are
-            # not included in elasticsearch docs. However, when a user removes his comment
-            # (the only case where a value is unset in an update?), the None value needs
-            # to be transported.
-            if 'comment' not in entry_doc:
-                entry_doc['comment'] = None
 
             yield dict(
                 doc=entry_doc,

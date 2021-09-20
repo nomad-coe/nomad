@@ -54,12 +54,15 @@ class TestEditRepo():
         # TODO
         example_data = ExampleData()
 
+        example_data.create_upload('upload_1', user_id=test_user.user_id, published=True, embargo_length=0)
         example_data.create_entry(
             upload_id='upload_1', uploader=test_user, published=True, with_embargo=False)
+        example_data.create_upload('upload_2', user_id=test_user.user_id, published=True, embargo_length=36)
         example_data.create_entry(
             upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
         example_data.create_entry(
             upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
+        example_data.create_upload('upload_3', user_id=other_test_user.user_id, published=True, embargo_length=0)
         example_data.create_entry(
             upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
 
