@@ -22,6 +22,7 @@ import {
   MenuItem,
   FormControlLabel
 } from '@material-ui/core'
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useSearchContext } from '../SearchContext'
@@ -48,8 +49,14 @@ const FilterSettings = React.memo(({
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
-  const {useIsStatisticsEnabled, useSetIsStatisticsEnabled} = useSearchContext()
+  const {
+    useIsStatisticsEnabled,
+    useSetIsStatisticsEnabled,
+    useStatisticsCountMode,
+    useSetStatisticsCountMode
+  } = useSearchContext()
   const [isStatisticsEnabled, setIsStatisticsEnabled] = [useIsStatisticsEnabled(), useSetIsStatisticsEnabled()]
+  const [statisticsCountMode, setStatisticsCountMode] = [useStatisticsCountMode(), useSetStatisticsCountMode()]
 
   const handleStatsChange = useCallback((event, value) => {
     setIsStatisticsEnabled(value)
@@ -64,6 +71,18 @@ const FilterSettings = React.memo(({
         />}
         label="Show statistics"
       />
+    </MenuItem>
+    <MenuItem>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={statisticsCountMode}
+        onChange={(event, value) => { if (value) setStatisticsCountMode(value) }}
+      >
+        <ToggleButton value="tooltip">Tooltip</ToggleButton>
+        <ToggleButton value="fixed">Fixed</ToggleButton>
+        <ToggleButton value="none">None</ToggleButton>
+      </ToggleButtonGroup>
     </MenuItem>
   </div>
 })

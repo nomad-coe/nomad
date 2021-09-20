@@ -43,13 +43,6 @@ const useStyles = makeStyles(theme => ({
   },
   gridItem: {
     position: 'relative'
-  },
-  bar: {
-    position: 'absolute',
-    left: theme.spacing(3.1),
-    right: theme.spacing(1),
-    top: theme.spacing(1),
-    bottom: theme.spacing(1)
   }
 }))
 const InputCheckboxes = React.memo(({

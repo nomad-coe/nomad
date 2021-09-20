@@ -62,8 +62,8 @@ const InputStatisticsBar = React.memo(({
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
-  const {useIsStatisticsCountEnabled} = useSearchContext()
-  const isStatisticsCountEnabled = useIsStatisticsCountEnabled()
+  const {useStatisticsCountMode} = useSearchContext()
+  const statisticsCountMode = useStatisticsCountMode()
 
   const scaler = useMemo(() => scalePow()
     .exponent(scale)
@@ -75,7 +75,7 @@ const InputStatisticsBar = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={styles.container}>
       <div className={styles.rectangle} style={{transform: `scaleX(${finalScale})`}}></div>
-      {isStatisticsCountEnabled && <Typography className={styles.value}>{value || ''}</Typography>}
+      {statisticsCountMode === 'fixed' && <Typography className={styles.value}>{value || ''}</Typography>}
     </div>
   </div>
 })

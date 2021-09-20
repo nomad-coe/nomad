@@ -57,22 +57,15 @@ const useStyles = makeStyles(theme => ({
   select: {
     width: '100%'
   },
+  menuItem: {
+    height: '2.2rem'
+  },
   chips: {
     display: 'flex',
     flexWrap: 'wrap'
   },
   icon: {
     right: theme.spacing(1)
-  },
-  bar: {
-    position: 'absolute',
-    left: theme.spacing(0),
-    right: theme.spacing(0),
-    top: theme.spacing(1),
-    bottom: theme.spacing(1)
-  },
-  statsContainer: {
-    position: 'relative'
   }
 }))
 const InputSelect = React.memo(({
@@ -110,7 +103,7 @@ const InputSelect = React.memo(({
         const value = option.value
         if (option.count > 0) {
           items.push(
-            <MenuItem key={value} value={value}>
+            <MenuItem key={value} value={value} className={styles.menuItem}>
               <InputItem
                 value={value}
                 selected={filter ? filter.has(value) : false}
@@ -125,7 +118,7 @@ const InputSelect = React.memo(({
       }
     }
     return items
-  }, [agg, filter, scale])
+  }, [agg, filter, scale, styles])
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>

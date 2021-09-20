@@ -110,10 +110,19 @@ const useElementStyles = makeStyles(theme => ({
     fontSize: 8,
     pointerEvents: 'none'
   },
-  numberSelected: {
+  count: {
+    position: 'absolute',
+    bottom: 0,
+    right: 2,
+    margin: 0,
+    padding: 0,
+    fontSize: 6,
+    pointerEvents: 'none'
+  },
+  textSelected: {
     color: 'white'
   },
-  numberDisabled: {
+  textDisabled: {
     color: '#BDBDBD'
   }
 }))
@@ -128,8 +137,12 @@ const Element = React.memo(({
   localFilter
 }) => {
   const styles = useElementStyles()
-  const {useIsStatisticsEnabled} = useSearchContext()
+  const {
+    useIsStatisticsEnabled,
+    useStatisticsCountMode
+  } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
+  const countMode = useStatisticsCountMode()
 
   // Dynamically calculated styles. The background color is formed by animating
   // opacity: opacity animation can be GPU-accelerated by the browser unlike
@@ -169,7 +182,10 @@ const Element = React.memo(({
     <div className={clsx(styles.fit, styles.bg, dynamicStyles.bg)}/>
     <div className={clsx(styles.fit, styles.disabled, dynamicStyles.disabled)}/>
     <div className={clsx(styles.fit, styles.selected, selectedInternal && styles.visible)}/>
-    <Tooltip title={element.name}>
+    <Tooltip title={(isStatisticsEnabled && countMode === 'tooltip')
+      ? <div style={{textAlign: 'center'}}>{element.name}<br/>{`(${count?.toLocaleString() || 0})`}</div>
+      : element.name
+    }>
       <span className={styles.fit}>
         <ButtonBase
           className={clsx(
@@ -189,13 +205,23 @@ const Element = React.memo(({
     <Typography
       className={clsx(
         styles.number,
-        selectedInternal && styles.numberSelected,
-        disabledInternal && styles.numberDisabled
+        selectedInternal && styles.textSelected,
+        disabledInternal && styles.textDisabled
       )}
       variant="caption"
     >
       {element.number}
     </Typography>
+    {(isStatisticsEnabled && countMode === 'fixed') && <Typography
+      className={clsx(
+        styles.count,
+        selectedInternal && styles.textSelected,
+        disabledInternal && styles.textDisabled
+      )}
+      variant="caption"
+    >
+      {count}
+    </Typography>}
   </div>
 })
 

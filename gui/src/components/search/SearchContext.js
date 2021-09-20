@@ -359,8 +359,8 @@ export const SearchContext = React.memo(({
     useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
     useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
     useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
-    useIsStatisticsCountEnabled: () => useRecoilValue(isStatisticsCountEnabledState),
-    useSetIsStatisticsCountEnabled: () => useSetRecoilState(isStatisticsCountEnabledState)
+    useStatisticsCountMode: () => useRecoilValue(statisticsCountModeState),
+    useSetStatisticsCountMode: () => useSetRecoilState(statisticsCountModeState)
   }), [resource])
 
   return <searchContext.Provider value={values}>
@@ -406,9 +406,9 @@ export const isStatisticsEnabledState = atom({
   key: 'statisticsEnabled',
   default: true
 })
-export const isStatisticsCountEnabledState = atom({
-  key: 'statisticsCountEnabled',
-  default: true
+export const statisticsCountModeState = atom({
+  key: 'statisticsCountMode',
+  default: 'tooltip'
 })
 export const isMenuOpenState = atom({
   key: 'isMenuOpen',

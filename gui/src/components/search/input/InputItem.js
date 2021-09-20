@@ -35,15 +35,15 @@ import InputStatisticsBar from './InputStatisticsBar'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '2.5rem',
+    height: '2.3rem',
     position: 'relative'
   },
   bar: {
     position: 'absolute',
-    top: theme.spacing(1),
+    top: theme.spacing(0.5),
     left: theme.spacing(3.2),
     right: 0,
-    bottom: theme.spacing(1)
+    bottom: theme.spacing(0.5)
   },
   label: {
     position: 'absolute',
@@ -68,8 +68,12 @@ const InputItem = React.memo(({
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
-  const {useIsStatisticsEnabled} = useSearchContext()
+  const {
+    useIsStatisticsEnabled,
+    useStatisticsCountMode
+  } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
+  const countMode = useStatisticsCountMode()
 
   const handleChange = useCallback((event, itemValue) => {
     (!disabled && onChange) && onChange(value, itemValue)
@@ -98,7 +102,15 @@ const InputItem = React.memo(({
         name={value}
       />}
       label={
-        <Tooltip placement="right" enterDelay={500} title={tooltip || ''}>
+        <Tooltip
+          placement="right"
+          enterDelay={200}
+          title={(isStatisticsEnabled && countMode === 'tooltip')
+            ? tooltip
+              ? <div style={{textAlign: 'center'}}>{tooltip}{`(${count?.toLocaleString() || 0})`}</div>
+              : `(${count?.toLocaleString() || 0})`
+            : tooltip || ''
+          }>
           <Typography>{label || value}</Typography>
         </Tooltip>
       }
