@@ -33,10 +33,10 @@ def test_get_entry(published: Upload):
     calc_id = list(published.calcs)[0].calc_id
     with published.upload_files.read_archive(calc_id) as archive:
         data = archive[calc_id]
-        assert data['metadata']['dft']['optimade'] is not None
+        assert data['metadata']['optimade'] is not None
 
     search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'dft.optimade.chemical_formula_hill' in utils.flat(search_result)
+    assert 'optimade.chemical_formula_hill' in utils.flat(search_result)
 
 
 def test_no_optimade(mongo, elastic, raw_files, client):
@@ -129,8 +129,8 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('elements HAS ONY "H", "O"', -1),
     ('last_modified >= "2009-02-01T20:07:00Z"', 3),
     ('species_at_sites HAS "C"', 1),
-    ('_nmd_dft_system = "molecule / cluster"', 3),
-    ('_nmd_encyclopedia_material_formula = "H20"', 0)
+    ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
+    ('_nmd_results_material_chemical_formula_reduced = "H20"', 0)
 ])
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
@@ -282,37 +282,38 @@ def test_structure_endpoint(client, example_structures):
     assert len(attr.get('dimension_types')) == 3
 
 
-def test_nmd_properties_info(client):
+def test_nmd_properties_info(client, example_structures):
     rv = client.get('/optimade/info/structures')
     assert rv.status_code == 200
     data = rv.json()
-    assert '_nmd_dft_system' in data['data']['properties']
-    assert '_nmd_encyclopedia_material_formula' in data['data']['properties']
-    assert '_nmd_atoms' in data['data']['properties']
+    assert '_nmd_results_material_structural_type' in data['data']['properties']
+    assert '_nmd_results_material_chemical_formula_reduced' in data['data']['properties']
+    assert '_nmd_results_material_elements' in data['data']['properties']
     assert '_nmd_archive_url' in data['data']['properties']
 
 
 def test_nmd_properties(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist,_nmd_archive_url')
+    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None
-    assert attr.get('_nmd_atoms') == ['H', 'O']
-    assert '_nmd_dft_system' in attr
+
+    assert attr.get('_nmd_results_material_elements') == ['H', 'O']
+    assert '_nmd_results_material_structural_type' in attr
     assert '_nmd_doesnotexist' not in attr
     assert '_nmd_archive_url' in attr
 
 
 def test_nmd_properties_include_all(client, example_structures):
-    all_fields = [f'_nmd_{name}' for name, _ in provider_specific_fields()]
+    all_fields = [f'_nmd_{name}' for name in provider_specific_fields()]
     rv = client.get(f'/optimade/structures/test_calc_id_1?response_fields={",".join(all_fields)}')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None
-    assert attr.get('_nmd_atoms') == ['H', 'O']
-    assert '_nmd_dft_system' in attr
-    assert '_nmd_encyclopedia_material_formula' in attr
+    assert attr.get('_nmd_results_material_elements') == ['H', 'O']
+    assert '_nmd_results_material_structural_type' in attr
+    assert '_nmd_results_material_chemical_formula_reduced' in attr

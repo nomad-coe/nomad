@@ -17,12 +17,12 @@
 #
 
 from typing import Dict
-from elasticsearch_dsl import Q, Date
+from elasticsearch_dsl import Q
 from cachetools import cached
 
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import (
-    Quantity, ElasticTransformer as OPTElasticTransformer)
+    Quantity, ElasticTransformer as OPTElasticTransformer, _cmp_operators)
 from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 
 from .common import provider_specific_fields
@@ -41,24 +41,24 @@ def _get_transformer(nomad_properties, without_prefix):
     from nomad.datamodel import OptimadeEntry
     quantities: Dict[str, Quantity] = {
         q.name: Quantity(
-            q.name, es_field='dft.optimade.%s' % q.name,
-            elastic_mapping_type=q.a_search.mapping.__class__)
+            q.name, es_field='optimade.%s' % q.name,
+            elastic_mapping_type=q.a_elasticsearch.mapping['type'])
 
         for q in OptimadeEntry.m_def.all_quantities.values()
-        if 'search' in q.m_annotations}
+        if 'elasticsearch' in q.m_annotations}
 
-    quantities['id'] = Quantity('id', es_field='calc_id')
-    quantities['immutable_id'] = Quantity('immutable_id', es_field='calc_id')
+    quantities['id'] = Quantity('id', es_field='entry_id', elastic_mapping_type='keyword')
+    quantities['immutable_id'] = Quantity('immutable_id', es_field='entry_id', elastic_mapping_type='keyword')
     quantities['last_modified'] = Quantity(
-        'last_modified', es_field='upload_time', elastic_mapping_type=Date)
+        'last_modified', es_field='upload_time', elastic_mapping_type='date')
 
     quantities['elements'].length_quantity = quantities['nelements']
-    quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
+    quantities['elements'].has_only_quantity = Quantity(name='only_atoms', elastic_mapping_type='keyword')
     quantities['elements'].nested_quantity = quantities['elements_ratios']
     quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
     if nomad_properties is not None:
-        for name, search_quantity in provider_specific_fields():
+        for name, search_quantity in provider_specific_fields().items():
             names = ['_nmd_' + name]
             if without_prefix:
                 names.append(name)
@@ -68,7 +68,7 @@ def _get_transformer(nomad_properties, without_prefix):
                     quantities[name] = Quantity(
                         name,
                         es_field=search_quantity.search_field,
-                        elastic_mapping_type=search_quantity.mapping.__class__)
+                        elastic_mapping_type=search_quantity.mapping['type'])
 
     return ElasticTransformer(quantities=quantities.values())
 
@@ -101,6 +101,30 @@ def parse_filter(filter_str: str, nomad_properties='dft', without_prefix=False) 
 
 
 class ElasticTransformer(OPTElasticTransformer):
+    def _query_op(self, quantity, op, value, nested=None):
+        """
+        Return a range, match, or term query for the given quantity, comparison
+        operator, and value
+        """
+        field = self._field(quantity, nested=nested)
+        if op in _cmp_operators:
+            return Q("range", **{field: {_cmp_operators[op]: value}})
+
+        if quantity.elastic_mapping_type == 'text':
+            query_type = "match"
+        elif quantity.elastic_mapping_type in ['keyword', 'integer', 'float', 'bool']:
+            query_type = "term"
+        else:
+            raise NotImplementedError("Quantity has unsupported ES field type")
+
+        if op in ["=", ""]:
+            return Q(query_type, **{field: value})
+
+        if op == "!=":
+            return ~Q(  # pylint: disable=invalid-unary-operand-type
+                query_type, **{field: value}
+            )
+
     def _has_query_op(self, quantities, op, predicate_zip_list):
         # We override this to add 'HAS ONLY' support.
         if op == 'HAS ONLY':

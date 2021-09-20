@@ -429,7 +429,8 @@ class ExampleData:
         entry_metadata.apply_domain_metadata(archive)
 
         if not optimade:
-            entry_metadata.dft.optimade = None
+            entry_metadata.optimade = None
+            entry_metadata.quantities.remove('metadata.optimade')
 
         if metadata is not None:
             kwargs = metadata

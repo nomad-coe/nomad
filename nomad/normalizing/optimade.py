@@ -27,24 +27,25 @@ from collections import OrderedDict
 
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
-from nomad.datamodel import OptimadeEntry, Species, DFTMetadata, EntryMetadata
+from nomad.datamodel import OptimadeEntry, Species, EntryMetadata
 from nomad.datamodel.metainfo.simulation.system import Atoms, System
 
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
 
 
+# TODO this should be the default and not necessary
 def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
     '''
     Transformation function to use during re-indexing of entries with outdated optimade
     format. Fixes formulas and periodic dimensions, removed entries with X in formula.
     '''
-    optimade = entry.dft.optimade if entry.dft is not None else None
+    optimade = entry.optimade
     if optimade is None:
         return entry
 
     if optimade.chemical_formula_reduced is None or 'X' in optimade.chemical_formula_reduced:
-        entry.dft.m_remove_sub_section(DFTMetadata.optimade, -1)
+        entry.m_remove_sub_section(EntryMetadata.optimade, -1)
         return entry
 
     optimade.chemical_formula_reduced = optimade_chemical_formula_reduced(optimade.chemical_formula_reduced)
@@ -133,9 +134,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         if self.entry_archive.metadata is None:
             self.entry_archive.m_create(EntryMetadata)
-        if self.entry_archive.metadata.dft is None:
-            self.entry_archive.metadata.m_create(DFTMetadata)
-        optimade = self.entry_archive.metadata.dft.m_create(OptimadeEntry)
+        optimade = self.entry_archive.metadata.m_create(OptimadeEntry)
 
         def get_value(quantity_def, default: Any = None, numpy: bool = False, unit=None, source: Any = None) -> Any:
             try:

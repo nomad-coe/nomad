@@ -179,7 +179,7 @@ def add_search_parameters(request_parser):
         'until_time', type=lambda x: rfc3339DateTime.parse(x),
         help='A yyyy-MM-ddTHH:mm:ss (RFC3339) maximum entry time (e.g. upload time)')
     request_parser.add_argument(
-        'dft.optimade', type=str,
+        'optimade', type=str,
         help='A search query in the optimade filter language.')
     request_parser.add_argument(
         'query', type=str,
@@ -229,7 +229,7 @@ def apply_search_parameters(search_request: search.SearchRequest, args: Dict[str
 
     # optimade
     try:
-        optimade = args.get('dft.optimade', None)
+        optimade = args.get('optimade', None)
         if optimade is not None:
             q = filterparser.parse_filter(
                 optimade, nomad_properties=domain, without_prefix=True)
@@ -418,7 +418,7 @@ def _filter_api_query(query):
         if key in search.search_quantities and (key != 'domain' or value != config.meta.default_domain)
     }
 
-    for key in ['dft.optimade']:
+    for key in ['optimade']:
         if key in query:
             result[key] = query[key]
 

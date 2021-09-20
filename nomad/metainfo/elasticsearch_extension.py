@@ -164,7 +164,7 @@ import re
 from nomad import config, utils
 
 from .metainfo import (
-    Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
+    MSectionBound, Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
     Definition, QuantityReference)
 
 
@@ -536,7 +536,7 @@ class Elasticsearch(DefinitionAnnotation):
             mapping: Union[str, Dict[str, Any]] = None,
             field: str = None,
             es_field: str = None,
-            value: Callable[[MSection], Any] = None,
+            value: Callable[[MSectionBound], Any] = None,
             index: bool = True,
             values: List[str] = None,
             default_aggregation_size: int = None,

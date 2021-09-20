@@ -1152,7 +1152,7 @@ class TestRepo():
             assert value in statistics['dft.system']
 
     def test_search_exclude(self, api, example_elastic_calcs, no_warn):
-        rv = api.get('/repo/?exclude=atoms,only_atoms,dft.optimade,dft.quantities')
+        rv = api.get('/repo/?exclude=atoms,only_atoms,optimade,dft.quantities')
         assert rv.status_code == 200
         result = utils.flat(json.loads(rv.data)['results'][0])
         assert 'atoms' not in result
@@ -1425,21 +1425,21 @@ class TestRepo():
 
     def test_optimade(self, api, non_empty_processed, test_user_auth):
         rv = api.get(
-            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements >= 1'}),
+            '/repo/?%s' % urlencode({'owner': 'all', 'optimade': 'nelements >= 1'}),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['pagination']['total'] > 0
 
         rv = api.get(
-            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'nelements = 23'}),
+            '/repo/?%s' % urlencode({'owner': 'all', 'optimade': 'nelements = 23'}),
             headers=test_user_auth)
         assert rv.status_code == 200
         data = json.loads(rv.data)
         assert data['pagination']['total'] == 0
 
         rv = api.get(
-            '/repo/?%s' % urlencode({'owner': 'all', 'dft.optimade': 'this is not optimade'}),
+            '/repo/?%s' % urlencode({'owner': 'all', 'optimade': 'this is not optimade'}),
             headers=test_user_auth)
         assert rv.status_code == 400
 

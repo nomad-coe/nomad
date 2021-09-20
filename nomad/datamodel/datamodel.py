@@ -34,6 +34,7 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 from .dft import DFTMetadata
 from .ems import EMSMetadata
 from .qcms import QCMSMetadata
+from .optimade import OptimadeEntry
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
@@ -664,6 +665,11 @@ class EntryMetadata(metainfo.MSection):
         type=int, categories=[DomainMetadata], default=0,
         description='The number of atoms in the entry\'s material',
         a_search=Search())
+
+    optimade = metainfo.SubSection(
+        sub_section=OptimadeEntry,
+        description='Metadata used for the optimade API.',
+        a_elasticsearch=Elasticsearch(entry_type))
 
     n_quantities = metainfo.Quantity(
         type=int, default=0, description='Number of metainfo quantities parsed from the entry.')

@@ -106,7 +106,7 @@ class Entry(MSection):
 
     mainfile = Quantity(
         type=str,
-        a_elasticsearch=Elasticsearch(index=False, value=lambda _: 'other_mainfile'))
+        a_elasticsearch=Elasticsearch(index=False, value=lambda _: 'other_mainfile'))  # type: ignore
 
     files = Quantity(
         type=str, shape=['*'],

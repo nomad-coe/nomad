@@ -282,7 +282,7 @@ class Api {
       const result = await this.axios.post(
         `${searchTarget}/query`,
         {
-          exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
+          exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'optimade', 'dft.labels', 'dft.geometries'],
           ...search
         },
         auth

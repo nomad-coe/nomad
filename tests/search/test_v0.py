@@ -50,7 +50,6 @@ def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
     assert 'calc_id' in entry
     assert 'atoms' in entry
     assert 'dft.code_name' in entry
-    assert 'dft.optimade.elements_ratios' in entry
 
 
 def test_index_normalized_calc_with_metadata(

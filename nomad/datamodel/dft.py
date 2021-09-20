@@ -26,7 +26,6 @@ from nomad import config, utils
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
 from nomad.metainfo.search_extension import Search
 
-from .optimade import OptimadeEntry
 from .metainfo.workflow import Workflow
 from .metainfo.common import FastAccess
 from .metainfo.simulation.run import Run
@@ -264,11 +263,6 @@ class DFTMetadata(MSection):
         a_search=Search(
             many_and='append', statistic_size=20,
             statistic_order='_count'))
-
-    optimade = SubSection(
-        sub_section=OptimadeEntry,
-        description='Metadata used for the optimade API.',
-        a_search=Search())
 
     workflow = Quantity(type=Workflow, a_search=Search())
 
