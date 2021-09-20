@@ -1654,6 +1654,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             prop_def = context.m_def.all_properties.get(prop_name, None)
 
             if prop_def is None:
+                prop_def = context.m_def.all_aliases.get(prop_name, None)
+
+            if prop_def is None:
                 raise ReferenceError(
                     'Could not resolve %s, property %s does not exist in %s' %
                     (path, prop_name, context.m_def))

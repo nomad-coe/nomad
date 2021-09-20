@@ -261,7 +261,7 @@ class ExampleData:
             mainfile: str = None,
             results: Union[Results, dict] = None,
             dft: Union[DFTMetadata, dict] = None,
-            archive: dict = None, **kwargs):
+            archive: dict = None, **kwargs) -> EntryArchive:
 
         if entry_id is None:
             entry_id = calc_id

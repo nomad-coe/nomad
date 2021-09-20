@@ -407,6 +407,7 @@ class EntryMetadata(metainfo.MSection):
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[OasisMetadata],
+        aliases=['entry_id'],
         a_search=Search(many_or='append'),
         a_elasticsearch=Elasticsearch(material_entry_type))
 
