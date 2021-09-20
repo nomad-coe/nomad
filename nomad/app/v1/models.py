@@ -476,8 +476,19 @@ class Pagination(BaseModel):
             or where it can only be used partially. **If you want to just iterate through
             all the results, aways use the `page_after_value` and `next_page_after_value`!**
 
-            **NOTE #2**: In a request, you should never specify *both* `page` and
-            `page_after_value` (at most one index can be provided).
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        '''))
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            The number of skipped entries. When provided in a request, this attribute
+            can be used instead of `page_after_value` to jump to a particular results page.
+
+            **NOTE #1**: the option to request pages by submitting the `page_offset` number is
+            limited. There are api calls where this attribute cannot be used for indexing,
+            or where it can only be used partially. **If you want to just iterate through
+            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
 
     @validator('page_size')
@@ -508,6 +519,12 @@ class Pagination(BaseModel):
             assert page >= 1, 'page must be >= 1'
         return page
 
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'page must be >= 1'
+        return page_offset
+
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
         # Because of a bug in pydantic (#2670), root validators can't be overridden, so
@@ -516,13 +533,19 @@ class Pagination(BaseModel):
 
     @classmethod
     def _root_validation(cls, values):
+        page_offset = values.get('page_offset')
         page = values.get('page')
         page_after_value = values.get('page_after_value')
         page_size = values.get('page_size')
-        assert page is None or page_after_value is None, 'Cannot specify both `page` and `page_after_value'
+
+        n_offset_criteria = (1 if page_offset else 0) + (1 if page else 0) + (1 if page_after_value else 0)
+        assert n_offset_criteria <= 1, 'Can only specify one `page_offset`, `page`, or `page_after_value'
+
         if page_size == 0:
+            assert page_offset is None, 'Cannot specify `page_offset` when `page_size` is set to 0'
             assert page is None, 'Cannot specify `page` when `page_size` is set to 0'
             assert page_after_value is None, 'Cannot specify `page_after_value` when `page_size` is set to 0'
+
         return values
 
     def get_simple_index(self):
@@ -531,13 +554,15 @@ class Pagination(BaseModel):
         corresponding index (0-based). It will look on either `page` or `page_after_value`.
         If neither index is provided, we return 0 (i.e. the first index).
         '''
-        if self.page is None and self.page_after_value is None:
-            return 0
+        if self.page_offset is not None:
+            return self.page_offset
         if self.page is not None:
             return (self.page - 1) * self.page_size
-        rv = int(self.page_after_value) + 1
-        assert rv >= 0
-        return rv
+        if self.page_after_value is not None:
+            rv = int(self.page_after_value) + 1
+            assert rv >= 0
+            return rv
+        return 0
 
 
 class PaginationResponse(Pagination):
@@ -657,8 +682,18 @@ class MetadataPagination(MetadataBasedPagination):
             used instead of `page_after_value` to jump to a particular results page.
 
             However, you can only retreive up to the 10.000th entry with a page number.
-            Only one, `page_after_value` *or* `page` can be provided.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
+
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            Return the page that follows the given number of entries. Overwrites
+            `page` and `page_after_value`.
+
+            However, you can only retreive up to the 10.000th entry.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        ''')
+    )
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
@@ -667,6 +702,14 @@ class MetadataPagination(MetadataBasedPagination):
             assert page * values.get('page_size', 10) < 10000, 'Pagination by `page` is limited to 10.000 entries.'
 
         return page
+
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'Page offset has to be larger than 0.'
+            assert page_offset + values.get('page_size', 10) < 10000, 'Page offset plus page size has to be smaller thant 10.0000.'
+
+        return page_offset
 
 
 metadata_pagination_parameters = parameter_dependency_from_model(

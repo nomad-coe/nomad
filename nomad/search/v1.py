@@ -27,7 +27,7 @@ from nomad.metainfo.elasticsearch_extension import (
     entry_index, Index, index_entries, DocumentType, SearchQuantity)
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
-    Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
+    MetadataPagination, Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
     DateHistogramAggregation, MinMaxAggregation, Bucket,
     MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
@@ -488,7 +488,7 @@ def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggr
 def search(
         owner: str = 'public',
         query: Union[Query, EsQuery] = None,
-        pagination: Pagination = None,
+        pagination: MetadataPagination = None,
         required: MetadataRequired = None,
         aggregations: Dict[str, Aggregation] = {},
         user_id: str = None,
@@ -518,7 +518,7 @@ def search(
 
     # pagination
     if pagination is None:
-        pagination = Pagination()
+        pagination = MetadataPagination()
 
     if pagination.order_by is None:
         pagination.order_by = doc_type.id_field
@@ -536,7 +536,12 @@ def search(
         sort[doc_type.id_field] = pagination.order.value
     search = search.sort(sort)
     search = search.extra(size=pagination.page_size)
-    if page_after_value:
+
+    if pagination.page_offset:
+        search = search.extra(**{'from': pagination.page_offset})
+    elif pagination.page:
+        search = search.extra(**{'from': (pagination.page - 1) * pagination.page_size})
+    elif page_after_value:
         search = search.extra(search_after=page_after_value.rsplit(':', 1))
 
     # required
@@ -596,6 +601,9 @@ def search(
             for name, agg in aggregations.items()})
 
     more_response_data['es_query'] = es_query.to_dict()
+    if isinstance(query, EsQuery):
+        # we cannot report EsQuery back, because it won't validate within the MetadataResponse model
+        query = None
 
     result = MetadataResponse(
         owner='all' if owner is None else owner,

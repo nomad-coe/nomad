@@ -139,9 +139,9 @@ def owner_test_parameters(total: int):
 
 def pagination_test_parameters(elements: str, n_elements: str, crystal_system: str, total: int):
     return [
-        pytest.param({}, {'total': 6, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
-        pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
-        pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
+        pytest.param({}, {'total': total, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
+        pytest.param({'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
+        pytest.param({'page_size': 0}, {'total': total, 'page_size': 0}, 200, id='size-0'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
         pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
@@ -151,10 +151,16 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
         pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
         pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
         pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
-        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
-        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
+        pytest.param({'page_offset': 0, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_01', 'page_offset': 0}, 200, id='page-offset-1'),
+        pytest.param({'page_offset': 1, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_02', 'page_offset': 1}, 200, id='page-offset-2'),
+        pytest.param({'page_offset': 9999}, None, 422, id='page-offset-too-large'),
+        pytest.param({'page_offset': 9989}, None, 200, id='page-offset-just-small-enough'),
+        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01', 'page': 1}, 200, id='page-1'),
+        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 2}, 200, id='page-2'),
         pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
         pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
+        pytest.param({'page_offset': 1, 'page': 1}, None, 422, id='only-one-page-param'),
+        pytest.param({'page_offset': 1, 'page_size': 0}, None, 422, id='page-param-only-with-page-size')
     ]
 
 
