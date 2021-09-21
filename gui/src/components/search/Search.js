@@ -56,6 +56,24 @@ const useStyles = makeStyles(theme => {
       display: 'flex',
       flexGrow: 0,
       zIndex: 1
+    },
+    shadow: {
+      pointerEvents: 'none',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 0,
+      height: '100%',
+      width: '100%',
+      backgroundColor: 'black',
+      transition: 'opacity 200ms',
+      willChange: 'opacity',
+      zIndex: 1,
+      opacity: 0
+    },
+    shadowVisible: {
+      opacity: 0.1
     }
   }
 })
@@ -87,6 +105,7 @@ const Search = React.memo(({
           <SearchBar className={styles.searchBar} />
         </Box>
         <SearchResults />
+        <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>
     </div>
   </div>

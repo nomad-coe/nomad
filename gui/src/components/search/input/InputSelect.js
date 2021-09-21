@@ -58,7 +58,7 @@ const useStyles = makeStyles(theme => ({
     width: '100%'
   },
   menuItem: {
-    height: '2.2rem'
+    height: '2.3rem'
   },
   chips: {
     display: 'flex',
@@ -93,6 +93,7 @@ const InputSelect = React.memo(({
 
   const handleChange = useCallback((event) => {
     setFilter(new Set(event.target.value))
+    event.preventDefault()
   }, [setFilter])
 
   // Create a list of options

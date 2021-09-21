@@ -76,7 +76,7 @@ const InputItem = React.memo(({
   const countMode = useStatisticsCountMode()
 
   const handleChange = useCallback((event, itemValue) => {
-    (!disabled && onChange) && onChange(value, itemValue)
+    if (!disabled && onChange) onChange(value, itemValue)
   }, [value, disabled, onChange])
 
   let Control
