@@ -29,7 +29,7 @@ from tests.processing import test_data as test_processing
 
 
 def test_requests_auth(api_v1):
-    rv = api_v1.get('users/me', auth=Auth())
+    rv = api_v1.get('users/me', auth=Auth(from_api=True))
     assert rv.status_code == 200
 
 
@@ -76,8 +76,8 @@ def test_query_authentication(api_v1, published, other_test_user, test_user):
     # The published test uploads uploader in calc and upload's user id do not match
     # due to testing the uploader change via publish metadata.
 
-    assert_results(query_archive(authentication=Auth(other_test_user.username, 'password')), total=0)
-    assert_results(query_archive(authentication=Auth(test_user.username, 'password')), total=1)
+    assert_results(query_archive(authentication=Auth(other_test_user.username, 'password', from_api=True)), total=0)
+    assert_results(query_archive(authentication=Auth(test_user.username, 'password', from_api=True)), total=1)
 
 
 @pytest.fixture(scope='function')

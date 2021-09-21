@@ -53,6 +53,8 @@ lazy_import.lazy_module('nomad.parsing.parsers')
 lazy_import.lazy_module('nomad.infrastructure')
 lazy_import.lazy_module('nomad.doi')
 lazy_import.lazy_module('nomad.client')
+lazy_import.lazy_module('nomad.client.api')
+lazy_import.lazy_module('nomad.client.archive')
 
 from . import local, upload, integrationtests, statistics, update_database  # noqa
 from .client import create_client  # noqa

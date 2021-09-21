@@ -17,4 +17,4 @@
 #
 
 from .archive import ArchiveQuery, query_archive
-from .auth import Auth, KeycloakAuthenticator
+from .api import Auth, KeycloakAuthenticator

@@ -144,7 +144,7 @@ from nomad.datamodel import EntryArchive
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
 from nomad import parsing  # pylint: disable=unused-import
 
-from .auth import Auth
+from .api import Auth
 
 
 class QueryError(Exception):

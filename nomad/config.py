@@ -474,6 +474,9 @@ def _apply_nomad_yaml():
             logger.error(f'cannot read nomad config: {e}')
             return
 
+    if not config_data:
+        return
+
     for key, value in config_data.items():
         if isinstance(value, dict):
             group_key = key

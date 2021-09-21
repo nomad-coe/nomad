@@ -27,6 +27,27 @@ from nomad import config
 class APIError(Exception): pass
 
 
+def _call_requests(method, path: str, ssl: bool = True, *args, **kwargs):
+    url = f'{config.api_url(ssl=ssl)}/v1/{path}'
+    return getattr(requests, method)(url, *args, **kwargs)
+
+
+def get(*args, **kwargs):
+    return _call_requests('get', *args, **kwargs)
+
+
+def post(*args, **kwargs):
+    return _call_requests('post', *args, **kwargs)
+
+
+def put(*args, **kwargs):
+    return _call_requests('put', *args, **kwargs)
+
+
+def delete(*args, **kwargs):
+    return _call_requests('delete', *args, **kwargs)
+
+
 def url(path):
     ''' Returns the full NOMAD API url for the given api path. '''
     return f'{config.client.url}/v1/{path}'
@@ -34,6 +55,7 @@ def url(path):
 
 # This class is somewhat questionable, because there might be very similar functionality
 # already in requests. But it is somewhere hidden in OAuth flow implementations.
+# Maybe there is also a way to use the KeycloakAuthenticator in requests.
 class Auth(requests.auth.AuthBase):
     '''
     A request Auth class that can be used to authenticate in request callcs like this:
@@ -48,14 +70,26 @@ class Auth(requests.auth.AuthBase):
     Arguments:
         user: Optional user name or email, default is take from ``config.client.user``
         password: Optional password, default is taken from ``config.client.password``
+        from_api: If true, the necessary access token is acquired through the NOMAD api via basic auth
+            and not via keycloak directly. Default is False. Not recommended, but might
+            be useful, if keycloak can't be configured (e.g. during tests) or reached.
     '''
-    def __init__(self, user: str = config.client.user, password: str = config.client.password):
+    def __init__(
+            self, user: str = config.client.user,
+            password: str = config.client.password,
+            from_api: bool = False):
         self.user = user
         self._password = password
+        self.from_api = from_api
+
+        self.__oidc = KeycloakOpenID(
+            server_url=config.keycloak.server_url,
+            realm_name=config.keycloak.realm_name,
+            client_id=config.keycloak.client_id)
 
         self._token = None
 
-    def __call__(self, request):
+    def get_access_token_from_api(self):
         if self._token is None:
             response = requests.get(
                 url('auth/token'),
@@ -68,11 +102,27 @@ class Auth(requests.auth.AuthBase):
                     f'{response_json.get("description") or response_json.get("detail") or "unknown reason"} '
                     f'({response_json.get("code", response.status_code)})')
 
-            self._token = response.json()['access_token']
+            self._token = response.json()
 
-        # TODO check if token is still valid and refresh
+    def get_access_token_from_keycloak(self):
+        if self._token is None:
+            self._token = self.__oidc.token(username=self.user, password=self._password)
+            self._token['time'] = time.time()
+        elif self._token['expires_in'] < int(time.time()) - self._token['time'] + 10:
+            try:
+                self._token = self.__oidc.refresh_token(self._token['refresh_token'])
+                self._token['time'] = time.time()
+            except Exception:
+                self._token = self.__oidc.token(username=self.user, password=self._password)
+                self._token['time'] = time.time()
 
-        request.headers['Authorization'] = f'Bearer {self._token}'
+    def __call__(self, request):
+        if self.from_api:
+            self.get_access_token_from_api()
+        else:
+            self.get_access_token_from_keycloak()
+
+        request.headers['Authorization'] = f'Bearer {self._token["access_token"]}'
         return request
 
 

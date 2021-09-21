@@ -24,7 +24,6 @@ import json
 import elasticsearch_dsl as es
 
 from nomad import processing as proc, config, infrastructure, utils, files, datamodel, search
-from nomad.search.v1 import quantity_values
 
 from .admin import admin, __run_processing, __run_parallel
 
@@ -102,6 +101,7 @@ def uploads(
         query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if unindexed:
+        from nomad.search.v1 import quantity_values
         uploads_in_es = set(quantity_values('upload_id', page_size=1000, owner='all'))
 
         uploads_in_mongo = mongo_client[config.mongo.db_name]['calc'].distinct('upload_id')
@@ -126,6 +126,7 @@ def query_uploads(ctx, uploads):
         if ctx.obj.query_mongo:
             uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
         else:
+            from nomad.search.v1 import quantity_values
             uploads = list(quantity_values(
                 'upload_id', query=es.Q(json_query), page_size=1000, owner='all'))
     except Exception:

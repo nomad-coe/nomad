@@ -110,6 +110,7 @@ def client(ctx, url: str, user: str, password: str, no_ssl_verify: bool, no_toke
     nomad_config.client.url = url
 
     ctx.obj.user = user
+    ctx.obj.auth = nomad_client.Auth(user=user, password=password)
 
     global _create_client
 
