@@ -28,11 +28,11 @@ almost readonly (beside metadata) storage.
 .. code-block:: sh
 
     fs/staging/<upload>/raw/**
-                       /archive/<calc>.json
-    fs/public/<upload>/raw-public.plain.zip
-                      /raw-restricted.plain.zip
-                      /archive-public.json.zip
-                      /archive-restricted.json.zip
+                       /archive/<calc>.msg
+    fs/public/<upload>/raw-{access}.plain.zip
+                      /archive-{access}.msg.msg
+
+Where `access` is either "public" (non-embargoed) or "restricted" (embargoed).
 
 There is an implicit relationship between files, based on them being in the same
 directory. Each directory with at least one *mainfile* is a *calculation directory*
@@ -41,15 +41,6 @@ respective files actually contributing data or not. A *calculation directory* mi
 contain multiple *mainfile*. E.g., user simulated multiple states of the same system, have
 one calculation based on the other, etc. In this case the other *mainfile* is an *aux*
 file to the original *mainfile* and vice versa.
-
-Published files are kept in pairs of public and restricted files. Here the multiple *mainfiles*
-per directory provides a dilemma. If on *mainfile* is restricted, all its *aux* files
-should be restricted too. But if one of the *aux* files is actually a *mainfile* it
-might be published!
-
-There are multiple ways to solve this. Due to the rarity of the case, we take the
-most simple solution: if one file is public, all files are made public, execpt those
-being other mainfiles. Therefore, the aux files of a restricted calc might become public!
 '''
 
 from abc import ABCMeta

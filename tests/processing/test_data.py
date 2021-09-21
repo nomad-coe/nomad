@@ -95,7 +95,6 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         assert calc.parser is not None
         assert calc.mainfile is not None
         assert calc.process_status == ProcessStatus.SUCCESS
-        assert calc.metadata['published'] == published
 
         with upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
@@ -283,7 +282,6 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert_processing(upload, published=True)
     calc = Calc.objects(upload_id='oasis_upload_id').first()
     assert calc.calc_id == 'test_calc_id'
-    assert calc.metadata['published']
     assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
 
 
@@ -527,20 +525,18 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
 
     assert upload.total_calcs == 2
     if not published:
-        for calc in upload.calcs:
-            assert calc.metadata['published'] == published
-            assert not calc.metadata['with_embargo']
+        assert upload.published == published
+        assert upload.embargo_length == 0
 
 
 def test_re_pack(published: Upload):
     upload_id = published.upload_id
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
     assert upload_files.access == 'restricted'
-    # Lift embargo
+    assert published.embargo_length > 0
     calc = Calc.objects(upload_id=upload_id).first()
-    assert calc.metadata['with_embargo']
-    calc.metadata['with_embargo'] = False
-    calc.save()
+
+    # Lift embargo
     published.embargo_length = 0
     published.save()
     upload_files.re_pack(with_embargo=False)

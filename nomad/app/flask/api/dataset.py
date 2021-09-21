@@ -140,7 +140,8 @@ class DatasetResource(Resource):
             abort(400, 'Dataset with name %s already has a DOI' % name)
 
         # check if the DOI can be created
-        published_values = proc.Calc.objects(metadata__datasets=result.dataset_id).distinct('metadata.published')
+        upload_ids = proc.Calc.objects(metadata__datasets=result.dataset_id).distinct('upload_id')
+        published_values = proc.Upload.objects(upload_id__in=upload_ids).distinct('published')
 
         if False in published_values:
             abort(400, 'Dataset must not contain non published entries.')

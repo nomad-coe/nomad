@@ -478,7 +478,7 @@ class EntryMetadata(metainfo.MSection):
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        categories=[MongoMetadata, OasisMetadata],
+        categories=[OasisMetadata],
         a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
     processed = metainfo.Quantity(
@@ -602,7 +602,7 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoMetadata, EditableUserMetadata])
 
     with_embargo = metainfo.Quantity(
-        type=bool, default=False, categories=[MongoMetadata],
+        type=bool, default=False,
         description='Indicated if this entry is under an embargo',
         a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 

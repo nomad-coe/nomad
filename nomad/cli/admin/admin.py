@@ -319,8 +319,8 @@ def index_materials(threads, code, dry, in_place, n, source):
                     calc.calc_id = metadata["calc_id"]
                     calc.upload_id = metadata["upload_id"]
                     mongo_calc = proc.Calc.get(calc.calc_id)
-                    calc.published = mongo_calc["metadata"]["published"]
-                    calc.with_embargo = mongo_calc["metadata"]["with_embargo"]
+                    calc.published = mongo_calc.upload.published
+                    calc.with_embargo = mongo_calc.upload.embargo_length > 0
                     calc.owners = [mongo_calc.upload.user_id] + mongo_calc["metadata"]["shared_with"]
                     enc_idealized_structure = encyclopedia.material.idealized_structure
                     idealized_structure = IdealizedStructure()

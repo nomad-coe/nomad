@@ -2172,19 +2172,6 @@ class TestDataset:
         assert files.UploadFiles.get('1') is not None
         assert example_entry.metadata.datasets[0].dataset_id == '1'
 
-        # entry_archive = EntryArchive()
-        # entry_metadata = entry_archive.m_create(
-        #     EntryMetadata,
-        #     domain='dft', calc_id='1', upload_id='1', published=True, with_embargo=False,
-        #     datasets=['1'])
-        # Calc(
-        #     calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-        #     metadata=entry_metadata.m_to_dict()).save()
-        # upload_files = files.StagingUploadFiles(upload_id='1', create=True)
-        # upload_files.write_archive('1', dict(metadata=entry_metadata.m_to_dict()))
-        # upload_files.close()
-        # index(entry_archive)
-
     def test_delete_dataset(self, api, test_user_auth, example_dataset_with_entry):
         rv = api.delete('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 200
@@ -2217,9 +2204,9 @@ class TestDataset:
         entry_metadata = EntryMetadata(
             domain='dft', calc_id='1', upload_id='1', published=False, with_embargo=False,
             datasets=['1'])
-        Calc(
-            calc_id='1', upload_id='1', create_time=datetime.datetime.now(),
-            metadata=entry_metadata.m_to_dict()).save()
+        entry = Calc(calc_id='1', upload_id='1', create_time=datetime.datetime.now())
+        entry._apply_metadata_to_mongo_entry(entry_metadata)
+        entry.save()
         rv = api.post('/datasets/ds1', headers=test_user_auth)
         assert rv.status_code == 400
 

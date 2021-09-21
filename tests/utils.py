@@ -166,6 +166,7 @@ class ExampleData:
                 if upload_id in self.uploads:
                     assert embargo_length is not None, 'No embargo provided on upload'
                     assert (embargo_length > 0) == with_embargo, 'Inconsistent embargo'
+                    assert published == self.uploads[upload_id]['published']
                 else:
                     # No uploads created. Just generate it
                     embargo_length = 36 if with_embargo else 0
@@ -300,9 +301,9 @@ class ExampleData:
             calc_hash='dummy_hash_' + entry_id,
             domain='dft',
             upload_time=upload_time,
-            published=True,
             processed=True,
-            with_embargo=False,
+            published=self.uploads.get(upload_id, {}).get('published', True),
+            with_embargo=self.uploads.get(upload_id, {}).get('embargo_length', 0) > 0,
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
         entry_metadata.m_update(**kwargs)

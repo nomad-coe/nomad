@@ -171,7 +171,6 @@ class Calc(Proc):
             ('upload_id', 'metadata.nomad_version'),
             'metadata.processed',
             'metadata.last_processing',
-            'metadata.published',
             'metadata.datasets',
             'metadata.pid'
         ]
@@ -297,6 +296,7 @@ class Calc(Proc):
         entry_metadata.uploader = upload.user_id
         entry_metadata.upload_time = upload.upload_time
         entry_metadata.upload_name = upload.name
+        entry_metadata.published = upload.published
         entry_metadata.with_embargo = (upload.embargo_length > 0)
         # Entry metadata
         if self.parser is not None:
@@ -961,28 +961,13 @@ class Upload(Proc):
             self.embargo_length = embargo_length
 
         with utils.lnr(logger, 'publish failed'):
-            with self.entries_metadata() as calcs:
-
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(calc):
-                        calc.published = True
-                        if embargo_length is not None:
-                            calc.with_embargo = (embargo_length > 0)
-                        else:
-                            assert calc.with_embargo is not None, 'with_embargo flag is None'
-                        return UpdateOne(
-                            {'_id': calc.calc_id},
-                            {'$set': {'metadata': calc.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
-
+            with self.entries_metadata() as entries:
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
+                        self.staging_upload_files.pack(entries, with_embargo=(self.embargo_length > 0))
 
                 with utils.timer(logger, 'index updated'):
-                    search.publish(calcs)
+                    search.publish(entries)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
@@ -1660,7 +1645,6 @@ class Upload(Proc):
             if self.published and (self.embargo_length > 0) != (upload_metadata.embargo_length > 0):
                 need_to_repack = True
                 need_to_reindex = True
-                new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
             self.embargo_length = upload_metadata.embargo_length
         if upload_metadata.uploader is not None:
             self.user_id = upload_metadata.uploader.user_id
@@ -1828,7 +1812,7 @@ class Upload(Proc):
             required_keys_entry_level = (
                 '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
             required_keys_entry_metadata = (
-                'upload_time', 'published', 'with_embargo', 'calc_hash')
+                'upload_time', 'calc_hash')
             required_keys_datasets = (
                 'dataset_id', 'name', 'user_id')
 
@@ -1927,15 +1911,9 @@ class Upload(Proc):
                     'Mismatching upload_id in entry definition')
                 assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
                     'Provided entry id does not match generated value')
-                for k, v in (
-                        ('published', self.published),
-                        ('with_embargo', self.embargo_length > 0)):
-                    assert entry_metadata_dict.get(k) == v, f'Inconsistent entry metadata: {k}'
                 check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
-                if embargo_length is not None:
-                    # Update the embargo flag on the entry level
-                    entry_metadata_dict['with_embargo'] = (embargo_length > 0)
+
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = (
                     'upload_id', 'mainfile', 'parser', 'metadata', 'errors', 'warnings',

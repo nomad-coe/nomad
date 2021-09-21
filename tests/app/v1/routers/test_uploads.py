@@ -311,7 +311,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     return [
         EntryMetadata(
             domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
-            with_embargo=Calc.get(entry['entry_id']).metadata.get('with_embargo'))
+            with_embargo=Upload.get(entry['upload_id']).embargo_length > 0)
         for entry in entries]
 
 
@@ -985,7 +985,7 @@ def test_put_upload_metadata(
         pass
 
     if upload_id == 'id_published_w':
-        assert Calc.get('id_published_w_entry').metadata['with_embargo']
+        assert Upload.get(upload_id).embargo_length > 0
         es_data = search(owner=None, query=dict(entry_id='id_published_w_entry')).data[0]
         assert es_data['with_embargo']
 

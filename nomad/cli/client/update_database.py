@@ -356,7 +356,7 @@ class DbUpdater:
         upload_id = None
 
         for entry in entries:
-            if entry['name'] == uploadname:
+            if entry['upload_name'] == uploadname:
                 status = 'uploaded'
                 if entry['published']:
                     status = 'published'
@@ -370,7 +370,6 @@ class DbUpdater:
             return dict(
                 operation='publish',
                 metadata=dict(
-                    with_embargo=False,
                     comment='',
                     references=[
                         'http://www.sciencedirect.com/science/article/pii/S0927025614003322',
