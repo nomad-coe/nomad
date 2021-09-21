@@ -286,7 +286,7 @@ async def delete_dataset(
             status_code=_bad_id_response[0],
             detail=_bad_id_response[1]['description'])
 
-    if dataset.doi is not None:
+    if dataset.doi is not None and not user.is_admin:
         raise HTTPException(
             status_code=_existing_name_response[0],
             detail=_dataset_is_fixed_response[1]['description'])
