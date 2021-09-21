@@ -56,6 +56,6 @@ lazy_import.lazy_module('nomad.client')
 lazy_import.lazy_module('nomad.client.api')
 lazy_import.lazy_module('nomad.client.archive')
 
-from . import local, upload, integrationtests, statistics, update_database  # noqa
+from . import local, upload, integrationtests, update_database  # noqa
 from .client import create_client  # noqa
 from .upload import stream_upload_with_client  # noqa
