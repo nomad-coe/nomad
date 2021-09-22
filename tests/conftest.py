@@ -26,7 +26,6 @@ import asyncore
 import time
 import shutil
 import os.path
-from flask import request, g
 import elasticsearch.exceptions
 from typing import List
 import json
@@ -299,13 +298,6 @@ class KeycloakMock:
         else:
             raise infrastructure.KeycloakError('user does not exist')
 
-    def auth(self, headers, **kwargs):
-        if 'Authorization' in headers and headers['Authorization'].startswith('Bearer '):
-            user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            return User(**self.users[user_id]), user_id
-
-        return None, None
-
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
         user.user_id = test_user_uuid(self.id_counter)
@@ -337,10 +329,6 @@ class KeycloakMock:
                 return user['user_id']
 
         raise infrastructure.KeycloakError()
-
-    @property
-    def access_token(self):
-        return g.oidc_access_token
 
 
 config.keycloak.realm_name = 'fairdi_nomad_test'
@@ -754,6 +742,14 @@ def api_v1(monkeysession):
     monkeysession.setattr('requests.put', lambda *args, **kwargs: call_test_client('put', *args, **kwargs))
     monkeysession.setattr('requests.post', lambda *args, **kwargs: call_test_client('post', *args, **kwargs))
     monkeysession.setattr('requests.delete', lambda *args, **kwargs: call_test_client('delete', *args, **kwargs))
+
+    def __call__(self, request):
+        for user in test_users.values():
+            if user['username'] == self.user or user['email'] == self.user:
+                request.headers['Authorization'] = f'Bearer {user["user_id"]}'
+        return request
+
+    monkeysession.setattr('nomad.client.api.Auth.__call__', __call__)
 
     return test_client
 

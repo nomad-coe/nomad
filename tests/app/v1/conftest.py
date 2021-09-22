@@ -18,14 +18,12 @@
 
 import pytest
 import math
-from bravado.client import SwaggerClient
 
 from nomad.archive import write_partial_archive_to_mongo
 from nomad.datamodel import OptimadeEntry
 from nomad.processing import ProcessStatus
 
 from tests.utils import ExampleData
-from tests.app.v1.bravado import FastApiTestHttpClient
 
 
 @pytest.fixture(scope='session')
@@ -180,12 +178,3 @@ def example_data_writeable(mongo, test_user, normalized):
     yield
 
     data.delete()
-
-
-@pytest.fixture(scope='function')
-def fastapi_oasis_central_nomad_client(client, test_user_auth, monkeypatch):
-    def create_client(*args, **kwargs):
-        http_client = FastApiTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.legacy._create_client', create_client)

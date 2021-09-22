@@ -19,8 +19,6 @@
 import os.path
 import time
 
-from nomad.processing import ProcessStatus
-
 from .api import Auth
 
 
@@ -39,6 +37,7 @@ def upload_file(
 
     Returns: The upload_id if successful or None if not.
     '''
+    from nomad.processing import ProcessStatus
     from nomad.client import api
     if local_path:
         response = api.post(

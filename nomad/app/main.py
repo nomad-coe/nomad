@@ -42,9 +42,9 @@ class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content='You have to authenticate to use this Oasis endpoint.')
-
         else:
-            user, _ = infrastructure.keycloak.auth(request.headers)
+            token = request.headers['Authorization'].split(' ')[1]
+            user, _ = infrastructure.keycloak.tokenauth(token)
             if user is None or user.email not in config.oasis.allowed_users:
                 return Response(
                     status_code=status.HTTP_401_UNAUTHORIZED,

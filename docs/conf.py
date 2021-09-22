@@ -51,8 +51,6 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx_click.ext',
     'sphinxcontrib.httpdomain',
-    'sphinxcontrib.autohttp.flask',
-    'sphinxcontrib.autohttp.flaskqref',
     'celery.contrib.sphinx',
     'm2r'
 ]

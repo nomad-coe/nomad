@@ -23,7 +23,6 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 '''
 
-from typing import Tuple, Dict
 import os.path
 import os
 import shutil
@@ -37,7 +36,6 @@ from keycloak import KeycloakOpenID, KeycloakAdmin
 from keycloak.exceptions import KeycloakAuthenticationError, KeycloakGetError
 import json
 import jwt
-import basicauth
 from datetime import datetime
 import re
 import unidecode
@@ -177,29 +175,6 @@ class Keycloak():
                 raise e
 
         return self.__public_keys
-
-    def auth(self, headers: Dict[str, str], allow_basic: bool = False) -> Tuple[object, str]:
-        '''
-        Performs authentication based on the provided headers. Either basic or bearer.
-
-        Returns:
-            The user and its access_token
-
-        Raises:
-            KeycloakError
-        '''
-
-        if headers.get('Authorization', '').startswith('Bearer '):
-            access_token = headers['Authorization'].split(None, 1)[1].strip()
-            return self.tokenauth(access_token), access_token
-
-        if allow_basic and headers.get('Authorization', '').startswith('Basic '):
-            auth = headers['Authorization'].split(None, 1)[1].strip()
-            username, password = basicauth.decode(auth)
-            access_token = self.basicauth(username, password)
-            return self.tokenauth(access_token), access_token
-
-        return None, None
 
     def basicauth(self, username: str, password: str) -> str:
         '''

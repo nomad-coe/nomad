@@ -22,7 +22,20 @@ from datetime import datetime
 from nomad.app.flask.dcat.mapping import Mapping
 
 from tests.utils import ExampleData
-from tests.app.flask.test_app import BlueprintClient
+
+
+class BlueprintClient():
+    def __init__(self, app_client, blueprint_url_prefix):
+        self.app_client = app_client
+        self.blueprint_url_prefix = blueprint_url_prefix.strip('/')
+
+    def _delegate(self, method, path, *args, **kwargs):
+        app_client_function = getattr(self.app_client, method)
+        prefixed_path = '/%s/%s' % (self.blueprint_url_prefix, path.lstrip('/'))
+        return app_client_function(prefixed_path, *args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        return self._delegate('get', *args, **kwargs)
 
 
 @pytest.fixture(scope='session')

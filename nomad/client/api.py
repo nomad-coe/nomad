@@ -19,7 +19,6 @@
 import requests
 from keycloak import KeycloakOpenID
 import time
-from bravado import requests_client as bravado_requests_client
 
 from nomad import config
 
@@ -53,9 +52,6 @@ def url(path):
     return f'{config.client.url}/v1/{path}'
 
 
-# This class is somewhat questionable, because there might be very similar functionality
-# already in requests. But it is somewhere hidden in OAuth flow implementations.
-# Maybe there is also a way to use the KeycloakAuthenticator in requests.
 class Auth(requests.auth.AuthBase):
     '''
     A request Auth class that can be used to authenticate in request callcs like this:
@@ -124,30 +120,3 @@ class Auth(requests.auth.AuthBase):
 
         request.headers['Authorization'] = f'Bearer {self._token["access_token"]}'
         return request
-
-
-class KeycloakAuthenticator(bravado_requests_client.Authenticator):
-    def __init__(self, host, user, password, **kwargs):
-        super().__init__(host=host)
-        self.user = user
-        self.password = password
-        self.token = None
-        self.__oidc = KeycloakOpenID(**kwargs)
-
-    def apply(self, request=None):
-        if self.token is None:
-            self.token = self.__oidc.token(username=self.user, password=self.password)
-            self.token['time'] = time.time()
-        elif self.token['expires_in'] < int(time.time()) - self.token['time'] + 10:
-            try:
-                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
-                self.token['time'] = time.time()
-            except Exception:
-                self.token = self.__oidc.token(username=self.user, password=self.password)
-                self.token['time'] = time.time()
-
-        if request:
-            request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
-            return request
-        else:
-            return dict(Authorization='Bearer %s' % self.token['access_token'])

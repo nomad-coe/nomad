@@ -1179,7 +1179,7 @@ def test_post_upload_action_publish(
             import_settings=dict(include_archive_files=True, trigger_processing=False)),
         id='no-processing')])
 def test_post_upload_action_publish_to_central_nomad(
-        client, proc_infra, monkeypatch, fastapi_oasis_central_nomad_client,
+        client, proc_infra, monkeypatch,
         non_empty_processed, internal_example_user_metadata,
         test_users_dict, test_auth_dict, kwargs):
     ''' Tests the publish action with to_central_nomad=True. '''
@@ -1240,10 +1240,11 @@ def test_post_upload_action_publish_to_central_nomad(
     monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
 
     # Further monkey patching
-    def new_post(url, headers, data):
-        return client.post(url.lstrip('/api/'), headers=headers, data=data.read())
+    def new_post(url, data, *args, **kwargs):
+        return client.post(url.lstrip('/api/v1/'), *args, data=data.read(), **kwargs)
 
     monkeypatch.setattr('requests.post', new_post)
+    monkeypatch.setattr('nomad.config.keycloak.username', test_users_dict[user].username)
     monkeypatch.setattr('nomad.config.keycloak.oasis', True)
     monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
     import_settings = config.bundle_import.default_settings.customize(import_settings)

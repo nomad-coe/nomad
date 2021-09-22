@@ -21,54 +21,18 @@ This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official
 and dcat api. The app module also servers documentation, gui, and
 alive.
 '''
-from flask import Flask, Blueprint, jsonify, url_for, abort, request, make_response
-from flask_restplus import Api, representations
+from flask import Flask, jsonify, url_for, abort, request
+from flask_restplus import Api
 from flask_cors import CORS
-from werkzeug.exceptions import HTTPException
-from werkzeug.wsgi import DispatcherMiddleware  # pylint: disable=E0611
-import os.path
 import random
-from structlog import BoundLogger
-import collections
-from mongoengine.base.datastructures import BaseList
-import orjson
 
 from nomad import config, utils as nomad_utils
 
-from .api import blueprint as api_blueprint, api
 from .dcat import blueprint as dcat_blueprint
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
-from .encyclopedia import blueprint as encyclopedia_blueprint
 from . import common
-
-
-def dump_json(data):
-    def default(data):
-        if isinstance(data, collections.OrderedDict):
-            return dict(data)
-
-        if data.__class__.__name__ == 'BaseList':
-            return list(data)
-
-        raise TypeError
-
-    return orjson.dumps(
-        data, default=default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
-
-
-# replace the json implementation of flask_restplus
-def output_json(data, code, headers=None):
-    dumped = dump_json(data) + b'\n'
-
-    resp = make_response(dumped, code)
-    resp.headers.extend(headers or {})
-    return resp
-
-
-api.representation('application/json')(output_json)
 
 
 @property  # type: ignore
@@ -97,12 +61,10 @@ app.config['SECRET_KEY'] = config.services.api_secret
 
 CORS(app)
 
-app.register_blueprint(api_blueprint, url_prefix='/api')
 app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
-app.register_blueprint(encyclopedia_blueprint, url_prefix='/encyclopedia')
 
 
 @app.errorhandler(Exception)

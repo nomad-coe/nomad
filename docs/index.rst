@@ -18,7 +18,6 @@ and infrastructure with a simplyfied architecture and consolidated code base.
    normalizer.rst
    oasis.rst
    ops/ops.rst
-   api_reference.rst
    python_reference.rst
 
 .. # Introduction
@@ -34,7 +33,6 @@ and infrastructure with a simplyfied architecture and consolidated code base.
 ..    # The different APIs
 ..    # curl
 ..    # requests
-..    # bravado
 .. # NOMAD's Python library
 ..    # Getting started
 ..    # Command line interface (CLI)
@@ -64,5 +62,4 @@ and infrastructure with a simplyfied architecture and consolidated code base.
 .. # How to write a normalizer
 .. # Operating a NOMAD OASIS
 .. # Operating NOMAD (with k8s)
-.. # API Reference
 .. # Python Reference

@@ -29,10 +29,6 @@ from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
 
-from tests.app.flask.conftest import (  # pylint: disable=unused-import
-    test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
-from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
-
 # TODO there is much more to test
 
 
@@ -344,7 +340,7 @@ class TestClient:
         assert result.exit_code == 0, result.output
 
     @pytest.mark.skip('Disabled. Tested code is temporaely commented.')
-    def test_statistics(self, client, proc_infra, admin_user_bravado_client):
+    def test_statistics(self):
 
         result = invoke_cli(
             cli, ['client', 'statistics-table'], catch_exceptions=True)

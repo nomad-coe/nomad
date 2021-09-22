@@ -21,7 +21,7 @@ import io
 import typing
 import sys
 
-from nomad import config, files, utils, parsing, normalizing, datamodel
+from nomad import config, utils, datamodel
 
 from .api import Auth
 
@@ -35,6 +35,7 @@ def parse(
     Run the given parser on the downloaded calculation. If no parser is given,
     do parser matching and use the respective parser.
     '''
+    from nomad import parsing
     from nomad.parsing import parsers
     mainfile = os.path.basename(mainfile_path)
 
@@ -78,6 +79,7 @@ def parse(
 
 def normalize(
         normalizer: typing.Union[str, typing.Callable], entry_archive, logger=None):
+    from nomad import normalizing
 
     if logger is None:
         logger = utils.get_logger(__name__)
@@ -100,6 +102,8 @@ def normalize_all(entry_archive, logger=None):
     '''
     Parse the downloaded calculation and run the whole normalizer chain.
     '''
+    from nomad import normalizing
+
     for normalizer in normalizing.normalizers:
         if normalizer.domain is None or normalizer.domain == entry_archive.metadata.domain:
             normalize(normalizer, entry_archive, logger=logger)
@@ -121,9 +125,10 @@ class LocalEntryProcessing:
         auth: Optional Auth object to download private data.
     '''
     def __init__(self, entry_id: str, override: bool = False, auth: Auth = None) -> None:
-        self.entry_id = entry_id
-
+        from nomad import files
         from nomad.client import api
+
+        self.entry_id = entry_id
         response = self.__handle_response(
             api.get(f'entries/{self.entry_id}', auth=auth))
         self.mainfile = response.json()['data']['mainfile']
@@ -135,7 +140,6 @@ class LocalEntryProcessing:
 
         if not os.path.exists(self.local_path) or override:
             # download raw if not already downloaded or if override is set
-            # download with request, since bravado does not support streaming
             print('Downloading', self.entry_id)
             response = self.__handle_response(
                 api.get(f'entries/{self.entry_id}/raw/download', auth=auth))

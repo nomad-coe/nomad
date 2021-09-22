@@ -312,7 +312,5 @@ if config.logstash.enabled:
         logstash_level=config.logstash.level)
 
 # configure log levels
-for logger in [
-        'elasticsearch',
-        'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
+for logger in ['elasticsearch', 'urllib3.connectionpool']:
     logging.getLogger(logger).setLevel(logging.WARNING)

@@ -35,8 +35,8 @@ from nomad.search.v1 import search
 
 from tests.search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
-from tests.app.conftest import test_users_dict, test_user_auth  # pylint: disable=unused-import
+from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
+from tests.app.v1.conftest import client  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -285,70 +285,6 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert calc.calc_id == 'test_calc_id'
     assert calc.metadata['published']
     assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
-
-
-@pytest.fixture(scope='function')
-def oasis_publishable_upload(
-        client, proc_infra, non_empty_uploaded, oasis_central_nomad_client, monkeypatch,
-        other_test_user):
-
-    upload = run_processing(non_empty_uploaded, other_test_user)
-    upload.publish_upload()
-    upload.block_until_complete(interval=.01)
-
-    # create a dataset to also test this aspect of oasis uploads
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    datamodel.Dataset(
-        dataset_id='dataset_id', name='dataset_name',
-        user_id=other_test_user.user_id).a_mongo.save()
-    calc.metadata['datasets'] = ['dataset_id']
-    calc.save()
-
-    cn_upload_id = 'cn_' + upload.upload_id
-
-    # We need to alter the ids, because we do this test by uploading to the same NOMAD
-    def normalize_oasis_upload_metadata(upload_id, metadata):
-        for entry in metadata['entries'].values():
-            entry['calc_id'] = utils.create_uuid()
-        upload_id = 'cn_' + upload_id
-        return upload_id, metadata
-
-    monkeypatch.setattr(
-        'nomad.processing.data._normalize_oasis_upload_metadata',
-        normalize_oasis_upload_metadata)
-
-    def put(url, headers, data):
-        return client.put(url, headers=headers, data=data.read())
-
-    monkeypatch.setattr(
-        'requests.put', put)
-    monkeypatch.setattr(
-        'nomad.config.oasis.central_nomad_api_url', '/api')
-
-    return cn_upload_id, upload
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_publish_from_oasis(oasis_publishable_upload, other_test_user, no_warn):
-    cn_upload_id, upload = oasis_publishable_upload
-
-    upload.publish_from_oasis()
-    upload.block_until_complete()
-    assert_processing(upload, published=True, process='publish_from_oasis')
-
-    cn_upload = Upload.objects(upload_id=cn_upload_id).first()
-    cn_upload.block_until_complete()
-    assert_processing(cn_upload, published=True)
-    assert cn_upload.user_id == other_test_user.user_id
-    assert len(cn_upload.published_to) == 0
-    assert cn_upload.from_oasis
-    assert cn_upload.oasis_deployment_id == config.meta.deployment_id
-    assert upload.published_to[0] == config.oasis.central_nomad_deployment_id
-    cn_calc = Calc.objects(upload_id=cn_upload_id).first()
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    assert cn_calc.calc_id != calc.calc_id
-    assert cn_calc.metadata['datasets'] == ['dataset_id']
-    assert datamodel.Dataset.m_def.a_mongo.objects().count() == 1
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
