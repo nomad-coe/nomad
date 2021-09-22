@@ -199,9 +199,9 @@ class UploadListResource(Resource):
 
         query_kwargs = {}
         if state == 'published':
-            query_kwargs.update(published=True)
+            query_kwargs.update(publish_time__ne=None)
         elif state == 'unpublished':
-            query_kwargs.update(published=False)
+            query_kwargs.update(publish_time=None)
         elif state == 'all':
             pass
         else:
@@ -215,7 +215,7 @@ class UploadListResource(Resource):
 
         results = [
             upload
-            for upload in uploads.order_by('published', '-upload_time')[(page - 1) * per_page: page * per_page]]
+            for upload in uploads.order_by('publish_time', '-upload_time')[(page - 1) * per_page: page * per_page]]
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
@@ -253,7 +253,7 @@ class UploadListResource(Resource):
 
         # check the upload limit
         if not g.user.is_admin:
-            if Upload.user_uploads(g.user, published=False).count() >= config.services.upload_limit:
+            if Upload.user_uploads(g.user, publish_time=None).count() >= config.services.upload_limit:
                 abort(400, 'Limit of unpublished uploads exceeded for user.')
 
         # check if the upload is to be published directly

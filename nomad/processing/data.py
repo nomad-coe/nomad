@@ -757,7 +757,6 @@ class Upload(Proc):
         upload_time: Datetime of the original upload independent of the NOMAD deployment
             it was first uploaded to.
         user_id: The id of the user that created this upload.
-        published: Boolean that indicates that the upload is published on this NOMAD deployment.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
 
@@ -777,7 +776,6 @@ class Upload(Proc):
     name = StringField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
-    published = BooleanField(default=False)
     publish_time = DateTimeField()
     last_update = DateTimeField()
 
@@ -791,7 +789,7 @@ class Upload(Proc):
     meta: Any = {
         'strict': False,
         'indexes': [
-            'user_id', 'process_status', 'published', 'upload_time', 'create_time'
+            'user_id', 'process_status', 'upload_time', 'create_time', 'publish_time'
         ]
     }
 
@@ -830,6 +828,10 @@ class Upload(Proc):
     @property
     def uploader(self) -> datamodel.User:
         return datamodel.User.get(self.user_id)
+
+    @property
+    def published(self) -> bool:
+        return self.publish_time is not None
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -972,7 +974,6 @@ class Upload(Proc):
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
                         self.upload_files.delete()
-                        self.published = True
                         self.publish_time = datetime.utcnow()
                         self.last_update = datetime.utcnow()
                         self.save()
@@ -1511,7 +1512,6 @@ class Upload(Proc):
                         logger.warn('oasis upload without upload time')
 
                 self.publish_time = datetime.utcnow()
-                self.published = True
                 self.last_update = datetime.utcnow()
                 self.save()
 
@@ -1805,7 +1805,7 @@ class Upload(Proc):
                 'export_options.include_raw_files',
                 'export_options.include_archive_files',
                 'export_options.include_datasets',
-                'upload._id', 'upload.user_id', 'upload.published',
+                'upload._id', 'upload.user_id',
                 'upload.create_time', 'upload.upload_time', 'upload.process_status',
                 'upload.embargo_length',
                 'entries')
@@ -1837,17 +1837,14 @@ class Upload(Proc):
             upload_dict = bundle_info['upload']
             assert self.upload_id == bundle_info['upload_id'] == upload_dict['_id'], (
                 'Inconsisten upload id information')
-            published = upload_dict['published']
+            published = upload_dict.get('publish_time') is not None
             if published:
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
-            if published and settings.keep_original_timestamps:
-                assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
-                'name', 'embargo_length', 'published', 'create_time',
-                'from_oasis', 'oasis_deployment_id']
+                'name', 'embargo_length', 'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
-                upload_keys_to_copy.extend(('upload_time', 'publish_time'))
+                upload_keys_to_copy.extend(('create_time', 'upload_time', 'publish_time',))
             try:
                 # Update the upload with data from the json, and validate it
                 update = {k: upload_dict[k] for k in upload_keys_to_copy if k in upload_dict}
@@ -1857,11 +1854,11 @@ class Upload(Proc):
                 assert False, 'Bad upload json data: ' + str(e)
             current_time = datetime.utcnow()
             current_time_plus_tolerance = current_time + timedelta(minutes=2)
-            if self.published and not settings.keep_original_timestamps:
+            if published and not settings.keep_original_timestamps:
                 self.publish_time = current_time
-            for timestamp in (self.upload_time, self.last_update, self.complete_time, self.publish_time):
-                assert timestamp is None or self.create_time <= timestamp < current_time_plus_tolerance, (
-                    'Bad/inconsistent timestamp')
+            for timestamp in (self.create_time, self.upload_time, self.last_update, self.complete_time, self.publish_time):
+                assert timestamp is None or timestamp < current_time_plus_tolerance, (
+                    'Timestamp is in the future')
             if settings.set_from_oasis:
                 self.from_oasis = True
                 source_deployment_id = bundle_info['source']['deployment_id']

@@ -68,6 +68,13 @@ class MirrorUploadsResource(Resource):
             query = {}
         else:
             query = json_data.get('query', {})
+        if 'published' in query:
+            # Need to translate into a query about publish_time
+            published = query.pop('published')
+            if published:
+                query['publish_time__ne'] = None
+            else:
+                query['publish_time'] = None
 
         try:
             return [

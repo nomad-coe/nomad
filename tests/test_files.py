@@ -17,6 +17,7 @@
 #
 
 from typing import Generator, Any, Dict, Tuple, Iterable, List
+from datetime import datetime
 import os
 import os.path
 import shutil
@@ -387,7 +388,7 @@ def create_public_upload(
     upload_files.delete()
     if with_upload:
         upload = Upload.get(upload_id)
-        upload.published = True
+        upload.publish_time = datetime.utcnow()
         assert upload.embargo_length == embargo_length, 'Wrong embargo_length provided'
         upload.save()
     return upload_id, entries, PublicUploadFiles(upload_id)

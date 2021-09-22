@@ -166,7 +166,7 @@ class ExampleData:
                 if upload_id in self.uploads:
                     assert embargo_length is not None, 'No embargo provided on upload'
                     assert (embargo_length > 0) == with_embargo, 'Inconsistent embargo'
-                    assert published == self.uploads[upload_id]['published']
+                    assert published == (self.uploads[upload_id]['publish_time'] is not None)
                 else:
                     # No uploads created. Just generate it
                     embargo_length = 36 if with_embargo else 0
@@ -229,7 +229,7 @@ class ExampleData:
             if upload_files is not None:
                 upload_files.delete()
 
-    def create_upload(self, upload_id, **kwargs):
+    def create_upload(self, upload_id, published=None, **kwargs):
         '''
         Creates a dictionary holding all the upload information.
         Default values are used/generated, and can be set via kwargs.
@@ -245,11 +245,14 @@ class ExampleData:
             'complete_time': self._next_time_stamp(),
             'last_update': self._next_time_stamp(),
             'embargo_length': 0,
-            'published': False,
+            'publish_time': None,
             'published_to': []}
         upload_dict.update(kwargs)
-        if upload_dict['published'] and 'publish_time' not in upload_dict:
-            upload_dict['publish_time'] = self._next_time_stamp()
+        if published is not None:
+            if published and not upload_dict['publish_time']:
+                upload_dict['publish_time'] = self._next_time_stamp()
+            elif not published:
+                assert not upload_dict['publish_time']
         if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
             upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
         self.uploads[upload_id] = upload_dict
@@ -302,7 +305,7 @@ class ExampleData:
             domain='dft',
             upload_time=upload_time,
             processed=True,
-            published=self.uploads.get(upload_id, {}).get('published', True),
+            published=bool(self.uploads.get(upload_id, {}).get('publish_time', True)),
             with_embargo=self.uploads.get(upload_id, {}).get('embargo_length', 0) > 0,
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)

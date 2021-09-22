@@ -1458,7 +1458,7 @@ class UploadBundle:
         try:
             upload_files: UploadFiles = None
             upload_id: str = self.bundle_info['upload_id']
-            published: bool = self.bundle_info['upload']['published']
+            published: bool = self.bundle_info.get('upload', {}).get('publish_time') is not None
             cls = PublicUploadFiles if published else StagingUploadFiles
             assert not os.path.exists(cls.base_folder_for(upload_id)), 'Upload folder already exists'
             upload_files = cls(upload_id, create=True)

@@ -315,7 +315,7 @@ was successful and you are satisfied with our processing, you have to publish th
 This also allows you to add additional meta-data to your upload (e.g. comments, references, coauthors, etc.).
 Here you also determine, if you want an *embargo* on your data.
 
-Once the data was published, you cannot delete it anymore. You can skip this step, but
+Once the data is published, you cannot delete it anymore. You can skip this step, but
 the reset of the tutorial, will only work for you, because the data is only visible to you.
 
 To initiate the publish and provide further data:

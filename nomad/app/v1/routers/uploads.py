@@ -112,7 +112,7 @@ class UploadProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'create_time'  # Default value
-        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
+        assert order_by in ('create_time', 'publish_time'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -369,9 +369,9 @@ async def get_uploads(
         query_kwargs.update(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
 
     if query.is_published is True:
-        query_kwargs.update(published=True)
+        query_kwargs.update(publish_time__ne=None)
     elif query.is_published is False:
-        query_kwargs.update(published=False)
+        query_kwargs.update(publish_time=None)
 
     # Fetch data from DB
     mongodb_query = _query_mongodb(**query_kwargs)
@@ -383,7 +383,7 @@ async def get_uploads(
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
     if order_by == 'create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    elif order_by == 'published':
+    elif order_by == 'publish_time':
         order_by_args = [order_by_with_sign, 'create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
@@ -836,7 +836,7 @@ async def post_upload(
     '''
     if not user.is_admin:
         # Check upload limit
-        if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
+        if _query_mongodb(user_id=str(user.user_id), publish_time=None).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
@@ -1205,7 +1205,7 @@ async def post_upload_bundle(
 
         if is_oasis and not config.bundle_import.allow_unpublished_bundles_from_oasis:
             bundle_info = bundle.bundle_info
-            if not bundle_info.get('upload', {}).get('published'):
+            if not bundle_info.get('upload', {}).get('publish_time'):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
