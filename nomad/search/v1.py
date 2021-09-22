@@ -632,7 +632,9 @@ def _index(entries, **kwargs):
     index_entries(entries, **kwargs)
 
 
-def quantity_values(quantity: str, page_size: int = 100, **kwargs) -> Generator[Any, None, None]:
+def quantity_values(
+        quantity: str, page_size: int = 100, return_buckets: bool = False,
+        **kwargs) -> Generator[Any, None, None]:
     '''
     A generator that uses ``search`` and an aggregation to retrieve all
     values of a quantity. Will run multiple requests with page_size until all values
@@ -651,7 +653,10 @@ def quantity_values(quantity: str, page_size: int = 100, **kwargs) -> Generator[
 
         value_agg = cast(TermsAggregationResponse, search_response.aggregations['value_agg'].terms)  # pylint: disable=no-member
         for bucket in value_agg.data:
-            yield bucket.value
+            if return_buckets:
+                yield bucket
+            else:
+                yield bucket.value
 
         if len(value_agg.data) < page_size:
             break

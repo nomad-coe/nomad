@@ -113,6 +113,7 @@ def enc_upload(test_user_bravado_client, proc_infra, test_user_auth, api, mongo_
     time.sleep(1)
 
 
+@pytest.mark.skip('To be removed')
 class TestEncyclopedia():
 
     # @pytest.mark.skip(reason='this still fails due to metainfo refactor and needs fixing')

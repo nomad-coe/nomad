@@ -1318,7 +1318,7 @@ async def _get_file_if_provided(
                 logger.warn('IO error receiving upload data', exc_info=e)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='Some IO went wrong, download probably aborted/disrupted.')
+                    detail='Some IO went wrong, upload probably aborted/disrupted.')
 
     if not uploaded_bytes and method == 2:
         # No data was provided

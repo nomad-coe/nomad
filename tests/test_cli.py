@@ -36,12 +36,16 @@ from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disabl
 # TODO there is much more to test
 
 
+def invoke_cli(*args, **kwargs):
+    return click.testing.CliRunner().invoke(*args, obj=POPO(), **kwargs)
+
+
 @pytest.mark.usefixtures('reset_config', 'nomad_logging')
 class TestCli:
     def test_help(self, example_mainfile):
 
         start = time.time()
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['--help'], catch_exceptions=False)
         assert result.exit_code == 0
         assert time.time() - start < 1
@@ -51,7 +55,7 @@ class TestCli:
 class TestParse:
     def test_parser(self, example_mainfile):
         _, mainfile_path = example_mainfile
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['parse', mainfile_path], catch_exceptions=False)
         assert result.exit_code == 0
 
@@ -59,12 +63,12 @@ class TestParse:
 @pytest.mark.usefixtures('reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra')
 class TestAdmin:
     def test_reset(self, reset_infra):
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False)
         assert result.exit_code == 0
 
     def test_reset_not_sure(self):
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
@@ -82,7 +86,7 @@ class TestAdmin:
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
-    #     result = click.testing.CliRunner().invoke(
+    #     result = invoke_cli(
     #         cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
 
     #     assert result.exit_code == 0
@@ -107,7 +111,7 @@ class TestAdmin:
         assert calc.metadata['with_embargo']
         assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
             catch_exceptions=False)
 
@@ -123,7 +127,7 @@ class TestAdmin:
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -149,7 +153,7 @@ class TestAdminUploads:
         for code in codes:
             codes_args.append('--code')
             codes_args.append(code)
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -159,7 +163,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         query = dict(upload_id=upload_id)
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', '--query-mongo', 'ls', json.dumps(query)],
             catch_exceptions=False)
 
@@ -169,7 +173,7 @@ class TestAdminUploads:
     def test_ls(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -178,7 +182,7 @@ class TestAdminUploads:
     def test_ls_query(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -186,7 +190,7 @@ class TestAdminUploads:
     def test_rm(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -202,7 +206,7 @@ class TestAdminUploads:
 
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
@@ -213,7 +217,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, [
                 'admin', 'uploads', 'index',
                 '--transformer', 'tests.test_cli.transform_for_index_test',
@@ -230,7 +234,7 @@ class TestAdminUploads:
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['nomad_version'] != 'test_version'
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -245,7 +249,7 @@ class TestAdminUploads:
         calc.metadata['with_embargo'] = False
         calc.save()
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -267,7 +271,7 @@ class TestAdminUploads:
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['uploader'] == test_user.user_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -298,7 +302,7 @@ class TestAdminUploads:
         if success: args.append('--success')
         if failure: args.append('--failure')
         args.append(upload_id)
-        result = click.testing.CliRunner().invoke(cli, args, catch_exceptions=False)
+        result = invoke_cli(cli, args, catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'reset' in result.stdout
@@ -318,34 +322,31 @@ class TestAdminUploads:
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
 
-    def test_upload(self, test_user_bravado_client, non_empty_example_upload, proc_infra):
-        result = click.testing.CliRunner().invoke(
+    def test_upload(self, non_empty_example_upload, admin_user, proc_infra, client_with_api_v1):
+        result = invoke_cli(
             cli,
-            ['client', 'upload', '--offline', '--name', 'test_upload', non_empty_example_upload],
+            [
+                'client', '-u', admin_user.username, '--token-via-api',
+                'upload', '--name', 'test_upload', '--local-path',
+                non_empty_example_upload],
             catch_exceptions=False)
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
         assert '1/0/1' in result.output
         assert proc.Upload.objects(name='test_upload').first() is not None
 
-    def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
-        def requests_get(url, stream, headers):
-            assert stream
-            rv = client.get(url[url.index('/api/raw'):], headers=headers)
-            assert rv.status_code == 200
-            return POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
-
-        monkeypatch.setattr('requests.get', requests_get)
-        result = click.testing.CliRunner().invoke(
+    def test_local(self, published_wo_user_metadata, client_with_api_v1):
+        result = invoke_cli(
             cli,
-            ['client', 'local', '%s/%s' % (published.upload_id, list(published.calcs)[0].calc_id)],
-            catch_exceptions=False)
+            ['client', 'local', published_wo_user_metadata.calcs[0].calc_id],
+            catch_exceptions=True)
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
 
+    @pytest.mark.skip('Disabled. Tested code is temporaely commented.')
     def test_statistics(self, client, proc_infra, admin_user_bravado_client):
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['client', 'statistics-table'], catch_exceptions=True)
 
         assert result.exit_code == 0, result.output

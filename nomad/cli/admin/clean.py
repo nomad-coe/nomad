@@ -17,13 +17,6 @@
 #
 
 import click
-import os
-import shutil
-import tabulate
-import elasticsearch_dsl
-
-from nomad import config as nomad_config, infrastructure, processing
-from nomad.search import v0 as nomad_search
 
 from .admin import admin
 
@@ -36,6 +29,15 @@ from .admin import admin
 @click.option('--staging-too', is_flag=True, help='Also clean published entries in staging, make sure these files are not due to reprocessing')
 @click.option('--force', is_flag=True, help='Do not ask for confirmation.')
 def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
+    import os
+    import shutil
+    import tabulate
+    import elasticsearch_dsl
+
+    from nomad import config as nomad_config, infrastructure, processing
+    from nomad.search import delete_by_query
+    from nomad.search.v1 import quantity_values
+
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -106,14 +108,12 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
                 print(path)
 
     if not skip_es:
-        search = nomad_search.Search(index=nomad_config.elastic.index_name)
-        search.aggs.bucket('uploads', elasticsearch_dsl.A('terms', field='upload_id', size=12000))
-        response = search.execute()
+        es_upload_buckets = quantity_values('upload_id', owner='all', return_buckets=True)
 
         to_delete = list(
-            (bucket.key, bucket.doc_count)
-            for bucket in response.aggregations.uploads.buckets
-            if processing.Upload.objects(upload_id=bucket.key).first() is None)
+            (bucket['value'], bucket['count'])
+            for bucket in es_upload_buckets
+            if processing.Upload.objects(upload_id=bucket['value']).first() is None)
 
         calcs = 0
         for _, upload_calcs in to_delete:
@@ -124,8 +124,8 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
                 input(
                     'Will delete %d calcs in %d uploads from ES. Press any key to continue ...' %
                     (calcs, len(to_delete)))
-            for upload, _ in to_delete:
-                nomad_search.Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
+            for upload_id, _ in to_delete:
+                delete_by_query(owner='all', query=dict(upload_id=upload_id))
         else:
             print('Found %d calcs in %d uploads from ES with no upload in mongo.' % (calcs, len(to_delete)))
             print('List first 10:')

@@ -17,108 +17,11 @@
 # limitations under the License.
 #
 
-import typing
 import click
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-import elasticsearch_dsl
-import elasticsearch
 import sys
-import threading
 
-from nomad import processing as proc, infrastructure, utils, config
+from nomad import config
 from nomad.cli.cli import cli
-
-
-def __run_parallel(
-        uploads, parallel: int, callable, label: str):
-    if isinstance(uploads, (tuple, list)):
-        uploads_count = len(uploads)
-
-    else:
-        uploads_count = uploads.count()
-        uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
-
-    cv = threading.Condition()
-    threads: typing.List[threading.Thread] = []
-
-    state = dict(
-        completed_count=0,
-        skipped_count=0,
-        available_threads_count=parallel)
-
-    logger = utils.get_logger(__name__)
-
-    print('%d uploads selected, %s ...' % (uploads_count, label))
-
-    def process_upload(upload: proc.Upload):
-        logger.info('%s started' % label, upload_id=upload.upload_id)
-
-        completed = False
-        if callable(upload, logger):
-            completed = True
-
-        with cv:
-            state['completed_count'] += 1 if completed else 0
-            state['skipped_count'] += 1 if not completed else 0
-            state['available_threads_count'] += 1
-
-            print(
-                '   %s %s and skipped %s of %s uploads' %
-                (label, state['completed_count'], state['skipped_count'], uploads_count))
-
-            cv.notify()
-
-    for upload in uploads:
-        logger.info(
-            'cli schedules parallel %s processing for upload' % label,
-            current_process=upload.current_process,
-            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
-        with cv:
-            cv.wait_for(lambda: state['available_threads_count'] > 0)
-            state['available_threads_count'] -= 1
-            thread = threading.Thread(target=lambda: process_upload(upload))
-            threads.append(thread)
-            thread.start()
-
-    for thread in threads:
-        thread.join()
-
-
-def __run_processing(
-        uploads, parallel: int, process, label: str, reprocess_running: bool = False,
-        wait_until_complete: bool = True, reset_first: bool = False):
-
-    def run_process(upload, logger):
-        logger.info(
-            'cli calls %s processing' % label,
-            current_process=upload.current_process,
-            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
-        if upload.process_running and not reprocess_running:
-            logger.warn(
-                'cannot trigger %s, since the upload is already/still processing' % label,
-                current_process=upload.current_process,
-                current_process_step=upload.current_process_step, upload_id=upload.upload_id)
-            return False
-
-        if reset_first:
-            upload.reset(force=True)
-        elif upload.process_running:
-            upload.reset(force=True, process_status=proc.ProcessStatus.FAILURE)
-
-        process(upload)
-        if wait_until_complete:
-            upload.block_until_complete(interval=.5)
-        else:
-            upload.block_until_complete_or_waiting_for_result(interval=.5)
-
-        if upload.process_status == proc.ProcessStatus.FAILURE:
-            logger.info('%s with failure' % label, upload_id=upload.upload_id)
-
-        logger.info('%s complete' % label, upload_id=upload.upload_id)
-        return True
-
-    __run_parallel(uploads, parallel=parallel, callable=run_process, label=label)
 
 
 @cli.group(help='''The nomad admin commands to do nasty stuff directly on the databases.
@@ -136,6 +39,8 @@ def reset(remove, i_am_really_sure):
         print('You do not seem to be really sure about what you are doing.')
         sys.exit(1)
 
+    from nomad import infrastructure
+
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
@@ -145,6 +50,10 @@ def reset(remove, i_am_really_sure):
 @admin.command(help='Reset all "stuck" in processing uploads and calc in low level mongodb operations.')
 @click.option('--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.')
 def reset_processing(zero_complete_time):
+    from datetime import datetime
+
+    from nomad import infrastructure, processing as proc
+
     infrastructure.setup_mongo()
 
     def reset_collection(cls):
@@ -167,17 +76,18 @@ def reset_processing(zero_complete_time):
 @click.option('--dry', is_flag=True, help='Do not lift the embargo, just show what needs to be done.')
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 def lift_embargo(dry, parallel):
-    from nomad.search.v0 import SearchRequest
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
+
+    from nomad import infrastructure, processing as proc
+    from nomad.search.v1 import quantity_values
 
     infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    request = SearchRequest()
-    request.q = elasticsearch_dsl.Q('term', with_embargo=True) & elasticsearch_dsl.Q('term', published=True)
-    request.quantity('upload_id', 1000)
-    result = request.execute()
+    query = dict(with_embargo=True, published=True)
 
-    for upload_id in result['quantities']['upload_id']['values']:
+    for upload_id in quantity_values('upload_id', query=query, owner='all'):
         upload = proc.Upload.get(upload_id)
         embargo_length = upload.embargo_length
 
@@ -213,7 +123,10 @@ def index_materials(threads, code, dry, in_place, n, source):
 
     This will only update the v0 materials index.
     """
+    import elasticsearch_dsl
+    import elasticsearch
 
+    from nomad import infrastructure, processing as proc, utils
     from nomad.datamodel.material import Material, Calculation
     from nomad.datamodel.encyclopedia import EncyclopediaMetadata
     from nomad.search.v0 import material_document
@@ -564,6 +477,8 @@ def similarity():
 @ops.command(help=('Dump the mongo (calculation metadata) db.'))
 @click.option('--restore', is_flag=True, help='Do not dump, but restore.')
 def dump(restore: bool):
+    from datetime import datetime
+
     date_str = datetime.utcnow().strftime('%Y_%m_%d')
     print('mongodump --host {} --port {} --db {} -o /backup/fairdi/mongo/{}'.format(
         config.mongo.host, config.mongo.port, config.mongo.db_name, date_str))
@@ -659,8 +574,8 @@ def nginx_conf(prefix, host, port, server):
 @click.option('--matches-only', is_flag=True, help='Only update the match information that depends on the symmetry analysis settings. Will not perform and online update.')
 @click.pass_context
 def prototypes_update(ctx, filepath, matches_only):
-    from nomad.cli.admin import prototypes
-    prototypes.update_prototypes(ctx, filepath, matches_only)
+    from nomad.cli.aflow import update_prototypes
+    update_prototypes(ctx, filepath, matches_only)
 
 
 @ops.command(help='Updates the springer database in nomad.config.normalize.springer_db_path.')

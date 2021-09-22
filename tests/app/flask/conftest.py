@@ -71,4 +71,4 @@ def oasis_central_nomad_client(client, test_user_auth, monkeypatch):
         http_client = FlaskTestHttpClient(client, headers=test_user_auth)
         return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
 
-    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)
+    monkeypatch.setattr('nomad.cli.client.legacy._create_client', create_client)

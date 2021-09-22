@@ -756,3 +756,11 @@ def api_v1(monkeysession):
     monkeysession.setattr('requests.delete', lambda *args, **kwargs: call_test_client('delete', *args, **kwargs))
 
     return test_client
+
+
+@pytest.fixture(scope='session')
+def client_with_api_v1(api_v1, monkeysession):
+    def call_requests(method, path, *args, **kwargs):
+        return getattr(api_v1, method)(path, *args, **kwargs)
+
+    monkeysession.setattr('nomad.client.api._call_requests', call_requests)

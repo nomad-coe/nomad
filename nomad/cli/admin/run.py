@@ -17,8 +17,6 @@
 #
 
 import click
-import asyncio
-from concurrent import futures as concurrent_futures
 
 from nomad import config
 from .admin import admin
@@ -61,6 +59,9 @@ def run_worker():
 
 @run.command(help='Run both app and worker.')
 def appworker():
+    from concurrent import futures as concurrent_futures
+    import asyncio
+
     executor = concurrent_futures.ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_app)

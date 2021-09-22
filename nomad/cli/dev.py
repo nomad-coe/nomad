@@ -20,7 +20,7 @@ import sys
 import os
 import click
 
-from nomad.cli.cli import cli
+from .cli import cli
 
 
 @cli.group(help='Commands related to the nomad source code.')

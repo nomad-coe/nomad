@@ -27,6 +27,8 @@ from tests.app.flask.conftest import client, session_client  # pylint: disable=u
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
 from tests.processing import test_data as test_processing
 
+# TODO most nomad.client functionality is only tested indirectly via its use in nomad.cli
+
 
 def test_requests_auth(api_v1):
     rv = api_v1.get('users/me', auth=Auth(from_api=True))

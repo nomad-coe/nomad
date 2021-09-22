@@ -1005,7 +1005,7 @@ class Upload(Proc):
             'Upload is already published to the central NOMAD.'
         assert self.embargo_length == 0, 'Upload must not be under embargo'
 
-        from nomad.cli.client.client import _create_client as create_client
+        from nomad.cli.client.legacy import _create_client as create_client
         central_nomad_client = create_client(
             user=config.keycloak.username,
             password=config.keycloak.password,
@@ -1086,7 +1086,7 @@ class Upload(Proc):
         assert config.oasis.central_nomad_deployment_id not in self.published_to, \
             'Upload is already published to the central NOMAD.'
 
-        from nomad.cli.client.client import _create_client as create_client
+        from nomad.cli.client.legacy import _create_client as create_client
         central_nomad_client = create_client(
             user=config.keycloak.username,
             password=config.keycloak.password,

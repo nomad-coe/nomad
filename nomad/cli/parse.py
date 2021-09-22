@@ -16,94 +16,9 @@
 # limitations under the License.
 #
 
-import typing
-import os
-import json
 import click
-import sys
-
-from nomad import utils, parsing, normalizing, datamodel
 
 from .cli import cli
-
-
-def parse(
-        mainfile_path: str,
-        parser_name: str = None,
-        backend_factory: typing.Callable = None,
-        strict: bool = True, logger=None):
-    '''
-    Run the given parser on the downloaded calculation. If no parser is given,
-    do parser matching and use the respective parser.
-    '''
-    from nomad.parsing import parsers
-    mainfile = os.path.basename(mainfile_path)
-
-    if logger is None:
-        logger = utils.get_logger(__name__)
-    if parser_name is not None:
-        parser = parsers.parser_dict.get(parser_name)
-        assert parser is not None, 'the given parser must exist'
-    else:
-        parser = parsers.match_parser(mainfile_path, strict=strict)
-        if isinstance(parser, parsing.MatchingParser):
-            parser_name = parser.name
-        else:
-            parser_name = parser.__class__.__name__
-
-    assert parser is not None, 'there is no parser matching %s' % mainfile
-    logger = logger.bind(parser=parser.name)  # type: ignore
-    logger.info('identified parser')
-    if hasattr(parser, 'backend_factory'):
-        setattr(parser, 'backend_factory', backend_factory)
-
-    entry_archive = datamodel.EntryArchive()
-    metadata = entry_archive.m_create(datamodel.EntryMetadata)
-    cwd = os.getcwd()
-    try:
-        mainfile_path = os.path.abspath(mainfile_path)
-        os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
-        parser.parse(mainfile_path, entry_archive, logger=logger)
-    except Exception as e:
-        logger.error('parsing was not successful', exc_info=e)
-        raise e
-    finally:
-        os.chdir(cwd)
-
-    if metadata.domain is None:
-        metadata.domain = parser.domain
-
-    logger.info('ran parser')
-    return entry_archive
-
-
-def normalize(
-        normalizer: typing.Union[str, typing.Callable], entry_archive, logger=None):
-
-    if logger is None:
-        logger = utils.get_logger(__name__)
-
-    if isinstance(normalizer, str):
-        normalizer = next(
-            normalizer_instance for normalizer_instance in normalizing.normalizers
-            if normalizer_instance.__class__.__name__ == normalizer)
-
-    assert normalizer is not None, 'there is no normalizer %s' % str(normalizer)
-    normalizer_instance = typing.cast(typing.Callable, normalizer)(entry_archive)
-    logger = logger.bind(normalizer=normalizer_instance.__class__.__name__)
-    logger.info('identified normalizer')
-
-    normalizer_instance.normalize(logger=logger)
-    logger.info('ran normalizer')
-
-
-def normalize_all(entry_archive, logger=None):
-    '''
-    Parse the downloaded calculation and run the whole normalizer chain.
-    '''
-    for normalizer in normalizing.normalizers:
-        if normalizer.domain is None or normalizer.domain == entry_archive.metadata.domain:
-            normalize(normalizer, entry_archive, logger=logger)
 
 
 @cli.command(help='Run parsing and normalizing locally.', name='parse')
@@ -114,6 +29,11 @@ def normalize_all(entry_archive, logger=None):
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
 @click.option('--parser', help='Skip matching and use the provided parser')
 def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, parser):
+    import sys
+    import json
+
+    from nomad.client import parse, normalize_all
+
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
     entry_archive = parse(mainfile, **kwargs)

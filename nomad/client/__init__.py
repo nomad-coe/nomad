@@ -18,3 +18,5 @@
 
 from .archive import ArchiveQuery, query_archive
 from .api import Auth, KeycloakAuthenticator
+from .upload import upload_file
+from .processing import LocalEntryProcessing, parse, normalize, normalize_all

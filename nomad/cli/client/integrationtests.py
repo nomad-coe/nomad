@@ -23,31 +23,14 @@ as a final integration test.
 
 import time
 import os
-import click
 import json
 
-from .client import client
+from nomad.client import api
 
 
-multi_code_example_file = 'tests/data/integration/multi_code_data.zip'
-simple_example_file = 'tests/data/integration/examples_vasp.zip'
-
-
-@client.command(help='Runs a few example operations as a test.')
-@click.option(
-    '--skip-parsers', is_flag=True,
-    help='Skip extensive upload and parser tests.')
-@click.option(
-    '--skip-publish', is_flag=True,
-    help='Skip publish the upload. Should not be done on an production environment.')
-@click.option(
-    '--skip-doi', is_flag=True,
-    help='Skip assigning a doi to a dataset.')
-@click.pass_context
-def integrationtests(ctx, skip_parsers, skip_publish, skip_doi):
-    from nomad.client import api
-    auth = ctx.obj.auth
-
+def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, skip_doi: bool):
+    multi_code_example_file = 'tests/data/integration/multi_code_data.zip'
+    simple_example_file = 'tests/data/integration/examples_vasp.zip'
     has_doi = False
     published = False
 
@@ -216,13 +199,13 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi):
             assert response.status_code == 200, response.text
             has_doi = True
 
-        if not has_doi or ctx.obj.user == 'admin':
+        if not has_doi or auth.user == 'admin':
             print('deleting dataset')
             response = api.delete(f'datasets/{dataset_id}', auth=auth)
             assert response.status_code == 200, response.text
 
     finally:
-        if not published or ctx.obj.user == 'admin':
+        if not published or auth.user == 'admin':
             print('delete the upload again')
             upload = api.delete(f'uploads/{upload["upload_id"]}', auth=auth).json()['data']
             assert get_upload(upload) is None
