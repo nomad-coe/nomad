@@ -16,7 +16,10 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
+import { Divider,  Typography, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
+import MUIAccordion from '@material-ui/core/Accordion';
+import MUIAccordionSummary from "@material-ui/core/AccordionSummary";
+import { withStyles } from "@material-ui/core/styles";
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
@@ -107,6 +110,49 @@ export default function AIToolkitPage() {
       methods: Object.keys(methods).sort()
     }
   }, [])
+  
+  const Accordion = withStyles({
+    root: {
+      border: '5px solid rgba(127, 239, 239, 1)',
+      scrollbarGutter: 'false',
+      boxShadow: 'none',
+      marginLeft: '100px',
+      boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
+      borderRadius: '10px 10px 10px 10px',
+      '&:not(:last-child)': {
+        borderBottom: 0,
+      },
+      '&:before': {
+        display: 'none',
+      },
+      '&$expanded': {
+        margin: 'auto',
+      },
+    },
+    heading: {
+      fontSize: 35,
+      flexBasis: '33.33%',
+      flexShrink: 0,
+    },
+    secondaryHeading: {
+      fontSize: 10,
+    },
+    expanded: {},
+  })(MUIAccordion);
+
+  const AccordionSummary = withStyles({
+    root: {
+      flexDirection: "column"
+    },
+    content: {
+      marginBottom: 0,
+      flexGrow: 1
+    },
+    expandIcon: {
+      marginRight: '10px',
+      paddingTop: '10px'
+    }
+  })(MUIAccordionSummary);
 
   return <Grid container spacing={2} className={classes.root}>
     <Grid item xs={12}>
@@ -122,11 +168,13 @@ export default function AIToolkitPage() {
       `}</Markdown>
     </Grid>
     <Grid item xs={8}>
+      {<hr></hr>}
       {sections.map(section => (
         <div key={section.title} className={classes.section}>
-          <Typography className={classes.sectionTitle}>{section.title}</Typography>
+          {/* <Typography className={classes.sectionTitle}>{section.title}</Typography> */}
           <div>
             {section.tutorials.map(tutorial => {
+              // 
               const key = tutorial.key
               return <Accordion
                 key={key}
@@ -136,7 +184,8 @@ export default function AIToolkitPage() {
                 className={classes.tutorial}
               >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography className={classes.tutorialTitle}>{tutorial.title}</Typography>
+                  <Typography className={classes.tutorialTitle}>{tutorial.title} 
+                  </Typography>
                 </AccordionSummary>
                 <AccordionDetails className={classes.tutorialDetails}>
                   <Typography>
@@ -193,16 +242,20 @@ export default function AIToolkitPage() {
                   </Typography>
                 </AccordionDetails>
                 <AccordionActions>
-                  <Button color="primary" href={tutorial.link} target="tutorial">
+                  <Button color="black" href={tutorial.link} target="tutorial">
                     open with login
                   </Button>
                   <Button color="primary" href={tutorial.link_public} target="tutorial">
                     open as guest
                   </Button>
                 </AccordionActions>
+                <Divider />
               </Accordion>
+
             })}
+
           </div>
+
         </div>
       ))}
     </Grid>
