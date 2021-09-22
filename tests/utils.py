@@ -189,7 +189,7 @@ class ExampleData:
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
-                    parser='parsers/vasp',
+                    parser_name='parsers/vasp',
                     process_status=proc.ProcessStatus.SUCCESS)
                 upload_dict = self.uploads.get(entry_metadata.upload_id)
                 if upload_dict:

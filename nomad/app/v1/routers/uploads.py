@@ -103,7 +103,7 @@ class EntryProcData(ProcData):
     entry_id: str = Field()
     mainfile: str = Field()
     upload_id: str = Field()
-    parser: str = Field()
+    parser_name: str = Field()
     entry_metadata: Optional[dict] = Field()
 
 
@@ -130,7 +130,7 @@ class EntryProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'mainfile'  # Default value
-        assert order_by in ('mainfile', 'parser', 'process_status', 'current_process'), 'order_by must be a valid attribute'
+        assert order_by in ('mainfile', 'parser_name', 'process_status', 'current_process'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')

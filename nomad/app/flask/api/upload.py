@@ -93,7 +93,7 @@ calc_model = api.inherit('UploadCalculationProcessing', proc_model, {
     'calc_id': fields.String,
     'mainfile': fields.String,
     'upload_id': fields.String,
-    'parser': fields.String,
+    'parser_name': fields.String,
     'metadata': fields.Raw(
         attribute='_entry_metadata',
         description='The repository metadata for this entry.')

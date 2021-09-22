@@ -557,13 +557,13 @@ def test_get_upload(
         id='pag-out-of-rage-page_after_value'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'order_by': 'parser'},
+            query_args={'page_size': 1, 'order_by': 'parser_name'},
             expected_data_len=1,
             expected_response={'processing_successful': 2, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser',
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser_name',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
-        id='pag-order_by-parser'),
+        id='pag-order_by-parser_name'),
     pytest.param(
         dict(
             query_args={'page_size': 1, 'order_by': 'calc_id'},

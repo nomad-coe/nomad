@@ -147,7 +147,7 @@ class Calc(Proc):
 
     Attributes:
         calc_id: the calc_id of this calc
-        parser: the name of the parser used to process this calc
+        parser_name: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
 
@@ -156,7 +156,7 @@ class Calc(Proc):
     calc_id = StringField(primary_key=True)
     upload_id = StringField()
     mainfile = StringField()
-    parser = StringField()
+    parser_name = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -164,9 +164,9 @@ class Calc(Proc):
         'strict': False,
         'indexes': [
             'upload_id',
-            'parser',
+            'parser_name',
             ('upload_id', 'mainfile'),
-            ('upload_id', 'parser'),
+            ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'metadata.processed',
@@ -186,7 +186,7 @@ class Calc(Proc):
         self._entry_metadata: datamodel.EntryMetadata = None
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id) -> 'Calc':
         return cls.get_by_id(id, 'calc_id')
 
     @property
@@ -299,11 +299,11 @@ class Calc(Proc):
         entry_metadata.published = upload.published
         entry_metadata.with_embargo = (upload.embargo_length > 0)
         # Entry metadata
-        if self.parser is not None:
-            entry_metadata.parser_name = self.parser
-            parser = parser_dict[self.parser]
+        entry_metadata.parser_name = self.parser_name
+        if self.parser_name is not None:
+            parser = parser_dict[self.parser_name]
             if parser.domain:
-                entry_metadata.domain = parser_dict[self.parser].domain
+                entry_metadata.domain = parser.domain
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
 
@@ -436,13 +436,13 @@ class Calc(Proc):
                     logger.warn('no parser matches during re-process, not updating the entry')
                     self.warnings = ['no matching parser found during processing']
                 else:
-                    parser_changed = self.parser != parser.name and parser_dict[self.parser].name != parser.name
+                    parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
                     if reparse_if_parser_unchanged and not parser_changed:
                         should_parse = True
                     elif reparse_if_parser_changed and parser_changed:
                         should_parse = True
-                    if should_parse and self.parser != parser.name:
-                        if parser_dict[self.parser].name == parser.name:
+                    if should_parse and self.parser_name != parser.name:
+                        if parser_dict[self.parser_name].name == parser.name:
                             logger.info(
                                 'parser renamed, using new parser name',
                                 parser=parser.name)
@@ -450,7 +450,7 @@ class Calc(Proc):
                             logger.info(
                                 'different parser matches during re-process, use new parser',
                                 parser=parser.name)
-                        self.parser = parser.name  # Parser changed or renamed
+                        self.parser_name = parser.name  # Parser changed or renamed
 
         # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
@@ -533,10 +533,10 @@ class Calc(Proc):
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
         self.set_process_step('parsing')
-        context = dict(parser=self.parser, step=self.parser)
+        context = dict(parser=self.parser_name, step=self.parser_name)
         logger = self.get_logger(**context)
-        parser = parser_dict[self.parser]
-        self._entry_metadata.parser_name = self.parser
+        parser = parser_dict[self.parser_name]
+        self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             if not config.process_reuse_parser:
@@ -567,7 +567,7 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            logger = self.get_logger(parser=self.parser, step=self.parser)
+            logger = self.get_logger(parser=self.parser_name, step=self.parser_name)
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id)
@@ -652,7 +652,7 @@ class Calc(Proc):
                 datamodel.EntryArchive.metadata, self._entry_metadata)
 
         for normalizer in normalizers:
-            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser].domain:
+            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser_name].domain:
                 continue
 
             normalizer_name = normalizer.__name__
@@ -1342,8 +1342,8 @@ class Upload(Proc):
                         if entry.process_running:
                             count_already_processing += 1
                         # Ensure that we update the parser if in staging
-                        if not self.published and parser.name != entry.parser:
-                            entry.parser = parser.name
+                        if not self.published and parser.name != entry.parser_name:
+                            entry.parser_name = parser.name
                             entry.save()
                         matched_entries.add(calc_id)
                     except KeyError:
@@ -1352,7 +1352,7 @@ class Upload(Proc):
                             entry = Calc.create(
                                 calc_id=calc_id,
                                 mainfile=filename,
-                                parser=parser.name,
+                                parser_name=parser.name,
                                 worker_hostname=self.worker_hostname,
                                 upload_id=self.upload_id)
                             entry.save()
@@ -1428,7 +1428,7 @@ class Upload(Proc):
                     # calculations. TODO: This should be replaced by a more
                     # extensive mechanism that supports more complex dependencies
                     # between calculations.
-                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
+                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser_name="parsers/phonopy")
                     for calc in phonon_calculations:
                         calc.process_phonon()
 
@@ -1586,7 +1586,7 @@ class Upload(Proc):
             metadata__nomad_version__ne=config.meta.version)
 
     @property
-    def calcs(self):
+    def calcs(self) -> Iterable[Calc]:
         ''' All successfully processed calculations. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
@@ -1810,7 +1810,7 @@ class Upload(Proc):
                 'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
-                '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
+                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'create_time', 'metadata')
             required_keys_entry_metadata = (
                 'upload_time', 'calc_hash')
             required_keys_datasets = (
@@ -1913,7 +1913,7 @@ class Upload(Proc):
 
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = (
-                    'upload_id', 'mainfile', 'parser', 'metadata', 'errors', 'warnings',
+                    'upload_id', 'mainfile', 'parser_name', 'metadata', 'errors', 'warnings',
                     'last_status_message', 'current_process', 'current_process_step',
                     'create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
                 try:

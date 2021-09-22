@@ -92,7 +92,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         assert isinstance(upload_files, StagingUploadFiles)
 
     for calc in Calc.objects(upload_id=upload.upload_id):
-        assert calc.parser is not None
+        assert calc.parser_name is not None
         assert calc.mainfile is not None
         assert calc.process_status == ProcessStatus.SUCCESS
 
