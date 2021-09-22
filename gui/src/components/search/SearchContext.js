@@ -408,7 +408,7 @@ export const isStatisticsEnabledState = atom({
 })
 export const statisticsCountModeState = atom({
   key: 'statisticsCountMode',
-  default: 'tooltip'
+  default: 'fixed'
 })
 export const isMenuOpenState = atom({
   key: 'isMenuOpen',

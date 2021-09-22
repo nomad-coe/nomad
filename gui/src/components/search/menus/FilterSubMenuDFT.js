@@ -35,14 +35,14 @@ const FilterSubMenuDFT = React.memo(({
           quantity="results.method.simulation.dft.xc_functional_type"
           label="XC Functional Type"
           visible={visible}
-          xs={6}
+          xs={12}
         />
       </Grid>
       <Grid item xs={12}>
         <InputCheckboxes
           quantity="results.method.simulation.dft.basis_set_type"
           visible={visible}
-          xs={6}
+          xs={12}
         />
       </Grid>
       <Grid item xs={12}>

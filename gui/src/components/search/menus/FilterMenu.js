@@ -374,7 +374,7 @@ const useFilterSubMenuStyles = makeStyles(theme => ({
 const useFilterSubMenusStyles = makeStyles(theme => {
   const padding = theme.spacing(2)
   const widthMedium = 25
-  const widthLarge = 43
+  const widthLarge = 48
   return {
     root: {
       zIndex: 2,

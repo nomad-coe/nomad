@@ -34,7 +34,7 @@ const FilterSubMenuMethod = React.memo(({
         <InputCheckboxes
           quantity="results.method.method_name"
           visible={visible}
-          xs={6}
+          xs={12}
         />
       </Grid>
     </Grid>

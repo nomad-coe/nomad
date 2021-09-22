@@ -35,7 +35,7 @@ import InputStatisticsBar from './InputStatisticsBar'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '2.3rem',
+    height: '2.2rem',
     position: 'relative'
   },
   bar: {
@@ -45,7 +45,7 @@ const useStyles = makeStyles(theme => ({
     right: 0,
     bottom: theme.spacing(0.5)
   },
-  label: {
+  controlLabel: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -68,12 +68,8 @@ const InputItem = React.memo(({
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
-  const {
-    useIsStatisticsEnabled,
-    useStatisticsCountMode
-  } = useSearchContext()
+  const { useIsStatisticsEnabled } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
-  const countMode = useStatisticsCountMode()
 
   const handleChange = useCallback((event, itemValue) => {
     if (!disabled && onChange) onChange(value, itemValue)
@@ -92,12 +88,15 @@ const InputItem = React.memo(({
       max={total}
       value={count}
       scale={scale}
+      selected={selected}
+      disabled={disabled}
     />}
     <FormControlLabel
-      className={styles.label}
+      className={styles.controlLabel}
       disabled={disabled}
       control={<Control
         checked={selected}
+        color="secondary"
         onChange={handleChange}
         name={value}
       />}
@@ -105,12 +104,7 @@ const InputItem = React.memo(({
         <Tooltip
           placement="right"
           enterDelay={200}
-          title={(isStatisticsEnabled && countMode === 'tooltip')
-            ? tooltip
-              ? <div style={{textAlign: 'center'}}>{tooltip}{`(${count?.toLocaleString() || 0})`}</div>
-              : `(${count?.toLocaleString() || 0})`
-            : tooltip || ''
-          }>
+          title={tooltip || ''}>
           <Typography>{label || value}</Typography>
         </Tooltip>
       }

@@ -31,6 +31,7 @@ import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
+import { text } from 'd3-fetch'
 
 // This forces the menu to have a fixed anchor instead of jumping around
 const MenuProps = {
@@ -58,11 +59,18 @@ const useStyles = makeStyles(theme => ({
     width: '100%'
   },
   menuItem: {
-    height: '2.3rem'
+    height: '2.1rem'
   },
   chips: {
     display: 'flex',
     flexWrap: 'wrap'
+  },
+  placeholder: {
+    marginLeft: theme.spacing(0.5),
+    height: '2.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    color: theme.palette.text.disabled
   },
   icon: {
     right: theme.spacing(1)
@@ -132,17 +140,25 @@ const InputSelect = React.memo(({
       <Select
         disabled={disabled}
         multiple
+        displayEmpty
         value={filter ? [...filter] : []}
         onChange={handleChange}
         className={styles.select}
         classes={{icon: styles.icon}}
         input={<CustomInput/>}
         MenuProps={MenuProps}
-        renderValue={(selected) => (
-          <div className={styles.chips}>
-            {selected.map((value) => <FilterChip locked={locked} key={value} label={value}/>)}
-          </div>
-        )}
+        renderValue={(selected) => {
+          return selected.length > 0
+            ? <div className={styles.chips}>
+              {selected.map((value) => <FilterChip
+                locked={locked}
+                key={value}
+                label={value}
+                color="secondary"
+              />)}
+            </div>
+            : <div className={styles.placeholder}>Click to select</div>
+        }}
       >
         {menuItems}
       </Select>

@@ -33,6 +33,7 @@ import {
 } from '../SearchContext'
 import { isNil } from 'lodash'
 import clsx from 'clsx'
+import { approxInteger } from '../../../utils'
 
 // A fixed 2D, 10x18 array for the element data.
 const elements = []
@@ -107,7 +108,7 @@ const useElementStyles = makeStyles(theme => ({
     left: 2,
     margin: 0,
     padding: 0,
-    fontSize: 8,
+    fontSize: 9,
     pointerEvents: 'none'
   },
   count: {
@@ -116,7 +117,7 @@ const useElementStyles = makeStyles(theme => ({
     right: 2,
     margin: 0,
     padding: 0,
-    fontSize: 6,
+    fontSize: 9,
     pointerEvents: 'none'
   },
   textSelected: {
@@ -124,6 +125,9 @@ const useElementStyles = makeStyles(theme => ({
   },
   textDisabled: {
     color: '#BDBDBD'
+  },
+  symbol: {
+    marginTop: -2
   }
 }))
 
@@ -137,12 +141,8 @@ const Element = React.memo(({
   localFilter
 }) => {
   const styles = useElementStyles()
-  const {
-    useIsStatisticsEnabled,
-    useStatisticsCountMode
-  } = useSearchContext()
+  const { useIsStatisticsEnabled } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
-  const countMode = useStatisticsCountMode()
 
   // Dynamically calculated styles. The background color is formed by animating
   // opacity: opacity animation can be GPU-accelerated by the browser unlike
@@ -182,10 +182,7 @@ const Element = React.memo(({
     <div className={clsx(styles.fit, styles.bg, dynamicStyles.bg)}/>
     <div className={clsx(styles.fit, styles.disabled, dynamicStyles.disabled)}/>
     <div className={clsx(styles.fit, styles.selected, selectedInternal && styles.visible)}/>
-    <Tooltip title={(isStatisticsEnabled && countMode === 'tooltip')
-      ? <div style={{textAlign: 'center'}}>{element.name}<br/>{`(${count?.toLocaleString() || 0})`}</div>
-      : element.name
-    }>
+    <Tooltip title={element.name}>
       <span className={styles.fit}>
         <ButtonBase
           className={clsx(
@@ -198,7 +195,7 @@ const Element = React.memo(({
           onClick={handleClick}
           variant="contained"
         >
-          {element.symbol}
+          <span className={styles.symbol}>{element.symbol}</span>
         </ButtonBase>
       </span>
     </Tooltip>
@@ -212,7 +209,7 @@ const Element = React.memo(({
     >
       {element.number}
     </Typography>
-    {(isStatisticsEnabled && countMode === 'fixed') && <Typography
+    {(isStatisticsEnabled) && <Typography
       className={clsx(
         styles.count,
         selectedInternal && styles.textSelected,
@@ -220,7 +217,7 @@ const Element = React.memo(({
       )}
       variant="caption"
     >
-      {count}
+      {approxInteger(count || 0)}
     </Typography>}
   </div>
 })
@@ -245,6 +242,7 @@ const useTableStyles = makeStyles(theme => ({
   table: {
     width: '100%',
     height: '100%',
+    borderSpacing: 0,
     tableLayout: 'fixed'
   },
   formContainer: {
@@ -302,7 +300,7 @@ const InputPeriodicTable = React.memo(({quantity, visible}) => {
 
   const table = useMemo(() => (<div className={styles.root}>
     <AspectRatio
-      aspectRatio={18 / 10}
+      aspectRatio={17 / 10}
     >
       <table className={styles.table}>
         <tbody>

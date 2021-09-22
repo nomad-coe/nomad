@@ -29,11 +29,15 @@ import PropTypes from 'prop-types'
 const useStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(0.5)
+  },
+  colorSecondary: {
+    backgroundColor: theme.palette.secondary.light
   }
 }))
 const FilterChip = React.memo(({
   label,
   onDelete,
+  color,
   className,
   locked
 }) => {
@@ -43,8 +47,9 @@ const FilterChip = React.memo(({
     <Chip
       label={label}
       onDelete={locked ? undefined : onDelete}
-      color={'primary'}
+      color={color}
       className={styles.root}
+      classes={{colorSecondary: styles.colorSecondary}}
       icon={locked ? <LockIcon/> : undefined}
     />
   </div>
@@ -53,8 +58,12 @@ const FilterChip = React.memo(({
 FilterChip.propTypes = {
   label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onDelete: PropTypes.func,
+  color: PropTypes.string,
   className: PropTypes.string,
   locked: PropTypes.bool
+}
+FilterChip.defaultProps = {
+  color: 'secondary'
 }
 
 export default FilterChip

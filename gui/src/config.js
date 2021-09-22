@@ -62,8 +62,8 @@ export const nomadPrimaryColor = {
 export const nomadSecondaryColor = {
   main: '#00CED1',
   light: '#54DCDC',
-  veryLight: '#B5F0F0',
-  dark: '#007C7C'
+  dark: '#007C7C',
+  veryLight: '#B5F0F0'
 }
 
 export const nomadFontFamily = [

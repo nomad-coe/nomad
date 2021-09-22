@@ -19,9 +19,9 @@ import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import { scalePow } from 'd3-scale'
 import { Typography } from '@material-ui/core/'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
-import { useSearchContext } from '../SearchContext'
+import { approxInteger } from '../../../utils'
 
 /**
  * A rectangular bar displaying the relative occurence of a specific value. Uses
@@ -57,25 +57,30 @@ const InputStatisticsBar = React.memo(({
   max,
   value,
   scale,
+  selected,
+  disabled,
   className,
   classes,
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
-  const {useStatisticsCountMode} = useSearchContext()
-  const statisticsCountMode = useStatisticsCountMode()
+  const theme = useTheme()
 
   const scaler = useMemo(() => scalePow()
     .exponent(scale)
     .domain([0, 1])
     .range([0, 1])
   , [scale])
-  const finalScale = scaler(value / max) || 0
+  const finalCount = useMemo(() => approxInteger(value || 0), [value])
+  const finalScale = useMemo(() => scaler(value / max) || 0, [value, max, scaler])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <div className={styles.container}>
-      <div className={styles.rectangle} style={{transform: `scaleX(${finalScale})`}}></div>
-      {statisticsCountMode === 'fixed' && <Typography className={styles.value}>{value || ''}</Typography>}
+      <div className={styles.rectangle} style={{
+        transform: `scaleX(${finalScale})`,
+        backgroundColor: selected ? theme.palette.secondary.light : theme.palette.secondary.veryLight
+      }}></div>
+      <Typography className={styles.value} style={{color: disabled ? theme.palette.text.disabled : undefined}}>{finalCount}</Typography>
     </div>
   </div>
 })
@@ -84,6 +89,8 @@ InputStatisticsBar.propTypes = {
   max: PropTypes.number,
   value: PropTypes.number,
   scale: PropTypes.number,
+  selected: PropTypes.bool,
+  disabled: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
