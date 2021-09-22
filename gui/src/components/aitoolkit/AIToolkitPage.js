@@ -12,14 +12,14 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+* See the License for the specific language governing permissions and
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Divider,  Typography, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
-import MUIAccordion from '@material-ui/core/Accordion';
-import MUIAccordionSummary from "@material-ui/core/AccordionSummary";
-import { withStyles } from "@material-ui/core/styles";
+import { Divider, Typography, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
+import MUIAccordion from '@material-ui/core/Accordion'
+import MUIAccordionSummary from '@material-ui/core/AccordionSummary'
+import { withStyles } from '@material-ui/core/styles'
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
@@ -110,39 +110,38 @@ export default function AIToolkitPage() {
       methods: Object.keys(methods).sort()
     }
   }, [])
-  
+
   const Accordion = withStyles({
     root: {
       border: '5px solid rgba(127, 239, 239, 1)',
       scrollbarGutter: 'false',
-      boxShadow: 'none',
       marginLeft: '100px',
       boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
       borderRadius: '10px 10px 10px 10px',
       '&:not(:last-child)': {
-        borderBottom: 0,
+        borderBottom: 0
       },
       '&:before': {
-        display: 'none',
+        display: 'none'
       },
       '&$expanded': {
-        margin: 'auto',
-      },
+        margin: 'auto'
+      }
     },
     heading: {
       fontSize: 35,
       flexBasis: '33.33%',
-      flexShrink: 0,
+      flexShrink: 0
     },
     secondaryHeading: {
-      fontSize: 10,
+      fontSize: 10
     },
-    expanded: {},
-  })(MUIAccordion);
+    expanded: {}
+  })(MUIAccordion)
 
   const AccordionSummary = withStyles({
     root: {
-      flexDirection: "column"
+      flexDirection: 'column'
     },
     content: {
       marginBottom: 0,
@@ -152,7 +151,7 @@ export default function AIToolkitPage() {
       marginRight: '10px',
       paddingTop: '10px'
     }
-  })(MUIAccordionSummary);
+  })(MUIAccordionSummary)
 
   return <Grid container spacing={2} className={classes.root}>
     <Grid item xs={12}>
@@ -174,7 +173,7 @@ export default function AIToolkitPage() {
           {/* <Typography className={classes.sectionTitle}>{section.title}</Typography> */}
           <div>
             {section.tutorials.map(tutorial => {
-              // 
+              //
               const key = tutorial.key
               return <Accordion
                 key={key}
@@ -184,7 +183,7 @@ export default function AIToolkitPage() {
                 className={classes.tutorial}
               >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography className={classes.tutorialTitle}>{tutorial.title} 
+                  <Typography className={classes.tutorialTitle}>{tutorial.title}
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails className={classes.tutorialDetails}>
@@ -251,7 +250,6 @@ export default function AIToolkitPage() {
                 </AccordionActions>
                 <Divider />
               </Accordion>
-
             })}
 
           </div>
