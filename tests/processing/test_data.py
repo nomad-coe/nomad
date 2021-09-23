@@ -526,14 +526,14 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
     assert upload.total_calcs == 2
     if not published:
         assert upload.published == published
-        assert upload.embargo_length == 0
+        assert not upload.with_embargo
 
 
 def test_re_pack(published: Upload):
     upload_id = published.upload_id
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
     assert upload_files.access == 'restricted'
-    assert published.embargo_length > 0
+    assert published.with_embargo
     calc = Calc.objects(upload_id=upload_id).first()
 
     # Lift embargo
@@ -750,7 +750,7 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
                 assert entry_metadata.upload_time == upload.upload_time
             if 'embargo_length' in metadata_to_set:
                 assert upload.embargo_length == metadata_to_set['embargo_length']
-                assert entry_metadata.with_embargo == (upload.embargo_length > 0)
+                assert entry_metadata.with_embargo == upload.with_embargo
 
 
 def test_skip_matching(proc_infra, test_user):

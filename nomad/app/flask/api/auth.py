@@ -312,7 +312,7 @@ def has_read_access(upload_id: str, calc_id: str = None):
     try:
         upload = processing.Upload.get(upload_id)
 
-        if upload.published and upload.embargo_length == 0:
+        if upload.published and not upload.with_embargo:
             return True
 
         if g.user is None:

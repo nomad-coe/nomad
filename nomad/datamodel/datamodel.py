@@ -598,7 +598,7 @@ class EntryMetadata(metainfo.MSection):
             license of this entry.
         ''',
         default='CC BY 4.0',
-        categories=[MongoMetadata, EditableUserMetadata])
+        categories=[EditableUserMetadata])
 
     with_embargo = metainfo.Quantity(
         type=bool, default=False,

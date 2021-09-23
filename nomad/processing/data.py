@@ -297,7 +297,8 @@ class Calc(Proc):
         entry_metadata.upload_time = upload.upload_time
         entry_metadata.upload_name = upload.name
         entry_metadata.published = upload.published
-        entry_metadata.with_embargo = (upload.embargo_length > 0)
+        entry_metadata.with_embargo = upload.with_embargo
+        entry_metadata.license = upload.license
         # Entry metadata
         entry_metadata.parser_name = self.parser_name
         if self.parser_name is not None:
@@ -771,20 +772,20 @@ class Upload(Proc):
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    pending_operations = ListField(DictField(), default=[])
-    embargo_length = IntField(default=0, required=True)
-
     name = StringField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
-    publish_time = DateTimeField()
     last_update = DateTimeField()
+    publish_time = DateTimeField()
+    embargo_length = IntField(default=0, required=True)
+    license = StringField(default='CC BY 4.0', required=True)
 
-    publish_directly = BooleanField(default=False)
     from_oasis = BooleanField(default=False)
     oasis_deployment_id = StringField(default=None)
     published_to = ListField(StringField())
 
+    publish_directly = BooleanField(default=False)
+    pending_operations = ListField(DictField(), default=[])
     joined = BooleanField(default=False)
 
     meta: Any = {
@@ -833,6 +834,10 @@ class Upload(Proc):
     @property
     def published(self) -> bool:
         return self.publish_time is not None
+
+    @property
+    def with_embargo(self) -> bool:
+        return self.embargo_length > 0
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -967,7 +972,7 @@ class Upload(Proc):
             with self.entries_metadata() as entries:
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.staging_upload_files.pack(entries, with_embargo=(self.embargo_length > 0))
+                        self.staging_upload_files.pack(entries, with_embargo=self.with_embargo)
 
                 with utils.timer(logger, 'index updated'):
                     search.publish(entries)
@@ -994,7 +999,7 @@ class Upload(Proc):
             'Only published uploads can be published to the central NOMAD.'
         assert config.oasis.central_nomad_deployment_id not in self.published_to, \
             'Upload is already published to the central NOMAD.'
-        assert self.embargo_length == 0, 'Upload must not be under embargo'
+        assert not self.with_embargo, 'Upload must not be under embargo'
 
         from nomad.cli.client.client import _create_client as create_client
         central_nomad_client = create_client(
@@ -1483,7 +1488,7 @@ class Upload(Proc):
             with utils.timer(logger, 'staged upload files re-packed'):
                 self.staging_upload_files.pack(
                     self.entries_mongo_metadata(),
-                    with_embargo=(self.embargo_length > 0),
+                    with_embargo=self.with_embargo,
                     create=False, include_raw=False)
 
             self._cleanup_staging_files()
@@ -1497,7 +1502,7 @@ class Upload(Proc):
             with utils.lnr(logger, 'publish failed'):
                 with self.entries_metadata() as calcs:
                     with utils.timer(logger, 'upload staging files packed'):
-                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
+                        self.staging_upload_files.pack(calcs, with_embargo=self.with_embargo)
 
                 with utils.timer(logger, 'upload staging files deleted'):
                     self.staging_upload_files.delete()
@@ -1643,7 +1648,7 @@ class Upload(Proc):
             need_to_reindex = True
         if upload_metadata.embargo_length is not None:
             assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
-            if self.published and (self.embargo_length > 0) != (upload_metadata.embargo_length > 0):
+            if self.published and self.with_embargo != (upload_metadata.embargo_length > 0):
                 need_to_repack = True
                 need_to_reindex = True
             self.embargo_length = upload_metadata.embargo_length
@@ -1658,7 +1663,7 @@ class Upload(Proc):
         self.save()
 
         if need_to_repack:
-            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
+            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
 
         if need_to_reindex and self.total_calcs > 0:
             # Update entries and elastic search
@@ -1807,7 +1812,7 @@ class Upload(Proc):
                 'export_options.include_archive_files',
                 'export_options.include_datasets',
                 'upload._id', 'upload.user_id',
-                'upload.create_time', 'upload.upload_time', 'upload.process_status',
+                'upload.create_time', 'upload.upload_time', 'upload.process_status', 'upload.license',
                 'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
@@ -1843,7 +1848,7 @@ class Upload(Proc):
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
-                'name', 'embargo_length', 'from_oasis', 'oasis_deployment_id']
+                'name', 'embargo_length', 'license', 'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
                 upload_keys_to_copy.extend(('create_time', 'upload_time', 'publish_time',))
             try:
@@ -1952,7 +1957,7 @@ class Upload(Proc):
 
             if self.published and embargo_length is not None:
                 # Repack the upload
-                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
+                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
 
             # Check the archive metadata, if included
             if settings.include_archive_files:

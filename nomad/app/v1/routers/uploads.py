@@ -91,6 +91,14 @@ class UploadProcData(ProcData):
     published_to: List[str] = Field(
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.')
+    publish_time: Optional[datetime] = Field(
+        'Date and time of publication, if the upload has been published.')
+    with_embargo: bool = Field(
+        description='If the upload has an embargo set (embargo_length not equal to zero).')
+    embargo_length: int = Field(
+        description='The length of the requested embargo, in months. 0 if no embargo is requested.')
+    license: str = Field(
+        description='The license under which this upload is distributed.')
     last_status_message: Optional[str] = Field(
         None,
         description='The last informative message that the processing saved about this uploads status.')
@@ -1379,7 +1387,7 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         if not upload.published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - not published yet.'''))
-        if upload.published and upload.embargo_length > 0:
+        if upload.published and upload.with_embargo:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - published with embargo.'''))
         return upload

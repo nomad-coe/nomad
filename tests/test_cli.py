@@ -105,7 +105,7 @@ class TestAdmin:
         calc = Calc.objects(upload_id=upload_id).first()
 
         assert published.upload_files.exists()
-        assert published.embargo_length > 0
+        assert published.with_embargo
         assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
 
         result = click.testing.CliRunner().invoke(
@@ -114,7 +114,7 @@ class TestAdmin:
 
         assert result.exit_code == 0
         published.block_until_complete()
-        assert not (published.embargo_length > 0) == lifted
+        assert not published.with_embargo == lifted
         assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
         if lifted:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
@@ -242,7 +242,7 @@ class TestAdminUploads:
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        assert published.embargo_length > 0
+        assert published.with_embargo
         published.embargo_length = 0
         published.save()
 

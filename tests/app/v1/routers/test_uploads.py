@@ -179,6 +179,13 @@ def assert_upload(response_json, **kwargs):
     assert 'upload_id' in response_json
     assert 'upload_id' in data
     assert 'create_time' in data
+    assert 'published' in data
+    assert 'with_embargo' in data
+    assert 'embargo_length' in data
+    assert 'license' in data
+    assert (data['embargo_length'] > 0) == data['with_embargo']
+    if data['published']:
+        assert 'publish_time' in data
 
     for key, value in kwargs.items():
         assert data.get(key, None) == value
@@ -311,7 +318,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     return [
         EntryMetadata(
             domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
-            with_embargo=Upload.get(entry['upload_id']).embargo_length > 0)
+            with_embargo=Upload.get(entry['upload_id']).with_embargo)
         for entry in entries]
 
 
@@ -985,7 +992,7 @@ def test_put_upload_metadata(
         pass
 
     if upload_id == 'id_published_w':
-        assert Upload.get(upload_id).embargo_length > 0
+        assert Upload.get(upload_id).with_embargo
         es_data = search(owner=None, query=dict(entry_id='id_published_w_entry')).data[0]
         assert es_data['with_embargo']
 
@@ -1024,7 +1031,7 @@ def test_put_upload_metadata(
                     assert datetime.fromisoformat(es_data['upload_time']) == upload.upload_time
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
-                    assert entry_metadata.with_embargo == es_data['with_embargo'] == (upload.embargo_length > 0)
+                    assert entry_metadata.with_embargo == es_data['with_embargo'] == upload.with_embargo
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [

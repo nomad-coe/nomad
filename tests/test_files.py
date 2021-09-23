@@ -384,7 +384,7 @@ def create_public_upload(
 
     _, entries, upload_files = create_staging_upload(upload_id, calc_specs, embargo_length)
 
-    upload_files.pack(entries, with_embargo=(embargo_length > 0))
+    upload_files.pack(entries, with_embargo=embargo_length > 0)
     upload_files.delete()
     if with_upload:
         upload = Upload.get(upload_id)
