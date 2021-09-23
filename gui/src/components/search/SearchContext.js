@@ -42,6 +42,10 @@ import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination } from '../datatable/Datatable'
+import InputList from './input/InputList'
+import InputSlider from './input/InputSlider'
+import InputDateRange from './input/InputDateRange'
+import InputPeriodicTable from './input/InputPeriodicTable'
 
 export const filters = new Set() // Contains the full names of all the available filters
 export const filterGroups = [] // Mapping from filter full name -> group
@@ -88,7 +92,7 @@ export const labelIDs = 'IDs'
  * controls whether setting the value appends or overwrites.
  * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
  */
-function registerFilter(name, group, agg, value, multiple = true, exclusive = true) {
+function registerFilter(name, group, statConfig, agg, value, multiple = true, exclusive = true, options) {
   filters.add(name)
   if (group) {
     filterGroups[group]
@@ -126,50 +130,74 @@ function registerFilter(name, group, agg, value, multiple = true, exclusive = tr
   }
   data.multiple = multiple
   data.exclusive = exclusive
+  data.statConfig = statConfig
+  data.options = options
   filterData[name] = data
 }
 
+const listStatConfig = {
+  component: InputList,
+  layout: {
+    xs: 12,
+    sm: 6,
+    md: 4,
+    lg: 4,
+    xl: 3
+  }
+}
+const ptStatConfig = {
+  component: InputPeriodicTable,
+  layout: {
+    xs: 12,
+    sm: 12,
+    md: 8,
+    lg: 8,
+    xl: 6
+  }
+}
+
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, 'terms')
-registerFilter('results.material.functional_type', labelMaterial, 'terms')
-registerFilter('results.material.compound_type', labelMaterial, 'terms')
-registerFilter('results.material.material_name', labelMaterial)
-registerFilter('results.material.chemical_formula_hill', labelElements)
-registerFilter('results.material.chemical_formula_anonymous', labelElements)
-registerFilter('results.material.n_elements', labelElements, 'min_max', undefined, false)
-registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.structure_name', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry)
-registerFilter('results.material.symmetry.point_group', labelSymmetry)
-registerFilter('results.material.symmetry.hall_symbol', labelSymmetry)
-registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry)
-registerFilter('results.method.method_name', labelMethod, 'terms')
-registerFilter('results.method.simulation.program_name', labelMethod, 'terms')
-registerFilter('results.method.simulation.program_version', labelMethod)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
-registerFilter('results.method.simulation.gw.gw_type', labelGW, 'terms')
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
-registerFilter('external_db', labelAuthor, 'terms')
-registerFilter('authors.name', labelAuthor)
-registerFilter('upload_create_time', labelAuthor, 'min_max', undefined, false)
-registerFilter('datasets.name', labelDataset)
-registerFilter('datasets.doi', labelDataset)
-registerFilter('entry_id', labelIDs)
-registerFilter('upload_id', labelIDs)
-registerFilter('results.material.material_id', labelIDs)
-registerFilter('datasets.dataset_id', labelIDs)
+registerFilter('results.material.structural_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.functional_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.compound_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.material_name', labelMaterial, listStatConfig)
+registerFilter('results.material.chemical_formula_hill', labelElements, listStatConfig)
+registerFilter('results.material.chemical_formula_anonymous', labelElements, listStatConfig)
+registerFilter('results.material.n_elements', labelElements, InputSlider, 'min_max', undefined, false)
+registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.crystal_system', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.structure_name', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, listStatConfig)
+registerFilter('results.material.symmetry.point_group', labelSymmetry, listStatConfig)
+registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, listStatConfig)
+registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, listStatConfig)
+registerFilter('results.method.method_name', labelMethod, listStatConfig, 'terms')
+registerFilter('results.method.simulation.program_name', labelMethod, listStatConfig, 'terms')
+registerFilter('results.method.simulation.program_version', labelMethod, listStatConfig)
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.relativity_method', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.gw.gw_type', labelGW, listStatConfig, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, listStatConfig, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, InputSlider, 'min_max', undefined, false)
+registerFilter('external_db', labelAuthor, listStatConfig, 'terms')
+registerFilter('authors.name', labelAuthor, listStatConfig)
+registerFilter('upload_create_time', labelAuthor, InputDateRange, 'min_max', undefined, false)
+registerFilter('datasets.name', labelDataset, listStatConfig)
+registerFilter('datasets.doi', labelDataset, listStatConfig)
+registerFilter('entry_id', labelIDs, listStatConfig)
+registerFilter('upload_id', labelIDs, listStatConfig)
+registerFilter('results.material.material_id', labelIDs, listStatConfig)
+registerFilter('datasets.dataset_id', labelIDs, listStatConfig)
 
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
 registerFilter(
   'results.material.elements',
   labelElements,
+  ptStatConfig,
   'terms',
   {
     set: (newQuery, oldQuery, value) => {
@@ -186,12 +214,19 @@ registerFilter(
   false
 )
 // Electronic properties: subset of results.properties.available_properties
+const electronicOptions = {
+  band_structure_electronic: {label: 'band structure'},
+  dos_electronic: {label: 'density of states'}
+}
+const electronicProps = new Set(Object.keys(electronicOptions))
 registerFilter(
   'electronic_properties',
   labelElectronic,
+  listStatConfig,
   {
     set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+      .filter((value) => electronicProps.has(value.value)))
   },
   {
     set: (newQuery, oldQuery, value) => {
@@ -202,15 +237,25 @@ registerFilter(
     get: (data) => (data.results.properties.available_properties)
   },
   true,
-  false
+  false,
+  electronicOptions
 )
 // Vibrational properties: subset of results.properties.available_properties
+export const vibrationalOptions = {
+  dos_phonon: {label: 'phonon density of states'},
+  band_structure_phonon: {label: 'phonon band structure'},
+  energy_free_helmholtz: {label: 'Helmholtz free energy'},
+  heat_capacity_constant_volume: {label: 'heat capacity constant volume'}
+}
+const vibrationalProps = new Set(Object.keys(vibrationalOptions))
 registerFilter(
   'vibrational_properties',
   labelVibrational,
+  listStatConfig,
   {
     set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+      .filter((value) => vibrationalProps.has(value.value)))
   },
   {
     set: (newQuery, oldQuery, value) => {
@@ -221,13 +266,15 @@ registerFilter(
     get: (data) => (data.results.properties.available_properties)
   },
   true,
-  false
+  false,
+  vibrationalOptions
 )
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
 registerFilter(
   'visibility',
   labelAccess,
+  undefined,
   undefined,
   {set: () => {}},
   false
@@ -237,12 +284,14 @@ registerFilter(
   'restricted',
   undefined,
   undefined,
+  undefined,
   {set: () => {}},
   false
 )
 // Exclusive: controls the way elements search is done.
 registerFilter(
   'exclusive',
+  undefined,
   undefined,
   undefined,
   {set: () => {}},
@@ -392,16 +441,10 @@ export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
-export const lockedFamily = atomFamily({
-  key: 'lockedFamily',
-  default: false
-})
-
 export const initializedState = atom({
   key: 'initialized',
   default: false
 })
-
 export const isStatisticsEnabledState = atom({
   key: 'statisticsEnabled',
   default: true
@@ -413,6 +456,22 @@ export const statisticsCountModeState = atom({
 export const isMenuOpenState = atom({
   key: 'isMenuOpen',
   default: false
+})
+
+// Used to get/set the locked state of all filters at once
+const filtersState = selector({
+  key: 'filtersState',
+  get: ({get}) => {
+    const query = {}
+    for (let key of filters) {
+      const filter = get(queryFamily(key))
+      query[key] = filter
+    }
+    return query
+  },
+  set: ({set}, [key, value]) => {
+    set(queryFamily(key), value)
+  }
 })
 
 /**
@@ -431,6 +490,67 @@ export function useResetFilters() {
   }, [locked])
   return reset
 }
+
+export const anchorFamily = atomFamily({
+  key: 'anchorFamily',
+  default: false
+})
+
+// Used to get/set the anchored state of all filters at once
+const anchorsState = selector({
+  key: 'anchorsState',
+  get: ({get}) => [...filters].filter(key => get(anchorFamily(key)))
+})
+
+/**
+ * This hook will expose a function for reading if filter statistics are shown
+ * on the search page. Use this hook if you intend to only view the value and
+ * are not interested in setting the value.
+ *
+ * @param {string} name Name of the filter.
+ * @returns Whether the filter statistics are shown.
+ */
+export function useAnchorValue(name) {
+  return useRecoilValue(anchorFamily(name))
+}
+
+/**
+ * This hook will expose a function for setting if filter statistics are shown
+ * on the search page. Use this hook if you intend to only set the value and are
+ * not interested in reading it.
+ *
+ * @param {string} name Name of the quantity to set.
+ * @returns function for setting the value
+ */
+export function useSetAnchor(name) {
+  return useSetRecoilState(anchorFamily(name))
+}
+
+/**
+ * This hook will expose a function for getting and setting whether the
+ * statistics are shown. Use this hook if you intend to both read and write the
+ * filter value.
+ *
+ * @param {string} name Name of the filter.
+ * @returns Array containing the value and setter function for it.
+ */
+export function useAnchorState(name) {
+  return useRecoilState(anchorFamily(name))
+}
+
+/**
+ * This hook will expose a function for reading a list of anchored quantities.
+ *
+ * @returns A list containing the anchored quantity names.
+ */
+export function useAnchorsValue() {
+  return useRecoilValue(anchorsState)
+}
+
+export const lockedFamily = atomFamily({
+  key: 'lockedFamily',
+  default: false
+})
 
 /**
  * This hook will expose a function for reading if the given filter is locked.
@@ -552,22 +672,6 @@ export function useFilterState(name) {
 export function useSetFilters() {
   return useSetRecoilState(filtersState)
 }
-
-// Used to get/set the locked state of all filters at once
-const filtersState = selector({
-  key: 'filtersState',
-  get: ({get}) => {
-    const query = {}
-    for (let key of filters) {
-      const filter = get(queryFamily(key))
-      query[key] = filter
-    }
-    return query
-  },
-  set: ({set}, [key, value]) => {
-    set(queryFamily(key), value)
-  }
-})
 
 /**
  * This hook will expose a function for getting and setting filter values for
@@ -765,12 +869,12 @@ export function useInitialAgg(name) {
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(name, update = true, delay = 500) {
+export function useAgg(name, update = true, restrict = undefined, delay = 500) {
   const {api} = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
-  const restrict = filterData[name].exclusive
+  const finalRestrict = isNil(restrict) ? filterData[name].exclusive : restrict
   const query = useQuery()
   const firstLoad = useRef(true)
 
@@ -782,7 +886,7 @@ export function useAgg(name, update = true, delay = 500) {
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
     let queryCleaned = {...query}
-    if (restrict && query && name in query) {
+    if (finalRestrict && query && name in query) {
       delete queryCleaned[name]
     }
     queryCleaned = toAPIQuery(queryCleaned, resource, query.restricted)
@@ -805,7 +909,7 @@ export function useAgg(name, update = true, delay = 500) {
         firstLoad.current = false
         setResults(newData)
       })
-  }, [api, name, restrict, resource])
+  }, [api, name, finalRestrict, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -1076,7 +1180,7 @@ export function toGUIFilter(name, value, units = undefined) {
  * @param {string} filter The filter name
  * @param {string} resource The resource we are looking at: entries or materials.
  */
-function toAPIAgg(aggs, filter, resource) {
+function toAPIAgg(aggs, filter, resource, size) {
   const aggSet = filterData[filter].aggSet
   if (aggSet) {
     for (const [key, type] of Object.entries(aggSet)) {
@@ -1084,7 +1188,7 @@ function toAPIAgg(aggs, filter, resource) {
       const agg = aggs[name] || {}
       agg[type] = {
         quantity: name,
-        size: 500
+        size: 200 // Fixed, large value to get a relevant set of results.
       }
       aggs[name] = agg
     }

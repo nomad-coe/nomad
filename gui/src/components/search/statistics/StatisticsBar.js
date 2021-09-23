@@ -53,7 +53,7 @@ const useStyles = makeStyles(theme => ({
     bottom: 0
   }
 }))
-const InputStatisticsBar = React.memo(({
+const StatisticsBar = React.memo(({
   max,
   value,
   scale,
@@ -66,6 +66,7 @@ const InputStatisticsBar = React.memo(({
   const styles = useStyles(classes)
   const theme = useTheme()
 
+  // Calculate the approximated count and the final scaled value
   const scaler = useMemo(() => scalePow()
     .exponent(scale)
     .domain([0, 1])
@@ -78,14 +79,14 @@ const InputStatisticsBar = React.memo(({
     <div className={styles.container}>
       <div className={styles.rectangle} style={{
         transform: `scaleX(${finalScale})`,
-        backgroundColor: selected ? theme.palette.secondary.light : theme.palette.secondary.veryLight
+        backgroundColor: selected ? theme.palette.primary.veryLight : theme.palette.secondary.veryLight
       }}></div>
       <Typography className={styles.value} style={{color: disabled ? theme.palette.text.disabled : undefined}}>{finalCount}</Typography>
     </div>
   </div>
 })
 
-InputStatisticsBar.propTypes = {
+StatisticsBar.propTypes = {
   max: PropTypes.number,
   value: PropTypes.number,
   scale: PropTypes.number,
@@ -96,4 +97,4 @@ InputStatisticsBar.propTypes = {
   'data-testid': PropTypes.string
 }
 
-export default InputStatisticsBar
+export default StatisticsBar

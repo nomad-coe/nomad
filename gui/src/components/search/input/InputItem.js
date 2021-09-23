@@ -27,7 +27,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useSearchContext } from '../SearchContext'
-import InputStatisticsBar from './InputStatisticsBar'
+import StatisticsBar from '../statistics/StatisticsBar'
 
 /**
  * Represents a selectable item for a filter value.
@@ -35,15 +35,15 @@ import InputStatisticsBar from './InputStatisticsBar'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '2.2rem',
+    height: '2.1rem',
     position: 'relative'
   },
   bar: {
     position: 'absolute',
-    top: theme.spacing(0.5),
+    top: theme.spacing(0.8),
     left: theme.spacing(3.2),
     right: 0,
-    bottom: theme.spacing(0.5)
+    bottom: theme.spacing(0.8)
   },
   controlLabel: {
     position: 'absolute',
@@ -83,7 +83,7 @@ const InputItem = React.memo(({
   }
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    {(isStatisticsEnabled) && <InputStatisticsBar
+    {(isStatisticsEnabled) && <StatisticsBar
       className={styles.bar}
       max={total}
       value={count}
@@ -96,7 +96,8 @@ const InputItem = React.memo(({
       disabled={disabled}
       control={<Control
         checked={selected}
-        color="secondary"
+        size="medium"
+        color="primary"
         onChange={handleChange}
         name={value}
       />}

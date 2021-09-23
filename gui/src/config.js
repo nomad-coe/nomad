@@ -56,7 +56,7 @@ export const nomadPrimaryColor = {
   main: '#008DC3',
   light: '#03B9FF',
   dark: '#005271',
-  veryLight: '#10BAFB'
+  veryLight: '#99e2ff'
 }
 
 export const nomadSecondaryColor = {
@@ -105,8 +105,21 @@ export function normalizeDisplayValue(value) {
   return value
 }
 
+/**
+ * The available aggregation sizes for an ES aggregation result.
+ */
+export const aggregationSizes = [10, 20, 30, 40, 50, 100, 200]
+/**
+ * The range of electronic energies in eV.
+ */
 export const electronicRange = [-5, 10]
+/**
+ * The default date format.
+ */
 export const dateFormat = 'dd/MM/yyyy'
+/**
+ * Warning shown when energy values could not be normalized.
+ */
 export const msgNormalizationWarning = `
 Energy reference could not be found: energies have an unknown shift with
 respect to the highest occupied energy.

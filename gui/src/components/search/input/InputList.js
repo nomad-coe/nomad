@@ -17,34 +17,21 @@
  * limitations under the License.
  */
 import React, { useState, useCallback, useMemo } from 'react'
-import { makeStyles, useTheme, withStyles } from '@material-ui/core/styles'
-import {
-  Select,
-  MenuItem,
-  OutlinedInput
-} from '@material-ui/core'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import FilterChip from '../FilterChip'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
-// This forces the menu to have a fixed anchor instead of jumping around
-const MenuProps = {
-  getContentAnchorEl: null
-}
-
-// Customized input component
-const CustomInput = withStyles((theme) => ({
-  input: {
-    padding: theme.spacing(1),
-    minHeight: '2.5rem'
-  }
-}))(OutlinedInput)
-
+/**
+ * Displays a list of options with fixed maximum size. Only options that are
+ * present in the current search results are displayed. The options are sorted
+ * by occurrence and the number of displayed results can be changed.
+ */
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -84,7 +71,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.disabled
   }
 }))
-const InputSelect = React.memo(({
+const InputList = React.memo(({
   label,
   quantity,
   description,
@@ -97,7 +84,8 @@ const InputSelect = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const agg = useAgg(quantity, visible)
+  const [aggSize, setAggSize] = useState(initialAggSize)
+  const agg = useAgg(quantity, visible, false)
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -108,39 +96,41 @@ const InputSelect = React.memo(({
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleChange = useCallback((event) => {
-    setFilter(new Set(event.target.value))
-    event.preventDefault()
+  const handleChange = useCallback((key, value) => {
+    setFilter(old => {
+      if (!old) return new Set([key])
+      const newValue = new Set(old)
+      value ? newValue.add(key) : newValue.delete(key)
+      return newValue
+    })
   }, [setFilter])
 
   // Create a memoized list of options
-  const items = useMemo(() => {
+  const [items, nAgg] = useMemo(() => {
     const items = []
+    let index = 0
     if (agg?.data) {
       for (let option of agg.data) {
         const value = option.value
         if (option.count > 0) {
-          items.push(<MenuItem
-            key={value}
-            value={value}
-            className={styles.menuItem}
-            classes={{selected: styles.menuItemSelected}}
-          >
-            <InputItem
+          if (index < aggSize) {
+            items.push(<InputItem
               key={value}
               value={value}
               selected={filter ? filter.has(value) : false}
               total={agg.total}
+              onChange={handleChange}
               variant="checkbox"
               count={option.count}
               scale={scale}
-            />
-          </MenuItem>)
+            />)
+          }
+          ++index
         }
       }
     }
-    return [items, agg?.data?.length || 0]
-  }, [agg, filter, scale, styles])
+    return [items, index]
+  }, [agg, filter, scale, handleChange, aggSize])
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -150,36 +140,18 @@ const InputSelect = React.memo(({
         description={desc}
         scale={scale}
         onChangeScale={setScale}
-        disableAggSize
+        aggSize={aggSize}
+        onChangeAggSize={setAggSize}
       />
-      <Select
-        disabled={disabled}
-        multiple
-        displayEmpty
-        value={filter ? [...filter] : []}
-        onChange={handleChange}
-        input={<CustomInput/>}
-        MenuProps={MenuProps}
-        renderValue={(selected) => {
-          return selected.length > 0
-            ? <div className={styles.chips}>
-              {selected.map((value) => <FilterChip
-                locked={locked}
-                key={value}
-                label={value}
-                color="primary"
-              />)}
-            </div>
-            : <div className={styles.placeholder}>Click to select</div>
-        }}
-      >
-        {items}
-      </Select>
+      {items}
+      <div className={styles.count}>
+        <Typography variant="overline">{`${Math.min(aggSize, nAgg)}/${nAgg}`}</Typography>
+      </div>
     </div>
   </InputTooltip>
 })
 
-InputSelect.propTypes = {
+InputList.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
@@ -191,9 +163,9 @@ InputSelect.propTypes = {
   'data-testid': PropTypes.string
 }
 
-InputSelect.defaultProps = {
+InputList.defaultProps = {
   initialScale: 1,
   initialAggSize: 10
 }
 
-export default InputSelect
+export default InputList

@@ -22,6 +22,7 @@ import { Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import SearchBar from './SearchBar'
+import StatisticsGrid from './statistics/StatisticsGrid'
 import SearchResults from './results/SearchResults'
 import { useSearchContext } from './SearchContext'
 
@@ -98,11 +99,14 @@ const Search = React.memo(({
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
       <Box margin={3}>
-        <Box marginBottom={2}>
+        {header && <Box marginBottom={2}>
           {header}
-        </Box>
+        </Box>}
         <Box marginBottom={2}>
           <SearchBar className={styles.searchBar} />
+        </Box>
+        <Box marginBottom={2}>
+          <StatisticsGrid/>
         </Box>
         <SearchResults />
         <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>

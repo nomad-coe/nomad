@@ -30,6 +30,9 @@ const useStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(0.5)
   },
+  chip: {
+    padding: theme.spacing(0.5)
+  },
   colorSecondary: {
     backgroundColor: theme.palette.secondary.light
   }
@@ -48,7 +51,7 @@ const FilterChip = React.memo(({
       label={label}
       onDelete={locked ? undefined : onDelete}
       color={color}
-      className={styles.root}
+      className={styles.chip}
       classes={{colorSecondary: styles.colorSecondary}}
       icon={locked ? <LockIcon/> : undefined}
     />
@@ -63,7 +66,7 @@ FilterChip.propTypes = {
   locked: PropTypes.bool
 }
 FilterChip.defaultProps = {
-  color: 'secondary'
+  color: 'primary'
 }
 
 export default FilterChip

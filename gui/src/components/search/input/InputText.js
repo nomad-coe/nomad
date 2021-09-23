@@ -193,7 +193,12 @@ const InputText = React.memo(({
 
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc} disableScale/>
+      <InputLabel
+        quantity={quantity}
+        label={title}
+        description={desc}
+        disableStatistics
+      />
       <Autocomplete
         freeSolo
         disabled={locked}

@@ -22,9 +22,6 @@ import PropTypes from 'prop-types'
 /**
  * The quantity label shown by all filter components.
  */
-export const msgLocked = 'This filter is locked.'
-export const msgDisabled = 'No values available with current query.'
-
 const InputTooltip = React.memo(({
   locked,
   disabled,

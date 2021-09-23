@@ -24,10 +24,6 @@ import InputCheckboxes from '../input/InputCheckboxes'
 import { Quantity, useUnits } from '../../../units'
 
 const step = new Quantity(0.1, 'electron_volt')
-const options = {
-  band_structure_electronic: {label: 'band structure'},
-  dos_electronic: {label: 'density of states'}
-}
 
 const FilterSubMenuElectronic = React.memo(({
   value,
@@ -58,7 +54,6 @@ const FilterSubMenuElectronic = React.memo(({
           label="available electronic properties"
           description="The electronic properties that are present in an entry."
           quantity="electronic_properties"
-          options={options}
           visible={visible}
         />
       </Grid>

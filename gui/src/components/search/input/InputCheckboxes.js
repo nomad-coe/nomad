@@ -28,7 +28,8 @@ import {
   useFilterState,
   useAgg,
   useInitialAgg,
-  useFilterLocked
+  useFilterLocked,
+  filterData
 } from '../SearchContext'
 import { isArray } from 'lodash'
 
@@ -49,7 +50,6 @@ const InputCheckboxes = React.memo(({
   label,
   quantity,
   description,
-  options,
   visible,
   xs,
   initialScale,
@@ -67,6 +67,7 @@ const InputCheckboxes = React.memo(({
   const locked = useFilterLocked(quantity)
   const finalOptions = useMemo(() => {
     // If explicit options provided, use them
+    const options = filterData[quantity].options
     if (options) {
       return options
     }
@@ -88,7 +89,7 @@ const InputCheckboxes = React.memo(({
       return opt
     }
     return {}
-  }, [options, quantity, initialAgg])
+  }, [quantity, initialAgg])
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -150,10 +151,12 @@ const InputCheckboxes = React.memo(({
   return <InputTooltip locked={locked} disabled={false}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <InputLabel
+        quantity={quantity}
         label={title}
         description={desc}
         scale={scale}
         onChangeScale={setScale}
+        disableAggSize
       />
       <Grid container spacing={0}>
         {checkboxes}
@@ -167,7 +170,6 @@ InputCheckboxes.propTypes = {
   quantity: PropTypes.string,
   // Optional information about the options. Can also be used to enable/disable
   // options.
-  options: PropTypes.object,
   visible: PropTypes.bool,
   xs: PropTypes.number,
   description: PropTypes.string,

@@ -15,22 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Tooltip, Typography, Select, MenuItem } from '@material-ui/core'
+import {
+  Tooltip,
+  Typography,
+  Radio,
+  FormControl,
+  FormLabel,
+  FormControlLabel,
+  RadioGroup,
+  Menu
+} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { Actions } from '../../Actions'
-import { useSearchContext } from '../SearchContext'
+import AddIcon from '@material-ui/icons/Add'
+import RemoveIcon from '@material-ui/icons/Remove'
+import MoreVertIcon from '@material-ui/icons/MoreVert'
+import { useAnchorState } from '../SearchContext'
+import { Actions, Action } from '../../Actions'
+import { aggregationSizes } from '../../../config'
 
 /**
- * The quantity label shown by all filter components.
+ * The quantity label and actions shown by all filter components.
  */
 const useStaticStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(0.5),
     height: '2.5rem',
     width: '100%'
+  },
+  menuItem: {
+    width: '10rem',
+    margin: theme.spacing(2),
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   },
   label: {
     textTransform: 'capitalize',
@@ -44,30 +63,42 @@ const scales = {
   '1/4': 0.25,
   '1/8': 0.125
 }
+
 const FilterLabel = React.memo(({
+  quantity,
   label,
   underscores,
   description,
-  disableScale,
+  disableStatistics,
+  disableAggSize,
   scale,
   onChangeScale,
+  aggSize,
+  onChangeAggSize,
   className,
   classes
 }) => {
   const styles = useStaticStyles({classes: classes})
-  const {useIsStatisticsEnabled} = useSearchContext()
-  const isStatisticsEnabled = useIsStatisticsEnabled()
-  const [open, setOpen] = useState(false)
+  const [anchor, setAnchor] = useAnchorState(quantity)
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const isSettingsOpen = Boolean(anchorEl)
+
+  // Callbacks
+  const openMenu = useCallback((event) => {
+    setAnchorEl(event.currentTarget)
+  }, [])
+  const closeMenu = useCallback(() => {
+    setAnchorEl(null)
+  }, [])
 
   // Remove underscores from name
-  const finalLabel = useMemo(
-    () => !underscores ? label.replace(/_/g, ' ') : label,
-    [label, underscores]
-  )
+  const finalLabel = useMemo(() => {
+    let finalLabel = label || quantity
+    return !underscores ? finalLabel.replace(/_/g, ' ') : finalLabel
+  }, [label, quantity, underscores])
 
   // The tooltip needs to be controlled: otherwise it won't close as we open the
   // select menu
-
   return <Actions
     className={clsx(className, styles.root)}
     header={
@@ -81,41 +112,82 @@ const FilterLabel = React.memo(({
       </Tooltip>
     }
   >
-    {(!disableScale && isStatisticsEnabled) &&
-      <Tooltip open={open} title="Select the scaling of the statistics.">
-        <Select
-          value={scale}
-          onChange={(event) => onChangeScale(event.target.value)}
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-          onOpen={() => setOpen(false)}
-          displayEmpty
-          name="scale power"
+    {!disableStatistics && <>
+      <Action
+        tooltip={anchor ? 'Remove the filter from the results panel.' : 'Anchor filter to results panel.'}
+        disabled={disableStatistics}
+        onClick={() => setAnchor(old => !old)}
+      >
+        {anchor ? <RemoveIcon/> : <AddIcon/>}
+      </Action>
+      <Action
+        tooltip="Options"
+        onClick={openMenu}
+      >
+        <MoreVertIcon/>
+      </Action>
+      <Menu
+        anchorEl={anchorEl}
+        open={isSettingsOpen}
+        onClose={closeMenu}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        keepMounted
+      >
+        <FormControl
+          className={styles.menuItem}
+          component="fieldset"
         >
-          {Object.entries(scales).map(([key, value]) => (
-            <MenuItem key={key} value={value}>{key}</MenuItem>
-          ))}
-        </Select>
-      </Tooltip>
-    }
+          <FormLabel component="legend">Statistics scaling</FormLabel>
+          <RadioGroup
+            value={scale}
+            onChange={(event, value) => onChangeScale(Number(value))}
+          >
+            {Object.entries(scales).map(([key, value]) =>
+              <FormControlLabel key={key} value={value} label={key} control={<Radio/>} />
+            )}
+          </RadioGroup>
+        </FormControl>
+        {!disableAggSize && <FormControl
+          className={styles.menuItem}
+          component="fieldset"
+        >
+          <FormLabel component="legend">Statistics size</FormLabel>
+          <RadioGroup
+            value={aggSize}
+            onChange={(event, value) => onChangeAggSize(Number(value))}
+          >
+            {aggregationSizes.map((value) =>
+              <FormControlLabel key={value} value={value} label={value} control={<Radio/>} />
+            )}
+          </RadioGroup>
+        </FormControl>}
+      </Menu>
+    </>}
   </Actions>
 })
 
 FilterLabel.propTypes = {
-  label: PropTypes.string.isRequired,
+  quantity: PropTypes.string.isRequired,
+  label: PropTypes.string,
   description: PropTypes.string,
   underscores: PropTypes.bool,
-  disableScale: PropTypes.bool,
+  disableStatistics: PropTypes.bool,
+  disableAggSize: PropTypes.bool,
   scale: PropTypes.oneOf(Object.values(scales)),
   onChangeScale: PropTypes.func,
+  aggSize: PropTypes.oneOf(aggregationSizes),
+  onChangeAggSize: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
 FilterLabel.defaultProps = {
   underscores: false,
-  disableScale: false,
-  scale: 1
+  disableStatistics: false,
+  scale: 1,
+  aggSize: 10
 }
 
 export default FilterLabel

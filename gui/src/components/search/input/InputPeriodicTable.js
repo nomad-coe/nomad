@@ -17,6 +17,9 @@
  */
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
+import { scalePow } from 'd3-scale'
+import { isNil } from 'lodash'
 import elementData from '../../../elementData'
 import {
   Typography,
@@ -24,6 +27,7 @@ import {
   Tooltip
 } from '@material-ui/core'
 import InputCheckbox from './InputCheckbox'
+import InputLabel from './InputLabel'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -31,8 +35,7 @@ import {
   useAgg,
   useSearchContext
 } from '../SearchContext'
-import { isNil } from 'lodash'
-import clsx from 'clsx'
+import searchQuantities from '../../../searchQuantities'
 import { approxInteger } from '../../../utils'
 
 // A fixed 2D, 10x18 array for the element data.
@@ -136,13 +139,23 @@ const Element = React.memo(({
   selected,
   disabled,
   onClick,
-  max,
+  total,
   count,
+  scale,
   localFilter
 }) => {
   const styles = useElementStyles()
   const { useIsStatisticsEnabled } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
+
+  // Calculate the approximated count and the final scaled value
+  const scaler = useMemo(() => scalePow()
+    .exponent(scale)
+    .domain([0, 1])
+    .range([0, 1])
+  , [scale])
+  const finalCount = useMemo(() => approxInteger(count || 0), [count])
+  const finalScale = useMemo(() => scaler(count / total) || 0, [count, total, scaler])
 
   // Dynamically calculated styles. The background color is formed by animating
   // opacity: opacity animation can be GPU-accelerated by the browser unlike
@@ -150,9 +163,9 @@ const Element = React.memo(({
   const useDynamicStyles = makeStyles((theme) => {
     return {
       bg: { opacity: isStatisticsEnabled
-        ? (isNil(count) || isNil(max))
+        ? (isNil(count) || isNil(total))
           ? 0
-          : count / max
+          : finalScale
         : 0.8 },
       disabled: { opacity: disabled ? 1 : 0 }
     }
@@ -217,7 +230,7 @@ const Element = React.memo(({
       )}
       variant="caption"
     >
-      {approxInteger(count || 0)}
+      {finalCount}
     </Typography>}
   </div>
 })
@@ -227,8 +240,9 @@ Element.propTypes = {
   onClick: PropTypes.func,
   selected: PropTypes.bool,
   disabled: PropTypes.bool,
-  max: PropTypes.number,
+  total: PropTypes.number,
   count: PropTypes.number,
+  scale: PropTypes.number,
   localFilter: PropTypes.object
 }
 
@@ -236,7 +250,8 @@ Element.propTypes = {
  * Represents a single element in the periodic table.
 */
 const useTableStyles = makeStyles(theme => ({
-  root: {
+  root: {},
+  container: {
     position: 'relative'
   },
   table: {
@@ -260,17 +275,29 @@ function eqSet(as, bs) {
   return true
 }
 
-const InputPeriodicTable = React.memo(({quantity, visible}) => {
+const InputPeriodicTable = React.memo(({
+  quantity,
+  label,
+  description,
+  visible,
+  initialScale
+}) => {
   const styles = useTableStyles()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
+  const [scale, setScale] = useState(initialScale)
   const agg = useAgg(quantity, visible)
   const availableValues = useMemo(() => {
     const elementCountMap = {}
     agg?.data && agg.data.forEach((value) => { elementCountMap[value.value] = value.count })
     return elementCountMap
   }, [agg])
+
+  // Determine the description and title
+  const def = searchQuantities[quantity]
+  const desc = description || def?.description || ''
+  const title = label || def?.name
 
   // The selected state of the periodic filter is kept in a local reference.
   // This way simply selecting an element does not cause a full re-render of the
@@ -299,51 +326,69 @@ const InputPeriodicTable = React.memo(({quantity, visible}) => {
   }, [setFilter])
 
   const table = useMemo(() => (<div className={styles.root}>
-    <AspectRatio
-      aspectRatio={17 / 10}
-    >
-      <table className={styles.table}>
-        <tbody>
-          {elements.map((row, i) => (
-            <tr key={i}>
-              {row.map((element, j) => (
-                <td key={j}>
-                  {element
-                    ? <Element
-                      element={element}
-                      disabled={!availableValues[element.symbol]}
-                      onClick={() => onElementClicked(element.symbol)}
-                      selected={localFilter.current.has(element.symbol)}
-                      max={agg?.total}
-                      count={availableValues[element.symbol]}
-                      localFilter={localFilter.current}
-                    />
-                    : ''}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </AspectRatio>
-    <div className={styles.formContainer}>
-      <InputCheckbox
-        quantity="exclusive"
-        label="only composition that exclusively contain these atoms"
-        description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
-        initialValue={false}
-      ></InputCheckbox>
+    <InputLabel
+      quantity={quantity}
+      label={title}
+      description={desc}
+      scale={scale}
+      onChangeScale={setScale}
+      disableAggSize
+    />
+    <div className={styles.container}>
+      <AspectRatio
+        aspectRatio={17 / 10}
+      >
+        <table className={styles.table}>
+          <tbody>
+            {elements.map((row, i) => (
+              <tr key={i}>
+                {row.map((element, j) => (
+                  <td key={j}>
+                    {element
+                      ? <Element
+                        element={element}
+                        disabled={!availableValues[element.symbol]}
+                        onClick={() => onElementClicked(element.symbol)}
+                        selected={localFilter.current.has(element.symbol)}
+                        total={agg?.total}
+                        count={availableValues[element.symbol]}
+                        localFilter={localFilter.current}
+                        scale={scale}
+                      />
+                      : ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AspectRatio>
+      <div className={styles.formContainer}>
+        <InputCheckbox
+          quantity="exclusive"
+          label="only composition that exclusively contain these atoms"
+          description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
+          initialValue={false}
+        ></InputCheckbox>
+      </div>
     </div>
   </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [agg, availableValues, onElementClicked, styles, update])
+  ), [agg, availableValues, onElementClicked, styles, update, scale])
 
   return table
 })
 
 InputPeriodicTable.propTypes = {
   quantity: PropTypes.string,
-  visible: PropTypes.bool
+  label: PropTypes.string,
+  description: PropTypes.string,
+  visible: PropTypes.bool,
+  initialScale: PropTypes.number
+}
+
+InputPeriodicTable.defaultProps = {
+  initialScale: 1
 }
 
 export default InputPeriodicTable

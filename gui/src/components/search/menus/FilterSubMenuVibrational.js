@@ -21,13 +21,6 @@ import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import InputCheckboxes from '../input/InputCheckboxes'
 
-const options = {
-  dos_phonon: {label: 'phonon density of states'},
-  band_structure_phonon: {label: 'phonon band structure'},
-  energy_free_helmholtz: {label: 'Helmholtz free energy'},
-  heat_capacity_constant_volume: {label: 'heat capacity constant volume'}
-}
-
 const FilterSubMenuElectronic = React.memo(({
   value,
   ...rest
@@ -42,7 +35,6 @@ const FilterSubMenuElectronic = React.memo(({
           quantity="vibrational_properties"
           label="available vibrational properties"
           description="The vibrational properties that are present."
-          options={options}
           visible={visible}
         />
       </Grid>

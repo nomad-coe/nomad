@@ -68,7 +68,10 @@ Actions.defaultProps = {
 
 const useActionStyles = makeStyles((theme) => ({
   root: {
-    marginRight: theme.spacing(1)
+    marginRight: theme.spacing(1),
+    '&:last-child': {
+      marginRight: 0
+    }
   }
 }))
 export const Action = React.memo(({
