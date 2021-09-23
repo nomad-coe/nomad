@@ -471,7 +471,7 @@ class EntryMetadata(metainfo.MSection):
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems', 'qcms'),
         description='The material science domain',
-        categories=[MongoMetadata, UserProvidableMetadata],
+        categories=[UserProvidableMetadata],
         a_search=Search(),
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -484,7 +484,6 @@ class EntryMetadata(metainfo.MSection):
     processed = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
-        categories=[MongoMetadata],
         a_search=Search(),
         a_elasticsearch=Elasticsearch())
 

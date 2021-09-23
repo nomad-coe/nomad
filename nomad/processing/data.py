@@ -169,7 +169,7 @@ class Calc(Proc):
             ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
-            'metadata.processed',
+            'process_status',
             'metadata.last_processing',
             'metadata.datasets',
             'metadata.pid'
@@ -306,6 +306,7 @@ class Calc(Proc):
                 entry_metadata.domain = parser.domain
         entry_metadata.calc_id = self.calc_id
         entry_metadata.mainfile = self.mainfile
+        entry_metadata.processed = self.process_status == ProcessStatus.SUCCESS
 
     def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
         '''

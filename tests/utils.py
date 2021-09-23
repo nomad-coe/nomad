@@ -184,13 +184,15 @@ class ExampleData:
                 mongo_upload.save()
 
             for entry_metadata in self.entries.values():
+                process_status = (
+                    proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
                 mongo_entry = proc.Calc(
                     create_time=self._next_time_stamp(),
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser_name='parsers/vasp',
-                    process_status=proc.ProcessStatus.SUCCESS)
+                    process_status=process_status)
                 upload_dict = self.uploads.get(entry_metadata.upload_id)
                 if upload_dict:
                     # Mirror fields from upload
