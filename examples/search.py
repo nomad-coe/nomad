@@ -1,11 +1,11 @@
 from nomad import config, infrastructure
-from nomad.search.v1 import search
+from nomad.search import search
 from nomad.app.v1.models import MetadataPagination
 
 
 config.elastic.host = 'localhost'
 config.elastic.port = 19202
-config.elastic.index_name = 'fairdi_nomad_prod_v0_8'
+config.elastic.entries_index = 'fairdi_nomad_prod_v0_8'
 
 infrastructure.setup_elastic()
 

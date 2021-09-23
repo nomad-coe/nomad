@@ -24,7 +24,6 @@ import re
 
 from nomad import config, utils
 from nomad.metainfo import MSection, Section, Quantity, MEnum, SubSection
-from nomad.metainfo.search_extension import Search
 
 from .metainfo.workflow import Workflow
 from .metainfo.common import FastAccess
@@ -130,15 +129,13 @@ class Label(MSection):
         source: The source that this label was taken from.
 
     '''
-    label = Quantity(type=str, a_search=Search())
+    label = Quantity(type=str)
 
     type = Quantity(type=MEnum(
-        'compound_class', 'classification', 'prototype', 'prototype_id'),
-        a_search=Search())
+        'compound_class', 'classification', 'prototype', 'prototype_id'))
 
     source = Quantity(
-        type=MEnum('springer', 'aflow_prototype_library'),
-        a_search=Search())
+        type=MEnum('springer', 'aflow_prototype_library'))
 
 
 class DFTMetadata(MSection):
@@ -146,125 +143,87 @@ class DFTMetadata(MSection):
 
     basis_set = Quantity(
         type=str, default='not processed',
-        description='The used basis set functions.',
-        a_search=Search(statistic_values=[
-            '(L)APW+lo', 'gaussians', 'numeric AOs', 'plane waves', 'psinc functions',
-            'real-space grid', 'unavailable', 'not processed'
-        ]))
+        description='The used basis set functions.')
 
     xc_functional = Quantity(
         type=str, default='not processed',
-        description='The libXC based xc functional classification used in the simulation.',
-        a_search=Search(
-            statistic_values=list(xc_treatments.values()) + ['unavailable', 'not processed'],
-            statistic_size=100))
+        description='The libXC based xc functional classification used in the simulation.')
 
     xc_functional_names = Quantity(
         type=str, default=[], shape=['*'],
-        description='The list of libXC functional names that where used in this entry.',
-        a_search=Search(many_and='append'))
+        description='The list of libXC functional names that where used in this entry.')
 
     system = Quantity(
         type=str, default='not processed',
-        description='The system type of the simulated system.',
-        a_search=Search(statistic_values=[
-            '1D', '2D', 'atom', 'bulk', 'molecule / cluster', 'surface',
-            'unavailable', 'not processed'
-        ]))
+        description='The system type of the simulated system.')
 
     compound_type = Quantity(
         type=str, default='not processed',
-        description='The compound type of the simulated system.',
-        a_search=Search(statistic_values=compound_types + ['not processed'])
+        description='The compound type of the simulated system.'
     )
 
     crystal_system = Quantity(
         type=str, default='not processed',
-        description='The crystal system type of the simulated system.',
-        a_search=Search(
-            statistic_values=[
-                'cubic', 'hexagonal', 'monoclinic', 'orthorhombic', 'tetragonal',
-                'triclinic', 'trigonal', 'unavailable', 'not processed']
-        ))
+        description='The crystal system type of the simulated system.')
 
     spacegroup = Quantity(
         type=int, default=-1,
-        description='The spacegroup of the simulated system as number.',
-        a_search=Search())
+        description='The spacegroup of the simulated system as number.')
 
     spacegroup_symbol = Quantity(
         type=str, default='not processed',
-        description='The spacegroup as international short symbol.',
-        a_search=Search())
+        description='The spacegroup as international short symbol.')
 
     code_name = Quantity(
         type=str, default='not processed',
-        description='The name of the used code.',
-        a_search=Search())  # in import the parser module is added codes here as statistic_values
+        description='The name of the used code.')  # in import the parser module is added codes here as statistic_values
 
     code_version = Quantity(
         type=str, default='not processed',
-        description='The version of the used code.',
-        a_search=Search())
+        description='The version of the used code.')
 
     n_geometries = Quantity(
-        type=int, default=0, description='Number of unique geometries.',
-        a_search=Search(metric_name='geometries', metric='sum'))
+        type=int, default=0, description='Number of unique geometries.')
 
     n_calculations = Quantity(
         type=int, default=0,
-        description='Number of single configuration calculation sections',
-        a_search=Search(metric_name='calculations', metric='sum'))
+        description='Number of single configuration calculation sections')
 
     n_total_energies = Quantity(
-        type=int, default=0, description='Number of total energy calculations',
-        a_search=Search(metric_name='total_energies', metric='sum'))
+        type=int, default=0, description='Number of total energy calculations')
 
     n_quantities = Quantity(
-        type=int, default=0, description='Number of metainfo quantities parsed from the entry.',
-        a_search=Search(metric='sum', metric_name='quantities'))
+        type=int, default=0, description='Number of metainfo quantities parsed from the entry.')
 
     quantities = Quantity(
         type=str, shape=['0..*'],
-        description='All quantities that are used by this entry.',
-        a_search=Search(
-            metric_name='distinct_quantities', metric='cardinality', many_and='append'))
+        description='All quantities that are used by this entry.')
 
     searchable_quantities = Quantity(
         type=str, shape=['0..*'],
-        description='All quantities with existence filters in the search GUI.',
-        a_search=Search(many_and='append', statistic_size=len(_searchable_quantities) + 15))  # Temporarily increased the statistics size while migrating from old set to new one.
+        description='All quantities with existence filters in the search GUI.')
 
     geometries = Quantity(
         type=str, shape=['0..*'],
-        description='Hashes for each simulated geometry',
-        a_search=Search(metric_name='unique_geometries', metric='cardinality'))
+        description='Hashes for each simulated geometry')
 
     group_hash = Quantity(
         type=str,
-        description='Hashes that describe unique geometries simulated by this code run.',
-        a_search=Search(many_or='append', group='groups_grouped', metric_name='groups', metric='cardinality'))
+        description='Hashes that describe unique geometries simulated by this code run.')
 
     labels = SubSection(
         sub_section=Label, repeats=True, categories=[FastAccess],
-        description='The labels taken from AFLOW prototypes and springer.',
-        a_search=Search())
+        description='The labels taken from AFLOW prototypes and springer.')
 
     labels_springer_compound_class = Quantity(
         type=str, shape=['0..*'],
-        description='Springer compund classification.',
-        a_search=Search(
-            many_and='append', statistic_size=20,
-            statistic_order='_count'))
+        description='Springer compund classification.')
 
     labels_springer_classification = Quantity(
         type=str, shape=['0..*'],
-        description='Springer classification by property.',
-        a_search=Search(
-            many_and='append', statistic_size=20,
-            statistic_order='_count'))
+        description='Springer classification by property.')
 
-    workflow = Quantity(type=Workflow, a_search=Search())
+    workflow = Quantity(type=Workflow)
 
     def code_name_from_parser(self):
         entry = self.m_parent

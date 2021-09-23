@@ -2,9 +2,8 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nptyping import NDArray
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
-    Reference, MEnum, derived)
-from nomad.metainfo.search_extension import Search
+    MSection, Quantity, Section, SubSection, SectionProxy,
+    Reference, derived)
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System
@@ -466,8 +465,7 @@ class GeometryOptimization(MSection):
         description='''
         The difference in the energy_total between the last two steps during
         optimization.
-        ''',
-        a_search=Search())
+        ''')
 
     final_force_maximum = Quantity(
         type=np.dtype(np.float64),
@@ -529,16 +527,14 @@ class Phonon(MSection):
         unit='1 / meter ** 3',
         description='''
         Density of the k-mesh for sampling.
-        ''',
-        a_search=Search())
+        ''')
 
     n_imaginary_frequencies = Quantity(
         type=int,
         shape=[],
         description='''
         Number of modes with imaginary frequencies.
-        ''',
-        a_search=Search())
+        ''')
 
     random_displacements = Quantity(
         type=bool,
@@ -552,16 +548,14 @@ class Phonon(MSection):
         shape=[],
         description='''
         Identifies if non-analytical term corrections are applied to dynamical matrix.
-        ''',
-        a_search=Search())
+        ''')
 
     with_grueneisen_parameters = Quantity(
         type=bool,
         shape=[],
         description='''
         Identifies if Grueneisen parameters are calculated.
-        ''',
-        a_search=Search())
+        ''')
 
     n_bands = Quantity(
         type=np.dtype(np.int32),
@@ -702,8 +696,7 @@ class Elastic(MSection):
         shape=[],
         description='''
         Order of the calculated elastic constants.
-        ''',
-        a_search=Search())
+        ''')
 
     n_deformations = Quantity(
         type=np.dtype(np.int32),
@@ -734,8 +727,7 @@ class Elastic(MSection):
         description='''
         Indicates if structure is mechanically stable from the calculated values of the
         elastic constants.
-        ''',
-        a_search=Search())
+        ''')
 
     fitting_error_maximum = Quantity(
         type=np.dtype(np.float64),
@@ -1163,16 +1155,14 @@ class MolecularDynamics(MSection):
         shape=[],
         description='''
         Indicates if calculation includes trajectory data.
-        ''',
-        a_search=Search())
+        ''')
 
     with_thermodynamics = Quantity(
         type=bool,
         shape=[],
         description='''
         Indicates if calculation contains thermodynamic data.
-        ''',
-        a_search=Search())
+        ''')
 
 
 class SinglePoint(MSection):
@@ -1203,8 +1193,7 @@ class SinglePoint(MSection):
         unit='joule',
         description='''
         The difference in the energy between the last two scf steps.
-        ''',
-        a_search=Search())
+        ''')
 
     is_converged = Quantity(
         type=bool,
@@ -1263,8 +1252,7 @@ class Workflow(MSection):
         description='''
         The type of calculation workflow. Can be one of geometry_optimization, elastic,
         phonon, molecular_dynamics, single_point, debye_model.
-        ''',
-        a_search=Search())
+        ''')
 
     calculator = Quantity(
         type=str,

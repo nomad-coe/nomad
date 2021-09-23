@@ -172,6 +172,12 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
 
     return [
         pytest.param(
+            {'statistics': {
+                'metrics': ['n_entries', 'n_materials', 'n_uploads', 'n_calculations']
+            }},
+            3, 3, 200, 'test_user', id='statistics'
+        ),
+        pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id'}},
             3, 3, 200, 'test_user', id='default'),
         pytest.param(
@@ -246,7 +252,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {'terms': {'quantity': program_name}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
         pytest.param(
-            {'terms': {'quantity': program_name, 'metrics': ['uploads']}},
+            {'terms': {'quantity': program_name, 'metrics': ['n_uploads']}},
             n_code_names, n_code_names, 200, None, id='metrics'),
         pytest.param(
             {'terms': {'quantity': program_name, 'metrics': ['does not exist']}},
@@ -282,7 +288,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             1, 1, 200, 'test-user', id='date-histogram'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_time, 'metrics': ['uploads']}},
+            {'date_histogram': {'quantity': upload_time, 'metrics': ['n_uploads']}},
             1, 1, 200, 'test-user', id='date-histogram-metrics'
         ),
         pytest.param(
@@ -302,7 +308,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             1, 1, 200, None, id='histogram'
         ),
         pytest.param(
-            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['uploads']}},
+            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['n_uploads']}},
             1, 1, 200, None, id='histogram-metric'
         ),
         pytest.param(
@@ -430,8 +436,9 @@ def assert_aggregations(
     agg_type = next(iter(agg_response_obj.keys()))
     agg_response = agg_response_obj[agg_type]
 
-    for key in ['data', 'quantity']:
-        assert key in agg_response
+    assert 'data' in agg_response
+    if agg_type != 'statistics':
+        assert 'quantity' in agg_response
 
     assert_at_least(agg, agg_response)
 
@@ -451,6 +458,11 @@ def assert_aggregations(
         assert len(data) == 2
         assert isinstance(data[0], (float, int))
         assert isinstance(data[1], (float, int))
+    elif agg_type == 'statistics':
+        assert 'metrics' in agg_response
+        for metric in agg.get('metrics', []):
+            assert metric in data
+            assert isinstance(data[metric], (float, int))
     else:
         assert total == -1 or total >= n_data
         assert size == -1 or size == n_data

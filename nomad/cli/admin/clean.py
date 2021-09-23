@@ -36,7 +36,7 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
 
     from nomad import config as nomad_config, infrastructure, processing
     from nomad.search import delete_by_query
-    from nomad.search.v1 import quantity_values
+    from nomad.search import quantity_values
 
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -58,7 +58,7 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
 
             for upload in missing_uploads:
                 mongo_client[nomad_config.mongo.db_name]['calc'].remove(dict(upload_id=upload))
-                elasticsearch_dsl.Search(index=nomad_config.elastic.index_name).query('term', upload_id=upload).delete()
+                elasticsearch_dsl.Search(index=nomad_config.elastic.entries_index).query('term', upload_id=upload).delete()
         else:
             print('Found %s uploads that have calcs in mongo, but there is no upload entry.' % len(missing_uploads))
             print('List first 10:')

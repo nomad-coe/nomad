@@ -52,31 +52,59 @@ vasp_parser = (
 glucose_atom_labels = (
     'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
 
-calc_metadata_keys = [
-    'dft.code_name', 'dft.code_version', 'dft.basis_set', 'dft.xc_functional', 'dft.system', 'formula']
-
 parser_exceptions = {
-    'parsers/wien2k': ['dft.xc_functional'],
-    'parsers/abinit': ['formula', 'dft.system'],
-    'parsers/dl-poly': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/lib-atoms': ['dft.basis_set', 'dft.xc_functional'],
-    'parsers/phonopy': ['dft.basis_set', 'dft.xc_functional'],
-    'parsers/gamess': ['formula', 'dft.system', 'dft.xc_functional', 'dft.basis_set'],
-    'parsers/gulp': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
-    'parsers/elastic': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/elk': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
+    'parsers/wien2k': ['results.method.simulation.dft.xc_functional_names'],
+    'parsers/abinit': [
+        'results.material.chemical_formula_descriptive', 'results.material.structural_type'],
+    'parsers/dl-poly': [
+        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+    'parsers/lib-results.material.elements': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+    'parsers/phonopy': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+    'parsers/gamess': [
+        'results.material.chemical_formula_descriptive', 'results.material.structural_type',
+        'results.method.simulation.dft.xc_functional_names', 'results.method.simulation.dft.basis_set_type'],
+    'parsers/gulp': [
+        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type', 'results.method.simulation.dft.basis_set_type'],
+    'parsers/elastic': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parsers/elk': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
     # TODO why rename parsers?
-    'parser/fleur': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parser/molcas': ['formula', 'dft.xc_functional', 'dft.system', 'dft.basis_set'],
-    'parsers/dmol': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/band': ['dft.system'],
-    'parsers/qbox': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/cpmd': ['formula', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parser/onetep': ['formula', 'atoms', 'dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/siesta': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/lobster': ['dft.basis_set', 'dft.xc_functional', 'dft.system'],
-    'parsers/xps': ['formula', 'atoms'],
-    'parsers/aflow': ['dft.basis_set', 'dft.xc_functional']
+    'parser/fleur': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parser/molcas': [
+        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type', 'results.method.simulation.dft.basis_set_type'],
+    'parsers/dmol': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parsers/band': ['results.material.structural_type'],
+    'parsers/qbox': [
+        'results.material.chemical_formula_descriptive', 'results.material.elements',
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+    'parsers/cpmd': [
+        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+    'parser/onetep': [
+        'results.material.chemical_formula_descriptive', 'results.material.elements',
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parsers/siesta': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parsers/lobster': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
+    'parsers/xps': ['results.material.chemical_formula_descriptive', 'results.material.elements'],
+    'parsers/aflow': [
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names']
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
@@ -91,31 +119,34 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 def assert_normalized(entry_archive: datamodel.EntryArchive):
 
     metadata = entry_archive.metadata
+    results = entry_archive.results
     metadata.apply_domain_metadata(entry_archive)
     parser_name = metadata.parser_name
     exceptions = parser_exceptions.get(parser_name, [])
 
-    assert metadata.atoms is not None
-    if 'formula' not in exceptions:
-        assert metadata.formula is not None and metadata.formula != config.services.unavailable_value
-    if 'atoms' not in exceptions:
-        assert len(metadata.atoms) > 0
+    if 'results.material.chemical_formula_descriptive' not in exceptions:
+        assert results.material.chemical_formula_descriptive is not None
+        assert results.material.chemical_formula_descriptive != config.services.unavailable_value
+    if 'results.material.elements' not in exceptions:
+        assert len(results.material.elements) > 0
 
-    if metadata.domain == 'dft':
-        assert metadata.dft.code_name is not None
-        assert metadata.dft.code_version is not None
-        assert metadata.dft.basis_set is not None
-        assert metadata.dft.xc_functional is not None
-        assert metadata.dft.system is not None
+    assert results.method is not None
+    if results.method.method_name == 'DFT':
+        assert results.method.simulation.program_name is not None
+        assert results.method.simulation.program_version is not None
+        assert results.method.simulation.dft.basis_set_type is not None
+        assert results.method.simulation.dft.xc_functional_names is not None
+        assert results.material.structural_type is not None
 
-    for key in calc_metadata_keys:
-        if key in exceptions:
-            continue
+        for key in [
+            'results.method.simulation.program_name', 'results.method.simulation.program_version',
+            'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+            'results.material.structural_type', 'results.material.chemical_formula_descriptive'
+        ]:
+            if key in exceptions:
+                continue
 
-        if '.' in key and not key.startswith(metadata.domain):
-            continue
-
-        assert metadata[key] != config.services.unavailable_value, '%s must not be unavailable' % key
+            assert entry_archive[key] != config.services.unavailable_value, '%s must not be unavailable' % key
 
     assert entry_archive.metadata
     assert entry_archive.metadata.quantities

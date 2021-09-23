@@ -312,7 +312,7 @@ n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggreg
 program_name = 'results.method.simulation.program_name'
 
 
-def test_entries_all_statistics(client, data):
+def test_entries_all_metrics(client, data):
     aggregations = {
         quantity: {
             'terms': {
@@ -518,7 +518,7 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     yield
 
     data.delete()
-    from nomad.search.v1 import search
+    from nomad.search import search
     assert search(query=dict(upload_id='with_compr_published')).pagination.total == 0
 
 

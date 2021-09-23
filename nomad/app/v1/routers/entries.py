@@ -40,7 +40,7 @@ from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 from nomad.archive import ArchiveQueryError
 from nomad.search import AuthenticationRequiredError, SearchError, update_metadata as es_update_metadata
-from nomad.search.v1 import search, QueryValidationError
+from nomad.search import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency

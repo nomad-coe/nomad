@@ -19,7 +19,7 @@
 from flask_restplus import Resource, fields
 from elasticsearch_dsl import Q
 
-from nomad.search.v1 import search
+from nomad.search import search
 from nomad.app.v1.models import MetadataPagination
 
 from .api import api, arg_parser, rdf_respose, response_types

@@ -129,8 +129,7 @@ class Species(MSection):
 
 class OptimadeEntry(MSection):
     m_def = Section(
-        links=optimade_links('h.6.2'),
-        a_flask=dict(skip_none=True))
+        links=optimade_links('h.6.2'))
 
     elements = Quantity(
         type=MEnum(chemical_symbols), shape=['1..*'],

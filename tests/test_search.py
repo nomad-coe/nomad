@@ -16,15 +16,101 @@
 # limitations under the License.
 #
 
+from typing import List, Dict, Any, Union, Iterable
 import pytest
 import json
 
+from nomad import config, utils, infrastructure
 from nomad.app.v1.models import WithQuery
-from nomad.search import update_by_query
-from nomad.search.v1 import quantity_values, search
+from nomad.search import quantity_values, search, update_by_query, refresh
 from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, material_index
 
 from tests.utils import ExampleData
+
+
+def assert_search_upload(
+        entries: Union[int, Iterable] = -1,
+        additional_keys: List[str] = [],
+        upload_id: str = None,
+        **kwargs):
+
+    if isinstance(entries, list):
+        size = len(entries)
+    elif isinstance(entries, int):
+        size = entries
+    else:
+        assert False
+
+    keys = ['calc_id', 'upload_id', 'mainfile']
+    refresh()
+    body: Dict[str, Any] = {}
+    body.update(size=10)
+    if upload_id is not None:
+        body['query'] = dict(match=dict(upload_id=upload_id))
+
+    search_results = infrastructure.elastic_client.search(
+        index=config.elastic.entries_index, body=body)['hits']
+
+    if size != -1:
+        assert search_results['total'] == size
+
+    if search_results['total'] > 0:
+        for hit in search_results['hits']:
+            hit = utils.flat(hit['_source'])
+            for key, value in kwargs.items():
+                assert hit.get(key, None) == value, key
+
+            if 'pid' in hit:
+                assert int(hit.get('pid')) > 0
+
+            for key in keys:
+                assert key in hit, f'{key} is missing'
+
+            for key in additional_keys:
+                assert key in hit, f'{key} is missing'
+                assert hit[key] != config.services.unavailable_value
+
+            for coauthor in hit.get('coauthors', []):
+                assert coauthor.get('name', None) is not None
+
+
+def test_mapping_compatibility(elastic_infra):
+    from nomad.infrastructure import elastic_client
+
+    v0 = elastic_client.indices.get(config.elastic.entries_index)
+    v1 = elastic_client.indices.get(config.elastic.entries_index)
+
+    def get_mapping(index):
+        assert len(index) == 1
+        index = index[next(iter(index))]
+        assert len(index['mappings']) == 1
+        return index['mappings'][next(iter(index['mappings']))]
+
+    v0, v1 = get_mapping(v0), get_mapping(v1)
+
+    def compare(a, b, path='', results=None):
+        if results is None:
+            results = []
+        if path != '':
+            path += '.'
+        for key in set(list(a.keys()) + list(b.keys())):
+            if key in a and key in b:
+                next_a, next_b = a[key], b[key]
+                if isinstance(next_a, dict) and isinstance(next_b, dict):
+                    compare(next_a, next_b, f'{path}{key}', results=results)
+                    continue
+
+                if next_a == next_b:
+                    continue
+
+            results.append(f"{'v0' if key in a else 'v1'}:{path}{key}")
+
+        return results
+
+    for diff in compare(v0, v1):
+        # assert that there are only top-level differences and mapping types and fields are
+        # the same
+        assert len([c for c in diff if c == '.']) == 1, diff
 
 
 @pytest.fixture()

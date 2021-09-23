@@ -98,7 +98,7 @@ def search_quantities():
     import json
 
     # Add V0 searchable quantities
-    from nomad.search import v0 as search
+    from nomad.metainfo.elasticsearch_extension import entry_type
     # Due to this import, the parsing module will register all code_names based on parser
     # implementations.
     from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import
@@ -106,8 +106,8 @@ def search_quantities():
     def to_dict(search_quantity):
         result = {
             'name': search_quantity.qualified_name,
-            'description': search_quantity.description,
-            'many': search_quantity.many,
+            'description': search_quantity.definition.description,
+            'many': not search_quantity.definition.is_scalar,
         }
 
         if search_quantity.statistic_fixed_size is not None:
@@ -119,7 +119,7 @@ def search_quantities():
 
     export = {
         search_quantity.qualified_name: to_dict(search_quantity)
-        for search_quantity in search.search_quantities.values()
+        for search_quantity in entry_type.quantities.values()
     }
 
     # Add V1 searchable quantities: currently only quantities with "entry_type"

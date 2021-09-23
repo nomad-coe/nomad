@@ -14,7 +14,7 @@ from optimade.models import StructureResource, StructureResourceAttributes
 from optimade.models.utils import OptimadeField, SupportLevel
 from optimade.server.schemas import ENTRY_INFO_SCHEMAS
 
-from nomad.search.v1 import search
+from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
 from nomad import datamodel, files, utils, metainfo, config
 from nomad.normalizing.optimade import (

@@ -30,7 +30,7 @@ from nomad import utils, config, files, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
 from nomad.utils import strip
-from nomad.search.v1 import search
+from nomad.search import search
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (

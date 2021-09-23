@@ -28,7 +28,7 @@ from tests.utils import build_url, set_upload_entry_metadata
 from tests.test_files import (
     example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
     assert_upload_files)
-from tests.search import assert_search_upload
+from tests.test_search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure, datamodel
 from nomad.processing import Upload, Calc, ProcessStatus
@@ -36,7 +36,7 @@ from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 from nomad.archive import write_archive, read_archive
-from nomad.search.v1 import search
+from nomad.search import search
 
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -229,7 +229,7 @@ def assert_processing(
         expected_file_class = files.PublicUploadFiles if published else files.StagingUploadFiles
         assert_upload_files(upload_id, entries, expected_file_class)
     if check_search and all_entries_succesful:
-        assert_search_upload(entries, additional_keys=['atoms', 'dft.system'], upload_id=upload_id)
+        assert_search_upload(entries, additional_keys=['results.material.elements', 'results.method.simulation.program_name'], upload_id=upload_id)
     return response_data
 
 

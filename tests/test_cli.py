@@ -24,7 +24,7 @@ import datetime
 import time
 
 from nomad import processing as proc, files
-from nomad.search import v0 as search
+from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
@@ -105,7 +105,8 @@ class TestAdmin:
 
         assert published.upload_files.exists()
         assert calc.metadata['with_embargo']
-        assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
+
+        assert search(owner='public', query=dict(upload_id=upload_id)).pagination.total == 0
 
         result = invoke_cli(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
@@ -114,7 +115,7 @@ class TestAdmin:
         assert result.exit_code == 0
         published.block_until_complete()
         assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
-        assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
+        assert (search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0) == lifted
         if lifted:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
                 assert calc.calc_id in archive
@@ -140,17 +141,17 @@ def transform_for_index_test(calc):
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
 
-    @pytest.mark.parametrize('codes, count', [
+    @pytest.mark.parametrize('programs, count', [
         (['VASP'], 1),
         (['doesNotExist'], 0),
         (['VASP', 'doesNotExist'], 1)])
-    def test_uploads_code(self, published, codes, count):
-        codes_args = []
-        for code in codes:
-            codes_args.append('--code')
-            codes_args.append(code)
+    def test_uploads_program(self, published, programs, count):
+        programs_args = []
+        for program in programs:
+            programs_args.append('--program-name')
+            programs_args.append(program)
         result = invoke_cli(
-            cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False)
+            cli, ['admin', 'uploads'] + programs_args + ['ls'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '%d uploads selected' % count in result.stdout
@@ -200,18 +201,18 @@ class TestAdminUploads:
         calc.metadata['comment'] = 'specific'
         calc.save()
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 1
 
     def test_index_with_transform(self, published):
         upload_id = published.upload_id
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
         result = invoke_cli(
             cli, [
@@ -222,7 +223,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 1
 
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')

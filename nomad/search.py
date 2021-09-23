@@ -16,25 +16,395 @@
 # limitations under the License.
 #
 
-from typing import Generator, cast, Any, Dict, Union, List
-from elasticsearch.exceptions import RequestError
-from elasticsearch_dsl import Search, A, Q
+'''
+This module provides an interface to elasticsearch. Other parts of NOMAD must not
+interact with elasticsearch to maintain a clear coherent interface and allow for change.
+
+Currently NOMAD uses one entry index and two distinct materials indices. The entries
+index is based on two different mappings, once used by the old flask api (v0) and one
+used by the new fastapi api (v1). The mappings are used at the same time and the documents
+are merged. Write operations (index, publish, edit, lift embargo, delete) are common; defined
+here in the module ``__init__.py``. Read operations are different and
+should be used as per use-case directly from the ``v0`` and ``v1`` submodules.
+
+Most common functions also take an ``update_materials`` keyword arg with allows to
+update the v1 materials index according to the performed changes. TODO this is only
+partially implemented.
+'''
+
+from typing import Union, List, Iterable, Any, cast, Dict, Generator
+import json
+import elasticsearch
+from elasticsearch.exceptions import TransportError, RequestError
+from elasticsearch_dsl import Q, A, Search
 from elasticsearch_dsl.query import Query as EsQuery
 from pydantic.error_wrappers import ErrorWrapper
 
-from nomad.metainfo.elasticsearch_extension import (
-    material_type, entry_type, material_entry_type,
-    entry_index, Index, index_entries, DocumentType, SearchQuantity)
-from nomad.app.optimade import filterparser
+from nomad import config, infrastructure, utils
+from nomad import datamodel
+from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.app.v1 import models as api_models
 from nomad.app.v1.models import (
-    AggregationPagination, MetadataPagination, Pagination, PaginationResponse, Query, MetadataRequired, MetadataResponse, Aggregation,
+    AggregationPagination, MetadataPagination, Pagination, PaginationResponse,
+    QuantityAggregation, Query, MetadataRequired,
+    MetadataResponse, Aggregation, StatisticsAggregation, StatisticsAggregationResponse,
     Value, AggregationBase, TermsAggregation, BucketAggregation, HistogramAggregation,
     DateHistogramAggregation, MinMaxAggregation, Bucket,
     MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
     DateHistogramAggregationResponse, AggregationResponse)
+from nomad.metainfo.elasticsearch_extension import (
+    index_entries, entry_type, entry_index, DocumentType,
+    material_type, entry_type, material_entry_type,
+    entry_index, Index, index_entries, DocumentType, SearchQuantity)
 
-from .common import SearchError, _es_to_entry_dict, _owner_es_query
+
+def update_by_query(
+        update_script: str,
+        query: Any = None,
+        owner: str = None,
+        user_id: str = None,
+        index: str = None,
+        refresh: bool = False,
+        **kwargs):
+    '''
+    Uses the given painless script to update the entries by given query.
+
+    In most cases, the elasticsearch entry index should not be updated field by field;
+    you should run `index` instead and fully replace documents from mongodb and
+    archive files.
+
+    This method provides a faster direct method to update individual fields, e.g. to quickly
+    update fields for editing operations.
+    '''
+    if query is None:
+        query = {}
+    es_query = _api_to_es_query(query)
+    if owner is not None:
+        es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    body = {
+        'script': {
+            'source': update_script,
+            'lang': 'painless'
+        },
+        'query': es_query.to_dict()
+    }
+
+    body['script'].update(**kwargs)
+
+    try:
+        result = infrastructure.elastic_client.update_by_query(
+            body=body, index=config.elastic.entries_index)
+    except TransportError as e:
+        utils.get_logger(__name__).error(
+            'es update_by_query script error', exc_info=e,
+            es_info=json.dumps(e.info, indent=2))
+        raise SearchError(e)
+
+    if refresh:
+        _refresh()
+
+    return result
+
+
+def delete_by_query(
+        query: dict,
+        owner: str = None,
+        user_id: str = None,
+        update_materials: bool = False,
+        refresh: bool = False):
+    '''
+    Deletes all entries that match the given query.
+    '''
+    if query is None:
+        query = {}
+    es_query = _api_to_es_query(query)
+    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    body = {
+        'query': es_query.to_dict()
+    }
+
+    try:
+        result = infrastructure.elastic_client.delete_by_query(
+            body=body, index=config.elastic.entries_index)
+    except TransportError as e:
+        utils.get_logger(__name__).error(
+            'es delete_by_query error', exc_info=e,
+            es_info=json.dumps(e.info, indent=2))
+        raise SearchError(e)
+
+    if refresh:
+        _refresh()
+
+    if update_materials:
+        # TODO update the matrials index at least for v1
+        pass
+
+    return result
+
+
+def refresh():
+    '''
+    Refreshes the specified indices.
+    '''
+
+    try:
+        infrastructure.elastic_client.indices.refresh(index=config.elastic.entries_index)
+    except TransportError as e:
+        utils.get_logger(__name__).error(
+            'es delete_by_query error', exc_info=e,
+            es_info=json.dumps(e.info, indent=2))
+        raise SearchError(e)
+
+
+_refresh = refresh
+
+
+def index(
+        entries: Union[EntryArchive, List[EntryArchive]],
+        update_materials: bool = False,
+        refresh: bool = True):
+    '''
+    Index the given entries based on their archive. Either creates or updates the underlying
+    elasticsearch documents. If an underlying elasticsearch document already exists it
+    will be fully replaced.
+    '''
+    if not isinstance(entries, list):
+        entries = [entries]
+
+    index_entries(entries=entries, update_materials=update_materials)
+
+    if refresh:
+        _refresh()
+
+
+# TODO this depends on how we merge section metadata
+def publish(entries: Iterable[EntryMetadata], index: str = None) -> int:
+    '''
+    Publishes the given entries based on their entry metadata. Sets publishes to true,
+    and updates most user provided metadata with a partial update. Returns the number
+    of failed updates.
+    '''
+    return update_metadata(
+        entries, index=index, published=True, update_materials=True, refresh=True)
+
+
+def update_metadata(
+        entries: Iterable[EntryMetadata], index: str = None,
+        update_materials: bool = False, refresh: bool = False,
+        **kwargs) -> int:
+    '''
+    Update all given entries with their given metadata. Additionally apply kwargs.
+    Returns the number of failed updates. This is doing a partial update on the underlying
+    elasticsearch documents.
+    '''
+
+    def elastic_updates():
+        for entry_metadata in entries:
+            entry_archive = entry_metadata.m_parent
+            if entry_archive is None:
+                entry_archive = EntryArchive(metadata=entry_metadata)
+            entry_doc = entry_type.create_index_doc(entry_archive)
+
+            entry_doc.update(**kwargs)
+            # TODO this a exception that should be treated differently. None values are
+            # not included in elasticsearch docs. However, when a user removes his comment
+            # (the only case where a value is unset in an update?), the None value needs
+            # to be transported.
+            if 'comment' not in entry_doc:
+                entry_doc['comment'] = None
+
+            yield dict(
+                doc=entry_doc,
+                _id=entry_metadata.calc_id,
+                _type=entry_index.doc_type.name,
+                _index=entry_index.index_name,
+                _op_type='update')
+
+    updates = list(elastic_updates())
+    _, failed = elasticsearch.helpers.bulk(
+        infrastructure.elastic_client, updates, stats_only=True)
+
+    if update_materials:
+        # TODO update the matrials index at least for v1
+        pass
+
+    if refresh:
+        _refresh()
+
+    return failed
+
+
+def delete_upload(upload_id: str, refresh: bool = False, **kwargs):
+    '''
+    Deletes the given upload.
+    '''
+    delete_by_query(query=dict(upload_id=upload_id), **kwargs)
+
+    if refresh:
+        _refresh()
+
+
+def delete_entry(entry_id: str, index: str = None, refresh: bool = False, **kwargs):
+    '''
+    Deletes the given entry.
+    '''
+    delete_by_query(query=dict(calc_id=entry_id), **kwargs)
+
+    if refresh:
+        _refresh()
+
+
+class SearchError(Exception): pass
+
+
+class AuthenticationRequiredError(Exception): pass
+
+
+_entry_metadata_defaults = {
+    quantity.name: quantity.default
+    for quantity in datamodel.EntryMetadata.m_def.quantities  # pylint: disable=not-an-iterable
+    if quantity.default not in [None, [], False, 0]
+}
+
+
+def _es_to_entry_dict(hit, required: MetadataRequired = None) -> Dict[str, Any]:
+    '''
+    Elasticsearch entry metadata does not contain default values, if a metadata is not
+    set. This will add default values to entry metadata in dict form obtained from
+    elasticsearch.
+    '''
+    entry_dict = hit.to_dict()
+    for key, value in _entry_metadata_defaults.items():
+        if key not in entry_dict:
+            if required is not None:
+                if required.exclude and key in required.exclude:
+                    continue
+                if required.include and key not in required.include:
+                    continue
+
+            entry_dict[key] = value
+
+    return entry_dict
+
+
+def _api_to_es_query(query: api_models.Query) -> Q:
+    '''
+    Creates an ES query based on the API's query model. This needs to be a normalized
+    query expression with explicit objects for logical, set, and comparison operators.
+    Shorthand notations ala ``quantity:operator`` are not supported here; this
+    needs to be resolved via the respective pydantic validator. There is also no
+    validation of quantities and types.
+    '''
+    def quantity_to_es(name: str, value: api_models.Value) -> Q:
+        # TODO depends on keyword or not, value might need normalization, etc.
+        quantity = entry_type.quantities[name]
+        return Q('match', **{quantity.search_field: value})
+
+    def parameter_to_es(name: str, value: api_models.QueryParameterValue) -> Q:
+
+        if isinstance(value, api_models.All):
+            return Q('bool', must=[
+                quantity_to_es(name, item)
+                for item in value.op])
+
+        if isinstance(value, api_models.Any_):
+            return Q('bool', should=[
+                quantity_to_es(name, item)
+                for item in value.op])
+
+        if isinstance(value, api_models.None_):
+            return Q('bool', must_not=[
+                quantity_to_es(name, item)
+                for item in value.op])
+
+        if isinstance(value, api_models.Range):
+            quantity = entry_type.quantities[name]
+            return Q('range', **{quantity.search_field: value.dict(
+                exclude_unset=True,
+            )})
+
+        # list of values is treated as an "all" over the items
+        if isinstance(value, list):
+            return Q('bool', must=[
+                quantity_to_es(name, item)
+                for item in value])
+
+        return quantity_to_es(name, cast(api_models.Value, value))
+
+    def query_to_es(query: api_models.Query) -> Q:
+        if isinstance(query, api_models.LogicalOperator):
+            if isinstance(query, api_models.And):
+                return Q('bool', must=[query_to_es(operand) for operand in query.op])
+
+            if isinstance(query, api_models.Or):
+                return Q('bool', should=[query_to_es(operand) for operand in query.op])
+
+            if isinstance(query, api_models.Not):
+                return Q('bool', must_not=query_to_es(query.op))
+
+            raise NotImplementedError()
+
+        if not isinstance(query, dict):
+            raise NotImplementedError()
+
+        # dictionary is like an "and" of all items in the dict
+        if len(query) == 0:
+            return Q()
+
+        if len(query) == 1:
+            key = next(iter(query))
+            return parameter_to_es(key, query[key])
+
+        return Q('bool', must=[
+            parameter_to_es(name, value) for name, value in query.items()])
+
+    return query_to_es(query)
+
+
+def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = entry_type):
+    def term_query(**kwargs):
+        prefix = '' if doc_type == entry_type else 'entries.'
+        return Q('term', **{
+            (prefix + field): value for field, value in kwargs.items()})
+
+    if owner == 'all':
+        q = term_query(published=True)
+        if user_id is not None:
+            q = q | term_query(owners__user_id=user_id)
+    elif owner == 'public':
+        q = term_query(published=True) & term_query(with_embargo=False)
+    elif owner == 'visible':
+        q = term_query(published=True) & term_query(with_embargo=False)
+        if user_id is not None:
+            q = q | term_query(owners__user_id=user_id)
+    elif owner == 'shared':
+        if user_id is None:
+            raise AuthenticationRequiredError('Authentication required for owner value shared.')
+
+        q = term_query(owners__user_id=user_id)
+    elif owner == 'user':
+        if user_id is None:
+            raise AuthenticationRequiredError('Authentication required for owner value user.')
+
+        q = term_query(uploader__user_id=user_id)
+    elif owner == 'staging':
+        if user_id is None:
+            raise AuthenticationRequiredError('Authentication required for owner value user')
+        q = term_query(published=False) & term_query(owners__user_id=user_id)
+    elif owner == 'admin':
+        if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
+            raise AuthenticationRequiredError('This can only be used by the admin user.')
+        q = None
+    elif owner is None:
+        q = None
+    else:
+        raise KeyError('Unsupported owner value')
+
+    if q is not None:
+        return q
+    return Q()
 
 
 class QueryValidationError(Exception):
@@ -106,6 +476,7 @@ def validate_api_query(
     def match(name: str, value: Value) -> EsQuery:
         if name == 'optimade_filter':
             value = str(value)
+            from nomad.app.optimade import filterparser
             try:
                 return filterparser.parse_filter(
                     value, nomad_properties='dft', without_prefix=True)
@@ -237,15 +608,36 @@ def _api_to_es_aggregation(
     '''
 
     agg_name = f'agg:{name}'
-    quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
     es_aggs = es_search.aggs
+
+    if isinstance(agg, StatisticsAggregation):
+        for metric_name in agg.metrics:
+            metrics = doc_type.metrics
+            if metric_name not in metrics and doc_type == material_type:
+                metrics = material_entry_type.metrics
+            if metric_name not in metrics:
+                raise QueryValidationError(
+                    'metric must be the qualified name of a suitable search quantity',
+                    loc=['statistic', 'metrics'])
+            metric_aggregation, metric_quantity = metrics[metric_name]
+            es_aggs.metric('statistics:%s' % metric_name, A(
+                metric_aggregation,
+                field=metric_quantity.qualified_field))
+
+        return
+
+    agg = cast(QuantityAggregation, agg)
+
     longest_nested_key = None
+    quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
+
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
             longest_nested_key = nested_key
 
     es_agg = None
+
     if isinstance(agg, TermsAggregation):
         if not quantity.aggregateable:
             raise QueryValidationError(
@@ -384,16 +776,25 @@ def _es_to_api_aggregation(
     Creates a AggregationResponse from elasticsearch response on a request executed with
     the given aggregation.
     '''
-    quantity = validate_quantity(agg.quantity, doc_type=doc_type)
-
     es_aggs = es_response.aggs
+    aggregation_dict = agg.dict(by_alias=True)
+
+    if isinstance(agg, StatisticsAggregation):
+        metrics = {}
+        for metric in agg.metrics:  # type: ignore
+            metrics[metric] = es_aggs[f'statistics:{metric}'].value
+
+        return AggregationResponse(
+            statistics=StatisticsAggregationResponse(data=metrics, **aggregation_dict))
+
+    agg = cast(QuantityAggregation, agg)
+    quantity = validate_quantity(agg.quantity, doc_type=doc_type)
     longest_nested_key = None
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_response.aggs[f'nested_agg:{name}']
             longest_nested_key = nested_key
 
-    aggregation_dict = agg.dict(by_alias=True)
     has_no_pagination = getattr(agg, 'pagination', None) is None
 
     if isinstance(agg, BucketAggregation):
@@ -470,18 +871,17 @@ def _es_to_api_aggregation(
         else:
             raise NotImplementedError()
 
-    elif isinstance(agg, MinMaxAggregation):
+    if isinstance(agg, MinMaxAggregation):
         min_value = es_aggs['agg:%s:min' % name]['value']
         max_value = es_aggs['agg:%s:max' % name]['value']
 
         return AggregationResponse(
             min_max=MinMaxAggregationResponse(data=[min_value, max_value], **aggregation_dict))
 
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
-def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation]:
+def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggregation, HistogramAggregation, MinMaxAggregation, StatisticsAggregation]:
     if agg.terms is not None:
         return agg.terms
 
@@ -493,6 +893,9 @@ def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggr
 
     if agg.min_max is not None:
         return agg.min_max
+
+    if agg.statistics is not None:
+        return agg.statistics
 
     raise NotImplementedError()
 

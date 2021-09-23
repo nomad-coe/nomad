@@ -26,7 +26,7 @@ import datetime
 from ase.data import chemical_symbols
 from ase.spacegroup import Spacegroup
 
-from nomad import datamodel, utils, files
+from nomad import datamodel, utils
 from nomad.parsing.parsers import parser_dict
 
 number_of = 20
@@ -132,59 +132,3 @@ def test_vasp_metainfo():
     from vaspparser.metainfo import m_env  # pylint: disable=unused-import
     run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities
-
-
-if __name__ == '__main__':
-    import sys
-    from elasticsearch.helpers import bulk
-
-    from nomad import infrastructure
-
-    print('Generate test data and add it to search and files')
-    print('  first arg is number of calcs (code runs)')
-    print('  second arg is number uploads to spread calcs over')
-
-    infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-
-    n_calcs, n_uploads = int(sys.argv[1]), int(sys.argv[2])
-    pid = 1
-
-    for calcs_per_upload in utils.chunks(range(0, n_calcs), int(n_calcs / n_uploads)):
-        upload_id = utils.create_uuid()
-        with_embargo = random.choice([True, False])
-        upload_files = files.StagingUploadFiles(upload_id=upload_id, create=True)
-
-        search_entries = []
-        calcs = []
-        for _ in calcs_per_upload:
-            calc = generate_calc(pid, upload_id=upload_id, with_embargo=with_embargo)
-            assert calc.upload_id == upload_id
-            calc.published = True
-
-            for filepath in calc.files:
-                if len(filepath) > 0:
-                    with upload_files.raw_file(filepath, 'wt') as f:
-                        f.write('this is a generated test file')
-
-            upload_files.write_archive(calc.calc_id, {
-                'run': [{'test': 'this is a generated test files'}],
-                'processing_logs': [{'event': 'this is a generated test file'}]
-            })
-
-            search_entry = calc.a_elastic.create_index_entry()
-            search_entry.n_total_energies = random.choice(low_numbers_for_total_energies)
-            search_entry.n_geometries = low_numbers_for_geometries
-            for _ in range(0, random.choice(search_entry.n_geometries)):
-                search_entry.geometries.append(utils.create_uuid())
-            search_entries.append(search_entry)
-
-            pid += 1
-            calcs.append(calc)
-
-        bulk(
-            infrastructure.elastic_client,
-            [entry.to_dict(include_meta=True) for entry in search_entries])
-
-        upload_files.pack(calcs, with_embargo=with_embargo)
-        upload_files.delete()

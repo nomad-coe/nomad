@@ -23,7 +23,6 @@ from cachetools import cached
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import (
     Quantity, ElasticTransformer as OPTElasticTransformer, _cmp_operators)
-from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
 
 from .common import provider_specific_fields
 
@@ -53,7 +52,6 @@ def _get_transformer(nomad_properties, without_prefix):
         'last_modified', es_field='upload_time', elastic_mapping_type='date')
 
     quantities['elements'].length_quantity = quantities['nelements']
-    quantities['elements'].has_only_quantity = Quantity(name='only_atoms', elastic_mapping_type='keyword')
     quantities['elements'].nested_quantity = quantities['elements_ratios']
     quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
@@ -128,38 +126,19 @@ class ElasticTransformer(OPTElasticTransformer):
     def _has_query_op(self, quantities, op, predicate_zip_list):
         # We override this to add 'HAS ONLY' support.
         if op == 'HAS ONLY':
-            # HAS ONLY comes with heavy limitations, because there is no such thing
-            # in elastic search. Only supported for elements, where we can construct
-            # an anonymous 'formula' based on elements sorted by order number and
-            # can do a = comparision to check if all elements are contained
+            # HAS ONLY can be achieved by rewriting to a combination of HAS ALL and
+            # length = n_values. Therefore, it is only support for quantities with a
+            # length quantity.
             if len(quantities) > 1:
                 raise Exception('HAS ONLY is not supported with zip')
             quantity = quantities[0]
 
-            if quantity.has_only_quantity is None:
+            if quantity.length_quantity is None:
                 raise Exception('HAS ONLY is not supported by %s' % quantity.name)
 
-            def values():
-                for predicates in predicate_zip_list:
-                    if len(predicates) != 1:
-                        raise Exception('Tuples not supported in HAS ONLY')
-                    op, value = predicates[0]
-                    if op != '=':
-                        raise Exception('Predicated not supported in HAS ONLY')
-                    if not isinstance(value, str):
-                        raise Exception('Only strings supported in HAS ONLY')
-                    yield value
-
-            try:
-                order_numbers = list([ATOMIC_NUMBERS[element] for element in values()])
-                order_numbers.sort()
-                value = ''.join(
-                    [CHEMICAL_SYMBOLS[number - 1] for number in order_numbers]
-                )
-            except KeyError:
-                raise NotImplementedError('HAS ONLY is only supported for chemical symbols')
-
-            return Q('term', **{quantity.has_only_quantity.name: value})
+            has_all = super()._has_query_op(quantities, 'HAS ALL', predicate_zip_list)
+            has_length = Q('term', **{quantity.length_quantity.es_field: len(predicate_zip_list)})
+            return has_all & has_length
 
         else:
             return super()._has_query_op(quantities, op, predicate_zip_list)

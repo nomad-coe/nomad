@@ -245,11 +245,6 @@ class DocumentType():
             del(result['metadata'])
             result.update(**metadata)
 
-            # TODO merge with the v0 index data, create by the other search extension
-            if self == entry_type:
-                v0_entry = root.metadata.a_elastic.create_index_entry()
-                result.update(**v0_entry.to_dict(include_meta=False))
-
         return result
 
     def create_mapping(

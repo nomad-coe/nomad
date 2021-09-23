@@ -21,7 +21,6 @@ Experimental material science specific metadata
 '''
 from nomad import config
 from nomad.metainfo import Quantity, MSection, Section, Datetime
-from nomad.metainfo.search_extension import Search
 
 
 def _unavailable(value):
@@ -35,29 +34,29 @@ class EMSMetadata(MSection):
     m_def = Section(a_domain='ems')
 
     # sample quantities
-    chemical = Quantity(type=str, a_search=Search())
-    sample_constituents = Quantity(type=str, a_search=Search())
-    sample_microstructure = Quantity(type=str, a_search=Search())
+    chemical = Quantity(type=str)
+    sample_constituents = Quantity(type=str)
+    sample_microstructure = Quantity(type=str)
 
     # general metadata
-    experiment_summary = Quantity(type=str, a_search=Search())
-    origin_time = Quantity(type=Datetime, a_search=Search())
-    experiment_location = Quantity(type=str, a_search=Search())
+    experiment_summary = Quantity(type=str)
+    origin_time = Quantity(type=Datetime)
+    experiment_location = Quantity(type=str)
 
     # method
-    method = Quantity(type=str, a_search=Search())
-    data_type = Quantity(type=str, a_search=Search())
-    probing_method = Quantity(type=str, a_search=Search())
+    method = Quantity(type=str)
+    data_type = Quantity(type=str)
+    probing_method = Quantity(type=str)
 
     # origin metadata
-    repository_name = Quantity(type=str, a_search=Search())
-    repository_url = Quantity(type=str, a_search=Search())
-    entry_repository_url = Quantity(type=str, a_search=Search())
-    preview_url = Quantity(type=str, a_search=Search())
+    repository_name = Quantity(type=str)
+    repository_url = Quantity(type=str)
+    entry_repository_url = Quantity(type=str)
+    preview_url = Quantity(type=str)
 
     # TODO move to more a general metadata section
-    quantities = Quantity(type=str, shape=['0..*'], default=[], a_search=Search())
-    group_hash = Quantity(type=str, a_search=Search())
+    quantities = Quantity(type=str, shape=['0..*'], default=[])
+    group_hash = Quantity(type=str)
 
     def apply_domain_metadata(self, entry_archive):
         from nomad import utils

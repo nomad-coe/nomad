@@ -25,7 +25,7 @@ from datetime import datetime
 import enum
 
 from nomad import utils, datamodel, processing
-from nomad.metainfo.elastic_extension import ElasticDocument
+from nomad.metainfo.elasticsearch_extension import entry_type
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
@@ -258,7 +258,7 @@ async def post_datasets(
                 }
                 ctx._source.datasets.add(params.dataset);
             ''',
-            params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
+            params=dict(dataset=entry_type.create_index_doc(dataset)),
             query=es_query, user_id=user.user_id, refresh=True)
 
     return {

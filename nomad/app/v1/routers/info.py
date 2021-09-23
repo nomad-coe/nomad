@@ -28,8 +28,10 @@ from pydantic.main import BaseModel
 
 from nomad import config, normalizing, datamodel, gitinfo
 from nomad.utils import strip
-from nomad.search import v0 as search
+from nomad.search import search
 from nomad.parsing import parsers, MatchingParser
+from nomad.app.v1.models import Aggregation, StatisticsAggregation
+from nomad.metainfo.elasticsearch_extension import entry_type
 
 
 router = APIRouter()
@@ -93,8 +95,9 @@ def statistics():
     global _statistics
     if _statistics is None or datetime.now().timestamp() - _statistics.get('timestamp', 0) > 3600 * 24:
         _statistics = dict(timestamp=datetime.now().timestamp())
-        _statistics.update(
-            **search.SearchRequest().global_statistics().execute()['global_statistics'])
+        search_response = search(aggregations=dict(statistics=Aggregation(statistics=StatisticsAggregation(
+            metrics=['n_entries', 'n_materials', 'n_uploads', 'n_quantities', 'n_calculations']))))
+        _statistics.update(**search_response.aggregations['statistics'].statistics.data)  # pylint: disable=no-member
 
     return _statistics
 
@@ -140,10 +143,10 @@ async def get_info():
         'search_quantities': {
             s.qualified_name: {
                 'name': s.qualified_name,
-                'description': s.description,
-                'many': s.many
+                'description': s.definition.description,
+                'many': not s.definition.is_scalar
             }
-            for s in search.search_quantities.values()
+            for s in entry_type.quantities.values()
             if 'optimade' not in s.qualified_name
         },
         'version': config.meta.version,

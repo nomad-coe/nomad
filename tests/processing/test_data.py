@@ -31,12 +31,11 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.processing.data import generate_entry_id
-from nomad.search.v1 import search
+from nomad.search import search
 
-from tests.search import assert_search_upload
+from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
 from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
-from tests.app.v1.conftest import client  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -579,7 +578,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
-    additional_keys = ['ems.method', 'ems.origin_time']
+    additional_keys = ['results.method.method_name', 'results.material.elements']
     assert upload.total_calcs == 2
     assert len(upload.calcs) == 2
 
@@ -591,7 +590,7 @@ def test_ems_data(proc_infra, test_user):
 def test_qcms_data(proc_infra, test_user):
     upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
 
-    additional_keys = ['qcms.chemical', 'formula']
+    additional_keys = ['results.method.simulation.program_name', 'results.material.elements']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 

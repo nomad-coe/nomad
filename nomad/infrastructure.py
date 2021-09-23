@@ -26,7 +26,6 @@ exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 import os.path
 import os
 import shutil
-from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect, disconnect
 from mongoengine.connection import ConnectionFailure
@@ -84,9 +83,6 @@ def setup_mongo(client=False):
 
 def setup_elastic(create_indices=True):
     ''' Creates connection to elastic search. '''
-    from nomad.search.v0 import entry_document, material_document
-    from elasticsearch_dsl import Index
-
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
@@ -98,37 +94,6 @@ def setup_elastic(create_indices=True):
     # to. If alias is not set, create it. Update the mapping in the index
     # pointed to by the alias.
     if create_indices:
-        try:
-            if elastic_client.indices.exists_alias(config.elastic.materials_index_name):
-                index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
-                material_document.init(index_name)
-            else:
-                index_name = config.elastic.materials_index_name + "_a"
-                material_document.init(index_name)
-                index = Index(index_name)
-                index.put_alias(name=config.elastic.materials_index_name)
-        except RequestError as e:
-            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-                # happens if two services try this at the same time
-                pass
-            else:
-                raise e
-
-        # Initialize calculation index mapping
-        try:
-            entry_document.init(index=config.elastic.index_name)
-        except RequestError as e:
-            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-                # happens if two services try this at the same time
-                pass
-            else:
-                raise e
-
-        entry_document._index._name = config.elastic.index_name
-        material_document._index._name = config.elastic.materials_index_name
-        logger.info('initialized elastic index for calculations', index_name=config.elastic.index_name)
-        logger.info('initialized elastic index for materials', index_name=config.elastic.materials_index_name)
-
         from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
         create_v1_indices()
         logger.info('initialized v1 elastic indices')
@@ -428,19 +393,13 @@ def reset(remove: bool):
 
     try:
         from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
-        from nomad.search.v0 import entry_document, material_document
 
         if not elastic_client:
             setup_elastic()
 
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        material_index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
-        elastic_client.indices.delete(index=material_index_name)
         delete_indices()
 
         if not remove:
-            entry_document.init(index=config.elastic.index_name)
-            material_document.init(index=material_index_name)
             create_indices()
 
         logger.info('elastic index resetted')

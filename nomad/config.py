@@ -132,23 +132,10 @@ fs = NomadConfig(
     working_directory=os.getcwd()
 )
 
-
-# TODO Adds an alias to point v0 and v1 entries index to the same name
-class ElasticConfig(NomadConfig):
-    def __getattr__(self, name):
-        if name == 'entries_index':
-            return self.index_name
-
-        return super().__getattr__(name)
-
-
-elastic = ElasticConfig(
+elastic = NomadConfig(
     host='localhost',
     port=9200,
-    # the old v0 indices (entry index "index_name" is also used by v1)
-    index_name='nomad_fairdi_calcs',
-    materials_index_name='nomad_fairdi_materials',
-    # the new v1 indices
+    entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )
 

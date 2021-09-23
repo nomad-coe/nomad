@@ -17,7 +17,7 @@
 #
 from flask_restplus import Resource, abort
 
-from nomad.search.v1 import search
+from nomad.search import search
 
 from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping

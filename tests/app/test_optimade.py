@@ -21,7 +21,7 @@ import pytest
 
 from nomad.processing import Upload
 from nomad import utils
-from nomad.search import v0 as search
+from nomad.search import search
 from nomad.app.optimade import parse_filter
 from nomad.app.optimade.common import provider_specific_fields
 
@@ -30,12 +30,12 @@ from tests.utils import ExampleData
 
 
 def test_get_entry(published: Upload):
-    calc_id = list(published.calcs)[0].calc_id
-    with published.upload_files.read_archive(calc_id) as archive:
-        data = archive[calc_id]
+    entry_id = list(published.calcs)[0].calc_id
+    with published.upload_files.read_archive(entry_id) as archive:
+        data = archive[entry_id]
         assert data['metadata']['optimade'] is not None
 
-    search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
+    search_result = search(owner='all', query=dict(entry_id=entry_id)).data[0]
     assert 'optimade.chemical_formula_hill' in utils.flat(search_result)
 
 
@@ -86,6 +86,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('elements HAS ANY "H", "C"', 4),
     ('elements HAS ANY "C"', 1),
     ('elements HAS ONLY "C"', 0),
+    ('elements HAS ALL "H", "O" AND nelements = 2', 3),
     ('elements HAS ONLY "H", "O"', 3),
     ('nelements >= 2 AND elements HAS ONLY "H", "O"', 3),
     ('nelements >= 2 AND elements HAS ALL "H", "O", "C"', 1),
@@ -135,8 +136,8 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
         query = parse_filter(query)
-        result = search.SearchRequest(query=query).execute_paginated()
-        assert result['pagination']['total'] == results
+        search_result = search(query=query)
+        assert search_result.pagination.total == results
     else:
         with pytest.raises(Exception):
             query = parse_filter(query)

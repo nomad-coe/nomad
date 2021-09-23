@@ -627,7 +627,6 @@ class ChannelInfo(MSection):
     Section containing information on the electronic band structure.
     '''
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains information for each present spin channel.
         """)

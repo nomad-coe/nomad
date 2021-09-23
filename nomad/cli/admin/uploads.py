@@ -125,7 +125,7 @@ def _run_processing(
 @click.option('--unpublished', help='Select only uploads in staging', is_flag=True)
 @click.option('--published', help='Select only uploads that are publised', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
-@click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
+@click.option('--program-name', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
@@ -144,7 +144,7 @@ def uploads(ctx, **kwargs):
 def _query_uploads(
         uploads,
         user: str, unpublished: bool, published: bool, processing: bool, outdated: bool,
-        code: typing.List[str], query_mongo: bool,
+        program_name: typing.List[str], query_mongo: bool,
         processing_failure_uploads: bool, processing_failure_calcs: bool,
         processing_failure: bool, processing_incomplete_uploads: bool,
         processing_incomplete_calcs: bool, processing_incomplete: bool,
@@ -176,11 +176,11 @@ def _query_uploads(
             {'metadata.nomad_version': {'$ne': config.meta.version}})
         query |= mongoengine.Q(upload_id__in=uploads)
 
-    if code is not None and len(code) > 0:
-        code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
+    if program_name is not None and len(program_name) > 0:
+        code_queries = [es.Q('match', **{'results.method.simulation.program_name': name}) for name in program_name]
         code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
 
-        code_search = es.Search(index=config.elastic.index_name)
+        code_search = es.Search(index=config.elastic.entries_index)
         code_search = code_search.query(code_query)
         code_search.aggs.bucket('uploads', es.A(
             'terms', field='upload_id', size=10000, min_doc_count=1))
@@ -204,7 +204,7 @@ def _query_uploads(
         query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if unindexed:
-        from nomad.search.v1 import quantity_values
+        from nomad.search import quantity_values
         uploads_in_es = set(quantity_values('upload_id', page_size=1000, owner='all'))
 
         uploads_in_mongo = mongo_client[config.mongo.db_name]['calc'].distinct('upload_id')
@@ -222,7 +222,7 @@ def _query_uploads(
         if query_mongo:
             uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
         else:
-            from nomad.search.v1 import quantity_values
+            from nomad.search import quantity_values
             uploads = list(quantity_values(
                 'upload_id', query=es.Q(json_query), page_size=1000, owner='all'))
     except Exception:

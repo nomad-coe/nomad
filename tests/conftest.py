@@ -49,15 +49,10 @@ from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 test_log_level = logging.CRITICAL
 
-# the old v0 indices
-elastic_test_calc_index = 'nomad_fairdi_calcs_test'
-elastic_test_material_index = 'nomad_fairdi_materials_test'
-# the new v1 indices
-elastic_test_entries_index = 'nomad_fairdi_calcs_test'
+elastic_test_entries_index = 'nomad_entries_v1_test'
 elastic_test_materials_index = 'nomad_materials_v1_test'
 
-indices = [
-    elastic_test_calc_index, elastic_test_material_index, elastic_test_materials_index]
+indices = [elastic_test_entries_index, elastic_test_materials_index]
 
 warnings.simplefilter("ignore")
 
@@ -212,10 +207,7 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    # the old v0 indices
-    monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
-    monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
-    # the new v1 indices
+    monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
     monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
 
     # attempt to remove and recreate all indices

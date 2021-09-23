@@ -767,6 +767,10 @@ class AggregatedEntities(BaseModel):
 
 
 class AggregationBase(BaseModel):
+    pass
+
+
+class QuantityAggregation(AggregationBase):
     quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity for the aggregation. Aggregations
@@ -774,7 +778,7 @@ class AggregationBase(BaseModel):
         an aggregation buckets entries that have the same value for this quantity.'''))
 
 
-class BucketAggregation(AggregationBase):
+class BucketAggregation(QuantityAggregation):
     metrics: Optional[List[str]] = Field(
         [], description=strip('''
         By default the returned aggregations will provide the number of entries for each
@@ -822,8 +826,17 @@ class DateHistogramAggregation(BucketAggregation):
     interval: str = Field('1M')  # type: ignore
 
 
-class MinMaxAggregation(AggregationBase):
+class MinMaxAggregation(QuantityAggregation):
     pass
+
+
+class StatisticsAggregation(AggregationBase):
+    metrics: Optional[List[str]] = Field(
+        [], description=strip('''
+        A list of search quantities to act as metrics on all data. Depending on
+        the metric the number will represent either a sum (`calculations` for the number
+        of individual calculation in each code run) or an amount (cardinality) of
+        different values (i.e. `materials` for the amount of different material hashes).'''))
 
 
 class Aggregation(BaseModel):
@@ -930,6 +943,25 @@ class Aggregation(BaseModel):
             ```
 
             The used quantity must be a float or int typed quantity.
+        '''))
+
+    statistics: Optional[StatisticsAggregation] = Body(
+        None,
+        description=strip('''
+            A `statistics` aggregation allows to get metrics (sums or cardinalities) from all data
+            that matches the search.
+
+            ```json
+            {
+                "aggregations": {
+                    "statistics": {
+                        "global": {
+                            "metrics": ["results.properties.n_calculations", "results.material.material_id"]
+                        }
+                    }
+                }
+            }
+            ```
         '''))
 
 
@@ -1088,11 +1120,16 @@ class MinMaxAggregationResponse(MinMaxAggregation):
     data: List[Union[float, None]]
 
 
+class StatisticsAggregationResponse(StatisticsAggregation):
+    data: Optional[Dict[str, int]]
+
+
 class AggregationResponse(Aggregation):
     terms: Optional[TermsAggregationResponse]
     histogram: Optional[HistogramAggregationResponse]
     date_histogram: Optional[DateHistogramAggregationResponse]
     min_max: Optional[MinMaxAggregationResponse]
+    statistics: Optional[StatisticsAggregationResponse]
 
 
 class CodeResponse(BaseModel):
