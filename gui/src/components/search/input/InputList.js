@@ -90,6 +90,7 @@ const InputList = React.memo(({
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const disabled = locked || (!(agg?.data && agg.data.length > 0))
+  console.log(agg)
 
   // Determine the description and units
   const def = searchQuantities[quantity]

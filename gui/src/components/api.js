@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useContext } from 'react'
 import {
   atom,
   useSetRecoilState,
@@ -400,27 +400,32 @@ function parse(result) {
   }
 }
 
-const ApiContext = React.createContext()
-
-export const ApiProvider = React.memo(function ApiProvider({children}) {
+/**
+ * React context that provides access to the API, user information and server
+ * information throughout the app.
+ */
+export const apiContext = React.createContext()
+export const APIProvider = React.memo(({
+  children
+}) => {
   const [keycloak] = useKeycloak()
   const setLoading = useSetLoading()
-  const [user, setUser] = useState(null)
-  const [info, setInfo] = useState(null)
+  const api = useState(new Api(keycloak, setLoading))[0]
+  const [user, setUser] = useState()
+  const [info, setInfo] = useState()
 
-  const api = useMemo(() => new Api(keycloak, setLoading), [keycloak, setLoading])
-
+  // Update user whenever keycloak instance changes
   useEffect(() => {
     if (keycloak.authenticated) {
       keycloak.loadUserInfo().success(setUser)
     }
   }, [keycloak, setUser])
 
+  // Get info only once
   useEffect(() => {
-    if (api) {
-      api.get('/info').then(setInfo).catch(() => {})
-    }
-  }, [api])
+    api.get('/info').then(setInfo).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const value = useMemo(() => ({
     api: api,
@@ -428,23 +433,19 @@ export const ApiProvider = React.memo(function ApiProvider({children}) {
     info: info
   }), [api, user, info])
 
-  return <ApiContext.Provider value={value}>
+  return <apiContext.Provider value={value}>
     {children}
-  </ApiContext.Provider>
+  </apiContext.Provider>
 })
-ApiProvider.propTypes = {
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node
-  ])
+APIProvider.propTypes = {
+  children: PropTypes.node
 }
 
 /**
- * Hook that returns a shared instance of the API class and information about
- * the currently logged in user.
+ * Hook for using the API context.
 */
 export function useApi() {
-  return useContext(ApiContext)
+  return useContext(apiContext)
 }
 
 /**

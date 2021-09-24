@@ -30,7 +30,7 @@ import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
-import { ApiProvider } from './api'
+import { APIProvider } from './api'
 
 export const matomo = matomoEnabled ? PiwikReactRouter({
   url: matomoUrl,
@@ -50,23 +50,23 @@ const keycloak = Keycloak({
 export default function App() {
   return (
     <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false }} LoadingComponent={<div />}>
-      <MuiPickersUtilsProvider utils={DateFnsUtils}>
-        <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
-          <QueryParamProvider ReactRouterRoute={Route}>
-            <MuiThemeProvider theme={nomadTheme}>
-              <ErrorSnacks>
-                <ErrorBoundary>
-                  <RecoilRoot>
-                    <ApiProvider>
+      <RecoilRoot>
+        <APIProvider>
+          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
+              <QueryParamProvider ReactRouterRoute={Route}>
+                <MuiThemeProvider theme={nomadTheme}>
+                  <ErrorSnacks>
+                    <ErrorBoundary>
                       <Navigation />
-                    </ApiProvider>
-                  </RecoilRoot>
-                </ErrorBoundary>
-              </ErrorSnacks>
-            </MuiThemeProvider>
-          </QueryParamProvider>
-        </Router>
-      </MuiPickersUtilsProvider>
+                    </ErrorBoundary>
+                  </ErrorSnacks>
+                </MuiThemeProvider>
+              </QueryParamProvider>
+            </Router>
+          </MuiPickersUtilsProvider>
+        </APIProvider>
+      </RecoilRoot>
     </KeycloakProvider>
   )
 }
