@@ -26,7 +26,6 @@ def test_info(client, elastic):
     assert 'parsers' in data
     assert 'statistics' in data
     assert len(data['parsers']) >= len(data['codes'])
-    assert len(data['domains']) >= 1
     assert rv.status_code == 200
 
     rv = client.get('info')

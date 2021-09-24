@@ -478,8 +478,7 @@ def validate_api_query(
             value = str(value)
             from nomad.app.optimade import filterparser
             try:
-                return filterparser.parse_filter(
-                    value, nomad_properties='dft', without_prefix=True)
+                return filterparser.parse_filter(value, without_prefix=True)
 
             except filterparser.FilterException as e:
                 raise QueryValidationError(

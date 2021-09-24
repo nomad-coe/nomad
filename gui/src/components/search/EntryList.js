@@ -30,7 +30,6 @@ import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
-import { domainData } from '../domainData'
 import { authorList, nameList } from '../../utils'
 import EntryDetails from '../entry/EntryDetails'
 import { EntryButton } from '../nav/Routes'
@@ -92,12 +91,11 @@ export class EntryListUnstyled extends React.Component {
     per_page: PropTypes.number.isRequired,
     editable: PropTypes.bool,
     editUserMetadataDialogProps: PropTypes.object,
-    columns: PropTypes.object,
+    columns: PropTypes.object.isRequired,
     title: PropTypes.string,
     actions: PropTypes.element,
     showEntryActions: PropTypes.func,
-    selectedColumns: PropTypes.arrayOf(PropTypes.string),
-    domain: PropTypes.object,
+    selectedColumns: PropTypes.arrayOf(PropTypes.string).isRequired,
     user: PropTypes.object,
     showAccessColumn: PropTypes.bool,
     entryPagePathPrefix: PropTypes.string,
@@ -263,7 +261,6 @@ export class EntryListUnstyled extends React.Component {
 
   renderEntryDetails(row) {
     const { classes } = this.props
-    const domain = (row.domain && domainData[row.domain]) || domainData.dft
 
     return (<div className={classes.entryDetails} style={{width: this.props.entryDetailsWidth}}>
       <div className={classes.entryDetailsContents} >
@@ -301,11 +298,11 @@ export class EntryListUnstyled extends React.Component {
         <div className={classes.entryDetailsRow} style={{paddingRight: 0}}>
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={row} />
-            <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
-            <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
-            <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard>
+            <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={row} />
+            <Quantity quantity="raw_id" label="raw id" noWrap withClipboard data={row} />
+            <Quantity quantity="external_id" label="external id" noWrap withClipboard data={row} />
+            <Quantity quantity="mainfile" noWrap ellipsisFront data={row} withClipboard />
+            <Quantity quantity="upload_id" label="upload id" data={row} noWrap withClipboard>
               <Typography style={{flexGrow: 1}}>
                 <Link component={RouterLink} to={`/uploads/${row.upload_id}`}>{row.upload_id}</Link>
               </Typography>
@@ -349,26 +346,15 @@ export class EntryListUnstyled extends React.Component {
   }
 
   render() {
-    const { classes, data, order, order_by, page, per_page, domain, editable, title, query, actions, user, showAccessColumn, ...rest } = this.props
+    const { classes, data, order, order_by, page, per_page, editable, title, query, actions, user, showAccessColumn, ...rest } = this.props
     const { selected } = this.state
 
     const results = data?.results || data?.data || []
     const total = data?.pagination.total
     const totalNumber = total || 0
 
-    const columns = this.props.columns || {
-      ...domain.searchResultColumns,
-      ...EntryListUnstyled.defaultColumns
-    }
-
-    let selectedColumns = this.props.selectedColumns
-    if (!selectedColumns) {
-      selectedColumns = [...domain.defaultSearchResultColumns]
-      if (user !== undefined || showAccessColumn) {
-        selectedColumns.push('published')
-      }
-      selectedColumns.push('authors')
-    }
+    const columns = this.props.columns
+    const selectedColumns = this.props.selectedColumns
 
     const pagination = <TablePagination
       rowsPerPageOptions={[5, 10, 25, 50, 100]}
@@ -399,7 +385,7 @@ export class EntryListUnstyled extends React.Component {
     return (
       <div className={classes.root}>
         <DataTable
-          entityLabels={domain ? [domain.entryLabel, domain.entryLabelPlural] : ['entry', 'entries']}
+          entityLabels={['entry', 'entries']}
           selectActions={selectActions}
           id={row => row.entry_id}
           total={total}

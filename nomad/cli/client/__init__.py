@@ -149,7 +149,7 @@ def local(ctx, entry_id, show_archive, show_metadata, skip_normalizers, not_stri
 
         if show_metadata:
             metadata = entry_archive.metadata
-            metadata.apply_domain_metadata(entry_archive)
+            metadata.apply_archvie_metadata(entry_archive)
             json.dump(metadata.m_to_dict(), sys.stdout, indent=4)
 
 

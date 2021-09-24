@@ -120,7 +120,7 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
 
     metadata = entry_archive.metadata
     results = entry_archive.results
-    metadata.apply_domain_metadata(entry_archive)
+    metadata.apply_archvie_metadata(entry_archive)
     parser_name = metadata.parser_name
     exceptions = parser_exceptions.get(parser_name, [])
 

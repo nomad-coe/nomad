@@ -32,7 +32,12 @@ HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
 
 def get_optional_entry_prop(entry, name):
     try:
-        return entry[name]
+        value = entry
+        segments = name.split('.')
+        for segment in segments:
+            value = value[segment]
+
+        return value
     except (KeyError, AttributeError):
         return 'unavailable'
 
@@ -86,7 +91,7 @@ class Mapping():
         self.g.add((dataset, DCT.identifier, Literal(entry['entry_id'])))
         self.g.add((dataset, DCT.issued, Literal(entry['upload_time'])))
         self.g.add((dataset, DCT.modified, Literal(entry['last_processing'])))
-        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'formula'))))
+        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'results.material.chemical_formula_descriptive'))))
         self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
 
         if slim:

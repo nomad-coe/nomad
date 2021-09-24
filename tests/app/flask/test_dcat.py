@@ -20,6 +20,7 @@ import pytest
 from datetime import datetime
 
 from nomad.app.flask.dcat.mapping import Mapping
+from nomad.datamodel.results import Material, Results
 
 from tests.utils import ExampleData
 
@@ -53,11 +54,11 @@ def data(test_user, other_test_user, elastic_infra):
         uploader=test_user,
         coauthors=[other_test_user],
         comment='this is a calculation comment',
-        formula='H20',
         published=True)
 
     data = ExampleData()
-    data.create_entry(**example_attrs)
+    archive = data.create_entry(**example_attrs)
+    archive.m_create(Results).m_create(Material).chemical_formula_descriptive = 'H2O'
 
     for i in range(1, 11):
         example_attrs.update(

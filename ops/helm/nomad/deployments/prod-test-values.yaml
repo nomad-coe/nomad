@@ -41,7 +41,7 @@ mongo:
 logstash:
   host: logstash.elk.svc.cluster.local
 
-dbname: fairdi_nomad_test_v1
+dbname: nomad_test_v1
 
 uploadurl: 'http://nomad-lab.eu/prod/rae/test/api/uploads'
 

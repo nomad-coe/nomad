@@ -26,7 +26,7 @@ from fastapi.routing import APIRouter
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
-from nomad import config, normalizing, datamodel, gitinfo
+from nomad import config, normalizing, gitinfo
 from nomad.utils import strip
 from nomad.search import search
 from nomad.parsing import parsers, MatchingParser
@@ -46,11 +46,6 @@ class MetainfoModel(BaseModel):
     root_section: str = Field(None, description=strip('''
         Name of the topmost section, e.g. section run for computational material science
         data.'''))
-
-
-class DomainModel(BaseModel):
-    name: str
-    metainfo: MetainfoModel
 
 
 class GitInfoModel(BaseModel):
@@ -79,7 +74,6 @@ class InfoModel(BaseModel):
     metainfo_packages: List[str]
     codes: List[CodeInfoModel]
     normalizers: List[str]
-    domains: List[DomainModel]
     statistics: StatisticsModel = Field(None, description='General NOMAD statistics')
     search_quantities: dict
     version: str
@@ -130,16 +124,6 @@ async def get_info():
         'codes': codes,
         'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
         'statistics': statistics(),
-        'domains': [
-            {
-                'name': domain_name,
-                'metainfo': {
-                    'all_package': domain['metainfo_all_package'],
-                    'root_section': domain['root_section']
-                }
-            }
-            for domain_name, domain in datamodel.domains.items()
-        ],
         'search_quantities': {
             s.qualified_name: {
                 'name': s.qualified_name,

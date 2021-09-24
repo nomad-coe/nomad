@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nomad.datamodel.datamodel import EntryArchive
 from typing import Generator, Tuple
 import pytest
 from datetime import datetime
@@ -128,9 +129,6 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         # check some (domain) metadata
         assert entry_metadata.quantities
         assert len(entry_metadata.quantities) > 0
-
-        assert entry_metadata.n_atoms > 0
-        assert len(entry_metadata.atoms) > 0
         assert len(entry_metadata.processing_errors) == 0
 
         assert upload.get_calc(calc.calc_id) is not None
@@ -382,12 +380,14 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert changed archive files
     if with_failure == 'after':
-        with published.upload_files.read_archive(first_calc.calc_id) as archive:
-            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs', 'metadata']
+        with published.upload_files.read_archive(first_calc.calc_id) as archive_reader:
+            assert list(archive_reader[first_calc.calc_id].keys()) == ['processing_logs', 'metadata']
+            archive = EntryArchive.m_from_dict(archive_reader[first_calc.calc_id].to_dict())
 
     else:
-        with published.upload_files.read_archive(first_calc.calc_id) as archive:
-            assert len(archive[first_calc.calc_id]) > 2  # contains more then logs and metadata
+        with published.upload_files.read_archive(first_calc.calc_id) as archive_reader:
+            assert len(archive_reader[first_calc.calc_id]) > 2  # contains more then logs and metadata
+            archive = EntryArchive.m_from_dict(archive_reader[first_calc.calc_id].to_dict())
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
@@ -395,14 +395,13 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     if with_failure not in ['after', 'not-matched']:
         assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
-    # assert changed calc metadata (mongo)
-    entry_metadata = first_calc.full_entry_metadata(published.upload_files)
+    # assert changed calc data
     if with_failure not in ['after', 'not-matched']:
-        assert entry_metadata.atoms[0] == 'H'
+        assert archive.results.material.elements[0] == 'H'
     elif with_failure == 'not-matched':
-        assert entry_metadata.atoms[0] == 'Si'
+        assert archive.results.material.elements[0] == 'Si'
     else:
-        assert entry_metadata.atoms == []
+        assert archive.results is None
 
 
 @pytest.mark.parametrize('publish,old_staging', [
@@ -542,8 +541,6 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
         with upload.upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
             assert 'metadata' in calc_archive
-            assert calc_archive['metadata']['dft']['code_name'] not in [
-                config.services.unavailable_value, config.services.not_processed_value]
             if function != 'cleanup':
                 assert len(calc_archive['metadata']['processing_errors']) > 0
             assert 'processing_logs' in calc_archive

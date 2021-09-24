@@ -36,7 +36,7 @@ class FilterException(Exception):
 
 
 @cached(cache={})
-def _get_transformer(nomad_properties, without_prefix):
+def _get_transformer(without_prefix):
     from nomad.datamodel import OptimadeEntry
     quantities: Dict[str, Quantity] = {
         q.name: Quantity(
@@ -55,35 +55,34 @@ def _get_transformer(nomad_properties, without_prefix):
     quantities['elements'].nested_quantity = quantities['elements_ratios']
     quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
-    if nomad_properties is not None:
-        for name, search_quantity in provider_specific_fields().items():
-            names = ['_nmd_' + name]
-            if without_prefix:
-                names.append(name)
+    for name, search_quantity in provider_specific_fields().items():
+        names = ['_nmd_' + name]
+        if without_prefix:
+            names.append(name)
 
-            for name in names:
-                if name not in quantities:
-                    quantities[name] = Quantity(
-                        name,
-                        es_field=search_quantity.search_field,
-                        elastic_mapping_type=search_quantity.mapping['type'])
+        for name in names:
+            if name not in quantities:
+                quantities[name] = Quantity(
+                    name,
+                    es_field=search_quantity.search_field,
+                    elastic_mapping_type=search_quantity.mapping['type'])
 
     return ElasticTransformer(quantities=quantities.values())
 
 
-def parse_filter(filter_str: str, nomad_properties='dft', without_prefix=False) -> Q:
+def parse_filter(filter_str: str, without_prefix=False) -> Q:
     ''' Parses the given optimade filter str and returns a suitable elastic search query.
 
     Arguments:
         filter_str: Can be direct user input with no prior processing.
-        nomad_properties: Also include the nomad proprietary properties of the given domain.
+        nomad_properties: Also include the nomad proprietary properties.
         without_prefix: Do not prefix the nomad proprietary properties with _nmd_.
 
     Raises:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
     '''
-    transformer = _get_transformer(nomad_properties, without_prefix)
+    transformer = _get_transformer(without_prefix)
 
     try:
         parse_tree = _parser.parse(filter_str)

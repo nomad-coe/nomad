@@ -40,12 +40,12 @@ def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, 
 
     if not skip_normalizers:
         normalize_all(entry_archive)
-        entry_archive.metadata.apply_domain_metadata(entry_archive)
+        entry_archive.metadata.apply_archvie_metadata(entry_archive)
 
     if show_archive:
         json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
     if show_metadata:
         metadata = entry_archive.metadata
-        metadata.apply_domain_metadata(entry_archive)
+        metadata.apply_archvie_metadata(entry_archive)
         json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

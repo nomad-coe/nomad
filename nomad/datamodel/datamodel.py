@@ -29,16 +29,13 @@ from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type
 
-from .dft import DFTMetadata
-from .ems import EMSMetadata
-from .optimade import OptimadeEntry
-
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
 from .encyclopedia import EncyclopediaMetadata  # noqa
+from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.common_experimental import Measurement  # noqa
@@ -357,8 +354,6 @@ class EntryMetadata(metainfo.MSection):
         calc_hash: The raw file content based checksum/hash of this calculation.
         pid: The unique persistent id of this calculation.
         mainfile: The upload relative mainfile path.
-        domain: Must be the key for a registered domain. This determines which actual
-            subclass is instantiated.
 
         files: A list of all files, relative to upload.
         processed: Boolean indicating if this calc was successfully processed and archive
@@ -562,23 +557,6 @@ class EntryMetadata(metainfo.MSection):
         type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
         description='The date and time the user metadata was edited last')
 
-    formula = metainfo.Quantity(
-        type=str, categories=[DomainMetadata],
-        description='A (reduced) chemical formula')
-
-    atoms = metainfo.Quantity(
-        type=str, shape=['n_atoms'], default=[], categories=[DomainMetadata],
-        description='The atom labels of all atoms of the entry\'s material')
-
-    only_atoms = metainfo.Quantity(
-        type=str, categories=[DomainMetadata],
-        description='The atom labels concatenated in order-number order',
-        derived=lambda entry: _only_atoms(entry.atoms))
-
-    n_atoms = metainfo.Quantity(
-        type=int, categories=[DomainMetadata], default=0,
-        description='The number of atoms in the entry\'s material')
-
     optimade = metainfo.SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
@@ -593,29 +571,13 @@ class EntryMetadata(metainfo.MSection):
         description='All quantities that are used by this entry.',
         a_elasticsearch=QuantitySearch())
 
-    ems = metainfo.SubSection(sub_section=EMSMetadata)
-    dft = metainfo.SubSection(sub_section=DFTMetadata, categories=[FastAccess])
     encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess])
 
     def apply_user_metadata(self, metadata: dict):
         ''' Applies a user provided metadata dict to this calc. '''
         self.m_update(**metadata)
 
-    def apply_domain_metadata(self, archive):
-        ''' Used to apply metadata that is related to the domain. '''
-        assert self.domain is not None, 'all entries must have a domain'
-        domain_sub_section_def = self.m_def.all_sub_sections.get(self.domain)
-        if domain_sub_section_def is not None:
-            domain_section_def = domain_sub_section_def.sub_section
-            assert domain_section_def is not None, 'unknown domain %s' % self.domain
-
-            # add domain section if not already there
-            domain_section = self.m_get_sub_section(domain_sub_section_def, -1)
-            if domain_section is None:
-                domain_section = self.m_create(domain_section_def.section_cls)
-
-            domain_section.apply_domain_metadata(archive)
-
+    def apply_archvie_metadata(self, archive):
         quantities = set()
         n_quantities = 0
 

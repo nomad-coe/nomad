@@ -71,12 +71,6 @@ The datamodel supports different *domains*. This means that most domain metadata
 entry/calculation is stored in domain-specific sub sections of the :class:`EntryMetadata`
 section. We currently have the following domain specific metadata classes/sections:
 
-.. autoclass:: nomad.datamodel.dft.DFTMetadata
-    :members:
-
-.. autoclass:: nomad.datamodel.ems.EMSMetadata
-    :members:
-
 .. autoclass:: nomad.datamodel.OptimadeEntry
     :members:
 
@@ -87,8 +81,6 @@ import sys
 
 from nomad.metainfo import Environment
 
-from .dft import DFTMetadata
-from .ems import EMSMetadata
 from .datamodel import (
     Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, OasisMetadata,
     UploadMetadata, MongoMetadata, EntryMetadata, EntryArchive)
@@ -97,22 +89,5 @@ from .metainfo import m_env
 from .results import Results
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.dft'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.ems'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.encyclopedia'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore
-
-domains = {
-    'dft': {
-        'metadata': DFTMetadata,
-        'metainfo_all_package': 'common',
-        'root_section': 'run'
-    },
-    'ems': {
-        'metadata': EMSMetadata,
-        'metainfo_all_package': 'common_experimental',
-        'root_section': 'section_measurement'
-    }
-}
-
-root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry', 'Workflow']

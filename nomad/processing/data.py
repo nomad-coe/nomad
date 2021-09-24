@@ -498,7 +498,7 @@ class Calc(Proc):
                     'could not apply entry metadata to entry', exc_info=e)
 
             try:
-                self._entry_metadata.apply_domain_metadata(self._parser_results)
+                self._entry_metadata.apply_archvie_metadata(self._parser_results)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
@@ -603,9 +603,6 @@ class Calc(Proc):
             # new timestamp and method details taken from the referenced
             # archive.
             self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.dft.xc_functional = ref_archive.metadata.dft.xc_functional
-            self._entry_metadata.dft.basis_set = ref_archive.metadata.dft.basis_set
-            self._entry_metadata.dft.update_group_hash()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
@@ -666,7 +663,7 @@ class Calc(Proc):
         self.set_process_step('archiving')
         logger = self.get_logger()
 
-        self._entry_metadata.apply_domain_metadata(self._parser_results)
+        self._entry_metadata.apply_archvie_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
         if self.upload.publish_directly:

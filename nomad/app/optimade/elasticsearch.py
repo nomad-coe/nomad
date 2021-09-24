@@ -114,7 +114,7 @@ class StructureCollection(EntryCollection):
         super().__init__(
             resource_cls=NomadStructureResource,
             resource_mapper=StructureMapper,
-            transformer=get_transformer(nomad_properties='dft', without_prefix=False))
+            transformer=get_transformer(without_prefix=False))
 
         self.parser = LarkParser(version=(1, 0, 0), variant="default")
 

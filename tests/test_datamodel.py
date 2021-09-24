@@ -23,8 +23,6 @@ A generator for random test calculations.
 import random
 from essential_generators import DocumentGenerator
 import datetime
-from ase.data import chemical_symbols
-from ase.spacegroup import Spacegroup
 
 from nomad import datamodel, utils
 from nomad.parsing.parsers import parser_dict
@@ -94,24 +92,6 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with
     entry.datasets = list(
         _gen_dataset()
         for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-
-    entry.atoms = list(random.choices(chemical_symbols[1:], k=random.choice(low_numbers_for_atoms)))
-    entry.formula = ''.join('%s%d' % (atom, random.choice(low_numbers_for_atoms)) for atom in entry.atoms)
-    entry.formula = entry.formula.replace('1', '')
-
-    dft_metadata = entry.m_create(datamodel.DFTMetadata)
-    dft_metadata.basis_set = random.choice(basis_sets)
-    dft_metadata.xc_functional = random.choice(xc_functionals)
-    dft_metadata.system = random.choice(systems)
-    dft_metadata.crystal_system = random.choice(crystal_systems)
-    spacegroup = random.randint(1, 225)
-    dft_metadata.spacegroup = str(spacegroup)
-    dft_metadata.spacegroup_symbol = Spacegroup(spacegroup).symbol
-    dft_metadata.code_name = random.choice(codes)
-    dft_metadata.code_version = '1.0.0'
-
-    dft_metadata.n_total_energies = random.choice(range(0, 5))
-    dft_metadata.geometries = ['%d' % random.randint(1, 500), '%d' % random.randint(1, 500)]
 
     return entry
 

@@ -27,7 +27,6 @@ import EditUserMetadataDialog from '../../EditUserMetadataDialog'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import DownloadButton from '../../DownloadButton'
-import { domainData } from '../../domainData'
 import EntryDetails from '../../entry/EntryDetails'
 import { authorList, nameList } from '../../../utils'
 import NewDataTable from '../../NewDataTable'
@@ -293,8 +292,6 @@ const SearchResultsEntries = React.memo(({
   }, [showEntryActions])
 
   const renderEntryDetails = useCallback((row) => {
-    const domain = (row.domain && domainData[row.domain]) || domainData.dft
-
     return (<div className={styles.entryDetails}>
       <div className={styles.entryDetailsContents}>
         <div className={styles.entryDetailsRow}>
@@ -331,11 +328,11 @@ const SearchResultsEntries = React.memo(({
         <div className={styles.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
           <Quantity column >
             {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label={`${domain ? domain.entryLabel : 'entry'} id`} noWrap withClipboard data={row} />
-            <Quantity quantity="raw_id" label={`raw id`} noWrap withClipboard data={row} />
-            <Quantity quantity="external_id" label={`external id`} noWrap withClipboard data={row} />
-            <Quantity quantity='mainfile' noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_id" label='upload id' data={row} noWrap withClipboard>
+            <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={row} />
+            <Quantity quantity="raw_id" label="raw id" noWrap withClipboard data={row} />
+            <Quantity quantity="external_id" label="external id" noWrap withClipboard data={row} />
+            <Quantity quantity="mainfile" noWrap ellipsisFront data={row} withClipboard />
+            <Quantity quantity="upload_id" label="upload id" data={row} noWrap withClipboard>
               <Typography style={{flexGrow: 1}}>
                 <Link component={RouterLink} to={`/uploads/${row.upload_id}`}>{row.upload_id}</Link>
               </Typography>
