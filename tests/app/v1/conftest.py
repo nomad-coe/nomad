@@ -56,7 +56,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     # one upload with two calc published with embargo, one shared
     data.create_upload(
         upload_id='id_embargo',
-        name='name_embargo',
+        upload_name='name_embargo',
         published=True,
         embargo_length=12)
     data.create_entry(
@@ -98,7 +98,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     # one upload with 23 calcs published
     data.create_upload(
         upload_id='id_published',
-        name='name_published',
+        upload_name='name_published',
         published=True)
     for i in range(1, 24):
         entry_id = 'id_%02d' % i

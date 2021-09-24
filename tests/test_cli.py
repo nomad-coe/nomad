@@ -323,12 +323,12 @@ class TestClient:
     def test_upload(self, test_user_bravado_client, non_empty_example_upload, proc_infra):
         result = click.testing.CliRunner().invoke(
             cli,
-            ['client', 'upload', '--offline', '--name', 'test_upload', non_empty_example_upload],
+            ['client', 'upload', '--offline', '--upload_name', 'test_upload', non_empty_example_upload],
             catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '1/0/1' in result.output
-        assert proc.Upload.objects(name='test_upload').first() is not None
+        assert proc.Upload.objects(upload_name='test_upload').first() is not None
 
     def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
         def requests_get(url, stream, headers):

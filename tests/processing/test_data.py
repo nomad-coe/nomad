@@ -738,10 +738,10 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
     upload = Upload.get(upload_id)
     with upload.entries_metadata() as entries_metadata:
         for entry_metadata in entries_metadata:
-            expected_name = metadata_to_set.get('upload_name')
-            if expected_name is not None:
-                assert upload.name == (expected_name or None)
-                assert entry_metadata.upload_name == upload.name
+            expected_upload_name = metadata_to_set.get('upload_name')
+            if expected_upload_name is not None:
+                assert upload.upload_name == (expected_upload_name or None)
+                assert entry_metadata.upload_name == upload.upload_name
             if 'uploader' in metadata_to_set:
                 assert upload.user_id == metadata_to_set['uploader']
                 assert entry_metadata.uploader.user_id == upload.user_id

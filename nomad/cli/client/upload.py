@@ -28,12 +28,12 @@ from nomad.processing import ProcessStatus
 from .client import client
 
 
-def stream_upload_with_client(client, stream, name=None):
+def stream_upload_with_client(client, stream, upload_name=None):
     user = client.auth.get_auth().response().result
     token = user.access_token
     url = config.client.url + '/uploads/'
-    if name is not None:
-        url += '?name=%s' % urllib.parse.quote(name)
+    if upload_name is not None:
+        url += '?upload_name=%s' % urllib.parse.quote(upload_name)
 
     response = requests.put(url, headers={'Authorization': 'Bearer %s' % token}, data=stream)
     if response.status_code != 200:
@@ -43,13 +43,13 @@ def stream_upload_with_client(client, stream, name=None):
     return client.uploads.get_upload(upload_id=upload_id).response().result
 
 
-def upload_file(file_path: str, name: str = None, offline: bool = False, publish: bool = False, client=None):
+def upload_file(file_path: str, upload_name: str = None, offline: bool = False, publish: bool = False, client=None):
     '''
     Upload a file to nomad.
 
     Arguments:
         file_path: path to the file, absolute or relative to call directory
-        name: optional name, default is the file_path's basename
+        upload_name: optional name, default is the file_path's basename
         offline: allows to process data without upload, requires client to be run on the server
         publish: automatically publish after successful processing
 
@@ -60,13 +60,13 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
         client = create_client()
     if offline:
         upload = client.uploads.upload(
-            local_path=os.path.abspath(file_path), name=name).response().result
+            local_path=os.path.abspath(file_path), upload_name=upload_name).response().result
         click.echo('process offline: %s' % file_path)
     else:
         # bravado does not seem to support streaming?
         try:
             with open(file_path, 'rb') as f:
-                upload = stream_upload_with_client(client, f, name=name)
+                upload = stream_upload_with_client(client, f, upload_name=upload_name)
         except Exception as e:
             click.echo('could not upload the file: %s' % str(e))
             return
@@ -102,7 +102,7 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
     'All .zip files in a directory will be uploaded.')
 @click.argument('PATH', nargs=-1, required=True, type=click.Path(exists=True))
 @click.option(
-    '--name',
+    '--upload_name',
     help='Optional name for the upload of a single file. Will be ignored on directories.')
 @click.option(
     '--offline', is_flag=True, default=False,
@@ -111,22 +111,22 @@ def upload_file(file_path: str, name: str = None, offline: bool = False, publish
 @click.option(
     '--publish', is_flag=True, default=False,
     help='Automatically move upload out of the staging area after successful processing')
-def upload(path, name: str, offline: bool, publish: bool):
+def upload(path, upload_name: str, offline: bool, publish: bool):
     paths = path
     click.echo('uploading files from %s paths' % len(paths))
     for path in paths:
         click.echo('uploading %s' % path)
         if os.path.isfile(path):
-            name = name if name is not None else os.path.basename(path)
-            upload_file(path, name, offline, publish)
+            upload_name = upload_name if upload_name is not None else os.path.basename(path)
+            upload_file(path, upload_name, offline, publish)
 
         elif os.path.isdir(path):
             for (dirpath, _, filenames) in os.walk(path):
                 for filename in filenames:
                     if filename.endswith('.zip'):
                         file_path = os.path.abspath(os.path.join(dirpath, filename))
-                        name = os.path.basename(file_path)
-                        upload_file(file_path, name, offline, publish)
+                        upload_name = os.path.basename(file_path)
+                        upload_file(file_path, upload_name, offline, publish)
 
         else:
             click.echo('Unknown path type %s.' % path)

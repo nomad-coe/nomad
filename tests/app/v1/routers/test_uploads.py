@@ -986,7 +986,7 @@ def test_put_upload_metadata(
 
     try:
         upload = Upload.get(upload_id)
-        upload.name = 'old_value'
+        upload.upload_name = 'old_value'
         upload.save()
     except KeyError:
         pass
@@ -1020,8 +1020,8 @@ def test_put_upload_metadata(
             for entry_metadata in entries_metadata:
                 es_data = search(owner=None, query=dict(entry_id=entry_metadata.calc_id)).data[0]
                 if 'upload_name' in query_args:
-                    assert upload.name == query_args.get('upload_name')
-                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.name
+                    assert upload.upload_name == query_args.get('upload_name')
+                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.upload_name
                 if 'uploader' in query_args:
                     assert upload.user_id == query_args['uploader']
                     assert entry_metadata.uploader.user_id == es_data['uploader']['user_id'] == upload.user_id
@@ -1087,7 +1087,7 @@ def test_post_upload(
             elif mode == 'stream':
                 expected_upload_name = query_args.get('file_name')
 
-        assert response_data.get('name') == expected_upload_name
+        assert response_data.get('upload_name') == expected_upload_name
 
     if query_args.get('publish_directly'):
         upload_id = response_data['upload_id']

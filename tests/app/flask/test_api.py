@@ -352,31 +352,31 @@ class TestUploads:
         assert 'Thanks for uploading' in rv.data.decode('utf-8')
 
     @pytest.mark.parametrize('mode', ['multipart', 'stream', 'local_path'])
-    @pytest.mark.parametrize('name', [None, 'test_name'])
-    def test_put(self, api, test_user_auth, proc_infra, example_upload, mode, name):
+    @pytest.mark.parametrize('upload_name', [None, 'test_name'])
+    def test_put(self, api, test_user_auth, proc_infra, example_upload, mode, upload_name):
         file = example_upload
-        if name:
-            url = '/uploads/?name=%s' % name
+        if upload_name:
+            url = '/uploads/?upload_name=%s' % upload_name
         else:
             url = '/uploads/'
 
         if mode == 'multipart':
             rv = api.put(
                 url, data=dict(file=(open(file, 'rb'), 'the_name')), headers=test_user_auth)
-            if not name:
-                name = 'the_name'
+            if not upload_name:
+                upload_name = 'the_name'
         elif mode == 'stream':
             with open(file, 'rb') as f:
                 rv = api.put(url, data=f.read(), headers=test_user_auth)
         elif mode == 'local_path':
-            url += '&' if name else '?'
+            url += '&' if upload_name else '?'
             url += 'local_path=%s' % file
             rv = api.put(url, headers=test_user_auth)
         else:
             assert False
 
         assert rv.status_code == 200
-        upload = self.assert_upload(rv.data, name=name)
+        upload = self.assert_upload(rv.data, upload_name=upload_name)
         assert upload['process_running']
 
         self.assert_processing(api, test_user_auth, upload['upload_id'])

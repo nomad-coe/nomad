@@ -295,7 +295,7 @@ class Calc(Proc):
         entry_metadata.upload_id = upload.upload_id
         entry_metadata.uploader = upload.user_id
         entry_metadata.upload_time = upload.upload_time
-        entry_metadata.upload_name = upload.name
+        entry_metadata.upload_name = upload.upload_name
         entry_metadata.published = upload.published
         entry_metadata.with_embargo = upload.with_embargo
         entry_metadata.license = upload.license
@@ -772,7 +772,7 @@ class Upload(Proc):
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    name = StringField(default=None)
+    upload_name = StringField(default=None)
     upload_time = DateTimeField()
     user_id = StringField(required=True)
     last_update = DateTimeField()
@@ -845,7 +845,7 @@ class Upload(Proc):
         user_name = '%s %s' % (user.first_name, user.last_name)
         # We are not using 'user_id' because logstash (?) will filter these entries ?!
         logger = logger.bind(
-            upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
+            upload_id=self.upload_id, upload_name=self.upload_name, user_name=user_name,
             user=user.user_id, **kwargs)
         return logger
 
@@ -1466,7 +1466,7 @@ class Upload(Proc):
                 'Dear %s,' % name,
                 '',
                 'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
+                    '"%s" ' % (self.upload_name or ''), self.upload_time.isoformat()),
                 'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
                 '',
                 'If you encounter any issues with your upload, please let us know and reply to this email.',
@@ -1644,7 +1644,7 @@ class Upload(Proc):
         need_to_repack = False
         new_entry_metadata = {}
         if upload_metadata.upload_name is not None:
-            self.name = upload_metadata.upload_name
+            self.upload_name = upload_metadata.upload_name
             need_to_reindex = True
         if upload_metadata.embargo_length is not None:
             assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'

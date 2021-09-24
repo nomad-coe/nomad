@@ -31,7 +31,7 @@ def test_get_upload_command(bravado, no_warn):
 
 def test_upload(bravado, proc_infra, no_warn):
     with open(example_file, 'rb') as f:
-        upload = bravado.uploads.upload(file=f, name='test_upload').response().result
+        upload = bravado.uploads.upload(file=f, upload_name='test_upload').response().result
 
     while upload.process_running:
         upload = bravado.uploads.get_upload(upload_id=upload.upload_id).response().result

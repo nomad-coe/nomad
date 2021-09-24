@@ -79,9 +79,9 @@ class UploadProcData(ProcData):
     upload_id: str = Field(
         None,
         description='The unique id for the upload.')
-    name: Optional[str] = Field(
+    upload_name: Optional[str] = Field(
         description='The name of the upload. This can be provided during upload '
-                    'using the name query parameter.')
+                    'using the `upload_name` query parameter.')
     upload_time: datetime = Field(
         None,
         description='The time of upload.')
@@ -163,7 +163,7 @@ class UploadProcDataQuery(BaseModel):
     upload_id: Optional[List[str]] = Field(
         description='Search for uploads matching the given id. Multiple values can be specified.')
     upload_name: Optional[List[str]] = Field(
-        description='Search for uploads matching the given name. Multiple values can be specified.')
+        description='Search for uploads matching the given upload_name. Multiple values can be specified.')
     is_processing: Optional[bool] = Field(
         description=strip('''
             If True, only include currently processing uploads.
@@ -369,7 +369,7 @@ async def get_uploads(
         query_kwargs.update(upload_id__in=query.upload_id)
 
     if query.upload_name:
-        query_kwargs.update(name__in=query.upload_name)
+        query_kwargs.update(upload_name__in=query.upload_name)
 
     if query.is_processing is True:
         query_kwargs.update(process_status__in=ProcessStatus.STATUSES_PROCESSING)
@@ -812,8 +812,8 @@ async def post_upload(
     Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
     provided, and it is a zip or tar file, it will first be extracted, then added.
 
-    It is recommended to give the upload itself a descriptive `name`. If not specified,
-    it will be set to the file name (if provided). The name can be edited afterwards (as
+    It is recommended to give the upload itself a descriptive `upload_name`. If not specified,
+    it will be set to the file name (if provided). The `upload_name` can be edited afterwards (as
     long as the upload is not published).
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
@@ -870,7 +870,7 @@ async def post_upload(
     upload = Upload.create(
         upload_id=upload_id,
         user=checked_upload_metadata.uploader or user,
-        name=checked_upload_metadata.upload_name,
+        upload_name=checked_upload_metadata.upload_name,
         upload_time=checked_upload_metadata.upload_time or datetime.utcnow(),
         embargo_length=checked_upload_metadata.embargo_length or 0,
         publish_directly=publish_directly)

@@ -119,7 +119,7 @@ def upload_next_data(sources: Iterator[Tuple[str, str, str]], upload_name='next 
 
     user = client.auth.get_user().response().result
     token = user.token
-    url = nomad_url + '/uploads/?%s' % urlencode(dict(name=upload_name))
+    url = nomad_url + '/uploads/?%s' % urlencode(dict(upload_name=upload_name))
 
     def content():
         for chunk in zip_stream:
@@ -184,10 +184,10 @@ if __name__ == '__main__':
 
                 if not upload.process_running:
                     if upload.process_status == 'SUCCESS':
-                        print('publish %s(%s)' % (upload.name, upload.upload_id))
+                        print('publish %s(%s)' % (upload.upload_name, upload.upload_id))
                         publish_upload(upload, calc_metadata)
                     elif upload.process_status == 'FAILURE':
-                        print('could not process %s(%s)' % (upload.name, upload.upload_id))
+                        print('could not process %s(%s)' % (upload.upload_name, upload.upload_id))
                         client.uploads.delete_upload(upload_id=upload.upload_id).response().result
 
             if uploads.pagination.total < max_parallel_uploads:
@@ -205,7 +205,7 @@ if __name__ == '__main__':
             upload, calc_metadata = upload_next_data(source_iter)
             all_calc_metadata[upload.upload_id] = calc_metadata
             processing_completed = False
-            print('uploaded %s(%s)' % (upload.name, upload.upload_id))
+            print('uploaded %s(%s)' % (upload.upload_name, upload.upload_id))
         except StopIteration:
             all_uploaded = True
         except Exception as e:

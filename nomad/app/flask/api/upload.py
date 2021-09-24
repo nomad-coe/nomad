@@ -70,9 +70,9 @@ upload_metadata_model = api.inherit('UploadMetaData', metadata_model, {
 })
 
 upload_model = api.inherit('UploadProcessing', proc_model, {
-    'name': fields.String(
+    'upload_name': fields.String(
         description='The name of the upload. This can be provided during upload '
-                    'using the name query parameter.'),
+                    'using the upload_name query parameter.'),
     'upload_id': fields.String(
         description='The unique id for the upload.'),
     # TODO just removed during migration, where this get particularily large
@@ -120,7 +120,7 @@ upload_operation_model = api.model('UploadOperation', {
 
 
 upload_metadata_parser = api.parser()
-upload_metadata_parser.add_argument('name', type=str, help='An optional name for the upload.', location='args')
+upload_metadata_parser.add_argument('upload_name', type=str, help='An optional name for the upload.', location='args')
 upload_metadata_parser.add_argument('local_path', type=str, help='Use a local file on the server.', location='args')
 upload_metadata_parser.add_argument('token', type=str, help='Upload token to authenticate with curl command.', location='args')
 upload_metadata_parser.add_argument('file', type=FileStorage, help='The file to upload.', location='files')
@@ -133,7 +133,7 @@ upload_metadata_parser.add_argument('oasis_deployment_id', type=str, help='Use i
 
 upload_list_parser = pagination_request_parser.copy()
 upload_list_parser.add_argument('state', type=str, help='List uploads with given state: all, unpublished, published.', location='args')
-upload_list_parser.add_argument('name', type=str, help='Filter for uploads with the given name.', location='args')
+upload_list_parser.add_argument('upload_name', type=str, help='Filter for uploads with the given name.', location='args')
 
 
 def disable_marshalling(f):
@@ -185,7 +185,7 @@ class UploadListResource(Resource):
         ''' Get the list of all uploads from the authenticated user. '''
         try:
             state = request.args.get('state', 'unpublished')
-            name = request.args.get('name', None)
+            upload_name = request.args.get('upload_name', None)
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 10))
         except Exception:
@@ -207,8 +207,8 @@ class UploadListResource(Resource):
         else:
             abort(400, message='bad state value %s' % state)
 
-        if name is not None:
-            query_kwargs.update(name=name)
+        if upload_name is not None:
+            query_kwargs.update(upload_name=upload_name)
 
         uploads = Upload.user_uploads(g.user, **query_kwargs)
         total = uploads.count()
@@ -287,7 +287,7 @@ class UploadListResource(Resource):
             if user is None:
                 abort(400, 'The given uploader does not exist.')
 
-        upload_name = request.args.get('name')
+        upload_name = request.args.get('upload_name')
         if oasis_upload_id is not None:
             upload_id = oasis_upload_id
             try:
@@ -359,7 +359,7 @@ class UploadListResource(Resource):
         upload = Upload.create(
             upload_id=upload_id,
             user=user,
-            name=upload_name,
+            upload_name=upload_name,
             upload_time=datetime.utcnow(),
             publish_directly=publish_directly or from_oasis,
             from_oasis=from_oasis,
@@ -616,7 +616,7 @@ class UploadCommandResource(Resource):
         token = generate_upload_token(g.user)
         upload_url = ('%s/uploads/?token=%s' %
                       (config.api_url(ssl=config.services.https_upload), token))
-        upload_url_with_name = upload_url + '&name=<name>'
+        upload_url_with_name = upload_url + '&upload_name=<name>'
 
         # upload_command = 'curl -X PUT "%s" -F file=@<local_file>' % upload_url
 

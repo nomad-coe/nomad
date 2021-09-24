@@ -61,7 +61,7 @@ def api(client):
 def upload(filepath, publish, test_user_bravado_client, proc_infra, test_user_auth, api):
 
     # Perform a test upload
-    arguments = ['client', 'upload', '--offline', '--name', filepath, filepath]
+    arguments = ['client', 'upload', '--offline', '--upload_name', filepath, filepath]
     if publish:
         arguments.append("--publish")
     click.testing.CliRunner().invoke(
@@ -69,7 +69,7 @@ def upload(filepath, publish, test_user_bravado_client, proc_infra, test_user_au
         arguments,
         catch_exceptions=False
     )
-    upload = proc.Upload.objects(name=filepath).first()
+    upload = proc.Upload.objects(upload_name=filepath).first()
     upload_id = upload["upload_id"]
     upload.block_until_complete(interval=0.2)
 

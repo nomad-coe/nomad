@@ -350,7 +350,7 @@ class DbUpdater:
         return True
 
     def _get_status_upload(self, uploadname: str) -> typing.Tuple[str, int]:
-        res = self.client.uploads.get_uploads(name=uploadname, state='all').response().result
+        res = self.client.uploads.get_uploads(upload_name=uploadname, state='all').response().result
         entries = res.results
         status = None
         upload_id = None
@@ -403,9 +403,9 @@ class DbUpdater:
                 payload = self.get_payload(uid)
                 self.client.uploads.exec_upload_operation(upload_id=uid, payload=payload).response()
 
-    def upload(self, file_path: str, name: str) -> int:
+    def upload(self, file_path: str, upload_name: str) -> int:
         res = self.client.uploads.upload(
-            local_path=os.path.abspath(file_path), name=name).response().result
+            local_path=os.path.abspath(file_path), upload_name=upload_name).response().result
         return res.upload_id
 
     def download_proc(self, plist: typing.List[str]):
@@ -428,7 +428,7 @@ class DbUpdater:
                     continue
                 if status != 'uploaded':
                     self._tar_files(dirs, tarname)
-                    uid = nomad_upload.upload_file(tarname, name=uploadname, offline=True)
+                    uid = nomad_upload.upload_file(tarname, upload_name=uploadname, offline=True)
                 if self.do_publish:
                     self.publish([uid])
                 self.uids.append(uid)
