@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from nomad import utils
 from nomad.utils import strip
 from nomad.search import AuthenticationRequiredError, SearchError
-from nomad.search.v1 import search, QueryValidationError
+from nomad.search import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import material_type, material_index
 
 from .auth import create_user_dependency

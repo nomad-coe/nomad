@@ -139,9 +139,9 @@ def owner_test_parameters(total: int):
 
 def pagination_test_parameters(elements: str, n_elements: str, crystal_system: str, total: int):
     return [
-        pytest.param({}, {'total': 6, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
-        pytest.param({'page_size': 1}, {'total': 23, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
-        pytest.param({'page_size': 0}, {'total': 23, 'page_size': 0}, 200, id='size-0'),
+        pytest.param({}, {'total': total, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
+        pytest.param({'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
+        pytest.param({'page_size': 0}, {'total': total, 'page_size': 0}, 200, id='size-0'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
         pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
@@ -151,10 +151,16 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
         pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
         pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
         pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
-        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 1}, 200, id='page-1'),
-        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_03', 'page': 2}, 200, id='page-2'),
+        pytest.param({'page_offset': 0, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_01', 'page_offset': 0}, 200, id='page-offset-1'),
+        pytest.param({'page_offset': 1, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_02', 'page_offset': 1}, 200, id='page-offset-2'),
+        pytest.param({'page_offset': 9999}, None, 422, id='page-offset-too-large'),
+        pytest.param({'page_offset': 9989}, None, 200, id='page-offset-just-small-enough'),
+        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01', 'page': 1}, 200, id='page-1'),
+        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 2}, 200, id='page-2'),
         pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
         pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
+        pytest.param({'page_offset': 1, 'page': 1}, None, 422, id='only-one-page-param'),
+        pytest.param({'page_offset': 1, 'page_size': 0}, None, 422, id='page-param-only-with-page-size')
     ]
 
 
@@ -165,6 +171,12 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
     upload_time = f'{entry_prefix}upload_time'
 
     return [
+        pytest.param(
+            {'statistics': {
+                'metrics': ['n_entries', 'n_materials', 'n_uploads', 'n_calculations']
+            }},
+            3, 3, 200, 'test_user', id='statistics'
+        ),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id'}},
             3, 3, 200, 'test_user', id='default'),
@@ -240,7 +252,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {'terms': {'quantity': program_name}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
         pytest.param(
-            {'terms': {'quantity': program_name, 'metrics': ['uploads']}},
+            {'terms': {'quantity': program_name, 'metrics': ['n_uploads']}},
             n_code_names, n_code_names, 200, None, id='metrics'),
         pytest.param(
             {'terms': {'quantity': program_name, 'metrics': ['does not exist']}},
@@ -276,7 +288,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             1, 1, 200, 'test-user', id='date-histogram'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_time, 'metrics': ['uploads']}},
+            {'date_histogram': {'quantity': upload_time, 'metrics': ['n_uploads']}},
             1, 1, 200, 'test-user', id='date-histogram-metrics'
         ),
         pytest.param(
@@ -296,7 +308,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             1, 1, 200, None, id='histogram'
         ),
         pytest.param(
-            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['uploads']}},
+            {'histogram': {'quantity': n_calculations, 'interval': 1, 'metrics': ['n_uploads']}},
             1, 1, 200, None, id='histogram-metric'
         ),
         pytest.param(
@@ -424,8 +436,9 @@ def assert_aggregations(
     agg_type = next(iter(agg_response_obj.keys()))
     agg_response = agg_response_obj[agg_type]
 
-    for key in ['data', 'quantity']:
-        assert key in agg_response
+    assert 'data' in agg_response
+    if agg_type != 'statistics':
+        assert 'quantity' in agg_response
 
     assert_at_least(agg, agg_response)
 
@@ -445,6 +458,11 @@ def assert_aggregations(
         assert len(data) == 2
         assert isinstance(data[0], (float, int))
         assert isinstance(data[1], (float, int))
+    elif agg_type == 'statistics':
+        assert 'metrics' in agg_response
+        for metric in agg.get('metrics', []):
+            assert metric in data
+            assert isinstance(data[metric], (float, int))
     else:
         assert total == -1 or total >= n_data
         assert size == -1 or size == n_data
@@ -541,6 +559,7 @@ def perform_metadata_test(
         return
 
     assert 'pagination' in response_json
+
     if total is not None and total >= 0:
         assert response_json['pagination']['total'] == total, response_json['pagination']['total']
 

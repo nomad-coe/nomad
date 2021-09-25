@@ -16,17 +16,108 @@
 # limitations under the License.
 #
 
-import typing
 import click
-import tabulate
-import mongoengine
-import json
-import elasticsearch_dsl as es
+import typing
 
-from nomad import processing as proc, config, infrastructure, utils, files, datamodel, search
-from nomad.search.v0 import SearchRequest
+from nomad import config
 
-from .admin import admin, __run_processing, __run_parallel
+from .admin import admin
+
+
+def _run_parallel(uploads, parallel: int, callable, label: str):
+    import threading
+
+    from nomad import utils, processing as proc
+
+    if isinstance(uploads, (tuple, list)):
+        uploads_count = len(uploads)
+
+    else:
+        uploads_count = uploads.count()
+        uploads = list(uploads)  # copy the whole mongo query set to avoid cursor timeouts
+
+    cv = threading.Condition()
+    threads: typing.List[threading.Thread] = []
+
+    state = dict(
+        completed_count=0,
+        skipped_count=0,
+        available_threads_count=parallel)
+
+    logger = utils.get_logger(__name__)
+
+    print('%d uploads selected, %s ...' % (uploads_count, label))
+
+    def process_upload(upload: proc.Upload):
+        logger.info('%s started' % label, upload_id=upload.upload_id)
+
+        completed = False
+        if callable(upload, logger):
+            completed = True
+
+        with cv:
+            state['completed_count'] += 1 if completed else 0
+            state['skipped_count'] += 1 if not completed else 0
+            state['available_threads_count'] += 1
+
+            print(
+                '   %s %s and skipped %s of %s uploads' %
+                (label, state['completed_count'], state['skipped_count'], uploads_count))
+
+            cv.notify()
+
+    for upload in uploads:
+        logger.info(
+            'cli schedules parallel %s processing for upload' % label,
+            current_process=upload.current_process,
+            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+        with cv:
+            cv.wait_for(lambda: state['available_threads_count'] > 0)
+            state['available_threads_count'] -= 1
+            thread = threading.Thread(target=lambda: process_upload(upload))
+            threads.append(thread)
+            thread.start()
+
+    for thread in threads:
+        thread.join()
+
+
+def _run_processing(
+        uploads, parallel: int, process, label: str, reprocess_running: bool = False,
+        wait_until_complete: bool = True, reset_first: bool = False):
+
+    from nomad import processing as proc
+
+    def run_process(upload, logger):
+        logger.info(
+            'cli calls %s processing' % label,
+            current_process=upload.current_process,
+            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+        if upload.process_running and not reprocess_running:
+            logger.warn(
+                'cannot trigger %s, since the upload is already/still processing' % label,
+                current_process=upload.current_process,
+                current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+            return False
+
+        if reset_first:
+            upload.reset(force=True)
+        elif upload.process_running:
+            upload.reset(force=True, process_status=proc.ProcessStatus.FAILURE)
+
+        process(upload)
+        if wait_until_complete:
+            upload.block_until_complete(interval=.5)
+        else:
+            upload.block_until_complete_or_waiting_for_result(interval=.5)
+
+        if upload.process_status == proc.ProcessStatus.FAILURE:
+            logger.info('%s with failure' % label, upload_id=upload.upload_id)
+
+        logger.info('%s complete' % label, upload_id=upload.upload_id)
+        return True
+
+    _run_parallel(uploads, parallel=parallel, callable=run_process, label=label)
 
 
 @admin.group(help='Upload related commands')
@@ -34,7 +125,7 @@ from .admin import admin, __run_processing, __run_parallel
 @click.option('--unpublished', help='Select only uploads in staging', is_flag=True)
 @click.option('--published', help='Select only uploads that are publised', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
-@click.option('--code', multiple=True, type=str, help='Select only uploads with calcs of given codes')
+@click.option('--program-name', multiple=True, type=str, help='Select only uploads with calcs of given codes')
 @click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
@@ -46,13 +137,24 @@ from .admin import admin, __run_processing, __run_parallel
 @click.option('--processing-necessary', is_flag=True, help='Select uploads where the upload or any calc has either not been processed or processing has failed in the past')
 @click.option('--unindexed', is_flag=True, help='Select uploads that have no calcs in the elastic search index.')
 @click.pass_context
-def uploads(
-        ctx, user: str, unpublished: bool, published: bool, processing: bool, outdated: bool,
-        code: typing.List[str], query_mongo: bool,
+def uploads(ctx, **kwargs):
+    ctx.obj.uploads_kwargs = kwargs
+
+
+def _query_uploads(
+        uploads,
+        user: str, unpublished: bool, published: bool, processing: bool, outdated: bool,
+        program_name: typing.List[str], query_mongo: bool,
         processing_failure_uploads: bool, processing_failure_calcs: bool,
         processing_failure: bool, processing_incomplete_uploads: bool,
         processing_incomplete_calcs: bool, processing_incomplete: bool,
         processing_necessary: bool, unindexed: bool):
+
+    import mongoengine
+    import json
+    import elasticsearch_dsl as es
+
+    from nomad import infrastructure, processing as proc
 
     mongo_client = infrastructure.setup_mongo()
     infrastructure.setup_elastic()
@@ -74,11 +176,11 @@ def uploads(
             {'metadata.nomad_version': {'$ne': config.meta.version}})
         query |= mongoengine.Q(upload_id__in=uploads)
 
-    if code is not None and len(code) > 0:
-        code_queries = [es.Q('match', **{'dft.code_name': code_name}) for code_name in code]
+    if program_name is not None and len(program_name) > 0:
+        code_queries = [es.Q('match', **{'results.method.simulation.program_name': name}) for name in program_name]
         code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
 
-        code_search = es.Search(index=config.elastic.index_name)
+        code_search = es.Search(index=config.elastic.entries_index)
         code_search = code_search.query(code_query)
         code_search.aggs.bucket('uploads', es.A(
             'terms', field='upload_id', size=10000, min_doc_count=1))
@@ -102,8 +204,8 @@ def uploads(
         query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if unindexed:
-        uploads_search = SearchRequest().quantity('upload_id', size=10000).execute()
-        uploads_in_es = uploads_search['quantities']['upload_id']['values'].keys()
+        from nomad.search import quantity_values
+        uploads_in_es = set(quantity_values('upload_id', page_size=1000, owner='all'))
 
         uploads_in_mongo = mongo_client[config.mongo.db_name]['calc'].distinct('upload_id')
 
@@ -115,30 +217,20 @@ def uploads(
         query |= mongoengine.Q(
             upload_id__in=uploads_not_in_es)
 
-    ctx.obj.query = query
-    ctx.obj.calc_query = calc_query
-    ctx.obj.uploads = proc.Upload.objects(query)
-    ctx.obj.query_mongo = query_mongo
-
-
-def query_uploads(ctx, uploads):
     try:
         json_query = json.loads(' '.join(uploads))
-        if ctx.obj.query_mongo:
+        if query_mongo:
             uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
         else:
-            request = SearchRequest()
-            request.q = es.Q(json_query)
-            request.quantity('upload_id', size=10000)
-            search_results = request.execute()
-            uploads = list(search_results['quantities']['upload_id']['values'])
+            from nomad.search import quantity_values
+            uploads = list(quantity_values(
+                'upload_id', query=es.Q(json_query), page_size=1000, owner='all'))
     except Exception:
         pass
 
-    query = ctx.obj.query
-    if ctx.obj.calc_query is not None:
+    if calc_query is not None:
         query |= mongoengine.Q(
-            upload_id__in=proc.Calc.objects(ctx.obj.calc_query).distinct(field="upload_id"))
+            upload_id__in=proc.Calc.objects(calc_query).distinct(field="upload_id"))
     if len(uploads) > 0:
         query |= mongoengine.Q(upload_id__in=uploads)
 
@@ -152,7 +244,9 @@ def query_uploads(ctx, uploads):
 @click.option('--json', is_flag=True, help='Output a JSON array of ids.')
 @click.pass_context
 def ls(ctx, uploads, calculations, ids, json):
-    _, uploads = query_uploads(ctx, uploads)
+    import tabulate
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     def row(upload):
         row = [
@@ -194,7 +288,9 @@ def ls(ctx, uploads, calculations, ids, json):
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
 def chown(ctx, username, uploads):
-    _, uploads = query_uploads(ctx, uploads)
+    from nomad import datamodel
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     print('%d uploads selected, changing owner ...' % uploads.count())
 
@@ -211,7 +307,9 @@ def chown(ctx, username, uploads):
 @click.option('--failure', is_flag=True, help='Set the process status to failure instead of pending.')
 @click.pass_context
 def reset(ctx, uploads, with_calcs, success, failure):
-    _, uploads = query_uploads(ctx, uploads)
+    from nomad import processing as proc
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
     uploads_count = uploads.count()
 
     print('%d uploads selected, resetting their processing ...' % uploads_count)
@@ -245,6 +343,8 @@ def reset(ctx, uploads, with_calcs, success, failure):
 @click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
 @click.pass_context
 def index(ctx, uploads, parallel, transformer):
+    from nomad import search
+
     transformer_func = None
     if transformer is not None:
         import importlib
@@ -252,7 +352,7 @@ def index(ctx, uploads, parallel, transformer):
         module = importlib.import_module(module_name)
         transformer_func = getattr(module, func_name)
 
-    _, uploads = query_uploads(ctx, uploads)
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     def transform(entries):
         for entry in entries:
@@ -272,10 +372,12 @@ def index(ctx, uploads, parallel, transformer):
 
         return True
 
-    __run_parallel(uploads, parallel, index_upload, 'index')
+    _run_parallel(uploads, parallel, index_upload, 'index')
 
 
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
+    from nomad import search, files, utils, processing as proc
+
     # delete elastic
     if not skip_es:
         search.delete_upload(upload_id=upload.upload_id, update_materials=True, refresh=True)
@@ -307,7 +409,7 @@ def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_
 @click.option('--skip-files', help='Keep all related files.', is_flag=True)
 @click.pass_context
 def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
-    _, uploads = query_uploads(ctx, uploads)
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     print('%d uploads selected, deleting ...' % uploads.count())
 
@@ -321,8 +423,8 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 @click.option('--reprocess-running', is_flag=True, help='Also reprocess already running processes.')
 @click.pass_context
 def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
-    _, uploads = query_uploads(ctx, uploads)
-    __run_processing(
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+    _run_processing(
         uploads, parallel, lambda upload: upload.process_upload(), 'processing',
         reprocess_running=reprocess_running, reset_first=True)
 
@@ -332,8 +434,8 @@ def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
 def re_pack(ctx, uploads, parallel: int):
-    _, uploads = query_uploads(ctx, uploads)
-    __run_processing(
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+    _run_processing(
         uploads, parallel, lambda upload: upload.re_pack(), 're-packing',
         wait_until_complete=False)
 
@@ -345,7 +447,10 @@ def re_pack(ctx, uploads, parallel: int):
 @click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
 def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
-    query, _ = query_uploads(ctx, uploads)
+    import mongoengine
+
+    from nomad import utils, processing as proc
+    query, _ = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     logger = utils.get_logger(__name__)
 

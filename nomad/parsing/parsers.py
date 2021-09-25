@@ -18,7 +18,7 @@
 
 import os.path
 
-from nomad import config, datamodel
+from nomad import config
 from nomad.datamodel import results
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
@@ -273,7 +273,5 @@ for parser in parsers:
             getattr(parser, 'code_name') != 'Template':
         code_names.append(getattr(parser, 'code_name'))
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
-datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
-    config.services.unavailable_value, config.services.not_processed_value]
 results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]

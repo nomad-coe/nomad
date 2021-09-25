@@ -26,10 +26,12 @@ from fastapi.routing import APIRouter
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
-from nomad import config, normalizing, datamodel, gitinfo
+from nomad import config, normalizing, gitinfo
 from nomad.utils import strip
-from nomad.search import v0 as search
+from nomad.search import search
 from nomad.parsing import parsers, MatchingParser
+from nomad.app.v1.models import Aggregation, StatisticsAggregation
+from nomad.metainfo.elasticsearch_extension import entry_type
 
 
 router = APIRouter()
@@ -44,11 +46,6 @@ class MetainfoModel(BaseModel):
     root_section: str = Field(None, description=strip('''
         Name of the topmost section, e.g. section run for computational material science
         data.'''))
-
-
-class DomainModel(BaseModel):
-    name: str
-    metainfo: MetainfoModel
 
 
 class GitInfoModel(BaseModel):
@@ -77,7 +74,6 @@ class InfoModel(BaseModel):
     metainfo_packages: List[str]
     codes: List[CodeInfoModel]
     normalizers: List[str]
-    domains: List[DomainModel]
     statistics: StatisticsModel = Field(None, description='General NOMAD statistics')
     search_quantities: dict
     version: str
@@ -93,8 +89,9 @@ def statistics():
     global _statistics
     if _statistics is None or datetime.now().timestamp() - _statistics.get('timestamp', 0) > 3600 * 24:
         _statistics = dict(timestamp=datetime.now().timestamp())
-        _statistics.update(
-            **search.SearchRequest().global_statistics().execute()['global_statistics'])
+        search_response = search(aggregations=dict(statistics=Aggregation(statistics=StatisticsAggregation(
+            metrics=['n_entries', 'n_materials', 'n_uploads', 'n_quantities', 'n_calculations']))))
+        _statistics.update(**search_response.aggregations['statistics'].statistics.data)  # pylint: disable=no-member
 
     return _statistics
 
@@ -127,23 +124,13 @@ async def get_info():
         'codes': codes,
         'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
         'statistics': statistics(),
-        'domains': [
-            {
-                'name': domain_name,
-                'metainfo': {
-                    'all_package': domain['metainfo_all_package'],
-                    'root_section': domain['root_section']
-                }
-            }
-            for domain_name, domain in datamodel.domains.items()
-        ],
         'search_quantities': {
             s.qualified_name: {
                 'name': s.qualified_name,
-                'description': s.description,
-                'many': s.many
+                'description': s.definition.description,
+                'many': not s.definition.is_scalar
             }
-            for s in search.search_quantities.values()
+            for s in entry_type.quantities.values()
             if 'optimade' not in s.qualified_name
         },
         'version': config.meta.version,

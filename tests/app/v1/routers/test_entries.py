@@ -312,7 +312,7 @@ n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggreg
 program_name = 'results.method.simulation.program_name'
 
 
-def test_entries_all_statistics(client, data):
+def test_entries_all_metrics(client, data):
     aggregations = {
         quantity: {
             'terms': {
@@ -518,7 +518,7 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     yield
 
     data.delete()
-    from nomad.search.v1 import search
+    from nomad.search import search
     assert search(query=dict(upload_id='with_compr_published')).pagination.total == 0
 
 
@@ -644,7 +644,11 @@ n_elements = 'results.material.n_elements'
 
 @pytest.mark.parametrize('query, status_code, total', post_query_test_parameters(
     'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
-    pytest.param({'pid': '123'}, 200, 1, id='number-valued-string')
+    pytest.param({'pid': '123'}, 200, 1, id='number-valued-string'),
+    pytest.param({'optimade_filter': 'nelements = 2'}, 200, 23, id='optimade-filter-positive'),
+    pytest.param({'optimade_filter': 'nelements < 2'}, 200, 0, id='optimade-filter-negative'),
+    pytest.param({'optimade_filter': '#broken syntax'}, 422, 0, id='optimade-filter-broken-syntax'),
+    pytest.param({'optimade_filter': 'doesnotexist = 1'}, 422, 0, id='optimade-filter-broken-semantics')
 ])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -741,3 +745,10 @@ def test_entries_pagination(client, data, pagination, response_pagination, statu
         return
 
     assert_pagination(pagination, response_json['pagination'], response_json['data'], is_get=(http_method == 'get'))
+
+    if response_pagination is None:
+        return
+    for key in response_pagination:
+        assert response_json['pagination'][key] == response_pagination[key]
+    if len(response_json['data']) > 0 and 'order_by' not in pagination:
+        assert response_json['data'][-1]['entry_id'] == response_pagination['next_page_after_value']

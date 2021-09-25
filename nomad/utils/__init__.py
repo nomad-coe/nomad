@@ -45,15 +45,31 @@ from contextlib import contextmanager
 import json
 import uuid
 import time
-import re
 import hashlib
 import sys
 from datetime import timedelta
 import collections
 import logging
 import inspect
+import orjson
 
 from nomad import config
+
+
+def dump_json(data):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if data.__class__.__name__ == 'BaseList':
+            return list(data)
+
+        raise TypeError
+
+    return orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+
 
 default_hash_len = 28
 ''' Length of hashes and hash-based ids (e.g. calc, upload) in nomad. '''
@@ -191,7 +207,7 @@ def lnr(logger, event, **kwargs):
         yield
 
     except Exception as e:
-        # ignore HTTPException as they are part of the normal flask error handling
+        # ignore HTTPException as they are part of the normal app error handling
         if e.__class__.__name__ == 'HTTPException':
             logger.error(event, exc_info=e, **kwargs)
         raise e

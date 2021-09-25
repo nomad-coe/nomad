@@ -19,7 +19,7 @@
 import pytest
 
 from nomad import utils
-from nomad.search.v1 import search
+from nomad.search import search
 from nomad.datamodel import Dataset
 from nomad import processing as proc
 

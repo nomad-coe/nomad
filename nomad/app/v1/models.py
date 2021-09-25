@@ -263,6 +263,14 @@ class WithQuery(BaseModel):
 
             The searchable quantities are a subset of the NOMAD Archive quantities defined
             in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
+
+            There is also an additional query parameter that you can use to formulate queries based
+            on the optimade filter language:
+            ```
+            {
+                "optimade_filter": "nelements >= 2 AND elements HAS ALL 'Ti', 'O'"
+            }
+            ```
         '''),  # TODO custom documentation for entry and material API
         example={
             'upload_time:gt': '2020-01-01',
@@ -270,7 +278,8 @@ class WithQuery(BaseModel):
             'results.method.simulation.program_name': 'VASP',
             'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
             'results.properties.available_properties': 'section_dos',
-            'results.material.type_structural:any': ['bulk', '2d']
+            'results.material.type_structural:any': ['bulk', '2d'],
+            'optimade_filter': 'nelements >= 2 AND elements HAS ALL "Ti", "O"'
         })
 
     @validator('query')
@@ -476,8 +485,19 @@ class Pagination(BaseModel):
             or where it can only be used partially. **If you want to just iterate through
             all the results, aways use the `page_after_value` and `next_page_after_value`!**
 
-            **NOTE #2**: In a request, you should never specify *both* `page` and
-            `page_after_value` (at most one index can be provided).
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        '''))
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            The number of skipped entries. When provided in a request, this attribute
+            can be used instead of `page_after_value` to jump to a particular results page.
+
+            **NOTE #1**: the option to request pages by submitting the `page_offset` number is
+            limited. There are api calls where this attribute cannot be used for indexing,
+            or where it can only be used partially. **If you want to just iterate through
+            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
 
     @validator('page_size')
@@ -508,6 +528,12 @@ class Pagination(BaseModel):
             assert page >= 1, 'page must be >= 1'
         return page
 
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'page must be >= 1'
+        return page_offset
+
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
         # Because of a bug in pydantic (#2670), root validators can't be overridden, so
@@ -516,13 +542,19 @@ class Pagination(BaseModel):
 
     @classmethod
     def _root_validation(cls, values):
+        page_offset = values.get('page_offset')
         page = values.get('page')
         page_after_value = values.get('page_after_value')
         page_size = values.get('page_size')
-        assert page is None or page_after_value is None, 'Cannot specify both `page` and `page_after_value'
+
+        n_offset_criteria = (1 if page_offset else 0) + (1 if page else 0) + (1 if page_after_value else 0)
+        assert n_offset_criteria <= 1, 'Can only specify one `page_offset`, `page`, or `page_after_value'
+
         if page_size == 0:
+            assert page_offset is None, 'Cannot specify `page_offset` when `page_size` is set to 0'
             assert page is None, 'Cannot specify `page` when `page_size` is set to 0'
             assert page_after_value is None, 'Cannot specify `page_after_value` when `page_size` is set to 0'
+
         return values
 
     def get_simple_index(self):
@@ -531,13 +563,15 @@ class Pagination(BaseModel):
         corresponding index (0-based). It will look on either `page` or `page_after_value`.
         If neither index is provided, we return 0 (i.e. the first index).
         '''
-        if self.page is None and self.page_after_value is None:
-            return 0
+        if self.page_offset is not None:
+            return self.page_offset
         if self.page is not None:
             return (self.page - 1) * self.page_size
-        rv = int(self.page_after_value) + 1
-        assert rv >= 0
-        return rv
+        if self.page_after_value is not None:
+            rv = int(self.page_after_value) + 1
+            assert rv >= 0
+            return rv
+        return 0
 
 
 class PaginationResponse(Pagination):
@@ -657,8 +691,18 @@ class MetadataPagination(MetadataBasedPagination):
             used instead of `page_after_value` to jump to a particular results page.
 
             However, you can only retreive up to the 10.000th entry with a page number.
-            Only one, `page_after_value` *or* `page` can be provided.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
+
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            Return the page that follows the given number of entries. Overwrites
+            `page` and `page_after_value`.
+
+            However, you can only retreive up to the 10.000th entry.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        ''')
+    )
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
@@ -667,6 +711,14 @@ class MetadataPagination(MetadataBasedPagination):
             assert page * values.get('page_size', 10) < 10000, 'Pagination by `page` is limited to 10.000 entries.'
 
         return page
+
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'Page offset has to be larger than 0.'
+            assert page_offset + values.get('page_size', 10) < 10000, 'Page offset plus page size has to be smaller thant 10.0000.'
+
+        return page_offset
 
 
 metadata_pagination_parameters = parameter_dependency_from_model(
@@ -715,6 +767,10 @@ class AggregatedEntities(BaseModel):
 
 
 class AggregationBase(BaseModel):
+    pass
+
+
+class QuantityAggregation(AggregationBase):
     quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity for the aggregation. Aggregations
@@ -722,7 +778,7 @@ class AggregationBase(BaseModel):
         an aggregation buckets entries that have the same value for this quantity.'''))
 
 
-class BucketAggregation(AggregationBase):
+class BucketAggregation(QuantityAggregation):
     metrics: Optional[List[str]] = Field(
         [], description=strip('''
         By default the returned aggregations will provide the number of entries for each
@@ -770,8 +826,17 @@ class DateHistogramAggregation(BucketAggregation):
     interval: str = Field('1M')  # type: ignore
 
 
-class MinMaxAggregation(AggregationBase):
+class MinMaxAggregation(QuantityAggregation):
     pass
+
+
+class StatisticsAggregation(AggregationBase):
+    metrics: Optional[List[str]] = Field(
+        [], description=strip('''
+        A list of search quantities to act as metrics on all data. Depending on
+        the metric the number will represent either a sum (`calculations` for the number
+        of individual calculation in each code run) or an amount (cardinality) of
+        different values (i.e. `materials` for the amount of different material hashes).'''))
 
 
 class Aggregation(BaseModel):
@@ -878,6 +943,25 @@ class Aggregation(BaseModel):
             ```
 
             The used quantity must be a float or int typed quantity.
+        '''))
+
+    statistics: Optional[StatisticsAggregation] = Body(
+        None,
+        description=strip('''
+            A `statistics` aggregation allows to get metrics (sums or cardinalities) from all data
+            that matches the search.
+
+            ```json
+            {
+                "aggregations": {
+                    "statistics": {
+                        "global": {
+                            "metrics": ["results.properties.n_calculations", "results.material.material_id"]
+                        }
+                    }
+                }
+            }
+            ```
         '''))
 
 
@@ -1036,11 +1120,16 @@ class MinMaxAggregationResponse(MinMaxAggregation):
     data: List[Union[float, None]]
 
 
+class StatisticsAggregationResponse(StatisticsAggregation):
+    data: Optional[Dict[str, int]]
+
+
 class AggregationResponse(Aggregation):
     terms: Optional[TermsAggregationResponse]
     histogram: Optional[HistogramAggregationResponse]
     date_histogram: Optional[DateHistogramAggregationResponse]
     min_max: Optional[MinMaxAggregationResponse]
+    statistics: Optional[StatisticsAggregationResponse]
 
 
 class CodeResponse(BaseModel):

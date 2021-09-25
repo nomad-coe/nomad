@@ -17,25 +17,13 @@
 #
 
 '''
-Install the NOMAD client library
-________________________________
+Access the NOMAD archive with the NOMAD client library
+______________________________________________________
 
-The NOMAD client library is a Python module (part of the nomad Python package) that
-allows to access the NOMAD archive to retrieve and analyse (large amounts) of NOMAD's
-archive data. It allows to use queries to filter for desired entries, bulk download
+Retrieve and analyse (large amounts) of NOMAD's
+archive data. This allows to use queries to filter for desired entries, bulk download
 the required parts of the respective archives, and navigate the results using NOMAD's
 metainfo Python API.
-
-To install the NOMAD Python package, you can use ``pip install`` to install our
-source distribution
-
-.. parsed-literal::
-
-    pip install nomad-lab
-
-
-First example
-_____________
 
 .. literalinclude:: ../examples/archive/client.py
     :language: python
@@ -142,18 +130,12 @@ your queries. To authenticate simply provide your NOMAD username and password to
 
 '''
 
-from typing import Dict, Union, Any, List
+from typing import Dict, Any, List
 import collections.abc
 import requests
-from urllib.parse import urlparse
-from bravado import requests_client as bravado_requests_client
-import time
-from keycloak import KeycloakOpenID
 from io import StringIO
 import math
-from urllib.parse import urlencode
 import multiprocessing
-import json
 
 from nomad import config
 from nomad import metainfo as mi
@@ -162,46 +144,11 @@ from nomad.datamodel import EntryArchive
 # TODO this import is necessary to load all metainfo defintions that the parsers are using
 from nomad import parsing  # pylint: disable=unused-import
 
-
-# This is only necessary to path it during test, because the HTTP client interface differs in test
-def get_json(response):
-    return response.json()
-
-
-# This is only necessary to path it during test, because the HTTP client interface differs in test
-def get_length(response):
-    return len(response.content)
+from .api import Auth
 
 
 class QueryError(Exception):
     pass
-
-
-class KeycloakAuthenticator(bravado_requests_client.Authenticator):
-    def __init__(self, host, user, password, **kwargs):
-        super().__init__(host=host)
-        self.user = user
-        self.password = password
-        self.token = None
-        self.__oidc = KeycloakOpenID(**kwargs)
-
-    def apply(self, request=None):
-        if self.token is None:
-            self.token = self.__oidc.token(username=self.user, password=self.password)
-            self.token['time'] = time.time()
-        elif self.token['expires_in'] < int(time.time()) - self.token['time'] + 10:
-            try:
-                self.token = self.__oidc.refresh_token(self.token['refresh_token'])
-                self.token['time'] = time.time()
-            except Exception:
-                self.token = self.__oidc.token(username=self.user, password=self.password)
-                self.token['time'] = time.time()
-
-        if request:
-            request.headers.setdefault('Authorization', 'Bearer %s' % self.token['access_token'])
-            return request
-        else:
-            return dict(Authorization='Bearer %s' % self.token['access_token'])
 
 
 class ApiStatistics(mi.MSection):
@@ -245,10 +192,10 @@ class ProcState:
     '''
     def __init__(self, archive_query: 'ArchiveQuery'):
         self.url = archive_query.url
+        self.query_and_list = archive_query.query_and_list
         self.request: Dict[str, Any] = dict(
-            query={'$and': archive_query.query},
-            required=archive_query.required,
-            raise_errors=archive_query.raise_errors)
+            owner='visible',
+            required=archive_query.required)
         self.per_page = archive_query.per_page
         self.authentication = archive_query.authentication
 
@@ -267,20 +214,25 @@ def _run_proc(proc_state: ProcState) -> ProcState:
     on its state. Will create a new state. Otherwise it is completely stateless.
     '''
     try:
-        url = '%s/%s/%s' % (proc_state.url, 'archive', 'query')
+        url = f'{proc_state.url}/v1/entries/archive/query'
 
         # create the query
-        proc_state.request['query']['upload_id'] = proc_state.upload_ids
-        aggregation = proc_state.request.setdefault('aggregation', {'per_page': proc_state.per_page})
+        query_and_list = list(proc_state.query_and_list)
+        query_and_list.append({'upload_id:any': proc_state.upload_ids})
+        proc_state.request['query'] = {'and': query_and_list}
+        proc_state.request.setdefault('pagination', {'page_size': proc_state.per_page})
         if proc_state.after is not None:
-            aggregation['after'] = proc_state.after
+            proc_state.request['pagination']['page_after_value'] = proc_state.after
 
         # run the query
-        response = requests.post(url, headers=proc_state.authentication, json=proc_state.request)
+        response = requests.post(url, auth=proc_state.authentication, json=proc_state.request)
+        response_json = response.json()
         if response.status_code != 200:
+            if response.status_code == 422:
+                raise QueryError(f'The query is invalid (422): {response_json["detail"]}')
             if response.status_code == 400:
-                message = get_json(response).get('message')
-                errors = get_json(response).get('errors')
+                message = response_json.get('message')
+                errors = response_json.get('errors')
                 if message:
                     raise QueryError('%s: %s' % (message, errors))
                 raise QueryError('The query is invalid for unknown reasons (400).')
@@ -288,11 +240,10 @@ def _run_proc(proc_state: ProcState) -> ProcState:
                 'The query is invalid for unknown reasons (%d).' % response.status_code)
 
         # update the state
-        proc_state.data_size += get_length(response)
-        data = get_json(response)
-        proc_state.results = data.get('results', [])
-        proc_state.after = data['aggregation'].get('after', None)
-        proc_state.total = data['aggregation'].get('total', 0)
+        proc_state.data_size += len(response.content)
+        proc_state.results = response_json['data']
+        proc_state.after = response_json['pagination'].get('next_page_after_value', None)
+        proc_state.total = response_json['pagination']['total']
     except Exception as e:
         proc_state.error = e
 
@@ -320,9 +271,6 @@ class ArchiveQuery(collections.abc.Sequence):
         max: Optionally determine the maximum amount of downloaded archives. The iteration
             will stop if max is surpassed even if more results are available. Default is 10.000.
             None value will set it to unlimited.
-        raise_errors: There situations where archives for certain entries are unavailable.
-            If set to True, this cases will raise an Exception. Otherwise, the entries
-            with missing archives are simply skipped (default).
         authentication: Optionally provide detailed authentication information. Usually,
             providing ``username`` and ``password`` should suffice.
         parallel: Number of processes to use to retrieve data in parallel. Only data
@@ -335,35 +283,38 @@ class ArchiveQuery(collections.abc.Sequence):
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
             parallel: int = 1, per_page: int = 10, max: int = 10000,
-            raise_errors: bool = False,
-            authentication: Union[Dict[str, str], KeycloakAuthenticator] = None):
+            authentication: Auth = None):
 
         self.page = 1
         self.parallel = parallel
         self.per_page = per_page
         self.max = max
 
-        self.query: List[dict] = []
+        self.query_and_list: List[dict] = []
         if query is not None:
-            self.query.append(query)
+            self.query_and_list.append(query)
 
-        self.raise_errors = raise_errors
         self.required = required if required is not None else dict(run='*')
-        if required is not None and isinstance(required, dict):
-            # We try to add all required properties to the query to ensure that only
-            # results with those properties are returned.
-            quantities = set()
-            required_specs = [required]
-            while len(required_specs) > 0:
-                for key, value in required_specs.pop().items():
-                    section_name = key.split('[')[0]
-                    quantities.add(section_name)
-                    if isinstance(value, dict):
-                        required_specs.append(value)
 
-            self.query.append({'dft.quantities': list(quantities)})
-            if 'domain' not in self.query:
-                self.query.append({'domain': 'dft' if 'section_experiment' not in quantities else 'ems'})
+        # We try to add all required properties to the query to ensure that only
+        # results with those properties are returned.
+        quantities = set()
+
+        def collect(required, parent_def_name: str = None):
+            if not isinstance(required, dict):
+                return
+
+            for key, value in required.items():
+                def_name = key.split('[')[0]
+                qualified_def_name = def_name
+                if parent_def_name:
+                    qualified_def_name = f'{parent_def_name}.{def_name}'
+
+                quantities.add(qualified_def_name)
+                collect(value, qualified_def_name)
+
+        collect(required)
+        self.query_and_list.append({'quantities': list(quantities)})
 
         self.password = password
         self.username = username
@@ -382,18 +333,7 @@ class ArchiveQuery(collections.abc.Sequence):
         provided.
         '''
         if self._authentication is None and self.username is not None and self.password is not None:
-            host = urlparse(self.url).netloc.split(':')[0]
-            self._authentication = KeycloakAuthenticator(
-                host=host,
-                user=self.username,
-                password=self.password,
-                server_url=config.keycloak.server_url,
-                realm_name=config.keycloak.realm_name,
-                client_id=config.keycloak.client_id)
-
-        if isinstance(self._authentication, KeycloakAuthenticator):
-            return self._authentication.apply()
-
+            self._authentication = Auth(self.username, self.password)
         else:
             return self._authentication
 
@@ -407,32 +347,51 @@ class ArchiveQuery(collections.abc.Sequence):
         nentries = 0
 
         # acquire all uploads and how many entries they contain
-        url = '%s/repo/quantity/upload_id?%s' % (
-            self.url, urlencode(dict(query=json.dumps({'$and': self.query}))))
+        url = f'{self.url}/v1/entries/query'
         after: str = None
 
         while True:
-            response = requests.get(
-                url if after is None else '%s&after=%s&size=1000' % (url, after),
-                headers=self.authentication)
+            uploads_request = {
+                'owner': 'visible',
+                'query': {
+                    'and': self.query_and_list
+                },
+                'pagination': {
+                    'page_size': 0
+                },
+                'aggregations': {
+                    'uploads': {
+                        'terms': {
+                            'quantity': 'upload_id',
+                            'pagination': {
+                                'page_size': 100,
+                                'page_after_value': after
+                            }
+                        }
+                    }
+                }
+            }
+            response = requests.post(url, json=uploads_request, auth=self.authentication)
+            response_json = response.json()
 
             if response.status_code != 200:
                 if response.status_code == 400:
-                    raise Exception(response.json()['description'])
-
+                    raise Exception(response_json['description'])
+                if response.status_code == 422:
+                    raise Exception(response_json['detail'])
                 raise Exception(
                     'Error requesting NOMAD API: HTTP %d' % response.status_code)
 
-            response_data = get_json(response)
-            after = response_data['quantity']['after']
-            values = response_data['quantity']['values']
+            agg_data = response_json['aggregations']['uploads']['terms']
+            after = agg_data['pagination'].get('next_page_after_value', None)
+            values = {bucket['value']: bucket for bucket in agg_data['data']}
 
             if len(values) == 0:
                 break
 
             uploads.update(values)
             for upload in values.values():
-                nentries += upload['total']
+                nentries += upload['count']
 
             if self.max is not None and nentries >= self.max:
                 break
@@ -450,13 +409,14 @@ class ArchiveQuery(collections.abc.Sequence):
         self._proc_states = []
         nentries_per_proc = math.ceil(nentries / self.parallel)
         proc_state = ProcState(self)
+
         for upload_id, upload_data in uploads.items():
             if proc_state.nentries >= nentries_per_proc:
                 self._proc_states.append(proc_state)
                 proc_state = ProcState(self)
 
             proc_state.upload_ids.append(upload_id)
-            proc_state.nentries += upload_data['total']
+            proc_state.nentries += upload_data['count']
 
         self._proc_states.append(proc_state)
         self._total = nentries

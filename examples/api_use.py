@@ -1,17 +1,25 @@
-"""
-This is a brief example on how to use the public nomad@FAIRDI API.
-"""
+'''
+This is a brief example on how to use the public API.
+'''
+import requests
 
-from bravado.client import SwaggerClient
+from nomad import config
 
-nomad_url = 'http://nomad-lab.eu/prod/rae/api'
 
-# create the bravado client
-client = SwaggerClient.from_url('%s/swagger.json' % nomad_url)
+nomad_url = config.client.url
 
 # perform the search request to print number of public entries
-data = client.repo.search(atoms=['Si', 'O']).response().result
+response = requests.post(
+    f'{nomad_url}/v1/entries',
+    json={
+        'query': {
+            'results.material.elements:any': ['Si', 'O']
+        }
+    })
+response_data = response.json()
+
 # print the total ammount of search results
-print(data.pagination.total)
+print(response_data['pagination']['total'])
+
 # print the data of the first result
-print(data.results[0])
+print(response_data['data'][0])

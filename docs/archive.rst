@@ -7,4 +7,4 @@ Of course, you can access the NOMAD Archive directly via the NOMAD API (see the 
 and `API reference <api.html>`_). But, it is more effective and convenient to use NOMAD's Python client
 library.
 
-.. automodule:: nomad.client
+.. automodule:: nomad.client.archive

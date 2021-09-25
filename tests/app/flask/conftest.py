@@ -17,12 +17,8 @@
 #
 
 import pytest
-from bravado.client import SwaggerClient
 
 from nomad.app.flask import app as flask_app
-
-from .bravado import FlaskTestHttpClient
-from ..conftest import admin_user_auth, test_user_auth  # pylint: disable=unused-import
 
 
 @pytest.fixture(scope='session')
@@ -39,36 +35,3 @@ def client(mongo, session_client):
     client = flask_app.test_client()
 
     yield client
-
-
-@pytest.fixture(scope='function')
-def bravado(client, test_user_auth):
-    http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-    return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-
-@pytest.fixture(scope='function')
-def admin_user_bravado_client(client, admin_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=admin_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def test_user_bravado_client(client, test_user_auth, monkeypatch):
-    def create_client():
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.create_client', create_client)
-
-
-@pytest.fixture(scope='function')
-def oasis_central_nomad_client(client, test_user_auth, monkeypatch):
-    def create_client(*args, **kwargs):
-        http_client = FlaskTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)

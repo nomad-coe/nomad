@@ -1236,18 +1236,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 to filter the included quantities and sub sections. Only applied to
                 properties of this section, not on sub-sections. Is overwritten
                 by partial.
-            partial: A function that determines if a definition should be included in
-                the output dictionary. Takes a definition and the containing section
-                as arguments. Two default functions can be used by providing a
-                string instead:
-
-                - 'mongo': Only include quantities that have an a_mongo
-                  annotation.
-                - 'es': Only include quantities that have an a_elastic or
-                  an an a_search annotation.
-
-                Partial is applied recursively on sub-sections. Overrides
-                categories.
             include: A function that determines if a property (quantity or sub-section) will
                 be included in the results. It takes the property definition and the current
                 section as arguments. The function returns true for including and false for
@@ -1652,6 +1640,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         while len(path_stack) > 0:
             prop_name = path_stack.pop()
             prop_def = context.m_def.all_properties.get(prop_name, None)
+
+            if prop_def is None:
+                prop_def = context.m_def.all_aliases.get(prop_name, None)
 
             if prop_def is None:
                 raise ReferenceError(

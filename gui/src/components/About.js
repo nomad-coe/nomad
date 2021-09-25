@@ -21,7 +21,6 @@ import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import packageJson from '../../package.json'
-import { domainData } from './domainData'
 import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 import tutorials from '../toolkitMetadata'
@@ -354,10 +353,8 @@ export default function About() {
         ${debug ? `
         ### Material science data and domains
         Originally NOMAD was build for DFT calculations and data from the respective
-        community code. By NOMAD supports multiple materials science domains:
-
-        ${info && info.domains.map(domain => domainData[domain.name]).map(domain => `- ${domain.name}: ${domain.about}`).join('\n')}
-        ` : ''}
+        community codes. But NOMAD is now extended to support multiple materials science domains,
+        such as experiments, synthesis, and computational methods at different scales.` : ''}
 
         ${debug ? `
         ### Log management with Elastic stack
@@ -381,13 +378,12 @@ export default function About() {
         ### About this version
         - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`
         - version (GUI): \`${packageJson.version}/${packageJson.commit}\`
-        - domains: ${info ? Object.keys(info.domains).map(domain => info.domains[domain].name).join(', ') : 'loading'}
         - git: \`${info ? info.git.ref : 'loading'}; ${info ? info.git.version : 'loading'}\`
         - last commit message: *${info ? info.git.log : 'loading'}*
         - supported codes: ${info ? info.codes.map(code => code.code_name).join(', ') : 'loading'}
         - parsers: ${info ? info.parsers.join(', ') : 'loading'}
         - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
-      `}</Markdown>
+        `}</Markdown>
       </Grid>
     </Grid>
   </div>

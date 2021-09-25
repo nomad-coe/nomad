@@ -30,11 +30,11 @@ from nomad import utils, config, files, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
 from nomad.utils import strip
-from nomad.search.v1 import search
+from nomad.search import search
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
-    BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
+    BaseModel, MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
     Files, files_parameters, WithQuery)
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem,
@@ -458,7 +458,7 @@ async def get_upload_entries(
             'entry_id:any': list([entry.entry_id for entry in entries])
         }).query
     metadata_entries = search(
-        pagination=Pagination(page_size=len(entries)),
+        pagination=MetadataPagination(page_size=len(entries)),
         owner='admin' if user.is_admin else 'visible',
         user_id=user.user_id,
         query=metadata_entries_query)
@@ -510,7 +510,7 @@ async def get_upload_entry(
 
     # load entries's metadata from search
     metadata_entries = search(
-        pagination=Pagination(page_size=1),
+        pagination=MetadataPagination(page_size=1),
         owner='admin' if user.is_admin else 'visible',
         user_id=user.user_id,
         query=dict(entry_id=entry.entry_id))
@@ -1318,7 +1318,7 @@ async def _get_file_if_provided(
                 logger.warn('IO error receiving upload data', exc_info=e)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='Some IO went wrong, download probably aborted/disrupted.')
+                    detail='Some IO went wrong, upload probably aborted/disrupted.')
 
     if not uploaded_bytes and method == 2:
         # No data was provided

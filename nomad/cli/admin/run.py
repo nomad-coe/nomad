@@ -17,8 +17,6 @@
 #
 
 import click
-import asyncio
-from concurrent import futures as concurrent_futures
 
 from nomad import config
 from .admin import admin
@@ -35,7 +33,7 @@ def worker():
 
 
 @run.command(help='Run the nomad development app with all apis.')
-@click.option('--debug', help='Does run flask in debug.', is_flag=True)
+@click.option('--debug', help='Does run app in debug.', is_flag=True)
 @click.option('--with-chaos', type=int, default=0, help='Enable a certain percentage of chaos.')
 def app(debug: bool, with_chaos: int):
     config.services.api_chaos = with_chaos
@@ -61,6 +59,9 @@ def run_worker():
 
 @run.command(help='Run both app and worker.')
 def appworker():
+    from concurrent import futures as concurrent_futures
+    import asyncio
+
     executor = concurrent_futures.ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, run_app)

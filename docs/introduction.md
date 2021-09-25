@@ -88,15 +88,12 @@ provide functions for registering, password forget, editing user accounts, and s
 sign on of fairdi@nomad and other related services.
 
 
-### flask, et al.
+### FastAPI
 
-The ReSTful API is build with the [flask](http://flask.pocoo.org/docs/1.0/)
-framework and its [ReST+](https://flask-restplus.readthedocs.io/en/stable/) extension. This
-allows us to automatically derive a [swagger](https://swagger.io/) description of the nomad API,
-which in  turn allows us to generate programming language specific client libraries, e.g. we
-use [bravado](https://github.com/Yelp/bravado) for Python and
-[swagger-js](https://github.com/swagger-api/swagger-js) for Javascript.
-Fruthermore, you can browse and use the API via [swagger-ui](https://swagger.io/tools/swagger-ui/).
+The ReSTful API is build with the [FastAPI](https://fastapi.tiangolo.com/)
+framework. This allows us to automatically derive a [OpenAPI](https://swagger.io/specification/) description
+of the nomad API.
+Fruthermore, you can browse and use the API via [OpenAPI dashboard](https://swagger.io/tools/swagger-ui/).
 
 
 ### Elasticstack

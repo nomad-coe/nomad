@@ -40,7 +40,7 @@ from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
 from nomad.archive import ArchiveQueryError
 from nomad.search import AuthenticationRequiredError, SearchError, update_metadata as es_update_metadata
-from nomad.search.v1 import search, QueryValidationError
+from nomad.search import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
@@ -337,7 +337,7 @@ def perform_search(*args, **kwargs):
 
 
 @router.post(
-    '/query', tags=['entries/metadata'],
+    '/query', tags=[metadata_tag],
     summary='Search entries and retrieve their metadata',
     response_model=MetadataResponse,
     responses=create_responses(_bad_owner_response),
@@ -1156,7 +1156,7 @@ _editable_quantities = {
 
 @router.post(
     '/edit',
-    tags=[archive_tag],
+    tags=[metadata_tag],
     summary='Edit the user metadata of a set of entries',
     response_model=EntryMetadataEditResponse,
     response_model_exclude_unset=True,
@@ -1297,7 +1297,7 @@ async def post_entry_metadata_edit(
 
                 doi_ds = datamodel.Dataset.m_def.a_mongo.objects(
                     dataset_id__in=removed_datasets, doi__ne=None).first()
-                if doi_ds is not None:
+                if doi_ds is not None and not user.is_admin:
                     data.success = False
                     data.message = (data.message if data.message else '') + (
                         'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.name)

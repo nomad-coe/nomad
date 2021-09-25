@@ -27,7 +27,7 @@ import zipfile
 import os.path
 
 from nomad import search, files
-from nomad.datamodel import EntryMetadata, EntryArchive, DFTMetadata, Results
+from nomad.datamodel import EntryMetadata, EntryArchive, Results
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from tests.normalizing.conftest import run_normalize
@@ -260,8 +260,7 @@ class ExampleData:
             material_id: str = None,
             mainfile: str = None,
             results: Union[Results, dict] = None,
-            dft: Union[DFTMetadata, dict] = None,
-            archive: dict = None, **kwargs):
+            archive: dict = None, **kwargs) -> EntryArchive:
 
         if entry_id is None:
             entry_id = calc_id
@@ -306,26 +305,6 @@ class ExampleData:
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
         entry_metadata.m_update(**kwargs)
-
-        # create v0 default data
-        if entry_archive.metadata.dft is None:
-            if dft is None:
-                dft = {
-                    'xc_functional': 'GGA',
-                    'code_name': 'VASP',
-                    'n_calculations': 1,
-                    'atoms': ['H', 'O'],
-                    'n_atoms': 2
-                }
-            if isinstance(dft, dict):
-                for key in ['atoms', 'n_atoms']:
-                    if key in dft:
-                        setattr(entry_metadata, key, dft.pop(key))
-                section_dft = DFTMetadata.m_from_dict(dft)
-            else:
-                section_dft = dft
-            assert isinstance(section_dft, DFTMetadata)
-            entry_metadata.m_add_sub_section(EntryMetadata.dft, section_dft)
 
         # create v1 default data
         if entry_archive.results is None:
@@ -426,10 +405,11 @@ class ExampleData:
         run_normalize(archive)
         entry_metadata = archive.metadata
         entry_metadata.domain = 'dft'
-        entry_metadata.apply_domain_metadata(archive)
+        entry_metadata.apply_archvie_metadata(archive)
 
         if not optimade:
-            entry_metadata.dft.optimade = None
+            entry_metadata.optimade = None
+            entry_metadata.quantities.remove('metadata.optimade')
 
         if metadata is not None:
             kwargs = metadata

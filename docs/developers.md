@@ -305,22 +305,6 @@ Here are some example launch configs for VSCode:
       "webRoot": "${workspaceFolder}/gui"
     },
     {
-      "name": "Python: API Flask (0.11.x or later)",
-      "type": "python",
-      "request": "launch",
-      "module": "flask",
-      "env": {
-        "FLASK_APP": "nomad/app/__init__.py"
-      },
-      "args": [
-        "run",
-        "--port",
-        "8000",
-        "--no-debugger",
-        "--no-reload"
-      ]
-    },
-    {
       "name": "Python: some test",
       "type": "python",
       "request": "launch",

@@ -41,10 +41,9 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
 import json
 from functools import lru_cache
-import urllib.parse
 import requests
 
-from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
+from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
 from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
@@ -499,7 +498,7 @@ class Calc(Proc):
                     'could not apply entry metadata to entry', exc_info=e)
 
             try:
-                self._entry_metadata.apply_domain_metadata(self._parser_results)
+                self._entry_metadata.apply_archvie_metadata(self._parser_results)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
@@ -604,9 +603,6 @@ class Calc(Proc):
             # new timestamp and method details taken from the referenced
             # archive.
             self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.dft.xc_functional = ref_archive.metadata.dft.xc_functional
-            self._entry_metadata.dft.basis_set = ref_archive.metadata.dft.basis_set
-            self._entry_metadata.dft.update_group_hash()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
@@ -667,7 +663,7 @@ class Calc(Proc):
         self.set_process_step('archiving')
         logger = self.get_logger()
 
-        self._entry_metadata.apply_domain_metadata(self._parser_results)
+        self._entry_metadata.apply_archvie_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
         if self.upload.publish_directly:
@@ -992,89 +988,6 @@ class Upload(Proc):
                     self.save()
 
     @process
-    def publish_from_oasis(self):
-        '''
-        Uploads the already published upload to a different NOMAD deployment. This allows
-        to push uploads from an OASIS to the central NOMAD.
-        NOTE: This is the "old" way of publishing to central nomad. We want to switch to
-        using bundles instead, so this method should eventually be removed.
-        '''
-        assert self.published, \
-            'Only published uploads can be published to the central NOMAD.'
-        assert config.oasis.central_nomad_deployment_id not in self.published_to, \
-            'Upload is already published to the central NOMAD.'
-        assert self.embargo_length == 0, 'Upload must not be under embargo'
-
-        from nomad.cli.client.client import _create_client as create_client
-        central_nomad_client = create_client(
-            user=config.keycloak.username,
-            password=config.keycloak.password,
-            api_base_url=config.oasis.central_nomad_api_url,
-            use_token=False)
-
-        # compile oasis metadata for the upload
-        upload_metadata = dict(upload_time=str(self.upload_time))
-        upload_metadata_entries = {}
-        upload_metadata_datasets = {}
-        for calc in self.calcs:
-            entry_metadata = dict(**{
-                key: str(value) if isinstance(value, datetime) else value
-                for key, value in calc.metadata.items()
-                if key in _editable_metadata or key in _oasis_metadata})
-            entry_metadata['calc_id'] = calc.calc_id
-            upload_metadata_entries[calc.mainfile] = entry_metadata
-            if 'datasets' in entry_metadata:
-                for dataset_id in entry_metadata['datasets']:
-                    if dataset_id in upload_metadata_datasets:
-                        continue
-
-                    dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id)
-                    upload_metadata_datasets[dataset_id] = dataset.m_to_dict()
-
-        upload_metadata['entries'] = upload_metadata_entries
-        upload_metadata['oasis_datasets'] = {
-            dataset['name']: dataset for dataset in upload_metadata_datasets.values()}
-        oasis_upload_id, upload_metadata = _normalize_oasis_upload_metadata(
-            self.upload_id, upload_metadata)
-
-        self.last_status_message = 'Compiled metadata to upload to the central NOMAD.'
-        self.save()
-
-        assert len(upload_metadata_entries) > 0, \
-            'Only uploads with public contents can be published to the central NOMAD.'
-
-        # add oasis metadata to the upload
-        public_upload_files = cast(PublicUploadFiles, self.upload_files)
-        public_upload_files.add_metadata_file(upload_metadata)
-        file_to_upload = public_upload_files.raw_zip_file_object().os_path
-
-        self.last_status_message = 'Prepared the upload for uploading to central NOMAD.'
-        self.save()
-
-        # upload to central NOMAD
-        oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
-        upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
-        upload_parameters = dict(
-            oasis_upload_id=oasis_upload_id,
-            oasis_uploader_id=self.user_id,
-            oasis_deployment_id=config.meta.deployment_id)
-        upload_url = '%s/uploads/?%s' % (
-            config.oasis.central_nomad_api_url,
-            urllib.parse.urlencode(upload_parameters))
-
-        with open(file_to_upload, 'rb') as f:
-            response = requests.put(upload_url, headers=upload_headers, data=f)
-
-        if response.status_code != 200:
-            self.get_logger().error(
-                'Could not upload to central NOMAD', status_code=response.status_code)
-            self.last_status_message = 'Could not upload to central NOMAD.'
-            return
-
-        self.published_to.append(config.oasis.central_nomad_deployment_id)
-        self.last_status_message = 'Successfully uploaded to central NOMAD.'
-
-    @process
     def publish_externally(self, embargo_length: int = None):
         '''
         Uploads the already published upload to a different NOMAD deployment. This is used
@@ -1085,13 +998,6 @@ class Upload(Proc):
             'Only published uploads can be published to the central NOMAD.'
         assert config.oasis.central_nomad_deployment_id not in self.published_to, \
             'Upload is already published to the central NOMAD.'
-
-        from nomad.cli.client.client import _create_client as create_client
-        central_nomad_client = create_client(
-            user=config.keycloak.username,
-            password=config.keycloak.password,
-            api_base_url=config.oasis.central_nomad_api_url,
-            use_token=False)
 
         tmp_dir = create_tmp_dir('export_' + self.upload_id)
         bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
@@ -1108,21 +1014,22 @@ class Upload(Proc):
             self.save()
 
             # upload to central NOMAD
-            oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
-            upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
+            upload_auth = client.Auth(
+                user=config.keycloak.username,
+                password=config.keycloak.password)
             upload_parameters: Dict[str, Any] = {}
             if embargo_length is not None:
                 upload_parameters.update(embargo_length=embargo_length)
-            upload_url = '%s/uploads/bundle?%s' % (
-                config.oasis.central_nomad_api_url,
-                urllib.parse.urlencode(upload_parameters))
+            upload_url = f'{config.oasis.central_nomad_api_url}/v1/uploads/bundle'
 
             with open(bundle_path, 'rb') as f:
-                response = requests.post(upload_url, headers=upload_headers, data=f)
+                response = requests.post(
+                    upload_url, params=upload_parameters, data=f, auth=upload_auth)
 
             if response.status_code != 200:
                 self.get_logger().error(
-                    'Could not upload to central NOMAD', status_code=response.status_code)
+                    'Could not upload to central NOMAD',
+                    status_code=response.status_code, body=response.text)
                 self.last_status_message = 'Could not upload to central NOMAD.'
                 return
 

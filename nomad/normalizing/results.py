@@ -200,7 +200,7 @@ class ResultsNormalizer(Normalizer):
         except Exception:
             encyclopedia = None
         try:
-            optimade = self.entry_archive.metadata.dft.optimade
+            optimade = self.entry_archive.metadata.optimade
         except Exception:
             optimade = None
 

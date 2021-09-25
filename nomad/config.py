@@ -132,23 +132,10 @@ fs = NomadConfig(
     working_directory=os.getcwd()
 )
 
-
-# TODO Adds an alias to point v0 and v1 entries index to the same name
-class ElasticConfig(NomadConfig):
-    def __getattr__(self, name):
-        if name == 'entries_index':
-            return self.index_name
-
-        return super().__getattr__(name)
-
-
-elastic = ElasticConfig(
+elastic = NomadConfig(
     host='localhost',
     port=9200,
-    # the old v0 indices (entry index "index_name" is also used by v1)
-    index_name='nomad_fairdi_calcs',
-    materials_index_name='nomad_fairdi_materials',
-    # the new v1 indices
+    entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )
 
@@ -203,6 +190,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True, api: str = 'api'):
+    '''
+    Returns the url of the current running nomad API. This is for server-side use.
+    This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
+    '''
     protocol = 'https' if services.https and ssl else 'http'
     host_and_port = services.api_host.strip('/')
     if services.api_port not in [80, 443]:
@@ -473,6 +464,9 @@ def _apply_nomad_yaml():
         except yaml.YAMLError as e:
             logger.error(f'cannot read nomad config: {e}')
             return
+
+    if not config_data:
+        return
 
     for key, value in config_data.items():
         if isinstance(value, dict):

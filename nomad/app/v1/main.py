@@ -37,14 +37,24 @@ app = FastAPI(
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='NOMAD API',
     version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
-    description=utils.strip('''
-        **Disclaimer!** This is the new NOMAD API. It is still under development and only includes a
-        part of the NOMAD API functionality. You can still use the old flask-based API
-        as `/api` and the optimade API as `/optimade/v1`.
-
+    description=utils.strip(f'''
         ## Getting started
 
-        ... TODO put the examples and tutorial here ...
+        Here is a simple example on how to execute a search with Python and requests:
+        ```python
+        import requests
+
+        response = requests.post(
+            '{config.client.url}/v1/entry/query',
+            json={{
+                'query': {{
+                    'results.material.elements:any': ['Si', 'O']
+                }}
+            }})
+        response_data = response.json()
+        n_search_results = response_data['pagination']['total']
+        search_results = response_data['data']
+        ```
 
         ## Conventions
 
@@ -103,9 +113,33 @@ app = FastAPI(
         the API needs to authenticate you.
 
         The NOMAD API uses OAuth and tokens to authenticate users. We provide simple operations
-        that allow you to acquire an *access token* via username and password based
-        authentication (`/auth/token`). The resulting access token can then be used on all operations
-        (e.g. that support or require authentication).
+        that allow you to acquire an *access token* via username and password based:
+
+        ```
+        import requests
+
+        response = requests.get(
+            '{config.client.url}/v1/auth/token', params=dict(username='myname', password='mypassword'))
+        token = response.json()['access_token']
+
+        response = requests.get(
+            '{config.client.url}/v1/uploads',
+            headers={{'Authorization': f'Bearer {{token}}'}})
+        uploads = response.json()['data']
+        ```
+
+        If you have the `nomad-lab` Python module installed. You can use its `Auth`
+        implementation:
+
+        ```
+        import requests
+        from nomad.client import Auth
+
+        response = requests.get(
+            '{config.client.url}/v1/uploads',
+            auth=Auth(user='myname or email', password='mypassword'))
+        uploads = response.json()['data']
+        ```
 
         To use authentication in the dashboard, simply use the Authorize button. The
         dashboard GUI will manage the access token and use it while you try out the various

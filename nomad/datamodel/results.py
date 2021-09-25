@@ -32,6 +32,7 @@ from nomad.metainfo import (
     Quantity,
     MEnum,
     Package,
+    Datetime
 )
 
 m_package = Package()
@@ -117,7 +118,6 @@ core_electron_treatments = [
 
 class ChannelInfo(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains information about each present spin channel.
         """
@@ -177,7 +177,6 @@ class ChannelInfo(MSection):
 
 class WyckoffSet(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Section for storing Wyckoff set information. Only available for
         conventional cells that have undergone symmetry analysis.
@@ -224,7 +223,6 @@ class WyckoffSet(MSection):
 
 class LatticeParameters(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Lattice parameters of a cell.
         """,
@@ -278,7 +276,6 @@ class LatticeParameters(MSection):
 
 class Structure(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Describes an atomistic structure.
         """
@@ -356,7 +353,6 @@ class Structure(MSection):
 
 class StructureOriginal(Structure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains a selected representative structure from the the original
         data.
@@ -366,7 +362,6 @@ class StructureOriginal(Structure):
 
 class StructurePrimitive(Structure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the primitive structure that is derived from
         structure_original. This primitive stucture has been idealized and the
@@ -377,7 +372,6 @@ class StructurePrimitive(Structure):
 
 class StructureConventional(Structure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the conventional structure that is derived from
         structure_original. This conventional stucture has been idealized and
@@ -389,7 +383,6 @@ class StructureConventional(Structure):
 
 class StructureOptimized(Structure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains a structure that is the result of a geometry optimization.
         """
@@ -398,7 +391,6 @@ class StructureOptimized(Structure):
 
 class Structures(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains full atomistic representations of the material in different
         forms.
@@ -420,7 +412,6 @@ class Structures(MSection):
 
 class Symmetry(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Section containing information about the symmetry of the material. All
         of these properties are derived by running a symmetry analysis on a
@@ -551,7 +542,6 @@ class Symmetry(MSection):
 
 class Material(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains information that is specific to bulk crystalline materials.
         """
@@ -562,7 +552,7 @@ class Material(MSection):
         A fixed length, unique material identifier in the form of a hash
         digest.
         """,
-        a_elasticsearch=Elasticsearch(material_type)
+        a_elasticsearch=Elasticsearch(material_type, metrics=dict(n_materials='cardinality'))
     )
     material_name = Quantity(
         type=str,
@@ -692,7 +682,6 @@ class Material(MSection):
 
 class DFT(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Methodology for a DFT calculation.
         """
@@ -769,7 +758,6 @@ class DFT(MSection):
 
 class GW(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Methodology for a GW calculation.
         """
@@ -790,7 +778,6 @@ class GW(MSection):
 
 class GeometryOptimizationMethod(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Geometry optimization methodology. This methodology applies to the
         properties presented in results.properties.geometry_optimization.
@@ -805,7 +792,6 @@ class GeometryOptimizationMethod(MSection):
 
 class MolecularDynamicsMethod(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Molecular dynamics methodology. This methodology applies to the
         properties presented in results.properties.molecular_dynamics.
@@ -815,7 +801,6 @@ class MolecularDynamicsMethod(MSection):
 
 class VibrationalMethod(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Vibrational properties methodology. This methodology applies to the
         properties presented in results.properties.vibrational.
@@ -829,7 +814,6 @@ class VibrationalMethod(MSection):
 
 class ElasticMethod(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Elastic properties methodology. This methodology applies to the
         properties presented in results.properties.elastic.
@@ -842,9 +826,24 @@ class ElasticMethod(MSection):
     strain_maximum = Elastic.strain_maximum.m_copy()
 
 
+class QuantumCircuit(MSection):
+    processors = Quantity(type=str, shape=['0..*'])
+    number_of_registers = Quantity(type=int)
+    simulated = Quantity(type=bool)
+
+
+class QuantumCMS(MSection):
+    transformation = Quantity(type=str)
+    quantum_computer_system = Quantity(type=str)
+    quantum_computing_libraries = Quantity(type=str, shape=['0..*'])
+    computation_datetime = Quantity(type=Datetime)
+    number_of_shots = Quantity(type=int)
+    quantum_volume = Quantity(type=int)
+    quantum_circuit = SubSection(sub_section=QuantumCircuit)
+
+
 class Simulation(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains method details for a simulation entry.
         """
@@ -873,11 +872,11 @@ class Simulation(MSection):
     molecular_dynamics = SubSection(sub_section=MolecularDynamicsMethod.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalMethod.m_def, repeats=False)
     elastic = SubSection(sub_section=ElasticMethod.m_def, repeats=False)
+    quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
 
 
 class Method(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains a summary of the methodology that has been used in this entry.
         This methodology applies to all of the reported properties and
@@ -909,7 +908,6 @@ class Method(MSection):
 
 class DOS(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Base class for density of states information.
         """,
@@ -933,7 +931,6 @@ class DOS(MSection):
 
 class DOSPhonon(DOS):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the total phonon density of states.
         """,
@@ -942,7 +939,6 @@ class DOSPhonon(DOS):
 
 class DOSElectronic(DOS):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the total electronic density of states.
         """,
@@ -972,7 +968,6 @@ class DOSElectronic(DOS):
 
 class BandStructure(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Base class for band structure information.
         """,
@@ -1005,7 +1000,6 @@ class BandStructure(MSection):
 
 class BandStructurePhonon(BandStructure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         This section stores information on a vibrational band structure
         evaluation along one-dimensional pathways in the reciprocal space.
@@ -1015,7 +1009,6 @@ class BandStructurePhonon(BandStructure):
 
 class BandStructureElectronic(BandStructure):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         This section stores information on a electonic band structure
         evaluation along one-dimensional pathways in the reciprocal space.
@@ -1046,7 +1039,6 @@ class BandStructureElectronic(BandStructure):
 
 class HeatCapacityConstantVolume(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the values of the specific (per mass) and isochoric (constant
         volume) heat capacity at different temperatures.
@@ -1069,7 +1061,6 @@ class HeatCapacityConstantVolume(MSection):
 
 class EnergyFreeHelmholtz(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the values of the Helmholtz free energy per atom at constant
         volume and at different temperatures.
@@ -1092,7 +1083,6 @@ class EnergyFreeHelmholtz(MSection):
 
 class GeometryOptimizationProperties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Properties from a geometry optimization.
         """,
@@ -1124,7 +1114,6 @@ class GeometryOptimizationProperties(MSection):
 
 class MolecularDynamicsProperties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Properties from molecular_dynamics.
         """,
@@ -1141,7 +1130,6 @@ class MolecularDynamicsProperties(MSection):
 
 class VibrationalProperties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Vibrational properties.
         """,
@@ -1154,7 +1142,6 @@ class VibrationalProperties(MSection):
 
 class ElectronicProperties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Electronic properties.
         """,
@@ -1165,7 +1152,6 @@ class ElectronicProperties(MSection):
 
 class ElasticProperties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Elastic properties.
         """,
@@ -1179,7 +1165,6 @@ class Spectra(MSection):
 
 class Properties(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains the physical properties that have been calculated or used in
         this entry.
@@ -1198,7 +1183,7 @@ class Properties(MSection):
         description="""
         The number of performed single configuration calculations.'
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_calculations='sum')),
     )
     available_properties = Quantity(
         type=str,
@@ -1210,7 +1195,6 @@ class Properties(MSection):
 
 class Results(MSection):
     m_def = Section(
-        a_flask=dict(skip_none=True),
         description="""
         Contains a summary of the entry contents.
         """

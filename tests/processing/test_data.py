@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from nomad.datamodel.datamodel import EntryArchive
 from typing import Generator, Tuple
 import pytest
 from datetime import datetime
@@ -31,12 +32,11 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.processing.data import generate_entry_id
-from nomad.search.v1 import search
+from nomad.search import search
 
-from tests.search import assert_search_upload
+from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.app.flask.conftest import client, oasis_central_nomad_client, session_client  # pylint: disable=unused-import
-from tests.app.conftest import test_users_dict, test_user_auth  # pylint: disable=unused-import
+from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -129,9 +129,6 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         # check some (domain) metadata
         assert entry_metadata.quantities
         assert len(entry_metadata.quantities) > 0
-
-        assert entry_metadata.n_atoms > 0
-        assert len(entry_metadata.atoms) > 0
         assert len(entry_metadata.processing_errors) == 0
 
         assert upload.get_calc(calc.calc_id) is not None
@@ -287,70 +284,6 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
 
 
-@pytest.fixture(scope='function')
-def oasis_publishable_upload(
-        client, proc_infra, non_empty_uploaded, oasis_central_nomad_client, monkeypatch,
-        other_test_user):
-
-    upload = run_processing(non_empty_uploaded, other_test_user)
-    upload.publish_upload()
-    upload.block_until_complete(interval=.01)
-
-    # create a dataset to also test this aspect of oasis uploads
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    datamodel.Dataset(
-        dataset_id='dataset_id', name='dataset_name',
-        user_id=other_test_user.user_id).a_mongo.save()
-    calc.metadata['datasets'] = ['dataset_id']
-    calc.save()
-
-    cn_upload_id = 'cn_' + upload.upload_id
-
-    # We need to alter the ids, because we do this test by uploading to the same NOMAD
-    def normalize_oasis_upload_metadata(upload_id, metadata):
-        for entry in metadata['entries'].values():
-            entry['calc_id'] = utils.create_uuid()
-        upload_id = 'cn_' + upload_id
-        return upload_id, metadata
-
-    monkeypatch.setattr(
-        'nomad.processing.data._normalize_oasis_upload_metadata',
-        normalize_oasis_upload_metadata)
-
-    def put(url, headers, data):
-        return client.put(url, headers=headers, data=data.read())
-
-    monkeypatch.setattr(
-        'requests.put', put)
-    monkeypatch.setattr(
-        'nomad.config.oasis.central_nomad_api_url', '/api')
-
-    return cn_upload_id, upload
-
-
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_publish_from_oasis(oasis_publishable_upload, other_test_user, no_warn):
-    cn_upload_id, upload = oasis_publishable_upload
-
-    upload.publish_from_oasis()
-    upload.block_until_complete()
-    assert_processing(upload, published=True, process='publish_from_oasis')
-
-    cn_upload = Upload.objects(upload_id=cn_upload_id).first()
-    cn_upload.block_until_complete()
-    assert_processing(cn_upload, published=True)
-    assert cn_upload.user_id == other_test_user.user_id
-    assert len(cn_upload.published_to) == 0
-    assert cn_upload.from_oasis
-    assert cn_upload.oasis_deployment_id == config.meta.deployment_id
-    assert upload.published_to[0] == config.oasis.central_nomad_deployment_id
-    cn_calc = Calc.objects(upload_id=cn_upload_id).first()
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    assert cn_calc.calc_id != calc.calc_id
-    assert cn_calc.metadata['datasets'] == ['dataset_id']
-    assert datamodel.Dataset.m_def.a_mongo.objects().count() == 1
-
-
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_warning(proc_infra, test_user, with_warn, tmp):
 
@@ -447,12 +380,14 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert changed archive files
     if with_failure == 'after':
-        with published.upload_files.read_archive(first_calc.calc_id) as archive:
-            assert list(archive[first_calc.calc_id].keys()) == ['processing_logs', 'metadata']
+        with published.upload_files.read_archive(first_calc.calc_id) as archive_reader:
+            assert list(archive_reader[first_calc.calc_id].keys()) == ['processing_logs', 'metadata']
+            archive = EntryArchive.m_from_dict(archive_reader[first_calc.calc_id].to_dict())
 
     else:
-        with published.upload_files.read_archive(first_calc.calc_id) as archive:
-            assert len(archive[first_calc.calc_id]) > 2  # contains more then logs and metadata
+        with published.upload_files.read_archive(first_calc.calc_id) as archive_reader:
+            assert len(archive_reader[first_calc.calc_id]) > 2  # contains more then logs and metadata
+            archive = EntryArchive.m_from_dict(archive_reader[first_calc.calc_id].to_dict())
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
@@ -460,14 +395,13 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     if with_failure not in ['after', 'not-matched']:
         assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
-    # assert changed calc metadata (mongo)
-    entry_metadata = first_calc.full_entry_metadata(published.upload_files)
+    # assert changed calc data
     if with_failure not in ['after', 'not-matched']:
-        assert entry_metadata.atoms[0] == 'H'
+        assert archive.results.material.elements[0] == 'H'
     elif with_failure == 'not-matched':
-        assert entry_metadata.atoms[0] == 'Si'
+        assert archive.results.material.elements[0] == 'Si'
     else:
-        assert entry_metadata.atoms == []
+        assert archive.results is None
 
 
 @pytest.mark.parametrize('publish,old_staging', [
@@ -607,8 +541,6 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
         with upload.upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
             assert 'metadata' in calc_archive
-            assert calc_archive['metadata']['dft']['code_name'] not in [
-                config.services.unavailable_value, config.services.not_processed_value]
             if function != 'cleanup':
                 assert len(calc_archive['metadata']['processing_errors']) > 0
             assert 'processing_logs' in calc_archive
@@ -643,7 +575,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
-    additional_keys = ['ems.method', 'ems.origin_time']
+    additional_keys = ['results.method.method_name', 'results.material.elements']
     assert upload.total_calcs == 2
     assert len(upload.calcs) == 2
 
@@ -655,7 +587,7 @@ def test_ems_data(proc_infra, test_user):
 def test_qcms_data(proc_infra, test_user):
     upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
 
-    additional_keys = ['qcms.chemical', 'formula']
+    additional_keys = ['results.method.simulation.program_name', 'results.material.elements']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 

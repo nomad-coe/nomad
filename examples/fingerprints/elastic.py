@@ -89,7 +89,7 @@ while True:
 
     if after is not None:
         request['aggs']['results']['composite']['after'] = after
-    res = infrastructure.elastic_client.search(index=config.elastic.index_name, body=request)
+    res = infrastructure.elastic_client.search(index=config.elastic.entries_index, body=request)
 
     if len(res['aggregations']['results']['buckets']) == 0:
         break

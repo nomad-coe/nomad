@@ -26,7 +26,6 @@ import asyncore
 import time
 import shutil
 import os.path
-from flask import request, g
 import elasticsearch.exceptions
 from typing import List
 import json
@@ -34,11 +33,13 @@ import logging
 import warnings
 import zipfile
 import os.path
+from fastapi.testclient import TestClient
 
 from nomad import config, infrastructure, processing, utils
 from nomad.datamodel import EntryArchive
 from nomad.utils import structlogging
 from nomad.datamodel import User
+from nomad.app.main import app
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
@@ -48,15 +49,10 @@ from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 test_log_level = logging.CRITICAL
 
-# the old v0 indices
-elastic_test_calc_index = 'nomad_fairdi_calcs_test'
-elastic_test_material_index = 'nomad_fairdi_materials_test'
-# the new v1 indices
-elastic_test_entries_index = 'nomad_fairdi_calcs_test'
+elastic_test_entries_index = 'nomad_entries_v1_test'
 elastic_test_materials_index = 'nomad_materials_v1_test'
 
-indices = [
-    elastic_test_calc_index, elastic_test_material_index, elastic_test_materials_index]
+indices = [elastic_test_entries_index, elastic_test_materials_index]
 
 warnings.simplefilter("ignore")
 
@@ -211,10 +207,7 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    # the old v0 indices
-    monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
-    monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
-    # the new v1 indices
+    monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
     monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
 
     # attempt to remove and recreate all indices
@@ -282,7 +275,7 @@ admin_user_id = test_user_uuid(0)
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
     test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1), is_oasis_admin=True),
-    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
+    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-fairdi.tests.de', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
 }
 
 
@@ -296,13 +289,6 @@ class KeycloakMock:
             return User(**self.users[access_token])
         else:
             raise infrastructure.KeycloakError('user does not exist')
-
-    def auth(self, headers, **kwargs):
-        if 'Authorization' in headers and headers['Authorization'].startswith('Bearer '):
-            user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            return User(**self.users[user_id]), user_id
-
-        return None, None
 
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
@@ -331,14 +317,10 @@ class KeycloakMock:
 
     def basicauth(self, username: str, password: str) -> str:
         for user in self.users.values():
-            if user['username'] == username:
+            if user['username'] == username or user['email'] == username:
                 return user['user_id']
 
         raise infrastructure.KeycloakError()
-
-    @property
-    def access_token(self):
-        return g.oidc_access_token
 
 
 config.keycloak.realm_name = 'fairdi_nomad_test'
@@ -731,3 +713,42 @@ def reset_config():
 def reset_infra(mongo, elastic):
     ''' Fixture that resets infrastructure after deleting db or search index. '''
     yield None
+
+
+@pytest.fixture(scope='session')
+def api_v1(monkeysession):
+    '''
+    This fixture provides an HTTP client with Python requests interface that accesses
+    the fast api. The have to provide URLs that start with out leading '/' after '.../api/v1.
+    This fixture also patches the actual requests. If some code is using requests to
+    connect to the NOMAD v1 at ``nomad.config.client.url``, the patch will redirect to the
+    fast api under test.
+    '''
+    test_client = TestClient(app, base_url='http://testserver/api/v1/')
+
+    def call_test_client(method, url, *args, **kwargs):
+        url = url.replace(f'{config.client.url}/v1/', '')
+        return getattr(test_client, method)(url, *args, **kwargs)
+
+    monkeysession.setattr('requests.get', lambda *args, **kwargs: call_test_client('get', *args, **kwargs))
+    monkeysession.setattr('requests.put', lambda *args, **kwargs: call_test_client('put', *args, **kwargs))
+    monkeysession.setattr('requests.post', lambda *args, **kwargs: call_test_client('post', *args, **kwargs))
+    monkeysession.setattr('requests.delete', lambda *args, **kwargs: call_test_client('delete', *args, **kwargs))
+
+    def __call__(self, request):
+        for user in test_users.values():
+            if user['username'] == self.user or user['email'] == self.user:
+                request.headers['Authorization'] = f'Bearer {user["user_id"]}'
+        return request
+
+    monkeysession.setattr('nomad.client.api.Auth.__call__', __call__)
+
+    return test_client
+
+
+@pytest.fixture(scope='session')
+def client_with_api_v1(api_v1, monkeysession):
+    def call_requests(method, path, *args, **kwargs):
+        return getattr(api_v1, method)(path, *args, **kwargs)
+
+    monkeysession.setattr('nomad.client.api._call_requests', call_requests)

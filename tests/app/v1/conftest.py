@@ -18,20 +18,17 @@
 
 import pytest
 import math
-from fastapi.testclient import TestClient
-from bravado.client import SwaggerClient
 
 from nomad.archive import write_partial_archive_to_mongo
-from nomad.app.main import app
+from nomad.datamodel import OptimadeEntry
 from nomad.processing import ProcessStatus
 
 from tests.utils import ExampleData
-from tests.app.v1.bravado import FastApiTestHttpClient
 
 
 @pytest.fixture(scope='session')
-def client():
-    return TestClient(app, base_url='http://testserver/api/v1/')
+def client(api_v1):
+    return api_v1
 
 
 @pytest.fixture(scope='module')
@@ -104,7 +101,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         entry_id = 'id_%02d' % i
         material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
-        kwargs = {}
+        kwargs = dict(optimade=OptimadeEntry(nelements=2, elements=['H', 'O']))
         if i == 11:
             mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
         if i == 1:
@@ -181,12 +178,3 @@ def example_data_writeable(mongo, test_user, normalized):
     yield
 
     data.delete()
-
-
-@pytest.fixture(scope='function')
-def fastapi_oasis_central_nomad_client(client, test_user_auth, monkeypatch):
-    def create_client(*args, **kwargs):
-        http_client = FastApiTestHttpClient(client, headers=test_user_auth)
-        return SwaggerClient.from_url('/api/swagger.json', http_client=http_client)
-
-    monkeypatch.setattr('nomad.cli.client.client._create_client', create_client)

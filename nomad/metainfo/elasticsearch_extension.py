@@ -164,7 +164,7 @@ import re
 from nomad import config, utils
 
 from .metainfo import (
-    Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
+    MSectionBound, Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
     Definition, QuantityReference)
 
 
@@ -244,11 +244,6 @@ class DocumentType():
         if metadata is not None:
             del(result['metadata'])
             result.update(**metadata)
-
-            # TODO merge with the v0 index data, create by the other search extension
-            if self == entry_type:
-                v0_entry = root.metadata.a_elastic.create_index_entry()
-                result.update(**v0_entry.to_dict(include_meta=False))
 
         return result
 
@@ -536,7 +531,7 @@ class Elasticsearch(DefinitionAnnotation):
             mapping: Union[str, Dict[str, Any]] = None,
             field: str = None,
             es_field: str = None,
-            value: Callable[[MSection], Any] = None,
+            value: Callable[[MSectionBound], Any] = None,
             index: bool = True,
             values: List[str] = None,
             default_aggregation_size: int = None,

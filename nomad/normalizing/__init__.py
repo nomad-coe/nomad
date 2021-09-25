@@ -41,7 +41,6 @@ from typing import List, Any, Iterable, Type
 
 from .system import SystemNormalizer
 from .optimade import OptimadeNormalizer
-from .fhiaims import FhiAimsBaseNormalizer
 from .dos import DosNormalizer
 from .normalizer import Normalizer
 from .band_structure import BandStructureNormalizer
@@ -52,7 +51,6 @@ from .results import ResultsNormalizer
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
-    # FhiAimsBaseNormalizer,
     DosNormalizer,
     BandStructureNormalizer,
     WorkflowNormalizer,

@@ -23,18 +23,17 @@ import json
 import datetime
 import time
 
-from nomad import utils, processing as proc, files
-from nomad.search import v0 as search
+from nomad import processing as proc, files
+from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
 
-from tests.app.flask.test_app import BlueprintClient
-from tests.app.flask.conftest import (  # pylint: disable=unused-import
-    test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
-from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
-
 # TODO there is much more to test
+
+
+def invoke_cli(*args, **kwargs):
+    return click.testing.CliRunner().invoke(*args, obj=POPO(), **kwargs)
 
 
 @pytest.mark.usefixtures('reset_config', 'nomad_logging')
@@ -42,7 +41,7 @@ class TestCli:
     def test_help(self, example_mainfile):
 
         start = time.time()
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['--help'], catch_exceptions=False)
         assert result.exit_code == 0
         assert time.time() - start < 1
@@ -52,7 +51,7 @@ class TestCli:
 class TestParse:
     def test_parser(self, example_mainfile):
         _, mainfile_path = example_mainfile
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['parse', mainfile_path], catch_exceptions=False)
         assert result.exit_code == 0
 
@@ -60,12 +59,12 @@ class TestParse:
 @pytest.mark.usefixtures('reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra')
 class TestAdmin:
     def test_reset(self, reset_infra):
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False)
         assert result.exit_code == 0
 
     def test_reset_not_sure(self):
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
@@ -83,7 +82,7 @@ class TestAdmin:
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
-    #     result = click.testing.CliRunner().invoke(
+    #     result = invoke_cli(
     #         cli, ['admin', 'clean', '--force', '--skip-es'], catch_exceptions=False)
 
     #     assert result.exit_code == 0
@@ -106,16 +105,17 @@ class TestAdmin:
 
         assert published.upload_files.exists()
         assert calc.metadata['with_embargo']
-        assert search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] == 0
 
-        result = click.testing.CliRunner().invoke(
+        assert search(owner='public', query=dict(upload_id=upload_id)).pagination.total == 0
+
+        result = invoke_cli(
             cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
             catch_exceptions=False)
 
         assert result.exit_code == 0
         published.block_until_complete()
         assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
-        assert (search.SearchRequest().owner('public').search_parameter('upload_id', upload_id).execute()['total'] > 0) == lifted
+        assert (search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0) == lifted
         if lifted:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
                 assert calc.calc_id in archive
@@ -124,7 +124,7 @@ class TestAdmin:
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -141,17 +141,17 @@ def transform_for_index_test(calc):
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
 
-    @pytest.mark.parametrize('codes, count', [
+    @pytest.mark.parametrize('programs, count', [
         (['VASP'], 1),
         (['doesNotExist'], 0),
         (['VASP', 'doesNotExist'], 1)])
-    def test_uploads_code(self, published, codes, count):
-        codes_args = []
-        for code in codes:
-            codes_args.append('--code')
-            codes_args.append(code)
-        result = click.testing.CliRunner().invoke(
-            cli, ['admin', 'uploads'] + codes_args + ['ls'], catch_exceptions=False)
+    def test_uploads_program(self, published, programs, count):
+        programs_args = []
+        for program in programs:
+            programs_args.append('--program-name')
+            programs_args.append(program)
+        result = invoke_cli(
+            cli, ['admin', 'uploads'] + programs_args + ['ls'], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert '%d uploads selected' % count in result.stdout
@@ -160,7 +160,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         query = dict(upload_id=upload_id)
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', '--query-mongo', 'ls', json.dumps(query)],
             catch_exceptions=False)
 
@@ -170,7 +170,7 @@ class TestAdminUploads:
     def test_ls(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -179,7 +179,7 @@ class TestAdminUploads:
     def test_ls_query(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -187,7 +187,7 @@ class TestAdminUploads:
     def test_rm(self, published):
         upload_id = published.upload_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -201,20 +201,20 @@ class TestAdminUploads:
         calc.metadata['comment'] = 'specific'
         calc.save()
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 1
 
     def test_index_with_transform(self, published):
         upload_id = published.upload_id
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, [
                 'admin', 'uploads', 'index',
                 '--transformer', 'tests.test_cli.transform_for_index_test',
@@ -223,7 +223,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
-        assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
+        assert search(owner='all', query=dict(comment='specific')).pagination.total == 1
 
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')
@@ -231,7 +231,7 @@ class TestAdminUploads:
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['nomad_version'] != 'test_version'
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -246,7 +246,7 @@ class TestAdminUploads:
         calc.metadata['with_embargo'] = False
         calc.save()
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -268,7 +268,7 @@ class TestAdminUploads:
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['uploader'] == test_user.user_id
 
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -299,7 +299,7 @@ class TestAdminUploads:
         if success: args.append('--success')
         if failure: args.append('--failure')
         args.append(upload_id)
-        result = click.testing.CliRunner().invoke(cli, args, catch_exceptions=False)
+        result = invoke_cli(cli, args, catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'reset' in result.stdout
@@ -319,148 +319,31 @@ class TestAdminUploads:
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
 
-    def test_upload(self, test_user_bravado_client, non_empty_example_upload, proc_infra):
-        result = click.testing.CliRunner().invoke(
+    def test_upload(self, non_empty_example_upload, admin_user, proc_infra, client_with_api_v1):
+        result = invoke_cli(
             cli,
-            ['client', 'upload', '--offline', '--name', 'test_upload', non_empty_example_upload],
+            [
+                'client', '-u', admin_user.username, '--token-via-api',
+                'upload', '--name', 'test_upload', '--local-path',
+                non_empty_example_upload],
             catch_exceptions=False)
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
         assert '1/0/1' in result.output
         assert proc.Upload.objects(name='test_upload').first() is not None
 
-    def test_local(self, client, published, admin_user_bravado_client, monkeypatch):
-        def requests_get(url, stream, headers):
-            assert stream
-            rv = client.get(url[url.index('/api/raw'):], headers=headers)
-            assert rv.status_code == 200
-            return POPO(iter_content=lambda *args, **kwargs: [bytes(rv.data)])
-
-        monkeypatch.setattr('requests.get', requests_get)
-        result = click.testing.CliRunner().invoke(
+    def test_local(self, published_wo_user_metadata, client_with_api_v1):
+        result = invoke_cli(
             cli,
-            ['client', 'local', '%s/%s' % (published.upload_id, list(published.calcs)[0].calc_id)],
-            catch_exceptions=False)
-
-        assert result.exit_code == 0
-
-    def test_mirror_dry(self, published, admin_user_bravado_client, monkeypatch):
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--dry'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
-
-    @pytest.mark.parametrize('move, link', [(True, False), (False, True), (False, False)])
-    def test_mirror(self, published, admin_user_bravado_client, monkeypatch, move, link):
-        ref_search_results = utils.flat(
-            search.SearchRequest().search_parameters(
-                upload_id=published.upload_id).execute_paginated()['results'][0])
-
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        if move:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--move'], catch_exceptions=False)
-        elif link:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--link'], catch_exceptions=False)
-        else:
-            result = click.testing.CliRunner().invoke(
-                cli, ['client', 'mirror', '--source-mapping', '.volumes/test_fs:.volumes/test_fs'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
-        assert proc.Upload.objects(upload_id=published.upload_id).count() == 1
-        assert proc.Calc.objects(upload_id=published.upload_id).count() == 1
-        new_search = search.SearchRequest().search_parameters(upload_id=published.upload_id).execute_paginated()
-        calcs_in_search = new_search['pagination']['total']
-        assert calcs_in_search == 1
-
-        new_search_results = utils.flat(new_search['results'][0])
-        for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing', 'dft.labels', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
-                # There is a sub second change due to date conversions (?).
-                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key]), key
-
-        published.upload_files.exists
-        proc.Upload.objects(upload_id=published.upload_id).first().upload_files.exists
-
-    def test_mirror_staging(self, non_empty_processed, admin_user_bravado_client, monkeypatch):
-        ref_search_results = utils.flat(
-            search.SearchRequest().search_parameters(
-                upload_id=non_empty_processed.upload_id).execute_paginated()['results'][0])
-
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--staging', '--link'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert non_empty_processed.upload_id in result.output
-        assert non_empty_processed.upload_files.os_path in result.output
-        assert proc.Upload.objects(upload_id=non_empty_processed.upload_id).count() == 1
-        assert proc.Calc.objects(upload_id=non_empty_processed.upload_id).count() == 1
-        new_search = search.SearchRequest().search_parameters(upload_id=non_empty_processed.upload_id).execute_paginated()
-        calcs_in_search = new_search['pagination']['total']
-        assert calcs_in_search == 1
-
-        new_search_results = utils.flat(new_search['results'][0])
-        for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
-                assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
-
-        non_empty_processed.upload_files.exists
-        proc.Upload.objects(upload_id=non_empty_processed.upload_id).first().upload_files.exists
-
-    def test_mirror_files_only(self, published, admin_user_bravado_client, monkeypatch):
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror', '--files-only'], catch_exceptions=False)
+            ['client', 'local', published_wo_user_metadata.calcs[0].calc_id],
+            catch_exceptions=True)
 
         assert result.exit_code == 0, result.output
-        assert published.upload_id in result.output
-        assert published.upload_files.os_path in result.output
 
-        published.upload_files.exists
+    @pytest.mark.skip('Disabled. Tested code is temporaely commented.')
+    def test_statistics(self):
 
-    def test_mirror_datasets(self, client, published_wo_user_metadata, test_user_auth, admin_user_bravado_client, monkeypatch):
-        # use the API to create dataset and DOI
-        api = BlueprintClient(client, '/api')
-        rv = api.post(
-            '/repo/edit', headers=test_user_auth, content_type='application/json',
-            data=json.dumps({
-                'actions': {
-                    'datasets': [{
-                        'value': 'test_dataset'
-                    }]
-                }
-            }))
-        assert rv.status_code == 200
-
-        rv = api.post('/datasets/test_dataset', headers=test_user_auth)
-        assert rv.status_code == 200
-
-        # perform the mirror
-        monkeypatch.setattr('nomad.cli.client.mirror.__in_test', True)
-
-        result = click.testing.CliRunner().invoke(
-            cli, ['client', 'mirror'], catch_exceptions=False)
-
-        assert result.exit_code == 0, result.output
-        assert published_wo_user_metadata.upload_id in result.output
-        assert published_wo_user_metadata.upload_files.os_path in result.output
-
-        published_wo_user_metadata.upload_files.exists
-
-    def test_statistics(self, client, proc_infra, admin_user_bravado_client):
-
-        result = click.testing.CliRunner().invoke(
+        result = invoke_cli(
             cli, ['client', 'statistics-table'], catch_exceptions=True)
 
         assert result.exit_code == 0, result.output

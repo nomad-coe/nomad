@@ -1,5 +1,5 @@
 import sys
-from nomad.cli.parse import parse, normalize_all
+from nomad.client import parse, normalize_all
 
 # match and run the parser
 archive = parse(sys.argv[1])

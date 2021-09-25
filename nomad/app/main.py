@@ -42,9 +42,9 @@ class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content='You have to authenticate to use this Oasis endpoint.')
-
         else:
-            user, _ = infrastructure.keycloak.auth(request.headers)
+            token = request.headers['Authorization'].split(' ')[1]
+            user, _ = infrastructure.keycloak.tokenauth(token)
             if user is None or user.email not in config.oasis.allowed_users:
                 return Response(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -96,7 +96,6 @@ async def http_exception_handler(request, exc):
                 <h2>info</h2>
                 {'<br/>'.join(f'{key}: {value}' for key, value in config.meta.items())}
                 <h2>apis</h2>
-                <a href="{app_base}/api">NOMAD API v0</a><br/>
                 <a href="{app_base}/api/v1/extensions/docs">NOMAD API v1</a><br/>
                 <a href="{app_base}/optimade/v1/extensions/docs">Optimade API</a><br/>
                 <a href="{app_base}/dcat">DCAT API</a><br/>
@@ -109,10 +108,6 @@ async def http_exception_handler(request, exc):
         'info': {
             'app': config.meta,
             'apis': {
-                'v0': {
-                    'root': f'{app_base}/api',
-                    'dashboard': f'{app_base}/api',
-                },
                 'v1': {
                     'root': f'{app_base}/api/v1',
                     'dashboard': f'{app_base}/api/v1/extensions/docs',
