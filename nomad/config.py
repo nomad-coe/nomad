@@ -190,6 +190,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True, api: str = 'api'):
+    '''
+    Returns the url of the current running nomad API. This is for server-side use.
+    This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
+    '''
     protocol = 'https' if services.https and ssl else 'http'
     host_and_port = services.api_host.strip('/')
     if services.api_port not in [80, 443]:

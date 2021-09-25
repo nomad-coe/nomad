@@ -27,7 +27,7 @@ class APIError(Exception): pass
 
 
 def _call_requests(method, path: str, ssl: bool = True, *args, **kwargs):
-    url = f'{config.api_url(ssl=ssl)}/v1/{path}'
+    url = f'{config.client.url}/v1/{path}'
     return getattr(requests, method)(url, *args, **kwargs)
 
 
