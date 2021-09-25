@@ -36,6 +36,7 @@ import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../DatasetPage'
 import ResolveDOI from '../dataset/ResolveDOI'
+import { DatatableExamples } from '../datatable/DatatableExamples'
 
 /**
  * Each route is an object with possible nested sub routes. Therefore, each object only
@@ -303,7 +304,11 @@ export const routes = [
     ]
   },
   ...datasetRoutes,
-  ...entryRoutes
+  ...entryRoutes,
+  {
+    path: 'dev/datatable',
+    render: () => <DatatableExamples />
+  }
 ]
 
 /**
