@@ -424,8 +424,7 @@ export const APIProvider = React.memo(({
   // Get info only once
   useEffect(() => {
     api.get('/info').then(setInfo).catch(() => {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   const value = useMemo(() => ({
     api: api,

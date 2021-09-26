@@ -31,6 +31,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Remove'
+import DragHandleIcon from '@material-ui/icons/DragHandle'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import { useAnchorState } from '../SearchContext'
 import { Actions, Action } from '../../Actions'
@@ -75,6 +76,7 @@ const FilterLabel = React.memo(({
   onChangeScale,
   aggSize,
   onChangeAggSize,
+  draggable,
   className,
   classes
 }) => {
@@ -120,6 +122,13 @@ const FilterLabel = React.memo(({
       >
         {anchor ? <RemoveIcon/> : <AddIcon/>}
       </Action>
+      {draggable && <Action
+        className="dragHandle"
+        tooltip={'Drag to change location'}
+      >
+        <DragHandleIcon/>
+      </Action>
+      }
       <Action
         tooltip="Options"
         onClick={openMenu}
@@ -179,6 +188,7 @@ FilterLabel.propTypes = {
   onChangeScale: PropTypes.func,
   aggSize: PropTypes.oneOf(aggregationSizes),
   onChangeAggSize: PropTypes.func,
+  draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object
 }

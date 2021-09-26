@@ -17,11 +17,12 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Paper, Grid } from '@material-ui/core'
+import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { filterData, useAnchorsValue } from '../SearchContext'
+import { MuuriComponent, getResponsiveStyle } from 'muuri-react'
+import { filterData, useAnchorsValue, widthMapping } from '../SearchContext'
 
 /**
  * Displays a summary of the anchored filter statistics in a grid.
@@ -29,8 +30,16 @@ import { filterData, useAnchorsValue } from '../SearchContext'
 const useStyles = makeStyles(theme => {
   return {
     root: {
-      padding: theme.spacing(2),
-      paddingTop: theme.spacing(1)
+      padding: theme.spacing(1),
+      paddingTop: theme.spacing(0)
+    },
+    muuriInnerItem: {
+      backgroundColor: theme.palette.background.paper,
+      position: 'absolute',
+      left: theme.spacing(1),
+      top: theme.spacing(1),
+      right: theme.spacing(1),
+      bottom: theme.spacing(1)
     }
   }
 })
@@ -43,14 +52,30 @@ const StatisticsGrid = React.memo(({
 
   return anchors.length > 0
     ? <Paper className={clsx(className, styles.root)}>
-      <Grid container spacing={2}>
+      <MuuriComponent
+        dragEnabled
+        dragHandle=".dragHandle"
+      >
         {anchors.map((filter) => {
           const config = filterData[filter].statConfig
-          return <Grid item key={filter} {...config.layout}>
-            <config.component quantity={filter} visible initialAggSize={10}/>
-          </Grid>
+          const layout = config.layout
+          const responsiveStyle = getResponsiveStyle({
+            columns: widthMapping[layout.widthDefault]['lg'] / 12,
+            margin: 0,
+            ratio: layout.ratioDefault
+          })
+          return <div key={filter} style={responsiveStyle}>
+            <div className={styles.muuriInnerItem}>
+              <config.component
+                quantity={filter}
+                visible
+                initialAggSize={10}
+                draggable
+              />
+            </div>
+          </div>
         })}
-      </Grid>
+      </MuuriComponent>
     </Paper>
     : null
 })

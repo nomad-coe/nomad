@@ -138,21 +138,36 @@ function registerFilter(name, group, statConfig, agg, value, multiple = true, ex
 const listStatConfig = {
   component: InputList,
   layout: {
-    xs: 12,
-    sm: 6,
-    md: 4,
-    lg: 4,
-    xl: 3
+    widthOptions: ['small', 'medium', 'large'],
+    widthDefault: 'small',
+    ratioDefault: 1,
+    ratioOptions: [1, 3 / 4]
   }
 }
 const ptStatConfig = {
   component: InputPeriodicTable,
   layout: {
-    xs: 12,
-    sm: 12,
-    md: 8,
-    lg: 8,
-    xl: 6
+    widthOptions: ['small', 'medium', 'large'],
+    widthDefault: 'large',
+    ratioOptions: [3 / 2],
+    ratioDefault: 3 / 2
+  }
+}
+export const widthMapping = {
+  large: {
+    'sm': 12,
+    'md': 9,
+    'lg': 6
+  },
+  medium: {
+    'sm': 6,
+    'md': 6,
+    'lg': 4
+  },
+  small: {
+    'sm': 6,
+    'md': 4,
+    'lg': 3
   }
 }
 

@@ -280,7 +280,8 @@ const InputPeriodicTable = React.memo(({
   label,
   description,
   visible,
-  initialScale
+  initialScale,
+  draggable
 }) => {
   const styles = useTableStyles()
   const [filter, setFilter] = useFilterState(quantity)
@@ -333,6 +334,7 @@ const InputPeriodicTable = React.memo(({
       scale={scale}
       onChangeScale={setScale}
       disableAggSize
+      draggable={draggable}
     />
     <div className={styles.container}>
       <AspectRatio
@@ -384,7 +386,8 @@ InputPeriodicTable.propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   visible: PropTypes.bool,
-  initialScale: PropTypes.number
+  initialScale: PropTypes.number,
+  draggable: PropTypes.bool
 }
 
 InputPeriodicTable.defaultProps = {

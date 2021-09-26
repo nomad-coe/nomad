@@ -35,8 +35,10 @@ import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
+    height: '100%',
     display: 'flex',
-    justifyContent: 'center',
+    // justifyContent: 'center',
+    // alignItems: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
   },
@@ -62,6 +64,9 @@ const useStyles = makeStyles(theme => ({
   icon: {
     right: theme.spacing(1)
   },
+  spacer: {
+    flex: 1
+  },
   count: {
     marginTop: theme.spacing(0.5),
     marginRight: theme.spacing(1),
@@ -78,6 +83,7 @@ const InputList = React.memo(({
   visible,
   initialScale,
   initialAggSize,
+  draggable,
   className,
   classes,
   'data-testid': testID
@@ -90,7 +96,6 @@ const InputList = React.memo(({
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const disabled = locked || (!(agg?.data && agg.data.length > 0))
-  console.log(agg)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -143,8 +148,10 @@ const InputList = React.memo(({
         onChangeScale={setScale}
         aggSize={aggSize}
         onChangeAggSize={setAggSize}
+        draggable={draggable}
       />
       {items}
+      <div className={styles.spacer}/>
       <div className={styles.count}>
         <Typography variant="overline">{`${Math.min(aggSize, nAgg)}/${nAgg}`}</Typography>
       </div>
@@ -159,6 +166,7 @@ InputList.propTypes = {
   visible: PropTypes.bool.isRequired,
   initialScale: PropTypes.number,
   initialAggSize: PropTypes.number,
+  draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
