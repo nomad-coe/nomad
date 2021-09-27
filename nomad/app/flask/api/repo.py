@@ -171,7 +171,7 @@ class RepoCalcsResource(Resource):
         will tell you what quantity values exist and how many entries match those values.
 
         Ordering is determined by ``order_by`` and ``order`` parameters. Default is
-        ``upload_time`` in decending order.
+        ``upload_create_time`` in decending order.
         '''
 
         try:
@@ -185,7 +185,7 @@ class RepoCalcsResource(Resource):
             page = args.get('page', 1)
             per_page = args.get('per_page', 10 if not scroll else 1000)
             order = args.get('order', -1)
-            order_by = args.get('order_by', 'upload_time')
+            order_by = args.get('order_by', 'upload_create_time')
 
             date_histogram = args.get('date_histogram', False)
             interval = args.get('interval', '1M')
@@ -237,7 +237,7 @@ class RepoCalcsResource(Resource):
                     if args.get(group_name, False):
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'uploads_grouped':
-                            kwargs.update(order_by='upload_time', order='desc')
+                            kwargs.update(order_by='upload_create_time', order='desc')
                         search_request.quantity(
                             group_quantity.qualified_name, size=per_page, examples=1,
                             after=request.args.get('%s_after' % group_name, None),
@@ -313,7 +313,7 @@ class RepoCalcsResource(Resource):
         will tell you what quantity values exist and how many entries match those values.
 
         Ordering is determined by ``order_by`` and ``order`` parameters. Default is
-        ``upload_time`` in decending order.
+        ``upload_create_time`` in decending order.
         '''
         try:
             data_in = request.get_json()
@@ -325,7 +325,7 @@ class RepoCalcsResource(Resource):
             page = pagination.get('page', 1)
             per_page = pagination.get('per_page', 10 if not scroll else 1000)
             order = pagination.get('order', -1)
-            order_by = pagination.get('order_by', 'upload_time')
+            order_by = pagination.get('order_by', 'upload_create_time')
 
             date_histogram = data_in.get('date_histogram', False)
             interval = data_in.get('interval', '1M')
@@ -386,7 +386,7 @@ class RepoCalcsResource(Resource):
                     if group_name in data_in:
                         kwargs: Dict[str, Any] = {}
                         if group_name == 'uploads_grouped':
-                            kwargs.update(order_by='upload_time', order='desc')
+                            kwargs.update(order_by='upload_create_time', order='desc')
                         search_request.quantity(
                             group_quantity.qualified_name, size=per_page, examples=1,
                             after=data_in[group_name].get('after', None),

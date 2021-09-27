@@ -242,7 +242,7 @@ class WithQuery(BaseModel):
             some values you can also use comparison operators like this:
             ```
             {
-                "upload_time": {
+                "upload_create_time": {
                     "gt": "2020-01-01",
                     "lt": "2020-08-01"
                 },
@@ -255,8 +255,8 @@ class WithQuery(BaseModel):
             or shorter with suffixes:
             ```
             {
-                "upload_time:gt": "2020-01-01",
-                "upload_time:lt": "2020-08-01",
+                "upload_create_time:gt": "2020-01-01",
+                "upload_create_time:lt": "2020-08-01",
                 "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
             }
             ```
@@ -265,7 +265,7 @@ class WithQuery(BaseModel):
             in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
         '''),  # TODO custom documentation for entry and material API
         example={
-            'upload_time:gt': '2020-01-01',
+            'upload_create_time:gt': '2020-01-01',
             'results.material.elements': ['Ti', 'O'],
             'results.method.simulation.program_name': 'VASP',
             'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
@@ -682,8 +682,8 @@ class AggregationPagination(MetadataBasedPagination):
 
             If you provide a quantity, all items
             in a bucket must have the same value for this quantity. For example, aggregating
-            entries on `upload_id` and ordering with the buckets by `upload_time` is fine,
-            because all entries in an upload have the same `upload_time`. The API cannot
+            entries on `upload_id` and ordering with the buckets by `upload_create_time` is fine,
+            because all entries in an upload have the same `upload_create_time`. The API cannot
             check this rule and the results will be unpredictable.
 
             If you want to order by the bucket values, you can either use "value" or use
@@ -846,9 +846,9 @@ class Aggregation(BaseModel):
             ```json
             {
                 "aggregations": {
-                    "upload_times": {
+                    "upload_create_times": {
                         "histogram": {
-                            "quantity": "upload_time",
+                            "quantity": "upload_create_time",
                             "interval": "1M"
                         }
                     }
@@ -886,7 +886,7 @@ class WithQueryAndPagination(WithQuery):
         None,
         example={
             'page_size': 5,
-            'order_by': 'upload_time'
+            'order_by': 'upload_create_time'
         })
 
 
@@ -894,7 +894,7 @@ class Metadata(WithQueryAndPagination):
     required: Optional[MetadataRequired] = Body(
         None,
         example={
-            'include': ['entry_id', 'mainfile', 'upload_id', 'authors', 'upload_time']
+            'include': ['entry_id', 'mainfile', 'upload_id', 'authors', 'upload_create_time']
         })
     aggregations: Optional[Dict[str, Aggregation]] = Body(
         {},
@@ -923,9 +923,9 @@ class Metadata(WithQueryAndPagination):
                     'quantity': 'results.properties.structures.structure_conventional.n_sites'
                 }
             },
-            'upload_times': {
+            'upload_create_times': {
                 'date_histogram': {
-                    'quantity': 'upload_time',
+                    'quantity': 'upload_create_time',
                     'interval': '1M'
                 }
             },

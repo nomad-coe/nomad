@@ -111,7 +111,7 @@ class EMSMetadata(MSection):
         elif root_section.section_metadata.section_experiment.experiment_publish_time:
             self.origin_time = root_section.section_metadata.section_experiment.experiment_publish_time
         else:
-            self.origin_time = self.m_parent.upload_time
+            self.origin_time = self.m_parent.upload_create_time
 
         # self.data_type = _unavailable(root_section.section_method.data_type)
         self.method = _unavailable(root_section.section_metadata.section_experiment.method_name)

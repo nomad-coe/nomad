@@ -50,7 +50,7 @@ def _get_transformer(nomad_properties, without_prefix):
     quantities['id'] = Quantity('id', es_field='calc_id')
     quantities['immutable_id'] = Quantity('immutable_id', es_field='calc_id')
     quantities['last_modified'] = Quantity(
-        'last_modified', es_field='upload_time', elastic_mapping_type=Date)
+        'last_modified', es_field='upload_create_time', elastic_mapping_type=Date)
 
     quantities['elements'].length_quantity = quantities['nelements']
     quantities['elements'].has_only_quantity = Quantity(name='only_atoms')

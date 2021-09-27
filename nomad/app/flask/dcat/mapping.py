@@ -84,7 +84,7 @@ class Mapping():
 
         self.g.add((dataset, RDF.type, DCAT.Dataset))
         self.g.add((dataset, DCT.identifier, Literal(entry.calc_id)))
-        self.g.add((dataset, DCT.issued, Literal(entry.upload_time)))
+        self.g.add((dataset, DCT.issued, Literal(entry.upload_create_time)))
         self.g.add((dataset, DCT.modified, Literal(entry.last_processing)))
         self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'formula'))))
         self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))

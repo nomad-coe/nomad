@@ -384,7 +384,7 @@ class TestClient:
 
         new_search_results = utils.flat(new_search['results'][0])
         for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing', 'dft.labels', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
+            if key not in ['upload_create_time', 'publish_time', 'last_processing', 'dft.labels', 'owners', 'authors', 'uploader', 'coauthors', 'shared_with']:
                 # There is a sub second change due to date conversions (?).
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key]), key
 
@@ -412,7 +412,7 @@ class TestClient:
 
         new_search_results = utils.flat(new_search['results'][0])
         for key in new_search_results.keys():
-            if key not in ['upload_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
+            if key not in ['upload_create_time', 'last_processing']:  # There is a sub second change due to date conversions (?)
                 assert json.dumps(new_search_results[key]) == json.dumps(ref_search_results[key])
 
         non_empty_processed.upload_files.exists

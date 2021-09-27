@@ -68,7 +68,6 @@ def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, **kwargs)
-    upload.upload_time = datetime.utcnow()
     assert upload.process_status == ProcessStatus.READY
     assert upload.current_process_step is None
     upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
@@ -278,7 +277,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert upload.published
     assert upload.from_oasis
     assert upload.oasis_deployment_id == 'an_oasis_id'
-    assert str(upload.upload_time) == '2020-01-01 00:00:00'
+    assert str(upload.upload_create_time) == '2020-01-01 00:00:00'
     assert_processing(upload, published=True)
     calc = Calc.objects(upload_id='oasis_upload_id').first()
     assert calc.calc_id == 'test_calc_id'
@@ -718,7 +717,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         'test_user', dict(upload_name='hello', embargo_length=13),
         True, id='unprotected-attributes'),
     pytest.param(
-        'test_user', dict(uploader='other_test_user', upload_time=datetime(2021, 5, 4, 11)),
+        'test_user', dict(uploader='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
         True, id='protected-attributes')])
 def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
 
@@ -745,9 +744,9 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
             if 'uploader' in metadata_to_set:
                 assert upload.user_id == metadata_to_set['uploader']
                 assert entry_metadata.uploader.user_id == upload.user_id
-            if 'upload_time' in metadata_to_set:
-                assert upload.upload_time == metadata_to_set['upload_time']
-                assert entry_metadata.upload_time == upload.upload_time
+            if 'upload_create_time' in metadata_to_set:
+                assert upload.upload_create_time == metadata_to_set['upload_create_time']
+                assert entry_metadata.upload_create_time == upload.upload_create_time
             if 'embargo_length' in metadata_to_set:
                 assert upload.embargo_length == metadata_to_set['embargo_length']
                 assert entry_metadata.with_embargo == upload.with_embargo

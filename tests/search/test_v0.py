@@ -90,7 +90,7 @@ def example_search_data(elastic, normalized: datamodel.EntryArchive):
     entry_metadata = normalized.metadata
     entry_metadata.m_update(
         domain='dft', upload_id='test upload id', calc_id='test id', published=True,
-        upload_time=datetime.now())
+        upload_create_time=datetime.now())
     entry_metadata.apply_domain_metadata(normalized)
     create_entry(entry_metadata)
     refresh()

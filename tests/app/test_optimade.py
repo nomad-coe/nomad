@@ -61,7 +61,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     example_data.create_structure(2, 2, 1, ['C'], 0)
     example_data.create_structure(3, 2, 1, [], 1)
     example_data.create_structure(
-        4, 1, 1, [], 0, metadata=dict(upload_time='1978-04-08T10:10:00Z'))
+        4, 1, 1, [], 0, metadata=dict(upload_create_time='1978-04-08T10:10:00Z'))
     example_data.save()
 
     yield

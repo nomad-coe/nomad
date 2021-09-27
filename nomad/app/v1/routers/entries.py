@@ -1197,7 +1197,7 @@ async def post_entry_metadata_edit(
             # TODO this does not work. Because the quantities are not in EditableUserMetadata
             # they are also not in the model and ignored by fastapi. This probably
             # also did not work in the old API.
-            if action_quantity_name in ['uploader', 'upload_time']:
+            if action_quantity_name in ['uploader', 'upload_create_time']:
                 if not user.is_admin():
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,

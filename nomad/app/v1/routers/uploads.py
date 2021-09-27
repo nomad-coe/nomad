@@ -53,8 +53,8 @@ class UploadMetadata(BaseModel):
         The embargo length in months (max 36).'''))
     uploader: Optional[str] = Field(None, description=strip('''
         The uploader (owner) of the upload. **Note! Can only be updated by admin users.**'''))
-    upload_time: Optional[datetime] = Field(None, description=strip('''
-        The time of the initial upload. **Note! Can only be updated by admin users.**'''))
+    upload_create_time: Optional[datetime] = Field(None, description=strip('''
+        The time of the creation of the upload. **Note! Can only be updated by admin users.**'''))
 
 
 upload_metadata_parameters = parameter_dependency_from_model(
@@ -68,7 +68,6 @@ class ProcData(BaseModel):
     process_status: str = Field()
     errors: List[str] = Field()
     warnings: List[str] = Field()
-    create_time: datetime = Field()
     complete_time: Optional[datetime] = Field()
 
     class Config:
@@ -82,9 +81,9 @@ class UploadProcData(ProcData):
     upload_name: Optional[str] = Field(
         description='The name of the upload. This can be provided during upload '
                     'using the `upload_name` query parameter.')
-    upload_time: datetime = Field(
+    upload_create_time: datetime = Field(
         None,
-        description='The time of upload.')
+        description='Date and time of the creation of the upload.')
     published: bool = Field(
         False,
         description='If this upload is already published.')
@@ -109,6 +108,7 @@ class UploadProcData(ProcData):
 
 class EntryProcData(ProcData):
     entry_id: str = Field()
+    entry_create_time: datetime = Field()
     mainfile: str = Field()
     upload_id: str = Field()
     parser_name: str = Field()
@@ -119,8 +119,8 @@ class UploadProcDataPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
-            return 'create_time'  # Default value
-        assert order_by in ('create_time', 'publish_time'), 'order_by must be a valid attribute'
+            return 'upload_create_time'  # Default value
+        assert order_by in ('upload_create_time', 'publish_time'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -389,10 +389,10 @@ async def get_uploads(
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    if order_by == 'create_time':
+    if order_by == 'upload_create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
     elif order_by == 'publish_time':
-        order_by_args = [order_by_with_sign, 'create_time', 'upload_id']
+        order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
 
@@ -871,7 +871,7 @@ async def post_upload(
         upload_id=upload_id,
         user=checked_upload_metadata.uploader or user,
         upload_name=checked_upload_metadata.upload_name,
-        upload_time=checked_upload_metadata.upload_time or datetime.utcnow(),
+        upload_create_time=checked_upload_metadata.upload_create_time or datetime.utcnow(),
         embargo_length=checked_upload_metadata.embargo_length or 0,
         publish_directly=publish_directly)
 
@@ -1167,7 +1167,8 @@ async def post_upload_bundle(
         keep_original_timestamps: Optional[bool] = FastApiQuery(
             None,
             description=strip('''
-                If all original timestamps, including `upload_time` and `publish_time`, should be kept
+                If all original timestamps, including `upload_create_time`, `entry_create_time`
+                and `publish_time`, should be kept
                 *(only admins can change this setting)*.''')),
         set_from_oasis: Optional[bool] = FastApiQuery(
             None,
@@ -1462,7 +1463,7 @@ def _check_upload_metadata(
         current_embargo_length: the current embargo_length of the upload.
     '''
     if not is_admin:
-        for field in ('uploader', 'upload_time'):
+        for field in ('uploader', 'upload_create_time'):
             if getattr(metadata, field) is not None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1501,5 +1502,5 @@ def _check_upload_metadata(
     upload_metadata.upload_name = metadata.upload_name
     upload_metadata.embargo_length = metadata.embargo_length
     upload_metadata.uploader = uploader
-    upload_metadata.upload_time = metadata.upload_time
+    upload_metadata.upload_create_time = metadata.upload_create_time
     return upload_metadata

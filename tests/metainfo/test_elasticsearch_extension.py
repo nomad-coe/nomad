@@ -114,7 +114,15 @@ class Entry(MSection):
             Elasticsearch(_es_field='keyword'),
             Elasticsearch(mapping='text', field='path', _es_field='')])
 
-    upload_time = Quantity(
+    upload_create_time = Quantity(
+        type=Datetime,
+        a_elasticsearch=Elasticsearch())
+
+    entry_create_time = Quantity(
+        type=Datetime,
+        a_elasticsearch=Elasticsearch())
+
+    publish_time = Quantity(
         type=Datetime,
         a_elasticsearch=Elasticsearch())
 
@@ -224,7 +232,7 @@ def test_mappings(indices):
 
     assert_mapping(entry_mapping, 'entry_id', 'keyword')
     assert_mapping(entry_mapping, 'mainfile', 'keyword', index=False)
-    assert_mapping(entry_mapping, 'upload_time', 'date')
+    assert_mapping(entry_mapping, 'upload_create_time', 'date')
     assert_mapping(entry_mapping, 'results.material.material_id', 'keyword')
     assert_mapping(entry_mapping, 'results.material.formula', 'keyword')
     assert_mapping(entry_mapping, 'results.material.formula', 'text', 'text')
@@ -244,7 +252,7 @@ def test_mappings(indices):
     assert_mapping(material_mapping, 'formula', 'text', 'text')
     assert_mapping(material_mapping, 'entries', 'nested')
     assert_mapping(material_mapping, 'entries.entry_id', 'keyword')
-    assert_mapping(material_mapping, 'entries.upload_time', None)
+    assert_mapping(material_mapping, 'entries.upload_create_time', None)
     assert_mapping(material_mapping, 'entries.results.properties.available_properties', 'keyword')
     assert_mapping(material_mapping, 'entries.results.properties.data.n_points', 'integer')
     assert_mapping(material_mapping, 'entries.results.properties.dos', 'nested')

@@ -164,7 +164,7 @@ def test_materials_post_query(client, data, query, status_code, total):
 @pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
     'material_id', total=6, material_prefix='', entry_prefix='entries.'))
 def test_materials_get_query(client, data, query, status_code, total):
-    assert 'entries.upload_time' in material_entry_type.quantities
+    assert 'entries.upload_create_time' in material_entry_type.quantities
 
     response_json = perform_materials_metadata_test(
         client, query=query, status_code=status_code, total=total, http_method='get')

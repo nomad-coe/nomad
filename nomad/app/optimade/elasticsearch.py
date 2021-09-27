@@ -192,7 +192,7 @@ class StructureCollection(EntryCollection):
         attrs = entry.dft.optimade.m_to_dict()
 
         attrs['immutable_id'] = calc_id
-        attrs['last_modified'] = entry.last_processing if entry.last_processing is not None else entry.upload_time
+        attrs['last_modified'] = entry.last_processing if entry.last_processing is not None else entry.upload_create_time
 
         # TODO this should be removed, once all data is reprocessed with the right normalization
         attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(

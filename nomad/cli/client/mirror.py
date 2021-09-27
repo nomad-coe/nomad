@@ -312,8 +312,8 @@ def mirror(
                             nomad_doi.DOI._get_collection().update(dict(_id=doi['_id']), doi, upsert=True)
                 if len(upload_data.calcs) > 0:
                     for calc in upload_data.calcs:
-                        fix_time(calc, ['create_time', 'complete_time'])
-                        fix_time(calc['metadata'], ['upload_time', 'last_processing'])
+                        fix_time(calc, ['entry_create_time', 'complete_time'])
+                        fix_time(calc['metadata'], ['last_processing'])
                     proc.Calc._get_collection().insert(upload_data.calcs)
                 upload.save()
             except Exception as e:

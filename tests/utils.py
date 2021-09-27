@@ -187,7 +187,7 @@ class ExampleData:
                 process_status = (
                     proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
                 mongo_entry = proc.Calc(
-                    create_time=self._next_time_stamp(),
+                    entry_create_time=entry_metadata.entry_create_time,
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
@@ -197,7 +197,6 @@ class ExampleData:
                 if upload_dict:
                     # Mirror fields from upload
                     entry_metadata.uploader = upload_dict['user_id']
-                    entry_metadata.upload_time = upload_dict['upload_time']
                 mongo_entry._apply_metadata_to_mongo_entry(entry_metadata)
                 mongo_entry.save()
 
@@ -242,8 +241,7 @@ class ExampleData:
             'process_status': 'SUCCESS',
             'errors': [],
             'warnings': [],
-            'create_time': self._next_time_stamp(),
-            'upload_time': self._next_time_stamp(),
+            'upload_create_time': self._next_time_stamp(),
             'complete_time': self._next_time_stamp(),
             'last_update': self._next_time_stamp(),
             'embargo_length': 0,
@@ -293,11 +291,11 @@ class ExampleData:
         if entry_metadata is None:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
-        upload_time = None
+        upload_create_time = None
         if upload_id in self.uploads:
-            upload_time = self.uploads[upload_id].get('upload_time')
-        if upload_time is None:
-            upload_time = self._next_time_stamp()
+            upload_create_time = self.uploads[upload_id].get('upload_create_time')
+        if upload_create_time is None:
+            upload_create_time = self._next_time_stamp()
 
         entry_metadata.m_update(
             calc_id=entry_id,
@@ -305,7 +303,8 @@ class ExampleData:
             mainfile=mainfile,
             calc_hash='dummy_hash_' + entry_id,
             domain='dft',
-            upload_time=upload_time,
+            upload_create_time=upload_create_time,
+            entry_create_time=self._next_time_stamp(),
             processed=True,
             published=bool(self.uploads.get(upload_id, {}).get('publish_time', True)),
             with_embargo=self.uploads.get(upload_id, {}).get('embargo_length', 0) > 0,

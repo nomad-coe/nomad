@@ -35,7 +35,7 @@ while True:
         response = requests.get('%s%s%s%s' % (
             base_url,
             '/repo/',
-            '?page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=atoms&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
+            '?page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&statistics=atoms&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
             atoms))
         end = time.time()
         print('PING – %s – %f - %s' % (response.status_code, end - start, datetime.now()))

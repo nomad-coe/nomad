@@ -24,7 +24,6 @@ get the processing status of uploads.
 from typing import Dict, Any
 from flask import g, request, Response
 from flask_restplus import Resource, fields, abort
-from datetime import datetime
 from werkzeug.datastructures import FileStorage
 import os.path
 import os
@@ -50,7 +49,6 @@ ns = api.namespace(
 proc_model = api.model('Processing', {
     'errors': fields.List(fields.String),
     'warnings': fields.List(fields.String),
-    'create_time': RFC3339DateTime,
     'complete_time': RFC3339DateTime,
     'current_process': fields.String,
     'current_process_step': fields.String,
@@ -79,7 +77,8 @@ upload_model = api.inherit('UploadProcessing', proc_model, {
     # 'metadata': fields.Nested(model=upload_metadata_model, description='Additional upload and calculation meta data.', skip_none=True),
     'upload_path': fields.String(description='The uploaded file on the server'),
     'published': fields.Boolean(description='If this upload is already published'),
-    'upload_time': RFC3339DateTime(),
+    'upload_create_time': RFC3339DateTime(),
+    'publish_time': RFC3339DateTime(),
     'last_status_message': fields.String(description='The last informative message that the processing saved about this uploads status.'),
     'published_to': fields.List(fields.String(), description='A list of other NOMAD deployments that this upload was uploaded to already.')
 })
@@ -215,7 +214,7 @@ class UploadListResource(Resource):
 
         results = [
             upload
-            for upload in uploads.order_by('publish_time', '-upload_time')[(page - 1) * per_page: page * per_page]]
+            for upload in uploads.order_by('publish_time', '-upload_create_time')[(page - 1) * per_page: page * per_page]]
 
         return dict(
             pagination=dict(total=total, page=page, per_page=per_page),
@@ -360,7 +359,6 @@ class UploadListResource(Resource):
             upload_id=upload_id,
             user=user,
             upload_name=upload_name,
-            upload_time=datetime.utcnow(),
             publish_directly=publish_directly or from_oasis,
             from_oasis=from_oasis,
             oasis_deployment_id=oasis_deployment_id)

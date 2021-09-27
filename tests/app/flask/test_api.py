@@ -217,7 +217,7 @@ class TestUploads:
         assert 'upload_id' in data
         if id is not None:
             assert id == data['upload_id']
-        assert 'create_time' in data
+        assert 'upload_create_time' in data
 
         for key, value in kwargs.items():
             assert data.get(key, None) == value
@@ -949,7 +949,7 @@ class TestRepo():
         example_dataset.a_mongo.create()
 
         entry_metadata = EntryMetadata(
-            domain='dft', upload_id='example_upload_id', calc_id='0', upload_time=today_datetime)
+            domain='dft', upload_id='example_upload_id', calc_id='0', upload_create_time=today_datetime)
         entry_metadata.files = ['test/mainfile.txt']
         entry_metadata.apply_domain_metadata(normalized)
         entry_metadata.encyclopedia = normalized.metadata.encyclopedia
@@ -962,7 +962,7 @@ class TestRepo():
 
         entry_metadata.m_update(
             calc_id='2', uploader=other_test_user.user_id, published=True,
-            with_embargo=False, pid='2', upload_time=today_datetime - datetime.timedelta(days=5),
+            with_embargo=False, pid='2', upload_create_time=today_datetime - datetime.timedelta(days=5),
             external_id='external_2')
         entry_metadata.m_update(
             atoms=['Fe'], comment='this is a specific word', formula='AAA')
@@ -1252,7 +1252,7 @@ class TestRepo():
         query_expression = {
             '$and': [
                 {'dft.system': 'bulk'},
-                {'$not': [{'$lt': {'upload_time': '2020-01-01'}}]}
+                {'$not': [{'$lt': {'upload_create_time': '2020-01-01'}}]}
             ]
         }
         data = {
@@ -2204,7 +2204,7 @@ class TestDataset:
         entry_metadata = EntryMetadata(
             domain='dft', calc_id='1', upload_id='1', published=False, with_embargo=False,
             datasets=['1'])
-        entry = Calc(calc_id='1', upload_id='1', create_time=datetime.datetime.now())
+        entry = Calc(calc_id='1', upload_id='1', entry_create_time=datetime.datetime.now())
         entry._apply_metadata_to_mongo_entry(entry_metadata)
         entry.save()
         rv = api.post('/datasets/ds1', headers=test_user_auth)

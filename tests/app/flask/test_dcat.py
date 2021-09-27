@@ -38,7 +38,7 @@ def example_entry(test_user, other_test_user):
     entry = EntryMetadata(
         calc_id='test-id',
         upload_id='upload-id',
-        upload_time=datetime.now(),
+        upload_create_time=datetime.now(),
         last_processing=datetime.now(),
         uploader=test_user,
         coauthors=[other_test_user],
@@ -75,7 +75,7 @@ def test_get_catalog(elastic_infra, api, example_entry, after, modified_since):
 
     for i in range(1, 11):
         example_entry.calc_id = 'test-id-%d' % i
-        example_entry.upload_time = datetime(2000, 1, 1)
+        example_entry.upload_create_time = datetime(2000, 1, 1)
         example_entry.last_processing = datetime(2020, 1, i)
         example_entry.a_elastic.index()
 

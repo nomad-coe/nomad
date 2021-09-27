@@ -225,7 +225,7 @@ class SearchRequest:
         if end is None:
             end = datetime.utcnow()
 
-        self.q &= Q('range', upload_time=dict(gte=start, lte=end))
+        self.q &= Q('range', upload_create_time=dict(gte=start, lte=end))
 
         return self
 
@@ -324,7 +324,7 @@ class SearchRequest:
         '''
         Adds a date histogram on the given metrics to the statistics part.
         '''
-        histogram = A('date_histogram', field='upload_time', interval=interval, format='yyyy-MM-dd')
+        histogram = A('date_histogram', field='upload_create_time', interval=interval, format='yyyy-MM-dd')
         self._add_metrics(self._search.aggs.bucket('statistics:date_histogram', histogram), metrics_to_use)
 
         return self

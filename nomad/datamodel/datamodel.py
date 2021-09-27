@@ -354,9 +354,9 @@ class UploadMetadata(metainfo.MSection):
     upload_name = metainfo.Quantity(
         type=str,
         description='The user provided upload name')
-    upload_time = metainfo.Quantity(
+    upload_create_time = metainfo.Quantity(
         type=metainfo.Datetime,
-        description='The date and time this entry was uploaded to nomad')
+        description='The date and time when the upload was created')
     uploader = metainfo.Quantity(
         type=user_reference,
         description='The creator of the upload')
@@ -392,7 +392,9 @@ class EntryMetadata(metainfo.MSection):
             has an embargo.
         with_embargo: Entries with embargo are only visible to the uploader, the admin
             user, and users the entry is shared with (see shared_with).
-        upload_time: The time that this entry was uploaded
+        upload_create_time: The time that the upload was created
+        entry_create_time: The time that the entry was created
+        publish_time: The time when the upload was published
         datasets: Ids of all datasets that this entry appears in
     '''
     m_def = metainfo.Section(
@@ -605,11 +607,25 @@ class EntryMetadata(metainfo.MSection):
         description='Indicated if this entry is under an embargo',
         a_search=Search(), a_elasticsearch=Elasticsearch(material_entry_type))
 
-    upload_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
-        description='The date and time this entry was uploaded to nomad',
+    upload_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the upload was created in nomad',
         a_flask=dict(admin_only=True),
         a_search=Search(order_default=True),
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    entry_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the entry was created in nomad',
+        a_flask=dict(admin_only=True),
+        a_search=Search(),
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    publish_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the upload was published in nomad',
+        a_flask=dict(admin_only=True),
+        a_search=Search(),
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_name = metainfo.Quantity(

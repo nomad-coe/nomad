@@ -178,7 +178,7 @@ def assert_upload(response_json, **kwargs):
     data = response_json['data']
     assert 'upload_id' in response_json
     assert 'upload_id' in data
-    assert 'create_time' in data
+    assert 'upload_create_time' in data
     assert 'published' in data
     assert 'with_embargo' in data
     assert 'embargo_length' in data
@@ -271,7 +271,7 @@ def assert_entry(entry, **kwargs):
     assert 'upload_id' in entry
     assert 'entry_id' in entry
     assert 'calc_id' not in entry
-    assert 'create_time' in entry
+    assert 'entry_create_time' in entry
     assert not entry['process_running']
     for key, value in kwargs.items():
         assert entry.get(key, None) == value
@@ -999,7 +999,7 @@ def test_put_upload_metadata(
     if query_args == 'PROTECTED':
         # Arguments for testing changing protected fields
         query_args = dict(
-            upload_time=(upload.upload_time - timedelta(hours=3, seconds=14)).isoformat(),
+            upload_create_time=(upload.upload_create_time - timedelta(hours=3, seconds=14)).isoformat(),
             uploader=test_users_dict['other_test_user'].user_id)
     user_auth, token = test_auth_dict[user]
     if use_upload_token:
@@ -1025,10 +1025,10 @@ def test_put_upload_metadata(
                 if 'uploader' in query_args:
                     assert upload.user_id == query_args['uploader']
                     assert entry_metadata.uploader.user_id == es_data['uploader']['user_id'] == upload.user_id
-                if 'upload_time' in query_args:
-                    assert upload.upload_time == datetime.fromisoformat(query_args['upload_time'])
-                    assert entry_metadata.upload_time == upload.upload_time
-                    assert datetime.fromisoformat(es_data['upload_time']) == upload.upload_time
+                if 'upload_create_time' in query_args:
+                    assert upload.upload_create_time == datetime.fromisoformat(query_args['upload_create_time'])
+                    assert entry_metadata.upload_create_time == upload.upload_create_time
+                    assert datetime.fromisoformat(es_data['upload_create_time']) == upload.upload_create_time
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
                     assert entry_metadata.with_embargo == es_data['with_embargo'] == upload.with_embargo
@@ -1281,7 +1281,7 @@ def test_post_upload_action_publish_to_central_nomad(
         old_calc = old_upload.calcs[0]
         new_calc = new_upload.calcs[0]
         for k, v in old_calc.metadata.items():
-            if k not in ('upload_time', 'last_processing'):
+            if k not in ('upload_create_time', 'last_processing'):
                 assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
         assert new_calc.metadata.get('datasets') == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
