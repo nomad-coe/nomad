@@ -18,7 +18,7 @@
 
 ''' All generic entry metadata and related classes. '''
 
-from typing import Any
+from typing import List, Any
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import analyzer, tokenizer
 import ase.data
@@ -301,7 +301,10 @@ class OasisMetadata(metainfo.MCategory):
 
 
 class MongoMetadata(metainfo.MCategory):
-    ''' NOMAD entry quantities that are stored in mongodb and not necessarely in the archive. '''
+    '''
+    NOMAD entry quantities that are stored in mongodb on the entry level, in the metadata dict,
+    and not necessarely in the archive.
+    '''
     pass
 
 
@@ -310,7 +313,7 @@ class DomainMetadata(metainfo.MCategory):
     pass
 
 
-def derive_origin(entry):
+def derive_origin(entry: 'EntryMetadata') -> str:
     if entry.external_db is not None:
         return str(entry.external_db)
 
@@ -320,8 +323,8 @@ def derive_origin(entry):
     return None
 
 
-def derive_authors(entry):
-    uploaders = []
+def derive_authors(entry: 'EntryMetadata') -> List[User]:
+    uploaders: List[User] = []
     if entry.uploader is not None and entry.external_db is None:
         uploaders = [entry.uploader]
     return uploaders + entry.coauthors
@@ -335,12 +338,12 @@ class UploadMetadata(metainfo.MSection):
     upload_name = metainfo.Quantity(
         type=str,
         description='The user provided upload name')
-    upload_time = metainfo.Quantity(
+    upload_create_time = metainfo.Quantity(
         type=metainfo.Datetime,
-        description='The date and time this entry was uploaded to nomad')
+        description='The date and time when the upload was created')
     uploader = metainfo.Quantity(
         type=user_reference,
-        description='The uploader of the entry')
+        description='The creator of the upload')
     embargo_length = metainfo.Quantity(
         type=int,
         description='The length of the embargo period in months (0-36)')
@@ -371,7 +374,9 @@ class EntryMetadata(metainfo.MSection):
             has an embargo.
         with_embargo: Entries with embargo are only visible to the uploader, the admin
             user, and users the entry is shared with (see shared_with).
-        upload_time: The time that this entry was uploaded
+        upload_create_time: The time that the upload was created
+        entry_create_time: The time that the entry was created
+        publish_time: The time when the upload was published
         datasets: Ids of all datasets that this entry appears in
     '''
     upload_id = metainfo.Quantity(
@@ -425,19 +430,18 @@ class EntryMetadata(metainfo.MSection):
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
         description='The material science domain',
-        categories=[MongoMetadata, UserProvidableMetadata],
+        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        categories=[MongoMetadata, OasisMetadata],
+        categories=[OasisMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     processed = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates that the entry is successfully processed.',
-        categories=[MongoMetadata],
         a_elasticsearch=Elasticsearch())
 
     last_processing = metainfo.Quantity(
@@ -483,7 +487,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     uploader = metainfo.Quantity(
-        type=user_reference, categories=[MongoMetadata],
+        type=user_reference,
         description='The uploader of the entry',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -523,20 +527,32 @@ class EntryMetadata(metainfo.MSection):
             license of this entry.
         ''',
         default='CC BY 4.0',
-        categories=[MongoMetadata, EditableUserMetadata])
+        categories=[EditableUserMetadata])
 
     with_embargo = metainfo.Quantity(
-        type=bool, default=False, categories=[MongoMetadata],
+        type=bool, default=False,
         description='Indicated if this entry is under an embargo',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    upload_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
-        description='The date and time this entry was uploaded to nomad',
+    upload_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the upload was created in nomad',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    entry_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the entry was created in nomad',
+        a_flask=dict(admin_only=True),
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    publish_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[OasisMetadata],
+        description='The date and time when the upload was published in nomad',
+        a_flask=dict(admin_only=True),
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_name = metainfo.Quantity(
-        type=str, categories=[MongoMetadata],
+        type=str,
         description='The user provided upload name',
         a_elasticsearch=Elasticsearch())
 

@@ -24,7 +24,7 @@ import { Paper } from '@material-ui/core'
 import { authorList, nameList } from '../../utils'
 import WithButton from '../utils/WithButton'
 
-const defaultSelectedColumns = ['mainfile', 'parser', 'process_status', 'complete_time']
+const defaultSelectedColumns = ['mainfile', 'parser_name', 'process_status', 'complete_time']
 
 export default function ProcessingTable({data, onPaginationChange}) {
   const columns = useMemo(() => {
@@ -49,11 +49,11 @@ export default function ProcessingTable({data, onPaginationChange}) {
         ...EntryListUnstyled.defaultColumns.mainfile,
         supportsSort: true
       },
-      parser: {
+      parser_name: {
         label: 'Parser',
         supportsSort: true,
         description: 'The parser that was used to process this entry.',
-        render: entry => entry.parser.replace('parsers/', '')
+        render: entry => entry.parser_name.replace('parsers/', '')
       },
       process_status: {
         label: 'Processing',

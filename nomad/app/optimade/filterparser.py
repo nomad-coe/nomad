@@ -49,7 +49,7 @@ def _get_transformer(without_prefix):
     quantities['id'] = Quantity('id', es_field='entry_id', elastic_mapping_type='keyword')
     quantities['immutable_id'] = Quantity('immutable_id', es_field='entry_id', elastic_mapping_type='keyword')
     quantities['last_modified'] = Quantity(
-        'last_modified', es_field='upload_time', elastic_mapping_type='date')
+        'last_modified', es_field='upload_create_time', elastic_mapping_type='date')
 
     quantities['elements'].length_quantity = quantities['nelements']
     quantities['elements'].nested_quantity = quantities['elements_ratios']

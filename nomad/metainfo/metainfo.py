@@ -50,7 +50,12 @@ _placeholder_quantity: 'Quantity' = property()  # type: ignore
 if True:
     _placeholder_quantity: 'Quantity' = None  # type: ignore
 
-_primitive_types = {str: str, int: int, float: float, bool: bool, np.bool_: bool}
+_primitive_types = {
+    str: lambda v: None if v is None else str(v),
+    int: int,
+    float: lambda v: None if v is None else float(v),
+    bool: bool,
+    np.bool_: bool}
 
 
 # Metainfo errors

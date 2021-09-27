@@ -178,7 +178,14 @@ def assert_upload(response_json, **kwargs):
     data = response_json['data']
     assert 'upload_id' in response_json
     assert 'upload_id' in data
-    assert 'create_time' in data
+    assert 'upload_create_time' in data
+    assert 'published' in data
+    assert 'with_embargo' in data
+    assert 'embargo_length' in data
+    assert 'license' in data
+    assert (data['embargo_length'] > 0) == data['with_embargo']
+    if data['published']:
+        assert 'publish_time' in data
 
     for key, value in kwargs.items():
         assert data.get(key, None) == value
@@ -264,7 +271,7 @@ def assert_entry(entry, **kwargs):
     assert 'upload_id' in entry
     assert 'entry_id' in entry
     assert 'calc_id' not in entry
-    assert 'create_time' in entry
+    assert 'entry_create_time' in entry
     assert not entry['process_running']
     for key, value in kwargs.items():
         assert entry.get(key, None) == value
@@ -311,7 +318,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     return [
         EntryMetadata(
             domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
-            with_embargo=Calc.get(entry['entry_id']).metadata.get('with_embargo'))
+            with_embargo=Upload.get(entry['upload_id']).with_embargo)
         for entry in entries]
 
 
@@ -557,13 +564,13 @@ def test_get_upload(
         id='pag-out-of-rage-page_after_value'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'order_by': 'parser'},
+            query_args={'page_size': 1, 'order_by': 'parser_name'},
             expected_data_len=1,
             expected_response={'processing_successful': 2, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser',
+                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser_name',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
-        id='pag-order_by-parser'),
+        id='pag-order_by-parser_name'),
     pytest.param(
         dict(
             query_args={'page_size': 1, 'order_by': 'calc_id'},
@@ -958,20 +965,20 @@ def test_delete_upload_raw_path(
 
 
 @pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
-    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name', embargo_length=13), False, 200, id='ok'),
+    pytest.param('test_user', 'id_unpublished_w', dict(upload_name='test_name', embargo_length=13), False, 200, id='ok'),
     pytest.param('test_user', 'id_published_w', dict(embargo_length=0), False, 200, id='lift-embargo'),
     pytest.param('admin_user', 'id_unpublished_w', 'PROTECTED', False, 200, id='protected-admin'),
     pytest.param('test_user', 'id_unpublished_w', 'PROTECTED', False, 401, id='protected-not-admin'),
-    pytest.param('test_user', 'id_unpublished_w', dict(name='test_name'), True, 200, id='use-token'),
-    pytest.param('test_user', 'silly_value', dict(name='test_name'), True, 404, id='bad-upload_id'),
-    pytest.param('admin_user', 'id_published_w', dict(name='test_name'), False, 200, id='published-admin'),
-    pytest.param('test_user', 'id_published_w', dict(name='test_name'), False, 401, id='published-not-admin'),
-    pytest.param(None, 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-credentials'),
-    pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), False, 401, id='invalid-credentials'),
-    pytest.param('invalid', 'id_unpublished_w', dict(name='test_name'), True, 401, id='invalid-credentials-token'),
-    pytest.param('other_test_user', 'id_unpublished_w', dict(name='test_name'), False, 401, id='no-access'),
-    pytest.param('test_user', 'id_processing_w', dict(name='test_name'), False, 400, id='processing'),
-    pytest.param('test_user', 'id_empty_w', dict(name='test_name'), False, 200, id='empty-upload-ok')]
+    pytest.param('test_user', 'id_unpublished_w', dict(upload_name='test_name'), True, 200, id='use-token'),
+    pytest.param('test_user', 'silly_value', dict(upload_name='test_name'), True, 404, id='bad-upload_id'),
+    pytest.param('admin_user', 'id_published_w', dict(upload_name='test_name'), False, 200, id='published-admin'),
+    pytest.param('test_user', 'id_published_w', dict(upload_name='test_name'), False, 401, id='published-not-admin'),
+    pytest.param(None, 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='no-credentials'),
+    pytest.param('invalid', 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='invalid-credentials'),
+    pytest.param('invalid', 'id_unpublished_w', dict(upload_name='test_name'), True, 401, id='invalid-credentials-token'),
+    pytest.param('other_test_user', 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='no-access'),
+    pytest.param('test_user', 'id_processing_w', dict(upload_name='test_name'), False, 400, id='processing'),
+    pytest.param('test_user', 'id_empty_w', dict(upload_name='test_name'), False, 200, id='empty-upload-ok')]
 )
 def test_put_upload_metadata(
         client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
@@ -979,20 +986,20 @@ def test_put_upload_metadata(
 
     try:
         upload = Upload.get(upload_id)
-        upload.name = 'old_value'
+        upload.upload_name = 'old_value'
         upload.save()
     except KeyError:
         pass
 
     if upload_id == 'id_published_w':
-        assert Calc.get('id_published_w_entry').metadata['with_embargo']
+        assert Upload.get(upload_id).with_embargo
         es_data = search(owner=None, query=dict(entry_id='id_published_w_entry')).data[0]
         assert es_data['with_embargo']
 
     if query_args == 'PROTECTED':
         # Arguments for testing changing protected fields
         query_args = dict(
-            upload_time=(upload.upload_time - timedelta(hours=3, seconds=14)).isoformat(),
+            upload_create_time=(upload.upload_create_time - timedelta(hours=3, seconds=14)).isoformat(),
             uploader=test_users_dict['other_test_user'].user_id)
     user_auth, token = test_auth_dict[user]
     if use_upload_token:
@@ -1012,41 +1019,41 @@ def test_put_upload_metadata(
         with upload.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
                 es_data = search(owner=None, query=dict(entry_id=entry_metadata.calc_id)).data[0]
-                if 'name' in query_args:
-                    assert upload.name == query_args.get('name')
-                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.name
+                if 'upload_name' in query_args:
+                    assert upload.upload_name == query_args.get('upload_name')
+                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.upload_name
                 if 'uploader' in query_args:
                     assert upload.user_id == query_args['uploader']
                     assert entry_metadata.uploader.user_id == es_data['uploader']['user_id'] == upload.user_id
-                if 'upload_time' in query_args:
-                    assert upload.upload_time == datetime.fromisoformat(query_args['upload_time'])
-                    assert entry_metadata.upload_time == upload.upload_time
-                    assert datetime.fromisoformat(es_data['upload_time']) == upload.upload_time
+                if 'upload_create_time' in query_args:
+                    assert upload.upload_create_time == datetime.fromisoformat(query_args['upload_create_time'])
+                    assert entry_metadata.upload_create_time == upload.upload_create_time
+                    assert datetime.fromisoformat(es_data['upload_create_time']) == upload.upload_create_time
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
-                    assert entry_metadata.with_embargo == es_data['with_embargo'] == (upload.embargo_length > 0)
+                    assert entry_metadata.with_embargo == es_data['with_embargo'] == upload.with_embargo
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
-    pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, False, True, 200, id='multipart'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', False, False, True, 200, id='multipart'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 200, id='multipart-no-name'),
-    pytest.param('multipart', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='multipart-token'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=0, name='test_name'), 'test_user', False, False, True, 200, id='stream-no-embargo'),
+    pytest.param('multipart', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', True, False, True, 200, id='multipart-token'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=0, upload_name='test_name'), 'test_user', False, False, True, 200, id='stream-no-embargo'),
     pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=7), 'test_user', False, False, True, 200, id='stream-no-name-embargoed'),
     pytest.param('stream', example_file_vasp_with_binary, dict(embargo_length=37), 'test_user', False, False, True, 400, id='stream-invalid-embargo'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', True, False, True, 200, id='stream-token'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', True, False, True, 200, id='stream-token'),
     pytest.param('local_path', example_file_vasp_with_binary, dict(), 'admin_user', False, False, True, 200, id='local_path'),
     pytest.param('local_path', example_file_vasp_with_binary, dict(), 'test_user', False, False, True, 401, id='local_path-not-admin'),
     pytest.param('stream', example_file_vasp_with_binary, dict(), 'test_user', False, False, False, 200, id='no-accept-json'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), None, False, False, True, 401, id='no-credentials'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', False, False, True, 401, id='invalid-credentials'),
     pytest.param('multipart', example_file_vasp_with_binary, dict(), 'invalid', True, False, True, 401, id='invalid-credentials-token'),
-    pytest.param('stream', None, dict(name='test_name'), 'test_user', False, False, True, 200, id='no-file'),
+    pytest.param('stream', None, dict(upload_name='test_name'), 'test_user', False, False, True, 200, id='no-file'),
     pytest.param('stream', example_file_aux, dict(file_name='1.aux'), 'test_user', False, False, True, 200, id='stream-non-zip-file'),
     pytest.param('stream', example_file_aux, dict(), 'test_user', False, False, True, 400, id='stream-non-zip-file-no-file_name'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly'),
-    pytest.param('stream', empty_file, dict(name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly-empty'),
-    pytest.param('stream', example_file_vasp_with_binary, dict(name='test_name'), 'test_user', False, True, True, 400, id='upload-limit-exceeded'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(upload_name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly'),
+    pytest.param('stream', empty_file, dict(upload_name='test_name', publish_directly=True), 'test_user', False, False, True, 200, id='publish_directly-empty'),
+    pytest.param('stream', example_file_vasp_with_binary, dict(upload_name='test_name'), 'test_user', False, True, True, 400, id='upload-limit-exceeded'),
     pytest.param('multipart', example_file_corrupt_zip, dict(), 'test_user', False, False, True, 200, id='bad-zip')])
 def test_post_upload(
         client, mongo, proc_infra, monkeypatch, test_auth_dict,
@@ -1073,14 +1080,14 @@ def test_post_upload(
         expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
 
     if expected_status_code == 200 and response_data:
-        expected_name = query_args.get('name')
-        if not expected_name:
+        expected_upload_name = query_args.get('upload_name')
+        if not expected_upload_name:
             if mode in ('multipart', 'local_path'):
-                expected_name = os.path.basename(source_path)
+                expected_upload_name = os.path.basename(source_path)
             elif mode == 'stream':
-                expected_name = query_args.get('file_name')
+                expected_upload_name = query_args.get('file_name')
 
-        assert response_data.get('name') == expected_name
+        assert response_data.get('upload_name') == expected_upload_name
 
     if query_args.get('publish_directly'):
         upload_id = response_data['upload_id']
@@ -1275,7 +1282,7 @@ def test_post_upload_action_publish_to_central_nomad(
         old_calc = old_upload.calcs[0]
         new_calc = new_upload.calcs[0]
         for k, v in old_calc.metadata.items():
-            if k not in ('upload_time', 'last_processing'):
+            if k not in ('upload_create_time', 'last_processing'):
                 assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
         assert new_calc.metadata.get('datasets') == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id

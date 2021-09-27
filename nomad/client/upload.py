@@ -42,7 +42,7 @@ def upload_file(
     if local_path:
         response = api.post(
             'uploads',
-            params=dict(local_path=os.path.abspath(file_path), name=upload_name),
+            params=dict(local_path=os.path.abspath(file_path), upload_name=upload_name),
             headers={'Accept': 'application/json'},
             auth=auth)
         print('process offline: %s' % file_path)
@@ -50,7 +50,7 @@ def upload_file(
         with open(file_path, 'rb') as f:
             response = api.post(
                 'uploads',
-                params=dict(name=upload_name), data=f,
+                params=dict(upload_name=upload_name), data=f,
                 headers={'Accept': 'application/json'},
                 auth=auth)
     if response.status_code != 200:

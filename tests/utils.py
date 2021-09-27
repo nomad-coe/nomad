@@ -166,6 +166,7 @@ class ExampleData:
                 if upload_id in self.uploads:
                     assert embargo_length is not None, 'No embargo provided on upload'
                     assert (embargo_length > 0) == with_embargo, 'Inconsistent embargo'
+                    assert published == (self.uploads[upload_id]['publish_time'] is not None)
                 else:
                     # No uploads created. Just generate it
                     embargo_length = 36 if with_embargo else 0
@@ -183,19 +184,20 @@ class ExampleData:
                 mongo_upload.save()
 
             for entry_metadata in self.entries.values():
+                process_status = (
+                    proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
                 mongo_entry = proc.Calc(
-                    create_time=self._next_time_stamp(),
+                    entry_create_time=entry_metadata.entry_create_time,
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
-                    parser='parsers/vasp',
-                    process_status=proc.ProcessStatus.SUCCESS)
+                    parser_name='parsers/vasp',
+                    process_status=process_status)
                 upload_dict = self.uploads.get(entry_metadata.upload_id)
                 if upload_dict:
                     # Mirror fields from upload
                     entry_metadata.uploader = upload_dict['user_id']
-                    entry_metadata.upload_time = upload_dict['upload_time']
-                mongo_entry.apply_entry_metadata(entry_metadata)
+                mongo_entry._apply_metadata_to_mongo_entry(entry_metadata)
                 mongo_entry.save()
 
         if with_es:
@@ -228,7 +230,7 @@ class ExampleData:
             if upload_files is not None:
                 upload_files.delete()
 
-    def create_upload(self, upload_id, **kwargs):
+    def create_upload(self, upload_id, published=None, **kwargs):
         '''
         Creates a dictionary holding all the upload information.
         Default values are used/generated, and can be set via kwargs.
@@ -239,16 +241,18 @@ class ExampleData:
             'process_status': 'SUCCESS',
             'errors': [],
             'warnings': [],
-            'create_time': self._next_time_stamp(),
-            'upload_time': self._next_time_stamp(),
+            'upload_create_time': self._next_time_stamp(),
             'complete_time': self._next_time_stamp(),
             'last_update': self._next_time_stamp(),
             'embargo_length': 0,
-            'published': False,
+            'publish_time': None,
             'published_to': []}
         upload_dict.update(kwargs)
-        if upload_dict['published'] and 'publish_time' not in upload_dict:
-            upload_dict['publish_time'] = self._next_time_stamp()
+        if published is not None:
+            if published and not upload_dict['publish_time']:
+                upload_dict['publish_time'] = self._next_time_stamp()
+            elif not published:
+                assert not upload_dict['publish_time']
         if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
             upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
         self.uploads[upload_id] = upload_dict
@@ -286,11 +290,11 @@ class ExampleData:
         if entry_metadata is None:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
-        upload_time = None
+        upload_create_time = None
         if upload_id in self.uploads:
-            upload_time = self.uploads[upload_id].get('upload_time')
-        if upload_time is None:
-            upload_time = self._next_time_stamp()
+            upload_create_time = self.uploads[upload_id].get('upload_create_time')
+        if upload_create_time is None:
+            upload_create_time = self._next_time_stamp()
 
         entry_metadata.m_update(
             calc_id=entry_id,
@@ -298,10 +302,11 @@ class ExampleData:
             mainfile=mainfile,
             calc_hash='dummy_hash_' + entry_id,
             domain='dft',
-            upload_time=upload_time,
-            published=True,
+            upload_create_time=upload_create_time,
+            entry_create_time=self._next_time_stamp(),
             processed=True,
-            with_embargo=False,
+            published=bool(self.uploads.get(upload_id, {}).get('publish_time', True)),
+            with_embargo=self.uploads.get(upload_id, {}).get('embargo_length', 0) > 0,
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
         entry_metadata.m_update(**kwargs)

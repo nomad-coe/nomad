@@ -279,6 +279,11 @@ test_users = {
 }
 
 
+@pytest.fixture(scope='session', autouse=True)
+def configure_admin_user_id(monkeysession):
+    monkeysession.setattr('nomad.config.services.admin_user_id', admin_user_id)
+
+
 class KeycloakMock:
     def __init__(self):
         self.id_counter = 2
@@ -605,7 +610,7 @@ def oasis_example_upload(non_empty_example_upload: str, test_user, raw_files) ->
     shutil.copyfile(uploaded_path, uploaded_path_modified)
 
     metadata = {
-        'upload_time': '2020-01-01 00:00:00',
+        'upload_create_time': '2020-01-01 00:00:00',
         'published': True,
         'entries': {
             'examples_template/template.json': {

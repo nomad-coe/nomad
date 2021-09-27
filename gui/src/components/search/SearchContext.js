@@ -153,7 +153,7 @@ registerFilter('results.properties.electronic.band_structure_electronic.channel_
 registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
 registerFilter('external_db', labelAuthor, 'terms')
 registerFilter('authors.name', labelAuthor)
-registerFilter('upload_time', labelAuthor, 'min_max', undefined, false)
+registerFilter('upload_create_time', labelAuthor, 'min_max', undefined, false)
 registerFilter('datasets.name', labelDataset)
 registerFilter('datasets.doi', labelDataset)
 registerFilter('entry_id', labelIDs)

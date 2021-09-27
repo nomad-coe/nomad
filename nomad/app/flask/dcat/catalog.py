@@ -53,7 +53,7 @@ class Catalog(Resource):
 
         search_query = Q()
         if modified_since is not None:
-            modified_clause = Q('range', upload_time=dict(gte=modified_since))
+            modified_clause = Q('range', upload_create_time=dict(gte=modified_since))
             modified_clause |= Q('range', last_edit=dict(gte=modified_since))
             modified_clause |= Q('range', last_processing=dict(gte=modified_since))
             search_query &= modified_clause

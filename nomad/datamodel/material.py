@@ -20,7 +20,6 @@ import numpy as np
 
 from nomad.metainfo import MSection, Section, SubSection, Quantity, MEnum
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.datamodel.datamodel import MongoMetadata, EditableUserMetadata
 
 
 class DOSSimilarity(MSection):
@@ -435,11 +434,12 @@ class Calculation(MSection):
         type=str)
     published = Quantity(
         type=bool, default=False,
-        description='Indicates if the entry is published',
-        categories=[MongoMetadata])
+        description='Indicates if the entry is published'
+    )
     with_embargo = Quantity(
-        type=bool, default=False, categories=[MongoMetadata, EditableUserMetadata],
-        description='Indicated if this entry is under an embargo')
+        type=bool, default=False,
+        description='Indicated if this entry is under an embargo'
+    )
     owners = Quantity(
         type=str, shape=['0..*'],
         description='The ids of the users that have access (upload and shared with users) to this calculation'

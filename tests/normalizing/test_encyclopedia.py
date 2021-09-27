@@ -509,10 +509,10 @@ def test_phonon(test_user, proc_infra):
 
     # Read the resulting archive
     upload_id = upload.upload_id
-    calcs = upload.calcs()
+    calcs = upload.calcs
     phonon_id = None
     for calc in calcs:
-        if calc.parser == "parsers/phonopy":
+        if calc.parser_name == "parsers/phonopy":
             phonon_id = calc.calc_id
             break
     upload_file = UploadFiles.get(upload_id)

@@ -28,7 +28,7 @@
 const common = {
   domain: 'dft',
   upload_id: 'mock',
-  upload_time: '2021-03-17T13:47:32.899000',
+  upload_create_time: '2021-03-17T13:47:32.899000',
   last_processing: '2021-03-17T15:47:32.899000',
   nomad_version: '0.10.0',
   nomad_commit: 'bf3c06fa',

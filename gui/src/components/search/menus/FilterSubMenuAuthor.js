@@ -48,7 +48,7 @@ const FilterSubMenuAuthor = React.memo(({
       </Grid>
       <Grid item xs={12}>
         <InputDateRange
-          quantity="upload_time"
+          quantity="upload_create_time"
           visible={visible}
         />
       </Grid>

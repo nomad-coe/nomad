@@ -34,7 +34,7 @@ def post_query_test_parameters(
     program_name = f'{entry_prefix}results.method.simulation.program_name'
     method = f'{entry_prefix}results.method'
     properties = f'{entry_prefix}results.properties'
-    upload_time = f'{entry_prefix}upload_time'
+    upload_create_time = f'{entry_prefix}upload_create_time'
 
     return [
         pytest.param({}, 200, total, id='empty'),
@@ -66,9 +66,9 @@ def post_query_test_parameters(
         pytest.param({f'{properties}.electronic.dos_electronic.spin_polarized': True}, 200, 1, id='nested-implicit'),
         pytest.param({f'{properties}.electronic.dos_electronic': {'spin_polarized': True}}, 200, 1, id='nested-explicit'),
         pytest.param({properties: {'electronic.dos_electronic': {'spin_polarized': True}}}, 200, 1, id='nested-explicit-explicit'),
-        pytest.param({f'{upload_time}:gt': '1970-01-01'}, 200, total, id='date-1'),
-        pytest.param({f'{upload_time}:lt': '2099-01-01'}, 200, total, id='date-2'),
-        pytest.param({f'{upload_time}:gt': '2099-01-01'}, 200, 0, id='date-3')
+        pytest.param({f'{upload_create_time}:gt': '1970-01-01'}, 200, total, id='date-1'),
+        pytest.param({f'{upload_create_time}:lt': '2099-01-01'}, 200, total, id='date-2'),
+        pytest.param({f'{upload_create_time}:gt': '2099-01-01'}, 200, 0, id='date-3')
     ]
 
 
@@ -77,7 +77,7 @@ def get_query_test_parameters(
 
     elements = f'{material_prefix}elements'
     n_elements = f'{material_prefix}n_elements'
-    upload_time = f'{entry_prefix}upload_time'
+    upload_create_time = f'{entry_prefix}upload_create_time'
 
     return [
         pytest.param({}, 200, total, id='empty'),
@@ -99,10 +99,10 @@ def get_query_test_parameters(
         pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
         pytest.param({'q': f'{n_elements}__2'}, 200, total, id='q-match-int'),
         pytest.param({'q': f'{n_elements}__gt__2'}, 200, 0, id='q-gt'),
-        pytest.param({'q': f'{entry_prefix}upload_time__gt__2014-01-01'}, 200, total, id='datetime'),
+        pytest.param({'q': f'{entry_prefix}upload_create_time__gt__2014-01-01'}, 200, total, id='datetime'),
         pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, total, id='q-all'),
         pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all'),
-        pytest.param({'q': f'{upload_time}__gt__1970-01-01'}, 200, total, id='date')
+        pytest.param({'q': f'{upload_create_time}__gt__1970-01-01'}, 200, total, id='date')
     ]
 
 
@@ -168,7 +168,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
     n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
     program_name = f'{entry_prefix}results.method.simulation.program_name'
     n_calculations = f'{entry_prefix}results.properties.n_calculations'
-    upload_time = f'{entry_prefix}upload_time'
+    upload_create_time = f'{entry_prefix}upload_create_time'
 
     return [
         pytest.param(
@@ -192,7 +192,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {
                 'terms': {
                     'quantity': f'{entry_prefix}upload_id',
-                    'pagination': {'order_by': upload_time}
+                    'pagination': {'order_by': upload_create_time}
                 }
             },
             3, 3, 200, 'test_user', id='order-date'),
@@ -284,15 +284,15 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {'terms': {'quantity': 'does not exist'}},
             -1, -1, 422, None, id='bad-quantity'),
         pytest.param(
-            {'date_histogram': {'quantity': upload_time}},
+            {'date_histogram': {'quantity': upload_create_time}},
             1, 1, 200, 'test-user', id='date-histogram'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_time, 'metrics': ['n_uploads']}},
+            {'date_histogram': {'quantity': upload_create_time, 'metrics': ['n_uploads']}},
             1, 1, 200, 'test-user', id='date-histogram-metrics'
         ),
         pytest.param(
-            {'date_histogram': {'quantity': upload_time, 'interval': '1s'}},
+            {'date_histogram': {'quantity': upload_create_time, 'interval': '1s'}},
             1, 1, 200, 'test-user', id='date-histogram-interval'
         ),
         pytest.param(

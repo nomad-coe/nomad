@@ -49,7 +49,7 @@ def data(test_user, other_test_user, elastic_infra):
     example_attrs = dict(
         entry_id='test-id',
         upload_id='upload-id',
-        upload_time=datetime.now(),
+        upload_create_time=datetime.now(),
         last_processing=datetime.now(),
         uploader=test_user,
         coauthors=[other_test_user],
@@ -63,7 +63,7 @@ def data(test_user, other_test_user, elastic_infra):
     for i in range(1, 11):
         example_attrs.update(
             entry_id='test-id-%d' % i,
-            upload_time=datetime(2000, 1, 1),
+            upload_create_time=datetime(2000, 1, 1),
             last_processing=datetime(2020, 1, i))
         data.create_entry(**example_attrs)
 

@@ -55,7 +55,7 @@ Here is a small metainfo example:
             type=str,
             a_elasticsearch=Elasticsearch(material_entry_type))
 
-        upload_time = Quantity(
+        upload_create_time = Quantity(
             type=Datetime,
             a_elasticsearch=Elasticsearch())
 
@@ -99,7 +99,7 @@ The resulting indices with a single entry in them would look like this. Entry in
     [
         {
             "entry_id": "de54f1",
-            "upload_time": "2021-02-01 01:23:12",
+            "upload_create_time": "2021-02-01 01:23:12",
             "results": {
                 "material": {
                     "material_id": "23a8bf",

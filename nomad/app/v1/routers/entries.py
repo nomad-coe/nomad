@@ -1127,8 +1127,7 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
             for calc in proc.Calc.objects(calc_id__in=entry_ids):
-                updated_metadata.append(
-                    datamodel.EntryMetadata(calc_id=calc.calc_id, **calc.metadata))
+                updated_metadata.append(calc.mongo_metadata(calc.upload))
 
             failed = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
 
@@ -1198,7 +1197,7 @@ async def post_entry_metadata_edit(
             # TODO this does not work. Because the quantities are not in EditableUserMetadata
             # they are also not in the model and ignored by fastapi. This probably
             # also did not work in the old API.
-            if action_quantity_name in ['uploader', 'upload_time']:
+            if action_quantity_name in ['uploader', 'upload_create_time']:
                 if not user.is_admin():
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,

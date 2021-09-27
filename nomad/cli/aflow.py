@@ -368,7 +368,7 @@ class DbUpdater:
         return response.json()['data']['process_status'] in proc.ProcessStatus.STATUSES_NOT_PROCESSING
 
     def _get_status_upload(self, uploadname: str) -> typing.Tuple[str, str]:
-        response = api.get(f'uploads', params=dict(name=uploadname), auth=self.auth)
+        response = api.get(f'uploads', params=dict(upload_name=uploadname), auth=self.auth)
         assert response.status_code == 200
         response_json = response.json()
         assert len(response_json['data']) <= 1
@@ -422,8 +422,8 @@ class DbUpdater:
                 response = api.post(f'uploads/{uid}/action/publish', auth=self.auth)
                 assert response.status_code == 200
 
-    def upload(self, file_path: str, name: str) -> int:
-        uid = upload_file(os.path.abspath(file_path), self.auth, local_path=True, upload_name=name)
+    def upload(self, file_path: str, upload_name: str) -> int:
+        uid = upload_file(os.path.abspath(file_path), self.auth, local_path=True, upload_name=upload_name)
         assert uid is not None
         return uid
 

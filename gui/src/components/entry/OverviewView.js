@@ -168,9 +168,9 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
             <Quantity quantity="entry_id" label='entry id' noWrap withClipboard data={entry}/>
             <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard data={entry}/>
             <Quantity quantity="upload_id" label='upload id' noWrap withClipboard data={entry}/>
-            <Quantity quantity="upload_time" label='upload time' noWrap data={entry}>
+            <Quantity quantity="upload_create_time" label='upload time' noWrap data={entry}>
               <Typography noWrap>
-                {new Date(entry.upload_time).toLocaleString()}
+                {new Date(entry.upload_create_time).toLocaleString()}
               </Typography>
             </Quantity>
             <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={entry}/>

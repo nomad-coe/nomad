@@ -68,7 +68,6 @@ def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
         upload_id=uploaded_id, user=test_user, **kwargs)
-    upload.upload_time = datetime.utcnow()
     assert upload.process_status == ProcessStatus.READY
     assert upload.current_process_step is None
     upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
@@ -92,10 +91,9 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         assert isinstance(upload_files, StagingUploadFiles)
 
     for calc in Calc.objects(upload_id=upload.upload_id):
-        assert calc.parser is not None
+        assert calc.parser_name is not None
         assert calc.mainfile is not None
         assert calc.process_status == ProcessStatus.SUCCESS
-        assert calc.metadata['published'] == published
 
         with upload_files.read_archive(calc.calc_id) as archive:
             calc_archive = archive[calc.calc_id]
@@ -120,7 +118,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         with upload_files.raw_file(calc.mainfile) as f:
             f.read()
 
-        entry_metadata = calc.full_entry_metadata(upload_files)
+        entry_metadata = calc.full_entry_metadata(upload)
 
         for path in entry_metadata.files:
             with upload_files.raw_file(path) as f:
@@ -276,11 +274,10 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert upload.published
     assert upload.from_oasis
     assert upload.oasis_deployment_id == 'an_oasis_id'
-    assert str(upload.upload_time) == '2020-01-01 00:00:00'
+    assert str(upload.upload_create_time) == '2020-01-01 00:00:00'
     assert_processing(upload, published=True)
     calc = Calc.objects(upload_id='oasis_upload_id').first()
     assert calc.calc_id == 'test_calc_id'
-    assert calc.metadata['published']
     assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
 
 
@@ -461,20 +458,18 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
 
     assert upload.total_calcs == 2
     if not published:
-        for calc in upload.calcs:
-            assert calc.metadata['published'] == published
-            assert not calc.metadata['with_embargo']
+        assert upload.published == published
+        assert not upload.with_embargo
 
 
 def test_re_pack(published: Upload):
     upload_id = published.upload_id
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
     assert upload_files.access == 'restricted'
-    # Lift embargo
+    assert published.with_embargo
     calc = Calc.objects(upload_id=upload_id).first()
-    assert calc.metadata['with_embargo']
-    calc.metadata['with_embargo'] = False
-    calc.save()
+
+    # Lift embargo
     published.embargo_length = 0
     published.save()
     upload_files.re_pack(with_embargo=False)
@@ -636,7 +631,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
-        entry_metadata = calcs[i].full_entry_metadata(upload.upload_files)
+        entry_metadata = calcs[i].full_entry_metadata(upload)
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
@@ -654,7 +649,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         'test_user', dict(upload_name='hello', embargo_length=13),
         True, id='unprotected-attributes'),
     pytest.param(
-        'test_user', dict(uploader='other_test_user', upload_time=datetime(2021, 5, 4, 11)),
+        'test_user', dict(uploader='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
         True, id='protected-attributes')])
 def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
 
@@ -674,47 +669,19 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
     upload = Upload.get(upload_id)
     with upload.entries_metadata() as entries_metadata:
         for entry_metadata in entries_metadata:
-            expected_name = metadata_to_set.get('upload_name')
-            if expected_name is not None:
-                assert upload.name == (expected_name or None)
-                assert entry_metadata.upload_name == upload.name
+            expected_upload_name = metadata_to_set.get('upload_name')
+            if expected_upload_name is not None:
+                assert upload.upload_name == (expected_upload_name or None)
+                assert entry_metadata.upload_name == upload.upload_name
             if 'uploader' in metadata_to_set:
                 assert upload.user_id == metadata_to_set['uploader']
                 assert entry_metadata.uploader.user_id == upload.user_id
-            if 'upload_time' in metadata_to_set:
-                assert upload.upload_time == metadata_to_set['upload_time']
-                assert entry_metadata.upload_time == upload.upload_time
+            if 'upload_create_time' in metadata_to_set:
+                assert upload.upload_create_time == metadata_to_set['upload_create_time']
+                assert entry_metadata.upload_create_time == upload.upload_create_time
             if 'embargo_length' in metadata_to_set:
                 assert upload.embargo_length == metadata_to_set['embargo_length']
-                assert entry_metadata.with_embargo == (upload.embargo_length > 0)
-
-
-@pytest.mark.parametrize('user,uploader', [
-    ('admin_user', 'other_test_user'),
-    ('test_user', 'test_user')
-])
-def test_read_adminmetadata_from_file(proc_infra, tmp, test_user, other_test_user, admin_user, user, uploader):
-    def user_from_name(user_name):
-        if user_name == 'test_user':
-            return test_user
-        if user_name == 'other_test_user':
-            return other_test_user
-        if user_name == 'admin_user':
-            return admin_user
-
-    user = user_from_name(user)
-    uploader = user_from_name(uploader)
-
-    upload_file = create_template_upload_file(
-        tmp, 'tests/data/proc/templates/template.json')
-    metadata = dict(uploader=other_test_user.user_id)
-    with zipfile.ZipFile(upload_file, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
-
-    upload = run_processing(('test_upload', upload_file), user)
-
-    calc = Calc.objects(upload_id=upload.upload_id).first()
-    assert calc.metadata['uploader'] == uploader.user_id
+                assert entry_metadata.with_embargo == upload.with_embargo
 
 
 def test_skip_matching(proc_infra, test_user):

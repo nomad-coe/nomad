@@ -35,7 +35,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const orderByMap = {
-  'entries': 'upload_time',
+  'entries': 'upload_create_time',
   'materials': 'chemical_formula_hill'
 }
 const SearchResults = React.memo(({

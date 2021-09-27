@@ -146,7 +146,7 @@ class Calc(Proc):
 
     Attributes:
         calc_id: the calc_id of this calc
-        parser: the name of the parser used to process this calc
+        parser_name: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
 
@@ -154,8 +154,9 @@ class Calc(Proc):
     '''
     calc_id = StringField(primary_key=True)
     upload_id = StringField()
+    entry_create_time = DateTimeField(required=True)
     mainfile = StringField()
-    parser = StringField()
+    parser_name = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -163,20 +164,20 @@ class Calc(Proc):
         'strict': False,
         'indexes': [
             'upload_id',
-            'parser',
+            'parser_name',
             ('upload_id', 'mainfile'),
-            ('upload_id', 'parser'),
+            ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
-            'metadata.processed',
+            'process_status',
             'metadata.last_processing',
-            'metadata.published',
             'metadata.datasets',
             'metadata.pid'
         ]
     }
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('entry_create_time', datetime.utcnow())
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
         self._upload: Upload = None
@@ -186,7 +187,7 @@ class Calc(Proc):
         self._entry_metadata: datamodel.EntryMetadata = None
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id) -> 'Calc':
         return cls.get_by_id(id, 'calc_id')
 
     @property
@@ -211,37 +212,14 @@ class Calc(Proc):
         Existing values in self.metadata are loaded first, then generated system values are
         applied.
         '''
-        self._entry_metadata = datamodel.EntryMetadata.m_from_dict(self.metadata)
-        self._set_system_metadata(self._entry_metadata)
-        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        self._entry_metadata.last_processing = datetime.utcnow()
-        self._entry_metadata.processing_errors = []
+        self._entry_metadata = datamodel.EntryMetadata()
+        self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
+        self._apply_metadata_from_process(self._entry_metadata)
 
         self._parser_results = EntryArchive()
         self._parser_results.metadata = self._entry_metadata
 
-    def _set_system_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        '''
-        Sets the system metadata on the given :class:`nomad.datamodel.EntryMetadata`, except
-        for some metadata values that are only set when an Entry starts processing.
-        '''
-        if self.parser is not None:
-            entry_metadata.parser_name = self.parser
-            parser = parser_dict[self.parser]
-            if parser.domain:
-                entry_metadata.domain = parser_dict[self.parser].domain
-        entry_metadata.upload_id = self.upload_id
-        entry_metadata.calc_id = self.calc_id
-        entry_metadata.mainfile = self.mainfile
-        entry_metadata.nomad_version = config.meta.version
-        entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.uploader = self.upload.user_id
-        entry_metadata.upload_time = self.upload.upload_time
-        entry_metadata.upload_name = self.upload.name
-        entry_metadata.with_embargo = (self.upload.embargo_length > 0)
-
-    def _read_metadata_from_file(self, logger):
+    def _apply_metadata_from_file(self, logger):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
@@ -273,7 +251,7 @@ class Calc(Proc):
             metadata[key] = val
 
         if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file')
+            logger.info('Apply user metadata from nomad.yaml/json file(s)')
 
         for key, val in metadata.items():
             if key == 'entries':
@@ -282,10 +260,6 @@ class Calc(Proc):
             definition = _editable_metadata.get(key, None)
             if definition is None and self.upload.from_oasis:
                 definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
 
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
@@ -300,16 +274,64 @@ class Calc(Proc):
                     'Could not apply user metadata from nomad.yaml/json file',
                     quantitiy=definition.name, exc_info=e)
 
-    def full_entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
+    def _apply_metadata_from_process(self, entry_metadata: datamodel.EntryMetadata):
+        '''
+        Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
+        '''
+        entry_metadata.nomad_version = config.meta.version
+        entry_metadata.nomad_commit = config.meta.commit
+        entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        entry_metadata.files = self.upload_files.calc_files(self.mainfile)
+        entry_metadata.last_processing = datetime.utcnow()
+        entry_metadata.processing_errors = []
+
+    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: datamodel.EntryMetadata):
+        '''
+        Loads entry metadata from mongo (that is: from `self` and the provided `upload` object)
+        and applies the values to `entry_metadata`.
+        '''
+        assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
+        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten?
+        # Upload metadata
+        entry_metadata.upload_id = upload.upload_id
+        entry_metadata.uploader = upload.user_id
+        entry_metadata.upload_create_time = upload.upload_create_time
+        entry_metadata.upload_name = upload.upload_name
+        entry_metadata.published = upload.published
+        entry_metadata.publish_time = upload.publish_time
+        entry_metadata.with_embargo = upload.with_embargo
+        entry_metadata.license = upload.license
+        # Entry metadata
+        entry_metadata.parser_name = self.parser_name
+        if self.parser_name is not None:
+            parser = parser_dict[self.parser_name]
+            if parser.domain:
+                entry_metadata.domain = parser.domain
+        entry_metadata.calc_id = self.calc_id
+        entry_metadata.mainfile = self.mainfile
+        entry_metadata.entry_create_time = self.entry_create_time
+        entry_metadata.processed = self.process_status == ProcessStatus.SUCCESS
+
+    def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
+        '''
+        Applies the metadata fields that are stored on the mongo entry level to self.
+        In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
+        but excluding upload level metadata.
+        '''
+        self.metadata = entry_metadata.m_to_dict(
+            include_defaults=True,
+            categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
+
+    def full_entry_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
         '''
         Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
-        the user metadata, system metadata, and metadata from the archive.
+        both the mongo metadata and the metadata from the archive.
 
         Arguments:
-            upload_files:
-                The :class:`nomad.files.UploadFiles` instance to read the archive from.
+            upload: The :class:`Upload` to which this entry belongs.
         '''
-        archive = upload_files.read_archive(self.calc_id)
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
+        archive = upload.upload_files.read_archive(self.calc_id)
         try:
             # instead of loading the whole archive, it should be enough to load the
             # parts that are referenced by section_metadata/EntryMetadata
@@ -324,7 +346,7 @@ class Calc(Proc):
             if section_results in calc_archive:
                 entry_archive_dict[section_results] = calc_archive[section_results].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
-            entry_metadata.m_update_from_dict(self.metadata)
+            self._apply_metadata_from_mongo(upload, entry_metadata)
             return entry_metadata
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not
@@ -332,29 +354,17 @@ class Calc(Proc):
             if self._entry_metadata is not None:
                 return self._entry_metadata
             else:
-                return self.user_and_system_metadata()
+                return self.mongo_metadata(self.upload)
 
-    def user_and_system_metadata(self) -> datamodel.EntryMetadata:
+    def mongo_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with user metadata and system
-        metadata only, no archive metadata. That is: the metadata that is stored on this
-        Mongo document, i.e. in the `self.metadata` dictionary. Generated system values
-        are also included if not set yet.
+        Returns a :class:`nomad.datamodel.EntryMetadata` with mongo metadata only
+        (fetched from `self` and `upload`), no archive metadata.
         '''
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
         entry_metadata = datamodel.EntryMetadata()
-        self._set_system_metadata(entry_metadata)  # Apply standard system generated values.
-        entry_metadata.m_update_from_dict(self.metadata)  # Apply any values stored in self.metadata
-
+        self._apply_metadata_from_mongo(upload, entry_metadata)
         return entry_metadata
-
-    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        '''
-        Applies the given user and system metadata to the mongo document, i.e. to
-        `self.metadata`.
-        '''
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
 
     @property
     def upload_files(self) -> StagingUploadFiles:
@@ -431,13 +441,13 @@ class Calc(Proc):
                     logger.warn('no parser matches during re-process, not updating the entry')
                     self.warnings = ['no matching parser found during processing']
                 else:
-                    parser_changed = self.parser != parser.name and parser_dict[self.parser].name != parser.name
+                    parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
                     if reparse_if_parser_unchanged and not parser_changed:
                         should_parse = True
                     elif reparse_if_parser_changed and parser_changed:
                         should_parse = True
-                    if should_parse and self.parser != parser.name:
-                        if parser_dict[self.parser].name == parser.name:
+                    if should_parse and self.parser_name != parser.name:
+                        if parser_dict[self.parser_name].name == parser.name:
                             logger.info(
                                 'parser renamed, using new parser name',
                                 parser=parser.name)
@@ -445,7 +455,7 @@ class Calc(Proc):
                             logger.info(
                                 'different parser matches during re-process, use new parser',
                                 parser=parser.name)
-                        self.parser = parser.name  # Parser changed or renamed
+                        self.parser_name = parser.name  # Parser changed or renamed
 
         # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
@@ -492,7 +502,7 @@ class Calc(Proc):
             self._entry_metadata.processed = False
 
             try:
-                self.apply_entry_metadata(self._entry_metadata)
+                self._apply_metadata_to_mongo_entry(self._entry_metadata)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply entry metadata to entry', exc_info=e)
@@ -528,10 +538,10 @@ class Calc(Proc):
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
         self.set_process_step('parsing')
-        context = dict(parser=self.parser, step=self.parser)
+        context = dict(parser=self.parser_name, step=self.parser_name)
         logger = self.get_logger(**context)
-        parser = parser_dict[self.parser]
-        self._entry_metadata.parser_name = self.parser
+        parser = parser_dict[self.parser_name]
+        self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             if not config.process_reuse_parser:
@@ -562,7 +572,7 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            logger = self.get_logger(parser=self.parser, step=self.parser)
+            logger = self.get_logger(parser=self.parser_name, step=self.parser_name)
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id)
@@ -620,7 +630,7 @@ class Calc(Proc):
         finally:
             # persist the calc metadata
             with utils.timer(logger, 'calc metadata saved'):
-                self.apply_entry_metadata(self._entry_metadata)
+                self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
@@ -644,7 +654,7 @@ class Calc(Proc):
                 datamodel.EntryArchive.metadata, self._entry_metadata)
 
         for normalizer in normalizers:
-            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser].domain:
+            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser_name].domain:
                 continue
 
             normalizer_name = normalizer.__name__
@@ -670,13 +680,13 @@ class Calc(Proc):
             self._entry_metadata.published |= True
 
         try:
-            self._read_metadata_from_file(logger)
+            self._apply_metadata_from_file(logger)
         except Exception as e:
             logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
 
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
-            self.apply_entry_metadata(self._entry_metadata)
+            self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
         # index in search
         with utils.timer(logger, 'calc metadata indexed'):
@@ -746,10 +756,8 @@ class Upload(Proc):
         temporary: True if the uploaded file should be removed after extraction.
 
         upload_id: The upload id generated by the database or the uploaded NOMAD deployment.
-        upload_time: Datetime of the original upload independent of the NOMAD deployment
-            it was first uploaded to.
+        upload_create_time: Datetime of creation of the upload.
         user_id: The id of the user that created this upload.
-        published: Boolean that indicates that the upload is published on this NOMAD deployment.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
 
@@ -763,31 +771,31 @@ class Upload(Proc):
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    pending_operations = ListField(DictField(), default=[])
-    embargo_length = IntField(default=0, required=True)
-
-    name = StringField(default=None)
-    upload_time = DateTimeField()
+    upload_name = StringField(default=None)
     user_id = StringField(required=True)
-    published = BooleanField(default=False)
-    publish_time = DateTimeField()
+    upload_create_time = DateTimeField(required=True)
     last_update = DateTimeField()
+    publish_time = DateTimeField()
+    embargo_length = IntField(default=0, required=True)
+    license = StringField(default='CC BY 4.0', required=True)
 
-    publish_directly = BooleanField(default=False)
     from_oasis = BooleanField(default=False)
     oasis_deployment_id = StringField(default=None)
     published_to = ListField(StringField())
 
+    publish_directly = BooleanField(default=False)
+    pending_operations = ListField(DictField(), default=[])
     joined = BooleanField(default=False)
 
     meta: Any = {
         'strict': False,
         'indexes': [
-            'user_id', 'process_status', 'published', 'upload_time', 'create_time'
+            'user_id', 'process_status', 'upload_create_time', 'publish_time'
         ]
     }
 
     def __init__(self, **kwargs):
+        kwargs.setdefault('upload_create_time', datetime.utcnow())
         super().__init__(**kwargs)
         self._upload_files: UploadFiles = None
 
@@ -820,8 +828,16 @@ class Upload(Proc):
         return cls.objects(user_id=str(user.user_id), **kwargs)
 
     @property
-    def uploader(self):
+    def uploader(self) -> datamodel.User:
         return datamodel.User.get(self.user_id)
+
+    @property
+    def published(self) -> bool:
+        return self.publish_time is not None
+
+    @property
+    def with_embargo(self) -> bool:
+        return self.embargo_length > 0
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
@@ -829,7 +845,7 @@ class Upload(Proc):
         user_name = '%s %s' % (user.first_name, user.last_name)
         # We are not using 'user_id' because logstash (?) will filter these entries ?!
         logger = logger.bind(
-            upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
+            upload_id=self.upload_id, upload_name=self.upload_name, user_name=user_name,
             user=user.user_id, **kwargs)
         return logger
 
@@ -874,8 +890,7 @@ class Upload(Proc):
         assert upload_user is not None, f'Invalid user_id: {user_id}'
         return Upload.create(
             upload_id=upload_id,
-            user=upload_user,
-            upload_time=datetime.utcnow())
+            user=upload_user)
 
     def delete(self):
         ''' Deletes this upload process state entry and its calcs. '''
@@ -953,33 +968,17 @@ class Upload(Proc):
             self.embargo_length = embargo_length
 
         with utils.lnr(logger, 'publish failed'):
-            with self.entries_metadata() as calcs:
-
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(calc):
-                        calc.published = True
-                        if embargo_length is not None:
-                            calc.with_embargo = (embargo_length > 0)
-                        else:
-                            assert calc.with_embargo is not None, 'with_embargo flag is None'
-                        return UpdateOne(
-                            {'_id': calc.calc_id},
-                            {'$set': {'metadata': calc.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
-
+            with self.entries_metadata() as entries:
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
+                        self.staging_upload_files.pack(entries, with_embargo=self.with_embargo)
 
                 with utils.timer(logger, 'index updated'):
-                    search.publish(calcs)
+                    search.publish(entries)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
                         self.upload_files.delete()
-                        self.published = True
                         self.publish_time = datetime.utcnow()
                         self.last_update = datetime.utcnow()
                         self.save()
@@ -1259,8 +1258,8 @@ class Upload(Proc):
                         if entry.process_running:
                             count_already_processing += 1
                         # Ensure that we update the parser if in staging
-                        if not self.published and parser.name != entry.parser:
-                            entry.parser = parser.name
+                        if not self.published and parser.name != entry.parser_name:
+                            entry.parser_name = parser.name
                             entry.save()
                         matched_entries.add(calc_id)
                     except KeyError:
@@ -1269,7 +1268,7 @@ class Upload(Proc):
                             entry = Calc.create(
                                 calc_id=calc_id,
                                 mainfile=filename,
-                                parser=parser.name,
+                                parser_name=parser.name,
                                 worker_hostname=self.worker_hostname,
                                 upload_id=self.upload_id)
                             entry.save()
@@ -1345,7 +1344,7 @@ class Upload(Proc):
                     # calculations. TODO: This should be replaced by a more
                     # extensive mechanism that supports more complex dependencies
                     # between calculations.
-                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
+                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser_name="parsers/phonopy")
                     for calc in phonon_calculations:
                         calc.process_phonon()
 
@@ -1377,7 +1376,7 @@ class Upload(Proc):
                 'Dear %s,' % name,
                 '',
                 'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
+                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
                 'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
                 '',
                 'If you encounter any issues with your upload, please let us know and reply to this email.',
@@ -1398,8 +1397,8 @@ class Upload(Proc):
 
             with utils.timer(logger, 'staged upload files re-packed'):
                 self.staging_upload_files.pack(
-                    self.entries_user_and_system_metadata(),
-                    with_embargo=(self.embargo_length > 0),
+                    self.entries_mongo_metadata(),
+                    with_embargo=self.with_embargo,
                     create=False, include_raw=False)
 
             self._cleanup_staging_files()
@@ -1413,7 +1412,7 @@ class Upload(Proc):
             with utils.lnr(logger, 'publish failed'):
                 with self.entries_metadata() as calcs:
                     with utils.timer(logger, 'upload staging files packed'):
-                        self.staging_upload_files.pack(calcs, with_embargo=(self.embargo_length > 0))
+                        self.staging_upload_files.pack(calcs, with_embargo=self.with_embargo)
 
                 with utils.timer(logger, 'upload staging files deleted'):
                     self.staging_upload_files.delete()
@@ -1422,14 +1421,9 @@ class Upload(Proc):
                     metadata = self.metadata_file_cached(
                         os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
                     if metadata is not None:
-                        self.upload_time = metadata.get('upload_time')
-
-                    if self.upload_time is None:
-                        self.upload_time = datetime.utcnow()
-                        logger.warn('oasis upload without upload time')
+                        self.upload_create_time = metadata.get('upload_create_time')
 
                 self.publish_time = datetime.utcnow()
-                self.published = True
                 self.last_update = datetime.utcnow()
                 self.save()
 
@@ -1504,7 +1498,7 @@ class Upload(Proc):
             metadata__nomad_version__ne=config.meta.version)
 
     @property
-    def calcs(self):
+    def calcs(self) -> Iterable[Calc]:
         ''' All successfully processed calculations. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
@@ -1514,22 +1508,21 @@ class Upload(Proc):
         This is the :py:mod:`nomad.datamodel` transformation method to transform
         processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
         '''
-        upload_files = self.upload_files
         try:
             # read all calc objects first to avoid missing curser errors
             yield [
-                calc.full_entry_metadata(upload_files)
+                calc.full_entry_metadata(self)
                 for calc in list(Calc.objects(upload_id=self.upload_id))]
 
         finally:
-            upload_files.close()
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
-    def entries_user_and_system_metadata(self) -> List[datamodel.EntryMetadata]:
+    def entries_mongo_metadata(self) -> List[datamodel.EntryMetadata]:
         '''
-        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the user and
-        system metadata only, for all entries of this upload.
+        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the mongo metadata
+        only, for all entries of this upload.
         '''
-        return [calc.user_and_system_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
+        return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
 
     @process
     def set_upload_metadata(self, metadata: Dict[str, Any]):
@@ -1553,42 +1546,44 @@ class Upload(Proc):
         logger = self.get_logger()
         upload_metadata = UploadMetadata.m_from_dict(metadata)
 
+        need_to_reindex = False
         need_to_repack = False
-        new_entry_metadata = {}
+        new_entry_metadata: Dict[str, Any] = {}
         if upload_metadata.upload_name is not None:
-            self.name = upload_metadata.upload_name
-            new_entry_metadata['upload_name'] = upload_metadata.upload_name
+            self.upload_name = upload_metadata.upload_name
+            need_to_reindex = True
         if upload_metadata.embargo_length is not None:
             assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
-            if self.published:
-                need_to_repack = (self.embargo_length > 0) != (upload_metadata.embargo_length > 0)
+            if self.published and self.with_embargo != (upload_metadata.embargo_length > 0):
+                need_to_repack = True
+                need_to_reindex = True
             self.embargo_length = upload_metadata.embargo_length
-            new_entry_metadata['with_embargo'] = (upload_metadata.embargo_length > 0)
         if upload_metadata.uploader is not None:
             self.user_id = upload_metadata.uploader.user_id
-            new_entry_metadata['uploader'] = upload_metadata.uploader.user_id
-        if upload_metadata.upload_time is not None:
-            self.upload_time = upload_metadata.upload_time
-            new_entry_metadata['upload_time'] = upload_metadata.upload_time
+            need_to_reindex = True
+        if upload_metadata.upload_create_time is not None:
+            self.upload_create_time = upload_metadata.upload_create_time
+            need_to_reindex = True
 
         self.save()
 
         if need_to_repack:
-            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
+            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
 
-        if new_entry_metadata and self.total_calcs > 0:
+        if need_to_reindex and self.total_calcs > 0:
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(entry_metadata):
-                        entry_metadata.m_update_from_dict(new_entry_metadata)
-                        return UpdateOne(
-                            {'_id': entry_metadata.calc_id},
-                            {'$set': {'metadata': entry_metadata.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
+                if new_entry_metadata:
+                    with utils.timer(logger, 'upload metadata updated'):
+                        def create_update(entry_metadata):
+                            entry_metadata.m_update_from_dict(new_entry_metadata)
+                            return UpdateOne(
+                                {'_id': entry_metadata.calc_id},
+                                {'$set': {'metadata': entry_metadata.m_to_dict(
+                                    include_defaults=True, categories=[datamodel.MongoMetadata])}})
 
-                    Calc._get_collection().bulk_write([
-                        create_update(entry_metadata) for entry_metadata in entries_metadata])
+                        Calc._get_collection().bulk_write([
+                            create_update(entry_metadata) for entry_metadata in entries_metadata])
 
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
@@ -1711,7 +1706,6 @@ class Upload(Proc):
             logger = self.get_logger(bundle_path=bundle_path)
             settings = config.bundle_import.default_settings.customize(settings)  # Add defaults
             bundle: UploadBundle = None
-            upload_files: UploadFiles = None
             new_datasets: List[datamodel.Dataset] = []
             entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in ES
             bundle = UploadBundle(bundle_path)
@@ -1722,14 +1716,14 @@ class Upload(Proc):
                 'export_options.include_raw_files',
                 'export_options.include_archive_files',
                 'export_options.include_datasets',
-                'upload._id', 'upload.user_id', 'upload.published',
-                'upload.create_time', 'upload.upload_time', 'upload.process_status',
+                'upload._id', 'upload.user_id',
+                'upload.upload_create_time', 'upload.process_status', 'upload.license',
                 'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
-                '_id', 'upload_id', 'mainfile', 'parser', 'process_status', 'create_time', 'metadata')
+                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time', 'metadata')
             required_keys_entry_metadata = (
-                'uploader', 'upload_time', 'published', 'with_embargo', 'calc_hash')
+                'calc_hash',)
             required_keys_datasets = (
                 'dataset_id', 'name', 'user_id')
 
@@ -1754,17 +1748,14 @@ class Upload(Proc):
             upload_dict = bundle_info['upload']
             assert self.upload_id == bundle_info['upload_id'] == upload_dict['_id'], (
                 'Inconsisten upload id information')
-            published = upload_dict['published']
+            published = upload_dict.get('publish_time') is not None
             if published:
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
-            if published and settings.keep_original_timestamps:
-                assert 'publish_time' in upload_dict, '`publish_time` not provided in bundle.'
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
-                'name', 'embargo_length', 'published', 'create_time',
-                'from_oasis', 'oasis_deployment_id']
+                'upload_name', 'embargo_length', 'license', 'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
-                upload_keys_to_copy.extend(('upload_time', 'publish_time'))
+                upload_keys_to_copy.extend(('upload_create_time', 'publish_time',))
             try:
                 # Update the upload with data from the json, and validate it
                 update = {k: upload_dict[k] for k in upload_keys_to_copy if k in upload_dict}
@@ -1774,11 +1765,11 @@ class Upload(Proc):
                 assert False, 'Bad upload json data: ' + str(e)
             current_time = datetime.utcnow()
             current_time_plus_tolerance = current_time + timedelta(minutes=2)
-            if self.published and not settings.keep_original_timestamps:
+            if published and not settings.keep_original_timestamps:
                 self.publish_time = current_time
-            for timestamp in (self.upload_time, self.last_update, self.complete_time, self.publish_time):
-                assert timestamp is None or self.create_time <= timestamp < current_time_plus_tolerance, (
-                    'Bad/inconsistent timestamp')
+            for timestamp in (self.upload_create_time, self.last_update, self.complete_time, self.publish_time):
+                assert timestamp is None or timestamp < current_time_plus_tolerance, (
+                    'Timestamp is in the future')
             if settings.set_from_oasis:
                 self.from_oasis = True
                 source_deployment_id = bundle_info['source']['deployment_id']
@@ -1828,25 +1819,19 @@ class Upload(Proc):
                     'Mismatching upload_id in entry definition')
                 assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
                     'Provided entry id does not match generated value')
-                for k, v in (
-                        ('upload_name', self.name),
-                        ('uploader', self.user_id),
-                        ('published', self.published),
-                        ('with_embargo', self.embargo_length > 0)):
-                    assert entry_metadata_dict.get(k) == v, f'Inconsistent entry metadata: {k}'
                 check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
-                if embargo_length is not None:
-                    # Update the embargo flag on the entry level
-                    entry_metadata_dict['with_embargo'] = (embargo_length > 0)
+
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = (
-                    'upload_id', 'mainfile', 'parser', 'metadata', 'errors', 'warnings',
+                    'upload_id', 'mainfile', 'parser_name', 'metadata', 'errors', 'warnings',
                     'last_status_message', 'current_process', 'current_process_step',
-                    'create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
+                    'entry_create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
                     update['calc_id'] = entry_dict['_id']
+                    if not settings.keep_original_timestamps:
+                        update['entry_create_time'] = current_time
                     entry: Calc = Calc.create(**update)
                     entry.process_status = entry_dict['process_status']
                     entry.validate()
@@ -1860,8 +1845,7 @@ class Upload(Proc):
                     else:
                         entry_metadata_dict['datasets'] = []
                     entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
-                    entry_metadata.upload_time = self.upload_time  # Set same upload_time everywhere
-                    entry.apply_entry_metadata(entry_metadata)
+                    entry._apply_metadata_to_mongo_entry(entry_metadata)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
                     assert False, 'Invalid entry metadata: ' + str(e)
@@ -1873,24 +1857,25 @@ class Upload(Proc):
                 self.embargo_length = embargo_length  # Set the flag also on the Upload level
 
             # Import the files
-            upload_files = bundle.import_upload_files(
+            bundle.import_upload_files(
                 settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
                 move_files)
 
             if self.published and embargo_length is not None:
                 # Repack the upload
-                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.embargo_length > 0)
+                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
 
             # Check the archive metadata, if included
             if settings.include_archive_files:
                 for entry in entries:
                     try:
-                        entry_metadata = entry.full_entry_metadata(upload_files)
+                        entry_metadata = entry.full_entry_metadata(self)
                         entry_data_to_index.append(
                             cast(datamodel.EntryArchive, entry_metadata.m_parent))
                         # TODO: Should we validate the entire ArchiveObject, not just the indexed data?
                     except Exception as e:
                         assert False, 'Invalid metadata in archive entry: ' + str(e)
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
             # Everything looks good - save to mongo.
             self.save()

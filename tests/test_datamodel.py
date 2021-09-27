@@ -22,7 +22,6 @@ A generator for random test calculations.
 
 import random
 from essential_generators import DocumentGenerator
-import datetime
 
 from nomad import datamodel, utils
 from nomad.parsing.parsers import parser_dict
@@ -76,7 +75,6 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with
     entry.upload_id = upload_id if upload_id is not None else utils.create_uuid()
     entry.calc_id = calc_id if calc_id is not None else utils.create_uuid()
 
-    entry.upload_time = datetime.datetime.utcnow()
     entry.calc_hash = utils.create_uuid()
     entry.pid = str(pid)
     entry.mainfile = random.choice(filepaths)

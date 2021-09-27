@@ -145,11 +145,11 @@ const columns = {
     ellipsisFront: true,
     description: searchQuantities['mainfile'].description
   },
-  upload_time: {
+  upload_create_time: {
     label: 'Upload time',
-    render: row => new Date(row.upload_time).toLocaleString(),
+    render: row => new Date(row.upload_create_time).toLocaleString(),
     supportsSort: true,
-    description: searchQuantities['upload_time'].description
+    description: searchQuantities['upload_create_time'].description
   },
   authors: {
     label: 'Authors',

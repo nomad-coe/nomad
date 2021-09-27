@@ -76,7 +76,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi):
     'All .zip files in a directory will be uploaded.')
 @click.argument('PATH', nargs=-1, required=True, type=click.Path(exists=True))
 @click.option(
-    '--name',
+    '--upload-name',
     help='Optional name for the upload of a single file. Will be ignored on directories.')
 @click.option(
     '--local-path', is_flag=True, default=False,
@@ -86,7 +86,7 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi):
     '--publish', is_flag=True, default=False,
     help='Automatically move upload out of the staging area after successful processing')
 @click.pass_context
-def upload(ctx, path, name: str, local_path: bool, publish: bool):
+def upload(ctx, path, upload_name: str, local_path: bool, publish: bool):
     import os
     import sys
 
@@ -95,9 +95,9 @@ def upload(ctx, path, name: str, local_path: bool, publish: bool):
     auth = _create_auth(ctx)
     paths = path
 
-    def upload_file(path, name):
+    def upload_file(path, upload_name):
         result = client_upload_file(
-            path, auth, upload_name=name, local_path=local_path, publish=publish)
+            path, auth, upload_name=upload_name, local_path=local_path, publish=publish)
         if result is None:
             sys.exit(1)
 
@@ -105,16 +105,16 @@ def upload(ctx, path, name: str, local_path: bool, publish: bool):
     for path in paths:
         click.echo('uploading %s' % path)
         if os.path.isfile(path):
-            name = name if name is not None else os.path.basename(path)
-            upload_file(path, name)
+            upload_name = upload_name if upload_name is not None else os.path.basename(path)
+            upload_file(path, upload_name)
 
         elif os.path.isdir(path):
             for (dirpath, _, filenames) in os.walk(path):
                 for filename in filenames:
                     if filename.endswith('.zip'):
                         file_path = os.path.abspath(os.path.join(dirpath, filename))
-                        name = os.path.basename(file_path)
-                        upload_file(file_path, name)
+                        upload_name = os.path.basename(file_path)
+                        upload_file(file_path, upload_name)
 
         else:
             click.echo('Unknown path type %s.' % path)

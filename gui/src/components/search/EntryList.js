@@ -143,9 +143,9 @@ export class EntryListUnstyled extends React.Component {
       ellipsisFront: true,
       description: 'The mainfile of this entry within its upload.'
     },
-    upload_time: {
+    upload_create_time: {
       label: 'Upload time',
-      render: entry => new Date(entry.upload_time).toLocaleString(),
+      render: entry => new Date(entry.upload_create_time).toLocaleString(),
       supportsSort: true,
       description: 'The time this entry was uploaded.'
     },

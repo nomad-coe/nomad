@@ -47,14 +47,14 @@ logger = utils.get_logger(__name__)
 
 
 class UploadMetadata(BaseModel):
-    name: Optional[str] = Field(None, description=strip('''
+    upload_name: Optional[str] = Field(None, description=strip('''
         A user-firendly name of the upload. Does not need to be unique'''))
     embargo_length: Optional[int] = Field(None, description=strip('''
         The embargo length in months (max 36).'''))
     uploader: Optional[str] = Field(None, description=strip('''
         The uploader (owner) of the upload. **Note! Can only be updated by admin users.**'''))
-    upload_time: Optional[datetime] = Field(None, description=strip('''
-        The time of the initial upload. **Note! Can only be updated by admin users.**'''))
+    upload_create_time: Optional[datetime] = Field(None, description=strip('''
+        The time of the creation of the upload. **Note! Can only be updated by admin users.**'''))
 
 
 upload_metadata_parameters = parameter_dependency_from_model(
@@ -68,7 +68,6 @@ class ProcData(BaseModel):
     process_status: str = Field()
     errors: List[str] = Field()
     warnings: List[str] = Field()
-    create_time: datetime = Field()
     complete_time: Optional[datetime] = Field()
 
     class Config:
@@ -79,18 +78,26 @@ class UploadProcData(ProcData):
     upload_id: str = Field(
         None,
         description='The unique id for the upload.')
-    name: Optional[str] = Field(
+    upload_name: Optional[str] = Field(
         description='The name of the upload. This can be provided during upload '
-                    'using the name query parameter.')
-    upload_time: datetime = Field(
+                    'using the `upload_name` query parameter.')
+    upload_create_time: datetime = Field(
         None,
-        description='The time of upload.')
+        description='Date and time of the creation of the upload.')
     published: bool = Field(
         False,
         description='If this upload is already published.')
     published_to: List[str] = Field(
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.')
+    publish_time: Optional[datetime] = Field(
+        'Date and time of publication, if the upload has been published.')
+    with_embargo: bool = Field(
+        description='If the upload has an embargo set (embargo_length not equal to zero).')
+    embargo_length: int = Field(
+        description='The length of the requested embargo, in months. 0 if no embargo is requested.')
+    license: str = Field(
+        description='The license under which this upload is distributed.')
     last_status_message: Optional[str] = Field(
         None,
         description='The last informative message that the processing saved about this uploads status.')
@@ -101,9 +108,10 @@ class UploadProcData(ProcData):
 
 class EntryProcData(ProcData):
     entry_id: str = Field()
+    entry_create_time: datetime = Field()
     mainfile: str = Field()
     upload_id: str = Field()
-    parser: str = Field()
+    parser_name: str = Field()
     entry_metadata: Optional[dict] = Field()
 
 
@@ -111,8 +119,8 @@ class UploadProcDataPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
-            return 'create_time'  # Default value
-        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
+            return 'upload_create_time'  # Default value
+        assert order_by in ('upload_create_time', 'publish_time'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -130,7 +138,7 @@ class EntryProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'mainfile'  # Default value
-        assert order_by in ('mainfile', 'parser', 'process_status', 'current_process'), 'order_by must be a valid attribute'
+        assert order_by in ('mainfile', 'parser_name', 'process_status', 'current_process'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -155,7 +163,7 @@ class UploadProcDataQuery(BaseModel):
     upload_id: Optional[List[str]] = Field(
         description='Search for uploads matching the given id. Multiple values can be specified.')
     upload_name: Optional[List[str]] = Field(
-        description='Search for uploads matching the given name. Multiple values can be specified.')
+        description='Search for uploads matching the given upload_name. Multiple values can be specified.')
     is_processing: Optional[bool] = Field(
         description=strip('''
             If True, only include currently processing uploads.
@@ -323,7 +331,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
     token = generate_upload_token(user)
     api_url = config.api_url(ssl=config.services.https_upload, api='api/v1')
     upload_url = f'{api_url}/uploads?token={token}'
-    upload_url_with_name = upload_url + '&name=<name>'
+    upload_url_with_name = upload_url + '&upload_name=<name>'
     # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
     # It is also easier for the user to unterstand IMHO.
     upload_command = f"curl -X POST '{upload_url}' -T <local_file>"
@@ -361,7 +369,7 @@ async def get_uploads(
         query_kwargs.update(upload_id__in=query.upload_id)
 
     if query.upload_name:
-        query_kwargs.update(name__in=query.upload_name)
+        query_kwargs.update(upload_name__in=query.upload_name)
 
     if query.is_processing is True:
         query_kwargs.update(process_status__in=ProcessStatus.STATUSES_PROCESSING)
@@ -369,9 +377,9 @@ async def get_uploads(
         query_kwargs.update(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
 
     if query.is_published is True:
-        query_kwargs.update(published=True)
+        query_kwargs.update(publish_time__ne=None)
     elif query.is_published is False:
-        query_kwargs.update(published=False)
+        query_kwargs.update(publish_time=None)
 
     # Fetch data from DB
     mongodb_query = _query_mongodb(**query_kwargs)
@@ -381,10 +389,10 @@ async def get_uploads(
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    if order_by == 'create_time':
+    if order_by == 'upload_create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    elif order_by == 'published':
-        order_by_args = [order_by_with_sign, 'create_time', 'upload_id']
+    elif order_by == 'publish_time':
+        order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
 
@@ -804,8 +812,8 @@ async def post_upload(
     Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
     provided, and it is a zip or tar file, it will first be extracted, then added.
 
-    It is recommended to give the upload itself a descriptive `name`. If not specified,
-    it will be set to the file name (if provided). The name can be edited afterwards (as
+    It is recommended to give the upload itself a descriptive `upload_name`. If not specified,
+    it will be set to the file name (if provided). The `upload_name` can be edited afterwards (as
     long as the upload is not published).
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
@@ -836,25 +844,25 @@ async def post_upload(
     '''
     if not user.is_admin:
         # Check upload limit
-        if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
+        if _query_mongodb(user_id=str(user.user_id), publish_time=None).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
     upload_id = utils.create_uuid()
 
-    if metadata.name and not file_name and files.is_safe_basename(metadata.name):
+    if metadata.upload_name and not file_name and files.is_safe_basename(metadata.upload_name):
         # Try to default the file_name using name
-        file_name = metadata.name
+        file_name = metadata.upload_name
 
     upload_path, method = await _get_file_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not metadata.name:
-        # Try to default name
+    if not metadata.upload_name:
+        # Try to default upload_name
         if method == 2:
-            metadata.name = file_name or None
+            metadata.upload_name = file_name or None
         elif upload_path:
-            metadata.name = os.path.basename(upload_path)
+            metadata.upload_name = os.path.basename(upload_path)
 
     checked_upload_metadata = _check_upload_metadata(
         metadata, is_admin=user.is_admin, published=False, current_embargo_length=0)
@@ -862,8 +870,8 @@ async def post_upload(
     upload = Upload.create(
         upload_id=upload_id,
         user=checked_upload_metadata.uploader or user,
-        name=checked_upload_metadata.upload_name,
-        upload_time=checked_upload_metadata.upload_time or datetime.utcnow(),
+        upload_name=checked_upload_metadata.upload_name,
+        upload_create_time=checked_upload_metadata.upload_create_time or datetime.utcnow(),
         embargo_length=checked_upload_metadata.embargo_length or 0,
         publish_directly=publish_directly)
 
@@ -1159,7 +1167,8 @@ async def post_upload_bundle(
         keep_original_timestamps: Optional[bool] = FastApiQuery(
             None,
             description=strip('''
-                If all original timestamps, including `upload_time` and `publish_time`, should be kept
+                If all original timestamps, including `upload_create_time`, `entry_create_time`
+                and `publish_time`, should be kept
                 *(only admins can change this setting)*.''')),
         set_from_oasis: Optional[bool] = FastApiQuery(
             None,
@@ -1205,7 +1214,7 @@ async def post_upload_bundle(
 
         if is_oasis and not config.bundle_import.allow_unpublished_bundles_from_oasis:
             bundle_info = bundle.bundle_info
-            if not bundle_info.get('upload', {}).get('published'):
+            if not bundle_info.get('upload', {}).get('publish_time'):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
@@ -1379,7 +1388,7 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         if not upload.published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - not published yet.'''))
-        if upload.published and upload.embargo_length > 0:
+        if upload.published and upload.with_embargo:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
                 You do not have access to the specified upload - published with embargo.'''))
         return upload
@@ -1454,13 +1463,13 @@ def _check_upload_metadata(
         current_embargo_length: the current embargo_length of the upload.
     '''
     if not is_admin:
-        for field in ('uploader', 'upload_time'):
+        for field in ('uploader', 'upload_create_time'):
             if getattr(metadata, field) is not None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f'Must be admin to change {field}')
         if published:
-            for field in ('name',):
+            for field in ('upload_name',):
                 if getattr(metadata, field) is not None:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1490,8 +1499,8 @@ def _check_upload_metadata(
                     detail='Upload is published, embargo can only be shortened or lifted.')
 
     upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
-    upload_metadata.upload_name = metadata.name
+    upload_metadata.upload_name = metadata.upload_name
     upload_metadata.embargo_length = metadata.embargo_length
     upload_metadata.uploader = uploader
-    upload_metadata.upload_time = metadata.upload_time
+    upload_metadata.upload_create_time = metadata.upload_create_time
     return upload_metadata

@@ -251,7 +251,7 @@ def ls(ctx, uploads, calculations, ids, json):
     def row(upload):
         row = [
             upload.upload_id,
-            upload.name,
+            upload.upload_name,
             upload.user_id,
             upload.process_status,
             upload.published]
@@ -264,7 +264,7 @@ def ls(ctx, uploads, calculations, ids, json):
 
         return row
 
-    headers = ['id', 'name', 'user', 'process', 'published']
+    headers = ['id', 'upload_name', 'user', 'process', 'published']
     if calculations:
         headers += ['calcs', 'failed', 'processing']
 

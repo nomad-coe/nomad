@@ -171,7 +171,6 @@ class Proc(Document):
             run
         warnings: a list of warnings that happened during processing. Warnings do not
             fail a processing run
-        create_time: the time of creation (not the start of processing)
         complete_time: the time that processing completed (successfully or not)
         current_process: the currently or last run asyncronous process
         current_process_step: an optional string, describing the current step of the process,
@@ -183,7 +182,6 @@ class Proc(Document):
         'abstract': True,
     }
 
-    create_time = DateTimeField(required=True)
     complete_time = DateTimeField()
 
     errors = ListField(StringField())
@@ -219,7 +217,6 @@ class Proc(Document):
         assert 'process_status' not in kwargs, \
             ''' do not set the status manually, its managed '''
 
-        kwargs.setdefault('create_time', datetime.utcnow())
         self = cls(**kwargs)
         self.process_status = ProcessStatus.READY
         self.save()

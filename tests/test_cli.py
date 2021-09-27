@@ -104,7 +104,7 @@ class TestAdmin:
         calc = Calc.objects(upload_id=upload_id).first()
 
         assert published.upload_files.exists()
-        assert calc.metadata['with_embargo']
+        assert published.with_embargo
 
         assert search(owner='public', query=dict(upload_id=upload_id)).pagination.total == 0
 
@@ -114,7 +114,7 @@ class TestAdmin:
 
         assert result.exit_code == 0
         published.block_until_complete()
-        assert not Calc.objects(upload_id=upload_id).first().metadata['with_embargo'] == lifted
+        assert not published.with_embargo == lifted
         assert (search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0) == lifted
         if lifted:
             with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
@@ -242,9 +242,9 @@ class TestAdminUploads:
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        assert calc.metadata['with_embargo']
-        calc.metadata['with_embargo'] = False
-        calc.save()
+        assert published.with_embargo
+        published.embargo_length = 0
+        published.save()
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False)
@@ -263,10 +263,11 @@ class TestAdminUploads:
         published.reload()
         assert published.process_status == ProcessStatus.SUCCESS
 
-    def test_chown(self, published, test_user, other_test_user):
+    def test_chown(self, published: Upload, test_user, other_test_user):
         upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
-        assert calc.metadata['uploader'] == test_user.user_id
+        with published.entries_metadata() as entries_metadata:
+            for entry_metadata in entries_metadata:
+                assert entry_metadata.uploader.user_id == test_user.user_id
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
@@ -274,12 +275,12 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'changing' in result.stdout
 
-        upload = Upload.objects(upload_id=upload_id).first()
-        upload.block_until_complete()
-        calc.reload()
+        published.block_until_complete()
 
-        assert upload.user_id == other_test_user.user_id
-        assert calc.metadata['uploader'] == other_test_user.user_id
+        assert published.user_id == other_test_user.user_id
+        with published.entries_metadata() as entries_metadata:
+            for entry_metadata in entries_metadata:
+                assert entry_metadata.uploader.user_id == other_test_user.user_id
 
     @pytest.mark.parametrize('with_calcs,success,failure', [
         (True, False, False),
@@ -324,13 +325,13 @@ class TestClient:
             cli,
             [
                 'client', '-u', admin_user.username, '--token-via-api',
-                'upload', '--name', 'test_upload', '--local-path',
+                'upload', '--upload-name', 'test_upload', '--local-path',
                 non_empty_example_upload],
             catch_exceptions=False)
 
         assert result.exit_code == 0, result.output
         assert '1/0/1' in result.output
-        assert proc.Upload.objects(name='test_upload').first() is not None
+        assert proc.Upload.objects(upload_name='test_upload').first() is not None
 
     def test_local(self, published_wo_user_metadata, client_with_api_v1):
         result = invoke_cli(
