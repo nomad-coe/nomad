@@ -96,7 +96,6 @@ const InputList = React.memo(({
   const locked = useFilterLocked(quantity)
   const disabled = locked || (!(agg?.data && agg.data.length > 0))
   const { height, ref } = useResizeDetector()
-  console.log(height)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
