@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import {
   Tooltip,
@@ -35,7 +35,6 @@ import DragHandleIcon from '@material-ui/icons/DragHandle'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import { useAnchorState } from '../SearchContext'
 import { Actions, Action } from '../../Actions'
-import { aggregationSizes } from '../../../config'
 
 /**
  * The quantity label and actions shown by all filter components.
@@ -71,11 +70,8 @@ const FilterLabel = React.memo(({
   underscores,
   description,
   disableStatistics,
-  disableAggSize,
   scale,
   onChangeScale,
-  aggSize,
-  onChangeAggSize,
   draggable,
   className,
   classes
@@ -84,6 +80,8 @@ const FilterLabel = React.memo(({
   const [anchor, setAnchor] = useAnchorState(quantity)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -92,6 +90,25 @@ const FilterLabel = React.memo(({
   const closeMenu = useCallback(() => {
     setAnchorEl(null)
   }, [])
+  const openTooltip = useCallback((event) => {
+    !isDragging && setIsTooltipOpen(true)
+  }, [isDragging])
+  const closeTooltip = useCallback(() => {
+    setIsTooltipOpen(false)
+  }, [])
+  const handleMouseDown = useCallback((event) => {
+    setIsDragging(true)
+    setIsTooltipOpen(false)
+  }, [])
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const tooltipProps = useMemo(() => ({
+    open: isTooltipOpen,
+    onClose: closeTooltip,
+    onOpen: openTooltip
+  }), [closeTooltip, openTooltip, isTooltipOpen])
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
@@ -123,8 +140,11 @@ const FilterLabel = React.memo(({
         {anchor ? <RemoveIcon/> : <AddIcon/>}
       </Action>
       {draggable && <Action
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         className="dragHandle"
-        tooltip={'Drag to change location'}
+        tooltip="Drag to change location"
+        TooltipProps={tooltipProps}
       >
         <DragHandleIcon/>
       </Action>
@@ -158,20 +178,6 @@ const FilterLabel = React.memo(({
             )}
           </RadioGroup>
         </FormControl>
-        {!disableAggSize && <FormControl
-          className={styles.menuItem}
-          component="fieldset"
-        >
-          <FormLabel component="legend">Statistics size</FormLabel>
-          <RadioGroup
-            value={aggSize}
-            onChange={(event, value) => onChangeAggSize(Number(value))}
-          >
-            {aggregationSizes.map((value) =>
-              <FormControlLabel key={value} value={value} label={value} control={<Radio/>} />
-            )}
-          </RadioGroup>
-        </FormControl>}
       </Menu>
     </>}
   </Actions>
@@ -186,8 +192,6 @@ FilterLabel.propTypes = {
   disableAggSize: PropTypes.bool,
   scale: PropTypes.oneOf(Object.values(scales)),
   onChangeScale: PropTypes.func,
-  aggSize: PropTypes.oneOf(aggregationSizes),
-  onChangeAggSize: PropTypes.func,
   draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object
@@ -196,8 +200,7 @@ FilterLabel.propTypes = {
 FilterLabel.defaultProps = {
   underscores: false,
   disableStatistics: false,
-  scale: 1,
-  aggSize: 10
+  scale: 1
 }
 
 export default FilterLabel

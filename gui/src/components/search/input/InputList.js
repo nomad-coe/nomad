@@ -20,11 +20,12 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import { useResizeDetector } from 'react-resize-detector'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
-import InputItem from './InputItem'
+import InputItem, { inputItemHeight } from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
 
 /**
@@ -37,13 +38,11 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     height: '100%',
     display: 'flex',
-    // justifyContent: 'center',
-    // alignItems: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
   },
   menuItem: {
-    height: '2.1rem'
+    height: inputItemHeight
   },
   menuItemSelected: {
     '&.Mui-selected': {
@@ -65,6 +64,7 @@ const useStyles = makeStyles(theme => ({
     right: theme.spacing(1)
   },
   spacer: {
+    overflow: 'hidden',
     flex: 1
   },
   count: {
@@ -82,7 +82,6 @@ const InputList = React.memo(({
   description,
   visible,
   initialScale,
-  initialAggSize,
   draggable,
   className,
   classes,
@@ -90,12 +89,14 @@ const InputList = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const [aggSize, setAggSize] = useState(initialAggSize)
+  const [aggSize, setAggSize] = useState(0)
   const agg = useAgg(quantity, visible, false)
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const disabled = locked || (!(agg?.data && agg.data.length > 0))
+  const { height, ref } = useResizeDetector()
+  console.log(height)
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -112,14 +113,15 @@ const InputList = React.memo(({
   }, [setFilter])
 
   // Create a memoized list of options
-  const [items, nAgg] = useMemo(() => {
+  const [items, nItems, nTotal] = useMemo(() => {
     const items = []
     let index = 0
+    let nItems = Math.floor(height / inputItemHeight)
     if (agg?.data) {
       for (let option of agg.data) {
         const value = option.value
         if (option.count > 0) {
-          if (index < aggSize) {
+          if (index < nItems) {
             items.push(<InputItem
               key={value}
               value={value}
@@ -135,8 +137,8 @@ const InputList = React.memo(({
         }
       }
     }
-    return [items, index]
-  }, [agg, filter, scale, handleChange, aggSize])
+    return [items, nItems, index]
+  }, [agg, filter, scale, handleChange, height])
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -150,10 +152,11 @@ const InputList = React.memo(({
         onChangeAggSize={setAggSize}
         draggable={draggable}
       />
-      {items}
-      <div className={styles.spacer}/>
+      <div ref={ref} className={styles.spacer}>
+        {items}
+      </div>
       <div className={styles.count}>
-        <Typography variant="overline">{`${Math.min(aggSize, nAgg)}/${nAgg}`}</Typography>
+        <Typography variant="overline">{`${Math.min(nItems, nTotal)}/${nTotal}`}</Typography>
       </div>
     </div>
   </InputTooltip>
@@ -165,7 +168,6 @@ InputList.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool.isRequired,
   initialScale: PropTypes.number,
-  initialAggSize: PropTypes.number,
   draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -173,8 +175,7 @@ InputList.propTypes = {
 }
 
 InputList.defaultProps = {
-  initialScale: 1,
-  initialAggSize: 10
+  initialScale: 1
 }
 
 export default InputList

@@ -32,10 +32,11 @@ import StatisticsBar from '../statistics/StatisticsBar'
 /**
  * Represents a selectable item for a filter value.
 */
+export const inputItemHeight = 34
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '2.1rem',
+    height: inputItemHeight,
     position: 'relative'
   },
   bar: {

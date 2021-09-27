@@ -81,20 +81,25 @@ export const Action = React.memo(({
   href,
   disabled,
   onClick,
+  onMouseDown,
+  onMouseUp,
   tooltip,
+  TooltipProps,
   className,
   classes,
   children
 }) => {
   const styles = useActionStyles({classes: classes})
 
-  return <Tooltip title={tooltip || ''}>
+  return <Tooltip title={tooltip} {...TooltipProps}>
     {variant === 'icon'
       ? <IconButton
         color={color}
         size={size}
         className={clsx(className, styles.root)}
         onClick={onClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
         disabled={disabled}
         href={href}
         aria-label={tooltip}
@@ -107,6 +112,8 @@ export const Action = React.memo(({
         size={size}
         className={clsx(className, styles.root)}
         onClick={onClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
         disabled={disabled}
         href={href}
         aria-label={tooltip}
@@ -124,7 +131,10 @@ Action.propTypes = {
   href: PropTypes.string,
   disabled: PropTypes.bool,
   onClick: PropTypes.func,
+  onMouseDown: PropTypes.func,
+  onMouseUp: PropTypes.func,
   tooltip: PropTypes.string,
+  TooltipProps: PropTypes.object,
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node

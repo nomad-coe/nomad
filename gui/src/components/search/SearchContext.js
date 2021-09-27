@@ -140,7 +140,7 @@ const listStatConfig = {
   layout: {
     widthOptions: ['small', 'medium', 'large'],
     widthDefault: 'small',
-    ratioDefault: 1,
+    ratioDefault: 3 / 4,
     ratioOptions: [1, 3 / 4]
   }
 }
@@ -157,17 +157,20 @@ export const widthMapping = {
   large: {
     'sm': 12,
     'md': 9,
-    'lg': 6
+    'lg': 8,
+    'xl': 6
   },
   medium: {
     'sm': 6,
     'md': 6,
-    'lg': 4
+    'lg': 4,
+    'xl': 3
   },
   small: {
     'sm': 6,
-    'md': 4,
-    'lg': 3
+    'md': 3,
+    'lg': 4,
+    'xl': 3
   }
 }
 
