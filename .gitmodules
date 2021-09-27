@@ -210,3 +210,6 @@
 [submodule "dependencies/parsers/aflow"]
 	path = dependencies/parsers/aflow
 	url = https://github.com/nomad-coe/nomad-parser-aflow.git
+[submodule "dependencies/parsers/mp"]
+	path = dependencies/parsers/mp
+	url = https://github.com/nomad-coe/nomad-parser-mp.git

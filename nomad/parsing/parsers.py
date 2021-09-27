@@ -73,6 +73,7 @@ from openkimparser import OpenKIMParser
 from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
 from aflowparser import AFLOWParser
+from mpparser import MPParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -218,6 +219,7 @@ parsers = [
     EELSDBParser(),
     XPSParser(),
     AFLOWParser(),
+    MPParser(),
     ArchiveParser()
 ]
 

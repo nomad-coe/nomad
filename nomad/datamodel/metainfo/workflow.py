@@ -184,7 +184,7 @@ class ConvexHull(MSection):
         Specifies the reference structure for each element.
         ''')
 
-    heat_of_formation = Quantity(
+    energy_of_formation = Quantity(
         type=np.dtype(np.float64),
         shape=['n_points'],
         unit='joule',
@@ -270,15 +270,14 @@ class NudgedElasticBand(MSection):
         ''')
 
 
-class EquationOfState(MSection):
+class EOSFit(MSection):
     '''
-    Section containing results of an equation of state workflow.
+    Section containing results of an equation of state fit.
     '''
 
-    m_def = Section(
-        validate=False)
+    m_def = Section(validate=False)
 
-    fit_function = Quantity(
+    function_name = Quantity(
         type=str,
         shape=[],
         description='''
@@ -287,27 +286,12 @@ class EquationOfState(MSection):
         murnaghan, pack_evans_james, poirier_tarantola, tait, vinet.
         ''')
 
-    n_points = Quantity(
-        type=np.dtype(np.int32),
-        shape=[],
-        description='''
-        Number of volume-energy pairs in data.
-        ''')
-
-    volumes = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_points'],
-        unit='m ** 3',
-        description='''
-        Array of volumes for which the energies are evaluated.
-        ''')
-
-    energies = Quantity(
+    fitted_energies = Quantity(
         type=np.dtype(np.float64),
         shape=['n_points'],
         unit='joule',
         description='''
-        Array of energies corresponding to each volume.
+        Array of the fitted energies corresponding to each volume.
         ''')
 
     bulk_modulus = Quantity(
@@ -347,6 +331,39 @@ class EquationOfState(MSection):
         description='''
         Root-mean squared value of the error in the fitting.
         ''')
+
+
+class EquationOfState(MSection):
+    '''
+    Section containing results of an equation of state workflow.
+    '''
+
+    m_def = Section(validate=False)
+
+    n_points = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of volume-energy pairs in data.
+        ''')
+
+    volumes = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_points'],
+        unit='m ** 3',
+        description='''
+        Array of volumes for which the energies are evaluated.
+        ''')
+
+    energies = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_points'],
+        unit='joule',
+        description='''
+        Array of energies corresponding to each volume.
+        ''')
+
+    eos_fit = SubSection(sub_section=EOSFit.m_def, repeats=True)
 
 
 class DebyeModel(MSection):
@@ -755,7 +772,7 @@ class Elastic(MSection):
         shape=[6, 6],
         unit='pascal',
         description='''
-        2nd order elastic constant (stiffness) matrix in GPa
+        2nd order elastic constant (stiffness) matrix in pascals
         ''')
 
     elastic_constants_matrix_third_order = Quantity(
@@ -763,7 +780,7 @@ class Elastic(MSection):
         shape=[6, 6, 6],
         unit='pascal',
         description='''
-        3rd order elastic constant (stiffness) matrix in GPa
+        3rd order elastic constant (stiffness) matrix in pascals
         ''')
 
     compliance_matrix_second_order = Quantity(
@@ -926,6 +943,36 @@ class Elastic(MSection):
         repeats=True)
 
 
+class Decomposition(MSection):
+    '''
+    Section containing information about the system to which an unstable compound will
+    decompose to.
+    '''
+
+    m_def = Section(validate=False)
+
+    fraction = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Amount of the resulting system.
+        ''')
+
+    system_ref = Quantity(
+        type=Reference(System.m_def),
+        shape=[],
+        description='''
+        Reference to the resulting system.
+        ''')
+
+    formula = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Chemical formula of the resulting system.
+        ''')
+
+
 class Stability(MSection):
     '''
     Section containing information regarding the stability of the system.
@@ -960,8 +1007,24 @@ class Stability(MSection):
         shape=[],
         unit='joule',
         description='''
-        Difference of the formation energy and the corresponding value at the convex hull.
+        Energy with respect to the convex hull.
         ''')
+
+    n_references = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of reference systems.
+        ''')
+
+    is_stable = Quantity(
+        type=bool,
+        shape=[],
+        description='''
+        Indicates if a compound is stable.
+        ''')
+
+    decomposition = SubSection(sub_section=Decomposition.m_def, repeats=True)
 
 
 class Thermodynamics(MSection):
@@ -1250,8 +1313,10 @@ class Workflow(MSection):
         type=str,
         shape=[],
         description='''
-        The type of calculation workflow. Can be one of geometry_optimization, elastic,
-        phonon, molecular_dynamics, single_point, debye_model.
+        The type of calculation workflow. Can be one of the following
+        single_point, geometry_optimization, elastic, phonon, molecular_dynamics,
+        debye_model, equation_of_state, nudged_elastic_band, adsorption, raman,
+        thermodyanamics, magnetic_ordering
         ''')
 
     calculator = Quantity(
