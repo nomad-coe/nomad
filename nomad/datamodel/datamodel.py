@@ -201,7 +201,7 @@ class Dataset(metainfo.MSection):
     Args:
         dataset_id: The unique identifier for this dataset as a string. It should be
             a randomly generated UUID, similar to other nomad ids.
-        name: The human readable name of the dataset as string. The dataset name must be
+        dataset_name: The human readable name of the dataset as string. The dataset name must be
             unique for the user.
         user_id: The unique user_id of the owner and creator of this dataset. The owner
             must not change after creation.
@@ -226,7 +226,7 @@ class Dataset(metainfo.MSection):
         type=str,
         a_mongo=Mongo(primary_key=True),
         a_elasticsearch=Elasticsearch(material_entry_type))
-    name = metainfo.Quantity(
+    dataset_name = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True),
         a_elasticsearch=[

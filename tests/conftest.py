@@ -622,12 +622,12 @@ def oasis_example_upload(non_empty_example_upload: str, test_user, raw_files) ->
             'dataset_1_name': {
                 'dataset_id': 'oasis_dataset_1',
                 'user_id': test_user.user_id,
-                'name': 'dataset_1_name'
+                'dataset_name': 'dataset_1_name'
             },
             'dataset_2_name': {
                 'dataset_id': 'oasis_dataset_2',
                 'user_id': test_user.user_id,
-                'name': 'dataset_2_name'
+                'dataset_name': 'dataset_2_name'
             }
         }
     }

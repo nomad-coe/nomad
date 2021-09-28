@@ -63,7 +63,7 @@ const UserdataPage = React.memo(({match}) => {
     <Search header={
       <div className={styles.header}>
         <Typography variant="h4">
-          {dataset.name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}
+          {dataset.dataset_name || (dataset.isEmpty && 'Empty or non existing dataset') || 'loading ...'}
         </Typography>
         <Typography>
           dataset{dataset.doi ? <span>, with DOI <DOI doi={dataset.doi} /></span> : ''}

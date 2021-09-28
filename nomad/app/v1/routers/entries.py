@@ -1255,14 +1255,14 @@ async def post_entry_metadata_edit(
                 elif verify_reference == datamodel.Dataset:
                     try:
                         mongo_value = datamodel.Dataset.m_def.a_mongo.get(
-                            user_id=user.user_id, name=action_value).dataset_id
+                            user_id=user.user_id, dataset_name=action_value).dataset_id
                     except KeyError:
                         action.message = 'Dataset does not exist and will be created'
                         mongo_value = None
                         if not verify:
                             dataset = datamodel.Dataset(
                                 dataset_id=utils.create_uuid(), user_id=user.user_id,
-                                name=action_value, created=datetime.utcnow())
+                                dataset_name=action_value, created=datetime.utcnow())
                             dataset.a_mongo.create()
                             mongo_value = dataset.dataset_id
 
@@ -1299,7 +1299,7 @@ async def post_entry_metadata_edit(
                 if doi_ds is not None and not user.is_admin:
                     data.success = False
                     data.message = (data.message if data.message else '') + (
-                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.name)
+                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.dataset_name)
                     has_error = True
 
     # stop here, if client just wants to verify its actions

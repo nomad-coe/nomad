@@ -52,7 +52,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
 
         return upload
 
-    response = api.get('uploads', params=dict(name='integration_test_upload'), auth=auth)
+    response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
     assert response.status_code == 200, response.text
     uploads = response.json()['data']
     assert len(uploads) == 0, 'the test upload must not exist before'
@@ -64,7 +64,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         command += ' -k'
         code = os.system(command)
         assert code == 0, 'curl command must be successful'
-        response = api.get('uploads', params=dict(name='integration_test_upload'), auth=auth)
+        response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert len(response_json['data']) == 1, 'exactly one test upload must be on the server'
@@ -82,7 +82,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
     print('upload simple data with API')
     with open(simple_example_file, 'rb') as f:
         response = api.post(
-            'uploads', files=dict(file=f), params=dict(name='integration_test_upload'),
+            'uploads', files=dict(file=f), params=dict(upload_name='integration_test_upload'),
             auth=auth, headers={'Accept': 'application/json'})
         assert response.status_code == 200, response.text
         upload = response.json()['data']
@@ -187,7 +187,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         assert response.status_code == 200, response.text
 
         print('list datasets')
-        response = api.get('datasets', auth=auth, params=dict(name=dataset))
+        response = api.get('datasets', auth=auth, params=dict(dataset_name=dataset))
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert len(response_json['data']) == 1, response.text

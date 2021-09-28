@@ -17,6 +17,7 @@
 #
 
 import os.path
+from typing import Dict
 
 from nomad import config
 from nomad.datamodel import results
@@ -258,7 +259,7 @@ parsers.append(BrokenParser())
 
 ''' Instantiation and constructor based config of all parsers. '''
 
-parser_dict = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
+parser_dict: Dict[str, Parser] = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
 ''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
 
 # renamed parsers

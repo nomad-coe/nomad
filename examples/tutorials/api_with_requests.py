@@ -9,10 +9,10 @@ import json
 
 base_url = 'http://nomad-lab.eu/prod/rae/api'
 
-# response = requests.get(base_url + '/repo?datasets.name=NOMAD%20webinar')
+# response = requests.get(base_url + '/repo?datasets.dataset_name=NOMAD%20webinar')
 response = requests.get(
     base_url + '/repo',
-    params={'datasets.name': 'NOMAD webinar', 'per_page': 1})
+    params={'datasets.dataset_name': 'NOMAD webinar', 'per_page': 1})
 
 data = response.json()
 upload_id = data['results'][0]['upload_id']

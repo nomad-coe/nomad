@@ -752,7 +752,7 @@ class Upload(Proc):
     and processing state.
 
     Attributes:
-        name: Optional user provided upload name.
+        upload_name: Optional user provided upload name.
         upload_path: The fs path were the uploaded files was stored during upload.
         temporary: True if the uploaded file should be removed after extraction.
 
@@ -853,7 +853,7 @@ class Upload(Proc):
     @classmethod
     def create(cls, **kwargs) -> 'Upload':
         '''
-        Creates a new upload for the given user, a user given name is optional.
+        Creates a new upload for the given user, a user given upload_name is optional.
         It will populate the record with a signed url and pending :class:`UploadProc`.
         The upload will be already saved to the database.
 
@@ -1082,7 +1082,7 @@ class Upload(Proc):
                 for oasis_dataset in oasis_datasets.values():
                     try:
                         existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
-                            user_id=self.user_id, name=oasis_dataset['name'])
+                            user_id=self.user_id, dataset_name=oasis_dataset['dataset_name'])
                     except KeyError:
                         datamodel.Dataset(**oasis_dataset).a_mongo.save()
                     else:
@@ -1726,7 +1726,7 @@ class Upload(Proc):
             required_keys_entry_metadata = (
                 'calc_hash',)
             required_keys_datasets = (
-                'dataset_id', 'name', 'user_id')
+                'dataset_id', 'dataset_name', 'user_id')
 
             keys_exist(bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
 
@@ -1792,12 +1792,12 @@ class Upload(Proc):
                     check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {id}')
                     dataset_id = dataset_dict['dataset_id']
                     try:
-                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(name=dataset_dict['name'])
-                        # Dataset by the given name already exists
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_name=dataset_dict['dataset_name'])
+                        # Dataset by the given dataset_name already exists
                         assert existing_dataset.user_id == dataset_dict['user_id'], (
-                            'A dataset with the same name but different creator exists')
+                            'A dataset with the same dataset_name but different creator exists')
                         dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
-                        # Note, it may be that a dataset with the same name and creator
+                        # Note, it may be that a dataset with the same dataset_name and creator
                         # is created in both environments. In that case, we consider them
                         # to be the "same" dataset, even if they do not have the same dataset_id.
                         # Thus, in that case the dataset id needs to be translated.

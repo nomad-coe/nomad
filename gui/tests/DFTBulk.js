@@ -37,7 +37,7 @@ const common = {
   comment: 'Mocked',
   references: ['doi'],
   authors: [{name: 'Lauri Himanen'}],
-  datasets: [{dataset_id: 'Mock dataset', name: 'Mock dataset'}],
+  datasets: [{dataset_id: 'Mock dataset', dataset_name: 'Mock dataset'}],
   mainfile: 'vasp.xml',
   formula: 'Si2'
 }

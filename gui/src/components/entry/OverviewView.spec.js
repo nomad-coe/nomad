@@ -103,7 +103,7 @@ test('correctly renders metadata and all properties', async () => {
   expect(within(authors).getByText(entry.authors[0].name)).toBeInTheDocument()
   const datasets = screen.getByTitle('A list of user curated datasets this entry belongs to.')
   expect(within(datasets).getByText('datasets')).toBeInTheDocument()
-  expect(within(datasets).getByText(entry.datasets[0].name)).toBeInTheDocument()
+  expect(within(datasets).getByText(entry.datasets[0].dataset_name)).toBeInTheDocument()
   const mainfile = screen.getByTitle('The path to the mainfile from the root directory of the uploaded files')
   expect(within(mainfile).getByText('mainfile')).toBeInTheDocument()
   expect(within(mainfile).getByText(entry.mainfile)).toBeInTheDocument()

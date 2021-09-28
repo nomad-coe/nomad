@@ -255,7 +255,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     # create a dataset to force dataset joining of one of the datasets in the example
     # upload
     datamodel.Dataset(
-        dataset_id='cn_dataset_2', name='dataset_2_name',
+        dataset_id='cn_dataset_2', dataset_name='dataset_2_name',
         user_id=test_user.user_id).a_mongo.save()
 
     upload = Upload.create(

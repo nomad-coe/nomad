@@ -1260,7 +1260,7 @@ def test_post_upload_action_publish_to_central_nomad(
     # create a dataset to also test this aspect of oasis uploads
     calc = old_upload.calcs[0]
     datamodel.Dataset(
-        dataset_id='dataset_id', name='dataset_name',
+        dataset_id='dataset_id', dataset_name='dataset_name',
         user_id=test_users_dict[user].user_id).a_mongo.save()
     calc.metadata['datasets'] = ['dataset_id']
     calc.save()

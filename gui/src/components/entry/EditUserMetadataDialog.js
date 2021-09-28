@@ -337,7 +337,7 @@ class DatasetInputUnstyled extends React.Component {
     const {api} = this.props
     query = query.toLowerCase()
     return api.getDatasets(query)
-      .then(result => result.results.map(ds => ds.name))
+      .then(result => result.results.map(ds => ds.dataset_name))
       .catch(err => {
         console.error(err)
         return []
@@ -814,7 +814,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       shared_with: (example.owners || [])
         .filter(user => user.user_id !== example.uploader.user_id)
         .map(user => user.user_id),
-      datasets: (example.datasets || []).map(ds => ds.name)
+      datasets: (example.datasets || []).map(ds => ds.dataset_name)
     }
   }
 

@@ -154,7 +154,7 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
               <div>
                 {entry.datasets.map(ds => (
                   <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
                     {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
                   </Typography>))}
               </div>}
