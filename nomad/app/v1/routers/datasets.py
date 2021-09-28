@@ -218,8 +218,8 @@ async def post_datasets(
         dataset_id=create_uuid(),
         dataset_name=create.dataset_name,
         user_id=user.user_id,
-        created=now,
-        modified=now,
+        dataset_create_time=now,
+        dataset_modified_time=now,
         dataset_type=dataset_type)
     dataset.a_mongo.create()
 

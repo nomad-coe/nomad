@@ -1262,7 +1262,7 @@ async def post_entry_metadata_edit(
                         if not verify:
                             dataset = datamodel.Dataset(
                                 dataset_id=utils.create_uuid(), user_id=user.user_id,
-                                dataset_name=action_value, created=datetime.utcnow())
+                                dataset_name=action_value, dataset_create_time=datetime.utcnow())
                             dataset.a_mongo.create()
                             mongo_value = dataset.dataset_id
 

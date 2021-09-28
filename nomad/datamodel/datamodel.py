@@ -108,7 +108,7 @@ class User(Author):
         last_name: The users last name
         affiliation: The name of the company and institutes the user identifies with
         affiliation_address: The address of the given affiliation
-        create: The time the account was created
+        created: The time the account was created
         repo_user_id: The id that was used to identify this user in the NOMAD CoE Repository
         is_admin: Bool that indicated, iff the user the use admin user
     '''
@@ -212,9 +212,9 @@ class Dataset(metainfo.MSection):
             full URL, e.g. "10.17172/nomad/2019.10.29-1".
         pid: The original NOMAD CoE Repository dataset PID. Old DOIs still reference
             datasets based on this id. Is not used for new datasets.
-        created: The date when the dataset was first created.
-        modified: The date when the dataset was last modified. An owned dataset can only
-            be extended after a DOI was assigned. A foreign dataset cannot be changed
+        dataset_create_time: The date when the dataset was first created.
+        dataset_modified_time: The date when the dataset was last modified. An owned dataset
+            can only be extended after a DOI was assigned. A foreign dataset cannot be changed
             once a DOI was assigned.
         dataset_type: The type determined if a dataset is owned, i.e. was created by
             the uploader/owner of the contained entries; or if a dataset is foreign,
@@ -243,11 +243,11 @@ class Dataset(metainfo.MSection):
     pid = metainfo.Quantity(
         type=str,
         a_mongo=Mongo(index=True))
-    created = metainfo.Quantity(
+    dataset_create_time = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
         a_elasticsearch=Elasticsearch())
-    modified = metainfo.Quantity(
+    dataset_modified_time = metainfo.Quantity(
         type=metainfo.Datetime,
         a_mongo=Mongo(index=True),
         a_elasticsearch=Elasticsearch())

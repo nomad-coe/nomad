@@ -46,7 +46,7 @@ to assert for certain aspects in the responses.
 @pytest.fixture(scope='function')
 def data(elastic, raw_files, mongo, test_user, other_test_user):
     def create_dataset(**kwargs):
-        dataset = Dataset(created=datetime.now(), modified=datetime.now(), **kwargs)
+        dataset = Dataset(dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(), **kwargs)
         dataset.m_get_annotations('mongo').save()
         return dataset
 
