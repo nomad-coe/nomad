@@ -63,11 +63,10 @@ class DbUpdater:
         self.do_publish = False
         self.cleanup = False
         self.parallel = 2
-        self.max_depth = 10
+        self.max_depth = None
+        self.target_file = None
         self.uids: List[str] = []
         self._set(**kwargs)
-        self._set_db()
-        self._set_local_path()
         self.auth = auth
 
     def _set(self, **kwargs):
@@ -78,10 +77,11 @@ class DbUpdater:
             else:
                 raise KeyError('Invalid key %s' % key)
 
-    def _set_local_path(self):
+        # create directory to save data
         subdir = ''
         if self.db_name.lower() == 'aflowlib':
-            subdir = self.root_url.strip('/').split('/')[-1]
+            subdir = os.path.basename(self.root_url.strip('/'))
+
         dbpath = os.path.join(self.local_path, self.db_name)
         self._local_path = os.path.join(dbpath, subdir)
         if not os.path.isdir(dbpath):
@@ -89,21 +89,21 @@ class DbUpdater:
         if not os.path.isdir(self._local_path):
             os.mkdir(self._local_path)
 
-    def _set_db(self):
+        # set target file based on database
         if self.db_name.lower() == 'aflowlib':
-            self.max_depth = 4
+            if self.target_file is None:
+                self.target_file = 'vasprun.xml.relax2.xz' if re.match(
+                    r'.+/LIB\d+_LIB/?', self.root_url) else 'OUTCAR.static.xz'
         else:
             raise NotImplementedError('%s not yet supported.' % self.db_name)
 
-    def _open_page(self, path: str):
-        with requests.Session() as session:
-            response = session.get(path, verify=False)
-        if not response.ok:
-            return response.raise_for_status()
-        return response
+        self._session = requests.Session()
 
-    def get_paths(self, root: str) -> typing.List[str]:
-        response = self._open_page(root)
+    def _get_paths(self, root: str) -> typing.List[str]:
+        response = self._session.get(root, verify=False)
+        if not response.ok:
+            response.raise_for_status()
+
         paths = []
         for url in re.findall('<a href="([^"]+)">', str(response.content)):
             if url in response.url:
@@ -111,21 +111,7 @@ class DbUpdater:
             paths.append(os.path.join(response.url, url.lstrip('./')))
         return paths
 
-    def _is_mainfile(self, path: str) -> bool:
-        if 'vasprun.xml' in path:
-            return True
-        return False
-
-    def _is_dir(self, path: str) -> bool:
-        path = path.strip()
-        if path[-1] == '/' and self.root_url in path:
-            return True
-        return False
-
-    def _depth(self, path: str) -> int:
-        return urllib_parse.urlparse(path).path.rstrip('/').count('/')
-
-    def _rules_ok(self, path: str) -> bool:
+    def _is_valid_file(self, path: str) -> bool:
         ok = True
         if '?' in path:
             ok = False
@@ -161,106 +147,115 @@ class DbUpdater:
                 else:
                     f.write('%s %s \n' % (data[i][0], data[i][1]))
 
-    def _gen_db_list(self):
-        print('Generating list from %s' % self.root_url)
-        self.db_files = []
-        todo = self.get_paths(self.root_url)
-        while len(todo) > 0:
-            cur = todo.pop(0)
-            if not self._is_dir(cur):
-                continue
-
-            if self._depth(cur) == self.max_depth:
-                self.db_files.append(cur)
-
-            else:
-                add = self.get_paths(cur)
-                add = [path for path in add if self._rules_ok(path)]
-                todo = add + todo
-
-        if self.dbfile is not None:
-            self._write_to_file(self.db_files, self.dbfile)
+    def _cleanup(self, ilist: typing.Union[str, typing.List[str]]):
+        if isinstance(ilist, str):
+            ilist = [ilist]
+        for name in ilist:
+            subprocess.Popen(['rm', '-rf', name])
 
     def get_db_list(self):
         if self.dbfile is not None and os.path.isfile(self.dbfile):
             self.db_files = self._read_from_file(self.dbfile)
         else:
-            self._gen_db_list()
+            print('Generating list from %s' % self.root_url)
+            self.db_files = []
+            todo = self._get_paths(self.root_url)
+            while len(todo) > 0:
+                cur = todo.pop(0)
+                depth = urllib_parse.urlparse(cur).path.rstrip('/').count('/')
+                if self.target_file in cur and self.max_depth is None:
+                    # it makes the assumption that the the mainfiles are located at the
+                    # same level
+                    self.max_depth = depth - 1
 
-    def _gen_nomad_list(self):
-        print('Generating NOMAD list')
-        if self.db_name.lower() == 'aflowlib':
-            servers = ['LIB%d_LIB' % n for n in range(1, 10)]
-            paths = []
-            for s in servers:
-                if s in self.root_url:
-                    paths.append(s)
-            if len(paths) == 0:
-                paths = servers
-            # uploader: Stefano Curtarolo
-            query = dict(
-                uploader_id='81b96683-7170-49d7-8c4e-e9f34906b3ea',
-                paths=paths)
+                if self.max_depth is not None and depth > self.max_depth:
+                    pass
 
-        self.nomad_files = []
-        page_after_value = None
-        while True:
-            response = api.post('entries/query', data=json.dumps({
-                'owner': 'all',
-                'query': query,
-                'aggregations': {
-                    'mainfiles': {
-                        'terms': {
-                            'quantity': 'mainfile',
-                            'pagination': {
-                                'page_size': 1000,
-                                'page_after_value': page_after_value
-                            }
-                        }
-                    }
-                }
-            }))
-            assert response.status_code == 200
-            aggregation = response.json()['aggregations']['mainfiles']['terms']
-            page_after_value = aggregation['pagination']['next_page_after_value']
-            for bucket in aggregation['data']:
-                self.nomad_files.append(bucket['value'])
+                elif self.max_depth is not None and depth == self.max_depth:
+                    self.db_files.append(cur)
 
-            if len(aggregation['data']) < 1000 or page_after_value is None:
-                break
+                else:
+                    try:
+                        add = self._get_paths(cur)
+                    except Exception:
+                        add = []
+                    add = [path for path in add if self._is_valid_file(path)]
+                    todo = add + todo
 
-        if self.nomadfile is not None:
-            self._write_to_file(self.nomad_files, self.nomadfile)
+            if self.dbfile is not None:
+                self._write_to_file(self.db_files, self.dbfile)
 
     def get_nomad_list(self):
         if self.nomadfile is not None and os.path.isfile(self.nomadfile):
             self.nomad_files = self._read_from_file(self.nomadfile)
         else:
-            self._gen_nomad_list()
+            print('Generating NOMAD list')
+            if self.db_name.lower() == 'aflowlib':
+                servers = ['LIB%d_LIB' % n for n in range(1, 10)] + ['ICSD_WEB']
+                paths = [s for s in servers if s in self.root_url]
+                paths = paths if paths else servers
+                # uploader: Stefano Curtarolo
+                query = dict(
+                    uploader_id='81b96683-7170-49d7-8c4e-e9f34906b3ea',
+                    paths=paths)
 
-    def _reduce_list(self, ilist: typing.List[str]):
-        olist = []
-        for e in ilist:
-            p = urllib_parse.urlparse(e).path.strip('/')
-            olist.append(os.path.join(*p.split('/')[1:self.max_depth]))
-        olist = list(set(olist))
-        olist.sort()
-        return olist
+            self.nomad_files = []
+            page_after_value = None
+            while True:
+                response = api.post('entries/query', data=json.dumps({
+                    'owner': 'all',
+                    'query': query,
+                    'aggregations': {
+                        'mainfiles': {
+                            'terms': {
+                                'quantity': 'mainfile',
+                                'pagination': {
+                                    'page_size': 1000,
+                                    'page_after_value': page_after_value
+                                }
+                            }
+                        }
+                    }
+                }))
+                assert response.status_code == 200
+                aggregation = response.json()['aggregations']['mainfiles']['terms']
+                page_after_value = aggregation['pagination']['next_page_after_value']
+                for bucket in aggregation['data']:
+                    self.nomad_files.append(bucket['value'])
+
+                if len(aggregation['data']) < 1000 or page_after_value is None:
+                    break
+
+            if self.nomadfile is not None:
+                self._write_to_file(self.nomad_files, self.nomadfile)
 
     def compare_lists(self):
+        '''
+        Identify the difference between the nomad list and db list
+        '''
+        def reduce_list(ilist: typing.List[str]):
+            olist = []
+            for e in ilist:
+                p = urllib_parse.urlparse(e).path.strip('/')
+                olist.append(os.path.join(*p.split('/')[1:self.max_depth]))
+            olist = list(set(olist))
+            olist.sort()
+            return olist
+
         print('Identifying differences')
-        db = self._reduce_list(self.db_files)
-        nomad = self._reduce_list(self.nomad_files)
+        self.max_depth = 10 if self.max_depth is None else self.max_depth
+        db = reduce_list(self.db_files)
+        nomad = reduce_list(self.nomad_files)
         ns = set(nomad)
         self.update_list = [i for i in db if i not in ns]
 
         ds = set(db)
-        self.in_nomad = [i for i in nomad if i not in ds]
-        if len(self.in_nomad) > 0:
+        in_nomad = [i for i in nomad if i not in ds]
+        if len(in_nomad) > 0:
             fn = 'in_nomad.txt'
             print('Warning: Some NOMAD entries not found in db.')
             print('See %s for list.' % fn)
-            self._write_to_file(self.in_nomad, fn)
+            self._write_to_file(in_nomad, fn)
 
         # add the root back
         u = urllib_parse.urlparse(self.root_url)
@@ -274,76 +269,70 @@ class DbUpdater:
             data = [self.update_list[i] for i in range(len(self.update_list))]
             self._write_to_file(data, self.outfile)
 
-    def _download(self, path: str, iodir: str) -> float:
-        files = self.get_paths(path)
-        files = [f for f in files if self._rules_ok(f)]
-        size = 0.0
-        with requests.Session() as session:
+    def _get_files(self, path: str) -> typing.Tuple[str, float]:
+        def is_dir(path: str) -> bool:
+            path = path.strip()
+            if path[-1] == '/' and self.root_url in path:
+                return True
+            return False
+
+        def download(path: str, iodir: str) -> float:
+            files = self._get_paths(path)
+            files = [f for f in files if self._is_valid_file(f)]
+            size = 0.0
             for f in files:
-                if self._is_dir(f):
-                    _, s = self.get_files(f)
+                if is_dir(f):
+                    _, s = self._get_files(f)
                     size += s
                     continue
 
-                res = session.get(f, stream=True)
+                res = self._session.get(f, stream=True)
                 fn = res.url.split('/')[-1]
                 fn = os.path.join(iodir, fn)
-                with open(fn, 'wb') as fb:
-                    fb.write(res.content)
+                try:
+                    with open(fn, 'wb') as fb:
+                        fb.write(res.content)
+                except Exception:
+                    continue
 
                 size += os.path.getsize(fn)
-        return size
+            return size
 
-    def _download_size(self, dirname: str) -> float:
-        complete = False
-        files = os.listdir(dirname)
+        def get_download_size(dirname: str) -> float:
+            complete = False
+            files = os.listdir(dirname)
 
-        if self.db_name.lower() == 'aflowlib':
-            if 'vasprun.xml.relax2.xz' in files:
+            if self.db_name.lower() == 'aflowlib':
+                complete = self.target_file in files
+            else:
                 complete = True
-        else:
-            complete = True
 
-        size = 0.0
-        if not complete:
-            self._cleanup([os.path.join(dirname, f) for f in files])
-        else:
-            for f in files:
-                size += os.path.getsize(os.path.join(dirname, f))
+            size = 0.0
+            if not complete:
+                self._cleanup([os.path.join(dirname, f) for f in files])
+            else:
+                for f in files:
+                    size += os.path.getsize(os.path.join(dirname, f))
 
-        return size
+            return size
 
-    def get_files(self, path: str) -> typing.Tuple[str, float]:
         dirname = urllib_parse.urlparse(path).path
         dirname = self._to_namesafe(dirname)
         dirname = os.path.join(self._local_path, dirname)
 
         if os.path.isdir(dirname):
-            size = self._download_size(dirname)
+            size = get_download_size(dirname)
             if size == 0.0:
-                size = self._download(path, dirname)
+                size = download(path, dirname)
 
         else:
-            os.mkdir(dirname)
-            size = self._download(path, dirname)
+            try:
+                os.mkdir(dirname)
+                size = download(path, dirname)
+            except Exception:
+                size = 0.0
 
         return dirname, size
-
-    def _tar_files(self, dirs: typing.List[str], tarname: str):
-        if os.path.isfile(tarname):
-            return
-
-        try:
-            f = tarfile.open(tarname, 'w')
-            for d in dirs:
-                files = os.listdir(d)
-                for fn in files:
-                    f.add(os.path.join(d, fn))
-            f.close()
-
-        except Exception as e:
-            os.remove(tarname)
-            print('Error writing tar file %s. %s' % (tarname, e))
 
     def _make_name(self, dirs: typing.List[str]) -> typing.Tuple[str, str]:
         # name will be first and last entries
@@ -351,36 +340,10 @@ class DbUpdater:
         d2 = self._to_namesafe(dirs[-1].lstrip(self._local_path))
 
         tarname = '%s-%s' % (d1, d2)
-        uploadname = 'AFLOWLIB_%s' % tarname
-        tarname = os.path.join(self._local_path, tarname + '.tar')
+        uploadname = '%s_%s' % (self.db_name.upper(), tarname)
+        tarname = os.path.join(self._local_path, '%s.tar' % tarname)
 
         return tarname, uploadname
-
-    def _cleanup(self, ilist: typing.Union[str, typing.List[str]]):
-        if isinstance(ilist, str):
-            ilist = [ilist]
-        for name in ilist:
-            subprocess.Popen(['rm', '-rf', name])
-
-    def _is_done_upload(self, uid: int) -> bool:
-        response = api.get(f'uploads/{uid}', auth=self.auth)
-        assert response.status_code == 200
-        return response.json()['data']['process_status'] in proc.ProcessStatus.STATUSES_NOT_PROCESSING
-
-    def _get_status_upload(self, uploadname: str) -> typing.Tuple[str, str]:
-        response = api.get(f'uploads', params=dict(name=uploadname), auth=self.auth)
-        assert response.status_code == 200
-        response_json = response.json()
-        assert len(response_json['data']) <= 1
-
-        if len(response_json['data']) == 0:
-            return None, None
-
-        upload = response_json['data'][0]
-        if upload['published']:
-            return 'published', upload['upload_id']
-
-        return 'uploaded', upload['upload_id']
 
     # TODO This should not be set via API, but added as nomad.json to the upload!
     # def get_payload(self, uid: int) -> typing.Dict[str, typing.Any]:
@@ -414,39 +377,66 @@ class DbUpdater:
     #         raise NotImplementedError('%s not yet supported.' % self.db_name)
 
     def publish(self, uids=None):
+        def is_done_upload(uid: int) -> bool:
+            response = api.get(f'uploads/{uid}', auth=self.auth)
+            assert response.status_code == 200
+            return response.json()['data']['process_status'] in proc.ProcessStatus.STATUSES_NOT_PROCESSING
+
         print('Publishing')
-        if uids is None:
-            uids = self.uids
+        uids = self.uids if uids is None else uids
         for uid in uids:
-            if self._is_done_upload(uid):
+            if is_done_upload(uid):
                 response = api.post(f'uploads/{uid}/action/publish', auth=self.auth)
                 assert response.status_code == 200
 
-    def upload(self, file_path: str, name: str) -> int:
-        uid = upload_file(os.path.abspath(file_path), self.auth, local_path=True, upload_name=name)
-        assert uid is not None
-        return uid
+    def _download_proc(self, plist: typing.List[str]):
+        def tar_files(dirs: typing.List[str], tarname: str):
+            if os.path.isfile(tarname):
+                return
 
-    def download_proc(self, plist: typing.List[str]):
+            try:
+                with tarfile.open(tarname, 'w') as f:
+                    for d in dirs:
+                        files = os.listdir(d)
+                        for fn in files:
+                            f.add(os.path.join(d, fn))
+
+            except Exception as e:
+                os.remove(tarname)
+                print('Error writing tar file %s. %s' % (tarname, e))
+
+        def get_status_upload(uploadname: str) -> typing.Tuple[str, str]:
+            response = api.get(f'uploads', params=dict(name=uploadname), auth=self.auth)
+            assert response.status_code == 200
+            response_json = response.json()
+            assert len(response_json['data']) <= 1
+
+            if len(response_json['data']) == 0:
+                return None, None
+
+            upload = response_json['data'][0]
+            if upload['published']:
+                return 'published', upload['upload_id']
+
+            return 'uploaded', upload['upload_id']
+
         size = 0.0
         max_zip_size = config.max_upload_size
         dirs = []
-        done = []
         for i in range(len(plist)):
-            d, s = self.get_files(self.update_list[plist[i]])
+            d, s = self._get_files(self.update_list[plist[i]])
             if not self.do_upload:
                 continue
 
             size += s
             dirs.append(d)
-            done.append(plist[i])
             if size > max_zip_size or i == (len(plist) - 1):
                 tarname, uploadname = self._make_name(dirs)
-                status, uid = self._get_status_upload(uploadname)
+                status, uid = get_status_upload(uploadname)
                 if status == 'published':
                     continue
                 if status != 'uploaded':
-                    self._tar_files(dirs, tarname)
+                    tar_files(dirs, tarname)
                     uid = upload_file(tarname, auth=self.auth, upload_name=uploadname, local_path=True)
                     assert uid is not None
                 if self.do_publish:
@@ -459,6 +449,9 @@ class DbUpdater:
                 dirs = []
 
     def download(self):
+        '''
+        Download files from database.
+        '''
         print('Downloading from %s' % self.root_url)
         s = time.time()
         plist = [[] for i in range(self.parallel)]
@@ -472,17 +465,20 @@ class DbUpdater:
         if self.parallel > 1:
             procs = []
             for i in range(self.parallel):
-                p = threading.Thread(target=self.download_proc, args=(plist[i],))
+                p = threading.Thread(target=self._download_proc, args=(plist[i],))
                 procs.append(p)
             [p.start() for p in procs]
             [p.join() for p in procs]
 
         else:
-            self.download_proc(plist[0])
+            self._download_proc(plist[0])
 
         print('Time for download and upload (s)', time.time() - s)
 
-    def prep_list(self):
+    def get_list_to_download(self):
+        '''
+        Generate lists of files from database and from nomad and returns the difference.
+        '''
         if self.outfile is not None and os.path.isfile(self.outfile):
             self.update_list = []
             self.is_updated_list = []
@@ -507,7 +503,7 @@ class DbUpdater:
             self.compare_lists()
 
     def update(self):
-        self.prep_list()
+        self.get_list_to_download()
         if self.do_download:
             self.download()
 
