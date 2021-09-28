@@ -175,9 +175,9 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
             </Quantity>
             <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={entry}/>
             <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard data={entry}/>
-            <Quantity quantity="last_processing" label='last processing' placeholder="not processed" noWrap data={entry}>
+            <Quantity quantity="last_processing_time" label='last processing time' placeholder="not processed" noWrap data={entry}>
               <Typography noWrap>
-                {new Date(entry.last_processing).toLocaleString()}
+                {new Date(entry.last_processing_time).toLocaleString()}
               </Typography>
             </Quantity>
             <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" data={entry}>

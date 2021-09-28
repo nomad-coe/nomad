@@ -361,7 +361,8 @@ class EntryMetadata(metainfo.MSection):
         files: A list of all files, relative to upload.
         processed: Boolean indicating if this calc was successfully processed and archive
             data and calc metadata is available.
-        last_processing: A datatime with the time of the last successful processing.
+        last_processing_time: The date and time of the last processing.
+        last_edit_time: The date and time the user metadata was last edited.
         nomad_version: A string that describes the version of the nomad software that was
             used to do the last successful processing.
         comment: An arbitrary string with user provided information about the entry.
@@ -444,9 +445,9 @@ class EntryMetadata(metainfo.MSection):
         description='Indicates that the entry is successfully processed.',
         a_elasticsearch=Elasticsearch())
 
-    last_processing = metainfo.Quantity(
+    last_processing_time = metainfo.Quantity(
         type=metainfo.Datetime,
-        description='The datetime of the last processing',
+        description='The date and time of the last processing.',
         categories=[MongoMetadata],
         a_elasticsearch=Elasticsearch())
 
@@ -569,9 +570,9 @@ class EntryMetadata(metainfo.MSection):
         where the data was imported from.''',
         a_elasticsearch=Elasticsearch())
 
-    last_edit = metainfo.Quantity(
+    last_edit_time = metainfo.Quantity(
         type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
-        description='The date and time the user metadata was edited last')
+        description='The date and time the user metadata was last edited.')
 
     optimade = metainfo.SubSection(
         sub_section=OptimadeEntry,

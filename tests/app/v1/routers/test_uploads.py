@@ -1282,7 +1282,7 @@ def test_post_upload_action_publish_to_central_nomad(
         old_calc = old_upload.calcs[0]
         new_calc = new_upload.calcs[0]
         for k, v in old_calc.metadata.items():
-            if k not in ('upload_create_time', 'last_processing'):
+            if k not in ('upload_create_time', 'last_processing_time'):
                 assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
         assert new_calc.metadata.get('datasets') == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id

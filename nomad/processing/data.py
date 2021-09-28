@@ -170,7 +170,7 @@ class Calc(Proc):
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'process_status',
-            'metadata.last_processing',
+            'metadata.last_processing_time',
             'metadata.datasets',
             'metadata.pid'
         ]
@@ -282,7 +282,7 @@ class Calc(Proc):
         entry_metadata.nomad_commit = config.meta.commit
         entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        entry_metadata.last_processing = datetime.utcnow()
+        entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
 
     def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: datamodel.EntryMetadata):
@@ -328,7 +328,8 @@ class Calc(Proc):
         both the mongo metadata and the metadata from the archive.
 
         Arguments:
-            upload: The :class:`Upload` to which this entry belongs.
+            upload: The :class:`Upload` to which this entry belongs. Upload level metadata
+                and the archive files will be read from this object.
         '''
         assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
         archive = upload.upload_files.read_archive(self.calc_id)
@@ -354,7 +355,7 @@ class Calc(Proc):
             if self._entry_metadata is not None:
                 return self._entry_metadata
             else:
-                return self.mongo_metadata(self.upload)
+                return self.mongo_metadata(upload)
 
     def mongo_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
         '''
@@ -612,7 +613,7 @@ class Calc(Proc):
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
             # archive.
-            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.last_processing_time = datetime.utcnow()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)

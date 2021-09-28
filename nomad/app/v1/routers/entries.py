@@ -1312,7 +1312,7 @@ async def post_entry_metadata_edit(
         return data
 
     # perform the change
-    mongo_update['metadata__last_edit'] = datetime.utcnow()
+    mongo_update['metadata__last_edit_time'] = datetime.utcnow()
     edit(data.query, user, mongo_update, True)
 
     # remove potentially empty old datasets

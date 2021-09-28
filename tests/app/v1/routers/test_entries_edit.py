@@ -111,7 +111,7 @@ class TestEditRepo():
             assert calc is not None
             metadata = calc.metadata
             if edited:
-                assert metadata.get('last_edit') is not None
+                assert metadata.get('last_edit_time') is not None
             for key, value in kwargs.items():
                 if metadata.get(key) != value:
                     return False

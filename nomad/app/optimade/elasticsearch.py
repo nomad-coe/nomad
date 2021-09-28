@@ -209,7 +209,7 @@ class StructureCollection(EntryCollection):
         attrs = archive.metadata.optimade.m_to_dict()
 
         attrs['immutable_id'] = entry_id
-        attrs['last_modified'] = archive.metadata.last_processing if archive.metadata.last_processing is not None else archive.metadata.upload_create_time
+        attrs['last_modified'] = archive.metadata.last_processing_time if archive.metadata.last_processing_time is not None else archive.metadata.upload_create_time
 
         # TODO this should be removed, once all data is reprocessed with the right normalization
         attrs['chemical_formula_reduced'] = optimade_chemical_formula_reduced(
