@@ -12,49 +12,67 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
-import { Divider, Typography, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
-import MUIAccordion from '@material-ui/core/Accordion'
-import MUIAccordionSummary from '@material-ui/core/AccordionSummary'
-import { withStyles } from '@material-ui/core/styles'
-import tutorials from '../../toolkitMetadata'
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import Markdown from '../Markdown'
-import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
-import Autocomplete from '@material-ui/lab/Autocomplete'
+import React from 'react'
+import { makeStyles, Grid, Box } from '@material-ui/core'
+import Background from './assets/AIT_bg_title.jpg'
+import IconQuery from './assets/AIT_ico_bb_query.svg'
+import IconReplicate from './assets/AIT_ico_bb_replicate.svg'
+import IconTutorial from './assets/AIT_ico_bb_tutorial.svg'
+import IconWork from './assets/AIT_ico_bb_work.svg'
 
 const useStyles = makeStyles(theme => ({
   root: {
-    margin: theme.spacing(3),
     width: '100%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: 1024
+    maxWidth: '1920px',
+    backgroundImage: `url(${Background})`,
+    color: 'white',
+    height: '700px'
   },
-  section: {
-    marginTop: theme.spacing(3)
+  title: {
+    fontSize: '50px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '50px',
+    width: '450px',
+    height: '140px',
+    fontFamily: 'TitilliumBold',
+    letterSpacing: 0,
+    wordSpacing: '10px',
+    lineHeight: '60px',
+    color: 'white'
   },
-  sectionTitle: {
-    marginBottom: theme.spacing(1),
-    marginLeft: theme.spacing(2)
+  deck: {
+    fontFamily: 'TitilliumRegular',
+    letterSpacing: 0,
+    marginTop: '-45px',
+    wordSpacing: '5px',
+    lineHeight: '30px',
+    color: 'white',
+    fontSize: '30px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    left: '736px',
+    top: '270px',
+    width: '500px',
+    height: '140px'
   },
-  tutorial: {
+  button: {
+    backgroundColor: 'white',
+    fontSize: 20,
+    fontFamily: 'TitilliumBold',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '25px',
+    width: '200px',
+    height: '70px',
+    lineHeight: '20px'
 
-  },
-  tutorialTitle: {
-    fontWeight: 'bold'
-  },
-  tutorialDetails: {
-    flexDirection: 'column',
-    '& *': {
-      marginTop: theme.spacing(1)
-    },
-    '& :first-child': {
-      marginTop: -theme.spacing(2)
-    }
   },
   link: {
     cursor: 'pointer'
@@ -63,234 +81,53 @@ const useStyles = makeStyles(theme => ({
 
 export default function AIToolkitPage() {
   const classes = useStyles()
-  const [expanded, setExpanded] = useQueryParam('expanded', StringParam)
-  const [queryParameters, setQueryParameters] = useQueryParams({
-    author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
-  })
-  const emptyQuery = {
-    author: null,
-    keyword: null,
-    method: null,
-    filterString: null
-  }
-
-  const filter = tutorial => {
-    const {author, keyword, method} = queryParameters
-    if (author && tutorial.authors.indexOf(author) === -1) {
-      return false
-    }
-    if (keyword && tutorial.labels.application_keyword.indexOf(keyword) === -1) {
-      return false
-    }
-    if (method && tutorial.labels.data_analytics_method.indexOf(method) === -1) {
-      return false
-    }
-    return true
-  }
-
-  const {sections, authors, keywords, methods} = useMemo(() => {
-    const authors = {}
-    const keywords = {}
-    const methods = {}
-    const sectionMap = tutorials.tutorials.reduce((sections, tutorial) => {
-      tutorial.labels.application_section.forEach(sectionTitle => {
-        sections[sectionTitle] = sections[sectionTitle] || {title: sectionTitle, tutorials: []}
-        tutorial.key = tutorial.title.replace(/\W/gm, '_').toLowerCase()
-        sections[sectionTitle].tutorials.push(tutorial)
-        tutorial.authors.forEach(i => { authors[i] = i })
-        tutorial.labels.application_keyword.forEach(i => { keywords[i] = i })
-        tutorial.labels.data_analytics_method.forEach(i => { methods[i] = i })
-      })
-      return sections
-    }, {})
-    return {
-      sections: Object.keys(sectionMap).map(key => sectionMap[key]).sort((a, b) => a.title.localeCompare(b.title)),
-      authors: Object.keys(authors).sort(),
-      keywords: Object.keys(keywords).sort(),
-      methods: Object.keys(methods).sort()
-    }
-  }, [])
-
-  const Accordion = withStyles({
-    root: {
-      border: '5px solid rgba(127, 239, 239, 1)',
-      scrollbarGutter: 'false',
-      marginLeft: '100px',
-      boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
-      borderRadius: '10px 10px 10px 10px',
-      '&:not(:last-child)': {
-        borderBottom: 0
-      },
-      '&:before': {
-        display: 'none'
-      },
-      '&$expanded': {
-        margin: 'auto'
-      }
-    },
-    heading: {
-      fontSize: 35,
-      flexBasis: '33.33%',
-      flexShrink: 0
-    },
-    secondaryHeading: {
-      fontSize: 10
-    },
-    expanded: {}
-  })(MUIAccordion)
-
-  const AccordionSummary = withStyles({
-    root: {
-      flexDirection: 'column'
-    },
-    content: {
-      marginBottom: 0,
-      flexGrow: 1
-    },
-    expandIcon: {
-      marginRight: '10px',
-      paddingTop: '10px'
-    }
-  })(MUIAccordionSummary)
 
   return <Grid container spacing={2} className={classes.root}>
+
+    <Grid item xs={12} >
+      <Box className={classes.title}>
+         Powerful Tools for Materials Science  </Box>
+    </Grid>
     <Grid item xs={12}>
-      <Markdown>{`
-        # NOMAD Artificial Intelligence Toolkit
-
-        We develop and implement methods that identify correlations and structure in big data
-        of materials. This will enable scientists and engineers to decide which materials are
-        useful for specific applications or which new materials should be the focus of future studies.
-        The following tutorials are designed to get started with the AI Toolkit.
-
-        To log in directly, click [here](https://analytics-toolkit.nomad-coe.eu/hub).
-      `}</Markdown>
+      <Box className={classes.deck}>
+      Find new Patterns and Information in Materials Science Big Data  </Box>
     </Grid>
-    <Grid item xs={8}>
-      {<hr></hr>}
-      {sections.map(section => (
-        <div key={section.title} className={classes.section}>
-          {/* <Typography className={classes.sectionTitle}>{section.title}</Typography> */}
-          <div>
-            {section.tutorials.map(tutorial => {
-              //
-              const key = tutorial.key
-              return <Accordion
-                key={key}
-                disabled={!filter(tutorial)}
-                expanded={expanded === key}
-                onChange={() => setExpanded(expanded === key ? null : key)}
-                className={classes.tutorial}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography className={classes.tutorialTitle}>{tutorial.title}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails className={classes.tutorialDetails}>
-                  <Typography>
-                    {tutorial.authors
-                      .map(name => {
-                        const label = name.split(',').reverse().join(' ')
-                        return <Link
-                          className={classes.link}
-                          key={name}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            author: queryParameters.author === name ? null : name
-                          })}
-                        >
-                          <i>{label}</i>
-                        </Link>
-                      }).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                  <Markdown>
-                    {tutorial.description}
-                  </Markdown>
-                  <Typography>
-                    <b>keywords</b>: {tutorial.labels.application_keyword
-                      .map(keyword => (
-                        <Link
-                          className={classes.link}
-                          key={keyword}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            keyword: queryParameters.keyword === keyword ? null : keyword
-                          })}
-                        >
-                          {keyword}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                  <Typography>
-                    <b>method</b>: {tutorial.labels.data_analytics_method
-                      .map(method => (
-                        <Link
-                          className={classes.link}
-                          key={method}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            method: queryParameters.method === method ? null : method
-                          })}
-                        >
-                          {method}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                </AccordionDetails>
-                <AccordionActions>
-                  <Button color="black" href={tutorial.link} target="tutorial">
-                    open with login
-                  </Button>
-                  <Button color="primary" href={tutorial.link_public} target="tutorial">
-                    open as guest
-                  </Button>
-                </AccordionActions>
-                <Divider />
-              </Accordion>
-            })}
-
-          </div>
-
-        </div>
-      ))}
+    <Grid item xs={3}> <img src={IconQuery} />
     </Grid>
-    <Grid item xs={4}>
-      <Autocomplete
-        id="combo-box-demo"
-        options={authors}
-        getOptionLabel={option => option}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="author" fullWidth />
-        )}
-        value={queryParameters.author}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
-      />
-      <Autocomplete
-        id="combo-box-demo"
-        options={keywords}
-        getOptionLabel={option => option}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="keyword" fullWidth />
-        )}
-        value={queryParameters.keyword}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
-      />
-      <Autocomplete
-        id="combo-box-demo"
-        options={methods}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="method" fullWidth />
-        )}
-        value={queryParameters.method}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
-      />
-      {/* <TextField label="text filter" fullWidth /> */}
+    <Grid item xs={3}> <img src={IconTutorial} />
     </Grid>
+    <Grid item xs={3}> <img src={IconReplicate} />
+    </Grid>
+    <Grid item xs={3}> <img src={IconWork} />
+    </Grid>
+    <Grid item xs={3}>
+      <button className={classes.button}
+        type="button"
+      > Query the archive</button>
+    </Grid>
+    <Grid item xs={3} >
+      <button className={classes.button}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          window.location.href = 'tutorials'
+        }}
+      > View tutorials</button>
+    </Grid>
+    <Grid item xs={3}>
+      <button className={classes.button}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          window.location.href = 'reproduce'
+        }}
+      > Reproduce published results</button>
+    </Grid>
+    <Grid item xs={3}>
+      <button className={classes.button}
+        type="button"
+      > Get to work</button>
+    </Grid>
+
   </Grid>
 }
