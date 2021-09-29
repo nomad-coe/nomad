@@ -100,18 +100,6 @@ function registerFilter(name, group, statConfig, agg, value, multiple = true, ex
       : filterGroups[group] = new Set([name])
   }
 
-  // Register mappings from full name to abbreviation and vice versa
-  const abbreviation = name.split('.').pop()
-  const oldName = filterAbbreviations[abbreviation]
-  if (!oldName) {
-    filterAbbreviations[name] = abbreviation
-    filterFullnames[abbreviation] = name
-  } else {
-    delete filterFullnames[abbreviation]
-    filterAbbreviations[name] = name
-    filterAbbreviations[oldName] = oldName
-  }
-
   const data = filterData[name] || {}
   if (agg) {
     let aggSet, aggGet
@@ -315,6 +303,27 @@ registerFilter(
   {set: () => {}},
   false
 )
+
+// The filter abbreviation mapping has to be done only after all filters have
+// been registered.
+const abbreviations = {}
+const nameAbbreviationPairs = [...filters].map(
+  fullname => [fullname, fullname.split('.').pop()])
+for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+  const old = abbreviations[abbreviation]
+  if (old === undefined) {
+    abbreviations[abbreviation] = 1
+  } else {
+    abbreviations[abbreviation] += 1
+  }
+  filterAbbreviations[fullname] = fullname
+}
+for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+  if (abbreviations[abbreviation] === 1) {
+    filterAbbreviations[fullname] = abbreviation
+    filterFullnames[abbreviation] = fullname
+  }
+}
 
 // Material and entry queries target slightly different fields. Here we prebuild
 // the mapping.

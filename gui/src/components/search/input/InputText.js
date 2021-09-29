@@ -28,12 +28,13 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import CloseIcon from '@material-ui/icons/Close'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isNil } from 'lodash'
 import { Unit } from '../../../units'
 import { useApi } from '../../api'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
-import { useSetFilter, useFilterLocked } from '../SearchContext'
+import { useSetFilter, useFilterLocked, filterData } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -110,7 +111,10 @@ const InputText = React.memo(({
     let valid = true
     if (valid) {
       // Submit to search context on successful validation.
-      setFilter(inputValue)
+      setFilter(old => {
+        const multiple = filterData[quantity].multiple
+        return (isNil(old) || !multiple) ? new Set([inputValue]) : new Set([...old, inputValue])
+      })
       setInputValue('')
       setOpen(false)
     } else {

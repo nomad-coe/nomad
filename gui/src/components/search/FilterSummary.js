@@ -22,7 +22,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import FilterChip from './FilterChip'
-import { useFiltersState, useFiltersLockedState } from './SearchContext'
+import { useFiltersState, useFiltersLockedState, filterAbbreviations } from './SearchContext'
 import { formatMeta } from '../../utils'
 import { useUnits } from '../../units'
 
@@ -64,7 +64,7 @@ const FilterSummary = React.memo(({
     for (let quantity of quantities) {
       const filterValue = filters[quantity]
       const locked = filtersLocked[quantity]
-      const filterAbbr = quantity.split('.').pop()
+      const filterAbbr = filterAbbreviations[quantity]
       if (isNil(filterValue)) {
         continue
       }
