@@ -66,7 +66,7 @@ export function addColumnDefaults(columns, moreDefaults) {
     if (!column.label) {
       const keySegments = column.key.split('.')
       const name = keySegments[keySegments.length - 1]
-      column.label = name.replaceAll('_', ' ')
+      column.label = name.replace(/_/g, ' ')
       column.label = column.label[0].toUpperCase() + column.label.slice(1)
     }
     if (!column.render) {
