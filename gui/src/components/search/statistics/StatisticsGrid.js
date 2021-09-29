@@ -16,12 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import useMediaQuery from '@material-ui/core/useMediaQuery'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { useResizeDetector } from 'react-resize-detector'
 import { isEmpty } from 'lodash'
 import { MuuriComponent, getResponsiveStyle } from 'muuri-react'
 import { filterData, useStatisticsValue, widthMapping } from '../SearchContext'
@@ -52,16 +52,36 @@ const StatisticsGrid = React.memo(({
   classes
 }) => {
   const styles = useStyles(classes)
-  const isXl = useMediaQuery('(min-width:1800px)')
-  const isLg = useMediaQuery('(min-width:1600px)')
-  const isMd = useMediaQuery('(min-width:1450px)')
-  const size = isXl ? 'xl' : (isLg ? 'lg' : (isMd ? 'md' : 'sm'))
+  const { width, ref } = useResizeDetector()
   const statistics = useStatisticsValue()
+  const gridRef = useRef()
+  let size
+  if (!width) {
+    size = 'xl'
+  } else if (width > 1450) {
+    size = 'xl'
+  } else if (width > 1250) {
+    size = 'lg'
+  } else if (width > 1150) {
+    size = 'md'
+  } else {
+    size = 'sm'
+  }
 
-  return !isEmpty(statistics)
-    ? <div className={clsx(className, styles.root)}>
-      <MuuriComponent
+  // When the container size changes, the layout needs to be updated.
+  useEffect(() => {
+    if (gridRef.current) {
+      gridRef.current.refreshItems()
+      gridRef.current.layout()
+    }
+  }, [width])
+
+  return <div ref={ref} className={clsx(className, styles.root)}>
+    {(!isEmpty(statistics) && width !== undefined)
+      ? <MuuriComponent
+        ref={gridRef}
         dragEnabled
+        layoutOnResize={false}
         dragHandle=".dragHandle"
         showDuration={0}
         hideDuration={0}
@@ -84,8 +104,8 @@ const StatisticsGrid = React.memo(({
           </div>
         })}
       </MuuriComponent>
-    </div>
-    : null
+      : null}
+  </div>
 })
 
 StatisticsGrid.propTypes = {

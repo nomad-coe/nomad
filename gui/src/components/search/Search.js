@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState } from 'react'
+import React from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
 import { Box } from '@material-ui/core'
@@ -80,13 +80,17 @@ const useStyles = makeStyles(theme => {
 })
 
 const Search = React.memo(({
-  collapsed,
   header
 }) => {
   const styles = useStyles()
-  const {useIsMenuOpen, useSetIsMenuOpen} = useSearchContext()
+  const {
+    useIsMenuOpen,
+    useSetIsMenuOpen,
+    useIsCollapsed,
+    useSetIsCollapsed
+  } = useSearchContext()
   const [isMenuOpen, setIsMenuOpen] = [useIsMenuOpen(), useSetIsMenuOpen()]
-  const [isCollapsed, setIsCollapsed] = useState(collapsed)
+  const [isCollapsed, setIsCollapsed] = [useIsCollapsed(), useSetIsCollapsed()]
 
   return <div className={styles.root}>
     <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>
@@ -115,7 +119,6 @@ const Search = React.memo(({
   </div>
 })
 Search.propTypes = {
-  collapsed: PropTypes.bool,
   header: PropTypes.node
 }
 

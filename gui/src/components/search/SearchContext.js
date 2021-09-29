@@ -427,6 +427,8 @@ export const SearchContext = React.memo(({
     resource,
     useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
     useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
+    useIsCollapsed: () => useRecoilValue(isCollapsedState),
+    useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
     useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
     useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState)
   }), [resource])
@@ -468,8 +470,12 @@ export const isStatisticsEnabledState = atom({
   key: 'statisticsEnabled',
   default: true
 })
-export const isMenuOpenState = atom({
+const isMenuOpenState = atom({
   key: 'isMenuOpen',
+  default: false
+})
+const isCollapsedState = atom({
+  key: 'isCollapsed',
   default: false
 })
 
