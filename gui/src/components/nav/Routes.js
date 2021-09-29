@@ -21,6 +21,8 @@ import { Route, useLocation } from 'react-router-dom'
 import About from '../About'
 import APIs from '../APIs'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
+import TutorialsPage from '../aitoolkit/TutorialsPage'
+import ReproducePage from '../aitoolkit/ReproducePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import ResolveDOI from '../dataset/ResolveDOI'
 import DatasetPage from '../DatasetPage'
@@ -161,6 +163,18 @@ const routeSpecs = [
     title: 'Artificial Intelligence Toolkit',
     navPath: 'analyze/aitoolkit',
     component: AIToolkitPage
+  },
+  {
+    path: '/tutorials',
+    title: 'Artificial Intelligence Toolkit',
+    navPath: 'analyze/tutorials',
+    component: TutorialsPage
+  },
+  {
+    path: '/reproduce',
+    title: 'Artificial Intelligence Toolkit',
+    navPath: 'analyze/reproduce',
+    component: ReproducePage
   },
   {
     exact: true,
