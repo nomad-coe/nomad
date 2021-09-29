@@ -15,174 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles } from '@material-ui/core/styles'
-import { Link, Typography, Tooltip, IconButton } from '@material-ui/core'
-import { Link as RouterLink } from 'react-router-dom'
-import DetailsIcon from '@material-ui/icons/MoreHoriz'
-import PublicIcon from '@material-ui/icons/Public'
-import UploaderIcon from '@material-ui/icons/AccountCircle'
-import EditUserMetadataDialog from '../../EditUserMetadataDialog'
-import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
-import PrivateIcon from '@material-ui/icons/VisibilityOff'
-import DownloadButton from '../../DownloadButton'
-import EntryDetails from '../../entry/EntryDetails'
-import { authorList, nameList } from '../../../utils'
-import NewDataTable from '../../NewDataTable'
-import { useApi } from '../../api'
-import { EntryButton } from '../../nav/Routes'
-import Quantity from '../../Quantity'
-import searchQuantities from '../../../searchQuantities'
+import { Link } from '@material-ui/core'
+import DownloadButton from '../../entry/DownloadButton'
+import EntryDetails, { EntryRowActions, Published } from '../../entry/EntryDetails'
+import { authorList } from '../../../utils'
+import {
+  addColumnDefaults,
+  Datatable, DatatableLoadMorePagination, DatatableTable,
+  DatatableToolbar, DatatableToolbarActions } from '../../datatable/Datatable'
+import { useQuery } from '../SearchContext'
 
-/**
- * Displays the list of search results for entries.
- */
-export function Published(props) {
-  const {user} = useApi()
-  const {entry} = props
-  if (entry.published) {
-    if (entry.with_embargo) {
-      if (user && entry.uploader.user_id === user.sub) {
-        if (entry.owners.length === 1) {
-          return <Tooltip title="published with embargo by you and only accessible by you">
-            <UploaderIcon color="error" />
-          </Tooltip>
-        } else {
-          return <Tooltip title="published with embargo by you and only accessible to you and users you shared the data with">
-            <SharedIcon color="error" />
-          </Tooltip>
-        }
-      } else if (user && entry.owners.find(user => user.user_id === user.sub)) {
-        return <Tooltip title="published with embargo and shared with you">
-          <SharedIcon color="error" />
-        </Tooltip>
-      } else {
-        if (user) {
-          return <Tooltip title="published with embargo and not accessible by you">
-            <PrivateIcon color="error" />
-          </Tooltip>
-        } else {
-          return <Tooltip title="published with embargo and might become accessible after login">
-            <PrivateIcon color="error" />
-          </Tooltip>
-        }
-      }
-    } else {
-      return <Tooltip title="published and accessible by everyone">
-        <PublicIcon color="primary" />
-      </Tooltip>
-    }
-  } else {
-    return <Tooltip title="you have not published this entry yet">
-      <UploaderIcon color="error"/>
-    </Tooltip>
-  }
-}
-
-const columns = {
-  formula: {
-    label: 'Formula',
-    render: row => row.results.material.chemical_formula_hill,
-    supportsSort: true,
-    description: searchQuantities['results.material.chemical_formula_hill'].description
-  },
-  method: {
-    label: 'Method name',
-    render: row => row.results.method.method_name,
-    supportsSort: true,
-    description: searchQuantities['results.method.method_name'].description
-  },
-  program_name: {
-    label: 'Program name',
-    render: row => row.results.method.simulation?.program_name,
-    supportsSort: true,
-    description: searchQuantities['results.method.simulation.program_name'].description
-  },
-  basis_set: {
-    label: 'Basis set',
-    render: row => row.results.method.simulation?.dft?.basis_set_name,
-    supportsSort: true,
-    description: searchQuantities['results.method.simulation.dft.basis_set_name'].description
-  },
-  functional_family: {
-    label: 'XC functional type',
-    render: row => row.results.method.simulation?.dft?.xc_functional_type,
-    supportsSort: true,
-    description: searchQuantities['results.method.simulation.dft.xc_functional_type'].description
-  },
-  structural_type: {
-    label: 'Structural type',
-    render: row => row.results.material.structural_type,
-    supportsSort: true,
-    description: searchQuantities['results.material.structural_type'].description
-  },
-  crystal_system: {
-    label: 'Crystal system',
-    render: row => row.results.material.symmetry?.crystal_system,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.crystal_system'].description
-  },
-  space_group_symbol: {
-    label: 'Space group symbol',
-    render: row => row.results.material.symmetry?.space_group_symbol,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.space_group_symbol'].description
-  },
-  space_group_number: {
-    label: 'Space group number',
-    render: row => row.results.material.symmetry?.space_group_number,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.space_group_number'].description
-  },
-  mainfile: {
-    label: 'Mainfile',
-    render: row => row.mainfile,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['mainfile'].description
-  },
-  upload_create_time: {
-    label: 'Upload time',
-    render: row => new Date(row.upload_create_time).toLocaleString(),
-    supportsSort: true,
-    description: searchQuantities['upload_create_time'].description
-  },
-  authors: {
-    label: 'Authors',
-    render: row => authorList(row),
-    supportsSort: true,
-    description: 'The authors of this entry. This includes the uploader and its co-authors.'
-  },
-  co_authors: {
-    label: 'co-Authors',
-    render: row => nameList(row.authors),
-    supportsSort: false,
-    description: 'The people that this entry was co authored with'
-  },
-  shared_with: {
-    label: 'Shared with',
-    render: row => nameList(row.authors),
-    supportsSort: false,
-    description: 'The people that this entry was shared with'
-  },
-  uploader: {
-    label: 'Uploader',
-    render: row => row.uploader.name,
-    supportsSort: true,
-    description: 'The uploader of this entry.'
-  },
-  comment: {
-    label: 'Comment',
-    render: row => row.comment,
-    supportsSort: false,
-    description: 'User provided comment on this entry'
-  },
-  references: {
-    label: 'References',
+const columns = [
+  {key: 'results.material.chemical_formula_hill', label: 'Formula', align: 'left'},
+  {key: 'results.method.method_name'},
+  {key: 'results.method.simulation.program_name'},
+  {key: 'results.method.simulation.dft.basis_set_name'},
+  {key: 'results.method.simulation.dft.xc_functional_type', label: 'XC functional type'},
+  {key: 'results.material.structural_type'},
+  {key: 'results.material.symmetry.crystal_system'},
+  {key: 'results.material.symmetry.space_group_symbol'},
+  {key: 'results.material.symmetry.space_group_number'},
+  {key: 'mainfile', align: 'left'},
+  {key: 'upload_create_time', label: 'Upload time', align: 'left'},
+  {key: 'authors', render: row => authorList(row), align: 'left'},
+  {key: 'comment', sortable: false, align: 'left'},
+  {
+    key: 'references',
+    sortable: false,
+    align: 'left',
     render: row => {
       const refs = row.references || []
       if (refs.length > 0) {
@@ -196,11 +58,11 @@ const columns = {
       } else {
         return <i>no references</i>
       }
-    },
-    supportsSort: true
+    }
   },
-  datasets: {
-    label: 'Datasets',
+  {
+    key: 'datasets',
+    align: 'left',
     render: entry => {
       const datasets = entry.datasets || []
       if (datasets.length > 0) {
@@ -208,187 +70,53 @@ const columns = {
       } else {
         return <i>no datasets</i>
       }
-    },
-    supportsSort: false,
-    description: 'The dataset names that this entry belongs to.'
+    }
+  },
+  {
+    key: 'published',
+    label: 'Access',
+    render: (entry) => <Published entry={entry} />
   }
-}
+]
 
-const selectedColumns = ['formula', 'method', 'program_name', 'structural_type', 'crystal_system']
+addColumnDefaults(columns)
 
-const useStyles = makeStyles(theme => ({
-  root: {
-    height: '100%'
-  },
-  entryDetails: {
-    paddingTop: theme.spacing(2),
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(2)
-  },
-  entryDetailsContents: {
-    display: 'flex',
-    maxWidth: 1024,
-    margin: 'auto'
-  },
-  entryDetailsRow: {
-    paddingRight: theme.spacing(3)
-  },
-  entryDetailsActions: {
-    display: 'flex',
-    flexBasis: 'auto',
-    flexGrow: 0,
-    flexShrink: 0,
-    justifyContent: 'flex-end',
-    marginBottom: theme.spacing(1),
-    marginTop: theme.spacing(2)
-  }
-}))
-const SearchResultsEntries = React.memo(({
-  data,
-  query,
-  editable,
-  className,
-  ...rest
-}) => {
-  const {user} = useApi()
+const defaultSelectedColumns = [
+  'results.material.chemical_formula_hill',
+  'results.method.method_name',
+  'results.method.simulation.program_name',
+  'results.material.structural_type',
+  'results.material.symmetry.crystal_system']
+
+const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
   const [selected, setSelected] = useState([])
-  const styles = useStyles()
-  const total = data?.pagination && data.pagination.total
+  const searchQuery = useQuery()
+  const {pagination} = props
 
-  // The access column is hidden if user is not logged in
-  const visibleColumns = useMemo(() => {
-    if (user) {
-      return {...columns,
-        published: {
-          label: 'Access',
-          align: 'center',
-          render: (entry) => <Published entry={entry} />
-        }
-      }
+  const query = useMemo(() => {
+    if (selected === 'all') {
+      return searchQuery
     }
-    return columns
-  }, [user])
 
-  // Decides whether actions should be shown for an entry
-  const showEntryActions = useCallback((row) => {
-    if (row.with_embargo && !(user && row.owners.find(owner => owner.user_id === user.sub))) {
-      return false
-    }
-    return true
-  }, [user])
+    return {owner: 'visible', entry_id: selected.map(data => data.entry_id)}
+  }, [selected, searchQuery])
 
-  const renderEntryActions = useCallback((row, selected) => {
-    if (showEntryActions(row)) {
-      return <Tooltip title="Show raw files and archive">
-        <EntryButton
-          style={selected ? {color: 'white'} : null} component={IconButton}
-          entryId={row.entry_id} uploadId={row.upload_id}
-        >
-          <DetailsIcon />
-        </EntryButton>
-      </Tooltip>
-    }
-    return null
-  }, [showEntryActions])
-
-  const renderEntryDetails = useCallback((row) => {
-    return (<div className={styles.entryDetails}>
-      <div className={styles.entryDetailsContents}>
-        <div className={styles.entryDetailsRow}>
-          <EntryDetails data={row} />
-        </div>
-
-        <div className={styles.entryDetailsRow} style={{flexGrow: 1}}>
-          <Quantity className={styles.entryDetailsRow} column>
-            <Quantity quantity='comment' placeholder='no comment' data={row} />
-            <Quantity quantity='references' placeholder='no references' data={row}>
-              {row.references && <div style={{display: 'inline-grid'}}>
-                {(row.references || []).map(ref => <Typography key={ref} noWrap>
-                  <Link href={ref}>{ref}</Link>
-                </Typography>)}
-              </div>}
-            </Quantity>
-            <Quantity quantity='authors' data={row}>
-              <Typography>
-                {authorList(row)}
-              </Typography>
-            </Quantity>
-            <Quantity quantity='datasets' placeholder='no datasets' data={row}>
-              <div>
-                {(row.datasets || []).map(ds => (
-                  <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-                    {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
-                  </Typography>))}
-              </div>
-            </Quantity>
-          </Quantity>
-        </div>
-
-        <div className={styles.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
-          <Quantity column >
-            {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={row} withClipboard /> */}
-            <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={row} />
-            <Quantity quantity="raw_id" label="raw id" noWrap withClipboard data={row} />
-            <Quantity quantity="external_id" label="external id" noWrap withClipboard data={row} />
-            <Quantity quantity="mainfile" noWrap ellipsisFront data={row} withClipboard />
-            <Quantity quantity="upload_id" label="upload id" data={row} noWrap withClipboard>
-              <Typography style={{flexGrow: 1}}>
-                <Link component={RouterLink} to={`/uploads/${row.upload_id}`}>{row.upload_id}</Link>
-              </Typography>
-            </Quantity>
-          </Quantity>
-        </div>
-      </div>
-
-      <div className={styles.entryDetailsActions}>
-        {showEntryActions(row) &&
-          <EntryButton color="primary" entryId={row.entry_id} uploadId={row.upload_id}>
-            Show raw files and archive
-          </EntryButton>
-        }
-      </div>
-    </div>)
-  }, [showEntryActions, styles])
-
-  const totalNumber = total || 0
-  const example = selected && selected.length > 0 ? data?.data.find(d => d.calc_id === selected[0]) : data?.data[0]
-  const selectQuery = (selected && selected.length > 0) ? {calc_id: selected, owner: query['owner']} : query
-  const createActions = useCallback((props, moreActions) => <>
-    {example && editable ? <EditUserMetadataDialog
-      example={example} total={selected === null ? totalNumber : selected.length}
-      onEditComplete={() => this.props.onEdit()}
-      {...props}
-    /> : ''}
-    <DownloadButton
-      tooltip="Download files"
-      {...props}/>
-    {moreActions}
-  </>, [editable, example, selected, totalNumber])
-  const selectActions = createActions({query: selectQuery, buttonProps: {color: 'secondary'}})
-
-  return <NewDataTable
-    entityLabels={['entry', 'entries']}
-    selectActions={selectActions}
-    id={row => row.entry_id}
-    total={total}
-    columns={visibleColumns}
-    selectedColumns={selectedColumns}
-    selectedColumnsKey="entries"
-    entryDetails={renderEntryDetails}
-    entryActions={renderEntryActions}
-    data={data?.data || []}
-    rows={data?.data.length || 0}
-    selected={selected}
-    onSelectionChanged={setSelected}
-    {...rest}
-  />
+  return <Datatable
+    columns={columns} shownColumns={defaultSelectedColumns} {...props}
+    selected={selected} onSelectedChanged={setSelected}
+  >
+    <DatatableToolbar title={`${pagination.total} search results`}>
+      <DatatableToolbarActions selection>
+        <DownloadButton tooltip="Download files" query={query} />
+      </DatatableToolbarActions>
+    </DatatableToolbar>
+    <DatatableTable actions={EntryRowActions} details={EntryDetails}>
+      <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
+    </DatatableTable>
+  </Datatable>
 })
 SearchResultsEntries.propTypes = {
-  data: PropTypes.object,
-  query: PropTypes.object,
-  editable: PropTypes.bool,
-  className: PropTypes.string
+  pagination: PropTypes.object
 }
 
 export default SearchResultsEntries

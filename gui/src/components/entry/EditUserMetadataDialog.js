@@ -32,7 +32,7 @@ import RemoveIcon from '@material-ui/icons/Delete'
 import Autosuggest from 'react-autosuggest'
 import match from 'autosuggest-highlight/match'
 import parse from 'autosuggest-highlight/parse'
-import { withApi } from './api'
+import { withApi } from '../api'
 
 const local_users = {}
 
@@ -885,7 +885,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     })
 
     const editRequest = {
-      query: query,
+      owner: query.owner,
+      query: { ...query, owner: undefined },
       verify: verify,
       actions: actionsCopy
     }

@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
   Paper, IconButton, Tooltip, Typography,
-  TablePagination, Box, Divider, makeStyles } from '@material-ui/core'
+  Box, Divider, makeStyles } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import HelpDialog from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
@@ -29,12 +29,13 @@ import NewUploadButton from './NewUploadButton'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
-import DataTable from '../DataTable'
-import WithButton from '../utils/WithButton'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import { UploadButton } from '../nav/Routes'
+import {
+  addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
+  DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -112,7 +113,18 @@ be changed after publishing data. The documentation on the [user data page](${gu
 contains more information.
 `
 
-function Published({upload}) {
+const columns = [
+  {key: 'upload_id'},
+  {key: 'upload_create_time'},
+  {key: 'upload_name'},
+  {key: 'last_status_message', label: 'Status'},
+  {key: 'entries', render: upload => upload.entries, align: 'center'},
+  {key: 'published', render: upload => <Published upload={upload} />, align: 'center'}
+]
+
+addColumnDefaults(columns, {align: 'left'})
+
+const Published = React.memo(function Published({upload}) {
   if (upload.published) {
     return <Tooltip title="published upload">
       <PublicIcon color="primary" />
@@ -122,6 +134,9 @@ function Published({upload}) {
       <UploaderIcon color="error"/>
     </Tooltip>
   }
+})
+Published.propTypes = {
+  upload: PropTypes.object.isRequired
 }
 
 const useUploadCommandStyles = makeStyles(theme => ({
@@ -198,6 +213,17 @@ function UploadCommands({uploadCommands}) {
   </div>
 }
 
+const VisitUploadAction = React.memo(function VisitUploadAction({data}) {
+  return <Tooltip title="Open this upload">
+    <UploadButton component={IconButton} uploadId={data.upload_id}>
+      <DetailsIcon />
+    </UploadButton>
+  </Tooltip>
+})
+VisitUploadAction.propTypes = {
+  data: PropTypes.object.isRequired
+}
+
 UploadCommands.propTypes = {
   uploadCommands: PropTypes.object.isRequired
 }
@@ -207,77 +233,24 @@ function UploadsPage() {
   const errors = useErrors()
   const [data, setData] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
+  const [pagination, setPagination] = useState({
+    page_size: 10,
+    page: 1,
+    order_by: 'upload_create_time'
+  })
 
-  const columns = useMemo(() => ({
-    upload_id: {
-      label: 'Upload id',
-      render: upload => <WithButton clipboard={upload.upload_id}>
-        {upload.upload_id}
-      </WithButton>,
-      tableCellStyle: {maxWidth: 300}
-    },
-    name: {
-      label: 'Name'
-    },
-    create_time: {
-      label: 'Created',
-      render: (upload) => new Date(upload.create_time).toLocaleString()
-    },
-    last_status_message: {
-      label: 'Last status'
-    },
-    entries: {
-      label: 'Entries',
-      render: (upload) => upload.entries
-    },
-    published: {
-      label: 'Published',
-      align: 'center',
-      render: upload => <Published upload={upload} />
-    }
-  }), [])
-
-  const fetchData = useMemo(() => ({page_size, page}) => {
+  useEffect(() => {
+    const {page_size, page} = pagination
     api.get(`/uploads?page_size=${page_size}&page=${page}`)
       .then(setData)
       .catch(errors.raiseError)
-  }, [setData, errors, api])
-
-  const handlePaginationChange = changes => {
-    fetchData({
-      page_size: changes.page_size || data.pagination.page_size,
-      page: changes.page || data.pagination.page
-    })
-  }
-
-  useEffect(() => {
-    fetchData({
-      page_size: 10,
-      page: 1
-    })
-  }, [fetchData])
+  }, [pagination, setData, errors, api])
 
   useEffect(() => {
     api.get('/uploads/command-examples')
       .then(setUploadCommands)
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
-
-  const pagination = <TablePagination
-    rowsPerPageOptions={[5, 10, 25, 50, 100]}
-    count={data?.pagination?.total || 0}
-    rowsPerPage={data?.pagination?.page_size}
-    page={(data?.pagination?.page || 1) - 1}
-    onChangePage={page => handlePaginationChange({page: page})}
-    onChangeRowsPerPage={page_size => handlePaginationChange({page_size: page_size})}
-    labelDisplayedRows={({ from, to, count }) => `${from.toLocaleString()}-${to.toLocaleString()} of ${count.toLocaleString()}`}
-  />
-
-  const entryActions = upload => <Tooltip title="Open this upload">
-    <UploadButton component={IconButton} uploadId={upload.upload_id}>
-      <DetailsIcon />
-    </UploadButton>
-  </Tooltip>
 
   return <Page loading={!(data && uploadCommands)}>
     <Box marginBottom={2}>
@@ -299,17 +272,17 @@ function UploadsPage() {
         <Divider/>
       </Box>
       <Paper>
-        <DataTable
-          entityLabels={['upload', 'uploads']}
-          id={upload => upload.upload_id}
-          total={data?.pagination?.total || 0}
-          columns={columns}
-          selectedColumns={['upload_id', 'name', 'create_time', 'entries', 'published']}
-          data={data?.data || []}
-          rows={data?.pagination?.page_size}
-          pagination={pagination}
-          entryActions={entryActions}
-        />
+        <Datatable
+          columns={columns} selectedColumns={columns.map(column => column.key)}
+          data={data.data || []}
+          pagination={combinePagination(pagination, data.pagination)}
+          onPaginationChanged={setPagination}
+        >
+          <DatatableToolbar title="Your existing uploads" />
+          <DatatableTable actions={VisitUploadAction}>
+            <DatatableLoadMorePagination />
+          </DatatableTable>
+        </Datatable>
       </Paper>
     </React.Fragment>}
   </Page>

@@ -15,105 +15,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import { IconButton } from '@material-ui/core'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
-import searchQuantities from '../../../searchQuantities'
 import { encyclopediaEnabled } from '../../../config'
 import { MaterialButton } from '../../nav/Routes'
-import NewDataTable from '../../NewDataTable'
+import {
+  addColumnDefaults,
+  Datatable, DatatableLoadMorePagination, DatatableTable,
+  DatatableToolbar } from '../../datatable/Datatable'
+
+const columns = [
+  {key: 'chemical_formula_hill', label: 'Formula', align: 'left'},
+  {key: 'structural_type'},
+  {key: 'symmetry.structure_name'},
+  {key: 'symmetry.crystal_system'},
+  {key: 'symmetry.space_group_symbol'},
+  {key: 'symmetry.space_group_number'},
+  {key: 'material_id', align: 'left'}
+]
+
+addColumnDefaults(columns)
+
+const defaultSelectedColumns = [
+  'chemical_formula_hill',
+  'structural_type',
+  'symmetry.structure_name',
+  'symmetry.space_group_number',
+  'symmetry.crystal_system',
+  'material_id']
+
+const VisitMaterialAction = React.memo(function VisitMaterialAction({data}) {
+  return <MaterialButton
+    materialId={data.material_id}
+    component={IconButton}
+  >
+    <DetailsIcon/>
+  </MaterialButton>
+})
+VisitMaterialAction.propTypes = {
+  data: PropTypes.object.isRequired
+}
 
 /**
  * Displays the list of search results for materials.
  */
-const columns = {
-  formula: {
-    label: 'Formula',
-    render: row => row.chemical_formula_hill,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.chemical_formula_hill'].description
-  },
-  structural_type: {
-    label: 'Structural type',
-    render: row => row.structural_type,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.structural_type'].description
-  },
-  structure_name: {
-    label: 'Structure name',
-    render: row => row.symmetry?.structure_name,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.structure_name'].description
-  },
-  crystal_system: {
-    label: 'Crystal system',
-    render: row => row.symmetry?.crystal_system,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.crystal_system'].description
-  },
-  space_group_number: {
-    label: 'Space group number',
-    render: row => row.symmetry?.space_group_number,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.space_group_number'].description
-  },
-  space_group_symbol: {
-    label: 'Space group symbol',
-    render: row => row.symmetry?.space_group_symbol,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.symmetry.space_group_symbol'].description
-  },
-  material_id: {
-    label: 'Material ID',
-    render: row => row.material_id,
-    supportsSort: true,
-    ellipsisFront: true,
-    description: searchQuantities['results.material.material_id'].description
-  }
-}
-const selectedColumns = ['formula', 'structural_type', 'structure_name', 'space_group_number', 'crystal_system', 'material_id']
+const SearchResultsMaterials = React.memo(function SearchResultsMaterials(props) {
+  const {pagination} = props
 
-const SearchResultsMaterials = React.memo(({
-  data,
-  query,
-  className,
-  ...rest
-}) => {
-  const total = data?.pagination && data.pagination.total
-
-  const renderActions = useCallback((row, selected) => (
-    <MaterialButton
-      materialId={row.material_id}
-      component={IconButton}
-    >
-      <DetailsIcon/>
-    </MaterialButton>
-  ), [])
-
-  return <NewDataTable
-    entityLabels={['material', 'materials']}
-    id={row => row.material_id}
-    total={total}
-    columns={columns}
-    selectedColumns={selectedColumns}
-    selectedColumnsKey="materials"
-    entryActions={encyclopediaEnabled ? renderActions : undefined}
-    data={data?.data || []}
-    rows={data?.data.length || 0}
-    {...rest}
-  />
+  return <Datatable
+    columns={columns} shownColumns={defaultSelectedColumns} {...props}
+  >
+    <DatatableToolbar title={`${pagination.total} search results`} />
+    <DatatableTable actions={encyclopediaEnabled && VisitMaterialAction}>
+      <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
+    </DatatableTable>
+  </Datatable>
 })
 SearchResultsMaterials.propTypes = {
-  data: PropTypes.object,
-  query: PropTypes.object,
-  className: PropTypes.string
+  pagination: PropTypes.object.isRequired
 }
 
 export default SearchResultsMaterials

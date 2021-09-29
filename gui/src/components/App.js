@@ -30,6 +30,7 @@ import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
+import { ApiProvider } from './api'
 
 export const matomo = matomoEnabled ? PiwikReactRouter({
   url: matomoUrl,
@@ -56,7 +57,9 @@ export default function App() {
               <ErrorSnacks>
                 <ErrorBoundary>
                   <RecoilRoot>
-                    <Navigation />
+                    <ApiProvider>
+                      <Navigation />
+                    </ApiProvider>
                   </RecoilRoot>
                 </ErrorBoundary>
               </ErrorSnacks>

@@ -40,6 +40,8 @@ import { useApi } from '../api'
 import { setToArray, formatMeta, parseMeta } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'
+import { useErrors } from '../errors'
+import { combinePagination } from '../datatable/Datatable'
 
 export const filters = new Set() // Contains the full names of all the available filters
 export const filterGroups = [] // Mapping from filter full name -> group
@@ -676,26 +678,27 @@ function qsToQuery(queryString) {
 }
 
 /**
- * Converts a query into a valid query string.
+ * Converts a query into an object that uses NOMAD API query string keys and values.
  * @param {object} query A query object representing the currently active
  * filters.
- * @returns URL querystring, not encoded if possible to improve readability.
+ * @returns {object} An object that can be serialized into a query string
  */
-function queryToQs(query, locked) {
-  const newQuery = {}
+export function queryToQsData(query, locked) {
+  locked = locked || {}
+  const queryStringQuery = {}
   for (const [key, value] of Object.entries(query)) {
     if (locked[key]) {
       continue
     }
     const {formatter} = formatMeta(key, false)
     let newValue
-    const newKey = filterAbbreviations[key]
+    const newKey = filterAbbreviations[key] || key
     if (isPlainObject(value)) {
       if (!isNil(value.gte)) {
-        newQuery[`${newKey}:gte`] = formatter(value.gte)
+        queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
       }
       if (!isNil(value.lte)) {
-        newQuery[`${newKey}:lte`] = formatter(value.lte)
+        queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
       }
     } else {
       if (isArray(value)) {
@@ -705,10 +708,21 @@ function queryToQs(query, locked) {
       } else {
         newValue = formatter(value)
       }
-      newQuery[newKey] = newValue
+      queryStringQuery[newKey] = newValue
     }
   }
-  return qs.stringify(newQuery, {indices: false, encode: false})
+  return queryStringQuery
+}
+
+/**
+ * Converts a query into a valid query string.
+ * @param {object} query A query object representing the currently active
+ * filters.
+ * @returns URL querystring, not encoded if possible to improve readability.
+ */
+function queryToQs(query, locked) {
+  const queryData = queryToQsData(query, locked)
+  return qs.stringify(queryData, {indices: false, encode: false})
 }
 
 export const initialAggsState = atom({
@@ -806,114 +820,74 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
 }
 
 /**
- * Hook for returning a set of results based on the currently set query together
- * with a function for retrieving a new set of results.
+ * Hook that adds results and pagination state to your component.
  *
- * @param {int} pageSize The number of results to return with one scroll.
- * @param {string} orderBy The field used for sorting.
- * @param {string} order Ascending or descending order.
  * @param {number} delay The debounce delay in milliseconds.
  *
- * @returns {object} Object containing the search results and a function for
- * scrolling to next set of results.
+ * @returns {object} An object with data (the search results as array), pagination
+ *  (the current api pagination object), and setPagination (to update pagination)
  */
-export function useScrollResults(pageSize, orderBy, order, delay = 500) {
+export function useScrollResults(initialPagination, delay = 500) {
   const {api} = useApi()
+  const {raiseErrors} = useErrors()
   const {resource} = useSearchContext()
-  const firstRender = useRef(true)
-  const [results, setResults] = useState()
-  const pageNumber = useRef(1)
-  const query = useQuery(true)
+  const query = useQuery()
   const locked = useRecoilValue(lockedState)
   const updateQueryString = useUpdateQueryString()
-  const pageAfterValue = useRef()
-  const searchRef = useRef()
-  const loading = useRef(false)
-  const total = useRef(0)
 
+  const [results, setResults] = useState([])
+  const paginationResponse = useRef({})
+  const [pagination, setPagination] = useState(initialPagination || {page_size: 10})
+
+  // This callback will call the API with a debounce by the given delay.
+  const callApi = useCallback(debounce((query, locked, pagination) => {
+    const isExtend = pagination.page_after_value
+
+    const request = {
+      owner: query.visibility || 'visible',
+      query: toAPIQuery(query, resource, query.restricted),
+      pagination: pagination
+    }
+
+    api.query(resource, request)
+      .then(response => {
+        paginationResponse.current = response.pagination
+        if (isExtend) {
+          setResults(results => [...results, ...response.data])
+        } else {
+          setResults(response.data)
+        }
+
+        // We only update the query string after the API call is finished. Updating
+        // the query string causes quite an intensive render (not sure why), so it
+        // is better to debounce this value as well to keep the user interaction
+        // smoother.
+        updateQueryString(query, locked)
+      })
+      .catch(raiseErrors)
+  }, delay), [resource, api, raiseErrors, updateQueryString, paginationResponse])
+
+  // Whenever the query or pagination changes, we make an api call.
   // The results are fetched as a side effect in order to not block the
   // rendering. This causes two renders: first one without the data, the second
   // one with the data.
-  const apiCall = useCallback((query, locked, pageSize, orderBy, order) => {
-    pageAfterValue.current = undefined
-    const restricted = query.restricted
-    const cleanedQuery = toAPIQuery(query, resource, restricted)
-    const search = {
-      owner: query.visibility || 'visible',
-      query: cleanedQuery,
-      pagination: {
-        page_size: pageSize,
-        order_by: orderBy,
-        order: order,
-        page_after_value: pageAfterValue.current
-      }
-    }
-    searchRef.current = search
-
-    loading.current = true
-    api.query(resource, search)
-      .then(data => {
-        pageAfterValue.current = data.pagination.next_page_after_value
-        total.current = data.pagination.total
-        setResults(data)
-        loading.current = false
-      })
-
-    // We only update the query string after the API call is finished. Updating
-    // the query string causes quite an intensive render (not sure why), so it
-    // is better to debounce this value as well to keep the user interaction
-    // smoother.
-    updateQueryString(query, locked)
-  }, [resource, api, updateQueryString])
-
-  // This is a debounced version of apiCall.
-  const debounced = useCallback(debounce(apiCall, delay), [])
-
-  // Used to load the next bath of results
-  const next = useCallback(() => {
-    if (loading.current) {
-      return
-    }
-    pageNumber.current += 1
-    searchRef.current.pagination.page_after_value = pageAfterValue.current
-    loading.current = true
-    api.query(resource, searchRef.current)
-      .then(data => {
-        pageAfterValue.current = data.pagination.next_page_after_value
-        total.current = data.pagination.total
-        setResults(old => {
-          data.data = old.data.concat(data.data)
-          return data
-        })
-        loading.current = false
-      })
-  }, [api, resource])
-
-  // Whenever the query changes, we make a new query that resets pagination and
-  // shows the first batch of results.
   useEffect(() => {
-    // If the initial query is not yet ready, do nothing
-    if (query === undefined) {
+    if (!query) {
       return
     }
-    if (firstRender.current) {
-      apiCall(query, locked, pageSize, orderBy, order)
-      firstRender.current = false
-    } else {
-      debounced(query, locked, pageSize, orderBy, order)
-    }
-  }, [apiCall, debounced, query, locked, pageSize, order, orderBy])
 
-  // Whenever the ordering changes, we perform a single API call that fetches
-  // results in the new order. The amount of fetched results is based on the
-  // already loaded amount.
-  // TODO
+    if (pagination.page_after_value && pagination.page_after_value === paginationResponse.current.page_after_value) {
+      pagination.page_after_value = undefined
+      pagination.next_page_after_value = undefined
+    }
+
+    callApi(query, locked, pagination)
+  }, [callApi, query, locked, pagination])
+
   return {
-    results: results,
-    next: next,
-    page: pageNumber.current,
-    total: total.current
-  }
+    data: results,
+    pagination: combinePagination(pagination, paginationResponse.current),
+    setPagination: setPagination}
 }
 
 /**

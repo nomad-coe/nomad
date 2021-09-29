@@ -25,6 +25,7 @@ import SearchResults from './results/SearchResults'
 import {
   useMenuOpenState
 } from './SearchContext'
+import { Box } from '@material-ui/core'
 
 /**
  * The primary search interface that is reused throughout the application in
@@ -35,9 +36,9 @@ const useStyles = makeStyles(theme => {
   return {
     root: {
       display: 'flex',
+      flexDirection: 'row',
       height: '100%',
-      width: '100%',
-      overflow: 'hidden'
+      width: '100%'
     },
     leftColumn: {
       flexShrink: 0,
@@ -49,64 +50,14 @@ const useStyles = makeStyles(theme => {
       maxWidth: '4rem'
     },
     center: {
-      flex: `1 1 100%`,
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 1,
-      paddingBottom: theme.spacing(2.5),
-      paddingLeft: theme.spacing(3),
-      paddingRight: theme.spacing(3),
-      paddingTop: theme.spacing(0.25)
-    },
-    container: {
-    },
-    resultList: {
       flexGrow: 1,
-      minHeight: 0 // This makes sure that the flex item is not bigger than the parent.
-    },
-    spacer: {
-      flexGrow: 1
-    },
-    header: {
-      marginTop: theme.spacing(2)
+      height: '100%',
+      overflow: 'scroll'
     },
     searchBar: {
-      marginTop: theme.spacing(2),
       display: 'flex',
       flexGrow: 0,
-      zIndex: 1,
-      marginBottom: theme.spacing(2.0)
-    },
-    spacerBar: {
-      flex: `0 0 ${theme.spacing(3)}px`
-    },
-    nonInteractive: {
-      pointerEvents: 'none',
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      top: 0,
-      height: '100%',
-      width: '100%'
-    },
-    shadow: {
-      backgroundColor: 'black',
-      transition: 'opacity 200ms',
-      willChange: 'opacity',
       zIndex: 1
-    },
-    hidden: {
-      display: 'none'
-    },
-    shadowHidden: {
-      opacity: 0
-    },
-    shadowVisible: {
-      opacity: 0.1
-    },
-    placeholderVisible: {
-      display: 'block'
     }
   }
 })
@@ -129,16 +80,15 @@ const Search = React.memo(({
       />
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
-      <div className={styles.header}>
-        {header}
-      </div>
-      <SearchBar
-        className={styles.searchBar}
-      />
-      <SearchResults
-        className={styles.resultList}
-      />
-      <div className={clsx(styles.nonInteractive, styles.shadow, styles.shadowHidden, isMenuOpen && styles.shadowVisible)}></div>
+      <Box margin={3}>
+        <Box marginBottom={2}>
+          {header}
+        </Box>
+        <Box marginBottom={2}>
+          <SearchBar className={styles.searchBar} />
+        </Box>
+        <SearchResults />
+      </Box>
     </div>
   </div>
 })

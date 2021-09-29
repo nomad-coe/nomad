@@ -22,7 +22,7 @@ import TooltipButton from '../utils/TooltipButton'
 import EditIcon from '@material-ui/icons/Edit'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import { Datatable, DatatableToolbar, DatatableToolbarActions, DatatableTable,
-  DatatablePagePagination, DatatableScrollPagination } from './Datatable'
+  DatatablePagePagination, DatatableScrollPagination, DatatableLoadMorePagination } from './Datatable'
 import Page from '../Page'
 import { sleep } from '../../utils'
 
@@ -100,6 +100,45 @@ function ScrollDatatableExample() {
   </Paper>
 }
 
+function LoadMoreDatatableExample() {
+  const exampleData = useMemo(() => createExampleData(1024), [])
+  const [pagination, setPagination] = useState({
+    total: 1024, page_size: 10
+  })
+  const [data, setData] = useState([])
+  const [selected, setSelected] = useState([])
+
+  useEffect(() => {
+    sleep(100).then(() => {
+      const nextPageAfterValueInt = parseInt(pagination.page_after_value || 0) + pagination.page_size
+      setData(exampleData.slice(0, nextPageAfterValueInt))
+      setPagination(pagination => ({
+        ...pagination,
+        next_page_after_value: nextPageAfterValueInt > exampleData.length ? null : String(nextPageAfterValueInt)
+      }))
+    })
+  }, [pagination.page_after_value, pagination.page_size, exampleData])
+
+  return <Paper>
+    <Datatable
+      columns={columns} data={data}
+      pagination={pagination} onPaginationChanged={setPagination}
+      selected={selected}
+      onSelectedChanged={setSelected}
+    >
+      <DatatableToolbar title="Example table." />
+      <DatatableTable
+        details={DetailsExample}
+        actions={ActionsExample}
+      >
+        <DatatableLoadMorePagination color="primary">
+          load more
+        </DatatableLoadMorePagination>
+      </DatatableTable>
+    </Datatable>
+  </Paper>
+}
+
 export function DatatableExamples() {
   const exampleData = useMemo(() => createExampleData(23), [])
 
@@ -130,6 +169,7 @@ export function DatatableExamples() {
       <Tab label="paginated" />
       <Tab label="plain" />
       <Tab label="scroll" />
+      <Tab label="load more" />
     </Tabs>
 
     <Box flex={1}>
@@ -197,6 +237,9 @@ export function DatatableExamples() {
       </Page>
       <Page limitedWidth limitedHeight hidden={tab !== 3}>
         <ScrollDatatableExample/>
+      </Page>
+      <Page limitedWidth limitedHeight hidden={tab !== 4}>
+        <LoadMoreDatatableExample/>
       </Page>
     </Box>
   </Box>

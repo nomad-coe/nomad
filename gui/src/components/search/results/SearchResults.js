@@ -15,77 +15,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState, useMemo } from 'react'
-import PropTypes from 'prop-types'
-import clsx from 'clsx'
-import { makeStyles } from '@material-ui/core/styles'
+import React from 'react'
 import {
-  Paper
+  Paper, Typography
 } from '@material-ui/core'
 import SearchResultsMaterials from './SearchResultsMaterials'
 import SearchResultsEntries from './SearchResultsEntries'
 import { useScrollResults, useSearchContext } from '../SearchContext'
 
-/**
- * Displays the list of search results
- */
-const useStyles = makeStyles(theme => ({
-  root: {
-    height: '100%'
-  }
-}))
 const orderByMap = {
   'entries': 'upload_create_time',
   'materials': 'chemical_formula_hill'
 }
-const SearchResults = React.memo(({
-  className
-}) => {
-  const styles = useStyles()
-  const { resource } = useSearchContext()
-  const page_size = 30
-  // eslint-disable-next-line no-unused-vars
-  const [orderBy, setOrderBy] = useState(orderByMap[resource])
-  // eslint-disable-next-line no-unused-vars
-  const [order, setOrder] = useState('desc')
-  const {results, next, page, total} = useScrollResults(30, orderBy, order)
 
-  // When bottom of results reached, fetch the next set of results.
-  const handleBottom = useCallback(() => {
-    if (results.data.length < total) {
-      next()
-    }
-  }, [results, total, next])
+/**
+ * Displays the list of search results
+ */
+const SearchResults = React.memo(function SearchResults() {
+  const {resource} = useSearchContext()
+  const {data, pagination, setPagination} = useScrollResults({
+    page_size: 10, order_by: orderByMap[resource]
+  })
 
-  // Handle sorting changes in the pagination: TODO: currently broken.
-  const handleChange = useCallback(({order, order_by}) => {
-  }, [])
+  if (pagination.total === 0) {
+    return <Typography>no results</Typography>
+  }
 
-  // The rendered component is memoized in its entirety. This makes sure that we
-  // re-render the results list only when the actual results have changed, and
-  // not just when the search query changes. Has a significant effect on
-  // performance.
-  const result = useMemo(() => {
-    const Component = resource === 'materials' ? SearchResultsMaterials : SearchResultsEntries
-    return <Paper className={clsx(className, styles.root)}>
-      {results && <Component
-        query={results.query}
-        editable={false}
-        data={results}
-        page={page}
-        per_page={page_size}
-        order={order}
-        order_by={orderBy}
-        onChange={handleChange}
-        onBottom={handleBottom}
-      />}
-    </Paper>
-  }, [resource, className, styles.root, results, page, order, orderBy, handleChange, handleBottom])
+  if (!pagination.total) {
+    return <Typography>searching ...</Typography>
+  }
 
-  return result
+  const Component = resource === 'materials' ? SearchResultsMaterials : SearchResultsEntries
+  return <Paper>
+    <Component
+      data={data}
+      pagination={pagination} onPaginationChanged={setPagination}
+    />
+  </Paper>
 })
-SearchResults.propTypes = {
-  className: PropTypes.string
-}
 
 export default SearchResults

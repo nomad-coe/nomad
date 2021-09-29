@@ -20,13 +20,70 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableSortLabel,
   Checkbox, TableContainer, Table, TableBody, TablePagination, Box, Collapse, Toolbar, Typography,
-  List, ListItem, ListItemText, Popover, CircularProgress } from '@material-ui/core'
+  List, ListItem, ListItemText, Popover, CircularProgress, Button } from '@material-ui/core'
 import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
+import searchQuantities from '../../searchQuantities'
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})
+
+/**
+ * Combines a pagination request object with an reponse object. This allows to create
+ * pagination object as they are expected by Datatable.
+ *
+ * @param {object} request The request pagination object (i.e. without total, next_page_afte_value, etc.)
+ * @param {object} response The response pagination object (returned by NOMAD API)
+ * @returns The combined pagination object.
+ */
+export function combinePagination(request, response) {
+  const result = {
+    page_size: request.page_size || response?.page_size,
+    order_by: request.order_by || response?.order_by,
+    order: request.order || response?.order,
+    page: request.page || response?.page,
+    total: response?.total
+  }
+
+  if (!result.page) {
+    result.page_after_value = request.page_after_value || response?.page_after_value
+    result.next_page_after_value = response?.next_page_after_value
+  }
+
+  return result
+}
+
+/**
+ * Ensures that all given columns have default values for necessary keys.
+ * @param {array} columns An array of columns to extend/check.
+ */
+export function addColumnDefaults(columns, moreDefaults) {
+  columns.forEach(column => {
+    if (moreDefaults) {
+      Object.keys(moreDefaults).filter(key => !column[key]).forEach(key => { column[key] = moreDefaults[key] })
+    }
+    if (!column.label) {
+      const keySegments = column.key.split('.')
+      const name = keySegments[keySegments.length - 1]
+      column.label = name.replaceAll('_', ' ')
+      column.label = column.label[0].toUpperCase() + column.label.slice(1)
+    }
+    if (!column.render) {
+      const segments = column.key.split('.')
+      column.render = (row) => segments.reduce((current, segment) => current && current[segment], row)
+    }
+    if (column.sortable !== false) {
+      column.sortable = true
+    }
+    if (!column.align) {
+      column.align = 'center'
+    }
+    if (!column.description) {
+      column.description = searchQuantities[column.key]?.description
+    }
+  })
+}
 
 function useDatatableContext() {
   const context = useContext(DatatableContext)
@@ -71,6 +128,48 @@ DatatablePagePagination.propTypes = {
   /** Optional array of selectable page size values. Default is [5, 10, 50, 100]. */
   pageSizeValues: PropTypes.arrayOf(PropTypes.number)
 }
+
+const useDatatableLoadMorePaginationStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(1),
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'nowrap'
+  }
+}))
+
+/** Pagination that uses a "load more button" if more data is available. */
+export const DatatableLoadMorePagination = React.memo(function DatatableLoadMorePagination(props) {
+  const classes = useDatatableLoadMorePaginationStyles()
+  const {pagination, onPaginationChanged} = useDatatableContext()
+
+  const handleClick = useCallback(() => {
+    onPaginationChanged({
+      ...pagination,
+      page_after_value: pagination.next_page_after_value
+    })
+  }, [pagination, onPaginationChanged])
+
+  if (pagination.next_page_after_value) {
+    if (pagination.page_after_value === pagination.next_page_after_value) {
+      return <div className={classes.root}>
+        <CircularProgress size={36} />
+      </div>
+    }
+
+    return <div className={classes.root}>
+      <Button
+        {...props}
+        onClick={handleClick}
+      />
+    </div>
+  }
+
+  return ''
+})
+DatatableLoadMorePagination.propTypes = {}
 
 const useDateatableScollPaginationStyles = makeStyles(theme => ({
   root: {
@@ -272,7 +371,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
         />
       </TableCell>}
       {columns.map(column => <TableCell key={column.key} align={column.align || 'right'}>
-        {column?.render(row) || row[column.key] || ''}
+        {(column?.render && column?.render(row)) || row[column.key] || ''}
       </TableCell>)}
       {actions && <TableCell
         align="right" size="small" className={classes.rowActionsCell}
@@ -316,6 +415,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
   const columns = shownColumns
   const numberOfColumns = columns.length + (withSelectionFeature ? 1 : 0) + (actions ? 1 : 0)
   const isScrolling = children?.type === DatatableScrollPagination
+  const isExtending = children?.type === DatatableScrollPagination || children?.type === DatatableLoadMorePagination
   const scrollParentRef = useRef(null)
 
   const [uncollapsedRow, setUncollapsedRow] = useState(null)
@@ -335,8 +435,8 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
   }, [onPaginationChanged])
 
   let dataToShow
-  if (isScrolling) {
-    // If scrolling, all data is rendered regardless of pagination.
+  if (isExtending) {
+    // If list extends, all data is rendered regardless of pagination.
     dataToShow = data
   } else {
     // If used correctly, data should give given to Datatable already correctly sliced.
@@ -358,7 +458,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           onRowUncollapsed={setUncollapsedRow}
         />
       ))}
-      {emptyRows > 0 && (
+      {!isExtending && (emptyRows > 0) && (
         <TableRow style={{ height: 53 * emptyRows }}>
           <TableCell colSpan={numberOfColumns} />
         </TableRow>
@@ -569,8 +669,8 @@ export const Datatable = React.memo(function Datatable(props) {
   </StaticDatatableContext.Provider>
 })
 const paginationBaseProps = {
-  page_size: PropTypes.number.isRequired,
-  total: PropTypes.number.isRequired,
+  page_size: PropTypes.number,
+  total: PropTypes.number,
   order: PropTypes.oneOf(['asc', 'desc']),
   order_by: PropTypes.string
 }
@@ -580,8 +680,10 @@ Datatable.propTypes = {
     /** Unique key for this column. Should be the row object key for this columns value.
      * Also used as order_by value. */
     key: PropTypes.string.isRequired,
-    /** Optional label. Default is key. */
+    /** Optional human readible label. Default is key. */
     label: PropTypes.string,
+    /** Optional human readible description. */
+    description: PropTypes.string,
     /** If this columns should be sortable. */
     sortable: PropTypes.bool,
     /** The alignment of header and values. Default is right. */

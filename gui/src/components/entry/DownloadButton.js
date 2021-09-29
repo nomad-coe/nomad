@@ -18,11 +18,17 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import FileSaver from 'file-saver'
-import { useErrors } from './errors'
-import { apiBase } from '../config'
+import { useErrors } from '../errors'
+import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { useApi } from './api'
+import { useApi } from '../api'
+import qs from 'qs'
+import { queryToQsData } from '../search/SearchContext'
+
+function stringify(query) {
+  return qs.stringify(query, {indices: false, encode: false})
+}
 
 const DownloadButton = React.memo(function DownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
@@ -39,19 +45,9 @@ const DownloadButton = React.memo(function DownloadButton(props) {
 
   const handleSelect = (choice) => {
     setAnchorEl(null)
-
-    const urlSearchParams = new URLSearchParams()
-    Object.keys(query).forEach(key => {
-      const value = query[key]
-      if (Array.isArray(value)) {
-        value.forEach(item => urlSearchParams.append(key, item))
-      } else {
-        urlSearchParams.append(key, value)
-      }
-    })
-
+    let queryStringData = queryToQsData(query)
     const openDownload = () => {
-      const url = `${apiBase}/${choice}/${choice === 'archive' ? 'download' : 'query'}?${urlSearchParams.toString()}`
+      const url = `${apiBase}/v1/entries/${choice}/download?${stringify(queryStringData)}`
       FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
     }
 
@@ -59,7 +55,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
       setPreparingDownload(true)
       api.get('/auth/signature_token')
         .then(response => {
-          urlSearchParams.append('signature_token', response.signature_token)
+          queryStringData.signature_token = response.signature_token
           openDownload()
         })
         .catch(raiseError)
