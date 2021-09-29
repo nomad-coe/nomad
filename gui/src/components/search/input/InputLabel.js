@@ -33,7 +33,7 @@ import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Remove'
 import DragHandleIcon from '@material-ui/icons/DragHandle'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
-import { useAnchorState } from '../SearchContext'
+import { useStatisticState } from '../SearchContext'
 import { Actions, Action } from '../../Actions'
 
 /**
@@ -77,7 +77,7 @@ const FilterLabel = React.memo(({
   classes
 }) => {
   const styles = useStaticStyles({classes: classes})
-  const [anchor, setAnchor] = useAnchorState(quantity)
+  const [statistic, setStatistic] = useStatisticState(quantity)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
@@ -133,11 +133,11 @@ const FilterLabel = React.memo(({
   >
     {!disableStatistics && <>
       <Action
-        tooltip={anchor ? 'Remove the filter from the results panel.' : 'Anchor filter to results panel.'}
+        tooltip={statistic ? 'Remove the filter statistics from the results panel.' : 'Show filter statistics in the results panel.'}
         disabled={disableStatistics}
-        onClick={() => setAnchor(old => !old)}
+        onClick={() => setStatistic(old => !old)}
       >
-        {anchor ? <RemoveIcon/> : <AddIcon/>}
+        {statistic ? <RemoveIcon/> : <AddIcon/>}
       </Action>
       {draggable && <Action
         onMouseDown={handleMouseDown}

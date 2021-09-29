@@ -24,7 +24,7 @@ import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
 import qs from 'qs'
-import { queryToQsData } from '../search/SearchContext'
+import { searchToQsData } from '../search/SearchContext'
 
 function stringify(query) {
   return qs.stringify(query, {indices: false, encode: false})
@@ -45,7 +45,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
 
   const handleSelect = (choice) => {
     setAnchorEl(null)
-    let queryStringData = queryToQsData(query)
+    let queryStringData = searchToQsData(query)
     const openDownload = () => {
       const url = `${apiBase}/v1/entries/${choice}/download?${stringify(queryStringData)}`
       FileSaver.saveAs(url, `nomad-${choice}-download.zip`)

@@ -22,8 +22,9 @@ import { makeStyles } from '@material-ui/core/styles'
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { isEmpty } from 'lodash'
 import { MuuriComponent, getResponsiveStyle } from 'muuri-react'
-import { filterData, useAnchorsValue, widthMapping } from '../SearchContext'
+import { filterData, useStatisticsValue, widthMapping } from '../SearchContext'
 
 /**
  * Displays a summary of the anchored filter statistics in a grid.
@@ -55,9 +56,9 @@ const StatisticsGrid = React.memo(({
   const isLg = useMediaQuery('(min-width:1600px)')
   const isMd = useMediaQuery('(min-width:1450px)')
   const size = isXl ? 'xl' : (isLg ? 'lg' : (isMd ? 'md' : 'sm'))
-  const anchors = useAnchorsValue()
+  const statistics = useStatisticsValue()
 
-  return anchors.length > 0
+  return !isEmpty(statistics)
     ? <div className={clsx(className, styles.root)}>
       <MuuriComponent
         dragEnabled
@@ -65,7 +66,7 @@ const StatisticsGrid = React.memo(({
         showDuration={0}
         hideDuration={0}
       >
-        {anchors.map((filter) => {
+        {Object.keys(statistics).map((filter) => {
           const config = filterData[filter].statConfig
           const layout = config.layout
           const muuriOuterItem = getResponsiveStyle({

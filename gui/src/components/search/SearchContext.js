@@ -352,6 +352,7 @@ export const SearchContext = React.memo(({
 }) => {
   const setQuery = useSetRecoilState(queryState)
   const setLocked = useSetRecoilState(lockedState)
+  const setStatistics = useSetRecoilState(statisticsState)
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
@@ -368,23 +369,25 @@ export const SearchContext = React.memo(({
   }, [reset])
 
   // Read the initial query from the URL
-  const query = useMemo(() => {
+  const [query, statistics] = useMemo(() => {
     const location = window.location.href
     const split = location.split('?')
-    let qs, query
+    let qs, query, statistics
     if (split.length === 1) {
       query = {}
     } else {
-      qs = split.pop()
-      query = qsToQuery(qs)
+      qs = split.pop();
+      [query, statistics] = qsToSearch(qs)
+      console.log(statistics)
     }
-    return query
+    return [query, statistics]
   }, [])
 
-  // Save the initial query and locked filters. Cannot be done inside useMemo
-  // due to bad setState.
+  // Save the initial query, locked filters and statistics. Cannot be done
+  // inside useMemo due to bad setState.
   useEffect(() => {
     setQuery(query)
+    setStatistics(statistics)
     // Transform the locked values into a GUI-suitable format and store them
     if (filtersLocked) {
       const filtersLockedGUI = {}
@@ -393,7 +396,7 @@ export const SearchContext = React.memo(({
       }
       setLocked(filtersLockedGUI)
     }
-  }, [setLocked, setQuery, query, filtersLocked])
+  }, [setLocked, setQuery, setStatistics, query, statistics, filtersLocked])
 
   // Fetch initial aggregation data.
   useEffect(() => {
@@ -425,9 +428,7 @@ export const SearchContext = React.memo(({
     useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
     useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
     useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
-    useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
-    useStatisticsCountMode: () => useRecoilValue(statisticsCountModeState),
-    useSetStatisticsCountMode: () => useSetRecoilState(statisticsCountModeState)
+    useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState)
   }), [resource])
 
   return <searchContext.Provider value={values}>
@@ -467,10 +468,6 @@ export const isStatisticsEnabledState = atom({
   key: 'statisticsEnabled',
   default: true
 })
-export const statisticsCountModeState = atom({
-  key: 'statisticsCountMode',
-  default: 'fixed'
-})
 export const isMenuOpenState = atom({
   key: 'isMenuOpen',
   default: false
@@ -509,15 +506,29 @@ export function useResetFilters() {
   return reset
 }
 
-export const anchorFamily = atomFamily({
-  key: 'anchorFamily',
-  default: false
+export const statisticFamily = atomFamily({
+  key: 'statisticFamily',
+  default: undefined
 })
 
-// Used to get/set the anchored state of all filters at once
-const anchorsState = selector({
-  key: 'anchorsState',
-  get: ({get}) => [...filters].filter(key => get(anchorFamily(key)))
+// Used to get/set the the statistics configuration of all filters
+const statisticsState = selector({
+  key: 'statisticsState',
+  set: ({set}, stats) => {
+    if (stats) {
+      for (let [key, value] of Object.entries(stats)) {
+        set(statisticFamily(key), value)
+      }
+    }
+  },
+  get: ({get}) => {
+    const stats = {}
+    for (let filter of filters) {
+      const stat = get(statisticFamily(filter))
+      if (stat) stats[filter] = stat
+    }
+    return stats
+  }
 })
 
 /**
@@ -528,8 +539,8 @@ const anchorsState = selector({
  * @param {string} name Name of the filter.
  * @returns Whether the filter statistics are shown.
  */
-export function useAnchorValue(name) {
-  return useRecoilValue(anchorFamily(name))
+export function useStatisticValue(name) {
+  return useRecoilValue(statisticFamily(name))
 }
 
 /**
@@ -540,8 +551,8 @@ export function useAnchorValue(name) {
  * @param {string} name Name of the quantity to set.
  * @returns function for setting the value
  */
-export function useSetAnchor(name) {
-  return useSetRecoilState(anchorFamily(name))
+export function useSetStatistic(name) {
+  return useSetRecoilState(statisticFamily(name))
 }
 
 /**
@@ -552,8 +563,8 @@ export function useSetAnchor(name) {
  * @param {string} name Name of the filter.
  * @returns Array containing the value and setter function for it.
  */
-export function useAnchorState(name) {
-  return useRecoilState(anchorFamily(name))
+export function useStatisticState(name) {
+  return useRecoilState(statisticFamily(name))
 }
 
 /**
@@ -561,8 +572,8 @@ export function useAnchorState(name) {
  *
  * @returns A list containing the anchored quantity names.
  */
-export function useAnchorsValue() {
-  return useRecoilValue(anchorsState)
+export function useStatisticsValue() {
+  return useRecoilValue(statisticsState)
 }
 
 export const lockedFamily = atomFamily({
@@ -768,17 +779,21 @@ export function useQuery() {
 }
 
 /**
- * Hook for writing a query object to the query string.
+ * Hook that returns a function for updating the query string.
  *
- * @returns {object} Object containing the search object.
+ * @returns {function} A function that updates the query string to reflect the
+ * current search page state.
  */
 export function useUpdateQueryString() {
   const history = useHistory()
+  const query = useQuery()
+  const locked = useRecoilValue(lockedState)
+  const statistics = useRecoilValue(statisticsState)
 
-  const updateQueryString = useCallback((query, locked) => {
-    const queryString = queryToQs(query, locked)
+  const updateQueryString = useCallback(() => {
+    const queryString = searchToQs(query, locked, statistics)
     history.replace(history.location.pathname + '?' + queryString)
-  }, [history])
+  }, [query, locked, statistics, history])
 
   return updateQueryString
 }
@@ -790,27 +805,44 @@ export function useUpdateQueryString() {
  * @returns Returns an object containing the filters. Values are converted into
  * datatypes that are directly compatible with the filter components.
  */
-function qsToQuery(queryString) {
-  const query = qs.parse(queryString, {comma: true})
-  const newQuery = {}
-  for (let [key, value] of Object.entries(query)) {
+function qsToSearch(queryString) {
+  const queryObj = qs.parse(queryString, {comma: true})
+
+  // Deserialize statistics
+  let statistics
+  const stats = queryObj.statistics
+  if (stats) {
+    statistics = {}
+    if (isArray(stats)) {
+      for (const stat of stats) {
+        statistics[stat] = true
+      }
+    } else {
+      statistics[stats] = true
+    }
+    delete queryObj.statistics
+  }
+
+  // Deserialize query
+  const query = {}
+  for (let [key, value] of Object.entries(queryObj)) {
     const split = key.split(':')
     key = split[0]
     let newKey = filterFullnames[key] || key
     const valueGUI = toGUIFilter(newKey, value)
     if (split.length !== 1) {
       const op = split[1]
-      const oldValue = newQuery[newKey]
+      const oldValue = query[newKey]
       if (!oldValue) {
-        newQuery[newKey] = {[op]: valueGUI}
+        query[newKey] = {[op]: valueGUI}
       } else {
-        newQuery[newKey][op] = valueGUI
+        query[newKey][op] = valueGUI
       }
     } else {
-      newQuery[newKey] = valueGUI
+      query[newKey] = valueGUI
     }
   }
-  return newQuery
+  return [query, statistics]
 }
 
 /**
@@ -819,34 +851,45 @@ function qsToQuery(queryString) {
  * filters.
  * @returns {object} An object that can be serialized into a query string
  */
-export function queryToQsData(query, locked) {
+export function searchToQsData(query, locked, statistics) {
   locked = locked || {}
   const queryStringQuery = {}
-  for (const [key, value] of Object.entries(query)) {
-    if (locked[key]) {
-      continue
-    }
-    const {formatter} = formatMeta(key, false)
-    let newValue
-    const newKey = filterAbbreviations[key] || key
-    if (isPlainObject(value)) {
-      if (!isNil(value.gte)) {
-        queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
+
+  // The query is serialized first: locked items will not be displayed in the
+  // URL
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (locked[key]) {
+        continue
       }
-      if (!isNil(value.lte)) {
-        queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
-      }
-    } else {
-      if (isArray(value)) {
-        newValue = value.map(formatter)
-      } else if (value instanceof Set) {
-        newValue = [...value].map(formatter)
+      const {formatter} = formatMeta(key, false)
+      let newValue
+      const newKey = filterAbbreviations[key] || key
+      if (isPlainObject(value)) {
+        if (!isNil(value.gte)) {
+          queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
+        }
+        if (!isNil(value.lte)) {
+          queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
+        }
       } else {
-        newValue = formatter(value)
+        if (isArray(value)) {
+          newValue = value.map(formatter)
+        } else if (value instanceof Set) {
+          newValue = [...value].map(formatter)
+        } else {
+          newValue = formatter(value)
+        }
+        queryStringQuery[newKey] = newValue
       }
-      queryStringQuery[newKey] = newValue
     }
   }
+
+  // The shown statistics are serialized here: the order is preserved
+  if (!isEmpty(statistics)) {
+    queryStringQuery.statistics = Object.keys(statistics)
+  }
+
   return queryStringQuery
 }
 
@@ -856,8 +899,8 @@ export function queryToQsData(query, locked) {
  * filters.
  * @returns URL querystring, not encoded if possible to improve readability.
  */
-function queryToQs(query, locked) {
-  const queryData = queryToQsData(query, locked)
+function searchToQs(query, locked, statistics) {
+  const queryData = searchToQsData(query, locked, statistics)
   return qs.stringify(queryData, {indices: false, encode: false})
 }
 
@@ -967,9 +1010,9 @@ export function useAgg(name, update = true, restrict = undefined, delay = 500) {
 export function useScrollResults(initialPagination, delay = 500) {
   const {api} = useApi()
   const {raiseErrors} = useErrors()
+  const firstRender = useRef(true)
   const {resource} = useSearchContext()
   const query = useQuery()
-  const locked = useRecoilValue(lockedState)
   const updateQueryString = useUpdateQueryString()
 
   const [results, setResults] = useState([])
@@ -977,7 +1020,7 @@ export function useScrollResults(initialPagination, delay = 500) {
   const [pagination, setPagination] = useState(initialPagination || {page_size: 10})
 
   // This callback will call the API with a debounce by the given delay.
-  const callApi = useCallback(debounce((query, locked, pagination) => {
+  const callAPI = useCallback((query, pagination) => {
     const isExtend = pagination.page_after_value
 
     const request = {
@@ -999,10 +1042,13 @@ export function useScrollResults(initialPagination, delay = 500) {
         // the query string causes quite an intensive render (not sure why), so it
         // is better to debounce this value as well to keep the user interaction
         // smoother.
-        updateQueryString(query, locked)
+        updateQueryString()
       })
       .catch(raiseErrors)
-  }, delay), [resource, api, raiseErrors, updateQueryString, paginationResponse])
+  }, [resource, api, raiseErrors, updateQueryString, paginationResponse])
+
+  // Debounced version of callAPI
+  const callAPIDebounced = useCallback(debounce(callAPI, delay), [])
 
   // Whenever the query or pagination changes, we make an api call.
   // The results are fetched as a side effect in order to not block the
@@ -1018,13 +1064,19 @@ export function useScrollResults(initialPagination, delay = 500) {
       pagination.next_page_after_value = undefined
     }
 
-    callApi(query, locked, pagination)
-  }, [callApi, query, locked, pagination])
+    if (firstRender.current) {
+      callAPI(query, pagination)
+      firstRender.current = false
+    } else {
+      callAPIDebounced(query, pagination)
+    }
+  }, [callAPI, callAPIDebounced, query, pagination])
 
   return {
     data: results,
     pagination: combinePagination(pagination, paginationResponse.current),
-    setPagination: setPagination}
+    setPagination: setPagination
+  }
 }
 
 /**
