@@ -167,6 +167,9 @@ def local(ctx, entry_id, show_archive, show_metadata, skip_normalizers, not_stri
     '--dbfile', default=None,
     help='File to read/write files in given database')
 @click.option(
+    '--local_path', default='/nomad/fairdi/external',
+    help='Directory to which the files will be downloaded')
+@click.option(
     '--parallel', default=2,
     help='Number of processes to spawn to download/upload files')
 @click.option(

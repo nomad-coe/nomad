@@ -74,6 +74,7 @@ parser_examples = [
     ('parsers/lobster', 'tests/data/parsers/lobster/NaCl/lobsterout'),
     ('parsers/aflow', 'tests/data/parsers/aflow/Ag1Co1O2_ICSD_246157/aflowlib.json'),
     ('parsers/mp', 'tests/data/parsers/mp/mp-149_materials.json'),
+    ('parsers/asr', 'tests/data/parsers/asr/archive_ccdc26c4f32546c5a00ad03a093b73dc.json'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
@@ -87,7 +88,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 120
+correct_num_output_files = 121
 
 
 def create_reference(data, pretty):

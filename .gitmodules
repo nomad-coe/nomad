@@ -213,3 +213,6 @@
 [submodule "dependencies/parsers/mp"]
 	path = dependencies/parsers/mp
 	url = https://github.com/nomad-coe/nomad-parser-mp.git
+[submodule "dependencies/parsers/asr"]
+	path = dependencies/parsers/asr
+	url = https://github.com/nomad-coe/nomad-parser-asr.git

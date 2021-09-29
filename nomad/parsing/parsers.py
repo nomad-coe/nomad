@@ -74,6 +74,7 @@ from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
 from aflowparser import AFLOWParser
 from mpparser import MPParser
+from asrparser import ASRParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -220,6 +221,7 @@ parsers = [
     XPSParser(),
     AFLOWParser(),
     MPParser(),
+    ASRParser(),
     ArchiveParser()
 ]
 
