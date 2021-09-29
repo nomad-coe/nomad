@@ -54,6 +54,7 @@ const InputText = React.memo(({
   quantity,
   description,
   autocomplete,
+  disableStatistics,
   className,
   classes,
   units,
@@ -197,7 +198,7 @@ const InputText = React.memo(({
         quantity={quantity}
         label={title}
         description={desc}
-        disableStatistics
+        disableStatistics={disableStatistics}
       />
       <Autocomplete
         freeSolo
@@ -260,6 +261,7 @@ InputText.propTypes = {
   classes: PropTypes.object,
   units: PropTypes.object,
   autocomplete: PropTypes.string, // Determines the autocompletion mode: either 'aggregations', 'suggestions', or 'off'
+  disableStatistics: PropTypes.bool,
   'data-testid': PropTypes.string
 }
 

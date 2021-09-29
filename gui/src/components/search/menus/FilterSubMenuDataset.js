@@ -35,6 +35,7 @@ const FilterSubMenuDataset = React.memo(({
           label="dataset name"
           quantity="datasets.name"
           visible={visible}
+          disableStatistics
         />
       </Grid>
       <Grid item xs={12}>
@@ -43,6 +44,7 @@ const FilterSubMenuDataset = React.memo(({
           quantity="datasets.doi"
           visible={visible}
           autocomplete="off"
+          disableStatistics
         />
       </Grid>
     </Grid>

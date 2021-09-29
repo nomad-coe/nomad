@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useMemo } from 'react'
 import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
@@ -56,9 +56,7 @@ const StatisticsGrid = React.memo(({
   const statistics = useStatisticsValue()
   const gridRef = useRef()
   let size
-  if (!width) {
-    size = 'xl'
-  } else if (width > 1450) {
+  if (width > 1450) {
     size = 'xl'
   } else if (width > 1250) {
     size = 'lg'
@@ -76,8 +74,10 @@ const StatisticsGrid = React.memo(({
     }
   }, [width])
 
-  return <div ref={ref} className={clsx(className, styles.root)}>
-    {(!isEmpty(statistics) && width !== undefined)
+  // Memoize the grid so that it gets rendered only when the contents or size
+  // changes.
+  const content = useMemo(() => {
+    return (!isEmpty(statistics))
       ? <MuuriComponent
         ref={gridRef}
         dragEnabled
@@ -104,7 +104,11 @@ const StatisticsGrid = React.memo(({
           </div>
         })}
       </MuuriComponent>
-      : null}
+      : null
+  }, [statistics, styles, size])
+
+  return <div ref={ref} className={clsx(className, styles.root)}>
+    {content}
   </div>
 })
 
