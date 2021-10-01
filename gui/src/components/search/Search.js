@@ -103,9 +103,9 @@ const Search = React.memo(({
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
       <Box margin={3}>
-        {header && <Box marginBottom={2}>
+        <Box marginBottom={2}>
           {header}
-        </Box>}
+        </Box>
         <Box marginBottom={2}>
           <SearchBar className={styles.searchBar} />
         </Box>

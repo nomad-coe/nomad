@@ -32,6 +32,8 @@ import { filterData, useStatisticsValue, widthMapping } from '../SearchContext'
 const useStyles = makeStyles(theme => {
   return {
     root: {
+    },
+    container: {
       margin: -theme.spacing(1)
     },
     muuriInnerItem: {
@@ -78,32 +80,34 @@ const StatisticsGrid = React.memo(({
   // changes.
   const content = useMemo(() => {
     return (!isEmpty(statistics))
-      ? <MuuriComponent
-        ref={gridRef}
-        dragEnabled
-        layoutOnResize={false}
-        dragHandle=".dragHandle"
-        showDuration={0}
-        hideDuration={0}
-      >
-        {Object.keys(statistics).map((filter) => {
-          const config = filterData[filter].statConfig
-          const layout = config.layout
-          const muuriOuterItem = getResponsiveStyle({
-            columns: widthMapping[layout.widthDefault][size] / 12,
-            ratio: layout.ratioDefault
-          })
-          return <div key={filter} style={muuriOuterItem}>
-            <Paper className={styles.muuriInnerItem}>
-              <config.component
-                quantity={filter}
-                visible
-                draggable
-              />
-            </Paper>
-          </div>
-        })}
-      </MuuriComponent>
+      ? <div className={styles.container}>
+        <MuuriComponent
+          ref={gridRef}
+          dragEnabled
+          layoutOnResize={false}
+          dragHandle=".dragHandle"
+          showDuration={0}
+          hideDuration={0}
+        >
+          {Object.keys(statistics).map((filter) => {
+            const config = filterData[filter].statConfig
+            const layout = config.layout
+            const muuriOuterItem = getResponsiveStyle({
+              columns: widthMapping[layout.widthDefault][size] / 12,
+              ratio: layout.ratioDefault
+            })
+            return <div key={filter} style={muuriOuterItem}>
+              <Paper className={styles.muuriInnerItem}>
+                <config.component
+                  quantity={filter}
+                  visible
+                  draggable
+                />
+              </Paper>
+            </div>
+          })}
+        </MuuriComponent>
+      </div>
       : null
   }, [statistics, styles, size])
 

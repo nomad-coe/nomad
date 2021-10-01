@@ -1034,7 +1034,7 @@ export function useScrollResults(initialPagination, delay = 500) {
   const [pagination, setPagination] = useState(initialPagination || {page_size: 10})
 
   // This callback will call the API with a debounce by the given delay.
-  const callAPI = useCallback((query, pagination) => {
+  const callAPI = useCallback((query, pagination, updateQueryString) => {
     const isExtend = pagination.page_after_value
 
     const request = {
@@ -1059,7 +1059,7 @@ export function useScrollResults(initialPagination, delay = 500) {
         updateQueryString()
       })
       .catch(raiseErrors)
-  }, [resource, api, raiseErrors, updateQueryString, paginationResponse])
+  }, [resource, api, raiseErrors, paginationResponse])
 
   // Debounced version of callAPI
   const callAPIDebounced = useCallback(debounce(callAPI, delay), [])
@@ -1079,12 +1079,12 @@ export function useScrollResults(initialPagination, delay = 500) {
     }
 
     if (firstRender.current) {
-      callAPI(query, pagination)
+      callAPI(query, pagination, updateQueryString)
       firstRender.current = false
     } else {
-      callAPIDebounced(query, pagination)
+      callAPIDebounced(query, pagination, updateQueryString)
     }
-  }, [callAPI, callAPIDebounced, query, pagination])
+  }, [callAPI, callAPIDebounced, query, pagination, updateQueryString])
 
   return {
     data: results,
