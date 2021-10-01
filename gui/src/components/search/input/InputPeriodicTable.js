@@ -53,9 +53,11 @@ elementData.elements.forEach(element => {
 */
 const useElementStyles = makeStyles(theme => ({
   root: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+    top: 1,
+    bottom: 1,
+    left: 1,
+    right: 1,
+    position: 'absolute',
     backgroundColor: theme.palette.secondary.veryLight
   },
   fit: {
@@ -252,13 +254,17 @@ Element.propTypes = {
 const useTableStyles = makeStyles(theme => ({
   root: {},
   container: {
-    position: 'relative'
+    position: 'relative',
+    margin: -1
   },
   table: {
     width: '100%',
     height: '100%',
     borderSpacing: 0,
     tableLayout: 'fixed'
+  },
+  td: {
+    position: 'relative'
   },
   formContainer: {
     position: 'absolute',
@@ -345,7 +351,7 @@ const InputPeriodicTable = React.memo(({
             {elements.map((row, i) => (
               <tr key={i}>
                 {row.map((element, j) => (
-                  <td key={j}>
+                  <td key={j} className={styles.td}>
                     {element
                       ? <Element
                         element={element}
