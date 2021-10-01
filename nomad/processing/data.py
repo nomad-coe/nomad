@@ -35,7 +35,6 @@ from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
 from datetime import datetime, timedelta
-from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
@@ -51,7 +50,8 @@ from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
-    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
+    EntryArchive, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
+    EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -62,6 +62,14 @@ section_workflow = datamodel.EntryArchive.workflow.name
 section_results = datamodel.EntryArchive.results.name
 
 
+_mongo_upload_metadata = tuple(
+    quantity.name for quantity in MongoUploadMetadata.m_def.definitions)
+_mongo_entry_metadata = tuple(
+    quantity.name for quantity in MongoEntryMetadata.m_def.definitions)
+_mongo_system_metadata = tuple(
+    quantity.name for quantity in MongoSystemMetadata.m_def.definitions)
+_mongo_entry_metadata_except_system_fields = tuple(
+    field for field in _mongo_entry_metadata if field not in _mongo_system_metadata)
 _editable_metadata: Dict[str, metainfo.Definition] = {}
 _editable_metadata.update(**{
     quantity.name: quantity for quantity in UserProvidableMetadata.m_def.definitions})
@@ -200,6 +208,10 @@ class Calc(Proc):
         return self.upload_files.raw_file_object(self.mainfile)
 
     @property
+    def processed(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
+
+    @property
     def upload(self) -> 'Upload':
         if not self._upload:
             self._upload = Upload.get(self.upload_id)
@@ -293,31 +305,27 @@ class Calc(Proc):
         assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
         entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten?
         # Upload metadata
-        entry_metadata.upload_id = upload.upload_id
-        entry_metadata.uploader = upload.user_id
-        entry_metadata.upload_create_time = upload.upload_create_time
-        entry_metadata.upload_name = upload.upload_name
-        entry_metadata.published = upload.published
-        entry_metadata.publish_time = upload.publish_time
-        entry_metadata.with_embargo = upload.with_embargo
-        entry_metadata.license = upload.license
+        for field in _mongo_upload_metadata:
+            setattr(entry_metadata, field, getattr(upload, field))
+        entry_metadata.uploader = upload.user_id  # TODO: Refactor and treat like the other fields
         # Entry metadata
-        entry_metadata.parser_name = self.parser_name
+        for field in _mongo_entry_metadata:
+            setattr(entry_metadata, field, getattr(self, field))
+        # Special case: domain. May be derivable from mongo, or may have to be read from the archive
         if self.parser_name is not None:
             parser = parser_dict[self.parser_name]
             if parser.domain:
                 entry_metadata.domain = parser.domain
-        entry_metadata.calc_id = self.calc_id
-        entry_metadata.mainfile = self.mainfile
-        entry_metadata.entry_create_time = self.entry_create_time
-        entry_metadata.processed = self.process_status == ProcessStatus.SUCCESS
 
     def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
         '''
         Applies the metadata fields that are stored on the mongo entry level to self.
         In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
-        but excluding upload level metadata.
+        but excluding upload level metadata and system fields (like mainfile, parser_name etc.).
         '''
+        for field in _mongo_entry_metadata_except_system_fields:
+            setattr(self, field, getattr(entry_metadata, field))
+
         self.metadata = entry_metadata.m_to_dict(
             include_defaults=True,
             categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
@@ -1549,7 +1557,6 @@ class Upload(Proc):
 
         need_to_reindex = False
         need_to_repack = False
-        new_entry_metadata: Dict[str, Any] = {}
         if upload_metadata.upload_name is not None:
             self.upload_name = upload_metadata.upload_name
             need_to_reindex = True
@@ -1574,18 +1581,6 @@ class Upload(Proc):
         if need_to_reindex and self.total_calcs > 0:
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
-                if new_entry_metadata:
-                    with utils.timer(logger, 'upload metadata updated'):
-                        def create_update(entry_metadata):
-                            entry_metadata.m_update_from_dict(new_entry_metadata)
-                            return UpdateOne(
-                                {'_id': entry_metadata.calc_id},
-                                {'$set': {'metadata': entry_metadata.m_to_dict(
-                                    include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                        Calc._get_collection().bulk_write([
-                            create_update(entry_metadata) for entry_metadata in entries_metadata])
-
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
