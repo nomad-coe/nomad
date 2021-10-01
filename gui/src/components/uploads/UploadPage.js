@@ -37,9 +37,10 @@ import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
-import EditUserMetadataDialog from '../EditUserMetadataDialog'
+import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
+import { combinePagination } from '../datatable/Datatable'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -462,7 +463,11 @@ function UploadPage() {
         <StepLabel>Process data</StepLabel>
         <StepContent>
           <ProcessingStatus data={data} />
-          <ProcessingTable data={data} onPaginationChange={setPagination}/>
+          <ProcessingTable
+            upload={upload}
+            data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
+            pagination={combinePagination(pagination, data.pagination)}
+            onPaginationChanged={setPagination} />
         </StepContent>
       </Step>
       <Step expanded={!isEmpty}>

@@ -516,3 +516,12 @@ export function setToArray(target) {
   }
   return target
 }
+
+/**
+ * A simple promise based sleep.
+ * @param {} ms Time in ms.
+ * @returns The promise. Use .then(() => ...) to do something after sleep.
+ */
+export function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}

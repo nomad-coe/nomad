@@ -45,7 +45,7 @@ const FilterLabel = React.memo(({
 
   // Remove underscores from name
   const finalLabel = useMemo(
-    () => !underscores ? label.replaceAll('_', ' ') : label,
+    () => !underscores ? label.replace(/_/g, ' ') : label,
     [label, underscores]
   )
 

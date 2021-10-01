@@ -24,7 +24,7 @@ import { ApiDialog } from '../ApiDialogButton'
 import { Actions } from '../Actions'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
-import { DOI } from '../search/results/DatasetList'
+import { DOI } from '../dataset/DOI'
 import { authorList } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
@@ -32,7 +32,7 @@ import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectrumCard from './properties/SpectrumCard'
-import { MethodDetails } from './EntryDetails'
+import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 
 function MetadataSection({title, children}) {
@@ -125,7 +125,7 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
         <MetadataSection title='Method'>
-          <MethodDetails data={entry} />
+          <MethodMetadata data={entry} />
         </MetadataSection>
         <Divider className={classes.divider} />
         <MetadataSection title='Author metadata'>

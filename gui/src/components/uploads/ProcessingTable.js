@@ -16,125 +16,104 @@
  * limitations under the License.
  */
 
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
+import { Paper, Link } from '@material-ui/core'
+import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
+import {
+  addColumnDefaults,
+  Datatable, DatatablePagePagination, DatatableTable,
+  DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
+import DownloadButton from '../entry/DownloadButton'
+import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 
-import EntryList, { EntryListUnstyled } from '../search/EntryList'
-import { Paper } from '@material-ui/core'
-import { authorList, nameList } from '../../utils'
-import WithButton from '../utils/WithButton'
-
-const defaultSelectedColumns = ['mainfile', 'parser_name', 'process_status', 'complete_time']
-
-export default function ProcessingTable({data, onPaginationChange}) {
-  const columns = useMemo(() => {
-    const otherColumns = {...EntryListUnstyled.defaultColumns}
-    Object.keys(otherColumns).forEach(key => {
-      otherColumns[key] = {
-        ...otherColumns[key],
-        supportsSort: false
+const columns = [
+  {key: 'entry_id', align: 'left'},
+  {key: 'mainfile', align: 'left'},
+  {key: 'parser_name', align: 'left'},
+  {key: 'process_status', align: 'left'},
+  {key: 'complete_time', align: 'left'},
+  {key: 'comment', sortable: false, align: 'left'},
+  {
+    key: 'references',
+    sortable: false,
+    align: 'left',
+    render: row => {
+      const refs = row.references || []
+      if (refs.length > 0) {
+        return (
+          <div style={{display: 'inline'}}>
+            {refs.map((ref, i) => <span key={ref}>
+              <Link href={ref}>{ref}</Link>{(i + 1) < refs.length ? ', ' : <React.Fragment/>}
+            </span>)}
+          </div>
+        )
+      } else {
+        return <i>no references</i>
       }
-    })
-
-    return {
-      entry_id: {
-        label: 'Id',
-        description: 'The unique NOMAD id for this entry.',
-        render: entry => <WithButton clipboard={entry.entry_id}>
-          {entry.entry_id}
-        </WithButton>,
-        tableCellStyle: {maxWidth: 300}
-      },
-      mainfile: {
-        ...EntryListUnstyled.defaultColumns.mainfile,
-        supportsSort: true
-      },
-      parser_name: {
-        label: 'Parser',
-        supportsSort: true,
-        description: 'The parser that was used to process this entry.',
-        render: entry => entry.parser_name.replace('parsers/', '')
-      },
-      process_status: {
-        label: 'Processing',
-        supportsSort: true,
-        description: 'Details on the processing of this entry.',
-        render: entry => `${entry.process_status}`
-      },
-      complete_time: {
-        label: 'Last processing',
-        description: 'The last time this entry has completed its processing.',
-        render: entry => new Date(entry.complete_time).toLocaleString()
-      },
-      comment: EntryListUnstyled.defaultColumns.comment,
-      references: {
-        ...EntryListUnstyled.defaultColumns.references,
-        supportsSort: false
-      },
-      authors: {
-        label: 'Authors',
-        render: entry => authorList(entry),
-        description: 'The uploader and co-authors of this entry.'
-      },
-      owners: {
-        label: 'Owner',
-        render: entry => nameList(entry.owners || []),
-        description: 'The uploader and shared with users.'
-      },
-      datasets: EntryListUnstyled.defaultColumns.datasets
     }
-  }, [])
-
-  const handleChange = (changes) => {
-    changes.page_size = changes.page_size || changes.per_page || data.pagination.page_size
-    if (changes.order !== undefined) {
-      changes.order = changes.order === 1 ? 'asc' : 'desc'
+  },
+  {
+    key: 'datasets',
+    align: 'left',
+    render: entry => {
+      const datasets = entry.datasets || []
+      if (datasets.length > 0) {
+        return datasets.map(dataset => dataset.name).join(', ')
+      } else {
+        return <i>no datasets</i>
+      }
     }
-    onPaginationChange({
-      page_size: data.pagination.page_size,
-      page: data.pagination.page,
-      order_by: data.pagination.order_by,
-      order: data.pagination.order,
-      ...changes
-    })
   }
+]
 
-  useEffect(() => {
-    data.data.forEach(entry => {
-      Object.assign(entry, entry.entry_metadata || {
-        references: [], authors: [], owners: [], datasets: []
-      })
-    })
-  }, [data.data])
+addColumnDefaults(columns)
 
-  const editable = !data.upload.process_running
+const defaultSelectedColumns = [
+  'entry_id',
+  'mainfile',
+  'parser_name',
+  'complete_time']
+
+export default function ProcessingTable(props) {
+  const [selected, setSelected] = useState([])
+  const {data, pagination, onPaginationChanged, upload} = props
+
+  const selectedQuery = useMemo(() => {
+    if (selected === 'all') {
+      return {owner: 'visible', 'upload_id': upload.upload_id}
+    }
+
+    return {owner: 'visible', entry_id: selected.map(data => data.entry_id)}
+  }, [selected, upload])
 
   return <Paper>
-    <EntryList
-      title={`${data.pagination.total} entries processed`}
-      query={{upload_id: [data.upload.upload_id]}}
-      columns={columns}
-      selectedColumns={defaultSelectedColumns}
-      selectedColumnsKey={null}
-      editable={editable}
-      onEdit={() => handleChange({})}
-      editUserMetadataDialogProps={{withoutLiftEmbargo: !data.upload.published}}
-      data={data}
-      onChange={handleChange}
-      // actions={actions}
-      // showEntryActions={entry => entry.processed || !running}
-      showEntryActions={entry => !entry.process_running}
-      entryPagePathPrefix={`/uploads/${data.upload.upload_id}`}
-      per_page={data.pagination.page_size}
-      page={data.pagination.page}
-      order={data.pagination.order === 'asc' ? 1 : 0}
-      order_by={data.pagination.order_by}
-      // TODO this is a hack, gave up trying to understand CSS width in table cells
-      entryDetailsWidth={903}
-    />
+    <Datatable
+      columns={columns} shownColumns={defaultSelectedColumns} {...props}
+      selected={selected} onSelectedChanged={setSelected}
+    >
+      <DatatableToolbar title={`${pagination.total} search results`}>
+        <DatatableToolbarActions selection>
+          <DownloadButton tooltip="Download files" query={selectedQuery} />
+          {!upload.published && <EditUserMetadataDialog
+            example={selected === 'all' ? data[0] : selected[0]}
+            query={selectedQuery}
+            total={pagination.total}
+            onEditComplete={() => onPaginationChanged({...pagination})} // simply trigger a refresh
+            buttonProps={{variant: 'contained', color: 'primary', disabled: upload?.process_running}}
+            withoutLiftEmbargo={!upload.published}
+          />}
+        </DatatableToolbarActions>
+      </DatatableToolbar>
+      <DatatableTable actions={EntryRowActions} details={EntryDetails}>
+        <DatatablePagePagination pageSizeValues={[5, 10, 50, 100]} />
+      </DatatableTable>
+    </Datatable>
   </Paper>
 }
 ProcessingTable.propTypes = {
-  data: PropTypes.object,
-  onPaginationChange: PropTypes.func
+  data: PropTypes.arrayOf(PropTypes.object).isRequired,
+  upload: PropTypes.object.isRequired,
+  pagination: PropTypes.object.isRequired,
+  onPaginationChanged: PropTypes.func.isRequired
 }

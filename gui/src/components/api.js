@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import {
   atom,
   useSetRecoilState,
@@ -400,11 +400,9 @@ function parse(result) {
   }
 }
 
-/**
- * Hook that returns a shared instance of the API class and information about
- * the currently logged in user.
-*/
-export function useApi() {
+const ApiContext = React.createContext()
+
+export const ApiProvider = React.memo(function ApiProvider({children}) {
   const [keycloak] = useKeycloak()
   const setLoading = useSetLoading()
   const [user, setUser] = useState(null)
@@ -424,11 +422,29 @@ export function useApi() {
     }
   }, [api])
 
-  return {
+  const value = useMemo(() => ({
     api: api,
     user: user,
     info: info
-  }
+  }), [api, user, info])
+
+  return <ApiContext.Provider value={value}>
+    {children}
+  </ApiContext.Provider>
+})
+ApiProvider.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
+}
+
+/**
+ * Hook that returns a shared instance of the API class and information about
+ * the currently logged in user.
+*/
+export function useApi() {
+  return useContext(ApiContext)
 }
 
 /**

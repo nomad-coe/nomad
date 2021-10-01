@@ -18,11 +18,11 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
-import { errorContext } from './errors'
-import { useApi } from './api'
-import Search from './search/Search'
-import { SearchContext } from './search/SearchContext'
-import { DOI } from './search/results/DatasetList'
+import { errorContext } from '../errors'
+import { useApi } from '../api'
+import Search from '../search/Search'
+import { SearchContext } from '../search/SearchContext'
+import { DOI } from './DOI'
 
 export const help = `
 This page allows you to **inspect** and **download** NOMAD datasets. It also allows you

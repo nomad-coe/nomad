@@ -17,30 +17,64 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, Typography } from '@material-ui/core'
+import clsx from 'clsx'
+import { makeStyles, Typography, useTheme } from '@material-ui/core'
+import AutoSizer from 'react-virtualized-auto-sizer'
 
 export const limitedWidthWidth = 1024
 
 const useStyles = makeStyles(theme => ({
   fullWidth: {
-    margin: theme.spacing(2)
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2)
   },
   limitedWidth: {
     width: '100%',
     maxWidth: limitedWidthWidth,
-    margin: 'auto',
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
+  limitedHeight: {
+    height: '100%'
+  },
+  fullHeight: {
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2)
   }
 }))
 
-export default function Page({limitedWidth, loading, children}) {
+export default function Page({limitedWidth, limitedHeight, loading, children, ...moreProps}) {
   const classes = useStyles()
+  const theme = useTheme()
 
-  return <div className={limitedWidth ? classes.limitedWidth : classes.fullWidth}>
+  const pageWithWidth = <div
+    className={clsx({
+      [classes.fullWidth]: !limitedWidth,
+      [classes.limitedWidth]: limitedWidth,
+      [classes.limitedHeight]: limitedHeight
+    })}
+    {...moreProps}
+  >
     {loading && <Typography>loading ...</Typography>}
     {!loading && children}
   </div>
+
+  if (limitedHeight) {
+    return <div {...moreProps} className={classes.limitedHeight}>
+      <AutoSizer disableWidth>
+        {({height}) => <div style={{height: height}}>
+          <div style={{height: theme.spacing(2)}}/>
+          <div style={{height: height - theme.spacing(4)}}>
+            {pageWithWidth}
+          </div>
+        </div>}
+      </AutoSizer>
+    </div>
+  } else {
+    return <div className={classes.fullHeight} {...moreProps}>
+      {pageWithWidth}
+    </div>
+  }
 }
 
 Page.propTypes = {
@@ -48,6 +82,9 @@ Page.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]),
+  /** Limits the width of the page content to a standard width. */
   limitedWidth: PropTypes.bool,
+  /** Limits the height of the page content to fit into the current view port. */
+  limitedHeight: PropTypes.bool,
   loading: PropTypes.bool
 }

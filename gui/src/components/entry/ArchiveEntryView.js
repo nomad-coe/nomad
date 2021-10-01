@@ -87,7 +87,7 @@ export default function ArchiveEntryView(props) {
   }
 
   return (
-    <Page width={'100%'} maxWidth={'undefined'}>
+    <Page width={'100%'}>
       {
         data && typeof data !== 'string'
           ? <div className={classes.archiveBrowser}>

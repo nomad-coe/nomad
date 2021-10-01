@@ -71,7 +71,7 @@ const filterOptions = (options, {inputValue}) => {
     // Underscore can be replaced by a whitespace
     const optionClean = option.value.trim().toLowerCase()
     const matchUnderscore = optionClean.includes(trimmed)
-    const matchNoUnderscore = optionClean.replaceAll('_', ' ').includes(trimmed)
+    const matchNoUnderscore = optionClean.replace(/_/g, ' ').includes(trimmed)
     return matchUnderscore || matchNoUnderscore
   })
 }
