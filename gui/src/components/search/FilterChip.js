@@ -31,7 +31,8 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(0.5)
   },
   chip: {
-    padding: theme.spacing(0.5)
+    padding: theme.spacing(0.5),
+    maxWidth: '19rem'
   },
   colorSecondary: {
     backgroundColor: theme.palette.secondary.light

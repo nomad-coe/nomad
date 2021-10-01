@@ -31,8 +31,7 @@ import { filterData, useStatisticsValue, widthMapping } from '../SearchContext'
  */
 const useStyles = makeStyles(theme => {
   return {
-    root: {
-    },
+    root: {},
     container: {
       margin: -theme.spacing(1)
     },

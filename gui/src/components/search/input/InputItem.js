@@ -50,7 +50,11 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom: 0
+    bottom: 0,
+    right: '4rem'
+  },
+  label: {
+    width: '100%'
   }
 }))
 const InputItem = React.memo(({
@@ -94,6 +98,7 @@ const InputItem = React.memo(({
     />}
     <FormControlLabel
       className={styles.controlLabel}
+      classes={{label: styles.label}}
       disabled={disabled}
       control={<Control
         checked={selected}
@@ -106,8 +111,9 @@ const InputItem = React.memo(({
         <Tooltip
           placement="right"
           enterDelay={200}
-          title={tooltip || ''}>
-          <Typography>{label || value}</Typography>
+          title={tooltip || ''}
+        >
+          <Typography className={styles.label} noWrap>{label || value}</Typography>
         </Tooltip>
       }
     />
