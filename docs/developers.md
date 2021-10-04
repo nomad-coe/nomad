@@ -143,12 +143,12 @@ via your preferred tools. Just make sure to use the right ports.
 ## Running NOMAD
 
 Before you run NOMAD for development purposes, you should configure it to use the `test`
-realm of our user management system. By default, NOMAD will use the `prod` realm.
+realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
 Create a `nomad.yaml` file in the root folder:
 
 ```
 keycloak:
-  realm: fairdi_nomad_test
+  realm_name: fairdi_nomad_test
 ```
 
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
