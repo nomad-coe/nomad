@@ -1,0 +1,252 @@
+{
+    "emmet_version": "0.12.7",
+    "pymatgen_version": "2022.0.9",
+    "build_date": "2021-09-15 21:53:45.316000",
+    "nsites": 2,
+    "elements": [
+        {
+            "@module": "pymatgen.core.periodic_table",
+            "@class": "Element",
+            "element": "Si"
+        }
+    ],
+    "nelements": 1,
+    "composition": {
+        "Si": 2.0
+    },
+    "composition_reduced": {
+        "Si": 1.0
+    },
+    "formula_pretty": "Si",
+    "formula_anonymous": "A",
+    "chemsys": "Si",
+    "volume": 40.88829284866483,
+    "density": 2.2811942835376744,
+    "density_atomic": 20.444146424332416,
+    "symmetry": {
+        "crystal_system": "cubic",
+        "symbol": "Fd-3m",
+        "number": 227,
+        "point_group": "m-3m",
+        "symprec": 0.1,
+        "version": "1.16.0"
+    },
+    "material_id": "mp-149",
+    "structure": {
+        "@module": "pymatgen.core.structure",
+        "@class": "Structure",
+        "charge": null,
+        "lattice": {
+            "matrix": [
+                [
+                    0.0,
+                    2.734364,
+                    2.734364
+                ],
+                [
+                    2.734364,
+                    0.0,
+                    2.734364
+                ],
+                [
+                    2.734364,
+                    2.734364,
+                    0.0
+                ]
+            ],
+            "a": 3.8669746532647453,
+            "b": 3.8669746532647453,
+            "c": 3.8669746532647453,
+            "alpha": 59.99999999999999,
+            "beta": 59.99999999999999,
+            "gamma": 59.99999999999999,
+            "volume": 40.88829284866483
+        },
+        "sites": [
+            {
+                "species": [
+                    {
+                        "element": "Si",
+                        "occu": 1
+                    }
+                ],
+                "abc": [
+                    0.25,
+                    0.25,
+                    0.25
+                ],
+                "xyz": [
+                    1.367182,
+                    1.367182,
+                    1.367182
+                ],
+                "label": "Si",
+                "properties": {
+                    "magmom": -0.0
+                }
+            },
+            {
+                "species": [
+                    {
+                        "element": "Si",
+                        "occu": 1
+                    }
+                ],
+                "abc": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "xyz": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "label": "Si",
+                "properties": {
+                    "magmom": -0.0
+                }
+            }
+        ]
+    },
+    "deprecated": false,
+    "deprecation_reasons": null,
+    "initial_structures": [
+        {
+            "@module": "pymatgen.core.structure",
+            "@class": "Structure",
+            "charge": null,
+            "lattice": {
+                "matrix": [
+                    [
+                        0.0,
+                        2.734772,
+                        2.734772
+                    ],
+                    [
+                        2.734772,
+                        0.0,
+                        2.734772
+                    ],
+                    [
+                        2.734772,
+                        2.734772,
+                        0.0
+                    ]
+                ],
+                "a": 3.867551652398194,
+                "b": 3.867551652398194,
+                "c": 3.867551652398194,
+                "alpha": 60.00000000000001,
+                "beta": 60.00000000000001,
+                "gamma": 60.00000000000001,
+                "volume": 40.906598655233736
+            },
+            "sites": [
+                {
+                    "species": [
+                        {
+                            "element": "Si",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "xyz": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "label": "Si",
+                    "properties": {}
+                },
+                {
+                    "species": [
+                        {
+                            "element": "Si",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        0.25,
+                        0.25,
+                        0.25
+                    ],
+                    "xyz": [
+                        1.367386,
+                        1.367386,
+                        1.367386
+                    ],
+                    "label": "Si",
+                    "properties": {}
+                }
+            ]
+        }
+    ],
+    "task_ids": [
+        "mp-1120259",
+        "mp-1686587",
+        "mp-655585",
+        "mp-1120258",
+        "mp-1059604",
+        "mp-1592727",
+        "mp-1594776",
+        "mp-1440634",
+        "mp-1057380",
+        "mp-1248038",
+        "mp-1059585",
+        "mp-1059603",
+        "mp-656511",
+        "mp-1249516",
+        "mp-1057373",
+        "mp-1791788",
+        "mp-11721",
+        "mp-1059589",
+        "mp-149",
+        "mp-1057384",
+        "mp-1057366",
+        "mp-655936",
+        "mp-1267607",
+        "mp-1141021"
+    ],
+    "deprecated_tasks": [],
+    "calc_types": {
+        "mp-655585": "GGA Static",
+        "mp-656511": "GGA NSCF Line",
+        "mp-655936": "GGA NSCF Uniform",
+        "mp-11721": "GGA Structure Optimization",
+        "mp-149": "GGA Structure Optimization",
+        "mp-1057373": "GGA Static",
+        "mp-1057366": "GGA Structure Optimization",
+        "mp-1057380": "GGA NSCF Uniform",
+        "mp-1059585": "GGA Structure Optimization",
+        "mp-1059589": "GGA Static",
+        "mp-1059603": "GGA NSCF Uniform",
+        "mp-1120258": "GGA Structure Optimization",
+        "mp-1120259": "GGA Structure Optimization",
+        "mp-1141021": "GGA DFPT Dielectric",
+        "mp-1248038": "GGA Structure Optimization",
+        "mp-1249516": "GGA NMR Electric Field Gradient",
+        "mp-1267607": "GGA NMR Nuclear Shielding",
+        "mp-1440634": "GGA Static",
+        "mp-1686587": "GGA NSCF Uniform",
+        "mp-1791788": "GGA Static",
+        "mp-1594776": "GGA NSCF Line",
+        "mp-1592727": "GGA NSCF Line",
+        "mp-1059604": "GGA NSCF Line",
+        "mp-1057384": "GGA NSCF Line"
+    },
+    "last_updated": "2021-03-07 12:03:34.371000",
+    "created_at": "2011-05-12 17:07:33",
+    "origins": [
+        {
+            "name": "structure",
+            "task_id": "mp-1791788",
+            "last_updated": "2020-11-11 23:21:54.717000"
+        }
+    ],
+    "warnings": []
+}
