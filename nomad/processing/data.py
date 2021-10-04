@@ -156,21 +156,28 @@ class Calc(Proc):
     while parsing, including ``code_name``, ``code_version``, etc.
 
     Attributes:
+        upload_id: the id of the upload to which this entry belongs
         calc_id: the calc_id of this calc
         calc_hash: the hash of the entry files
-        parser_name: the name of the parser used to process this calc
-        upload_id: the id of the upload used to create this calculation
+        entry_create_time: the date and time of the creation of the entry
+        last_processing_time: the date and time of the last processing.
         mainfile: the mainfile (including path in upload) that was used to create this calc
-        pid: the pid of the entry
+        parser_name: the name of the parser used to process this calc
+        pid: the legacy NOMAD pid of the entry
+        external_id:  A user provided external id. Usually the id for an entry in an
+            external database where the data was imported from.
+
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
+    upload_id = StringField()
     calc_id = StringField(primary_key=True)
     calc_hash = StringField()
-    upload_id = StringField()
     entry_create_time = DateTimeField(required=True)
+    last_processing_time = DateTimeField()
     mainfile = StringField()
     parser_name = StringField()
     pid = StringField()
+    external_id = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -184,7 +191,7 @@ class Calc(Proc):
             ('upload_id', 'process_status'),
             ('upload_id', 'metadata.nomad_version'),
             'process_status',
-            'metadata.last_processing_time',
+            'last_processing_time',
             'metadata.datasets',
             'pid'
         ]
@@ -1841,10 +1848,11 @@ class Upload(Proc):
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
 
                 # Instantiate an entry object from the json, and validate it
-                entry_keys_to_copy = (
-                    'upload_id', 'mainfile', 'parser_name', 'metadata', 'errors', 'warnings',
+                entry_keys_to_copy = list(_mongo_entry_metadata)
+                entry_keys_to_copy.extend((
+                    'upload_id', 'metadata', 'errors', 'warnings',
                     'last_status_message', 'current_process', 'current_process_step',
-                    'entry_create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
+                    'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
                     update['calc_id'] = entry_dict['_id']
@@ -1858,12 +1866,11 @@ class Upload(Proc):
                 # Instantiate an EntryMetadata object to validate the format
                 try:
                     if settings.include_datasets:
-                        entry_metadata_dict['datasets'] = [
+                        entry.metadata['datasets'] = [
                             dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
                     else:
-                        entry_metadata_dict['datasets'] = []
-                    entry_metadata = EntryMetadata.m_from_dict(entry_metadata_dict)
-                    entry._apply_metadata_to_mongo_entry(entry_metadata)
+                        entry.metadata['datasets'] = []
+                    entry.mongo_metadata(self)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
                     assert False, 'Invalid entry metadata: ' + str(e)

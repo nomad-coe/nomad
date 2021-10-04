@@ -1281,9 +1281,13 @@ def test_post_upload_action_publish_to_central_nomad(
         assert len(old_upload.calcs) == len(new_upload.calcs)
         old_calc = old_upload.calcs[0]
         new_calc = new_upload.calcs[0]
-        for k, v in old_calc.metadata.items():
-            if k not in ('upload_create_time', 'last_processing_time'):
-                assert new_calc.metadata[k] == v, f'Metadata not matching: {k}'
+        old_calc_metadata_dict = old_calc.mongo_metadata(old_upload).m_to_dict()
+        new_calc_metadata_dict = new_calc.mongo_metadata(new_upload).m_to_dict()
+        for k, v in old_calc_metadata_dict.items():
+            if k not in (
+                    'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
+                    'last_processing_time', 'publish_time'):
+                assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
         assert new_calc.metadata.get('datasets') == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
         assert new_upload.from_oasis and new_upload.oasis_deployment_id

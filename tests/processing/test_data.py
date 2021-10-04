@@ -319,7 +319,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     old_upload_time = published.last_update
     first_calc: Calc = published.all_calcs(0, 1).first()
-    old_calc_time = first_calc.metadata['last_processing_time']
+    old_calc_time = first_calc.last_processing_time
 
     with published.upload_files.read_archive(first_calc.calc_id) as archive:
         archive[first_calc.calc_id]['processing_logs']
@@ -368,7 +368,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # assert new process time
     if with_failure != 'not-matched':
         assert published.last_update > old_upload_time
-        assert first_calc.metadata['last_processing_time'] > old_calc_time
+        assert first_calc.last_processing_time > old_calc_time
 
     # assert new process version
     if with_failure != 'not-matched':

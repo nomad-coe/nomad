@@ -433,10 +433,9 @@ class EntryMetadata(metainfo.MSection):
     raw_id = metainfo.Quantity(
         type=str,
         description='''
-        The code specific identifier extracted from the entrie's raw files if such an
-        identifier is supported by the underlying code
-        ''',
-        categories=[MongoMetadata, UserProvidableMetadata],
+        The code specific identifier extracted from the entry's raw files by the parser,
+        if supported.''',
+        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     domain = metainfo.Quantity(
@@ -459,7 +458,7 @@ class EntryMetadata(metainfo.MSection):
     last_processing_time = metainfo.Quantity(
         type=metainfo.Datetime,
         description='The date and time of the last processing.',
-        categories=[MongoMetadata],
+        categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch())
 
     processing_errors = metainfo.Quantity(
@@ -576,7 +575,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     external_id = metainfo.Quantity(
-        type=str, categories=[MongoMetadata, UserProvidableMetadata],
+        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata],
         description='''
         A user provided external id. Usually the id for an entry in an external database
         where the data was imported from.''',
