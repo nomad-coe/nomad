@@ -15,17 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
+import { scalePow } from 'd3-scale'
+import { isNil } from 'lodash'
 import elementData from '../../../elementData'
 import {
   Typography,
-  Button,
+  ButtonBase,
   Tooltip
 } from '@material-ui/core'
 import InputCheckbox from './InputCheckbox'
-import { useTheme, makeStyles } from '@material-ui/core/styles'
+import InputLabel from './InputLabel'
+import AspectRatio from '../../visualization/AspectRatio'
+import { makeStyles } from '@material-ui/core/styles'
+import {
+  useFilterState,
+  useAgg,
+  useSearchContext
+} from '../SearchContext'
+import searchQuantities from '../../../searchQuantities'
+import { approxInteger } from '../../../utils'
 
+// A fixed 2D, 10x18 array for the element data.
 const elements = []
 for (var i = 0; i < 10; i++) {
   elements[i] = Array.apply(null, Array(18))
@@ -35,53 +48,64 @@ elementData.elements.forEach(element => {
   element.category = element.category.replace(' ', '')
 })
 
+/**
+ * A single element in the periodic table.
+*/
 const useElementStyles = makeStyles(theme => ({
   root: {
-    position: 'relative'
+    top: 1,
+    bottom: 1,
+    left: 1,
+    right: 1,
+    position: 'absolute',
+    backgroundColor: theme.palette.secondary.veryLight
+  },
+  fit: {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    position: 'absolute'
+  },
+  bg: {
+    opacity: 0,
+    willChange: 'opacity',
+    transition: 'opacity 250ms',
+    backgroundColor: theme.palette.secondary.main
+  },
+  disabled: {
+    opacity: 1,
+    willChange: 'opacity',
+    transition: 'opacity 250ms',
+    backgroundColor: '#eee'
+  },
+  selected: {
+    backgroundColor: theme.palette.primary.dark,
+    display: 'none'
+  },
+  visible: {
+    display: 'block'
   },
   button: {
+    color: theme.palette.text.default,
     width: '100%',
     height: '100%',
     border: '1px solid',
+    borderColor: '#555',
     textAlign: 'center',
-    fontSize: '1rem',
-    fontWeight: 700,
-    textTransform: 'none',
-    minWidth: 0,
-    minHeight: 0,
-    borderRadius: 0,
-    boxShadow: 'none'
-  },
-  containedPrimary: {
-    backgroundColor: theme.palette.primary.dark,
-    color: 'white'
-  },
-  containerOuter: {
-    width: '100%',
-    paddingBottom: '100%',
-    position: 'relative'
-  },
-  containerInner: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%'
-  },
-  buttonRoot: {
-    padding: 16,
-    paddingTop: 17,
-    paddingBottom: 15,
-    width: '100%',
-    height: '100%',
-    boxSizing: 'border-box',
-    minWidth: 0,
-    border: '1px solid',
-    textAlign: 'center',
+    fontFamily: theme.typography.fontFamily,
     fontSize: '1rem',
     fontWeight: 600,
-    textTransform: 'none',
-    minHeight: 0,
-    borderRadius: 0,
-    boxShadow: 'none'
+    '&:hover': {
+      boxShadow: theme.shadows[4]
+    }
+  },
+  buttonSelected: {
+    color: 'white'
+  },
+  buttonDisabled: {
+    borderColor: '#999',
+    color: theme.palette.text.disabled
   },
   number: {
     position: 'absolute',
@@ -89,8 +113,26 @@ const useElementStyles = makeStyles(theme => ({
     left: 2,
     margin: 0,
     padding: 0,
-    fontSize: 8,
+    fontSize: 9,
     pointerEvents: 'none'
+  },
+  count: {
+    position: 'absolute',
+    bottom: 0,
+    right: 2,
+    margin: 0,
+    padding: 0,
+    fontSize: 9,
+    pointerEvents: 'none'
+  },
+  textSelected: {
+    color: 'white'
+  },
+  textDisabled: {
+    color: '#BDBDBD'
+  },
+  symbol: {
+    marginTop: -2
   }
 }))
 
@@ -98,120 +140,237 @@ const Element = React.memo(({
   element,
   selected,
   disabled,
-  onClick
+  onClick,
+  total,
+  count,
+  scale,
+  localFilter
 }) => {
   const styles = useElementStyles()
-  const buttonClasses = {
-    root: styles.buttonRoot,
-    containedPrimary: styles.containedPrimary
-  }
-  const theme = useTheme()
+  const { useIsStatisticsEnabled } = useSearchContext()
+  const isStatisticsEnabled = useIsStatisticsEnabled()
 
-  const style = (!disabled) ? {
-    backgroundColor: !selected ? theme.palette.secondary.light : undefined,
-    borderColor: '#555'
-  } : undefined
+  // Calculate the approximated count and the final scaled value
+  const scaler = useMemo(() => scalePow()
+    .exponent(scale)
+    .domain([0, 1])
+    .range([0, 1])
+  , [scale])
+  const finalCount = useMemo(() => approxInteger(count || 0), [count])
+  const finalScale = useMemo(() => scaler(count / total) || 0, [count, total, scaler])
 
-  return (
-    <div className={styles.root}>
-      <Tooltip title={element.name}>
-        <div className={styles.containerOuter}>
-          <div className={styles.containerInner}>
-            <Button
-              disabled={disabled}
-              classes={buttonClasses}
-              style={style}
-              onClick={onClick} variant="contained"
-              color={selected ? 'primary' : 'default'}
-            >
-              {element.symbol}
-            </Button>
-          </div>
-        </div>
-      </Tooltip>
-      <Typography
-        classes={{root: styles.number}} variant="caption"
-        style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
-        {element.number}
-      </Typography>
-      {!disabled >= 0
-        ? <Typography
-          classes={{root: styles.count}} variant="caption"
-          style={selected ? {color: 'white'} : disabled ? {color: '#BDBDBD'} : {}}>
-        </Typography> : ''
+  // Dynamically calculated styles. The background color is formed by animating
+  // opacity: opacity animation can be GPU-accelerated by the browser unlike
+  // animating the color property.
+  const useDynamicStyles = makeStyles((theme) => {
+    return {
+      bg: { opacity: isStatisticsEnabled
+        ? (isNil(count) || isNil(total))
+          ? 0
+          : finalScale
+        : 0.8 },
+      disabled: { opacity: disabled ? 1 : 0 }
+    }
+  })
+  const dynamicStyles = useDynamicStyles()
+
+  const [selectedInternal, setSelectedInternal] = useState(selected)
+  useEffect(() => {
+    setSelectedInternal(selected)
+  }, [selected])
+  const disabledInternal = selectedInternal ? false : disabled
+
+  const handleClick = useCallback(() => {
+    setSelectedInternal(old => {
+      const newValue = !old
+      if (newValue) {
+        localFilter.add(element.symbol)
+      } else {
+        localFilter.delete(element.symbol)
       }
-    </div>
-  )
+      return newValue
+    })
+    onClick()
+  }, [onClick, element, localFilter])
+
+  return <div className={styles.root}>
+    <div className={clsx(styles.fit, styles.bg, dynamicStyles.bg)}/>
+    <div className={clsx(styles.fit, styles.disabled, dynamicStyles.disabled)}/>
+    <div className={clsx(styles.fit, styles.selected, selectedInternal && styles.visible)}/>
+    <Tooltip title={element.name}>
+      <span className={styles.fit}>
+        <ButtonBase
+          className={clsx(
+            styles.fit,
+            styles.button,
+            selectedInternal && styles.buttonSelected,
+            disabledInternal && styles.buttonDisabled)
+          }
+          disabled={disabledInternal}
+          onClick={handleClick}
+          variant="contained"
+        >
+          <span className={styles.symbol}>{element.symbol}</span>
+        </ButtonBase>
+      </span>
+    </Tooltip>
+    <Typography
+      className={clsx(
+        styles.number,
+        selectedInternal && styles.textSelected,
+        disabledInternal && styles.textDisabled
+      )}
+      variant="caption"
+    >
+      {element.number}
+    </Typography>
+    {(isStatisticsEnabled) && <Typography
+      className={clsx(
+        styles.count,
+        selectedInternal && styles.textSelected,
+        disabledInternal && styles.textDisabled
+      )}
+      variant="caption"
+    >
+      {finalCount}
+    </Typography>}
+  </div>
 })
 
 Element.propTypes = {
   element: PropTypes.object.isRequired,
   onClick: PropTypes.func,
   selected: PropTypes.bool,
-  disabled: PropTypes.bool
+  disabled: PropTypes.bool,
+  total: PropTypes.number,
+  count: PropTypes.number,
+  scale: PropTypes.number,
+  localFilter: PropTypes.object
 }
 
+/**
+ * Represents a single element in the periodic table.
+*/
 const useTableStyles = makeStyles(theme => ({
-  root: {
-    position: 'relative'
+  root: {},
+  container: {
+    position: 'relative',
+    margin: -1
   },
   table: {
-    margin: 'auto',
     width: '100%',
-    minWidth: 500,
-    maxWidth: 900,
-    tableLayout: 'fixed',
-    borderSpacing: theme.spacing(0.5)
+    height: '100%',
+    borderSpacing: 0,
+    tableLayout: 'fixed'
+  },
+  td: {
+    position: 'relative'
   },
   formContainer: {
     position: 'absolute',
-    top: theme.spacing(0),
+    top: theme.spacing(-0.2),
     left: '10%',
     textAlign: 'center'
   }
 }))
 
+function eqSet(as, bs) {
+  if (isNil(as) || isNil(bs)) return false
+  if (as.size !== bs.size) return false
+  for (var a of as) if (!bs.has(a)) return false
+  return true
+}
+
 const InputPeriodicTable = React.memo(({
-  availableValues,
-  values,
-  onChanged
+  quantity,
+  label,
+  description,
+  visible,
+  initialScale,
+  draggable
 }) => {
   const styles = useTableStyles()
+  const [filter, setFilter] = useFilterState(quantity)
+  const localFilter = useRef(new Set())
+  const [update, setUpdate] = useState(0)
+  const [scale, setScale] = useState(initialScale)
+  const agg = useAgg(quantity, visible)
+  const availableValues = useMemo(() => {
+    const elementCountMap = {}
+    agg?.data && agg.data.forEach((value) => { elementCountMap[value.value] = value.count })
+    return elementCountMap
+  }, [agg])
+
+  // Determine the description and title
+  const def = searchQuantities[quantity]
+  const desc = description || def?.description || ''
+  const title = label || def?.name
+
+  // The selected state of the periodic filter is kept in a local reference.
+  // This way simply selecting an element does not cause a full re-render of the
+  // table. To handle external changes to the filter state, the local state is
+  // synced each time a change is triggered and only if the states differ, a
+  // re-render is issued.
+  useEffect(() => {
+    if (!eqSet(filter, localFilter.current)) {
+      localFilter.current = new Set(filter)
+      setUpdate(old => old + 1)
+    }
+  }, [filter, setUpdate, localFilter])
 
   const onElementClicked = useCallback((element) => {
-    let newValues
-    if (values) {
-      const isSelected = values?.has(element)
-      isSelected ? values.delete(element) : values.add(element)
-      newValues = new Set(values)
-    } else {
-      newValues = new Set()
-      newValues.add(element)
-    }
-    onChanged(newValues)
-  }, [values, onChanged])
+    setFilter(old => {
+      let newValues
+      if (old) {
+        const isSelected = old?.has(element)
+        isSelected ? old.delete(element) : old.add(element)
+        newValues = new Set(old)
+      } else {
+        newValues = new Set([element])
+      }
+      return newValues
+    })
+  }, [setFilter])
 
-  return (
-    <div className={styles.root}>
-      <table className={styles.table}>
-        <tbody>
-          {elements.map((row, i) => (
-            <tr key={i}>
-              {row.map((element, j) => (
-                <td key={j}>
-                  {element
-                    ? <Element
-                      element={element}
-                      disabled={!availableValues[element.symbol] && !values?.has(element.symbol)}
-                      onClick={() => onElementClicked(element.symbol)}
-                      selected={values?.has(element.symbol)}
-                    /> : ''}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  const table = useMemo(() => (<div className={styles.root}>
+    <InputLabel
+      quantity={quantity}
+      label={title}
+      description={desc}
+      scale={scale}
+      onChangeScale={setScale}
+      disableAggSize
+      draggable={draggable}
+    />
+    <div className={styles.container}>
+      <AspectRatio
+        aspectRatio={17 / 10}
+      >
+        <table className={styles.table}>
+          <tbody>
+            {elements.map((row, i) => (
+              <tr key={i}>
+                {row.map((element, j) => (
+                  <td key={j} className={styles.td}>
+                    {element
+                      ? <Element
+                        element={element}
+                        disabled={!availableValues[element.symbol]}
+                        onClick={() => onElementClicked(element.symbol)}
+                        selected={localFilter.current.has(element.symbol)}
+                        total={agg?.total}
+                        count={availableValues[element.symbol]}
+                        localFilter={localFilter.current}
+                        scale={scale}
+                      />
+                      : ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AspectRatio>
       <div className={styles.formContainer}>
         <InputCheckbox
           quantity="exclusive"
@@ -221,13 +380,24 @@ const InputPeriodicTable = React.memo(({
         ></InputCheckbox>
       </div>
     </div>
-  )
+  </div>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [agg, availableValues, onElementClicked, styles, update, scale])
+
+  return table
 })
 
 InputPeriodicTable.propTypes = {
-  availableValues: PropTypes.object,
-  values: PropTypes.object,
-  onChanged: PropTypes.func.isRequired
+  quantity: PropTypes.string,
+  label: PropTypes.string,
+  description: PropTypes.string,
+  visible: PropTypes.bool,
+  initialScale: PropTypes.number,
+  draggable: PropTypes.bool
+}
+
+InputPeriodicTable.defaultProps = {
+  initialScale: 1
 }
 
 export default InputPeriodicTable

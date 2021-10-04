@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useContext } from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import { Grid } from '@material-ui/core'
@@ -23,10 +23,6 @@ import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import InputPeriodicTable from '../input/InputPeriodicTable'
 import InputText from '../input/InputText'
 import InputSlider from '../input/InputSlider'
-import {
-  useFilterState,
-  useAgg
-} from '../SearchContext'
 import { useUnits } from '../../../units'
 
 const useStyles = makeStyles(theme => ({
@@ -42,20 +38,12 @@ const FilterSubMenuElements = React.memo(({
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
   const styles = useStyles()
-  const [filter, setFilter] = useFilterState('results.material.elements')
-  const data = useAgg('results.material.elements', false, visible)
   const units = useUnits()
-  const availableValues = useMemo(() => {
-    const elementCountMap = {}
-    data && data.forEach((value) => { elementCountMap[value.value] = value.count })
-    return elementCountMap
-  }, [data])
 
   return <FilterSubMenu value={value} {...rest}>
     <InputPeriodicTable
-      availableValues={availableValues}
-      values={filter}
-      onChanged={setFilter}
+      quantity="results.material.elements"
+      visible={visible}
     />
     <Grid container spacing={2} className={styles.grid}>
       <Grid item xs={6}>

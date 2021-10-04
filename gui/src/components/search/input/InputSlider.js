@@ -92,8 +92,8 @@ const InputSlider = React.memo(({
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, true, visible)
-  const [minGlobalSI, maxGlobalSI] = agg || [undefined, undefined]
+  const agg = useAgg(quantity, visible)
+  const [minGlobalSI, maxGlobalSI] = agg?.data || [undefined, undefined]
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
   const [minLocal, setMinLocal] = useState(0)
@@ -263,7 +263,12 @@ const InputSlider = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel
+        quantity={quantity}
+        label={title}
+        description={desc}
+        disableStatistics
+      />
       <div className={styles.inputRow}>
         <TextField
           disabled={disabled}
@@ -280,6 +285,7 @@ const InputSlider = React.memo(({
         <div className={styles.spacer}>
           <Slider
             disabled={disabled}
+            color="secondary"
             min={minLocal}
             max={maxLocal}
             step={stepSI}

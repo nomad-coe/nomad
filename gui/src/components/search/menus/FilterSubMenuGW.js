@@ -35,7 +35,7 @@ const FilterSubMenuGW = React.memo(({
           quantity="results.method.simulation.gw.gw_type"
           label="GW Type"
           visible={visible}
-          xs={6}
+          xs={12}
         />
       </Grid>
     </Grid>

@@ -35,6 +35,7 @@ const FilterSubMenuIDs = React.memo(({
           quantity="entry_id"
           visible={visible}
           autocomplete='off'
+          disableStatistics
         />
       </Grid>
       <Grid item xs={12}>
@@ -42,6 +43,7 @@ const FilterSubMenuIDs = React.memo(({
           quantity="upload_id"
           visible={visible}
           autocomplete='off'
+          disableStatistics
         />
       </Grid>
       <Grid item xs={12}>
@@ -49,6 +51,7 @@ const FilterSubMenuIDs = React.memo(({
           quantity="results.material.material_id"
           visible={visible}
           autocomplete='off'
+          disableStatistics
         />
       </Grid>
       <Grid item xs={12}>
@@ -56,6 +59,7 @@ const FilterSubMenuIDs = React.memo(({
           quantity="datasets.dataset_id"
           visible={visible}
           autocomplete='off'
+          disableStatistics
         />
       </Grid>
     </Grid>

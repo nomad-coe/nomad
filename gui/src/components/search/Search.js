@@ -15,17 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState } from 'react'
+import React from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
+import { Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import SearchBar from './SearchBar'
+import StatisticsGrid from './statistics/StatisticsGrid'
 import SearchResults from './results/SearchResults'
-import {
-  useMenuOpenState
-} from './SearchContext'
-import { Box } from '@material-ui/core'
+import { useSearchContext } from './SearchContext'
 
 /**
  * The primary search interface that is reused throughout the application in
@@ -58,17 +57,40 @@ const useStyles = makeStyles(theme => {
       display: 'flex',
       flexGrow: 0,
       zIndex: 1
+    },
+    shadow: {
+      pointerEvents: 'none',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 0,
+      height: '100%',
+      width: '100%',
+      backgroundColor: 'black',
+      transition: 'opacity 200ms',
+      willChange: 'opacity',
+      zIndex: 1,
+      opacity: 0
+    },
+    shadowVisible: {
+      opacity: 0.1
     }
   }
 })
 
 const Search = React.memo(({
-  collapsed,
   header
 }) => {
   const styles = useStyles()
-  const [isMenuOpen, setIsMenuOpen] = useMenuOpenState(false)
-  const [isCollapsed, setIsCollapsed] = useState(collapsed)
+  const {
+    useIsMenuOpen,
+    useSetIsMenuOpen,
+    useIsCollapsed,
+    useSetIsCollapsed
+  } = useSearchContext()
+  const [isMenuOpen, setIsMenuOpen] = [useIsMenuOpen(), useSetIsMenuOpen()]
+  const [isCollapsed, setIsCollapsed] = [useIsCollapsed(), useSetIsCollapsed()]
 
   return <div className={styles.root}>
     <div className={clsx(styles.leftColumn, isCollapsed && styles.leftColumnCollapsed)}>
@@ -87,13 +109,16 @@ const Search = React.memo(({
         <Box marginBottom={2}>
           <SearchBar className={styles.searchBar} />
         </Box>
+        <Box marginBottom={2}>
+          <StatisticsGrid/>
+        </Box>
         <SearchResults />
+        <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>
     </div>
   </div>
 })
 Search.propTypes = {
-  collapsed: PropTypes.bool,
   header: PropTypes.node
 }
 

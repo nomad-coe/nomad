@@ -38,7 +38,7 @@ const FilterSubMenuMaterial = React.memo(({
         <InputCheckboxes
           quantity="results.material.structural_type"
           visible={visible}
-          xs={6}
+          xs={12}
         />
       </Grid>
       <Grid item xs={12}>

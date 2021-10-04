@@ -76,8 +76,8 @@ const InputDateRange = React.memo(({
   const changed = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, true, visible)
-  const [startGlobal, endGlobal] = agg || [undefined, undefined]
+  const agg = useAgg(quantity, visible)
+  const [startGlobal, endGlobal] = agg?.data || [undefined, undefined]
   const disabled = locked || (startGlobal === null || endGlobal === null)
 
   // If no filter has been specified by the user, the range is automatically
@@ -158,7 +158,12 @@ const InputDateRange = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel
+        quantity={quantity}
+        label={title}
+        description={desc}
+        disableStatistics
+      />
       <div className={styles.row}>
         <KeyboardDatePicker
           error={!!error}

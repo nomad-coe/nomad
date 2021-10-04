@@ -17,21 +17,19 @@
  */
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Grid,
-  FormControlLabel,
-  Checkbox
-} from '@material-ui/core'
+import { Grid } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputLabel from './InputLabel'
 import InputTooltip from './InputTooltip'
+import InputItem from './InputItem'
 import {
   useFilterState,
   useAgg,
   useInitialAgg,
-  useFilterLocked
+  useFilterLocked,
+  filterData
 } from '../SearchContext'
 import { isArray } from 'lodash'
 
@@ -43,15 +41,18 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
+  },
+  gridItem: {
+    position: 'relative'
   }
 }))
 const InputCheckboxes = React.memo(({
   label,
   quantity,
   description,
-  options,
   visible,
   xs,
+  initialScale,
   className,
   classes,
   'data-testid': testID
@@ -59,12 +60,14 @@ const InputCheckboxes = React.memo(({
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
-  const availableOptions = useAgg(quantity, true, visible)
+  const [scale, setScale] = useState(initialScale)
+  const agg = useAgg(quantity, visible)
   const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const finalOptions = useMemo(() => {
     // If explicit options provided, use them
+    const options = filterData[quantity].options
     if (options) {
       return options
     }
@@ -86,7 +89,7 @@ const InputCheckboxes = React.memo(({
       return opt
     }
     return {}
-  }, [options, quantity, initialAgg])
+  }, [quantity, initialAgg])
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -105,23 +108,24 @@ const InputCheckboxes = React.memo(({
         disabled: true
       }
     }
-    if (availableOptions) {
-      for (let value of availableOptions) {
+    if (agg?.data) {
+      for (let value of agg.data) {
         const key = value.value
         const selected = filter ? filter.has(key) : false
         const oldState = opt[key]
         const disabled = locked || (selected ? false : value.count === 0)
         if (oldState) {
+          oldState.count = value.count
           oldState.disabled = disabled
         }
       }
     }
     setVisibleOptions(opt)
-  }, [availableOptions, filter, finalOptions, locked])
+  }, [agg, filter, finalOptions, locked])
 
-  const handleChange = useCallback((event) => {
+  const handleChange = useCallback((key, value) => {
     const newOptions = {...visibleOptions}
-    newOptions[event.target.name].checked = event.target.checked
+    newOptions[key].checked = value
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
@@ -129,18 +133,31 @@ const InputCheckboxes = React.memo(({
   }, [setFilter, visibleOptions])
 
   const checkboxes = visibleOptions && Object.entries(visibleOptions).map(([key, value]) => {
-    return <Grid item xs={xs} key={key}>
-      <FormControlLabel
-        control={<Checkbox checked={value.checked} onChange={handleChange} name={key}/>}
-        label={value.label || key}
+    return <Grid item xs={xs} key={key} className={styles.gridItem}>
+      <InputItem
+        value={key}
+        label={value.label}
+        selected={value.checked}
         disabled={value.disabled}
+        onChange={handleChange}
+        variant="checkbox"
+        total={agg?.total}
+        count={value.count}
+        scale={scale}
       />
     </Grid>
   })
 
   return <InputTooltip locked={locked} disabled={false}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel label={title} description={desc}/>
+      <InputLabel
+        quantity={quantity}
+        label={title}
+        description={desc}
+        scale={scale}
+        onChangeScale={setScale}
+        disableAggSize
+      />
       <Grid container spacing={0}>
         {checkboxes}
       </Grid>
@@ -153,17 +170,18 @@ InputCheckboxes.propTypes = {
   quantity: PropTypes.string,
   // Optional information about the options. Can also be used to enable/disable
   // options.
-  options: PropTypes.object,
   visible: PropTypes.bool,
   xs: PropTypes.number,
   description: PropTypes.string,
+  initialScale: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
 InputCheckboxes.defaultProps = {
-  xs: 12
+  xs: 12,
+  initialScale: 1
 }
 
 export default InputCheckboxes

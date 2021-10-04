@@ -505,8 +505,7 @@ export function parseMeta(quantity, pretty = true) {
  * Converts a set into an array. The array will be in the insertion order of the
  * set.
  *
- * @param {Set} target Set to be converted
- * @return {array} Array created from the set
+ * @param {Set} target Set to be converted.
  *
  * @return {number} Array containing the total difference values.
  */
@@ -524,4 +523,44 @@ export function setToArray(target) {
  */
 export function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Converts a number into an approximated format with SI suffixes. The number is
+ * guaranteed to be no longer than five characters, including the possible SI
+ * suffix.
+ *
+ * @param {number} number Number to approximate
+ *
+ * @return {string} The number in approximated format.
+ */
+export function approxInteger(number) {
+  // Determine the number of digits and the tier of the number
+  const temp = Math.log10(Math.abs(number))
+  const tier = temp / 3 | 0
+
+  // What tier? (determines SI symbol)
+  const SISymbol = ['', 'k', 'M', 'G', 'T', 'P', 'E']
+
+  // If zero, we don't need a suffix
+  if (tier === 0) return number.toFixed(0)
+
+  // Get suffix and determine scale
+  var suffix = SISymbol[tier]
+  var scale = Math.pow(10, tier * 3)
+
+  // Scale the number and count the number of decimals
+  var scaled = number / scale
+  let nUsed, nDecimals
+  const split = scaled.toString().split('.')
+  if (split.length > 1) {
+    nUsed = split[0].length
+    nDecimals = split[1].length
+  } else {
+    nUsed = split[0].length
+    nDecimals = 0
+  }
+
+  // Format number and add suffix
+  return scaled.toFixed(Math.min(3 - nUsed, nDecimals)) + suffix
 }

@@ -42,6 +42,10 @@ import searchQuantities from '../../searchQuantities'
 import { Quantity } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination } from '../datatable/Datatable'
+import InputList from './input/InputList'
+import InputSlider from './input/InputSlider'
+import InputDateRange from './input/InputDateRange'
+import InputPeriodicTable from './input/InputPeriodicTable'
 
 export const filters = new Set() // Contains the full names of all the available filters
 export const filterGroups = [] // Mapping from filter full name -> group
@@ -86,25 +90,14 @@ export const labelIDs = 'IDs'
  * @param {object} value Custom setter/getter for the filter value.
  * @param {bool} multiple Whether this filter supports several values:
  * controls whether setting the value appends or overwrites.
+ * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
  */
-function registerFilter(name, group, agg, value, multiple = true) {
+function registerFilter(name, group, statConfig, agg, value, multiple = true, exclusive = true, options) {
   filters.add(name)
   if (group) {
     filterGroups[group]
       ? filterGroups[group].add(name)
       : filterGroups[group] = new Set([name])
-  }
-
-  // Register mappings from full name to abbreviation and vice versa
-  const abbreviation = name.split('.').pop()
-  const oldName = filterAbbreviations[abbreviation]
-  if (!oldName) {
-    filterAbbreviations[name] = abbreviation
-    filterFullnames[abbreviation] = name
-  } else {
-    delete filterFullnames[abbreviation]
-    filterAbbreviations[name] = name
-    filterAbbreviations[oldName] = oldName
   }
 
   const data = filterData[name] || {}
@@ -124,50 +117,93 @@ function registerFilter(name, group, agg, value, multiple = true) {
     data.valueSet = value.set
   }
   data.multiple = multiple
+  data.exclusive = exclusive
+  data.statConfig = statConfig
+  data.options = options
   filterData[name] = data
 }
 
+const listStatConfig = {
+  component: InputList,
+  layout: {
+    widthOptions: ['small', 'medium', 'large'],
+    widthDefault: 'small',
+    ratioDefault: 3 / 4,
+    ratioOptions: [1, 3 / 4]
+  }
+}
+const ptStatConfig = {
+  component: InputPeriodicTable,
+  layout: {
+    widthOptions: ['small', 'medium', 'large'],
+    widthDefault: 'large',
+    ratioOptions: [3 / 2],
+    ratioDefault: 3 / 2
+  }
+}
+export const widthMapping = {
+  large: {
+    'sm': 12,
+    'md': 9,
+    'lg': 8,
+    'xl': 6
+  },
+  medium: {
+    'sm': 6,
+    'md': 6,
+    'lg': 4,
+    'xl': 3
+  },
+  small: {
+    'sm': 6,
+    'md': 3,
+    'lg': 4,
+    'xl': 3
+  }
+}
+
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, 'terms')
-registerFilter('results.material.functional_type', labelMaterial, 'terms')
-registerFilter('results.material.compound_type', labelMaterial, 'terms')
-registerFilter('results.material.material_name', labelMaterial)
-registerFilter('results.material.chemical_formula_hill', labelElements)
-registerFilter('results.material.chemical_formula_anonymous', labelElements)
-registerFilter('results.material.n_elements', labelElements, 'min_max', undefined, false)
-registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.crystal_system', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.structure_name', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, 'terms')
-registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry)
-registerFilter('results.material.symmetry.point_group', labelSymmetry)
-registerFilter('results.material.symmetry.hall_symbol', labelSymmetry)
-registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry)
-registerFilter('results.method.method_name', labelMethod, 'terms')
-registerFilter('results.method.simulation.program_name', labelMethod, 'terms')
-registerFilter('results.method.simulation.program_version', labelMethod)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, 'terms')
-registerFilter('results.method.simulation.dft.relativity_method', labelDFT, 'terms')
-registerFilter('results.method.simulation.gw.gw_type', labelGW, 'terms')
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, 'terms')
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, 'min_max', undefined, false)
-registerFilter('external_db', labelAuthor, 'terms')
-registerFilter('authors.name', labelAuthor)
-registerFilter('upload_create_time', labelAuthor, 'min_max', undefined, false)
-registerFilter('datasets.name', labelDataset)
-registerFilter('datasets.doi', labelDataset)
-registerFilter('entry_id', labelIDs)
-registerFilter('upload_id', labelIDs)
-registerFilter('results.material.material_id', labelIDs)
-registerFilter('datasets.dataset_id', labelIDs)
+registerFilter('results.material.structural_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.functional_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.compound_type', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.material_name', labelMaterial, listStatConfig, 'terms')
+registerFilter('results.material.chemical_formula_hill', labelElements, listStatConfig, 'terms')
+registerFilter('results.material.chemical_formula_anonymous', labelElements, listStatConfig, 'terms')
+registerFilter('results.material.n_elements', labelElements, InputSlider, 'min_max', undefined, false)
+registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.crystal_system', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.structure_name', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.point_group', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, listStatConfig, 'terms')
+registerFilter('results.method.method_name', labelMethod, listStatConfig, 'terms')
+registerFilter('results.method.simulation.program_name', labelSimulation, listStatConfig, 'terms')
+registerFilter('results.method.simulation.program_version', labelSimulation, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.dft.relativity_method', labelDFT, listStatConfig, 'terms')
+registerFilter('results.method.simulation.gw.gw_type', labelGW, listStatConfig, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, listStatConfig, 'terms')
+registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, InputSlider, 'min_max', undefined, false)
+registerFilter('external_db', labelAuthor, listStatConfig, 'terms')
+registerFilter('authors.name', labelAuthor, listStatConfig, 'terms')
+registerFilter('upload_create_time', labelAuthor, InputDateRange, 'min_max', undefined, false)
+registerFilter('datasets.name', labelDataset, listStatConfig)
+registerFilter('datasets.doi', labelDataset, listStatConfig)
+registerFilter('entry_id', labelIDs, listStatConfig)
+registerFilter('upload_id', labelIDs, listStatConfig)
+registerFilter('results.material.material_id', labelIDs, listStatConfig)
+registerFilter('datasets.dataset_id', labelIDs, listStatConfig)
 
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
 registerFilter(
   'results.material.elements',
   labelElements,
+  ptStatConfig,
   'terms',
   {
     set: (newQuery, oldQuery, value) => {
@@ -179,15 +215,24 @@ registerFilter(
         newQuery['results.material.elements'] = value
       }
     }
-  }
+  },
+  true,
+  false
 )
 // Electronic properties: subset of results.properties.available_properties
+const electronicOptions = {
+  band_structure_electronic: {label: 'band structure'},
+  dos_electronic: {label: 'density of states'}
+}
+const electronicProps = new Set(Object.keys(electronicOptions))
 registerFilter(
   'electronic_properties',
   labelElectronic,
+  listStatConfig,
   {
     set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+      .filter((value) => electronicProps.has(value.value)))
   },
   {
     set: (newQuery, oldQuery, value) => {
@@ -196,15 +241,27 @@ registerFilter(
       newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
-  }
+  },
+  true,
+  false,
+  electronicOptions
 )
 // Vibrational properties: subset of results.properties.available_properties
+export const vibrationalOptions = {
+  dos_phonon: {label: 'phonon density of states'},
+  band_structure_phonon: {label: 'phonon band structure'},
+  energy_free_helmholtz: {label: 'Helmholtz free energy'},
+  heat_capacity_constant_volume: {label: 'heat capacity constant volume'}
+}
+const vibrationalProps = new Set(Object.keys(vibrationalOptions))
 registerFilter(
   'vibrational_properties',
   labelVibrational,
+  listStatConfig,
   {
     set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data)
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+      .filter((value) => vibrationalProps.has(value.value)))
   },
   {
     set: (newQuery, oldQuery, value) => {
@@ -213,7 +270,10 @@ registerFilter(
       newQuery['results.properties.available_properties'] = data
     },
     get: (data) => (data.results.properties.available_properties)
-  }
+  },
+  true,
+  false,
+  vibrationalOptions
 )
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
@@ -221,12 +281,14 @@ registerFilter(
   'visibility',
   labelAccess,
   undefined,
+  undefined,
   {set: () => {}},
   false
 )
 // Restricted: controls whether materials search is done in a restricted mode.
 registerFilter(
   'restricted',
+  undefined,
   undefined,
   undefined,
   {set: () => {}},
@@ -237,9 +299,31 @@ registerFilter(
   'exclusive',
   undefined,
   undefined,
+  undefined,
   {set: () => {}},
   false
 )
+
+// The filter abbreviation mapping has to be done only after all filters have
+// been registered.
+const abbreviations = {}
+const nameAbbreviationPairs = [...filters].map(
+  fullname => [fullname, fullname.split('.').pop()])
+for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+  const old = abbreviations[abbreviation]
+  if (old === undefined) {
+    abbreviations[abbreviation] = 1
+  } else {
+    abbreviations[abbreviation] += 1
+  }
+  filterAbbreviations[fullname] = fullname
+}
+for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+  if (abbreviations[abbreviation] === 1) {
+    filterAbbreviations[fullname] = abbreviation
+    filterFullnames[abbreviation] = fullname
+  }
+}
 
 // Material and entry queries target slightly different fields. Here we prebuild
 // the mapping.
@@ -257,6 +341,18 @@ for (const name of Object.keys(searchQuantities)) {
   entryNames[materialName] = name
 }
 
+/**
+ * React context that provides access to the search state implemented with
+ * Recoil.js. The purpose of this Context is to hide the Recoil.js
+ * implementation details and provide a clean access to individual states in
+ * order to prevent unnecessary re-renders (if we were to provide state values
+ * and setters in a vanilla React Context, updating a single filter would cause
+ * all components using the context to update.)
+ *
+ * At the moment we use a global set of Recoil.js atoms. These are reused throughout the application.
+ * If in the future we need to use several searchcontexts simultaneously, each
+ * SearchContext could instantiate it's own set of atoms dynamically.
+ */
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
   resource,
@@ -265,6 +361,7 @@ export const SearchContext = React.memo(({
 }) => {
   const setQuery = useSetRecoilState(queryState)
   const setLocked = useSetRecoilState(lockedState)
+  const setStatistics = useSetRecoilState(statisticsState)
   const {api} = useApi()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
@@ -281,23 +378,24 @@ export const SearchContext = React.memo(({
   }, [reset])
 
   // Read the initial query from the URL
-  const query = useMemo(() => {
+  const [query, statistics] = useMemo(() => {
     const location = window.location.href
     const split = location.split('?')
-    let qs, query
+    let qs, query, statistics
     if (split.length === 1) {
       query = {}
     } else {
-      qs = split.pop()
-      query = qsToQuery(qs)
+      qs = split.pop();
+      [query, statistics] = qsToSearch(qs)
     }
-    return query
+    return [query, statistics]
   }, [])
 
-  // Save the initial query and locked filters. Cannot be done inside useMemo
-  // due to bad setState.
+  // Save the initial query, locked filters and statistics. Cannot be done
+  // inside useMemo due to bad setState.
   useEffect(() => {
     setQuery(query)
+    setStatistics(statistics)
     // Transform the locked values into a GUI-suitable format and store them
     if (filtersLocked) {
       const filtersLockedGUI = {}
@@ -306,7 +404,7 @@ export const SearchContext = React.memo(({
       }
       setLocked(filtersLockedGUI)
     }
-  }, [setLocked, setQuery, query, filtersLocked])
+  }, [setLocked, setQuery, setStatistics, query, statistics, filtersLocked])
 
   // Fetch initial aggregation data.
   useEffect(() => {
@@ -325,13 +423,22 @@ export const SearchContext = React.memo(({
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, aggNames, resource)
-        setInitialAggs(data)
+        const newData = {
+          total: data.pagination.total,
+          data: toGUIAgg(data.aggregations, aggNames, resource)
+        }
+        setInitialAggs(newData)
       })
   }, [api, setInitialAggs, resource])
 
   const values = useMemo(() => ({
-    resource: resource
+    resource,
+    useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
+    useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
+    useIsCollapsed: () => useRecoilValue(isCollapsedState),
+    useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
+    useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
+    useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState)
   }), [resource])
 
   return <searchContext.Provider value={values}>
@@ -363,42 +470,37 @@ export const queryFamily = atomFamily({
   key: 'queryFamily',
   default: undefined
 })
-export const lockedFamily = atomFamily({
-  key: 'lockedFamily',
-  default: false
-})
-
-// Menu open state
-export const menuOpen = atom({
-  key: 'isMenuOpen',
-  default: false
-})
-export function useMenuOpenState() {
-  return useRecoilState(menuOpen)
-}
-export function useSetMenuOpen() {
-  return useSetRecoilState(menuOpen)
-}
-
-// Current menu path
-export const menuPath = atom({
-  key: 'menuPath',
-  default: 'Filters'
-})
-export function useMenuPathState() {
-  return useRecoilState(menuPath)
-}
-export function useMenuPath() {
-  return useRecoilValue(menuPath)
-}
-export function useSetMenuPath() {
-  return useSetRecoilState(menuPath)
-}
-
-// Whether the search is initialized.
 export const initializedState = atom({
   key: 'initialized',
   default: false
+})
+export const isStatisticsEnabledState = atom({
+  key: 'statisticsEnabled',
+  default: true
+})
+const isMenuOpenState = atom({
+  key: 'isMenuOpen',
+  default: false
+})
+const isCollapsedState = atom({
+  key: 'isCollapsed',
+  default: false
+})
+
+// Used to get/set the locked state of all filters at once
+const filtersState = selector({
+  key: 'filtersState',
+  get: ({get}) => {
+    const query = {}
+    for (let key of filters) {
+      const filter = get(queryFamily(key))
+      query[key] = filter
+    }
+    return query
+  },
+  set: ({set}, [key, value]) => {
+    set(queryFamily(key), value)
+  }
 })
 
 /**
@@ -417,6 +519,81 @@ export function useResetFilters() {
   }, [locked])
   return reset
 }
+
+export const statisticFamily = atomFamily({
+  key: 'statisticFamily',
+  default: undefined
+})
+
+// Used to get/set the the statistics configuration of all filters
+const statisticsState = selector({
+  key: 'statisticsState',
+  set: ({set}, stats) => {
+    if (stats) {
+      for (let [key, value] of Object.entries(stats)) {
+        set(statisticFamily(key), value)
+      }
+    }
+  },
+  get: ({get}) => {
+    const stats = {}
+    for (let filter of filters) {
+      const stat = get(statisticFamily(filter))
+      if (stat) stats[filter] = stat
+    }
+    return stats
+  }
+})
+
+/**
+ * This hook will expose a function for reading if filter statistics are shown
+ * on the search page. Use this hook if you intend to only view the value and
+ * are not interested in setting the value.
+ *
+ * @param {string} name Name of the filter.
+ * @returns Whether the filter statistics are shown.
+ */
+export function useStatisticValue(name) {
+  return useRecoilValue(statisticFamily(name))
+}
+
+/**
+ * This hook will expose a function for setting if filter statistics are shown
+ * on the search page. Use this hook if you intend to only set the value and are
+ * not interested in reading it.
+ *
+ * @param {string} name Name of the quantity to set.
+ * @returns function for setting the value
+ */
+export function useSetStatistic(name) {
+  return useSetRecoilState(statisticFamily(name))
+}
+
+/**
+ * This hook will expose a function for getting and setting whether the
+ * statistics are shown. Use this hook if you intend to both read and write the
+ * filter value.
+ *
+ * @param {string} name Name of the filter.
+ * @returns Array containing the value and setter function for it.
+ */
+export function useStatisticState(name) {
+  return useRecoilState(statisticFamily(name))
+}
+
+/**
+ * This hook will expose a function for reading a list of anchored quantities.
+ *
+ * @returns A list containing the anchored quantity names.
+ */
+export function useStatisticsValue() {
+  return useRecoilValue(statisticsState)
+}
+
+export const lockedFamily = atomFamily({
+  key: 'lockedFamily',
+  default: false
+})
 
 /**
  * This hook will expose a function for reading if the given filter is locked.
@@ -539,22 +716,6 @@ export function useSetFilters() {
   return useSetRecoilState(filtersState)
 }
 
-// Used to get/set the locked state of all filters at once
-const filtersState = selector({
-  key: 'filtersState',
-  get: ({get}) => {
-    const query = {}
-    for (let key of filters) {
-      const filter = get(queryFamily(key))
-      query[key] = filter
-    }
-    return query
-  },
-  set: ({set}, [key, value]) => {
-    set(queryFamily(key), value)
-  }
-})
-
 /**
  * This hook will expose a function for getting and setting filter values for
  * the specified list of filters. Use this hook if you intend to both read and
@@ -632,17 +793,21 @@ export function useQuery() {
 }
 
 /**
- * Hook for writing a query object to the query string.
+ * Hook that returns a function for updating the query string.
  *
- * @returns {object} Object containing the search object.
+ * @returns {function} A function that updates the query string to reflect the
+ * current search page state.
  */
 export function useUpdateQueryString() {
   const history = useHistory()
+  const query = useQuery()
+  const locked = useRecoilValue(lockedState)
+  const statistics = useRecoilValue(statisticsState)
 
-  const updateQueryString = useCallback((query, locked) => {
-    const queryString = queryToQs(query, locked)
+  const updateQueryString = useCallback(() => {
+    const queryString = searchToQs(query, locked, statistics)
     history.replace(history.location.pathname + '?' + queryString)
-  }, [history])
+  }, [query, locked, statistics, history])
 
   return updateQueryString
 }
@@ -654,27 +819,44 @@ export function useUpdateQueryString() {
  * @returns Returns an object containing the filters. Values are converted into
  * datatypes that are directly compatible with the filter components.
  */
-function qsToQuery(queryString) {
-  const query = qs.parse(queryString, {comma: true})
-  const newQuery = {}
-  for (let [key, value] of Object.entries(query)) {
+function qsToSearch(queryString) {
+  const queryObj = qs.parse(queryString, {comma: true})
+
+  // Deserialize statistics
+  let statistics
+  const stats = queryObj.statistics
+  if (stats) {
+    statistics = {}
+    if (isArray(stats)) {
+      for (const stat of stats) {
+        statistics[stat] = true
+      }
+    } else {
+      statistics[stats] = true
+    }
+    delete queryObj.statistics
+  }
+
+  // Deserialize query
+  const query = {}
+  for (let [key, value] of Object.entries(queryObj)) {
     const split = key.split(':')
     key = split[0]
     let newKey = filterFullnames[key] || key
     const valueGUI = toGUIFilter(newKey, value)
     if (split.length !== 1) {
       const op = split[1]
-      const oldValue = newQuery[newKey]
+      const oldValue = query[newKey]
       if (!oldValue) {
-        newQuery[newKey] = {[op]: valueGUI}
+        query[newKey] = {[op]: valueGUI}
       } else {
-        newQuery[newKey][op] = valueGUI
+        query[newKey][op] = valueGUI
       }
     } else {
-      newQuery[newKey] = valueGUI
+      query[newKey] = valueGUI
     }
   }
-  return newQuery
+  return [query, statistics]
 }
 
 /**
@@ -683,34 +865,45 @@ function qsToQuery(queryString) {
  * filters.
  * @returns {object} An object that can be serialized into a query string
  */
-export function queryToQsData(query, locked) {
+export function searchToQsData(query, locked, statistics) {
   locked = locked || {}
   const queryStringQuery = {}
-  for (const [key, value] of Object.entries(query)) {
-    if (locked[key]) {
-      continue
-    }
-    const {formatter} = formatMeta(key, false)
-    let newValue
-    const newKey = filterAbbreviations[key] || key
-    if (isPlainObject(value)) {
-      if (!isNil(value.gte)) {
-        queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
+
+  // The query is serialized first: locked items will not be displayed in the
+  // URL
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (locked[key]) {
+        continue
       }
-      if (!isNil(value.lte)) {
-        queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
-      }
-    } else {
-      if (isArray(value)) {
-        newValue = value.map(formatter)
-      } else if (value instanceof Set) {
-        newValue = [...value].map(formatter)
+      const {formatter} = formatMeta(key, false)
+      let newValue
+      const newKey = filterAbbreviations[key] || key
+      if (isPlainObject(value)) {
+        if (!isNil(value.gte)) {
+          queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
+        }
+        if (!isNil(value.lte)) {
+          queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
+        }
       } else {
-        newValue = formatter(value)
+        if (isArray(value)) {
+          newValue = value.map(formatter)
+        } else if (value instanceof Set) {
+          newValue = [...value].map(formatter)
+        } else {
+          newValue = formatter(value)
+        }
+        queryStringQuery[newKey] = newValue
       }
-      queryStringQuery[newKey] = newValue
     }
   }
+
+  // The shown statistics are serialized here: the order is preserved
+  if (!isEmpty(statistics)) {
+    queryStringQuery.statistics = Object.keys(statistics)
+  }
+
   return queryStringQuery
 }
 
@@ -720,8 +913,8 @@ export function queryToQsData(query, locked) {
  * filters.
  * @returns URL querystring, not encoded if possible to improve readability.
  */
-function queryToQs(query, locked) {
-  const queryData = queryToQsData(query, locked)
+function searchToQs(query, locked, statistics) {
+  const queryData = searchToQsData(query, locked, statistics)
   return qs.stringify(queryData, {indices: false, encode: false})
 }
 
@@ -745,20 +938,18 @@ export function useInitialAgg(name) {
  * filter, taking into account the current search context.
  *
  * @param {string} name The filter name
- * @param {bool} restrict If true, the ES query targeting this particular filter
- * will be removed. This makes it possible to return all possible values for
- * dropdowns etc.
  * @param {bool} update Whether the hook needs to react to changes in the
  * current query context. E.g. if the component showing the data is not visible,
  * this can be set to false.
  *
  * @returns {array} The data-array returned by the API.
  */
-export function useAgg(name, restrict = false, update = true, delay = 500) {
+export function useAgg(name, update = true, restrict = undefined, delay = 500) {
   const {api} = useApi()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
+  const finalRestrict = isNil(restrict) ? filterData[name].exclusive : restrict
   const query = useQuery()
   const firstLoad = useRef(true)
 
@@ -770,7 +961,7 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
     // quantity will be removed. This way all possible options pre-selection can
     // be returned.
     let queryCleaned = {...query}
-    if (restrict && query && name in query) {
+    if (finalRestrict && query && name in query) {
       delete queryCleaned[name]
     }
     queryCleaned = toAPIQuery(queryCleaned, resource, query.restricted)
@@ -786,11 +977,14 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
 
     api.query(resource, search, false)
       .then(data => {
-        data = toGUIAgg(data.aggregations, [name], resource)
+        const newData = {
+          total: data.pagination.total,
+          data: toGUIAgg(data.aggregations, [name], resource)[name]
+        }
         firstLoad.current = false
-        setResults(data[name])
+        setResults(newData)
       })
-  }, [api, name, restrict, resource])
+  }, [api, name, finalRestrict, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])
@@ -804,7 +998,7 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
     if (firstLoad.current) {
       // Fetch the initial aggregation values if no query
       // is specified.
-      if (isEmpty(query)) {
+      if (isEmpty(query) && !isNil(initialAggs?.[name])) {
         setResults(initialAggs[name])
       // Make an immediate request for the aggregation values if query has been
       // specified.
@@ -830,9 +1024,9 @@ export function useAgg(name, restrict = false, update = true, delay = 500) {
 export function useScrollResults(initialPagination, delay = 500) {
   const {api} = useApi()
   const {raiseErrors} = useErrors()
+  const firstRender = useRef(true)
   const {resource} = useSearchContext()
   const query = useQuery()
-  const locked = useRecoilValue(lockedState)
   const updateQueryString = useUpdateQueryString()
 
   const [results, setResults] = useState([])
@@ -840,7 +1034,7 @@ export function useScrollResults(initialPagination, delay = 500) {
   const [pagination, setPagination] = useState(initialPagination || {page_size: 10})
 
   // This callback will call the API with a debounce by the given delay.
-  const callApi = useCallback(debounce((query, locked, pagination) => {
+  const callAPI = useCallback((query, pagination, updateQueryString) => {
     const isExtend = pagination.page_after_value
 
     const request = {
@@ -862,10 +1056,13 @@ export function useScrollResults(initialPagination, delay = 500) {
         // the query string causes quite an intensive render (not sure why), so it
         // is better to debounce this value as well to keep the user interaction
         // smoother.
-        updateQueryString(query, locked)
+        updateQueryString()
       })
       .catch(raiseErrors)
-  }, delay), [resource, api, raiseErrors, updateQueryString, paginationResponse])
+  }, [resource, api, raiseErrors, paginationResponse])
+
+  // Debounced version of callAPI
+  const callAPIDebounced = useCallback(debounce(callAPI, delay), [])
 
   // Whenever the query or pagination changes, we make an api call.
   // The results are fetched as a side effect in order to not block the
@@ -881,13 +1078,19 @@ export function useScrollResults(initialPagination, delay = 500) {
       pagination.next_page_after_value = undefined
     }
 
-    callApi(query, locked, pagination)
-  }, [callApi, query, locked, pagination])
+    if (firstRender.current) {
+      callAPI(query, pagination, updateQueryString)
+      firstRender.current = false
+    } else {
+      callAPIDebounced(query, pagination, updateQueryString)
+    }
+  }, [callAPI, callAPIDebounced, query, pagination, updateQueryString])
 
   return {
     data: results,
     pagination: combinePagination(pagination, paginationResponse.current),
-    setPagination: setPagination}
+    setPagination: setPagination
+  }
 }
 
 /**
@@ -1061,7 +1264,7 @@ export function toGUIFilter(name, value, units = undefined) {
  * @param {string} filter The filter name
  * @param {string} resource The resource we are looking at: entries or materials.
  */
-function toAPIAgg(aggs, filter, resource) {
+function toAPIAgg(aggs, filter, resource, size) {
   const aggSet = filterData[filter].aggSet
   if (aggSet) {
     for (const [key, type] of Object.entries(aggSet)) {
@@ -1069,7 +1272,7 @@ function toAPIAgg(aggs, filter, resource) {
       const agg = aggs[name] || {}
       agg[type] = {
         quantity: name,
-        size: 500
+        size: 200 // Fixed, large value to get a relevant set of results.
       }
       aggs[name] = agg
     }
