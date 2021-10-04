@@ -166,6 +166,8 @@ class Calc(Proc):
         pid: the legacy NOMAD pid of the entry
         external_id:  A user provided external id. Usually the id for an entry in an
             external database where the data was imported from.
+        nomad_version: The NOMAD version used for the last processing
+        nomad_commit: The NOMAD commit used for the last processing
 
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
@@ -178,6 +180,8 @@ class Calc(Proc):
     parser_name = StringField()
     pid = StringField()
     external_id = StringField()
+    nomad_version = StringField()
+    nomad_commit = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -189,7 +193,7 @@ class Calc(Proc):
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
-            ('upload_id', 'metadata.nomad_version'),
+            ('upload_id', 'nomad_version'),
             'process_status',
             'last_processing_time',
             'metadata.datasets',

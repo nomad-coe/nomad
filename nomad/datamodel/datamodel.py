@@ -468,13 +468,13 @@ class EntryMetadata(metainfo.MSection):
     nomad_version = metainfo.Quantity(
         type=str,
         description='The NOMAD version used for the last processing',
-        categories=[MongoMetadata],
+        categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch())
 
     nomad_commit = metainfo.Quantity(
         type=str,
         description='The NOMAD commit used for the last processing',
-        categories=[MongoMetadata],
+        categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch())
 
     parser_name = metainfo.Quantity(

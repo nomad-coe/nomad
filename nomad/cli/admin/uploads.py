@@ -173,7 +173,7 @@ def _query_uploads(
     if outdated:
         uploads = proc.Calc._get_collection().distinct(
             'upload_id',
-            {'metadata.nomad_version': {'$ne': config.meta.version}})
+            {'nomad_version': {'$ne': config.meta.version}})
         query |= mongoengine.Q(upload_id__in=uploads)
 
     if program_name is not None and len(program_name) > 0:

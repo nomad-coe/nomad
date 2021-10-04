@@ -372,8 +372,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert new process version
     if with_failure != 'not-matched':
-        assert first_calc.metadata['nomad_version'] == 're_process_test_version'
-        assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
+        assert first_calc.nomad_version == 're_process_test_version'
+        assert first_calc.nomad_commit == 're_process_test_commit'
 
     # assert changed archive files
     if with_failure == 'after':
