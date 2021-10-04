@@ -88,7 +88,7 @@ a2wsgi==1.4.0
 python-multipart
 
 # [dev]
-setuptools
+setuptools==57.5.0
 sphinx==2.4.4
 sphinxcontrib.httpdomain
 sphinx-click
