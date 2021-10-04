@@ -367,6 +367,9 @@ class EntryMetadata(metainfo.MSection):
         calc_id: The unique mainfile based calculation id.
         calc_hash: The raw file content based checksum/hash of this calculation.
         pid: The unique persistent id of this calculation.
+        external_db: The repository or external database where the original data resides.
+        external_id: A user provided external id. Usually the id for an entry in an external
+            database where the data was imported from.
         mainfile: The upload relative mainfile path.
 
         files: A list of all files, relative to upload.
@@ -376,6 +379,7 @@ class EntryMetadata(metainfo.MSection):
         last_edit_time: The date and time the user metadata was last edited.
         nomad_version: A string that describes the version of the nomad software that was
             used to do the last successful processing.
+        nomad_commit: The NOMAD commit used for the last processing.
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
         uploader: Id of the uploader of this entry.
@@ -493,7 +497,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoMetadata, UserProvidableMetadata],
+        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoEntryMetadata, UserProvidableMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -582,7 +586,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     last_edit_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoMetadata, OasisMetadata],
+        type=metainfo.Datetime, categories=[MongoEntryMetadata, OasisMetadata],
         description='The date and time the user metadata was last edited.')
 
     optimade = metainfo.SubSection(

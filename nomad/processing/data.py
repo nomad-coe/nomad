@@ -161,11 +161,13 @@ class Calc(Proc):
         calc_hash: the hash of the entry files
         entry_create_time: the date and time of the creation of the entry
         last_processing_time: the date and time of the last processing.
+        last_edit_time: the date and time the user metadata was last edited
         mainfile: the mainfile (including path in upload) that was used to create this calc
         parser_name: the name of the parser used to process this calc
         pid: the legacy NOMAD pid of the entry
         external_id:  A user provided external id. Usually the id for an entry in an
             external database where the data was imported from.
+        external_db: the repository or external database where the original data resides
         nomad_version: The NOMAD version used for the last processing
         nomad_commit: The NOMAD commit used for the last processing
 
@@ -176,10 +178,12 @@ class Calc(Proc):
     calc_hash = StringField()
     entry_create_time = DateTimeField(required=True)
     last_processing_time = DateTimeField()
+    last_edit_time = DateTimeField()
     mainfile = StringField()
     parser_name = StringField()
     pid = StringField()
     external_id = StringField()
+    external_db = StringField()
     nomad_version = StringField()
     nomad_commit = StringField()
 
@@ -1540,7 +1544,7 @@ class Upload(Proc):
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
             upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS,
-            metadata__nomad_version__ne=config.meta.version)
+            nomad_version__ne=config.meta.version)
 
     @property
     def calcs(self) -> Iterable[Calc]:

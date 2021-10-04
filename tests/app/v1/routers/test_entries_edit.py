@@ -109,9 +109,9 @@ class TestEditRepo():
         for calc_id in args:
             calc = proc.Calc.objects(calc_id='test_entry_id_%d' % calc_id).first()
             assert calc is not None
-            metadata = calc.metadata
             if edited:
-                assert metadata.get('last_edit_time') is not None
+                assert calc.last_edit_time is not None
+            metadata = calc.mongo_metadata(calc.upload).m_to_dict()
             for key, value in kwargs.items():
                 if metadata.get(key) != value:
                     return False
