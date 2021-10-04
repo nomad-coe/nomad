@@ -45,7 +45,7 @@ const useStyles = makeStyles(theme => ({
 
   },
   tutorialTitle: {
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
   tutorialDetails: {
     flexDirection: 'column',
@@ -88,28 +88,25 @@ export default function AIToolkitPage() {
     return true
   }
 
-  const {sections, authors, keywords, methods} = useMemo(() => {
+  const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.application_section[0] === 'Tutorials for artificial-intelligence methods')
+
+  const {authors, keywords, methods} = useMemo(() => {
     const authors = {}
     const keywords = {}
     const methods = {}
-    const sectionMap = tutorials.tutorials.reduce((sections, tutorial) => {
-      tutorial.labels.application_section.forEach(sectionTitle => {
-        sections[sectionTitle] = sections[sectionTitle] || {title: sectionTitle, tutorials: []}
-        tutorial.key = tutorial.title.replace(/\W/gm, '_').toLowerCase()
-        sections[sectionTitle].tutorials.push(tutorial)
-        tutorial.authors.forEach(i => { authors[i] = i })
-        tutorial.labels.application_keyword.forEach(i => { keywords[i] = i })
-        tutorial.labels.data_analytics_method.forEach(i => { methods[i] = i })
-      })
-      return sections
-    }, {})
+    tutorials_list.forEach(tutorial => {
+      tutorial.key = tutorial.title.replace(/\W/gm, '_').toLowerCase()
+      tutorial.authors.forEach(i => { authors[i] = i })
+      tutorial.labels.application_keyword.forEach(i => { keywords[i] = i })
+      tutorial.labels.data_analytics_method.forEach(i => { methods[i] = i })
+    }
+    )
     return {
-      sections: Object.keys(sectionMap).map(key => sectionMap[key]).sort((a, b) => a.title.localeCompare(b.title)),
       authors: Object.keys(authors).sort(),
       keywords: Object.keys(keywords).sort(),
       methods: Object.keys(methods).sort()
     }
-  }, [])
+  }, [tutorials_list])
 
   const Accordion = withStyles({
     root: {
@@ -156,104 +153,94 @@ export default function AIToolkitPage() {
   return <Grid container spacing={2} className={classes.root}>
     <Grid item xs={12}>
       <Markdown>{`
-        # Learn from tutorials
+         # Learn from tutorials
 
-        We develop and implement methods that identify correlations and structure in big data
-        of materials. This will enable scientists and engineers to decide which materials are
-        useful for specific applications or which new materials should be the focus of future studies.
-        The following tutorials are designed to get started with the AI Toolkit.
+         We develop and implement methods that identify correlations and structure in big data
+         of materials. This will enable scientists and engineers to decide which materials are
+         useful for specific applications or which new materials should be the focus of future studies.
+         The following tutorials are designed to get started with the AI Toolkit.
 
-        To log in directly, click [here](https://analytics-toolkit.nomad-coe.eu/hub).
-      `}</Markdown>
+         To log in directly, click [here](https://analytics-toolkit.nomad-coe.eu/hub).
+       `}</Markdown>
     </Grid>
     <Grid item xs={8}>
-      {<hr></hr>}
-      {sections.map(section => (
-        <div key={section.title} className={classes.section}>
-          {/* <Typography className={classes.sectionTitle}>{section.title}</Typography> */}
-          <div>
-            {section.tutorials.map(tutorial => {
-              //
-              const key = tutorial.key
-              return <Accordion
-                key={key}
-                disabled={!filter(tutorial)}
-                expanded={expanded === key}
-                onChange={() => setExpanded(expanded === key ? null : key)}
-                className={classes.tutorial}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography className={classes.tutorialTitle}>{tutorial.title}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails className={classes.tutorialDetails}>
-                  <Typography>
-                    {tutorial.authors
-                      .map(name => {
-                        const label = name.split(',').reverse().join(' ')
-                        return <Link
-                          className={classes.link}
-                          key={name}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            author: queryParameters.author === name ? null : name
-                          })}
-                        >
-                          <i>{label}</i>
-                        </Link>
-                      }).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                  <Markdown>
-                    {tutorial.description}
-                  </Markdown>
-                  <Typography>
-                    <b>keywords</b>: {tutorial.labels.application_keyword
-                      .map(keyword => (
-                        <Link
-                          className={classes.link}
-                          key={keyword}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            keyword: queryParameters.keyword === keyword ? null : keyword
-                          })}
-                        >
-                          {keyword}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                  <Typography>
-                    <b>method</b>: {tutorial.labels.data_analytics_method
-                      .map(method => (
-                        <Link
-                          className={classes.link}
-                          key={method}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            method: queryParameters.method === method ? null : method
-                          })}
-                        >
-                          {method}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                </AccordionDetails>
-                <AccordionActions>
-                  <Button color="black" href={tutorial.link} target="tutorial">
+      {tutorials_list.map(tutorial => (
+        <div key={tutorial.title} className={classes.section}>
+          <Accordion
+            key={tutorial.key}
+            disabled={!filter(tutorial)}
+            expanded={expanded === tutorial.key}
+            onChange={() => setExpanded(expanded === tutorial.key ? null : tutorial.key)}
+            className={classes.tutorial}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography className={classes.tutorialTitle}>{tutorial.title}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails className={classes.tutorialDetails}>
+              <Typography>
+                {tutorial.authors
+                  .map(name => {
+                    const label = name.split(',').reverse().join(' ')
+                    return <Link
+                      className={classes.link}
+                      key={name}
+                      onClick={() => setQueryParameters({
+                        ...emptyQuery,
+                        author: queryParameters.author === name ? null : name
+                      })}
+                    >
+                      <i>{label}</i>
+                    </Link>
+                  }).reduce((prev, curr) => [prev, ', ', curr])
+                }
+              </Typography>
+              <Markdown>
+                {tutorial.description}
+              </Markdown>
+              <Typography>
+                <b>keywords</b>: {tutorial.labels.application_keyword
+                  .map(keyword => (
+                    <Link
+                      className={classes.link}
+                      key={keyword}
+                      onClick={() => setQueryParameters({
+                        ...emptyQuery,
+                        keyword: queryParameters.keyword === keyword ? null : keyword
+                      })}
+                    >
+                      {keyword}
+                    </Link>
+                  )).reduce((prev, curr) => [prev, ', ', curr])
+                }
+              </Typography>
+              <Typography>
+                <b>method</b>: {tutorial.labels.data_analytics_method
+                  .map(method => (
+                    <Link
+                      className={classes.link}
+                      key={method}
+                      onClick={() => setQueryParameters({
+                        ...emptyQuery,
+                        method: queryParameters.method === method ? null : method
+                      })}
+                    >
+                      {method}
+                    </Link>
+                  )).reduce((prev, curr) => [prev, ', ', curr])
+                }
+              </Typography>
+            </AccordionDetails>
+            <AccordionActions>
+              <Button color="black" href={tutorial.link} target="tutorial">
                     open with login
-                  </Button>
-                  <Button color="primary" href={tutorial.link_public} target="tutorial">
+              </Button>
+              <Button color="primary" href={tutorial.link_public} target="tutorial">
                     open as guest
-                  </Button>
-                </AccordionActions>
-                <Divider />
-              </Accordion>
-            })}
-
-          </div>
-
+              </Button>
+            </AccordionActions>
+            <Divider />
+          </Accordion>
         </div>
       ))}
     </Grid>
@@ -290,7 +277,7 @@ export default function AIToolkitPage() {
         value={queryParameters.method}
         onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
       />
-      {/* <TextField label="text filter" fullWidth /> */}
+      <TextField label="text filter" fullWidth />
     </Grid>
   </Grid>
 }
