@@ -68,7 +68,7 @@ filelock
 cryptography==3.3.2
 pyjwt[crypto]==1.7.1
 cryptography==3.3.2
-jsonschema[format]
+jsonschema[format]==3.2.0
 runstats
 pyyaml
 tabulate
