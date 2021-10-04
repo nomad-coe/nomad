@@ -50,7 +50,7 @@ from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
-    EntryArchive, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
+    EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
     EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
@@ -61,6 +61,9 @@ section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow.name
 section_results = datamodel.EntryArchive.results.name
 
+
+_old_mongo_metadata = tuple(
+    quantity.name for quantity in datamodel.MongoMetadata.m_def.definitions)
 
 _mongo_upload_metadata = tuple(
     quantity.name for quantity in MongoUploadMetadata.m_def.definitions)
@@ -154,17 +157,20 @@ class Calc(Proc):
 
     Attributes:
         calc_id: the calc_id of this calc
+        calc_hash: the hash of the entry files
         parser_name: the name of the parser used to process this calc
         upload_id: the id of the upload used to create this calculation
         mainfile: the mainfile (including path in upload) that was used to create this calc
-
-        metadata: the metadata record wit calc and user metadata, see :class:`datamodel.EntryMetadata`
+        pid: the pid of the entry
+        metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
     calc_id = StringField(primary_key=True)
+    calc_hash = StringField()
     upload_id = StringField()
     entry_create_time = DateTimeField(required=True)
     mainfile = StringField()
     parser_name = StringField()
+    pid = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -180,7 +186,7 @@ class Calc(Proc):
             'process_status',
             'metadata.last_processing_time',
             'metadata.datasets',
-            'metadata.pid'
+            'pid'
         ]
     }
 
@@ -192,7 +198,7 @@ class Calc(Proc):
         self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
-        self._entry_metadata: datamodel.EntryMetadata = None
+        self._entry_metadata: EntryMetadata = None
 
     @classmethod
     def get(cls, id) -> 'Calc':
@@ -224,7 +230,7 @@ class Calc(Proc):
         Existing values in self.metadata are loaded first, then generated system values are
         applied.
         '''
-        self._entry_metadata = datamodel.EntryMetadata()
+        self._entry_metadata = EntryMetadata()
         self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
         self._apply_metadata_from_process(self._entry_metadata)
 
@@ -279,14 +285,14 @@ class Calc(Proc):
 
             try:
                 self._entry_metadata.m_set(definition, val)
-                if definition == datamodel.EntryMetadata.calc_id:
+                if definition == EntryMetadata.calc_id:
                     self.calc_id = val
             except Exception as e:
                 logger.error(
                     'Could not apply user metadata from nomad.yaml/json file',
                     quantitiy=definition.name, exc_info=e)
 
-    def _apply_metadata_from_process(self, entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_from_process(self, entry_metadata: EntryMetadata):
         '''
         Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
         '''
@@ -297,7 +303,7 @@ class Calc(Proc):
         entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
 
-    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: EntryMetadata):
         '''
         Loads entry metadata from mongo (that is: from `self` and the provided `upload` object)
         and applies the values to `entry_metadata`.
@@ -317,7 +323,7 @@ class Calc(Proc):
             if parser.domain:
                 entry_metadata.domain = parser.domain
 
-    def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_to_mongo_entry(self, entry_metadata: EntryMetadata):
         '''
         Applies the metadata fields that are stored on the mongo entry level to self.
         In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
@@ -330,9 +336,28 @@ class Calc(Proc):
             include_defaults=True,
             categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
 
-    def full_entry_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
+    def set_mongo_entry_metadata(self, *args, **kwargs):
         '''
-        Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
+        Sets the entry level metadata in mongo. Expects either a positional argument
+        which is an instance of :class:`EntryMetadata` or keyword arguments with data to set.
+        '''
+        assert not (args and kwargs), 'Cannot provide both keyword arguments and a positional argument'
+        if args:
+            assert len(args) == 1 and isinstance(args[0], EntryMetadata), (
+                'Expected exactly one keyword argument of type `EntryMetadata`')
+            self._apply_metadata_to_mongo_entry(args[0])
+        else:
+            for key, value in kwargs.items():
+                if key in _mongo_entry_metadata_except_system_fields:
+                    setattr(self, key, value)
+                elif key in _old_mongo_metadata:
+                    self.metadata[key] = value
+                else:
+                    assert False, f'Cannot set metadata field: {key}'
+
+    def full_entry_metadata(self, upload: 'Upload') -> EntryMetadata:
+        '''
+        Returns a complete set of :class:`EntryMetadata` including
         both the mongo metadata and the metadata from the archive.
 
         Arguments:
@@ -365,13 +390,13 @@ class Calc(Proc):
             else:
                 return self.mongo_metadata(upload)
 
-    def mongo_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
+    def mongo_metadata(self, upload: 'Upload') -> EntryMetadata:
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with mongo metadata only
+        Returns a :class:`EntryMetadata` with mongo metadata only
         (fetched from `self` and `upload`), no archive metadata.
         '''
         assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
-        entry_metadata = datamodel.EntryMetadata()
+        entry_metadata = EntryMetadata()
         self._apply_metadata_from_mongo(upload, entry_metadata)
         return entry_metadata
 
@@ -1512,10 +1537,10 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
-    def entries_metadata(self) -> Iterator[List[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[List[EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
-        processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
+        processing upload's entries into list of :class:`EntryMetadata` objects.
         '''
         try:
             # read all calc objects first to avoid missing curser errors
@@ -1526,9 +1551,9 @@ class Upload(Proc):
         finally:
             self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
-    def entries_mongo_metadata(self) -> List[datamodel.EntryMetadata]:
+    def entries_mongo_metadata(self) -> List[EntryMetadata]:
         '''
-        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the mongo metadata
+        Returns a list of :class:`EntryMetadata` containing the mongo metadata
         only, for all entries of this upload.
         '''
         return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
@@ -1718,8 +1743,6 @@ class Upload(Proc):
                 'entries')
             required_keys_entry_level = (
                 '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time', 'metadata')
-            required_keys_entry_metadata = (
-                'calc_hash',)
             required_keys_datasets = (
                 'dataset_id', 'dataset_name', 'user_id')
 
@@ -1809,7 +1832,6 @@ class Upload(Proc):
                 assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
                     f'Invalid entry `process_status`')
                 entry_metadata_dict = entry_dict['metadata']
-                keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
@@ -1840,7 +1862,7 @@ class Upload(Proc):
                             dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
                     else:
                         entry_metadata_dict['datasets'] = []
-                    entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
+                    entry_metadata = EntryMetadata.m_from_dict(entry_metadata_dict)
                     entry._apply_metadata_to_mongo_entry(entry_metadata)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:

@@ -406,7 +406,7 @@ class EntryMetadata(metainfo.MSection):
     calc_hash = metainfo.Quantity(
         type=str,
         description='A raw file content based checksum/hash',
-        categories=[MongoMetadata])
+        categories=[MongoEntryMetadata])
 
     mainfile = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
@@ -427,7 +427,7 @@ class EntryMetadata(metainfo.MSection):
         description='''
         The unique, sequentially enumerated, integer PID that was used in the legacy
         NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.''',
-        categories=[MongoMetadata],
+        categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     raw_id = metainfo.Quantity(
