@@ -386,21 +386,23 @@ class ResultsNormalizer(Normalizer):
         methods = self.section_run.method
         n_methods = len(methods)
 
+        def get_method_name(section_method):
+            method_name = config.services.unavailable_value
+            if section_method.electronic and section_method.electronic.method:
+                method_name = section_method.electronic.method
+            else:
+                if section_method.gw is not None:
+                    method_name = "GW"
+            return method_name
+
+        # If only one method is speficied use it directly
         if n_methods == 1:
             repr_method = methods[0]
-            method_name = repr_method.electronic.method if repr_method.electronic else None
-            if method_name is None:
-                method_name = config.services.unavailable_value
+            method_name = get_method_name(repr_method)
+        # If several methods have been declared, we need to find the "topmost"
+        # method and report it.
         elif n_methods > 1:
-            # GW
-            for sec_method in methods:
-                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else None
-                if electronic_structure_method in {"G0W0", "scGW"}:
-                    repr_method = sec_method
-                    method_name = electronic_structure_method
-                    break
-
-            # Method referencing another as "core_settings". If core method was
+            # Method referencing another as "core_method". If core method was
             # given, create new merged method containing all the information.
             for sec_method in methods:
                 core_method = sec_method.core_method_ref
@@ -410,12 +412,28 @@ class ResultsNormalizer(Normalizer):
                         electronic = electronic if electronic else core_method.m_create(Electronic)
                         core_method.electronic.method = sec_method.electronic.method
                     repr_method = core_method
-                    method_name = repr_method.electronic.method
+                    method_name = get_method_name(repr_method)
 
-        if method_name in {"G0W0", "scGW"}:
+            # Perturbative methods: we report the "topmost" method (=method
+            # that is referencing something but is not itself being
+            # referenced).
+            referenced_methods = set()
+            for sec_method in methods:
+                starting_method_ref = sec_method.starting_method_ref
+                if starting_method_ref is not None:
+                    referenced_methods.add(starting_method_ref.m_path())
+            if len(referenced_methods) == n_methods - 1:
+                for sec_method in methods:
+                    if sec_method.m_path() not in referenced_methods:
+                        method_name = get_method_name(sec_method)
+                        if method_name != config.services.unavailable_value:
+                            repr_method = sec_method
+                            break
+
+        if method_name == "GW":
             method.method_name = "GW"
             gw = GW()
-            gw.gw_type = repr_method.gw.type
+            gw.type = repr_method.gw.type
             gw.starting_point = repr_method.gw.starting_point.split()
             simulation.gw = gw
         elif method_name in {"DFT", "DFT+U"}:

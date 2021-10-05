@@ -762,8 +762,8 @@ class GW(MSection):
         Methodology for a GW calculation.
         """
     )
-    gw_type = GWMethod.type.m_copy()
-    gw_type.m_annotations["elasticsearch"] = [
+    type = GWMethod.type.m_copy()
+    type.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion=True)
     ]
