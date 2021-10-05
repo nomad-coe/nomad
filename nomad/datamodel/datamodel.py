@@ -492,7 +492,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(mapping='text'))
 
     references = metainfo.Quantity(
-        type=str, shape=['0..*'], categories=[MongoMetadata, EditableUserMetadata],
+        type=str, shape=['0..*'], categories=[MongoEntryMetadata, EditableUserMetadata],
         description='User provided references (URLs) for this entry',
         a_elasticsearch=Elasticsearch())
 

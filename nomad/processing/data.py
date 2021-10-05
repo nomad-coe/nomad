@@ -171,6 +171,7 @@ class Calc(Proc):
         nomad_version: the NOMAD version used for the last processing
         nomad_commit: the NOMAD commit used for the last processing
         comment: a user provided comment for this entry
+        references: user provided references (URLs) for this entry
 
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
@@ -188,6 +189,7 @@ class Calc(Proc):
     nomad_version = StringField()
     nomad_commit = StringField()
     comment = StringField()
+    references = ListField(StringField(), default=None)
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
