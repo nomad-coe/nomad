@@ -487,7 +487,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     comment = metainfo.Quantity(
-        type=str, categories=[MongoMetadata, EditableUserMetadata],
+        type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A user provided comment for this entry',
         a_elasticsearch=Elasticsearch(mapping='text'))
 

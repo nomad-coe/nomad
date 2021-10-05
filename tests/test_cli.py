@@ -198,7 +198,7 @@ class TestAdminUploads:
     def test_index(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        calc.metadata['comment'] = 'specific'
+        calc.comment = 'specific'
         calc.save()
 
         assert search(owner='all', query=dict(comment='specific')).pagination.total == 0

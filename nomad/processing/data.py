@@ -160,16 +160,17 @@ class Calc(Proc):
         calc_id: the calc_id of this calc
         calc_hash: the hash of the entry files
         entry_create_time: the date and time of the creation of the entry
-        last_processing_time: the date and time of the last processing.
+        last_processing_time: the date and time of the last processing
         last_edit_time: the date and time the user metadata was last edited
         mainfile: the mainfile (including path in upload) that was used to create this calc
         parser_name: the name of the parser used to process this calc
         pid: the legacy NOMAD pid of the entry
-        external_id:  A user provided external id. Usually the id for an entry in an
-            external database where the data was imported from.
+        external_id: a user provided external id. Usually the id for an entry in an
+            external database where the data was imported from
         external_db: the repository or external database where the original data resides
-        nomad_version: The NOMAD version used for the last processing
-        nomad_commit: The NOMAD commit used for the last processing
+        nomad_version: the NOMAD version used for the last processing
+        nomad_commit: the NOMAD commit used for the last processing
+        comment: a user provided comment for this entry
 
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
@@ -186,6 +187,7 @@ class Calc(Proc):
     external_db = StringField()
     nomad_version = StringField()
     nomad_commit = StringField()
+    comment = StringField()
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
