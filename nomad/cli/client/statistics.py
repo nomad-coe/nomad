@@ -41,7 +41,7 @@ def codes(client, minimum=1, **kwargs):
         code for code, values in data.statistics['dft.code_name'].items()
         if code != 'not processed' and values.get('calculations', 1000) >= minimum], key=lambda x: x.lower())
 
-    return data.statistics, x_values, 'code_name', 'code'
+    return data.statistics, x_values, 'dft.code_name', 'code'
 
 
 def dates(client, minimum=1, **kwargs):
@@ -207,7 +207,7 @@ def bar_plot(
     ax1.set_xticks(x)
     ax1.set_xticklabels([format_xlabel(value) if value != 'Quantum Espresso' else 'Q. Espresso' for value in x_values])
     ax1.margins(x=0.01)
-    ax1.set_xlim(**xlim)
+    # ax1.set_xlim(**xlim)
     # i = 0
     # for label in ax1.xaxis.get_ticklabels():
     #     label.set_visible(i % 4 == 0)
@@ -242,7 +242,7 @@ def bar_plot(
 @client.command(help='Generate various matplotlib charts')
 @click.option('--errors', is_flag=True, help='Two charts with relative and absolute parser/normalizer errors per code.')
 @click.option('--x-axis', type=str, help='Aggregation used for x-axis, values are "code" and "time".')
-@click.option('--y-axis', multiple=True, type=str, help='Metrics used for y-axis, values are "entries", "energies", "calculations", "users".')
+@click.option('--y-axis', multiple=True, type=str, help='Metrics used for y-axis, values are "entries", "energies", "calculations", "uploaders".')
 @click.option('--cumulate', is_flag=True, help='Cumulate over x-axis.')
 @click.option('--title', type=str, help='Override chart title with given value.')
 @click.option('--total', is_flag=True, help='Provide total sums of key metrics.')
@@ -308,17 +308,17 @@ def statistics_plot(errors, title, x_axis, y_axis, cumulate, total, save, power,
             label='entries (code runs)',
             cumulate=cumulate,
             **kwargs),
-        'users': Metric(
-            'users',
+        'uploaders': Metric(
+            'uploaders',
             cumulate=cumulate,
-            label='users that provided data'),
+            label='uploaders that provided data'),
         'energies': Metric(
-            'total_energies',
+            'dft.total_energies',
             label='total energy calculations',
             cumulate=cumulate,
             **kwargs),
         'calculations': Metric(
-            'calculations',
+            'dft.calculations',
             label='calculations (e.g. total energy)',
             cumulate=cumulate,
             **kwargs)
