@@ -105,9 +105,9 @@ def ops():
     pass
 
 
-@ops.group(help='Tools for managing the DOS similarity data.')
-def similarity():
-    pass
+# @ops.group(help='Tools for managing the DOS similarity data.')
+# def similarity():
+#     pass
 
 
 @ops.command(help=('Dump the mongo (calculation metadata) db.'))
@@ -222,22 +222,22 @@ def springer_update(max_n_query, retry_time):
     springer.update_springer(max_n_query, retry_time)
 
 
-@similarity.command(help='Updates the msgpack file containing the similarity information.')
-@click.option('--dir', "-d", "input_dir", type=str, help='Path of the folder containing the raw similarity information files')
-@click.option('--out', "-o", type=str, help='Path of the output msgpack file.')
-@click.option('--verbose', is_flag=True, help='Enable verbose output.')
-def update(input_dir, out, verbose):
-    from nomad.cli.admin import similarity
-    similarity.update(input_dir, out, verbose)
+# @similarity.command(help='Updates the msgpack file containing the similarity information.')
+# @click.option('--dir', "-d", "input_dir", type=str, help='Path of the folder containing the raw similarity information files')
+# @click.option('--out', "-o", type=str, help='Path of the output msgpack file.')
+# @click.option('--verbose', is_flag=True, help='Enable verbose output.')
+# def update(input_dir, out, verbose):
+#     from nomad.cli.admin import similarity
+#     similarity.update(input_dir, out, verbose)
 
 
-@similarity.command(help='Ingests the given similarity information from an msgpack file into MongoDB.')
-@click.option('--in', "-i", "input_path", type=str, help='Path of the ingested msgpack file.')
-@click.option('--batch_size', type=int, default=10000, help='Batch size for MongoDB bulk ingestion.')
-@click.option('--verbose', is_flag=True, help='Enable verbose output.')
-def ingest(input_path, batch_size, verbose):
-    from nomad.cli.admin import similarity
-    similarity.ingest(input_path, batch_size, verbose)
+# @similarity.command(help='Ingests the given similarity information from an msgpack file into MongoDB.')
+# @click.option('--in', "-i", "input_path", type=str, help='Path of the ingested msgpack file.')
+# @click.option('--batch_size', type=int, default=10000, help='Batch size for MongoDB bulk ingestion.')
+# @click.option('--verbose', is_flag=True, help='Enable verbose output.')
+# def ingest(input_path, batch_size, verbose):
+#     from nomad.cli.admin import similarity
+#     similarity.ingest(input_path, batch_size, verbose)
 
 
 @ops.command(help='Configures the GUIs based on NOMAD config.')
