@@ -45,7 +45,7 @@ const useStyles = makeStyles(theme => ({
 
   },
   tutorialTitle: {
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
   tutorialDetails: {
     flexDirection: 'column',
