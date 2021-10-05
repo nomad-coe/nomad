@@ -114,7 +114,7 @@ the tests. See below.
 
 ## Running the infrastructure
 
-To run NOMAD, some 3-rd party services are neeed
+To run NOMAD, some 3-rd party services are needed
 - elastic search: nomad's search and analytics engine
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
