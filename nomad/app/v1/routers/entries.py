@@ -1327,7 +1327,7 @@ async def post_entry_metadata_edit(
     # remove potentially empty old datasets
     if removed_datasets is not None:
         for dataset in removed_datasets:
-            if proc.Calc.objects(metadata__datasets=dataset).first() is None:
+            if proc.Calc.objects(datasets=dataset).first() is None:
                 datamodel.Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
     return data

@@ -278,7 +278,7 @@ def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, 
     assert_processing(upload, published=True)
     calc = Calc.objects(upload_id='oasis_upload_id').first()
     assert calc.calc_id == 'test_calc_id'
-    assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
+    assert calc.datasets == ['oasis_dataset_1', 'cn_dataset_2']
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

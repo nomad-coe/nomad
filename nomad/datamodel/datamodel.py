@@ -574,7 +574,7 @@ class EntryMetadata(metainfo.MSection):
 
     datasets = metainfo.Quantity(
         type=dataset_reference, shape=['0..*'], default=[],
-        categories=[MongoMetadata, EditableUserMetadata],
+        categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A list of user curated datasets this entry belongs to.',
         a_elasticsearch=Elasticsearch(material_entry_type))
 

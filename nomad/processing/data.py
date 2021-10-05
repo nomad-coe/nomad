@@ -173,6 +173,7 @@ class Calc(Proc):
         comment: a user provided comment for this entry
         references: user provided references (URLs) for this entry
         coauthors: a user provided list of co-authors
+        datasets: a list of user curated datasets this entry belongs to
 
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
@@ -193,6 +194,7 @@ class Calc(Proc):
     references = ListField(StringField(), default=None)
     coauthors = ListField(StringField(), default=None)
     shared_with = ListField(StringField(), default=None)
+    datasets = ListField(StringField(), default=None)
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -207,7 +209,7 @@ class Calc(Proc):
             ('upload_id', 'nomad_version'),
             'process_status',
             'last_processing_time',
-            'metadata.datasets',
+            'datasets',
             'pid'
         ]
     }
@@ -475,11 +477,9 @@ class Calc(Proc):
         if self.upload is None:
             logger.error('calculation upload does not exist')
 
-        has_previous_metadata = bool(self.metadata)
-
         # 1. Determine if we should parse or not
         self.set_process_step('Determining action')
-        if not self.upload.published or not has_previous_metadata:
+        if not self.upload.published or not self.nomad_version:
             should_parse = True
         else:
             # This entry has already been published and has metadata.
@@ -1693,13 +1693,12 @@ class Upload(Proc):
         # Handle datasets
         dataset_ids: Set[str] = set()
         for entry_dict in bundle_info['entries']:
-            entry_metadata = entry_dict['metadata']
-            entry_metadata_datasets = entry_metadata.get('datasets')
-            if entry_metadata_datasets:
+            entry_datasets = entry_dict.get('datasets')
+            if entry_datasets:
                 if not include_datasets:
-                    entry_metadata['datasets'] = []
+                    entry_dict['datasets'] = None
                 else:
-                    dataset_ids.update(entry_metadata_datasets)
+                    dataset_ids.update(entry_datasets)
         if include_datasets:
             bundle_info['datasets'] = [
                 datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
@@ -1854,7 +1853,6 @@ class Upload(Proc):
                 keys_exist(entry_dict, required_keys_entry_level, 'Missing key for entry: {key}')
                 assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
                     f'Invalid entry `process_status`')
-                entry_metadata_dict = entry_dict['metadata']
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
@@ -1882,10 +1880,12 @@ class Upload(Proc):
                 # Instantiate an EntryMetadata object to validate the format
                 try:
                     if settings.include_datasets:
-                        entry.metadata['datasets'] = [
-                            dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
+                        entry_datasets = entry_dict.get('datasets')
+                        if entry_datasets:
+                            entry.datasets = [
+                                dataset_id_mapping[id] for id in entry_datasets] or None
                     else:
-                        entry.metadata['datasets'] = []
+                        entry.datasets = None
                     entry.mongo_metadata(self)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:

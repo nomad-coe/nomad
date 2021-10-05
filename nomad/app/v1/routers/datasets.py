@@ -250,7 +250,7 @@ async def post_datasets(
 
     if not empty:
         processing.Calc._get_collection().update_many(
-            mongo_query, {'$push': {'metadata.datasets': dataset.dataset_id}})
+            mongo_query, {'$push': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''
                 if (ctx._source.datasets == null) {
@@ -309,7 +309,7 @@ async def delete_dataset(
 
     if len(entry_ids) > 0:
         processing.Calc._get_collection().update_many(
-            mongo_query, {'$pull': {'metadata.datasets': dataset.dataset_id}})
+            mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''
                 int index = -1;

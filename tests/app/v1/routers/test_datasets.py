@@ -152,7 +152,7 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
 
     expected_n_entries = n_entries if dataset['dataset_type'] == 'owned' else 0
     assert search_results.pagination.total == expected_n_entries
-    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == expected_n_entries
+    assert processing.Calc.objects(datasets=dataset_id).count() == expected_n_entries
 
 
 def assert_dataset_deleted(dataset_id):
@@ -162,7 +162,7 @@ def assert_dataset_deleted(dataset_id):
     search_results = search(
         owner='admin', query={'datasets.dataset_id': dataset_id}, user_id=admin_user_id)
     assert search_results.pagination.total == 0
-    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == 0
+    assert processing.Calc.objects(datasets=dataset_id).count() == 0
 
 
 @pytest.mark.parametrize('query, size, status_code', [

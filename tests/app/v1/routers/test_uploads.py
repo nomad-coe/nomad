@@ -1262,7 +1262,7 @@ def test_post_upload_action_publish_to_central_nomad(
     datamodel.Dataset(
         dataset_id='dataset_id', dataset_name='dataset_name',
         user_id=test_users_dict[user].user_id).a_mongo.save()
-    calc.metadata['datasets'] = ['dataset_id']
+    calc.datasets = ['dataset_id']
     calc.save()
 
     # Finally, invoke the method to publish to central nomad
@@ -1288,7 +1288,7 @@ def test_post_upload_action_publish_to_central_nomad(
                     'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
                     'last_processing_time', 'publish_time'):
                 assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
-        assert new_calc.metadata.get('datasets') == ['dataset_id']
+        assert new_calc.datasets == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
         assert new_upload.from_oasis and new_upload.oasis_deployment_id
 
