@@ -128,7 +128,7 @@ metadata that you want to apply to all your entries. Here is an example:
 {
     "comment": "Data from a cool research project",
     "references": ['http://archivex.org/mypaper'],
-    "co_authors": [
+    "coauthors": [
         '<co-author-ids>',
         '<co-author-ids>'
     ]

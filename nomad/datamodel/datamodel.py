@@ -516,7 +516,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     coauthors = metainfo.Quantity(
-        type=author_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
+        type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A user provided list of co-authors')
 
     authors = metainfo.Quantity(

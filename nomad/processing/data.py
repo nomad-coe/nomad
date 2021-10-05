@@ -172,6 +172,7 @@ class Calc(Proc):
         nomad_commit: the NOMAD commit used for the last processing
         comment: a user provided comment for this entry
         references: user provided references (URLs) for this entry
+        coauthors: a user provided list of co-authors
 
         metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
@@ -190,6 +191,7 @@ class Calc(Proc):
     nomad_commit = StringField()
     comment = StringField()
     references = ListField(StringField(), default=None)
+    coauthors = ListField(StringField(), default=None)
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
@@ -348,8 +350,9 @@ class Calc(Proc):
         In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
         but excluding upload level metadata and system fields (like mainfile, parser_name etc.).
         '''
+        entry_metadata_dict = entry_metadata.m_to_dict(include_defaults=True)
         for field in _mongo_entry_metadata_except_system_fields:
-            setattr(self, field, getattr(entry_metadata, field))
+            setattr(self, field, entry_metadata_dict.get(field))
 
         self.metadata = entry_metadata.m_to_dict(
             include_defaults=True,
