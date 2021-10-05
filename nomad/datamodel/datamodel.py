@@ -526,7 +526,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
 
     shared_with = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[MongoMetadata, EditableUserMetadata],
+        type=user_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A user provided list of userts to share the entry with')
 
     owners = metainfo.Quantity(

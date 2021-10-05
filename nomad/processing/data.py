@@ -192,6 +192,7 @@ class Calc(Proc):
     comment = StringField()
     references = ListField(StringField(), default=None)
     coauthors = ListField(StringField(), default=None)
+    shared_with = ListField(StringField(), default=None)
 
     metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
