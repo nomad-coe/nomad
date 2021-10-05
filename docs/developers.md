@@ -124,7 +124,12 @@ Keep in mind the *docker-compose* configures all services in a way that mirror
 the configuration of the python code in `nomad/config.py` and the gui config in
 `gui/.env.development`.
 
-You can run all services with:
+The default virtual memory for Elasticsearch is likely to be too low. More info can be found [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html). On Linux, you can run the following command as root:
+```sh
+sysctl -w vm.max_map_count=262144
+```
+
+Then, you can run all services with:
 ```sh
 cd ops/docker-compose/infrastructure
 docker-compose up -d mongo elastic rabbitmq
