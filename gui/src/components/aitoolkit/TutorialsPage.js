@@ -25,7 +25,9 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
 import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import IconTutorial from './assets/AIT_ico_bb_tutorial.svg'
+import TutorialsIcon from './assets/AIT_ico_bb_tutorial.svg'
+import AccessIcon from './assets/AIT_ico_bd_link_external_big.svg'
+import WatchIcon from './assets/AIT_ico_bd_youtube.svg'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -61,7 +63,7 @@ const useStyles = makeStyles(theme => ({
   filter: {
     fontWeight: 'bold',
     color: '#2A3C67',
-    fontSize: 13,
+    fontSize: 15,
     marginTop: '-100px'
   },
   autocomplete: {
@@ -192,7 +194,7 @@ export default function AIToolkitPage() {
         </Box>
       </Grid>
       <Grid item xs={6} className={classes.icon}>
-        <img src={IconTutorial} className={classes.icon}/>
+        <img src={TutorialsIcon} className={classes.icon}/>
       </Grid>
     </Grid>
     <Grid container spacing={1} className={classes.root}>
@@ -314,11 +316,11 @@ export default function AIToolkitPage() {
                 </Typography>
               </AccordionDetails>
               <AccordionActions>
-                <Button color="black" href={tutorial.link} target="tutorial">
-                    open with login
+                <Button color="black" href={tutorial.link} target="tutorial" endIcon={<img src={AccessIcon}></img>}>
+                    Access this tutorial
                 </Button>
-                <Button color="primary" href={tutorial.link_public} target="tutorial">
-                    open as guest
+                <Button color="primary" href={tutorial.link_public} target="tutorial" endIcon={<img src={WatchIcon}></img>}>
+                    Watch video
                 </Button>
               </AccordionActions>
               <Divider />
