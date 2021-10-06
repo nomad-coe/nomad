@@ -51,12 +51,26 @@ const useStyles = makeStyles(theme => ({
   },
   deck: {
     color: '#2A3C67',
-    fontSize: 15
+    fontSize: 15,
+    marginTop: '20px'
   },
   icon: {
-    // backgroundColor: 'green',
     height: '400px',
-    marginTop: '-50px'
+    marginTop: '-20px'
+  },
+  filter: {
+    fontWeight: 'bold',
+    color: '#2A3C67',
+    fontSize: 13,
+    marginTop: '-100px'
+  },
+  autocomplete: {
+    height: 'auto',
+    color: '#2A3C67',
+    border: '3px solid rgba(127, 239, 239, 1)',
+    borderRadius: '10px 10px 10px 10px',
+    marginTop: '-70px'
+
   },
   tutorialTitle: {
     fontWeight: 'bold'
@@ -74,6 +88,47 @@ const useStyles = makeStyles(theme => ({
     cursor: 'pointer'
   }
 }))
+
+const Accordion = withStyles({
+  root: {
+    borderTop: '5px solid rgba(127, 239, 239, 1)',
+    scrollbarGutter: 'false',
+    boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
+    borderRadius: '10px 10px 10px 10px',
+    '&:not(:last-child)': {
+      borderBottom: 0
+    },
+    '&:before': {
+      display: 'none'
+    },
+    '&$expanded': {
+      margin: 'auto'
+    }
+  },
+  heading: {
+    fontSize: 35,
+    flexBasis: '33.33%',
+    flexShrink: 0
+  },
+  secondaryHeading: {
+    fontSize: 10
+  },
+  expanded: {}
+})(MUIAccordion)
+
+const AccordionSummary = withStyles({
+  root: {
+    flexDirection: 'column'
+  },
+  content: {
+    marginBottom: 0,
+    flexGrow: 1
+  },
+  expandIcon: {
+    marginRight: '10px',
+    paddingTop: '10px'
+  }
+})(MUIAccordionSummary)
 
 export default function AIToolkitPage() {
   const classes = useStyles()
@@ -122,48 +177,6 @@ export default function AIToolkitPage() {
     }
   }, [tutorials_list])
 
-  const Accordion = withStyles({
-    root: {
-      border: '5px solid rgba(127, 239, 239, 1)',
-      scrollbarGutter: 'false',
-      marginLeft: '100px',
-      boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
-      borderRadius: '10px 10px 10px 10px',
-      '&:not(:last-child)': {
-        borderBottom: 0
-      },
-      '&:before': {
-        display: 'none'
-      },
-      '&$expanded': {
-        margin: 'auto'
-      }
-    },
-    heading: {
-      fontSize: 35,
-      flexBasis: '33.33%',
-      flexShrink: 0
-    },
-    secondaryHeading: {
-      fontSize: 10
-    },
-    expanded: {}
-  })(MUIAccordion)
-
-  const AccordionSummary = withStyles({
-    root: {
-      flexDirection: 'column'
-    },
-    content: {
-      marginBottom: 0,
-      flexGrow: 1
-    },
-    expandIcon: {
-      marginRight: '10px',
-      paddingTop: '10px'
-    }
-  })(MUIAccordionSummary)
-
   return <Grid container spacing={2} className={classes.root}>
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={5} >
@@ -182,6 +195,55 @@ export default function AIToolkitPage() {
         <img src={IconTutorial} className={classes.icon}/>
       </Grid>
     </Grid>
+    <Grid container spacing={1} className={classes.root}>
+      <Grid item xs={12} >
+        <Box className={classes.filter} >
+          {
+            'Filter Tutorials'
+          }
+        </Box>
+      </Grid>
+      <Grid item xs={2}>
+        <Autocomplete
+          className={classes.autocomplete}
+          id="combo-box-demo"
+          options={authors}
+          getOptionLabel={option => option}
+          renderInput={params => (
+            <TextField {...params} fontSize='40' label="author" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+          )}
+          value={queryParameters.author}
+          onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
+        />
+      </Grid>
+      <Grid item xs={2}>
+        <Autocomplete
+          className={classes.autocomplete}
+          id="combo-box-demo"
+          options={keywords}
+          getOptionLabel={option => option}
+          renderInput={params => (
+            <TextField {...params} label="keyword" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+          )}
+          value={queryParameters.keyword}
+          onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
+        />
+      </Grid>
+      <Grid item xs={2}>
+        <Autocomplete
+          className={classes.autocomplete}
+          sx={{ height: 300 }}
+          id="combo-box-demo"
+          options={methods}
+          renderInput={params => (
+            <TextField {...params} label="method" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+          )}
+          value={queryParameters.method}
+          onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
+        />
+      </Grid>
+    </Grid>
+
     <Grid container spacing={1} className={classes.root}>
       <Grid item xs={8}>
         {tutorials_list.map(tutorial => (
@@ -263,41 +325,6 @@ export default function AIToolkitPage() {
             </Accordion>
           </div>
         ))}
-      </Grid>
-      <Grid item xs={4}>
-        <Autocomplete
-          id="combo-box-demo"
-          options={authors}
-          getOptionLabel={option => option}
-          style={{ width: '100%', marginBottom: 8 }}
-          renderInput={params => (
-            <TextField {...params} label="author" fullWidth />
-          )}
-          value={queryParameters.author}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
-        />
-        <Autocomplete
-          id="combo-box-demo"
-          options={keywords}
-          getOptionLabel={option => option}
-          style={{ width: '100%', marginBottom: 8 }}
-          renderInput={params => (
-            <TextField {...params} label="keyword" fullWidth />
-          )}
-          value={queryParameters.keyword}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
-        />
-        <Autocomplete
-          id="combo-box-demo"
-          options={methods}
-          style={{ width: '100%', marginBottom: 8 }}
-          renderInput={params => (
-            <TextField {...params} label="method" fullWidth />
-          )}
-          value={queryParameters.method}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
-        />
-        <TextField label="text filter" fullWidth />
       </Grid>
     </Grid>
   </Grid>
