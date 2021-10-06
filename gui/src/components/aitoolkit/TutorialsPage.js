@@ -25,7 +25,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
 import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import TutorialsIcon from './assets/AIT_ico_bb_tutorial.svg'
+import TutorialsIcon from './assets/AIT_ico_bp_tutorial.svg'
 import AccessIcon from './assets/AIT_ico_bd_link_external_big.svg'
 import WatchIcon from './assets/AIT_ico_bd_youtube.svg'
 
@@ -75,7 +75,17 @@ const useStyles = makeStyles(theme => ({
 
   },
   tutorialTitle: {
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    fontSize: 25,
+    lineHeight: '30px',
+    color: '#2A3C67'
+  },
+  tutorialAuthors: {
+    color: '#2A3C67',
+    fontWeight: 'bold',
+    fontSize: 15,
+    lineHeight: '20px',
+    align: 'right'
   },
   tutorialDetails: {
     flexDirection: 'column',
@@ -87,18 +97,17 @@ const useStyles = makeStyles(theme => ({
     }
   },
   link: {
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontWeight: 'normal'
+
   }
 }))
 
 const Accordion = withStyles({
   root: {
-    borderTop: '5px solid rgba(127, 239, 239, 1)',
+    borderTop: '10px solid rgba(127, 239, 239, 1)',
     scrollbarGutter: 'false',
-    boxShadow: '0 3px 5px 2px rgba(127, 239, 239, 0.5)',
-    borderRadius: '10px 10px 10px 10px',
     '&:not(:last-child)': {
-      borderBottom: 0
     },
     '&:before': {
       display: 'none'
@@ -247,38 +256,48 @@ export default function AIToolkitPage() {
     </Grid>
 
     <Grid container spacing={1} className={classes.root}>
-      <Grid item xs={8}>
+      <Grid item xs={12}>
         {tutorials_list.map(tutorial => (
-          <div key={tutorial.title} className={classes.section}>
+          <div key={tutorial.title} className={classes.tutorial}>
             <Accordion
               key={tutorial.key}
               disabled={!filter(tutorial)}
               expanded={expanded === tutorial.key}
               onChange={() => setExpanded(expanded === tutorial.key ? null : tutorial.key)}
               className={classes.tutorial}
+              elevation={0}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography className={classes.tutorialTitle}>{tutorial.title}
-                </Typography>
+                <Grid container spacing={2} className={classes.root} >
+                  <Grid item xs={8} >
+                    <Typography className={classes.tutorialTitle} >
+                      {tutorial.title}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={4}>
+                    <Typography className={classes.tutorialAuthors} >
+                      {'Authors: '}
+                      {tutorial.authors
+                        .map(name => {
+                          const label = name.split(',').reverse().join(' ')
+                          return <Link
+                            className={classes.link}
+                            key={name}
+                            onClick={() => setQueryParameters({
+                              ...emptyQuery,
+                              author: queryParameters.author === name ? null : name
+                            })}
+                          >
+                            <i>{label}</i>
+                          </Link>
+                        }).reduce((prev, curr) => [prev, ', ', curr])
+                      }
+                    </Typography>
+                  </Grid>
+                </Grid>
               </AccordionSummary>
+
               <AccordionDetails className={classes.tutorialDetails}>
-                <Typography>
-                  {tutorial.authors
-                    .map(name => {
-                      const label = name.split(',').reverse().join(' ')
-                      return <Link
-                        className={classes.link}
-                        key={name}
-                        onClick={() => setQueryParameters({
-                          ...emptyQuery,
-                          author: queryParameters.author === name ? null : name
-                        })}
-                      >
-                        <i>{label}</i>
-                      </Link>
-                    }).reduce((prev, curr) => [prev, ', ', curr])
-                  }
-                </Typography>
                 <Markdown>
                   {tutorial.description}
                 </Markdown>
@@ -315,6 +334,7 @@ export default function AIToolkitPage() {
                   }
                 </Typography>
               </AccordionDetails>
+
               <AccordionActions>
                 <Button color="black" href={tutorial.link} target="tutorial" endIcon={<img src={AccessIcon}></img>}>
                     Access this tutorial
