@@ -62,9 +62,6 @@ section_workflow = datamodel.EntryArchive.workflow.name
 section_results = datamodel.EntryArchive.results.name
 
 
-_old_mongo_metadata = tuple(
-    quantity.name for quantity in datamodel.MongoMetadata.m_def.definitions)
-
 _mongo_upload_metadata = tuple(
     quantity.name for quantity in MongoUploadMetadata.m_def.definitions)
 _mongo_entry_metadata = tuple(
@@ -174,8 +171,6 @@ class Calc(Proc):
         references: user provided references (URLs) for this entry
         coauthors: a user provided list of co-authors
         datasets: a list of user curated datasets this entry belongs to
-
-        metadata: the metadata record wit calc and user metadata, see :class:`EntryMetadata`
     '''
     upload_id = StringField()
     calc_id = StringField(primary_key=True)
@@ -195,8 +190,6 @@ class Calc(Proc):
     coauthors = ListField(StringField(), default=None)
     shared_with = ListField(StringField(), default=None)
     datasets = ListField(StringField(), default=None)
-
-    metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
 
     meta: Any = {
         'strict': False,
@@ -251,7 +244,7 @@ class Calc(Proc):
     def _initialize_metadata_for_processing(self):
         '''
         Initializes self._entry_metadata and self._parser_results in preparation for processing.
-        Existing values in self.metadata are loaded first, then generated system values are
+        Existing values in mongo are loaded first, then generated system values are
         applied.
         '''
         self._entry_metadata = EntryMetadata()
@@ -333,7 +326,6 @@ class Calc(Proc):
         and applies the values to `entry_metadata`.
         '''
         assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
-        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten?
         # Upload metadata
         for field in _mongo_upload_metadata:
             setattr(entry_metadata, field, getattr(upload, field))
@@ -357,10 +349,6 @@ class Calc(Proc):
         for field in _mongo_entry_metadata_except_system_fields:
             setattr(self, field, entry_metadata_dict.get(field))
 
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
-
     def set_mongo_entry_metadata(self, *args, **kwargs):
         '''
         Sets the entry level metadata in mongo. Expects either a positional argument
@@ -375,8 +363,6 @@ class Calc(Proc):
             for key, value in kwargs.items():
                 if key in _mongo_entry_metadata_except_system_fields:
                     setattr(self, key, value)
-                elif key in _old_mongo_metadata:
-                    self.metadata[key] = value
                 else:
                     assert False, f'Cannot set metadata field: {key}'
 
@@ -1365,7 +1351,7 @@ class Upload(Proc):
                 with utils.timer(logger, 'calcs processing called'):
                     # process call calcs
                     Calc.process_all(
-                        Calc.process_calc, dict(upload_id=self.upload_id), exclude=['metadata'],
+                        Calc.process_calc, dict(upload_id=self.upload_id),
                         process_kwargs=dict(reprocess_settings=settings))
                     logger.info('completed to trigger process of all calcs')
 
@@ -1764,7 +1750,7 @@ class Upload(Proc):
                 'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
-                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time', 'metadata')
+                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time')
             required_keys_datasets = (
                 'dataset_id', 'dataset_name', 'user_id')
 
@@ -1864,7 +1850,7 @@ class Upload(Proc):
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = list(_mongo_entry_metadata)
                 entry_keys_to_copy.extend((
-                    'upload_id', 'metadata', 'errors', 'warnings',
+                    'upload_id', 'errors', 'warnings',
                     'last_status_message', 'current_process', 'current_process_step',
                     'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:

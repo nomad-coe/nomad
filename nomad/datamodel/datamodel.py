@@ -311,14 +311,6 @@ class MongoSystemMetadata(metainfo.MCategory):
     pass
 
 
-class MongoMetadata(metainfo.MCategory):
-    '''
-    NOMAD entry quantities that are stored in mongodb on the entry level, in the metadata dict,
-    and not necessarely in the archive.
-    '''
-    pass
-
-
 class DomainMetadata(metainfo.MCategory):
     ''' NOMAD entry quantities that are determined by the uploaded data. '''
     pass

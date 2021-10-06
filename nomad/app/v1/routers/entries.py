@@ -1126,12 +1126,10 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
     with utils.timer(logger, 'edit elastic update executed', size=len(entry_ids)):
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
-            # TODO: Quick and dirty, should remove
-            updated_entry_fields = {k: v for k, v in mongo_update.items() if not k.startswith('metadata__')}
             for calc in proc.Calc.objects(calc_id__in=entry_ids):
                 entry_metadata = calc.mongo_metadata(calc.upload)
                 # Ensure that updated fields are marked as "set", even if they are cleared
-                entry_metadata.m_update_from_dict(updated_entry_fields)
+                entry_metadata.m_update_from_dict(mongo_update)
                 # Add to list
                 updated_metadata.append(entry_metadata)
 
@@ -1220,11 +1218,7 @@ async def post_entry_metadata_edit(
             verify_reference = None
             if isinstance(quantity.type, metainfo.Reference):
                 verify_reference = quantity.type.target_section_def.section_cls
-            # TODO: quick and dirty, we are anyway rewriting this soon
-            if quantity.categories and datamodel.MongoMetadata.m_def in quantity.categories:
-                mongo_key = 'metadata__%s' % quantity.name
-            else:
-                mongo_key = quantity.name
+            mongo_key = quantity.name
             has_error = False
             for action in quantity_actions:
                 action.success = True

@@ -54,11 +54,6 @@ The class :class:`Dataset` is used to represent datasets and their attributes.
 .. autoclass:: nomad.datamodel.Dataset
     :members:
 
-The class :class:`MongoMetadata` is used to tag metadata stored in mongodb.
-
-.. autoclass:: nomad.datamodel.MongoMetadata
-    :members:
-
 The class :class:`EntryMetadata` is used to represent all metadata about an entry.
 
 .. autoclass:: nomad.datamodel.EntryMetadata
@@ -83,7 +78,7 @@ from nomad.metainfo import Environment
 
 from .datamodel import (
     Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, OasisMetadata,
-    UploadMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata, MongoMetadata,
+    UploadMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
     EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
