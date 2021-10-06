@@ -45,6 +45,7 @@ def parse(
         parser = parsers.parser_dict.get(parser_name)
         assert parser is not None, 'the given parser must exist'
     else:
+        mainfile_path = os.path.abspath(mainfile_path)
         parser = parsers.match_parser(mainfile_path, strict=strict)
         if isinstance(parser, parsing.MatchingParser):
             parser_name = parser.name
