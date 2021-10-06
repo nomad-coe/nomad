@@ -250,7 +250,7 @@ class TestEditRepo():
             datasets=[self.example_dataset.name], query=self.query('upload_1'))
 
         assert rv.status_code == 200
-        rv = self.api.post('datasets/%s/doi' % self.example_dataset.name, headers=self.test_user_auth)
+        rv = self.api.post('datasets/%s/action/doi' % self.example_dataset.name, headers=self.test_user_auth)
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 400
