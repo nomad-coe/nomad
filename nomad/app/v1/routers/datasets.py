@@ -331,7 +331,7 @@ async def delete_dataset(
 
 
 @router.post(
-    '/{dataset_id}/doi', tags=[default_tag],
+    '/{dataset_id}/action/doi', tags=[default_tag],
     summary='Assign a DOI to a dataset',
     response_model=DatasetResponse,
     responses=create_responses(_bad_id_response, _dataset_is_fixed_response, _bad_user_response),

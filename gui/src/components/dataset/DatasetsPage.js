@@ -59,7 +59,7 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
   }, [api, raiseError, data.dataset_id, refresh])
 
   const handleAssignDoi = useCallback(() => {
-    api.post(`/datasets/${data.dataset_id}/doi`)
+    api.post(`/datasets/${data.dataset_id}/action/doi`)
       .then(refresh).catch(raiseError)
   }, [api, raiseError, data.dataset_id, refresh])
 

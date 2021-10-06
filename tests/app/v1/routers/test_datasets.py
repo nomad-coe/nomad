@@ -284,7 +284,7 @@ def test_assign_doi_dataset(client, data, test_user, test_user_auth, other_test_
     if user == 'other_test_user':
         auth = other_test_user_auth
     response = client.post(
-        'datasets/%s/doi' % dataset_id, headers=auth)
+        'datasets/%s/action/doi' % dataset_id, headers=auth)
 
     assert_response(response, status_code=status_code)
     if status_code != 200:

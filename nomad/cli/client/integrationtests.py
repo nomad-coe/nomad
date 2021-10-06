@@ -195,7 +195,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
 
         if not skip_doi and published:
             print('assigning a DOI')
-            response = api.post(f'datasets/{dataset_id}/doi', auth=auth)
+            response = api.post(f'datasets/{dataset_id}/action/doi', auth=auth)
             assert response.status_code == 200, response.text
             has_doi = True
 
