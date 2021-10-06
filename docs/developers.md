@@ -8,10 +8,16 @@ If not already done, you should clone nomad. To clone the main NOMAD repository:
 git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git nomad
 cd nomad
 ```
-then checkout the relevant branch
+There are several branches in the repository. The master branch contains the latest released version, but there are also
+develop branches for each version called vX.X.X. Checkout the branch you want to work on it
 ```
-git checkout master
+git checkout vX.X.X
 ```
+The development branches are protected and you should create a new branch including your changes.
+```
+git checkout -b <my-branch-name>
+```
+This branch can be pushed to the repo, and then later may be merged to the relevant branch.
 
 ### Prepare your Python environment
 
@@ -51,6 +57,21 @@ To install libmagick for conda, you can use (other channels might also work):
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
+## Setup
+Using the following command one can install all the dependencies, and the sub-modules from the NOMAD-coe project
+```
+bash setup.sh
+```
+
+The script includes the following steps:
+
+### 1. pip
+Make sure you have the most recent version of pip:
+```sh
+pip install --upgrade pip
+```
+
+
 #### Missing system libraries (e.g. on MacOS)
 
 Even though the NOMAD infrastructure is written in python, there is a C library
@@ -62,42 +83,55 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
-#### Setup
-Using the following command one can install all the dependencies, and the sub-modules from the NOMAD-coe project
-such as parsers, python-common and the meta-info which are located in their own GITLab/git repositories
-```
-bash setup.sh
+### 2. Install sub-modules
+Nomad is based on python modules from the NOMAD-coe project.
+This includes parsers, python-common and the meta-info. These modules are maintained as
+their own GITLab/git repositories. To clone and initialize them run:
+
+```sh
+git submodule update --init
 ```
 
-### Generate GUI artifacts
+All requirements for these submodules need to be installed and they need to be installed
+themselves as python modules. Run the `dependencies.sh` script that will install
+everything into your virtual environment:
+```sh
+./dependencies.sh -e
+```
+
+If one of the Python packages that are installed during this process, fails because it
+cannot be compiled on your platform, you can try `pip install --prefer-binary <packagename>`
+to install set package manually.
+
+The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
+to change the downloaded dependency code without having to reinstall after.
+
+### 3. Install nomad
+Finally, you can add nomad to the environment itself (including all extras)
+```sh
+pip install -e .[all]
+```
+
+If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+
+```sh
+pip install -e .[all] --prefer-binary
+```
+
+### 4. Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
-sh gitinfo.sh
+nomad dev metainfo > gui/src/metainfo.json
+nomad dev search-quantities > gui/src/searchQuantities.json
+nomad dev units > gui/src/units.js
+./gitinfo.sh
 ```
 
 In additional, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
 
 ## Install docker
-One needs to install [docker](https://docs.docker.com/engine/install/ubuntu/) and [docker-compose](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04-fr).
-
-```
-sudo curl -L "https://github.com/docker/compose/releases/download/1.26.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-docker-compose --version
-```
-
-The Docker daemon always runs as the root user. To run the docker command without sudo, create a Unix group called docker and add users to it.
-```
-sudo groupadd docker
-sudo usermod -aG docker $USER
-```
-
-after re-login one should see the hello word from inside the container
-
-```
-docker run hello-world
-```
+One needs to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
 
 ## Running the infrastructure
 
@@ -172,22 +206,7 @@ celery -A nomad.processing worker -l info
 When you run the gui on its own (e.g. with react dev server below), you have to have
 the app manually also. The gui and its dependencies run on [node](https://nodejs.org) and
 the [yarn](https://yarnpkg.com/) dependency manager. Read their documentation on how to
-install them for your platform. In linux,
-
-To install node
-```sh
-https://github.com/nodesource/distributions/blob/master/README.md
-curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-To install yarn
-```sh
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt-get update && sudo apt-get install yarn
-```
-
+install them for your platform.
 ```sh
 cd gui
 yarn
