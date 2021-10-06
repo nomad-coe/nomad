@@ -25,6 +25,7 @@ import datetime
 import time
 import zipfile
 import os.path
+import os
 import re
 
 from nomad import search, processing as proc, files, config
@@ -345,6 +346,54 @@ class TestAdminUploads:
             assert calc.tasks_status == proc.SUCCESS
         else:
             assert calc.tasks_status == expected_state
+
+    @pytest.mark.parametrize('paths,entries', [
+        pytest.param(['0/POTCAR'], ['public'], id='single'),
+        pytest.param(['0/POTCAR.gz', '0/POTCAR.xz', '0/POTCAR'], ['public'], id='multiple'),
+        pytest.param(['0/POTCAR', 'POTCAR.xz'], ['public'], id='root'),
+        pytest.param(['0/POTCAR'], ['embargo'], id='embargo')
+    ])
+    def test_quarantine_raw_files(self, paths, entries, test_user, proc_infra):
+        upload_path = os.path.join(config.fs.tmp, 'upload.zip')
+        nomad_json = {}
+        for i, entry in enumerate(entries):
+            if entry == 'embargo':
+                nomad_json.setdefault('entries', {})[f'{i}/archive.json'] = dict(with_embargo=True)
+        with zipfile.ZipFile(upload_path, 'w') as zf:
+            for path in paths:
+                with zf.open(path, 'w') as f:
+                    f.write(b'content')
+
+            for i, _ in enumerate(entries):
+                zf.write('tests/data/parsers/archive.json', f'{i}/archive.json')
+
+            with zf.open('nomad.json', 'w') as f:
+                f.write(json.dumps(nomad_json, indent=2).encode())
+
+        # process upload
+        upload = run_processing(('test_upload_id', upload_path), test_user)
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+        public_upload_files = cast(files.PublicUploadFiles, upload.upload_files)
+
+        # run command
+        exec_results = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'quarantine-raw-files', '--', 'test_upload_id'],
+            catch_exceptions=False)
+
+        # assert results
+        assert re.search(r'Moving .* to quarantine', exec_results.output) is not None, exec_results.output
+        assert re.search(r'could not move files', exec_results.output) is None, exec_results.output
+
+        # assert files
+        quarantined_zip = public_upload_files._raw_file_object('quarantined')
+        with zipfile.ZipFile(quarantined_zip.os_path, 'r') as zf:
+            for path in paths:
+                assert path in zf.namelist()
 
     @pytest.mark.parametrize('entries,with_empty,results', [
         pytest.param(['embargo', 'embargo'], True, [r'removed empty zip.*public'], id='embargo'),
