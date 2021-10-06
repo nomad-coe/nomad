@@ -367,7 +367,6 @@ def gw() -> EntryArchive:
     method_dft.dft.xc_functional.exchange.append(Functional(name="GGA_X_PBE", weight=1.0))
 
     method_gw = run.m_create(Method)
-    method_gw.electronic = Electronic(method="G0W0")
     method_gw.gw = GW(type="G0W0", starting_point="GGA_C_PBE GGA_X_PBE")
     method_gw.starting_method_ref = run.method[0]
     return run_normalize(template)

@@ -140,8 +140,7 @@ class EncyclopediaNormalizer(Normalizer):
         elif n_methods > 1:
             for sec_method in methods:
                 # GW
-                electronic_structure_method = sec_method.electronic.method if sec_method.electronic else None
-                if electronic_structure_method in {"G0W0", "scGW"}:
+                if sec_method.gw is not None:
                     repr_method = sec_method
                     method_id = "GW"
                     break

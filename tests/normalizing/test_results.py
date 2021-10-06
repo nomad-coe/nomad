@@ -220,7 +220,7 @@ def test_method_gw(gw):
     assert method.method_name == "GW"
     assert method.simulation.program_name == "VASP"
     assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.gw.gw_type == "G0W0"
+    assert method.simulation.gw.type == "G0W0"
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
 

@@ -185,7 +185,7 @@ registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, listSta
 registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, listStatConfig, 'terms')
 registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, listStatConfig, 'terms')
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, listStatConfig, 'terms')
-registerFilter('results.method.simulation.gw.gw_type', labelGW, listStatConfig, 'terms')
+registerFilter('results.method.simulation.gw.type', labelGW, listStatConfig, 'terms')
 registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, listStatConfig, 'terms')
 registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, InputSlider, 'min_max', undefined, false)
 registerFilter('external_db', labelAuthor, listStatConfig, 'terms')

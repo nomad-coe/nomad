@@ -32,7 +32,7 @@ const FilterSubMenuGW = React.memo(({
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <InputCheckboxes
-          quantity="results.method.simulation.gw.gw_type"
+          quantity="results.method.simulation.gw.type"
           label="GW Type"
           visible={visible}
           xs={12}
