@@ -288,11 +288,6 @@ class EditableUserMetadata(metainfo.MCategory):
     m_def = metainfo.Category(categories=[UserProvidableMetadata])
 
 
-class OasisMetadata(metainfo.MCategory):
-    ''' NOMAD entry metadata quantities that can be provided by an OASIS. '''
-    m_def = metainfo.Category(categories=[EditableUserMetadata])
-
-
 class MongoUploadMetadata(metainfo.MCategory):
     ''' The field is defined on the Upload mongo document. '''
     pass
@@ -395,7 +390,7 @@ class EntryMetadata(metainfo.MSection):
     calc_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
-        categories=[MongoEntryMetadata, MongoSystemMetadata, OasisMetadata],
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
         aliases=['entry_id'],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
@@ -443,7 +438,7 @@ class EntryMetadata(metainfo.MSection):
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
-        categories=[MongoUploadMetadata, OasisMetadata],
+        categories=[MongoUploadMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     processed = metainfo.Quantity(
@@ -543,18 +538,18 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     upload_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata, OasisMetadata],
+        type=metainfo.Datetime, categories=[MongoUploadMetadata],
         description='The date and time when the upload was created in nomad',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     entry_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata, OasisMetadata],
+        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The date and time when the entry was created in nomad',
         a_flask=dict(admin_only=True),
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     publish_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata, OasisMetadata],
+        type=metainfo.Datetime, categories=[MongoUploadMetadata],
         description='The date and time when the upload was published in nomad',
         a_flask=dict(admin_only=True),
         a_elasticsearch=Elasticsearch(material_entry_type))
@@ -578,7 +573,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     last_edit_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoEntryMetadata, OasisMetadata],
+        type=metainfo.Datetime, categories=[MongoEntryMetadata],
         description='The date and time the user metadata was last edited.')
 
     optimade = metainfo.SubSection(

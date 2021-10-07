@@ -28,7 +28,7 @@ calculations, and files
 
 '''
 
-from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
 from mongoengine import (
     StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
@@ -51,7 +51,7 @@ from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
+    EditableUserMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -76,9 +76,6 @@ _editable_metadata.update(**{
 _editable_metadata.update(**{
     quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions})
 
-_oasis_metadata = {
-    quantity.name: quantity for quantity in OasisMetadata.m_def.definitions}
-
 
 def _pack_log_event(logger, method_name, event_dict):
     try:
@@ -100,11 +97,6 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
-
-
-def _normalize_oasis_upload_metadata(upload_id, metadata):
-    # This is overwritten by the tests to do necessary id manipulations
-    return upload_id, metadata
 
 
 def check_user_ids(user_ids: Iterable[str], error_message: str):
@@ -293,8 +285,6 @@ class Calc(Proc):
                 continue
 
             definition = _editable_metadata.get(key, None)
-            if definition is None and self.upload.from_oasis:
-                definition = _oasis_metadata.get(key, None)
 
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
@@ -866,7 +856,7 @@ class Upload(Proc):
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: datamodel.User, **kwargs) -> List['Upload']:
+    def user_uploads(cls, user: datamodel.User, **kwargs) -> Sequence['Upload']:
         ''' Returns all uploads for the given user. Kwargs are passed to mongo query. '''
         return cls.objects(user_id=str(user.user_id), **kwargs)
 
@@ -914,7 +904,7 @@ class Upload(Proc):
         return self
 
     @classmethod
-    def create_skeleton_from_bundle(cls, bundle: UploadBundle):
+    def create_skeleton_from_bundle(cls, bundle: UploadBundle) -> 'Upload':
         '''
         Creates a minimalistic "skeleton" from the provided upload bundle (basically just
         with the right upload_id and user), on which we can initiate the :func:`import_bundle`
@@ -1106,46 +1096,7 @@ class Upload(Proc):
         logger.info('starting to (re)process')
 
         self.extracting()
-
-        oasis_metadata: Dict[str, Any] = {}
-        if self.from_oasis:
-            # we might need to add datasets from the oasis before processing and
-            # adding the entries
-            oasis_metadata_file = os.path.join(
-                StagingUploadFiles.base_folder_for(self.upload_id), 'raw',
-                config.metadata_file_name + '.json')
-            if os.path.exists(oasis_metadata_file):
-                # Old way of importing from oasis
-                # TODO: remove when we no longer need it
-                with open(oasis_metadata_file, 'rt') as f:
-                    oasis_metadata = json.load(f)
-                oasis_datasets = oasis_metadata.get('oasis_datasets', {})
-                metadata_was_changed = False
-                for oasis_dataset in oasis_datasets.values():
-                    try:
-                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
-                            user_id=self.user_id, dataset_name=oasis_dataset['dataset_name'])
-                    except KeyError:
-                        datamodel.Dataset(**oasis_dataset).a_mongo.save()
-                    else:
-                        oasis_dataset_id = oasis_dataset['dataset_id']
-                        if existing_dataset.dataset_id != oasis_dataset_id:
-                            # A dataset for the same user with the same name was created
-                            # in both deployments. We consider this to be the "same" dataset.
-                            # These datasets have different ids and we need to migrate the provided
-                            # dataset ids:
-                            for entry in oasis_metadata['entries'].values():
-                                entry_datasets = entry.get('datasets', [])
-                                for index, dataset_id in enumerate(entry_datasets):
-                                    if dataset_id == oasis_dataset_id:
-                                        entry_datasets[index] = existing_dataset.dataset_id
-                                        metadata_was_changed = True
-
-                if metadata_was_changed:
-                    with open(oasis_metadata_file, 'wt') as f:
-                        json.dump(oasis_metadata, f)
-
-        self.parse_all(oasis_metadata, reprocess_settings)
+        self.parse_all(reprocess_settings)
         self.set_process_step('collecting entry results')
         return ProcessStatus.WAITING_FOR_RESULT
 
@@ -1260,13 +1211,12 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=path_info.path, exc_info=e)
 
-    def parse_all(self, oasis_metadata: Dict[str, Any], reprocess_settings: Dict[str, Any] = None):
+    def parse_all(self, reprocess_settings: Dict[str, Any] = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
         creates respective :class:`Calc` instances, and triggers their processing.
 
         Arguments:
-            oasis_metadata: The oasis metadata, if importing an upload the old way
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
@@ -1274,7 +1224,6 @@ class Upload(Proc):
         self.set_process_step('parse all')
         logger = self.get_logger()
 
-        oasis_entries_metadata = oasis_metadata.get('entries', {})
         with utils.timer(logger, 'calcs processing called'):
             try:
                 settings = config.reprocess.customize(reprocess_settings)  # Add default settings
@@ -1285,15 +1234,7 @@ class Upload(Proc):
                 entries_to_delete: List[str] = []
                 count_already_processing = 0
                 for filename, parser in self.match_mainfiles():
-                    # Get metadata and calc_id
-                    oasis_entry_metadata = oasis_entries_metadata.get(filename)
-                    if oasis_entry_metadata is not None:
-                        calc_id = oasis_entry_metadata.get('calc_id')
-                        if calc_id is None:
-                            logger.warn('Oasis entry without id', mainfile=filename)
-                            calc_id = generate_entry_id(self.upload_id, filename)
-                    else:
-                        calc_id = generate_entry_id(self.upload_id, filename)
+                    calc_id = generate_entry_id(self.upload_id, filename)
 
                     try:
                         entry = Calc.get(calc_id)
@@ -1460,12 +1401,6 @@ class Upload(Proc):
                 with utils.timer(logger, 'upload staging files deleted'):
                     self.staging_upload_files.delete()
 
-                if self.from_oasis:
-                    metadata = self.metadata_file_cached(
-                        os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
-                    if metadata is not None:
-                        self.upload_create_time = metadata.get('upload_create_time')
-
                 self.publish_time = datetime.utcnow()
                 self.last_update = datetime.utcnow()
                 self.save()
@@ -1491,7 +1426,7 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()
 
     @property
-    def processed_calcs(self):
+    def processed_calcs(self) -> int:
         '''
         The number of successfully or not successfully processed calculations. I.e.
         calculations that have finished processing.
@@ -1501,12 +1436,12 @@ class Upload(Proc):
                 ProcessStatus.SUCCESS, ProcessStatus.FAILURE]).count()
 
     @property
-    def total_calcs(self):
+    def total_calcs(self) -> int:
         ''' The number of all calculations. '''
         return Calc.objects(upload_id=self.upload_id).count()
 
     @property
-    def failed_calcs(self):
+    def failed_calcs(self) -> int:
         ''' The number of calculations with failed processing. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
 
@@ -1516,7 +1451,7 @@ class Upload(Proc):
         return Calc.objects(
             upload_id=self.upload_id, process_status__in=ProcessStatus.STATUSES_PROCESSING).count()
 
-    def all_calcs(self, start, end, order_by=None):
+    def all_calcs(self, start, end, order_by=None) -> Sequence[Calc]:
         '''
         Returns all calculations, paginated and ordered.
 
@@ -1534,14 +1469,14 @@ class Upload(Proc):
         return query.order_by(*order_by)
 
     @property
-    def outdated_calcs(self):
+    def outdated_calcs(self) -> Sequence[Calc]:
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
             upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS,
             nomad_version__ne=config.meta.version)
 
     @property
-    def calcs(self) -> Iterable[Calc]:
+    def calcs(self) -> Sequence[Calc]:
         ''' All successfully processed calculations. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
@@ -1618,7 +1553,7 @@ class Upload(Proc):
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
-    def entry_ids(self) -> Iterable[str]:
+    def entry_ids(self) -> List[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
 
     def export_bundle(

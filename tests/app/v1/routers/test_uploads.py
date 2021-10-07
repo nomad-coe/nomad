@@ -30,12 +30,10 @@ from tests.test_files import (
     assert_upload_files)
 from tests.test_search import assert_search_upload
 from tests.app.v1.routers.common import assert_response
-from nomad import config, files, infrastructure, datamodel
+from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
-from nomad.processing.data import generate_entry_id
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
-from nomad.archive import write_archive, read_archive
 from nomad.search import search
 
 '''
@@ -1177,93 +1175,30 @@ def test_post_upload_action_publish(
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
-            upload_id='examples_template',
-            import_settings=dict(include_archive_files=False, trigger_processing=True)),
+            import_settings=dict(include_archive_files=False, trigger_processing=True),
+            query_args=dict(embargo_length=0)),
         id='trigger-processing'),
     pytest.param(
         dict(
-            upload_id='examples_template',
-            import_settings=dict(include_archive_files=True, trigger_processing=False)),
+            import_settings=dict(include_archive_files=True, trigger_processing=False),
+            query_args=dict(embargo_length=28)),
         id='no-processing')])
 def test_post_upload_action_publish_to_central_nomad(
-        client, proc_infra, monkeypatch,
-        non_empty_processed, internal_example_user_metadata,
+        client, proc_infra, monkeypatch, oasis_publishable_upload,
         test_users_dict, test_auth_dict, kwargs):
     ''' Tests the publish action with to_central_nomad=True. '''
-    # Create a published upload
-    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
-    non_empty_processed.publish_upload()
-    non_empty_processed.block_until_complete(interval=.01)
-
-    suffix = '_2'  # Will be added to all IDs in the mirrored upload
-    upload_id = kwargs.get('upload_id')
+    upload_id, suffix = oasis_publishable_upload
     query_args = kwargs.get('query_args', {})
     query_args['to_central_nomad'] = True
+    embargo_length = query_args.get('embargo_length')
     import_settings = kwargs.get('import_settings', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'test_user')
     user_auth, __token = test_auth_dict[user]
     old_upload = Upload.get(upload_id)
 
-    # Do some tricks to add suffix to the ID fields
-    old_bundle_init = files.UploadBundle.__init__
-
-    def new_bundle_init(self, *args, **kwargs):
-        old_bundle_init(self, *args, **kwargs)
-        # Change the id's in the bundle_info dict behind the scenes when loading the bundle
-        bundle_info = self.bundle_info
-        bundle_info['upload_id'] += suffix
-        bundle_info['upload']['_id'] += suffix
-        for entry_dict in bundle_info['entries']:
-            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
-            entry_dict['upload_id'] += suffix
-
-    old_bundle_import_files = files.UploadBundle.import_upload_files
-
-    def new_bundle_import_files(self, *args, **kwargs):
-        upload_files = old_bundle_import_files(self, *args, **kwargs)
-        # Overwrite the archive files with files containing the updated IDs
-        if old_upload.published:
-            archive_path = upload_files.os_path
-        else:
-            archive_path = os.path.join(upload_files.os_path, 'archive')
-        for file_name in os.listdir(archive_path):
-            if file_name.endswith('.msg') and 'public' in file_name:
-                full_path = os.path.join(archive_path, file_name)
-                data = read_archive(full_path)
-                new_data = []
-                for entry_id in data.keys():
-                    archive_dict = data[entry_id].to_dict()
-                    section_metadata = archive_dict['metadata']
-                    section_metadata['upload_id'] += suffix
-                    new_entry_id = generate_entry_id(
-                        section_metadata['upload_id'], section_metadata['mainfile'])
-                    section_metadata['calc_id'] = new_entry_id
-                    new_data.append((new_entry_id, archive_dict))
-                write_archive(full_path, len(new_data), new_data)
-        return upload_files
-
-    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
-    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
-
-    # Further monkey patching
-    def new_post(url, data, *args, **kwargs):
-        return client.post(url.lstrip('/api/v1/'), *args, data=data.read(), **kwargs)
-
-    monkeypatch.setattr('requests.post', new_post)
-    monkeypatch.setattr('nomad.config.keycloak.username', test_users_dict[user].username)
-    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
-    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
     import_settings = config.bundle_import.default_settings.customize(import_settings)
     monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
-
-    # create a dataset to also test this aspect of oasis uploads
-    calc = old_upload.calcs[0]
-    datamodel.Dataset(
-        dataset_id='dataset_id', dataset_name='dataset_name',
-        user_id=test_users_dict[user].user_id).a_mongo.save()
-    calc.datasets = ['dataset_id']
-    calc.save()
 
     # Finally, invoke the method to publish to central nomad
     response = perform_post_upload_action(client, user_auth, upload_id, 'publish', **query_args)
@@ -1278,19 +1213,27 @@ def test_post_upload_action_publish_to_central_nomad(
 
         old_upload = Upload.get(upload_id)
         new_upload = Upload.get(upload_id + suffix)
-        assert len(old_upload.calcs) == len(new_upload.calcs)
+        assert len(old_upload.calcs) == len(new_upload.calcs) == 1
+        if embargo_length is None:
+            embargo_length = old_upload.embargo_length
         old_calc = old_upload.calcs[0]
         new_calc = new_upload.calcs[0]
-        old_calc_metadata_dict = old_calc.mongo_metadata(old_upload).m_to_dict()
-        new_calc_metadata_dict = new_calc.mongo_metadata(new_upload).m_to_dict()
+        old_calc_metadata_dict = old_calc.full_entry_metadata(old_upload).m_to_dict()
+        new_calc_metadata_dict = new_calc.full_entry_metadata(new_upload).m_to_dict()
         for k, v in old_calc_metadata_dict.items():
-            if k not in (
+            if k == 'with_embargo':
+                assert new_calc_metadata_dict[k] == (embargo_length > 0)
+            elif k not in (
                     'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
-                    'last_processing_time', 'publish_time'):
+                    'last_processing_time', 'publish_time',
+                    'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
                 assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
         assert new_calc.datasets == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
         assert new_upload.from_oasis and new_upload.oasis_deployment_id
+        assert new_upload.embargo_length == embargo_length
+        assert old_upload.upload_files.access == 'restricted' if old_upload.with_embargo else 'public'
+        assert new_upload.upload_files.access == 'restricted' if new_upload.with_embargo else 'public'
 
 
 @pytest.mark.parametrize('upload_id, publish, user, expected_status_code', [

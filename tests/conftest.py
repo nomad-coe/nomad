@@ -31,21 +31,21 @@ from typing import List
 import json
 import logging
 import warnings
-import zipfile
 import os.path
 from fastapi.testclient import TestClient
 
-from nomad import config, infrastructure, processing, utils
-from nomad.datamodel import EntryArchive
+from nomad import config, infrastructure, processing, utils, datamodel, files
+from nomad.datamodel import User, EntryArchive
 from nomad.utils import structlogging
-from nomad.datamodel import User
+from nomad.archive import write_archive, read_archive
+from nomad.processing.data import generate_entry_id
 from nomad.app.main import app
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file, set_upload_entry_metadata
+from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
 
 test_log_level = logging.CRITICAL
 
@@ -600,48 +600,79 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 
 
 @pytest.fixture(scope='function')
-def oasis_example_upload(non_empty_example_upload: str, test_user, raw_files) -> str:
-    processing.Upload.metadata_file_cached.cache_clear()
+def oasis_publishable_upload(
+        api_v1, proc_infra, non_empty_processed: processing.Upload, internal_example_user_metadata,
+        monkeypatch, test_user):
+    '''
+    Creates a published upload which can be used with Upload.publish_externally. Some monkeypatching
+    is done which replaces IDs when importing.
+    '''
+    # Create a published upload
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    non_empty_processed.publish_upload()
+    non_empty_processed.block_until_complete(interval=.01)
 
-    uploaded_path = non_empty_example_upload
-    uploaded_path_modified = os.path.join(
-        config.fs.tmp,
-        os.path.basename(non_empty_example_upload))
-    shutil.copyfile(uploaded_path, uploaded_path_modified)
+    suffix = '_2'  # Will be added to all IDs in the mirrored upload
+    upload_id = non_empty_processed.upload_id
 
-    metadata = {
-        'upload_create_time': '2020-01-01 00:00:00',
-        'published': True,
-        'entries': {
-            'examples_template/template.json': {
-                'calc_id': 'test_calc_id',
-                'datasets': ['oasis_dataset_1', 'oasis_dataset_2']
-            }
-        },
-        'oasis_datasets': {
-            'dataset_1_name': {
-                'dataset_id': 'oasis_dataset_1',
-                'user_id': test_user.user_id,
-                'dataset_name': 'dataset_1_name'
-            },
-            'dataset_2_name': {
-                'dataset_id': 'oasis_dataset_2',
-                'user_id': test_user.user_id,
-                'dataset_name': 'dataset_2_name'
-            }
-        }
-    }
+    # Do some tricks to add suffix to the ID fields
+    old_bundle_init = files.UploadBundle.__init__
 
-    with zipfile.ZipFile(uploaded_path_modified, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f:
-            f.write(json.dumps(metadata).encode())
+    def new_bundle_init(self, *args, **kwargs):
+        old_bundle_init(self, *args, **kwargs)
+        # Change the id's in the bundle_info dict behind the scenes when loading the bundle
+        bundle_info = self.bundle_info
+        bundle_info['upload_id'] += suffix
+        bundle_info['upload']['_id'] += suffix
+        for entry_dict in bundle_info['entries']:
+            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
+            entry_dict['upload_id'] += suffix
 
-    return uploaded_path_modified
+    old_bundle_import_files = files.UploadBundle.import_upload_files
 
+    def new_bundle_import_files(self, *args, **kwargs):
+        upload_files = old_bundle_import_files(self, *args, **kwargs)
+        # Overwrite the archive files with files containing the updated IDs
+        archive_path = upload_files.os_path
+        for file_name in os.listdir(archive_path):
+            if file_name.endswith('.msg'):
+                full_path = os.path.join(archive_path, file_name)
+                data = read_archive(full_path)
+                new_data = []
+                for entry_id in data.keys():
+                    archive_dict = data[entry_id].to_dict()
+                    section_metadata = archive_dict['metadata']
+                    section_metadata['upload_id'] += suffix
+                    new_entry_id = generate_entry_id(
+                        section_metadata['upload_id'], section_metadata['mainfile'])
+                    section_metadata['calc_id'] = new_entry_id
+                    new_data.append((new_entry_id, archive_dict))
+                write_archive(full_path, len(new_data), new_data)
+        return upload_files
 
-@pytest.fixture(scope='function')
-def oasis_example_uploaded(oasis_example_upload: str) -> Tuple[str, str]:
-    return 'oasis_upload_id', oasis_example_upload
+    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
+    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
+
+    # Further monkey patching
+    def new_post(url, data, params={}, **kwargs):
+        return api_v1.post(
+            build_url(url.lstrip('/api/v1/'), params),
+            data=data.read(), **kwargs)
+
+    monkeypatch.setattr('requests.post', new_post)
+    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+    monkeypatch.setattr('nomad.config.keycloak.username', test_user.username)
+
+    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
+
+    # create a dataset to also test this aspect of oasis uploads
+    calc = non_empty_processed.calcs[0]
+    datamodel.Dataset(
+        dataset_id='dataset_id', dataset_name='dataset_name',
+        user_id=test_user.user_id).a_mongo.save()
+    calc.datasets = ['dataset_id']
+    calc.save()
+    return non_empty_processed.upload_id, suffix
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

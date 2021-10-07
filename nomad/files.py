@@ -1213,12 +1213,6 @@ class PublicUploadFiles(UploadFiles):
 
         return staging_upload_files
 
-    def add_metadata_file(self, metadata: dict):
-        zip_path = self.raw_zip_file_object().os_path
-        with zipfile.ZipFile(zip_path, 'a') as zf:
-            with zf.open('nomad.json', 'w') as f:
-                f.write(json.dumps(metadata).encode())
-
     def _parse_content(self):
         '''
         Parses the content of files and folders and caches it in self._directories for
