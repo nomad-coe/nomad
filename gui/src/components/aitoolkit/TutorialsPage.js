@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Box, Divider, Typography, AccordionDetails, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
+import { Box, Divider, Typography, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
 import MUIAccordion from '@material-ui/core/Accordion'
 import MUIAccordionSummary from '@material-ui/core/AccordionSummary'
+import MUIAccordionDetails from '@material-ui/core/AccordionDetails'
+
 import { withStyles } from '@material-ui/core/styles'
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
@@ -33,18 +35,17 @@ const useStyles = makeStyles(theme => ({
   root: {
     margin: theme.spacing(3),
     width: '100%',
-    // marginLeft: 'auto',
-    // marginRight: 'auto',
-    marginLeft: '100px',
-    marginRight: '100px',
-    maxWidth: 1024
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1024px'
   },
-  section: {
+  sectionIcon: {
     marginTop: theme.spacing(3)
   },
   sectionTitle: {
     marginBottom: theme.spacing(1),
-    marginLeft: theme.spacing(2)
+    marginLeft: theme.spacing(2),
+    marginTop: '105px'
   },
   title: {
     fontWeight: 'bold',
@@ -57,22 +58,27 @@ const useStyles = makeStyles(theme => ({
     marginTop: '20px'
   },
   icon: {
-    height: '400px',
-    marginTop: '-20px'
+    height: '350px',
+    marginTop: '-20px',
+    marginLeft: '200px'
   },
   filter: {
     fontWeight: 'bold',
     color: '#2A3C67',
     fontSize: 15,
-    marginTop: '-100px'
+    marginTop: '140px',
+    marginLeft: '20px'
   },
   autocomplete: {
     height: 'auto',
     color: '#2A3C67',
     border: '3px solid rgba(127, 239, 239, 1)',
     borderRadius: '10px 10px 10px 10px',
-    marginTop: '-70px'
-
+    marginTop: '10px',
+    marginLeft: '20px'
+  },
+  tutorialsList: {
+    marginTop: '50px'
   },
   tutorialTitle: {
     fontWeight: 'bold',
@@ -85,21 +91,31 @@ const useStyles = makeStyles(theme => ({
     fontWeight: 'bold',
     fontSize: 15,
     lineHeight: '20px',
-    align: 'right'
+    align: 'right',
+    marginLeft: '-30px'
+
   },
-  tutorialDetails: {
-    flexDirection: 'column',
-    '& *': {
-      marginTop: theme.spacing(1)
-    },
-    '& :first-child': {
-      marginTop: -theme.spacing(2)
-    }
+  tutorialDescription: {
+    marginTop: '-30px',
+    marginLeft: '50px'
+  },
+  tutorialActions: {
+    marginLeft: '50px'
+  },
+  tutorialKeyworks: {
+    marginTop: '-30px'
   },
   link: {
+    color: '#2A3C67',
     cursor: 'pointer',
     fontWeight: 'normal'
-
+  },
+  linkKeywords: {
+    border: '1.5px solid rgba(127, 239, 239, 1)',
+    lineHeight: '35px',
+    color: '#2A3C67',
+    cursor: 'pointer',
+    fontWeight: 'normal'
   }
 }))
 
@@ -107,6 +123,8 @@ const Accordion = withStyles({
   root: {
     borderTop: '10px solid rgba(127, 239, 239, 1)',
     scrollbarGutter: 'false',
+    width: '100%',
+    display: 'block',
     '&:not(:last-child)': {
     },
     '&:before': {
@@ -119,7 +137,8 @@ const Accordion = withStyles({
   heading: {
     fontSize: 35,
     flexBasis: '33.33%',
-    flexShrink: 0
+    flexShrink: 0,
+    marginLeft: '0px'
   },
   secondaryHeading: {
     fontSize: 10
@@ -129,17 +148,37 @@ const Accordion = withStyles({
 
 const AccordionSummary = withStyles({
   root: {
-    flexDirection: 'column'
-  },
-  content: {
-    marginBottom: 0,
-    flexGrow: 1
-  },
-  expandIcon: {
-    marginRight: '10px',
-    paddingTop: '10px'
+    // flexDirection: 'column',
+    // height: '150px',
+    width: '100%',
+    display: 'block'
   }
+  // content: {
+  //   marginBottom: 0,
+  //   flexGrow: 1
+  // },
+  // expandIcon: {
+  //   marginRight: '10px',
+  //   paddingTop: '10px'
+  // }
 })(MUIAccordionSummary)
+
+const AccordionDetails = withStyles({
+  root: {
+    width: '100%',
+    display: 'block',
+    marginTop: '30px'
+
+  }
+  // content: {
+  //   marginBottom: 0,
+  //   flexGrow: 1
+  // },
+  // expandIcon: {
+  //   marginRight: '10px',
+  //   paddingTop: '20px'
+  // }
+})(MUIAccordionDetails)
 
 export default function AIToolkitPage() {
   const classes = useStyles()
@@ -188,9 +227,9 @@ export default function AIToolkitPage() {
     }
   }, [tutorials_list])
 
-  return <Grid container spacing={2} className={classes.root}>
-    <Grid container spacing={0} className={classes.root}>
-      <Grid item xs={5} >
+  return <Grid container spacing={1} className={classes.root}>
+    <Grid container spacing={0}>
+      <Grid item xs={4} className={classes.sectionTitle} >
         <Box className={classes.title}>
           {
             'Learn from tutorials'
@@ -202,11 +241,11 @@ export default function AIToolkitPage() {
           }
         </Box>
       </Grid>
-      <Grid item xs={6} className={classes.icon}>
+      <Grid item xs={4} className={classes.sectionIcon}>
         <img src={TutorialsIcon} className={classes.icon}/>
       </Grid>
     </Grid>
-    <Grid container spacing={1} className={classes.root}>
+    <Grid container spacing={1}>
       <Grid item xs={12} >
         <Box className={classes.filter} >
           {
@@ -214,9 +253,8 @@ export default function AIToolkitPage() {
           }
         </Box>
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={2} className={classes.autocomplete}>
         <Autocomplete
-          className={classes.autocomplete}
           id="combo-box-demo"
           options={authors}
           getOptionLabel={option => option}
@@ -227,9 +265,8 @@ export default function AIToolkitPage() {
           onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={2} className={classes.autocomplete}>
         <Autocomplete
-          className={classes.autocomplete}
           id="combo-box-demo"
           options={keywords}
           getOptionLabel={option => option}
@@ -240,10 +277,8 @@ export default function AIToolkitPage() {
           onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={2} className={classes.autocomplete}>
         <Autocomplete
-          className={classes.autocomplete}
-          sx={{ height: 300 }}
           id="combo-box-demo"
           options={methods}
           renderInput={params => (
@@ -255,10 +290,10 @@ export default function AIToolkitPage() {
       </Grid>
     </Grid>
 
-    <Grid container spacing={1} className={classes.root}>
+    <Grid container spacing={1} className={classes.tutorialsList}>
       <Grid item xs={12}>
         {tutorials_list.map(tutorial => (
-          <div key={tutorial.title} className={classes.tutorial}>
+          <div key={tutorial.title} >
             <Accordion
               key={tutorial.key}
               disabled={!filter(tutorial)}
@@ -297,51 +332,67 @@ export default function AIToolkitPage() {
                 </Grid>
               </AccordionSummary>
 
-              <AccordionDetails className={classes.tutorialDetails}>
-                <Markdown>
-                  {tutorial.description}
-                </Markdown>
-                <Typography>
-                  <b>keywords</b>: {tutorial.labels.application_keyword
-                    .map(keyword => (
-                      <Link
-                        className={classes.link}
-                        key={keyword}
-                        onClick={() => setQueryParameters({
-                          ...emptyQuery,
-                          keyword: queryParameters.keyword === keyword ? null : keyword
-                        })}
-                      >
-                        {keyword}
-                      </Link>
-                    )).reduce((prev, curr) => [prev, ', ', curr])
-                  }
-                </Typography>
-                <Typography>
-                  <b>method</b>: {tutorial.labels.data_analytics_method
-                    .map(method => (
-                      <Link
-                        className={classes.link}
-                        key={method}
-                        onClick={() => setQueryParameters({
-                          ...emptyQuery,
-                          method: queryParameters.method === method ? null : method
-                        })}
-                      >
-                        {method}
-                      </Link>
-                    )).reduce((prev, curr) => [prev, ', ', curr])
-                  }
-                </Typography>
+              <AccordionDetails >
+                <Grid container spacing={4}>
+                  <Grid item xs={7} className={classes.tutorialDescription}>
+                    <Markdown>
+                      {tutorial.description}
+                    </Markdown>
+                  </Grid>
+                  <Grid item xs={4} className={classes.tutorialKeyworks}>
+                    <Typography>
+                      <b>Keywords</b>:
+                    </Typography>
+                    <Typography>
+                      {tutorial.labels.application_keyword
+                        .map(keyword => (
+                          <Link
+                            className={classes.linkKeywords}
+                            key={keyword}
+                            onClick={() => setQueryParameters({
+                              ...emptyQuery,
+                              keyword: queryParameters.keyword === keyword ? null : keyword
+                            })}
+                          >
+                            {keyword}
+                          </Link>
+                        )).reduce((prev, curr) => [prev, '    ', curr])
+                      }
+                    </Typography>
+                    <Typography>
+                      <b>Methods</b>:
+                    </Typography>
+                    <Typography>
+                      {tutorial.labels.data_analytics_method
+                        .map(method => (
+                          <Link
+                            className={classes.linkKeywords}
+                            key={method}
+                            onClick={() => setQueryParameters({
+                              ...emptyQuery,
+                              method: queryParameters.method === method ? null : method
+                            })}
+                          >
+                            {method}
+                          </Link>
+                        )).reduce((prev, curr) => [prev, '    ', curr])
+                      }
+                    </Typography>
+                  </Grid>
+                </Grid>
               </AccordionDetails>
 
               <AccordionActions>
-                <Button color="black" href={tutorial.link} target="tutorial" endIcon={<img src={AccessIcon}></img>}>
+                <Grid container spacing={2}>
+                  <Grid item xs={8} className={classes.tutorialActions}>
+                    <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
                     Access this tutorial
-                </Button>
-                <Button color="primary" href={tutorial.link_public} target="tutorial" endIcon={<img src={WatchIcon}></img>}>
+                    </Button>
+                    <Button color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
                     Watch video
-                </Button>
+                    </Button>
+                  </Grid>
+                </Grid>
               </AccordionActions>
               <Divider />
             </Accordion>
