@@ -26,17 +26,22 @@ import IconWork from './assets/AIT_ico_bb_work.svg'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    maxWidth: '1920px',
+    maxWidth: 'auto',
     backgroundImage: `url(${Background})`,
     color: 'white',
-    height: '700px'
+    height: '1000px'
+  },
+  boxIcons: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '-200px'
   },
   title: {
     fontSize: '50px',
     margin: 'auto',
     textAlign: 'center',
     align: 'center',
-    marginTop: '50px',
+    marginTop: '200px',
     width: '450px',
     height: '140px',
     fontFamily: 'TitilliumBold',
@@ -48,7 +53,7 @@ const useStyles = makeStyles(theme => ({
   deck: {
     fontFamily: 'TitilliumRegular',
     letterSpacing: 0,
-    marginTop: '-45px',
+    marginTop: '-200px',
     wordSpacing: '5px',
     lineHeight: '30px',
     color: 'white',
@@ -92,42 +97,43 @@ export default function AIToolkitPage() {
       <Box className={classes.deck}>
       Find new Patterns and Information in Materials Science Big Data  </Box>
     </Grid>
-    <Grid item xs={3}> <img src={IconQuery} />
+    <Grid container spacing={1} className={classes.boxIcons}>
+      <Grid item xs={3}> <img src={IconQuery} />
+      </Grid>
+      <Grid item xs={3}> <img src={IconTutorial} />
+      </Grid>
+      <Grid item xs={3}> <img src={IconReplicate} />
+      </Grid>
+      <Grid item xs={3}> <img src={IconWork} />
+      </Grid>
+      <Grid item xs={3}>
+        <button className={classes.button}
+          type="button"
+        > Query the archive</button>
+      </Grid>
+      <Grid item xs={3} >
+        <button className={classes.button}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            window.location.href = 'tutorials'
+          }}
+        > View tutorials</button>
+      </Grid>
+      <Grid item xs={3}>
+        <button className={classes.button}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            window.location.href = 'reproduce'
+          }}
+        > Reproduce published results</button>
+      </Grid>
+      <Grid item xs={3}>
+        <button className={classes.button}
+          type="button"
+        > Get to work</button>
+      </Grid>
     </Grid>
-    <Grid item xs={3}> <img src={IconTutorial} />
-    </Grid>
-    <Grid item xs={3}> <img src={IconReplicate} />
-    </Grid>
-    <Grid item xs={3}> <img src={IconWork} />
-    </Grid>
-    <Grid item xs={3}>
-      <button className={classes.button}
-        type="button"
-      > Query the archive</button>
-    </Grid>
-    <Grid item xs={3} >
-      <button className={classes.button}
-        type="button"
-        onClick={(e) => {
-          e.preventDefault()
-          window.location.href = 'tutorials'
-        }}
-      > View tutorials</button>
-    </Grid>
-    <Grid item xs={3}>
-      <button className={classes.button}
-        type="button"
-        onClick={(e) => {
-          e.preventDefault()
-          window.location.href = 'reproduce'
-        }}
-      > Reproduce published results</button>
-    </Grid>
-    <Grid item xs={3}>
-      <button className={classes.button}
-        type="button"
-      > Get to work</button>
-    </Grid>
-
   </Grid>
 }
