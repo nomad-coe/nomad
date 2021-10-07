@@ -203,6 +203,7 @@ class Calc(Proc):
         kwargs.setdefault('entry_create_time', datetime.utcnow())
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
+        self._is_initial_processing: bool = False
         self._upload: Upload = None
         self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
@@ -455,7 +456,10 @@ class Calc(Proc):
 
         # 1. Determine if we should parse or not
         self.set_process_step('Determining action')
-        if not self.upload.published or not self.nomad_version:
+        # If this entry has been processed before, or imported from a bundle, nomad_version
+        # should be set. If not, this is the initial processing.
+        self._is_initial_processing = self.nomad_version is None
+        if not self.upload.published or self._is_initial_processing:
             should_parse = True
         else:
             # This entry has already been published and has metadata.
@@ -712,10 +716,11 @@ class Calc(Proc):
         if self.upload.publish_directly:
             self._entry_metadata.published |= True
 
-        try:
-            self._apply_metadata_from_file(logger)
-        except Exception as e:
-            logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
+        if self._is_initial_processing:
+            try:
+                self._apply_metadata_from_file(logger)
+            except Exception as e:
+                logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
 
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
