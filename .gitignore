@@ -23,6 +23,7 @@ target/
 *.swp
 *.vscode
 .vscode/
+.idea/
 vscode/
 nomad.yaml
 gunicorn.log.conf
