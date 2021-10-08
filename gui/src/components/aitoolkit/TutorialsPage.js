@@ -17,11 +17,11 @@
  */
 import React, { useMemo } from 'react'
 import { Box, Divider, Typography, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
-import MUIAccordion from '@material-ui/core/Accordion'
-import MUIAccordionSummary from '@material-ui/core/AccordionSummary'
-import MUIAccordionDetails from '@material-ui/core/AccordionDetails'
-
-import { withStyles } from '@material-ui/core/styles'
+import MuiAccordion from '@material-ui/core/Accordion'
+import MuiAccordionSummary from '@material-ui/core/AccordionSummary'
+import MuiAccordionDetails from '@material-ui/core/AccordionDetails'
+import { styled } from '@material-ui/core/styles'
+import ArrowForwardIosSharpIcon from '@material-ui/icons/ArrowForwardIosSharp'
 import tutorials from '../../toolkitMetadata'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import Markdown from '../Markdown'
@@ -114,7 +114,6 @@ const useStyles = makeStyles(theme => ({
     lineHeight: '20px'
   },
   tutorialDescriptionGrid: {
-    marginTop: '-30px',
     marginLeft: '50px'
   },
   tutorialDescriptionText: {
@@ -122,8 +121,7 @@ const useStyles = makeStyles(theme => ({
     color: '#2A3C67'
   },
   keyworksGrid: {
-    marginTop: '-30px',
-    marginLeft: '63px'
+    marginLeft: '80px'
   },
   linkKeywords: {
     border: '1.5px solid rgba(127, 239, 239, 1)',
@@ -142,66 +140,37 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const Accordion = withStyles({
-  root: {
-    borderTop: '10px solid rgba(127, 239, 239, 1)',
-    scrollbarGutter: 'false',
-    width: '100%',
-    display: 'block',
-    '&:not(:last-child)': {
-    },
-    '&:before': {
-      display: 'none'
-    },
-    '&$expanded': {
-      margin: 'auto'
-    }
+const Accordion = styled((props) => (
+  <MuiAccordion disableGutters elevation={0} square {...props} />
+))(({ theme }) => ({
+  borderTop: '8px solid rgba(127, 239, 239, 1)',
+  '&:not(:last-child)': {
+    borderBottom: 0
   },
-  heading: {
-    fontSize: 35,
-    flexBasis: '33.33%',
-    flexShrink: 0,
-    marginLeft: '0px'
-  },
-  secondaryHeading: {
-    fontSize: 10
-  },
-  expanded: {}
-})(MUIAccordion)
-
-const AccordionSummary = withStyles({
-  root: {
-    // flexDirection: 'column',
-    // height: '150px',
-    width: '100%',
-    display: 'block'
+  '&:before': {
+    display: 'none'
   }
-  // content: {
-  //   marginBottom: 0,
-  //   flexGrow: 1
-  // },
-  // expandIcon: {
-  //   marginRight: '10px',
-  //   paddingTop: '10px'
-  // }
-})(MUIAccordionSummary)
+}))
 
-const AccordionDetails = withStyles({
-  root: {
-    width: '100%',
-    display: 'block',
-    marginTop: '30px'
+const AccordionSummary = styled((props) => (
+  <MuiAccordionSummary
+    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
+    {...props}
+  />
+))(({ theme }) => ({
 
+  flexDirection: 'row-reverse',
+  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+    transform: 'rotate(90deg)'
+  },
+  '& .MuiAccordionSummary-content': {
+    marginLeft: theme.spacing(1)
   }
-  // content: {
-  //   marginBottom: 0,
-  //   flexGrow: 1
-  // },
-  // expandIcon: {
-  //   marginRight: '10px',
-  //   paddingTop: '20px'
-  // }
-})(MUIAccordionDetails)
+}))
+
+const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
+  padding: theme.spacing(2)
+}))
 
 export default function AIToolkitPage() {
   const classes = useStyles()
@@ -412,7 +381,9 @@ export default function AIToolkitPage() {
               </AccordionDetails>
 
               <AccordionActions>
+
                 <Grid container spacing={4}>
+
                   <Grid item xs={7} className={classes.tutorialActions}>
                     <Grid container spacing={0}>
                       <Grid item xs={5}>
@@ -420,16 +391,15 @@ export default function AIToolkitPage() {
                           <Typography className={classes.fieldText} >
                             <b>Access tutorial</b>
                           </Typography>
-
                         </Button>
                       </Grid>
 
                       <Grid item xs={5} >
-
                         <Button width='10px' color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
                           <Typography className={classes.fieldText} >
                             <b>Watch video</b>
-                          </Typography>                        </Button>
+                          </Typography>
+                        </Button>
                       </Grid>
                     </Grid>
 
@@ -441,6 +411,7 @@ export default function AIToolkitPage() {
                           <b>Additional Resources</b>:
                         </Typography>
                       </Grid>
+
                       <Grid item xs={2} >
                         <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={DoiIcon}></img>}>
                         </Button>
@@ -449,6 +420,7 @@ export default function AIToolkitPage() {
                         <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={PdfIcon}></img>}>
                         </Button>
                       </Grid>
+
                     </Grid>
                   </Grid>
                 </Grid>
