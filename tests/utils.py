@@ -112,7 +112,7 @@ def set_upload_entry_metadata(upload, metadata: Dict[str, Any]):
     '''
     from nomad import processing as proc
     for entry in proc.Calc.objects(upload_id=upload.upload_id):
-        entry.metadata.update(metadata)
+        entry.set_mongo_entry_metadata(**metadata)
         entry.save()
 
 
@@ -197,7 +197,7 @@ class ExampleData:
                 if upload_dict:
                     # Mirror fields from upload
                     entry_metadata.uploader = upload_dict['user_id']
-                mongo_entry._apply_metadata_to_mongo_entry(entry_metadata)
+                mongo_entry.set_mongo_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
         if with_es:

@@ -115,7 +115,7 @@ class DatasetType(str, enum.Enum):
 
 
 class DatasetCreate(BaseModel):  # type: ignore
-    name: Optional[str] = Field(None, description='The new name for the dataset.')
+    dataset_name: Optional[str] = Field(None, description='The new name for the dataset.')
     dataset_type: Optional[DatasetType] = Field(None)
     query: Optional[Query] = Field(None)
     entries: Optional[List[str]] = Field(None)
@@ -130,7 +130,7 @@ class DatasetCreate(BaseModel):  # type: ignore
 async def get_datasets(
         request: Request,
         dataset_id: str = FastApiQuery(None),
-        name: str = FastApiQuery(None),
+        dataset_name: str = FastApiQuery(None),
         user_id: str = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
         doi: str = FastApiQuery(None),
@@ -140,9 +140,9 @@ async def get_datasets(
     Retrieves all datasets that match the given criteria.
     '''
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(dataset_id=dataset_id, name=name, user_id=user_id, dataset_type=dataset_type, doi=doi)
+    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id=user_id, dataset_type=dataset_type, doi=doi)
     if prefix and prefix != '':
-        query_params.update(name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
+        query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
 
     mongodb_query = mongodb_objects(**query_params)
@@ -207,7 +207,7 @@ async def post_datasets(
 
     # check if name already exists
     existing_dataset = DatasetDefinitionCls.m_def.a_mongo.objects(
-        user_id=user.user_id, name=create.name).first()
+        user_id=user.user_id, dataset_name=create.dataset_name).first()
     if existing_dataset is not None:
         raise HTTPException(
             status_code=_existing_name_response[0],
@@ -216,10 +216,10 @@ async def post_datasets(
     # create dataset
     dataset = DatasetDefinitionCls(
         dataset_id=create_uuid(),
-        name=create.name,
+        dataset_name=create.dataset_name,
         user_id=user.user_id,
-        created=now,
-        modified=now,
+        dataset_create_time=now,
+        dataset_modified_time=now,
         dataset_type=dataset_type)
     dataset.a_mongo.create()
 
@@ -250,7 +250,7 @@ async def post_datasets(
 
     if not empty:
         processing.Calc._get_collection().update_many(
-            mongo_query, {'$push': {'metadata.datasets': dataset.dataset_id}})
+            mongo_query, {'$push': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''
                 if (ctx._source.datasets == null) {
@@ -309,7 +309,7 @@ async def delete_dataset(
 
     if len(entry_ids) > 0:
         processing.Calc._get_collection().update_many(
-            mongo_query, {'$pull': {'metadata.datasets': dataset.dataset_id}})
+            mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''
                 int index = -1;
@@ -360,7 +360,7 @@ async def assign_doi(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
 
-    doi = DOI.create(title='NOMAD dataset: %s' % dataset.name, user=user)
+    doi = DOI.create(title='NOMAD dataset: %s' % dataset.dataset_name, user=user)
     doi.create_draft()
     doi.make_findable()
 

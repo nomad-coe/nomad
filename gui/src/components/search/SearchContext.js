@@ -191,7 +191,7 @@ registerFilter('results.properties.electronic.band_structure_electronic.channel_
 registerFilter('external_db', labelAuthor, listStatConfig, 'terms')
 registerFilter('authors.name', labelAuthor, listStatConfig, 'terms')
 registerFilter('upload_create_time', labelAuthor, InputDateRange, 'min_max', undefined, false)
-registerFilter('datasets.name', labelDataset, listStatConfig)
+registerFilter('datasets.dataset_name', labelDataset, listStatConfig)
 registerFilter('datasets.doi', labelDataset, listStatConfig)
 registerFilter('entry_id', labelIDs, listStatConfig)
 registerFilter('upload_id', labelIDs, listStatConfig)

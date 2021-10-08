@@ -1127,7 +1127,11 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
             for calc in proc.Calc.objects(calc_id__in=entry_ids):
-                updated_metadata.append(calc.mongo_metadata(calc.upload))
+                entry_metadata = calc.mongo_metadata(calc.upload)
+                # Ensure that updated fields are marked as "set", even if they are cleared
+                entry_metadata.m_update_from_dict(mongo_update)
+                # Add to list
+                updated_metadata.append(entry_metadata)
 
             failed = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
 
@@ -1214,8 +1218,7 @@ async def post_entry_metadata_edit(
             verify_reference = None
             if isinstance(quantity.type, metainfo.Reference):
                 verify_reference = quantity.type.target_section_def.section_cls
-
-            mongo_key = 'metadata__%s' % quantity.name
+            mongo_key = quantity.name
             has_error = False
             for action in quantity_actions:
                 action.success = True
@@ -1255,14 +1258,14 @@ async def post_entry_metadata_edit(
                 elif verify_reference == datamodel.Dataset:
                     try:
                         mongo_value = datamodel.Dataset.m_def.a_mongo.get(
-                            user_id=user.user_id, name=action_value).dataset_id
+                            user_id=user.user_id, dataset_name=action_value).dataset_id
                     except KeyError:
                         action.message = 'Dataset does not exist and will be created'
                         mongo_value = None
                         if not verify:
                             dataset = datamodel.Dataset(
                                 dataset_id=utils.create_uuid(), user_id=user.user_id,
-                                name=action_value, created=datetime.utcnow())
+                                dataset_name=action_value, dataset_create_time=datetime.utcnow())
                             dataset.a_mongo.create()
                             mongo_value = dataset.dataset_id
 
@@ -1299,7 +1302,7 @@ async def post_entry_metadata_edit(
                 if doi_ds is not None and not user.is_admin:
                     data.success = False
                     data.message = (data.message if data.message else '') + (
-                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.name)
+                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.dataset_name)
                     has_error = True
 
     # stop here, if client just wants to verify its actions
@@ -1312,13 +1315,13 @@ async def post_entry_metadata_edit(
         return data
 
     # perform the change
-    mongo_update['metadata__last_edit'] = datetime.utcnow()
+    mongo_update['last_edit_time'] = datetime.utcnow()
     edit(data.query, user, mongo_update, True)
 
     # remove potentially empty old datasets
     if removed_datasets is not None:
         for dataset in removed_datasets:
-            if proc.Calc.objects(metadata__datasets=dataset).first() is None:
+            if proc.Calc.objects(datasets=dataset).first() is None:
                 datamodel.Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
     return data

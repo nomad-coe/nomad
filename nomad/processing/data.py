@@ -28,14 +28,13 @@ calculations, and files
 
 '''
 
-from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
 from mongoengine import (
     StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
 from datetime import datetime, timedelta
-from pymongo import UpdateOne
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import yaml
@@ -51,7 +50,8 @@ from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
-    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata, UploadMetadata)
+    EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
+    EditableUserMetadata, UserProvidableMetadata, UploadMetadata)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
@@ -62,14 +62,19 @@ section_workflow = datamodel.EntryArchive.workflow.name
 section_results = datamodel.EntryArchive.results.name
 
 
+_mongo_upload_metadata = tuple(
+    quantity.name for quantity in MongoUploadMetadata.m_def.definitions)
+_mongo_entry_metadata = tuple(
+    quantity.name for quantity in MongoEntryMetadata.m_def.definitions)
+_mongo_system_metadata = tuple(
+    quantity.name for quantity in MongoSystemMetadata.m_def.definitions)
+_mongo_entry_metadata_except_system_fields = tuple(
+    field for field in _mongo_entry_metadata if field not in _mongo_system_metadata)
 _editable_metadata: Dict[str, metainfo.Definition] = {}
 _editable_metadata.update(**{
     quantity.name: quantity for quantity in UserProvidableMetadata.m_def.definitions})
 _editable_metadata.update(**{
     quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions})
-
-_oasis_metadata = {
-    quantity.name: quantity for quantity in OasisMetadata.m_def.definitions}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -92,11 +97,6 @@ _log_processors = [
     _pack_log_event,
     format_exc_info,
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
-
-
-def _normalize_oasis_upload_metadata(upload_id, metadata):
-    # This is overwritten by the tests to do necessary id manipulations
-    return upload_id, metadata
 
 
 def check_user_ids(user_ids: Iterable[str], error_message: str):
@@ -145,20 +145,43 @@ class Calc(Proc):
     while parsing, including ``code_name``, ``code_version``, etc.
 
     Attributes:
+        upload_id: the id of the upload to which this entry belongs
         calc_id: the calc_id of this calc
-        parser_name: the name of the parser used to process this calc
-        upload_id: the id of the upload used to create this calculation
+        calc_hash: the hash of the entry files
+        entry_create_time: the date and time of the creation of the entry
+        last_processing_time: the date and time of the last processing
+        last_edit_time: the date and time the user metadata was last edited
         mainfile: the mainfile (including path in upload) that was used to create this calc
-
-        metadata: the metadata record wit calc and user metadata, see :class:`datamodel.EntryMetadata`
+        parser_name: the name of the parser used to process this calc
+        pid: the legacy NOMAD pid of the entry
+        external_id: a user provided external id. Usually the id for an entry in an
+            external database where the data was imported from
+        external_db: the repository or external database where the original data resides
+        nomad_version: the NOMAD version used for the last processing
+        nomad_commit: the NOMAD commit used for the last processing
+        comment: a user provided comment for this entry
+        references: user provided references (URLs) for this entry
+        coauthors: a user provided list of co-authors
+        datasets: a list of user curated datasets this entry belongs to
     '''
-    calc_id = StringField(primary_key=True)
     upload_id = StringField()
+    calc_id = StringField(primary_key=True)
+    calc_hash = StringField()
     entry_create_time = DateTimeField(required=True)
+    last_processing_time = DateTimeField()
+    last_edit_time = DateTimeField()
     mainfile = StringField()
     parser_name = StringField()
-
-    metadata = DictField()  # Stores user provided metadata and system metadata (not archive metadata)
+    pid = StringField()
+    external_id = StringField()
+    external_db = StringField()
+    nomad_version = StringField()
+    nomad_commit = StringField()
+    comment = StringField()
+    references = ListField(StringField(), default=None)
+    coauthors = ListField(StringField(), default=None)
+    shared_with = ListField(StringField(), default=None)
+    datasets = ListField(StringField(), default=None)
 
     meta: Any = {
         'strict': False,
@@ -168,11 +191,11 @@ class Calc(Proc):
             ('upload_id', 'mainfile'),
             ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
-            ('upload_id', 'metadata.nomad_version'),
+            ('upload_id', 'nomad_version'),
             'process_status',
-            'metadata.last_processing',
-            'metadata.datasets',
-            'metadata.pid'
+            'last_processing_time',
+            'datasets',
+            'pid'
         ]
     }
 
@@ -180,11 +203,12 @@ class Calc(Proc):
         kwargs.setdefault('entry_create_time', datetime.utcnow())
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
+        self._is_initial_processing: bool = False
         self._upload: Upload = None
         self._upload_files: StagingUploadFiles = None
         self._calc_proc_logs: List[Any] = None
 
-        self._entry_metadata: datamodel.EntryMetadata = None
+        self._entry_metadata: EntryMetadata = None
 
     @classmethod
     def get(cls, id) -> 'Calc':
@@ -200,6 +224,10 @@ class Calc(Proc):
         return self.upload_files.raw_file_object(self.mainfile)
 
     @property
+    def processed(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
+
+    @property
     def upload(self) -> 'Upload':
         if not self._upload:
             self._upload = Upload.get(self.upload_id)
@@ -209,10 +237,10 @@ class Calc(Proc):
     def _initialize_metadata_for_processing(self):
         '''
         Initializes self._entry_metadata and self._parser_results in preparation for processing.
-        Existing values in self.metadata are loaded first, then generated system values are
+        Existing values in mongo are loaded first, then generated system values are
         applied.
         '''
-        self._entry_metadata = datamodel.EntryMetadata()
+        self._entry_metadata = EntryMetadata()
         self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
         self._apply_metadata_from_process(self._entry_metadata)
 
@@ -258,8 +286,6 @@ class Calc(Proc):
                 continue
 
             definition = _editable_metadata.get(key, None)
-            if definition is None and self.upload.from_oasis:
-                definition = _oasis_metadata.get(key, None)
 
             if definition is None:
                 logger.warn('Users cannot set metadata', quantity=key)
@@ -267,14 +293,14 @@ class Calc(Proc):
 
             try:
                 self._entry_metadata.m_set(definition, val)
-                if definition == datamodel.EntryMetadata.calc_id:
+                if definition == EntryMetadata.calc_id:
                     self.calc_id = val
             except Exception as e:
                 logger.error(
                     'Could not apply user metadata from nomad.yaml/json file',
                     quantitiy=definition.name, exc_info=e)
 
-    def _apply_metadata_from_process(self, entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_from_process(self, entry_metadata: EntryMetadata):
         '''
         Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
         '''
@@ -282,53 +308,63 @@ class Calc(Proc):
         entry_metadata.nomad_commit = config.meta.commit
         entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
         entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        entry_metadata.last_processing = datetime.utcnow()
+        entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
 
-    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: EntryMetadata):
         '''
         Loads entry metadata from mongo (that is: from `self` and the provided `upload` object)
         and applies the values to `entry_metadata`.
         '''
         assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
-        entry_metadata.m_update_from_dict(self.metadata)  # TODO: Flatten?
         # Upload metadata
-        entry_metadata.upload_id = upload.upload_id
-        entry_metadata.uploader = upload.user_id
-        entry_metadata.upload_create_time = upload.upload_create_time
-        entry_metadata.upload_name = upload.upload_name
-        entry_metadata.published = upload.published
-        entry_metadata.publish_time = upload.publish_time
-        entry_metadata.with_embargo = upload.with_embargo
-        entry_metadata.license = upload.license
+        for field in _mongo_upload_metadata:
+            setattr(entry_metadata, field, getattr(upload, field))
+        entry_metadata.uploader = upload.user_id  # TODO: Refactor and treat like the other fields
         # Entry metadata
-        entry_metadata.parser_name = self.parser_name
+        for field in _mongo_entry_metadata:
+            setattr(entry_metadata, field, getattr(self, field))
+        # Special case: domain. May be derivable from mongo, or may have to be read from the archive
         if self.parser_name is not None:
             parser = parser_dict[self.parser_name]
             if parser.domain:
                 entry_metadata.domain = parser.domain
-        entry_metadata.calc_id = self.calc_id
-        entry_metadata.mainfile = self.mainfile
-        entry_metadata.entry_create_time = self.entry_create_time
-        entry_metadata.processed = self.process_status == ProcessStatus.SUCCESS
 
-    def _apply_metadata_to_mongo_entry(self, entry_metadata: datamodel.EntryMetadata):
+    def _apply_metadata_to_mongo_entry(self, entry_metadata: EntryMetadata):
         '''
         Applies the metadata fields that are stored on the mongo entry level to self.
         In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
-        but excluding upload level metadata.
+        but excluding upload level metadata and system fields (like mainfile, parser_name etc.).
         '''
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc? Flatten?
+        entry_metadata_dict = entry_metadata.m_to_dict(include_defaults=True)
+        for field in _mongo_entry_metadata_except_system_fields:
+            setattr(self, field, entry_metadata_dict.get(field))
 
-    def full_entry_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
+    def set_mongo_entry_metadata(self, *args, **kwargs):
         '''
-        Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
+        Sets the entry level metadata in mongo. Expects either a positional argument
+        which is an instance of :class:`EntryMetadata` or keyword arguments with data to set.
+        '''
+        assert not (args and kwargs), 'Cannot provide both keyword arguments and a positional argument'
+        if args:
+            assert len(args) == 1 and isinstance(args[0], EntryMetadata), (
+                'Expected exactly one keyword argument of type `EntryMetadata`')
+            self._apply_metadata_to_mongo_entry(args[0])
+        else:
+            for key, value in kwargs.items():
+                if key in _mongo_entry_metadata_except_system_fields:
+                    setattr(self, key, value)
+                else:
+                    assert False, f'Cannot set metadata field: {key}'
+
+    def full_entry_metadata(self, upload: 'Upload') -> EntryMetadata:
+        '''
+        Returns a complete set of :class:`EntryMetadata` including
         both the mongo metadata and the metadata from the archive.
 
         Arguments:
-            upload: The :class:`Upload` to which this entry belongs.
+            upload: The :class:`Upload` to which this entry belongs. Upload level metadata
+                and the archive files will be read from this object.
         '''
         assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
         archive = upload.upload_files.read_archive(self.calc_id)
@@ -354,15 +390,15 @@ class Calc(Proc):
             if self._entry_metadata is not None:
                 return self._entry_metadata
             else:
-                return self.mongo_metadata(self.upload)
+                return self.mongo_metadata(upload)
 
-    def mongo_metadata(self, upload: 'Upload') -> datamodel.EntryMetadata:
+    def mongo_metadata(self, upload: 'Upload') -> EntryMetadata:
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with mongo metadata only
+        Returns a :class:`EntryMetadata` with mongo metadata only
         (fetched from `self` and `upload`), no archive metadata.
         '''
         assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
-        entry_metadata = datamodel.EntryMetadata()
+        entry_metadata = EntryMetadata()
         self._apply_metadata_from_mongo(upload, entry_metadata)
         return entry_metadata
 
@@ -418,11 +454,12 @@ class Calc(Proc):
         if self.upload is None:
             logger.error('calculation upload does not exist')
 
-        has_previous_metadata = bool(self.metadata)
-
         # 1. Determine if we should parse or not
         self.set_process_step('Determining action')
-        if not self.upload.published or not has_previous_metadata:
+        # If this entry has been processed before, or imported from a bundle, nomad_version
+        # should be set. If not, this is the initial processing.
+        self._is_initial_processing = self.nomad_version is None
+        if not self.upload.published or self._is_initial_processing:
             should_parse = True
         else:
             # This entry has already been published and has metadata.
@@ -612,7 +649,7 @@ class Calc(Proc):
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
             # archive.
-            self._entry_metadata.last_processing = datetime.utcnow()
+            self._entry_metadata.last_processing_time = datetime.utcnow()
             self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
@@ -679,10 +716,11 @@ class Calc(Proc):
         if self.upload.publish_directly:
             self._entry_metadata.published |= True
 
-        try:
-            self._apply_metadata_from_file(logger)
-        except Exception as e:
-            logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
+        if self._is_initial_processing:
+            try:
+                self._apply_metadata_from_file(logger)
+            except Exception as e:
+                logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
 
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
@@ -751,7 +789,7 @@ class Upload(Proc):
     and processing state.
 
     Attributes:
-        name: Optional user provided upload name.
+        upload_name: Optional user provided upload name.
         upload_path: The fs path were the uploaded files was stored during upload.
         temporary: True if the uploaded file should be removed after extraction.
 
@@ -823,7 +861,7 @@ class Upload(Proc):
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: datamodel.User, **kwargs) -> List['Upload']:
+    def user_uploads(cls, user: datamodel.User, **kwargs) -> Sequence['Upload']:
         ''' Returns all uploads for the given user. Kwargs are passed to mongo query. '''
         return cls.objects(user_id=str(user.user_id), **kwargs)
 
@@ -852,7 +890,7 @@ class Upload(Proc):
     @classmethod
     def create(cls, **kwargs) -> 'Upload':
         '''
-        Creates a new upload for the given user, a user given name is optional.
+        Creates a new upload for the given user, a user given upload_name is optional.
         It will populate the record with a signed url and pending :class:`UploadProc`.
         The upload will be already saved to the database.
 
@@ -871,7 +909,7 @@ class Upload(Proc):
         return self
 
     @classmethod
-    def create_skeleton_from_bundle(cls, bundle: UploadBundle):
+    def create_skeleton_from_bundle(cls, bundle: UploadBundle) -> 'Upload':
         '''
         Creates a minimalistic "skeleton" from the provided upload bundle (basically just
         with the right upload_id and user), on which we can initiate the :func:`import_bundle`
@@ -1063,46 +1101,7 @@ class Upload(Proc):
         logger.info('starting to (re)process')
 
         self.extracting()
-
-        oasis_metadata: Dict[str, Any] = {}
-        if self.from_oasis:
-            # we might need to add datasets from the oasis before processing and
-            # adding the entries
-            oasis_metadata_file = os.path.join(
-                StagingUploadFiles.base_folder_for(self.upload_id), 'raw',
-                config.metadata_file_name + '.json')
-            if os.path.exists(oasis_metadata_file):
-                # Old way of importing from oasis
-                # TODO: remove when we no longer need it
-                with open(oasis_metadata_file, 'rt') as f:
-                    oasis_metadata = json.load(f)
-                oasis_datasets = oasis_metadata.get('oasis_datasets', {})
-                metadata_was_changed = False
-                for oasis_dataset in oasis_datasets.values():
-                    try:
-                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
-                            user_id=self.user_id, name=oasis_dataset['name'])
-                    except KeyError:
-                        datamodel.Dataset(**oasis_dataset).a_mongo.save()
-                    else:
-                        oasis_dataset_id = oasis_dataset['dataset_id']
-                        if existing_dataset.dataset_id != oasis_dataset_id:
-                            # A dataset for the same user with the same name was created
-                            # in both deployments. We consider this to be the "same" dataset.
-                            # These datasets have different ids and we need to migrate the provided
-                            # dataset ids:
-                            for entry in oasis_metadata['entries'].values():
-                                entry_datasets = entry.get('datasets', [])
-                                for index, dataset_id in enumerate(entry_datasets):
-                                    if dataset_id == oasis_dataset_id:
-                                        entry_datasets[index] = existing_dataset.dataset_id
-                                        metadata_was_changed = True
-
-                if metadata_was_changed:
-                    with open(oasis_metadata_file, 'wt') as f:
-                        json.dump(oasis_metadata, f)
-
-        self.parse_all(oasis_metadata, reprocess_settings)
+        self.parse_all(reprocess_settings)
         self.set_process_step('collecting entry results')
         return ProcessStatus.WAITING_FOR_RESULT
 
@@ -1217,13 +1216,12 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=path_info.path, exc_info=e)
 
-    def parse_all(self, oasis_metadata: Dict[str, Any], reprocess_settings: Dict[str, Any] = None):
+    def parse_all(self, reprocess_settings: Dict[str, Any] = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
         creates respective :class:`Calc` instances, and triggers their processing.
 
         Arguments:
-            oasis_metadata: The oasis metadata, if importing an upload the old way
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
@@ -1231,7 +1229,6 @@ class Upload(Proc):
         self.set_process_step('parse all')
         logger = self.get_logger()
 
-        oasis_entries_metadata = oasis_metadata.get('entries', {})
         with utils.timer(logger, 'calcs processing called'):
             try:
                 settings = config.reprocess.customize(reprocess_settings)  # Add default settings
@@ -1242,15 +1239,7 @@ class Upload(Proc):
                 entries_to_delete: List[str] = []
                 count_already_processing = 0
                 for filename, parser in self.match_mainfiles():
-                    # Get metadata and calc_id
-                    oasis_entry_metadata = oasis_entries_metadata.get(filename)
-                    if oasis_entry_metadata is not None:
-                        calc_id = oasis_entry_metadata.get('calc_id')
-                        if calc_id is None:
-                            logger.warn('Oasis entry without id', mainfile=filename)
-                            calc_id = generate_entry_id(self.upload_id, filename)
-                    else:
-                        calc_id = generate_entry_id(self.upload_id, filename)
+                    calc_id = generate_entry_id(self.upload_id, filename)
 
                     try:
                         entry = Calc.get(calc_id)
@@ -1308,7 +1297,7 @@ class Upload(Proc):
                 with utils.timer(logger, 'calcs processing called'):
                     # process call calcs
                     Calc.process_all(
-                        Calc.process_calc, dict(upload_id=self.upload_id), exclude=['metadata'],
+                        Calc.process_calc, dict(upload_id=self.upload_id),
                         process_kwargs=dict(reprocess_settings=settings))
                     logger.info('completed to trigger process of all calcs')
 
@@ -1417,12 +1406,6 @@ class Upload(Proc):
                 with utils.timer(logger, 'upload staging files deleted'):
                     self.staging_upload_files.delete()
 
-                if self.from_oasis:
-                    metadata = self.metadata_file_cached(
-                        os.path.join(self.staging_upload_files.os_path, 'raw', config.metadata_file_name))
-                    if metadata is not None:
-                        self.upload_create_time = metadata.get('upload_create_time')
-
                 self.publish_time = datetime.utcnow()
                 self.last_update = datetime.utcnow()
                 self.save()
@@ -1448,7 +1431,7 @@ class Upload(Proc):
         return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()
 
     @property
-    def processed_calcs(self):
+    def processed_calcs(self) -> int:
         '''
         The number of successfully or not successfully processed calculations. I.e.
         calculations that have finished processing.
@@ -1458,12 +1441,12 @@ class Upload(Proc):
                 ProcessStatus.SUCCESS, ProcessStatus.FAILURE]).count()
 
     @property
-    def total_calcs(self):
+    def total_calcs(self) -> int:
         ''' The number of all calculations. '''
         return Calc.objects(upload_id=self.upload_id).count()
 
     @property
-    def failed_calcs(self):
+    def failed_calcs(self) -> int:
         ''' The number of calculations with failed processing. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
 
@@ -1473,7 +1456,7 @@ class Upload(Proc):
         return Calc.objects(
             upload_id=self.upload_id, process_status__in=ProcessStatus.STATUSES_PROCESSING).count()
 
-    def all_calcs(self, start, end, order_by=None):
+    def all_calcs(self, start, end, order_by=None) -> Sequence[Calc]:
         '''
         Returns all calculations, paginated and ordered.
 
@@ -1491,22 +1474,22 @@ class Upload(Proc):
         return query.order_by(*order_by)
 
     @property
-    def outdated_calcs(self):
+    def outdated_calcs(self) -> Sequence[Calc]:
         ''' All successfully processed and outdated calculations. '''
         return Calc.objects(
             upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS,
-            metadata__nomad_version__ne=config.meta.version)
+            nomad_version__ne=config.meta.version)
 
     @property
-    def calcs(self) -> Iterable[Calc]:
+    def calcs(self) -> Sequence[Calc]:
         ''' All successfully processed calculations. '''
         return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
-    def entries_metadata(self) -> Iterator[List[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[List[EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
-        processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
+        processing upload's entries into list of :class:`EntryMetadata` objects.
         '''
         try:
             # read all calc objects first to avoid missing curser errors
@@ -1517,9 +1500,9 @@ class Upload(Proc):
         finally:
             self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
-    def entries_mongo_metadata(self) -> List[datamodel.EntryMetadata]:
+    def entries_mongo_metadata(self) -> List[EntryMetadata]:
         '''
-        Returns a list of :class:`nomad.datamodel.EntryMetadata` containing the mongo metadata
+        Returns a list of :class:`EntryMetadata` containing the mongo metadata
         only, for all entries of this upload.
         '''
         return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
@@ -1548,7 +1531,6 @@ class Upload(Proc):
 
         need_to_reindex = False
         need_to_repack = False
-        new_entry_metadata: Dict[str, Any] = {}
         if upload_metadata.upload_name is not None:
             self.upload_name = upload_metadata.upload_name
             need_to_reindex = True
@@ -1573,22 +1555,10 @@ class Upload(Proc):
         if need_to_reindex and self.total_calcs > 0:
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
-                if new_entry_metadata:
-                    with utils.timer(logger, 'upload metadata updated'):
-                        def create_update(entry_metadata):
-                            entry_metadata.m_update_from_dict(new_entry_metadata)
-                            return UpdateOne(
-                                {'_id': entry_metadata.calc_id},
-                                {'$set': {'metadata': entry_metadata.m_to_dict(
-                                    include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                        Calc._get_collection().bulk_write([
-                            create_update(entry_metadata) for entry_metadata in entries_metadata])
-
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
-    def entry_ids(self) -> Iterable[str]:
+    def entry_ids(self) -> List[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
 
     def export_bundle(
@@ -1649,13 +1619,12 @@ class Upload(Proc):
         # Handle datasets
         dataset_ids: Set[str] = set()
         for entry_dict in bundle_info['entries']:
-            entry_metadata = entry_dict['metadata']
-            entry_metadata_datasets = entry_metadata.get('datasets')
-            if entry_metadata_datasets:
+            entry_datasets = entry_dict.get('datasets')
+            if entry_datasets:
                 if not include_datasets:
-                    entry_metadata['datasets'] = []
+                    entry_dict['datasets'] = None
                 else:
-                    dataset_ids.update(entry_metadata_datasets)
+                    dataset_ids.update(entry_datasets)
         if include_datasets:
             bundle_info['datasets'] = [
                 datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
@@ -1721,11 +1690,9 @@ class Upload(Proc):
                 'upload.embargo_length',
                 'entries')
             required_keys_entry_level = (
-                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time', 'metadata')
-            required_keys_entry_metadata = (
-                'calc_hash',)
+                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time')
             required_keys_datasets = (
-                'dataset_id', 'name', 'user_id')
+                'dataset_id', 'dataset_name', 'user_id')
 
             keys_exist(bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
 
@@ -1791,12 +1758,12 @@ class Upload(Proc):
                     check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {id}')
                     dataset_id = dataset_dict['dataset_id']
                     try:
-                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(name=dataset_dict['name'])
-                        # Dataset by the given name already exists
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_name=dataset_dict['dataset_name'])
+                        # Dataset by the given dataset_name already exists
                         assert existing_dataset.user_id == dataset_dict['user_id'], (
-                            'A dataset with the same name but different creator exists')
+                            'A dataset with the same dataset_name but different creator exists')
                         dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
-                        # Note, it may be that a dataset with the same name and creator
+                        # Note, it may be that a dataset with the same dataset_name and creator
                         # is created in both environments. In that case, we consider them
                         # to be the "same" dataset, even if they do not have the same dataset_id.
                         # Thus, in that case the dataset id needs to be translated.
@@ -1812,8 +1779,6 @@ class Upload(Proc):
                 keys_exist(entry_dict, required_keys_entry_level, 'Missing key for entry: {key}')
                 assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
                     f'Invalid entry `process_status`')
-                entry_metadata_dict = entry_dict['metadata']
-                keys_exist(entry_metadata_dict, required_keys_entry_metadata, 'Missing entry metadata: {key}')
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
@@ -1823,10 +1788,11 @@ class Upload(Proc):
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
 
                 # Instantiate an entry object from the json, and validate it
-                entry_keys_to_copy = (
-                    'upload_id', 'mainfile', 'parser_name', 'metadata', 'errors', 'warnings',
+                entry_keys_to_copy = list(_mongo_entry_metadata)
+                entry_keys_to_copy.extend((
+                    'upload_id', 'errors', 'warnings',
                     'last_status_message', 'current_process', 'current_process_step',
-                    'entry_create_time', 'complete_time', 'worker_hostname', 'celery_task_id')
+                    'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
                     update['calc_id'] = entry_dict['_id']
@@ -1840,12 +1806,13 @@ class Upload(Proc):
                 # Instantiate an EntryMetadata object to validate the format
                 try:
                     if settings.include_datasets:
-                        entry_metadata_dict['datasets'] = [
-                            dataset_id_mapping[id] for id in entry_metadata_dict.get('datasets', [])]
+                        entry_datasets = entry_dict.get('datasets')
+                        if entry_datasets:
+                            entry.datasets = [
+                                dataset_id_mapping[id] for id in entry_datasets] or None
                     else:
-                        entry_metadata_dict['datasets'] = []
-                    entry_metadata = datamodel.EntryMetadata.m_from_dict(entry_metadata_dict)
-                    entry._apply_metadata_to_mongo_entry(entry_metadata)
+                        entry.datasets = None
+                    entry.mongo_metadata(self)
                     # TODO: if we don't import archive files, should we still index something in ES?
                 except Exception as e:
                     assert False, 'Invalid entry metadata: ' + str(e)

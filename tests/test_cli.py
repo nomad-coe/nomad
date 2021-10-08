@@ -198,7 +198,7 @@ class TestAdminUploads:
     def test_index(self, published):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        calc.metadata['comment'] = 'specific'
+        calc.comment = 'specific'
         calc.save()
 
         assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
@@ -229,7 +229,7 @@ class TestAdminUploads:
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
-        assert calc.metadata['nomad_version'] != 'test_version'
+        assert calc.nomad_version != 'test_version'
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
@@ -237,7 +237,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'processing' in result.stdout
         calc.reload()
-        assert calc.metadata['nomad_version'] == 'test_version'
+        assert calc.nomad_version == 'test_version'
 
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id

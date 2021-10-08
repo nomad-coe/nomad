@@ -996,7 +996,7 @@ class Metadata(WithQueryAndPagination):
             },
             'all_datasets': {
                 'terms': {
-                    'quantity': 'datasets.name',
+                    'quantity': 'datasets.dataset_name',
                     'pagination': {
                         'page_size': 100
                     }

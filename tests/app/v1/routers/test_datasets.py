@@ -46,7 +46,7 @@ to assert for certain aspects in the responses.
 @pytest.fixture(scope='function')
 def data(elastic, raw_files, mongo, test_user, other_test_user):
     def create_dataset(**kwargs):
-        dataset = Dataset(created=datetime.now(), modified=datetime.now(), **kwargs)
+        dataset = Dataset(dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(), **kwargs)
         dataset.m_get_annotations('mongo').save()
         return dataset
 
@@ -59,12 +59,12 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
             create_dataset(
                 dataset_id='dataset_1',
                 user_id=test_user.user_id,
-                name='test dataset 1',
+                dataset_name='test dataset 1',
                 dataset_type='owned'),
             create_dataset(
                 dataset_id='dataset_2',
                 user_id=test_user.user_id,
-                name='test dataset 2',
+                dataset_name='test dataset 2',
                 dataset_type='owned')
         ])
 
@@ -76,12 +76,12 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
             create_dataset(
                 dataset_id='dataset_listed',
                 user_id=test_user.user_id,
-                name='foreign test dataset',
+                dataset_name='foreign test dataset',
                 dataset_type='foreign'),
             create_dataset(
                 dataset_id='dataset_doi',
                 user_id=test_user.user_id,
-                name='foreign test dataset',
+                dataset_name='foreign test dataset',
                 dataset_type='foreign',
                 doi='test_doi')
         ])
@@ -115,7 +115,7 @@ def assert_pagination(pagination):
 def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_entries: int = -1, **kwargs):
     for key, value in kwargs.items():
         if key == 'prefix':
-            assert dataset['name'].startswith(value)
+            assert dataset['dataset_name'].startswith(value)
         else:
             assert dataset[key] == value
 
@@ -152,7 +152,7 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
 
     expected_n_entries = n_entries if dataset['dataset_type'] == 'owned' else 0
     assert search_results.pagination.total == expected_n_entries
-    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == expected_n_entries
+    assert processing.Calc.objects(datasets=dataset_id).count() == expected_n_entries
 
 
 def assert_dataset_deleted(dataset_id):
@@ -162,13 +162,13 @@ def assert_dataset_deleted(dataset_id):
     search_results = search(
         owner='admin', query={'datasets.dataset_id': dataset_id}, user_id=admin_user_id)
     assert search_results.pagination.total == 0
-    assert processing.Calc.objects(metadata__datasets=dataset_id).count() == 0
+    assert processing.Calc.objects(datasets=dataset_id).count() == 0
 
 
 @pytest.mark.parametrize('query, size, status_code', [
     pytest.param({}, 4, 200, id='empty'),
     pytest.param({'dataset_id': 'dataset_1'}, 1, 200, id='id'),
-    pytest.param({'name': 'test dataset 1'}, 1, 200, id='name'),
+    pytest.param({'dataset_name': 'test dataset 1'}, 1, 200, id='dataset_name'),
     pytest.param({'prefix': 'test dat'}, 2, 200, id='prefix'),
     pytest.param({'dataset_type': 'foreign'}, 2, 200, id='type'),
     pytest.param({'doi': 'test_doi'}, 1, 200, id='doi'),
@@ -205,7 +205,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
     assert_dataset(response.json()['data'], **result)
 
 
-@pytest.mark.parametrize('name, dataset_type, query, entries, user, status_code', [
+@pytest.mark.parametrize('dataset_name, dataset_type, query, entries, user, status_code', [
     pytest.param('another test dataset', 'foreign', None, None, 'test_user', 200, id='plain'),
     pytest.param('another test dataset', 'foreign', None, None, None, 401, id='no-user'),
     pytest.param('test dataset 1', 'foreign', None, None, 'test_user', 400, id='exists'),
@@ -219,8 +219,8 @@ def test_dataset(client, data, dataset_id, result, status_code):
 ])
 def test_post_datasets(
         client, data, example_entries, test_user, test_user_auth, other_test_user,
-        other_test_user_auth, name, dataset_type, query, entries, user, status_code):
-    dataset = {'name': name, 'dataset_type': dataset_type}
+        other_test_user_auth, dataset_name, dataset_type, query, entries, user, status_code):
+    dataset = {'dataset_name': dataset_name, 'dataset_type': dataset_type}
     if query is not None:
         dataset['query'] = query
     if entries is not None:
@@ -243,7 +243,7 @@ def test_post_datasets(
     dataset = json_response['data']
     assert_dataset(
         dataset, query=query, entries=entries,
-        user_id=user.user_id, name=name, dataset_type=dataset_type)
+        user_id=user.user_id, dataset_name=dataset_name, dataset_type=dataset_type)
     assert Dataset.m_def.a_mongo.objects().count() == 5
 
 

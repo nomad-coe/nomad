@@ -207,7 +207,7 @@ Metadata refers to those pieces of data, those quantities/attributes that we use
 to represent, identify, and index uploads and calculations in the API, search, GUI, etc.
 There are three catergories of metadata:
 - entry metadata: attributes that are necessary to uniquely identify entities (see also :ref:`id-reference-label`), that describe the upload, processing, etc. This data is derived by the nomad infrastructure.
-- user metadata: attributes provided by the user, e.g. comments, references, coauthors, datasets, etc. This data is provided by the user.
+- user metadata: attributes provided by the user, e.g. comments, references, coauthors, datasets, etc.
 - domain metadata: metadata parsed from raw files that describe calculations on a high level, e.g. code name, basis set, system type, etc. This data is derived from the uploaded data.
 
 Those sets of metadata along with the actual raw and archive data are often transformed,

@@ -248,37 +248,55 @@ def test_publish_failed(
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
-@pytest.mark.timeout(config.tests.default_timeout)
-def test_oasis_upload_processing(proc_infra, oasis_example_uploaded: Tuple[str, str], test_user, no_warn):
-    uploaded_id, uploaded_path = oasis_example_uploaded
+@pytest.mark.parametrize('kwargs', [
+    # pytest.param(
+    #     dict(
+    #         import_settings=dict(include_archive_files=True, trigger_processing=False),
+    #         embargo_length=0),
+    #     id='no-processing'),
+    pytest.param(
+        dict(
+            import_settings=dict(include_archive_files=False, trigger_processing=True),
+            embargo_length=17),
+        id='trigger-processing')])
+def test_publish_to_central_nomad(
+        proc_infra, monkeypatch, oasis_publishable_upload, test_user, no_warn, kwargs):
+    upload_id, suffix = oasis_publishable_upload
+    import_settings = kwargs.get('import_settings', {})
+    embargo_length = kwargs.get('embargo_length')
+    old_upload = Upload.get(upload_id)
 
-    # create a dataset to force dataset joining of one of the datasets in the example
-    # upload
-    datamodel.Dataset(
-        dataset_id='cn_dataset_2', name='dataset_2_name',
-        user_id=test_user.user_id).a_mongo.save()
+    import_settings = config.bundle_import.default_settings.customize(import_settings)
+    monkeypatch.setattr('nomad.config.bundle_import.default_settings', import_settings)
 
-    upload = Upload.create(
-        upload_id=uploaded_id, user=test_user)
-    upload.from_oasis = True
-    upload.publish_directly = True
-    upload.oasis_deployment_id = 'an_oasis_id'
-
-    assert upload.process_status == ProcessStatus.READY
-    assert upload.current_process is None
-
-    upload.schedule_operation_add_files(uploaded_path, '', temporary=False)
-    upload.process_upload()  # pylint: disable=E1101
-    upload.block_until_complete(interval=.01)
-
-    assert upload.published
-    assert upload.from_oasis
-    assert upload.oasis_deployment_id == 'an_oasis_id'
-    assert str(upload.upload_create_time) == '2020-01-01 00:00:00'
-    assert_processing(upload, published=True)
-    calc = Calc.objects(upload_id='oasis_upload_id').first()
-    assert calc.calc_id == 'test_calc_id'
-    assert calc.metadata['datasets'] == ['oasis_dataset_1', 'cn_dataset_2']
+    old_upload.publish_externally(embargo_length=embargo_length)
+    old_upload.block_until_complete()
+    assert_processing(old_upload, old_upload.published, 'publish_externally')
+    old_upload = Upload.get(upload_id)
+    new_upload = Upload.get(upload_id + suffix)
+    new_upload.block_until_complete()
+    assert_processing(new_upload, old_upload.published, 'import_bundle')
+    assert len(old_upload.calcs) == len(new_upload.calcs) == 1
+    if embargo_length is None:
+        embargo_length = old_upload.embargo_length
+    old_calc = old_upload.calcs[0]
+    new_calc = new_upload.calcs[0]
+    old_calc_metadata_dict = old_calc.full_entry_metadata(old_upload).m_to_dict()
+    new_calc_metadata_dict = new_calc.full_entry_metadata(new_upload).m_to_dict()
+    for k, v in old_calc_metadata_dict.items():
+        if k == 'with_embargo':
+            assert new_calc_metadata_dict[k] == (embargo_length > 0)
+        elif k not in (
+                'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
+                'last_processing_time', 'publish_time',
+                'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
+            assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
+    assert new_calc.datasets == ['dataset_id']
+    assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
+    assert new_upload.from_oasis and new_upload.oasis_deployment_id
+    assert new_upload.embargo_length == embargo_length
+    assert old_upload.upload_files.access == 'restricted' if old_upload.with_embargo else 'public'
+    assert new_upload.upload_files.access == 'restricted' if new_upload.with_embargo else 'public'
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -308,7 +326,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         monkeypatch.setattr('nomad.config.reprocess.delete_unmatched_published_entries', False)
 
     if with_failure == 'before':
-        calc = published.all_calcs(0, 1).first()
+        calc = published.all_calcs(0, 1)[0]
         calc.process_status = ProcessStatus.FAILURE
         calc.errors = ['example error']
         calc.save()
@@ -318,8 +336,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     assert published.upload_files.to_staging_upload_files() is None
 
     old_upload_time = published.last_update
-    first_calc = published.all_calcs(0, 1).first()
-    old_calc_time = first_calc.metadata['last_processing']
+    first_calc: Calc = published.all_calcs(0, 1)[0]
+    old_calc_time = first_calc.last_processing_time
 
     with published.upload_files.read_archive(first_calc.calc_id) as archive:
         archive[first_calc.calc_id]['processing_logs']
@@ -368,12 +386,12 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # assert new process time
     if with_failure != 'not-matched':
         assert published.last_update > old_upload_time
-        assert first_calc.metadata['last_processing'] > old_calc_time
+        assert first_calc.last_processing_time > old_calc_time
 
     # assert new process version
     if with_failure != 'not-matched':
-        assert first_calc.metadata['nomad_version'] == 're_process_test_version'
-        assert first_calc.metadata['nomad_commit'] == 're_process_test_commit'
+        assert first_calc.nomad_version == 're_process_test_version'
+        assert first_calc.nomad_commit == 're_process_test_commit'
 
     # assert changed archive files
     if with_failure == 'after':
@@ -467,7 +485,7 @@ def test_re_pack(published: Upload):
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
     assert upload_files.access == 'restricted'
     assert published.with_embargo
-    calc = Calc.objects(upload_id=upload_id).first()
+    calc: Calc = Calc.objects(upload_id=upload_id).first()
 
     # Lift embargo
     published.embargo_length = 0

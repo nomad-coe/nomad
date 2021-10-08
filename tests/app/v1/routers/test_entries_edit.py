@@ -41,11 +41,11 @@ class TestEditRepo():
     @pytest.fixture(autouse=True)
     def example_datasets(self, test_user, other_test_user, mongo):
         self.example_dataset = Dataset(
-            dataset_id='example_ds', name='example_ds', user_id=test_user.user_id)
+            dataset_id='example_ds', dataset_name='example_ds', user_id=test_user.user_id)
         self.example_dataset.a_mongo.create()
 
         self.other_example_dataset = Dataset(
-            dataset_id='other_example_ds', name='other_example_ds',
+            dataset_id='other_example_ds', dataset_name='other_example_ds',
             user_id=other_test_user.user_id)
         self.other_example_dataset.a_mongo.create()
 
@@ -109,9 +109,9 @@ class TestEditRepo():
         for calc_id in args:
             calc = proc.Calc.objects(calc_id='test_entry_id_%d' % calc_id).first()
             assert calc is not None
-            metadata = calc.metadata
             if edited:
-                assert metadata.get('last_edit') is not None
+                assert calc.last_edit_time is not None
+            metadata = calc.mongo_metadata(calc.upload).m_to_dict()
             for key, value in kwargs.items():
                 if metadata.get(key) != value:
                     return False
@@ -241,27 +241,27 @@ class TestEditRepo():
 
     def test_edit_ds(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
         self.assert_edit(rv, quantity='datasets', success=True, message=False)
         assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
 
     def test_edit_ds_remove_doi(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
 
         assert rv.status_code == 200
-        rv = self.api.post('datasets/%s/action/doi' % self.example_dataset.name, headers=self.test_user_auth)
+        rv = self.api.post('datasets/%s/action/doi' % self.example_dataset.dataset_name, headers=self.test_user_auth)
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 400
         data = rv.json()
         assert not data['success']
-        assert self.example_dataset.name in data['message']
+        assert self.example_dataset.dataset_name in data['message']
         assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is not None
 
     def test_edit_ds_remove(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 200
@@ -270,14 +270,14 @@ class TestEditRepo():
 
     def test_edit_ds_user_namespace(self, test_user):
         assert Dataset.m_def.a_mongo.objects(
-            name=self.other_example_dataset.name).first() is not None
+            dataset_name=self.other_example_dataset.dataset_name).first() is not None
 
         rv = self.perform_edit(
-            datasets=[self.other_example_dataset.name], query=self.query('upload_1'))
+            datasets=[self.other_example_dataset.dataset_name], query=self.query('upload_1'))
 
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
         new_dataset = Dataset.m_def.a_mongo.objects(
-            name=self.other_example_dataset.name,
+            dataset_name=self.other_example_dataset.dataset_name,
             user_id=test_user.user_id).first()
         assert new_dataset is not None
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
@@ -285,7 +285,7 @@ class TestEditRepo():
     def test_edit_new_ds(self, test_user):
         rv = self.perform_edit(datasets=['new_dataset'], query=self.query('upload_1'))
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
-        new_dataset = Dataset.m_def.a_mongo.objects(name='new_dataset').first()
+        new_dataset = Dataset.m_def.a_mongo.objects(dataset_name='new_dataset').first()
         assert new_dataset is not None
         assert new_dataset.user_id == test_user.user_id
         assert self.mongo(1, datasets=[new_dataset.dataset_id])

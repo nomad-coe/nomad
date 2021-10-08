@@ -29,7 +29,7 @@ const common = {
   domain: 'dft',
   upload_id: 'mock',
   upload_create_time: '2021-03-17T13:47:32.899000',
-  last_processing: '2021-03-17T15:47:32.899000',
+  last_processing_time: '2021-03-17T15:47:32.899000',
   nomad_version: '0.10.0',
   nomad_commit: 'bf3c06fa',
   calc_id: 'dft_bulk',
@@ -37,7 +37,7 @@ const common = {
   comment: 'Mocked',
   references: ['doi'],
   authors: [{name: 'Lauri Himanen'}],
-  datasets: [{dataset_id: 'Mock dataset', name: 'Mock dataset'}],
+  datasets: [{dataset_id: 'Mock dataset', dataset_name: 'Mock dataset'}],
   mainfile: 'vasp.xml',
   formula: 'Si2'
 }

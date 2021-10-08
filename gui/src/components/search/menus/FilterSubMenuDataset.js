@@ -33,7 +33,7 @@ const FilterSubMenuDataset = React.memo(({
       <Grid item xs={12}>
         <InputText
           label="dataset name"
-          quantity="datasets.name"
+          quantity="datasets.dataset_name"
           visible={visible}
           disableStatistics
         />
