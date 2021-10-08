@@ -1144,7 +1144,10 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
 
 
 def get_quantity_values(quantity, **kwargs):
-    ''' Get all the uploader from the query, to check coauthers and shared_with for uploaders. '''
+    '''
+    Performs the search defined by `kwargs`, aggregated by quantity, and returns the encountered
+    values of this quantity.
+    '''
     response = perform_search(
         **kwargs,
         aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity=quantity))),

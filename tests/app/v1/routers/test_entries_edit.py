@@ -143,7 +143,7 @@ class TestEditRepo():
         edit_data = dict(
             comment='test_edit_props',
             references=['http://test', 'http://test2'],
-            coauthors=[other_test_user.user_id],
+            entry_coauthors=[other_test_user.user_id],
             shared_with=[other_test_user.user_id])
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
@@ -159,7 +159,7 @@ class TestEditRepo():
 
         assert self.mongo(1, comment='test_edit_props')
         assert self.mongo(1, references=['http://test', 'http://test2'])
-        assert self.mongo(1, coauthors=[other_test_user.user_id])
+        assert self.mongo(1, entry_coauthors=[other_test_user.user_id])
         assert self.mongo(1, shared_with=[other_test_user.user_id])
 
         self.assert_elastic(1, comment='test_edit_props')
@@ -170,7 +170,7 @@ class TestEditRepo():
         edit_data = dict(
             comment='',
             references=[],
-            coauthors=[],
+            entry_coauthors=[],
             shared_with=[])
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
@@ -186,7 +186,7 @@ class TestEditRepo():
 
         assert self.mongo(1, comment=None)
         assert self.mongo(1, references=[])
-        assert self.mongo(1, coauthors=[])
+        assert self.mongo(1, entry_coauthors=[])
         assert self.mongo(1, shared_with=[])
 
         self.assert_elastic(1, comment=None)
@@ -225,19 +225,19 @@ class TestEditRepo():
         assert not self.mongo(1, comment='test_edit_verify', edited=False)
 
     def test_edit_empty_list(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=self.query('upload_1'))
-        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
-        rv = self.perform_edit(coauthors=[], query=self.query('upload_1'))
-        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
-        assert self.mongo(1, coauthors=[])
+        rv = self.perform_edit(entry_coauthors=[other_test_user.user_id], query=self.query('upload_1'))
+        self.assert_edit(rv, quantity='entry_coauthors', success=True, message=False)
+        rv = self.perform_edit(entry_coauthors=[], query=self.query('upload_1'))
+        self.assert_edit(rv, quantity='entry_coauthors', success=True, message=False)
+        assert self.mongo(1, entry_coauthors=[])
 
     def test_edit_duplicate_value(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id, other_test_user.user_id], query=self.query('upload_1'))
-        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+        rv = self.perform_edit(entry_coauthors=[other_test_user.user_id, other_test_user.user_id], query=self.query('upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='entry_coauthors', success=False, message=True)
 
     def test_edit_uploader_as_coauthor(self, test_user):
-        rv = self.perform_edit(coauthors=[test_user.user_id], query=self.query('upload_1'))
-        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+        rv = self.perform_edit(entry_coauthors=[test_user.user_id], query=self.query('upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='entry_coauthors', success=False, message=True)
 
     def test_edit_ds(self):
         rv = self.perform_edit(
@@ -291,12 +291,12 @@ class TestEditRepo():
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
 
     def test_edit_bad_user(self):
-        rv = self.perform_edit(coauthors=['bad_user'], query=self.query('upload_1'))
-        self.assert_edit(rv, status_code=400, quantity='coauthors', success=False, message=True)
+        rv = self.perform_edit(entry_coauthors=['bad_user'], query=self.query('upload_1'))
+        self.assert_edit(rv, status_code=400, quantity='entry_coauthors', success=False, message=True)
 
     def test_edit_user(self, other_test_user):
-        rv = self.perform_edit(coauthors=[other_test_user.user_id], query=self.query('upload_1'))
-        self.assert_edit(rv, quantity='coauthors', success=True, message=False)
+        rv = self.perform_edit(entry_coauthors=[other_test_user.user_id], query=self.query('upload_1'))
+        self.assert_edit(rv, quantity='entry_coauthors', success=True, message=False)
 
     @pytest.mark.skip(reason='Not necessary during transition. Fails because uploader is not editable anyways.')
     def test_admin_only(self, other_test_user):

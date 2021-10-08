@@ -776,7 +776,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     this.editData = {
       comment: '',
       references: [],
-      coauthors: [],
+      entry_coauthors: [],
       shared_with: [],
       datasets: []
     }
@@ -808,7 +808,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     this.editData = {
       comment: example.comment || '',
       references: example.references || [],
-      coauthors: (example.authors || [])
+      entry_coauthors: (example.authors || [])
         .filter(user => user.user_id !== example.uploader.user_id)
         .map(user => user.user_id),
       shared_with: (example.owners || [])
@@ -1052,10 +1052,10 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="References"
                 />
               </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('coauthors', true)}>
+              <UserMetadataField {...metadataFieldProps('entry_coauthors', true)}>
                 <ListTextInput
                   component={UserInput}
-                  {...listTextInputProps('coauthors', true)}
+                  {...listTextInputProps('entry_coauthors', true)}
                   label="Co-author"
                 />
               </UserMetadataField>

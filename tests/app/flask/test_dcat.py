@@ -52,7 +52,7 @@ def data(test_user, other_test_user, elastic_infra):
         upload_create_time=datetime.now(),
         last_processing_time=datetime.now(),
         uploader=test_user,
-        coauthors=[other_test_user],
+        entry_coauthors=[other_test_user],
         comment='this is a calculation comment',
         published=True)
 

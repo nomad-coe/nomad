@@ -178,7 +178,7 @@ experiments or other entities.
 each `pid` a shorter `handle` is created. Handles can be registered with a handle system,
 e.g. the central nomad installation at MPCDF is registered at a MPCDF/GWDW handle system.
 - The `calc_hash` is computed from the main and other parsed raw files.
-- Entry data comprises *user metadata* (comments, references, datasets, coauthors),
+- Entry data comprises *user metadata* (comments, references, datasets, coauthors, etc.),
 *calculation metadata* (code, version, system and symmetry, used DFT method, etc.),
 the *archive data* (a hierarchy of all parsed quantities), and the uploaded *raw files*.
 

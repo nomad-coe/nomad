@@ -614,7 +614,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     with zipfile.ZipFile(upload_file, 'w') as zf:
         calc_1 = dict(
             comment='Calculation 1 of 3',
-            coauthors=other_test_user.user_id,
+            entry_coauthors=other_test_user.user_id,
             references=['http://test'],
             external_id='external_id_1')
         with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
@@ -646,20 +646,20 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
     references = [['http://test'], ['http://ttest'], ['http://ttest'], None]
-    coauthors = [[other_test_user], [], [], []]
+    expected_entry_coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].full_entry_metadata(upload)
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
-        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.entry_coauthors]
         for j in range(len(entry_coauthors)):
-            assert entry_coauthors[j].user_id == coauthors[i][j].user_id
-            assert entry_coauthors[j].username == coauthors[i][j].username
-            assert entry_coauthors[j].email == coauthors[i][j].email
-            assert entry_coauthors[j].first_name == coauthors[i][j].first_name
-            assert entry_coauthors[j].last_name == coauthors[i][j].last_name
+            assert entry_coauthors[j].user_id == expected_entry_coauthors[i][j].user_id
+            assert entry_coauthors[j].username == expected_entry_coauthors[i][j].username
+            assert entry_coauthors[j].email == expected_entry_coauthors[i][j].email
+            assert entry_coauthors[j].first_name == expected_entry_coauthors[i][j].first_name
+            assert entry_coauthors[j].last_name == expected_entry_coauthors[i][j].last_name
 
 
 @pytest.mark.parametrize('user, metadata_to_set, should_succeed', [

@@ -551,7 +551,7 @@ def example_user_metadata(other_test_user, test_user) -> dict:
     return {
         'comment': 'test comment',
         'references': ['http://external.ref/one', 'http://external.ref/two'],
-        'coauthors': [other_test_user.user_id],
+        'entry_coauthors': [other_test_user.user_id],
         '_pid': '256',
         'external_id': 'external_test_id'
     }

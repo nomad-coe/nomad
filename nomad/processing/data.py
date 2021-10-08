@@ -161,7 +161,8 @@ class Calc(Proc):
         nomad_commit: the NOMAD commit used for the last processing
         comment: a user provided comment for this entry
         references: user provided references (URLs) for this entry
-        coauthors: a user provided list of co-authors
+        entry_coauthors: a user provided list of co-authors specific for this entry. Note
+            that normally, coauthors should be set on the upload level.
         datasets: a list of user curated datasets this entry belongs to
     '''
     upload_id = StringField()
@@ -179,7 +180,7 @@ class Calc(Proc):
     nomad_commit = StringField()
     comment = StringField()
     references = ListField(StringField(), default=None)
-    coauthors = ListField(StringField(), default=None)
+    entry_coauthors = ListField(StringField(), default=None)
     shared_with = ListField(StringField(), default=None)
     datasets = ListField(StringField(), default=None)
 
@@ -1784,7 +1785,7 @@ class Upload(Proc):
                     'Mismatching upload_id in entry definition')
                 assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
                     'Provided entry id does not match generated value')
-                check_user_ids(entry_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
+                check_user_ids(entry_dict.get('entry_coauthors', []), 'Invalid entry_coauthor reference: {id}')
                 check_user_ids(entry_dict.get('shared_with', []), 'Invalid shared_with reference: {id}')
 
                 # Instantiate an entry object from the json, and validate it

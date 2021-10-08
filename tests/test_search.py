@@ -70,7 +70,7 @@ def assert_search_upload(
                 assert key in hit, f'{key} is missing'
                 assert hit[key] != config.services.unavailable_value
 
-            for coauthor in hit.get('coauthors', []):
+            for coauthor in hit.get('entry_coauthors', []):
                 assert coauthor.get('name', None) is not None
 
 

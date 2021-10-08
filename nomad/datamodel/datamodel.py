@@ -325,7 +325,7 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     uploaders: List[User] = []
     if entry.uploader is not None and entry.external_db is None:
         uploaders = [entry.uploader]
-    return uploaders + entry.coauthors
+    return uploaders + entry.entry_coauthors
 
 
 class UploadMetadata(metainfo.MSection):
@@ -370,8 +370,9 @@ class EntryMetadata(metainfo.MSection):
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
         uploader: Id of the uploader of this entry.
-        coauthors: Ids of all co-authors (excl. the uploader) of this entry. Co-authors are
-            shown as authors of this entry alongside its uploader.
+        entry_coauthors: Ids of all co-authors (excl. the uploader) specified on the entry level,
+            rather than on the upload level. They are shown as authors of this entry alongside
+            its uploader.
         shared_with: Ids of all users that this entry is shared with. These users can find,
             see, and download all data for this entry, even if it is in staging or
             has an embargo.
@@ -407,25 +408,27 @@ class EntryMetadata(metainfo.MSection):
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
         description='''
-        The paths to the files within the upload that belong to this entry.
-        All files within the same directory as the entry's mainfile are considered the
-        auxiliary files that belong to the entry.
+            The paths to the files within the upload that belong to this entry.
+            All files within the same directory as the entry's mainfile are considered the
+            auxiliary files that belong to the entry.
         ''',
         a_elasticsearch=PathSearch())
 
     pid = metainfo.Quantity(
         type=str,
         description='''
-        The unique, sequentially enumerated, integer PID that was used in the legacy
-        NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.''',
+            The unique, sequentially enumerated, integer PID that was used in the legacy
+            NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
+        ''',
         categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     raw_id = metainfo.Quantity(
         type=str,
         description='''
-        The code specific identifier extracted from the entry's raw files by the parser,
-        if supported.''',
+            The code specific identifier extracted from the entry's raw files by the parser,
+            if supported.
+        ''',
         categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
@@ -502,9 +505,12 @@ class EntryMetadata(metainfo.MSection):
         derived=derive_origin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    coauthors = metainfo.Quantity(
+    entry_coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
-        description='A user provided list of co-authors')
+        description='''
+            A user provided list of co-authors specific for this entry. Note that normally,
+            coauthors should be set on the upload level.
+        ''')
 
     authors = metainfo.Quantity(
         type=author_reference, shape=['0..*'],
@@ -568,8 +574,9 @@ class EntryMetadata(metainfo.MSection):
     external_id = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, UserProvidableMetadata],
         description='''
-        A user provided external id. Usually the id for an entry in an external database
-        where the data was imported from.''',
+            A user provided external id. Usually the id for an entry in an external database
+            where the data was imported from.
+        ''',
         a_elasticsearch=Elasticsearch())
 
     last_edit_time = metainfo.Quantity(
@@ -591,10 +598,6 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=QuantitySearch())
 
     encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess])
-
-    def apply_user_metadata(self, metadata: dict):
-        ''' Applies a user provided metadata dict to this calc. '''
-        self.m_update(**metadata)
 
     def apply_archvie_metadata(self, archive):
         quantities = set()
@@ -625,6 +628,7 @@ class EntryMetadata(metainfo.MSection):
             n_quantities += 1
 
         self.quantities = list(quantities)
+        self.quantities.sort()
         self.n_quantities = n_quantities
 
 
