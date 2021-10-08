@@ -30,8 +30,11 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import TutorialsIcon from './assets/AIT_ico_bp_tutorial.svg'
 import AccessIcon from './assets/AIT_ico_bd_link_external_big.svg'
 import WatchIcon from './assets/AIT_ico_bd_youtube.svg'
+import PdfIcon from './assets/AIT_ico_bd_link_pdf.svg'
+import DoiIcon from './assets/AIT_ico_bd_link_doi.svg'
 
 const useStyles = makeStyles(theme => ({
+
   root: {
     margin: theme.spacing(3),
     width: '100%',
@@ -50,24 +53,31 @@ const useStyles = makeStyles(theme => ({
   title: {
     fontWeight: 'bold',
     color: '#2A3C67',
-    fontSize: 30
+    fontSize: 30,
+    marginLeft: '-10px',
+    fontFamily: 'TitilliumBold'
+
   },
   deck: {
     color: '#2A3C67',
     fontSize: 15,
-    marginTop: '20px'
+    marginTop: '20px',
+    lineHeight: '24px',
+    marginLeft: '-10px',
+    fontFamily: 'TitilliumRegular'
   },
   icon: {
     height: '350px',
     marginTop: '-20px',
-    marginLeft: '200px'
+    marginLeft: '100px'
   },
   filter: {
     fontWeight: 'bold',
     color: '#2A3C67',
     fontSize: 15,
-    marginTop: '140px',
-    marginLeft: '20px'
+    marginTop: '60px',
+    marginLeft: '0px',
+    fontFamily: 'TitilliumBold'
   },
   autocomplete: {
     height: 'auto',
@@ -75,47 +85,60 @@ const useStyles = makeStyles(theme => ({
     border: '3px solid rgba(127, 239, 239, 1)',
     borderRadius: '10px 10px 10px 10px',
     marginTop: '10px',
-    marginLeft: '20px'
+    marginLeft: '0px'
   },
   tutorialsList: {
     marginTop: '50px'
   },
-  tutorialTitle: {
-    fontWeight: 'bold',
-    fontSize: 25,
+  tutorialTitleGrid: {
+    marginRight: '40px'
+  },
+  tutorialTitleText: {
+    fontSize: 22,
     lineHeight: '30px',
-    color: '#2A3C67'
-  },
-  tutorialAuthors: {
     color: '#2A3C67',
-    fontWeight: 'bold',
-    fontSize: 15,
-    lineHeight: '20px',
-    align: 'right',
-    marginLeft: '-30px'
-
+    fontFamily: 'TitilliumBold'
   },
-  tutorialDescription: {
+  authorsGrid: {
+    marginLeft: '150px',
+    marginRight: '30px'
+  },
+  fieldText: {
+    color: '#2A3C67',
+    fontWeight: 'TitilliumBold'
+  },
+  linkAuthors: {
+    color: '#2A3C67',
+    cursor: 'pointer',
+    fontFamily: 'TitilliumRegular',
+    lineHeight: '20px'
+  },
+  tutorialDescriptionGrid: {
     marginTop: '-30px',
     marginLeft: '50px'
   },
-  tutorialActions: {
-    marginLeft: '50px'
+  tutorialDescriptionText: {
+    fontFamily: 'TitilliumRegular',
+    color: '#2A3C67'
   },
-  tutorialKeyworks: {
-    marginTop: '-30px'
-  },
-  link: {
-    color: '#2A3C67',
-    cursor: 'pointer',
-    fontWeight: 'normal'
+  keyworksGrid: {
+    marginTop: '-30px',
+    marginLeft: '63px'
   },
   linkKeywords: {
     border: '1.5px solid rgba(127, 239, 239, 1)',
     lineHeight: '35px',
     color: '#2A3C67',
     cursor: 'pointer',
-    fontWeight: 'normal'
+    fontStyle: 'normal',
+    fontFamily: 'TitilliumRegular'
+  },
+  tutorialActions: {
+    marginLeft: '50px'
+  },
+  tutorialResources: {
+    marginTop: '-17px',
+    marginLeft: '-6px'
   }
 }))
 
@@ -229,7 +252,7 @@ export default function AIToolkitPage() {
 
   return <Grid container spacing={1} className={classes.root}>
     <Grid container spacing={0}>
-      <Grid item xs={4} className={classes.sectionTitle} >
+      <Grid item xs={6} className={classes.sectionTitle} >
         <Box className={classes.title}>
           {
             'Learn from tutorials'
@@ -245,7 +268,7 @@ export default function AIToolkitPage() {
         <img src={TutorialsIcon} className={classes.icon}/>
       </Grid>
     </Grid>
-    <Grid container spacing={1}>
+    <Grid container spacing={0}>
       <Grid item xs={12} >
         <Box className={classes.filter} >
           {
@@ -253,36 +276,42 @@ export default function AIToolkitPage() {
           }
         </Box>
       </Grid>
-      <Grid item xs={2} className={classes.autocomplete}>
+      <Grid item xs={2}>
         <Autocomplete
           id="combo-box-demo"
           options={authors}
+          className={classes.autocomplete}
           getOptionLabel={option => option}
+          style={{height: '50px', width: '150px'}}
           renderInput={params => (
-            <TextField {...params} fontSize='40' label="author" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField {...params} label="Author" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
           )}
           value={queryParameters.author}
           onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
         />
       </Grid>
-      <Grid item xs={2} className={classes.autocomplete}>
+      <Grid item xs={2}>
         <Autocomplete
           id="combo-box-demo"
           options={keywords}
+          style={{height: '50px', width: '150px'}}
+          className={classes.autocomplete}
           getOptionLabel={option => option}
           renderInput={params => (
-            <TextField {...params} label="keyword" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField {...params} label="Keyword" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
           )}
           value={queryParameters.keyword}
           onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
         />
       </Grid>
-      <Grid item xs={2} className={classes.autocomplete}>
+      <Grid item xs={2}>
         <Autocomplete
           id="combo-box-demo"
           options={methods}
+          style={{height: '50px', width: '150px'}}
+          className={classes.autocomplete}
           renderInput={params => (
-            <TextField {...params} label="method" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField {...params} label="Method" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
           )}
           value={queryParameters.method}
           onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
@@ -303,29 +332,29 @@ export default function AIToolkitPage() {
               elevation={0}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Grid container spacing={2} className={classes.root} >
-                  <Grid item xs={8} >
-                    <Typography className={classes.tutorialTitle} >
+                <Grid container spacing={1} >
+                  <Grid item xs={7} className={classes.tutorialTitleGrid} >
+                    <Typography className={classes.tutorialTitleText}>
                       {tutorial.title}
                     </Typography>
                   </Grid>
-                  <Grid item xs={4}>
-                    <Typography className={classes.tutorialAuthors} >
-                      {'Authors: '}
+                  <Grid item xs={4} classes={classes.authorsGrid} >
+                    <Typography className={classes.fieldText}>
+                      {<b>Authors: </b> }
                       {tutorial.authors
                         .map(name => {
                           const label = name.split(',').reverse().join(' ')
                           return <Link
-                            className={classes.link}
+                            className={classes.linkAuthors}
                             key={name}
                             onClick={() => setQueryParameters({
                               ...emptyQuery,
                               author: queryParameters.author === name ? null : name
                             })}
                           >
-                            <i>{label}</i>
+                            {label}
                           </Link>
-                        }).reduce((prev, curr) => [prev, ', ', curr])
+                        }).reduce((prev, curr) => [prev, ' | ', curr])
                       }
                     </Typography>
                   </Grid>
@@ -334,13 +363,13 @@ export default function AIToolkitPage() {
 
               <AccordionDetails >
                 <Grid container spacing={4}>
-                  <Grid item xs={7} className={classes.tutorialDescription}>
-                    <Markdown>
+                  <Grid item xs={6} className={classes.tutorialDescriptionGrid}>
+                    <Markdown className={classes.tutorialDescriptionText}>
                       {tutorial.description}
                     </Markdown>
                   </Grid>
-                  <Grid item xs={4} className={classes.tutorialKeyworks}>
-                    <Typography>
+                  <Grid item xs={4} className={classes.keyworksGrid}>
+                    <Typography className={classes.fieldText}>
                       <b>Keywords</b>:
                     </Typography>
                     <Typography>
@@ -359,7 +388,7 @@ export default function AIToolkitPage() {
                         )).reduce((prev, curr) => [prev, '    ', curr])
                       }
                     </Typography>
-                    <Typography>
+                    <Typography className={classes.fieldText}>
                       <b>Methods</b>:
                     </Typography>
                     <Typography>
@@ -383,14 +412,44 @@ export default function AIToolkitPage() {
               </AccordionDetails>
 
               <AccordionActions>
-                <Grid container spacing={2}>
-                  <Grid item xs={8} className={classes.tutorialActions}>
-                    <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
-                    Access this tutorial
-                    </Button>
-                    <Button color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
-                    Watch video
-                    </Button>
+                <Grid container spacing={4}>
+                  <Grid item xs={7} className={classes.tutorialActions}>
+                    <Grid container spacing={0}>
+                      <Grid item xs={5}>
+                        <Button href={tutorial.link} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
+                          <Typography className={classes.fieldText} >
+                            <b>Access tutorial</b>
+                          </Typography>
+
+                        </Button>
+                      </Grid>
+
+                      <Grid item xs={5} >
+
+                        <Button width='10px' color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
+                          <Typography className={classes.fieldText} >
+                            <b>Watch video</b>
+                          </Typography>                        </Button>
+                      </Grid>
+                    </Grid>
+
+                  </Grid>
+                  <Grid item xs={4} className={classes.tutorialResources}>
+                    <Grid container spacing={0}>
+                      <Grid item xs={12}>
+                        <Typography className={classes.fieldText}>
+                          <b>Additional Resources</b>:
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={2} >
+                        <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={DoiIcon}></img>}>
+                        </Button>
+                      </Grid>
+                      <Grid item xs={2}>
+                        <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={PdfIcon}></img>}>
+                        </Button>
+                      </Grid>
+                    </Grid>
                   </Grid>
                 </Grid>
               </AccordionActions>
