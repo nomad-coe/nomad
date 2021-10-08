@@ -411,7 +411,7 @@ function UploadPage() {
         <UploadStatus upload={upload} fontSize="large" />
       </Grid>
       <Grid item style={{flexGrow: 1}}>
-        <UploadName name={upload?.name} onChange={handleNameChange} />
+        <UploadName name={upload?.upload_name} onChange={handleNameChange} />
         <WithButton clipboard={uploadId}>
           <Typography>upload id: {uploadId}</Typography>
         </WithButton>
