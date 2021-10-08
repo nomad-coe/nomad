@@ -353,7 +353,7 @@ function UploadPage() {
   }
 
   const handleNameChange = (name) => {
-    api.put(`/uploads/${uploadId}/metadata?name=${name}`)
+    api.put(`/uploads/${uploadId}/metadata?upload_name=${name}`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
   }
