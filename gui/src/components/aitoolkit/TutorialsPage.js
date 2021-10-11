@@ -32,6 +32,8 @@ import AccessIcon from './assets/AIT_ico_bd_link_external_big.svg'
 import WatchIcon from './assets/AIT_ico_bd_youtube.svg'
 import PdfIcon from './assets/AIT_ico_bd_link_pdf.svg'
 import DoiIcon from './assets/AIT_ico_bd_link_doi.svg'
+import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
+import ReproduceIcon from './assets/AIT_ico_bb_replicate.svg'
 
 const useStyles = makeStyles(theme => ({
 
@@ -56,7 +58,6 @@ const useStyles = makeStyles(theme => ({
     fontSize: 30,
     marginLeft: '-10px',
     fontFamily: 'TitilliumBold'
-
   },
   deck: {
     color: '#2A3C67',
@@ -105,7 +106,7 @@ const useStyles = makeStyles(theme => ({
   },
   fieldText: {
     color: '#2A3C67',
-    fontWeight: 'TitilliumBold'
+    // fontWeight: 'TitilliumBold'
   },
   linkAuthors: {
     color: '#2A3C67',
@@ -137,6 +138,32 @@ const useStyles = makeStyles(theme => ({
   tutorialResources: {
     marginTop: '-17px',
     marginLeft: '-6px'
+  },
+  titleSecondary: {
+    fontWeight: 'bold',
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: 30,
+    marginLeft: '-10px',
+    fontFamily: 'TitilliumRegular'
+  },
+  bottomButton: {
+    color: '#F3F2F5',
+    backgroundColor: '#F3F2F5',
+    borderRadius: '30px',
+    width: '242px',
+    height: '70px',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '40px',
+    textTransform: 'none',
+    fontSize: '12pt',
+    lineHeight: '20px',
+    fontFamily: 'TitilliumBold'
+  },
+  bottomIcon: {
+    height: '300px',
+    marginTop: '80px',
+    marginLeft: '120px'
   }
 }))
 
@@ -220,7 +247,7 @@ export default function AIToolkitPage() {
   }, [tutorials_list])
 
   return <Grid container spacing={1} className={classes.root}>
-    <Grid container spacing={0}>
+    <Grid container spacing={0} className={classes.Heading}>
       <Grid item xs={6} className={classes.sectionTitle} >
         <Box className={classes.title}>
           {
@@ -430,6 +457,26 @@ export default function AIToolkitPage() {
           </div>
         ))}
       </Grid>
+    </Grid>
+    <Grid item xs={6} className={classes.sectionTitle} >
+      <Box className={classes.titleSecondary}>
+        {
+          'Next advanced level'
+        }
+      </Box>
+      <Box className={classes.deck}>
+        {
+          'After learning the basics of machine learning, you can apply the latest AI developments to timely problems in materials science. These outstanding applications allow to reproduce results that have been recently published in scientific journals.'
+        }
+      </Box>
+      <Button width='10px' color='#2A3C67' href={'reproduce'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
+        <Box className={classes.fieldText} >
+          Advanced applications
+        </Box>
+      </Button>
+    </Grid>
+    <Grid item xs={4} className={classes.sectionIcon}>
+      <img src={ReproduceIcon} className={classes.bottomIcon}/>
     </Grid>
   </Grid>
 }
