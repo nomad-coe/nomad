@@ -353,7 +353,7 @@ function UploadPage() {
   }
 
   const handleNameChange = (name) => {
-    api.put(`/uploads/${uploadId}/metadata?name=${name}`)
+    api.put(`/uploads/${uploadId}/metadata?upload_name=${name}`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
   }
@@ -411,7 +411,7 @@ function UploadPage() {
         <UploadStatus upload={upload} fontSize="large" />
       </Grid>
       <Grid item style={{flexGrow: 1}}>
-        <UploadName name={upload?.name} onChange={handleNameChange} />
+        <UploadName name={upload?.upload_name} onChange={handleNameChange} />
         <WithButton clipboard={uploadId}>
           <Typography>upload id: {uploadId}</Typography>
         </WithButton>
