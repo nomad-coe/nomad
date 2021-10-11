@@ -151,7 +151,7 @@ const useStyles = makeStyles(theme => ({
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
-  borderBottom: '8px solid rgba(127, 239, 239, 1)',
+  borderBottom: '13px solid rgba(127, 239, 239, 1)',
   '&:not(:last-child)': {
     borderBottom: 0
   },

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Box, Button, Grid, TextField, makeStyles } from '@material-ui/core'
+import { Box, Button, Grid, TextField, makeStyles, Divider, Typography } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
@@ -124,6 +124,18 @@ const useStyles = makeStyles(theme => ({
     fontStyle: 'normal',
     fontFamily: 'TitilliumRegular',
     fontSize: '16px'
+  },
+  textLevel: {
+    textAlign: 'left',
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: '22px',
+    fontFamily: 'TitilliumRegular',
+    marginTop: '-10px'
+  },
+  tutorialsDivider: {
+    backgroundColor: 'rgba(127, 239, 239, 1)',
+    height: '13px',
+    borderRadius: '4px'
   },
   tutorialActions: {
     marginLeft: '50px'
@@ -281,7 +293,15 @@ export default function AIToolkitPage() {
     </Grid>
     <Grid container spacing={1} className={classes.tutorialsList}>
       <Grid item xs={12}>
-        <AccordionsList tutorials_list={tutorials_list}
+        <Grid container spacing={1}>
+          <Grid item xs={3} className={classes.textLevel}>
+            BEGINNER LEVEL
+          </Grid>
+          <Grid item xs={9}>
+            <Divider disableGutters className={classes.tutorialsDivider}></Divider>
+          </Grid>
+        </Grid>
+        <AccordionsList tutorials_list={tutorials_list_beginner}
           author={authors}
           keyword={keywords}
           method={methods}
@@ -290,6 +310,27 @@ export default function AIToolkitPage() {
           queryParameters={queryParameters}
           emptyQuery={queryParameters} />
       </Grid>
+      <Box mt={'100px'}>
+        <Grid container spacing={1} >
+          <Grid item xs={3} className={classes.textLevel}>
+            INTERMEDIATE LEVEL
+          </Grid>
+          <Grid item xs={9}>
+            <Divider disableGutters className={classes.tutorialsDivider}></Divider>
+          </Grid>
+        </Grid>
+        <Grid item xs={12}>
+          <AccordionsList tutorials_list={tutorials_list_intermediate}
+            author={authors}
+            keyword={keywords}
+            method={methods}
+            filter={filter}
+            setQueryParameters={setQueryParameters}
+            queryParameters={queryParameters}
+            emptyQuery={queryParameters} />
+        </Grid>
+      </Box>
+
     </Grid>
     <Grid item xs={6} className={classes.sectionTitle} >
       <Box className={classes.titleSecondary}>
@@ -311,5 +352,6 @@ export default function AIToolkitPage() {
     <Grid item xs={4} className={classes.sectionIcon}>
       <img src={ReproduceIcon} className={classes.bottomIcon}/>
     </Grid>
+
   </Grid>
 }
