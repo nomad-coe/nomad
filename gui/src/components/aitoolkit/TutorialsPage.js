@@ -16,24 +16,14 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import { Box, Divider, Typography, makeStyles, Link, AccordionActions, Button, Grid, TextField } from '@material-ui/core'
-import MuiAccordion from '@material-ui/core/Accordion'
-import MuiAccordionSummary from '@material-ui/core/AccordionSummary'
-import MuiAccordionDetails from '@material-ui/core/AccordionDetails'
-import { styled } from '@material-ui/core/styles'
-import ArrowForwardIosSharpIcon from '@material-ui/icons/ArrowForwardIosSharp'
+import { Box, Button, Grid, TextField, makeStyles } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import Markdown from '../Markdown'
 import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import TutorialsIcon from './assets/AIT_ico_bp_tutorial.svg'
-import AccessIcon from './assets/AIT_ico_bd_link_external_big.svg'
-import WatchIcon from './assets/AIT_ico_bd_youtube.svg'
-import PdfIcon from './assets/AIT_ico_bd_link_pdf.svg'
-import DoiIcon from './assets/AIT_ico_bd_link_doi.svg'
 import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from './assets/AIT_ico_bb_replicate.svg'
+import AccordionsList from './AccordionsList'
 
 const useStyles = makeStyles(theme => ({
 
@@ -42,7 +32,7 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: '1024px'
+    maxWidth: '1052px'
   },
   sectionIcon: {
     marginTop: theme.spacing(3)
@@ -55,27 +45,29 @@ const useStyles = makeStyles(theme => ({
   title: {
     fontWeight: 'bold',
     color: '#2A3C67',
-    fontSize: 30,
+    fontSize: '35px',
     marginLeft: '-10px',
-    fontFamily: 'TitilliumBold'
+    fontFamily: 'TitilliumBold',
+    marginTop: '-70px'
   },
   deck: {
     color: '#2A3C67',
-    fontSize: 15,
+    fontSize: '22px',
     marginTop: '20px',
-    lineHeight: '24px',
+    lineHeight: '30px',
     marginLeft: '-10px',
-    fontFamily: 'TitilliumRegular'
+    fontFamily: 'TitilliumRegular',
+    width: '518px'
   },
   icon: {
-    height: '350px',
+    height: '371px',
     marginTop: '-20px',
     marginLeft: '100px'
   },
   filter: {
     fontWeight: 'bold',
     color: '#2A3C67',
-    fontSize: 15,
+    fontSize: '20px',
     marginTop: '60px',
     marginLeft: '0px',
     fontFamily: 'TitilliumBold'
@@ -95,8 +87,7 @@ const useStyles = makeStyles(theme => ({
     marginRight: '40px'
   },
   tutorialTitleText: {
-    fontSize: 22,
-    lineHeight: '30px',
+    fontSize: '28px',
     color: '#2A3C67',
     fontFamily: 'TitilliumBold'
   },
@@ -105,21 +96,22 @@ const useStyles = makeStyles(theme => ({
     marginRight: '30px'
   },
   fieldText: {
-    color: '#2A3C67',
-    // fontWeight: 'TitilliumBold'
+    color: '#2A3C67'
   },
   linkAuthors: {
     color: '#2A3C67',
     cursor: 'pointer',
     fontFamily: 'TitilliumRegular',
-    lineHeight: '20px'
+    lineHeight: '20px',
+    fontSize: '16px'
   },
   tutorialDescriptionGrid: {
     marginLeft: '50px'
   },
   tutorialDescriptionText: {
     fontFamily: 'TitilliumRegular',
-    color: '#2A3C67'
+    color: '#2A3C67',
+    fontSize: '18px'
   },
   keyworksGrid: {
     marginLeft: '80px'
@@ -130,7 +122,8 @@ const useStyles = makeStyles(theme => ({
     color: '#2A3C67',
     cursor: 'pointer',
     fontStyle: 'normal',
-    fontFamily: 'TitilliumRegular'
+    fontFamily: 'TitilliumRegular',
+    fontSize: '16px'
   },
   tutorialActions: {
     marginLeft: '50px'
@@ -142,7 +135,7 @@ const useStyles = makeStyles(theme => ({
   titleSecondary: {
     fontWeight: 'bold',
     color: 'rgba(127, 239, 239, 1)',
-    fontSize: 30,
+    fontSize: '35px',
     marginLeft: '-10px',
     fontFamily: 'TitilliumRegular'
   },
@@ -165,38 +158,6 @@ const useStyles = makeStyles(theme => ({
     marginTop: '80px',
     marginLeft: '120px'
   }
-}))
-
-const Accordion = styled((props) => (
-  <MuiAccordion disableGutters elevation={0} square {...props} />
-))(({ theme }) => ({
-  borderTop: '8px solid rgba(127, 239, 239, 1)',
-  '&:not(:last-child)': {
-    borderBottom: 0
-  },
-  '&:before': {
-    display: 'none'
-  }
-}))
-
-const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
-    {...props}
-  />
-))(({ theme }) => ({
-
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)'
-  },
-  '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(1)
-  }
-}))
-
-const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
-  padding: theme.spacing(2)
 }))
 
 export default function AIToolkitPage() {
@@ -227,6 +188,10 @@ export default function AIToolkitPage() {
   }
 
   const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.application_section[0] === 'Tutorials for artificial-intelligence methods')
+
+  const tutorials_list_beginner = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'beginner_tutorial')
+
+  const tutorials_list_intermediate = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'intermediate_tutorial')
 
   const {authors, keywords, methods} = useMemo(() => {
     const authors = {}
@@ -314,148 +279,16 @@ export default function AIToolkitPage() {
         />
       </Grid>
     </Grid>
-
     <Grid container spacing={1} className={classes.tutorialsList}>
       <Grid item xs={12}>
-        {tutorials_list.map(tutorial => (
-          <div key={tutorial.title} >
-            <Accordion
-              key={tutorial.key}
-              disabled={!filter(tutorial)}
-              expanded={expanded === tutorial.key}
-              onChange={() => setExpanded(expanded === tutorial.key ? null : tutorial.key)}
-              className={classes.tutorial}
-              elevation={0}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Grid container spacing={1} >
-                  <Grid item xs={7} className={classes.tutorialTitleGrid} >
-                    <Typography className={classes.tutorialTitleText}>
-                      {tutorial.title}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={4} classes={classes.authorsGrid} >
-                    <Typography className={classes.fieldText}>
-                      {<b>Authors: </b> }
-                      {tutorial.authors
-                        .map(name => {
-                          const label = name.split(',').reverse().join(' ')
-                          return <Link
-                            className={classes.linkAuthors}
-                            key={name}
-                            onClick={() => setQueryParameters({
-                              ...emptyQuery,
-                              author: queryParameters.author === name ? null : name
-                            })}
-                          >
-                            {label}
-                          </Link>
-                        }).reduce((prev, curr) => [prev, ' | ', curr])
-                      }
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </AccordionSummary>
-
-              <AccordionDetails >
-                <Grid container spacing={4}>
-                  <Grid item xs={6} className={classes.tutorialDescriptionGrid}>
-                    <Markdown className={classes.tutorialDescriptionText}>
-                      {tutorial.description}
-                    </Markdown>
-                  </Grid>
-                  <Grid item xs={4} className={classes.keyworksGrid}>
-                    <Typography className={classes.fieldText}>
-                      <b>Keywords</b>:
-                    </Typography>
-                    <Typography>
-                      {tutorial.labels.application_keyword
-                        .map(keyword => (
-                          <Link
-                            className={classes.linkKeywords}
-                            key={keyword}
-                            onClick={() => setQueryParameters({
-                              ...emptyQuery,
-                              keyword: queryParameters.keyword === keyword ? null : keyword
-                            })}
-                          >
-                            {keyword}
-                          </Link>
-                        )).reduce((prev, curr) => [prev, '    ', curr])
-                      }
-                    </Typography>
-                    <Typography className={classes.fieldText}>
-                      <b>Methods</b>:
-                    </Typography>
-                    <Typography>
-                      {tutorial.labels.data_analytics_method
-                        .map(method => (
-                          <Link
-                            className={classes.linkKeywords}
-                            key={method}
-                            onClick={() => setQueryParameters({
-                              ...emptyQuery,
-                              method: queryParameters.method === method ? null : method
-                            })}
-                          >
-                            {method}
-                          </Link>
-                        )).reduce((prev, curr) => [prev, '    ', curr])
-                      }
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-
-              <AccordionActions>
-
-                <Grid container spacing={4}>
-
-                  <Grid item xs={7} className={classes.tutorialActions}>
-                    <Grid container spacing={0}>
-                      <Grid item xs={5}>
-                        <Button href={tutorial.link} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
-                          <Typography className={classes.fieldText} >
-                            <b>Access tutorial</b>
-                          </Typography>
-                        </Button>
-                      </Grid>
-
-                      <Grid item xs={5} >
-                        <Button width='10px' color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
-                          <Typography className={classes.fieldText} >
-                            <b>Watch video</b>
-                          </Typography>
-                        </Button>
-                      </Grid>
-                    </Grid>
-
-                  </Grid>
-                  <Grid item xs={4} className={classes.tutorialResources}>
-                    <Grid container spacing={0}>
-                      <Grid item xs={12}>
-                        <Typography className={classes.fieldText}>
-                          <b>Additional Resources</b>:
-                        </Typography>
-                      </Grid>
-
-                      <Grid item xs={2} >
-                        <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={DoiIcon}></img>}>
-                        </Button>
-                      </Grid>
-                      <Grid item xs={2}>
-                        <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={PdfIcon}></img>}>
-                        </Button>
-                      </Grid>
-
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </AccordionActions>
-              <Divider />
-            </Accordion>
-          </div>
-        ))}
+        <AccordionsList tutorials_list={tutorials_list}
+          author={authors}
+          keyword={keywords}
+          method={methods}
+          filter={filter}
+          setQueryParameters={setQueryParameters}
+          queryParameters={queryParameters}
+          emptyQuery={queryParameters} />
       </Grid>
     </Grid>
     <Grid item xs={6} className={classes.sectionTitle} >
