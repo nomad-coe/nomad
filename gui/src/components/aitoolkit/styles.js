@@ -161,50 +161,51 @@ const useStylesLanding = makeStyles(theme => ({
   boxIcons: {
     width: '1000px',
     margin: 'auto',
-    marginTop: '-200px'
+    marginTop: '-350px'
   },
   title: {
-    fontSize: '50px',
+    fontSize: '55px',
     margin: 'auto',
     textAlign: 'center',
     align: 'center',
-    marginTop: '200px',
+    marginTop: '100px',
     width: '450px',
     height: '140px',
     fontFamily: 'TitilliumBold',
     letterSpacing: 0,
-    wordSpacing: '10px',
-    lineHeight: '60px',
+    lineHeight: '62px',
     color: 'white'
   },
   deck: {
     fontFamily: 'TitilliumRegular',
     letterSpacing: 0,
-    marginTop: '-200px',
+    marginTop: '-250px',
     wordSpacing: '5px',
-    lineHeight: '30px',
+    lineHeight: '43px',
     color: 'white',
-    fontSize: '30px',
+    fontSize: '34px',
     margin: 'auto',
     textAlign: 'center',
     align: 'center',
     left: '736px',
     top: '270px',
-    width: '500px',
+    width: '550px',
     height: '140px'
   },
   button: {
     backgroundColor: 'white',
-    fontSize: 20,
+    fontSize: '20px',
+    lineHeight: '20px',
     fontFamily: 'TitilliumBold',
     color: '#2A3C67',
     textAlign: 'center',
     align: 'center',
-    borderRadius: '25px',
-    width: '200px',
+    borderRadius: '30px',
+    width: '207px',
     height: '70px',
-    lineHeight: '20px'
-
+    textTransform: 'none',
+    marginTop: '-50px',
+    zIndex: 0
   },
   link: {
     cursor: 'pointer'

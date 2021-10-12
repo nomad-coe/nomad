@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Grid, Box } from '@material-ui/core'
+import { Grid, Box, Button } from '@material-ui/core'
 import IconQuery from './assets/AIT_ico_bb_query.svg'
 import IconReplicate from './assets/AIT_ico_bb_replicate.svg'
 import IconTutorial from './assets/AIT_ico_bb_tutorial.svg'
 import IconWork from './assets/AIT_ico_bb_work.svg'
 import {useStylesLanding} from './styles.js'
+import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 
 export default function AIToolkitPage() {
   const classes = useStylesLanding()
@@ -37,41 +38,42 @@ export default function AIToolkitPage() {
       Find new Patterns and Information in Materials Science Big Data  </Box>
     </Grid>
     <Grid container spacing={1} className={classes.boxIcons}>
-      <Grid item xs={3}> <img src={IconQuery} />
+      <Grid item xs={3} style={{zIndex: 1}}> <img src={IconQuery} />
       </Grid>
-      <Grid item xs={3}> <img src={IconTutorial} />
+      <Grid item xs={3} style={{zIndex: 1}}> <img src={IconTutorial} />
       </Grid>
-      <Grid item xs={3}> <img src={IconReplicate} />
+      <Grid item xs={3} style={{zIndex: 1}}> <img src={IconReplicate} />
       </Grid>
-      <Grid item xs={3}> <img src={IconWork} />
+      <Grid item xs={3} style={{zIndex: 1}}> <img src={IconWork} />
       </Grid>
       <Grid item xs={3}>
-        <button className={classes.button}
-          type="button"
-        > Query the archive</button>
+        <Button width='10px' color='#2A3C67' href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Query the Archive
+          </Box>
+        </Button>
       </Grid>
       <Grid item xs={3} >
-        <button className={classes.button}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            window.location.href = 'tutorials'
-          }}
-        > View tutorials</button>
+        <Button width='10px' color='#2A3C67' href='tutorials' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          View tutorials
+          </Box>
+        </Button>
       </Grid>
       <Grid item xs={3}>
-        <button className={classes.button}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            window.location.href = 'reproduce'
-          }}
-        > Reproduce published results</button>
+        <Button width='10px' color='#2A3C67' href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Reproduce published results
+          </Box>
+        </Button>
       </Grid>
       <Grid item xs={3}>
-        <button className={classes.button}
-          type="button"
-        > Get to work</button>
+        <Button width='10px' color='#2A3C67' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Get to work
+          </Box>
+        </Button>
+
       </Grid>
     </Grid>
   </Grid>
