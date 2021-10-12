@@ -152,16 +152,21 @@ const useStylesList = makeStyles(theme => ({
 
 const useStylesLanding = makeStyles(theme => ({
   root: {
+    margin: theme.spacing(3),
     width: '100%',
-    maxWidth: 'auto',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1920px'
+  },
+  background: {
     backgroundImage: `url(${Background})`,
-    color: 'white',
-    height: '1000px'
+    height: '840px',
+    marginTop: '-50px'
   },
   boxIcons: {
     width: '1000px',
     margin: 'auto',
-    marginTop: '-350px'
+    marginTop: '-150px'
   },
   title: {
     fontSize: '55px',
@@ -179,7 +184,7 @@ const useStylesLanding = makeStyles(theme => ({
   deck: {
     fontFamily: 'TitilliumRegular',
     letterSpacing: 0,
-    marginTop: '-250px',
+    marginTop: '-170px',
     wordSpacing: '5px',
     lineHeight: '43px',
     color: 'white',
@@ -207,8 +212,28 @@ const useStylesLanding = makeStyles(theme => ({
     marginTop: '-50px',
     zIndex: 0
   },
-  link: {
-    cursor: 'pointer'
+  body: {
+    width: '1052px',
+    margin: theme.spacing(3),
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
+  highlightedText: {
+    fontWeight: 'bold',
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: '35px',
+    width: '518px',
+    lineHeight: '42px',
+    fontFamily: 'TitilliumRegular',
+    marginTop: '80px'
+  },
+  bodyText: {
+    color: '#2A3C67',
+    fontFamily: 'TitilliumRegular',
+    lineHeight: '30px',
+    fontSize: '22px',
+    width: '607px',
+    marginTop: '40px'
   }
 }))
 
