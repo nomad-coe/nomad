@@ -987,7 +987,7 @@ def search(
 
     # pagination
     next_page_after_value = None
-    if 0 < len(es_response.hits) < es_response.hits.total:
+    if 0 < len(es_response.hits) < es_response.hits.total and len(es_response.hits) >= pagination.page_size:
         last = es_response.hits[-1]
         if order_field == doc_type.id_field:
             next_page_after_value = last[doc_type.id_field]
