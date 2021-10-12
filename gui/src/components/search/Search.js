@@ -102,7 +102,7 @@ const Search = React.memo(({
       />
     </div>
     <div className={styles.center} onClick={() => setIsMenuOpen(false)}>
-      <Box margin={3}>
+      <Box margin={3} paddingBottom={6}>
         <Box marginBottom={2}>
           {header}
         </Box>
