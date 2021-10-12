@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import {useStyles} from './styles.js'
+import {useStylesList} from './styles.js'
 import { Box, Button, Grid, TextField, Divider } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import { StringParam, useQueryParams } from 'use-query-params'
@@ -27,7 +27,7 @@ import ReproduceIcon from './assets/AIT_ico_bb_replicate.svg'
 import AccordionsList from './AccordionsList'
 
 export default function AIToolkitPage() {
-  const classes = useStyles()
+  const classes = useStylesList()
   const [queryParameters, setQueryParameters] = useQueryParams({
     author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
   })

@@ -1,5 +1,5 @@
 import React from 'react'
-import {useStyles} from './styles.js'
+import {useStylesList} from './styles.js'
 import { Divider, Typography, Link, AccordionActions, Button, Grid } from '@material-ui/core'
 import MuiAccordion from '@material-ui/core/Accordion'
 import MuiAccordionSummary from '@material-ui/core/AccordionSummary'
@@ -38,7 +38,9 @@ const AccordionSummary = styled((props) => (
     transform: 'rotate(90deg)'
   },
   '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(1)
+    marginLeft: theme.spacing(1),
+    marginTop: '20px',
+    marginBottom: '20px'
   }
 }))
 
@@ -47,7 +49,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 }))
 
 function AccordionsList(props) {
-  const classes = useStyles()
+  const classes = useStylesList()
   const [expanded, setExpanded] = useQueryParam('expanded', StringParam)
   return (
     props.tutorials_list.map(tutorial => (

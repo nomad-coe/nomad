@@ -1,7 +1,7 @@
-
 import {makeStyles} from '@material-ui/core'
+import Background from './assets/AIT_bg_title.jpg'
 
-const useStyles = makeStyles(theme => ({
+const useStylesList = makeStyles(theme => ({
 
   root: {
     margin: theme.spacing(3),
@@ -150,4 +150,66 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export { useStyles }
+const useStylesLanding = makeStyles(theme => ({
+  root: {
+    width: '100%',
+    maxWidth: 'auto',
+    backgroundImage: `url(${Background})`,
+    color: 'white',
+    height: '1000px'
+  },
+  boxIcons: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '-200px'
+  },
+  title: {
+    fontSize: '50px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '200px',
+    width: '450px',
+    height: '140px',
+    fontFamily: 'TitilliumBold',
+    letterSpacing: 0,
+    wordSpacing: '10px',
+    lineHeight: '60px',
+    color: 'white'
+  },
+  deck: {
+    fontFamily: 'TitilliumRegular',
+    letterSpacing: 0,
+    marginTop: '-200px',
+    wordSpacing: '5px',
+    lineHeight: '30px',
+    color: 'white',
+    fontSize: '30px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    left: '736px',
+    top: '270px',
+    width: '500px',
+    height: '140px'
+  },
+  button: {
+    backgroundColor: 'white',
+    fontSize: 20,
+    fontFamily: 'TitilliumBold',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '25px',
+    width: '200px',
+    height: '70px',
+    lineHeight: '20px'
+
+  },
+  link: {
+    cursor: 'pointer'
+  }
+}))
+
+export { useStylesList }
+export { useStylesLanding }
