@@ -1,6 +1,114 @@
 import {makeStyles} from '@material-ui/core'
 import Background from './assets/AIT_bg_title.jpg'
 
+const useStylesLanding = makeStyles(theme => ({
+  root: {
+    margin: theme.spacing(3),
+    width: '100%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1920px'
+  },
+  background: {
+    backgroundImage: `url(${Background})`,
+    height: '840px',
+    marginTop: '-50px'
+  },
+  boxIcons: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '-150px'
+  },
+  title: {
+    fontSize: '55px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '100px',
+    width: '450px',
+    height: '140px',
+    fontFamily: 'TitilliumBold',
+    letterSpacing: 0,
+    lineHeight: '62px',
+    color: 'white'
+  },
+  deck: {
+    fontFamily: 'TitilliumRegular',
+    letterSpacing: 0,
+    marginTop: '-170px',
+    wordSpacing: '5px',
+    lineHeight: '43px',
+    color: 'white',
+    fontSize: '34px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    left: '736px',
+    top: '270px',
+    width: '550px',
+    height: '140px'
+  },
+  button: {
+    backgroundColor: 'rgba(255,255,255,1)',
+    fontSize: '20px',
+    lineHeight: '20px',
+    fontFamily: 'TitilliumBold',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '30px',
+    width: '207px',
+    height: '70px',
+    textTransform: 'none',
+    marginTop: '-50px',
+    zIndex: 0
+  },
+  body: {
+    width: '1052px',
+    margin: theme.spacing(3),
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
+  highlightedText: {
+    fontWeight: 'bold',
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: '35px',
+    width: '518px',
+    lineHeight: '42px',
+    fontFamily: 'TitilliumRegular',
+    marginTop: '80px'
+  },
+  bodyText: {
+    color: '#2A3C67',
+    fontFamily: 'TitilliumRegular',
+    lineHeight: '30px',
+    fontSize: '22px',
+    width: '607px',
+    marginTop: '40px'
+  },
+  boxIconsBottom: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '50px'
+  },
+  buttonBottom: {
+    backgroundColor: '#F3F2F5',
+    fontSize: '20px',
+    lineHeight: '20px',
+    fontFamily: 'TitilliumBold',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '30px',
+    width: '207px',
+    height: '70px',
+    textTransform: 'none'
+  },
+  iconsBottom: {
+    width: '200px'
+  }
+}))
+
 const useStylesList = makeStyles(theme => ({
 
   root: {
@@ -147,93 +255,6 @@ const useStylesList = makeStyles(theme => ({
     height: '300px',
     marginTop: '80px',
     marginLeft: '120px'
-  }
-}))
-
-const useStylesLanding = makeStyles(theme => ({
-  root: {
-    margin: theme.spacing(3),
-    width: '100%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: '1920px'
-  },
-  background: {
-    backgroundImage: `url(${Background})`,
-    height: '840px',
-    marginTop: '-50px'
-  },
-  boxIcons: {
-    width: '1000px',
-    margin: 'auto',
-    marginTop: '-150px'
-  },
-  title: {
-    fontSize: '55px',
-    margin: 'auto',
-    textAlign: 'center',
-    align: 'center',
-    marginTop: '100px',
-    width: '450px',
-    height: '140px',
-    fontFamily: 'TitilliumBold',
-    letterSpacing: 0,
-    lineHeight: '62px',
-    color: 'white'
-  },
-  deck: {
-    fontFamily: 'TitilliumRegular',
-    letterSpacing: 0,
-    marginTop: '-170px',
-    wordSpacing: '5px',
-    lineHeight: '43px',
-    color: 'white',
-    fontSize: '34px',
-    margin: 'auto',
-    textAlign: 'center',
-    align: 'center',
-    left: '736px',
-    top: '270px',
-    width: '550px',
-    height: '140px'
-  },
-  button: {
-    backgroundColor: 'white',
-    fontSize: '20px',
-    lineHeight: '20px',
-    fontFamily: 'TitilliumBold',
-    color: '#2A3C67',
-    textAlign: 'center',
-    align: 'center',
-    borderRadius: '30px',
-    width: '207px',
-    height: '70px',
-    textTransform: 'none',
-    marginTop: '-50px',
-    zIndex: 0
-  },
-  body: {
-    width: '1052px',
-    margin: theme.spacing(3),
-    marginLeft: 'auto',
-    marginRight: 'auto'
-  },
-  highlightedText: {
-    fontWeight: 'bold',
-    color: 'rgba(127, 239, 239, 1)',
-    fontSize: '35px',
-    width: '518px',
-    lineHeight: '42px',
-    fontFamily: 'TitilliumRegular',
-    marginTop: '80px'
-  },
-  bodyText: {
-    color: '#2A3C67',
-    fontFamily: 'TitilliumRegular',
-    lineHeight: '30px',
-    fontSize: '22px',
-    width: '607px',
-    marginTop: '40px'
   }
 }))
 

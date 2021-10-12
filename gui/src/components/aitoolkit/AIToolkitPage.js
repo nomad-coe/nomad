@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -21,10 +22,15 @@ import IconQuery from './assets/AIT_ico_bb_query.svg'
 import IconReplicate from './assets/AIT_ico_bb_replicate.svg'
 import IconTutorial from './assets/AIT_ico_bb_tutorial.svg'
 import IconWork from './assets/AIT_ico_bb_work.svg'
+import IconQuery2 from './assets/AIT_ico_bp_query.svg'
+import IconReplicate2 from './assets/AIT_ico_bp_replicate.svg'
+import IconTutorial2 from './assets/AIT_ico_bp_tutorial.svg'
+import IconWork2 from './assets/AIT_ico_bp_work.svg'
 import {useStylesLanding} from './styles.js'
 import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 import FigureAI from './assets/AIT_illu_AIT.svg'
-import ReactPlayer from 'react-player/youtube'
+
+// import ReactPlayer from 'react-player/youtube'
 
 export default function AIToolkitPage() {
   const classes = useStylesLanding()
@@ -49,28 +55,28 @@ export default function AIToolkitPage() {
         <Grid item xs={3} style={{zIndex: 1}}> <img src={IconWork} />
         </Grid>
         <Grid item xs={3}>
-          <Button width='10px' color='#2A3C67' href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Button color='#2A3C67' href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
             <Box className={classes.fieldText} >
           Query the Archive
             </Box>
           </Button>
         </Grid>
         <Grid item xs={3} >
-          <Button width='10px' color='#2A3C67' href='tutorials' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Button color='#2A3C67' href='tutorials' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
             <Box className={classes.fieldText} >
           View tutorials
             </Box>
           </Button>
         </Grid>
         <Grid item xs={3}>
-          <Button width='10px' color='#2A3C67' href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Button href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
             <Box className={classes.fieldText} >
-          Reproduce published results
+          Published results
             </Box>
           </Button>
         </Grid>
         <Grid item xs={3}>
-          <Button width='10px' color='#2A3C67' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
+          <Button color='#2A3C67' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
             <Box className={classes.fieldText} >
           Get to work
             </Box>
@@ -86,9 +92,52 @@ export default function AIToolkitPage() {
       </Grid>
 
       <Grid item xs={4}>
-        <img src={FigureAI} style={{marginTop:'150px'}}></img>
+        <img src={FigureAI} style={{marginTop: '150px'}}></img>
+      </Grid>
+      <Grid item xs={8} >
+        <Typography className={classes.highlightedText}>Access the tutorials </Typography>
+
+        <Typography className={classes.bodyText}>Ready to start? Click on one of the options below. If you're new, we suggest starting with the AI Tutorials for materials science. </Typography>
       </Grid>
     </Grid>
 
+    <Grid container spacing={1} className={classes.boxIconsBottom}>
+      <Grid item xs={3}> <img src={IconQuery2} className={classes.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}> <img src={IconTutorial2} className={classes.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}> <img src={IconReplicate2} className={classes.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}> <img src={IconWork2} className={classes.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}>
+        <Button color='#2A3C67' href='reproduce' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Query the Archive
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3} >
+        <Button color='#2A3C67' href='tutorials' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          View tutorials
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3}>
+        <Button href='reproduce' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Published results
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3}>
+        <Button color='#2A3C67' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
+          <Box className={classes.fieldText} >
+          Get to work
+          </Box>
+        </Button>
+      </Grid>
+    </Grid>
   </Grid>
 }
