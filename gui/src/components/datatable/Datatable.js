@@ -402,7 +402,8 @@ DatatableRow.propTypes = {
 
 const useDatatableTableStyles = makeStyles(theme => ({
   tableContainer: {
-    flexGrow: 1
+    flexGrow: 1,
+    marginBottom: '50px'
   }
 }))
 
