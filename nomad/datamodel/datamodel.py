@@ -370,14 +370,14 @@ class EntryMetadata(metainfo.MSection):
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
         uploader: Id of the uploader of this entry.
+        reviewers: Ids of users who can review the upload which this entry belongs to. Like the
+            uploader, reviewers can find, see, and download all data from the upload, even
+            if it is in staging or has an embargo.
         entry_coauthors: Ids of all co-authors (excl. the uploader) specified on the entry level,
             rather than on the upload level. They are shown as authors of this entry alongside
             its uploader.
-        shared_with: Ids of all users that this entry is shared with. These users can find,
-            see, and download all data for this entry, even if it is in staging or
-            has an embargo.
         with_embargo: Entries with embargo are only visible to the uploader, the admin
-            user, and users the entry is shared with (see shared_with).
+            user, and users registered as reviewers of the uplod (see reviewers).
         upload_create_time: The time that the upload was created
         entry_create_time: The time that the entry was created
         publish_time: The time when the upload was published
@@ -518,14 +518,17 @@ class EntryMetadata(metainfo.MSection):
         derived=derive_authors,
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
 
-    shared_with = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
-        description='A user provided list of userts to share the entry with')
+    reviewers = metainfo.Quantity(
+        type=user_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='''
+            A user provided list of reviewers. Reviewers can see the whole upload, also if
+            it is unpublished or embargoed
+        ''')
 
     owners = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
         description='All owner (uploader and shared with users)',
-        derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.shared_with,
+        derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.reviewers,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     license = metainfo.Quantity(

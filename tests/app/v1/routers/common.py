@@ -180,7 +180,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
         ),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id'}},
-            3, 3, 200, 'test_user', id='default'),
+            5, 5, 200, 'test_user', id='default'),
         pytest.param(
             {
                 'terms': {
@@ -188,7 +188,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}
                 }
             },
-            3, 3, 200, 'test_user', id='order-str'),
+            5, 5, 200, 'test_user', id='order-str'),
         pytest.param(
             {
                 'terms': {
@@ -196,7 +196,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': upload_create_time}
                 }
             },
-            3, 3, 200, 'test_user', id='order-date'),
+            5, 5, 200, 'test_user', id='order-date'),
         pytest.param(
             {
                 'terms': {
@@ -204,7 +204,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
                 }
             },
-            3, 3, 200, 'test_user', id='order-int'),
+            5, 5, 200, 'test_user', id='order-int'),
         pytest.param(
             {'terms': {'quantity': f'{material_prefix}symmetry.structure_name'}},
             0, 0, 200, 'test_user', id='no-results'),
@@ -215,7 +215,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'page_after_value': 'id_published'}
                 }
             },
-            3, 1, 200, 'test_user', id='after'),
+            5, 2, 200, 'test_user', id='after'),
         pytest.param(
             {
                 'terms': {
@@ -226,13 +226,13 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     }
                 }
             },
-            3, 1, 200, 'test_user', id='after-order'),
+            5, 2, 200, 'test_user', id='after-order'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
-            3, 3, 200, 'test_user', id='entries'),
+            5, 5, 200, 'test_user', id='entries'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}},
-            3, 3, 200, 'test_user', id='entries-size'),
+            5, 5, 200, 'test_user', id='entries-size'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}},
             -1, -1, 422, 'test_user', id='bad-entries'),
@@ -248,7 +248,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     }
                 }
             },
-            3, 3, 200, 'test_user', id='entries-include'),
+            5, 5, 200, 'test_user', id='entries-include'),
         pytest.param(
             {'terms': {'quantity': program_name}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
@@ -280,7 +280,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order': 'asc'}
                 }
             },
-            3, 3, 200, 'test_user', id='order-direction'),
+            5, 5, 200, 'test_user', id='order-direction'),
         pytest.param(
             {'terms': {'quantity': 'does not exist'}},
             -1, -1, 422, None, id='bad-quantity'),

@@ -137,45 +137,12 @@ class ExampleData:
 
         self.entry_defaults = kwargs
         self._entry_id_counter = 1
-        self._upload_id_counter = 1
 
         self._time_stamp = datetime.utcnow()
 
     def save(self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
-
-        # Consistency checks
-        uploads_published: Dict[str, bool] = {}
-        uploads_embargo_length: Dict[str, int] = {}
-        for upload_id in set(list(self.uploads) + list(self.upload_entries)):
-            entry_ids = self.upload_entries.get(upload_id, [])
-            embargo_length = self.uploads.get(upload_id, {}).get('embargo_length')
-            # Check entries must have consistent published and with_embargo
-            entry_published_values = set()
-            entry_with_embargo_values = set()
-            for entry_id in entry_ids:
-                entry_published_values.add(self.entries[entry_id].published)
-                entry_with_embargo_values.add(self.entries[entry_id].with_embargo)
-            # Check/default published and with_embargo
-            if len(entry_ids) > 0:
-                assert len(entry_published_values) == 1, 'Inconsistent published flags'
-                assert len(entry_with_embargo_values) == 1, 'Inconsistent embargo flags'
-                published = entry_published_values.pop()
-                with_embargo = entry_with_embargo_values.pop()
-                if upload_id in self.uploads:
-                    assert embargo_length is not None, 'No embargo provided on upload'
-                    assert (embargo_length > 0) == with_embargo, 'Inconsistent embargo'
-                    assert published == (self.uploads[upload_id]['publish_time'] is not None)
-                else:
-                    # No uploads created. Just generate it
-                    embargo_length = 36 if with_embargo else 0
-            else:
-                published = False
-                if embargo_length is None:
-                    embargo_length = 0
-            uploads_published[upload_id] = published
-            uploads_embargo_length[upload_id] = embargo_length
 
         # Save
         if with_mongo:
@@ -193,10 +160,6 @@ class ExampleData:
                     mainfile=entry_metadata.mainfile,
                     parser_name='parsers/vasp',
                     process_status=process_status)
-                upload_dict = self.uploads.get(entry_metadata.upload_id)
-                if upload_dict:
-                    # Mirror fields from upload
-                    entry_metadata.uploader = upload_dict['user_id']
                 mongo_entry.set_mongo_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
@@ -205,7 +168,7 @@ class ExampleData:
             search.index(archives, update_materials=True, refresh=True)
 
         if with_files:
-            for upload_id in set(list(self.uploads) + list(self.upload_entries)):
+            for upload_id, upload_dict in self.uploads.items():
                 entry_ids = self.upload_entries.get(upload_id, [])
                 archives = []
                 for entry_id in entry_ids:
@@ -213,8 +176,8 @@ class ExampleData:
                         archives.append(self.archives[entry_id])
 
                 create_test_upload_files(
-                    upload_id, archives, published=uploads_published[upload_id],
-                    embargo_length=uploads_embargo_length[upload_id])
+                    upload_id, archives, published=upload_dict.get('publish_time') is not None,
+                    embargo_length=upload_dict['embargo_length'])
                 from nomad import files
                 assert files.UploadFiles.get(upload_id) is not None
 
@@ -246,13 +209,14 @@ class ExampleData:
             'last_update': self._next_time_stamp(),
             'embargo_length': 0,
             'publish_time': None,
+            'license': 'CC BY 4.0',
             'published_to': []}
         upload_dict.update(kwargs)
         if published is not None:
             if published and not upload_dict['publish_time']:
                 upload_dict['publish_time'] = self._next_time_stamp()
             elif not published:
-                assert not upload_dict['publish_time']
+                assert not upload_dict.get('publish_time')
         if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
             upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
         self.uploads[upload_id] = upload_dict
@@ -266,6 +230,9 @@ class ExampleData:
             results: Union[Results, dict] = None,
             archive: dict = None, **kwargs) -> EntryArchive:
 
+        assert upload_id in self.uploads, 'Must create the upload first'
+        upload_dict = self.uploads[upload_id]
+
         if entry_id is None:
             entry_id = calc_id
 
@@ -275,10 +242,6 @@ class ExampleData:
 
         if mainfile is None:
             mainfile = f'mainfile_for_{entry_id}'
-
-        if upload_id is None:
-            upload_id = f'test_upload_id_{self._upload_id_counter}'
-            self._upload_id_counter += 1
 
         if entry_archive is None:
             entry_archive = EntryArchive()
@@ -290,25 +253,26 @@ class ExampleData:
         if entry_metadata is None:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
-        upload_create_time = None
-        if upload_id in self.uploads:
-            upload_create_time = self.uploads[upload_id].get('upload_create_time')
-        if upload_create_time is None:
-            upload_create_time = self._next_time_stamp()
-
         entry_metadata.m_update(
             calc_id=entry_id,
             upload_id=upload_id,
             mainfile=mainfile,
             calc_hash='dummy_hash_' + entry_id,
             domain='dft',
-            upload_create_time=upload_create_time,
             entry_create_time=self._next_time_stamp(),
             processed=True,
-            published=bool(self.uploads.get(upload_id, {}).get('publish_time', True)),
-            with_embargo=self.uploads.get(upload_id, {}).get('embargo_length', 0) > 0,
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
+        # Fetch data from Upload
+        upload_keys = ['upload_name', 'user_id', 'reviewers', 'upload_create_time', 'license', 'publish_time']
+        upload_values = {k: upload_dict[k] for k in upload_keys if k in upload_dict}
+        upload_values['with_embargo'] = upload_dict['embargo_length'] > 0
+        upload_values['published'] = upload_dict.get('publish_time') is not None
+        if 'user_id' in upload_values:
+            upload_values['uploader'] = upload_values.pop('user_id')
+        for k in upload_keys + ['with_embargo', 'published']:
+            assert k not in kwargs, f'Upload level metadata specified on entry level: {k}'
+        entry_metadata.m_update(**upload_values)
         entry_metadata.m_update(**kwargs)
 
         # create v1 default data
@@ -356,11 +320,6 @@ class ExampleData:
         if entry_archive.results.material.material_id is None:
             entry_archive.results.material.material_id = material_id
 
-        if upload_id in self.uploads:
-            # Check embargo consistency
-            with_embargo = (self.uploads[upload_id]['embargo_length'] > 0)
-            assert entry_metadata.with_embargo == with_embargo, 'Inconsistent embargo flags'
-
         self.archives[entry_id] = entry_archive
         self.entries[entry_id] = entry_metadata
         self.upload_entries.setdefault(entry_metadata.upload_id, []).append(entry_id)
@@ -377,7 +336,7 @@ class ExampleData:
 
     def create_structure(
             self,
-            id: int, h: int, o: int, extra: List[str], periodicity: int,
+            upload_id: str, id: int, h: int, o: int, extra: List[str], periodicity: int,
             optimade: bool = True, metadata: dict = None):
 
         ''' Creates a calculation in Elastic and Mongodb with the given properties.
@@ -423,8 +382,7 @@ class ExampleData:
 
         self.create_entry(
             entry_archive=archive,
-            domain='dft', calc_id='test_calc_id_%d' % id, upload_id='test_upload',
-            published=True, processed=True, with_embargo=False, **kwargs)
+            upload_id=upload_id, calc_id='test_calc_id_%d' % id, domain='dft', **kwargs)
 
 
 def create_template_upload_file(

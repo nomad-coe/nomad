@@ -39,10 +39,11 @@ def test_get_entry(published: Upload):
     assert 'optimade.chemical_formula_hill' in utils.flat(search_result)
 
 
-def test_no_optimade(mongo, elastic, raw_files, client):
-    example_data = ExampleData()
-    example_data.create_structure(1, 2, 1, [], 0)
-    example_data.create_structure(2, 2, 1, [], 0, optimade=False)
+def test_no_optimade(mongo, elastic, raw_files, client, test_user):
+    example_data = ExampleData(uploader=test_user)
+    example_data.create_upload(upload_id='test_upload', published=True, embargo_length=0)
+    example_data.create_structure('test_upload', 1, 2, 1, [], 0)
+    example_data.create_structure('test_upload', 2, 2, 1, [], 0, optimade=False)
     example_data.save()
 
     rv = client.get('/optimade/structures')
@@ -52,16 +53,18 @@ def test_no_optimade(mongo, elastic, raw_files, client):
 
 
 @pytest.fixture(scope='module')
-def example_structures(elastic_infra, mongo_infra, raw_files_infra):
+def example_structures(elastic_infra, mongo_infra, raw_files_infra, test_user):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    example_data = ExampleData()
-    example_data.create_structure(1, 2, 1, [], 0)
-    example_data.create_structure(2, 2, 1, ['C'], 0)
-    example_data.create_structure(3, 2, 1, [], 1)
-    example_data.create_structure(
-        4, 1, 1, [], 0, metadata=dict(upload_create_time='1978-04-08T10:10:00Z'))
+    example_data = ExampleData(uploader=test_user)
+    example_data.create_upload(
+        upload_id='test_upload', upload_create_time='1978-04-08T10:10:00Z',
+        published=True, embargo_length=0)
+    example_data.create_structure('test_upload', 1, 2, 1, [], 0)
+    example_data.create_structure('test_upload', 2, 2, 1, ['C'], 0)
+    example_data.create_structure('test_upload', 3, 2, 1, [], 1)
+    example_data.create_structure('test_upload', 4, 1, 1, [], 0, metadata=dict(comment='A comment'))
     example_data.save()
 
     yield
@@ -128,7 +131,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
     ('elements HAS ONY "H", "O"', -1),
-    ('last_modified >= "2009-02-01T20:07:00Z"', 3),
+    ('last_modified >= "2009-02-01T20:07:00Z"', 0),
     ('species_at_sites HAS "C"', 1),
     ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
     ('_nmd_results_material_chemical_formula_reduced = "H20"', 0)

@@ -323,9 +323,11 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
-            expected_upload_ids=['id_embargo', 'id_unpublished', 'id_published', 'id_processing', 'id_empty'],
+            expected_upload_ids=[
+                'id_embargo', 'id_embargo_shared_upload', 'id_unpublished', 'id_unpublished_shared_upload',
+                'id_published', 'id_processing', 'id_empty'],
             expected_pagination={
-                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'total': 7, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}
         ), id='no-args'),
     pytest.param(
@@ -351,17 +353,19 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     pytest.param(
         dict(
             query_params={'is_processing': False},
-            expected_upload_ids=['id_embargo', 'id_unpublished', 'id_published', 'id_empty'],
+            expected_upload_ids=[
+                'id_embargo', 'id_embargo_shared_upload', 'id_unpublished', 'id_unpublished_shared_upload',
+                'id_published', 'id_empty'],
         ), id='filter-is_processing-False'),
     pytest.param(
         dict(
             query_params={'is_published': True},
-            expected_upload_ids=['id_embargo', 'id_published'],
+            expected_upload_ids=['id_embargo', 'id_embargo_shared_upload', 'id_published'],
         ), id='filter-is_published-True'),
     pytest.param(
         dict(
             query_params={'is_published': False},
-            expected_upload_ids=['id_unpublished', 'id_processing', 'id_empty'],
+            expected_upload_ids=['id_unpublished', 'id_unpublished_shared_upload', 'id_processing', 'id_empty'],
         ), id='filter-is_published-False'),
     pytest.param(
         dict(
@@ -386,30 +390,30 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     pytest.param(
         dict(
             query_params={'page_size': 2},
-            expected_upload_ids=['id_embargo', 'id_unpublished'],
+            expected_upload_ids=['id_embargo', 'id_embargo_shared_upload'],
             expected_pagination={
-                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'total': 7, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
         ), id='pag-page-1'),
     pytest.param(
         dict(
             query_params={'page_size': 2, 'page': 2},
-            expected_upload_ids=['id_published', 'id_processing'],
+            expected_upload_ids=['id_unpublished', 'id_unpublished_shared_upload'],
             expected_pagination={
-                'total': 5, 'page': 2, 'page_after_value': '1', 'next_page_after_value': '3',
+                'total': 7, 'page': 2, 'page_after_value': '1', 'next_page_after_value': '3',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': Any, 'first_page_url': Any}
         ), id='pag-page-2'),
     pytest.param(
         dict(
-            query_params={'page_size': 2, 'page': 3},
+            query_params={'page_size': 3, 'page': 3},
             expected_upload_ids=['id_empty'],
             expected_pagination={
-                'total': 5, 'page': 3, 'page_after_value': '3', 'next_page_after_value': None,
+                'total': 7, 'page': 3, 'page_after_value': '5', 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}
         ), id='pag-page-3'),
     pytest.param(
         dict(
-            query_params={'page_size': 2, 'page': 4},
+            query_params={'page_size': 2, 'page': 5},
             expected_status_code=400
         ), id='pag-page-out-of-range'),
     pytest.param(
@@ -417,7 +421,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'page_size': 2, 'order': 'desc'},
             expected_upload_ids=['id_empty', 'id_processing'],
             expected_pagination={
-                'total': 5, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'total': 7, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
         ), id='pag-page-order-desc'),
     pytest.param(
@@ -474,10 +478,10 @@ def test_get_upload(
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
-            expected_data_len=2,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_data_len=1,
+            expected_response={'processing_successful': 1, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'total': 1, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}),
         id='no-args'),
     pytest.param(
@@ -498,7 +502,7 @@ def test_get_upload(
     pytest.param(
         dict(
             user='admin_user',
-            expected_data_len=2),
+            expected_data_len=1),
         id='admin-access'),
     pytest.param(
         dict(
@@ -507,47 +511,52 @@ def test_get_upload(
         id='invalid-upload_id'),
     pytest.param(
         dict(
-            query_args={'page_size': 1},
-            expected_data_len=1,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            upload_id='id_published',
+            query_args={'page_size': 5},
+            expected_data_len=5,
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
+                'total': 23, 'page': 1, 'page_after_value': None, 'next_page_after_value': '4', 'order_by': 'mainfile',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
         id='pag-page-1'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'page': 1},
-            expected_data_len=1,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            upload_id='id_published',
+            query_args={'page_size': 5, 'page': 1},
+            expected_data_len=5,
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'mainfile',
+                'total': 23, 'page': 1, 'page_after_value': None, 'next_page_after_value': '4', 'order_by': 'mainfile',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
         id='pag-page-1-by-page'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'page': 2},
-            expected_data_len=1,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            upload_id='id_published',
+            query_args={'page_size': 10, 'page': 3},
+            expected_data_len=3,
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
+                'total': 23, 'page': 3, 'page_after_value': '19', 'next_page_after_value': None, 'order_by': 'mainfile',
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}),
-        id='pag-page-2-by-page'),
+        id='pag-page-3-by-page'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'page_after_value': '0'},
-            expected_data_len=1,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            upload_id='id_published',
+            query_args={'page_size': 10, 'page_after_value': '19'},
+            expected_data_len=3,
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 2, 'page_after_value': '0', 'next_page_after_value': None, 'order_by': 'mainfile',
+                'total': 23, 'page': 3, 'page_after_value': '19', 'next_page_after_value': None, 'order_by': 'mainfile',
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}),
-        id='pag-page-2-by-page_after_value'),
+        id='pag-page-3-by-page_after_value'),
     pytest.param(
         dict(
+            upload_id='id_published',
             query_args={'page_size': 0},
             expected_data_len=0,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': None, 'order_by': 'mainfile',
+                'total': 23, 'page': 1, 'page_after_value': None, 'next_page_after_value': None, 'order_by': 'mainfile',
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': None}),
         id='pag-page_size-zero'),
     pytest.param(
@@ -562,11 +571,12 @@ def test_get_upload(
         id='pag-out-of-rage-page_after_value'),
     pytest.param(
         dict(
+            upload_id='id_published',
             query_args={'page_size': 1, 'order_by': 'parser_name'},
             expected_data_len=1,
-            expected_response={'processing_successful': 2, 'processing_failed': 0},
+            expected_response={'processing_successful': 23, 'processing_failed': 0},
             expected_pagination={
-                'total': 2, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser_name',
+                'total': 23, 'page': 1, 'page_after_value': None, 'next_page_after_value': '0', 'order_by': 'parser_name',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}),
         id='pag-order_by-parser_name'),
     pytest.param(
@@ -590,7 +600,7 @@ def test_get_upload_entries(
     user = kwargs.get('user', 'test_user')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
-    expected_data_len = kwargs.get('expected_data_len', 2)
+    expected_data_len = kwargs.get('expected_data_len', 1)
     expected_response = kwargs.get('expected_response', {})
     expected_pagination = kwargs.get('expected_pagination', {})
     user_auth, __token = test_auth_dict[user]

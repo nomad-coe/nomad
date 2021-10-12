@@ -67,7 +67,9 @@ def _gen_ref():
     return random.choice(references)
 
 
-def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with_embargo=None) -> datamodel.EntryMetadata:
+def generate_calc(
+        pid: int = 0, calc_id: str = None, upload_id: str = None, with_embargo=None,
+        reviewers=[]) -> datamodel.EntryMetadata:
     random.seed(pid)
 
     entry = datamodel.EntryMetadata()
@@ -84,7 +86,7 @@ def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with
     entry.with_embargo = with_embargo if with_embargo is not None else random.choice([True, False])
     entry.published = True
     entry.entry_coauthors = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    entry.shared_with = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
+    entry.reviewers = reviewers
     entry.comment = random.choice(comments)
     entry.references = list(_gen_ref() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
     entry.datasets = list(

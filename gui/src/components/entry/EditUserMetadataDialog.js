@@ -777,7 +777,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       comment: '',
       references: [],
       entry_coauthors: [],
-      shared_with: [],
+      reviewers: [],
       datasets: []
     }
     this.unmounted = false
@@ -811,7 +811,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       entry_coauthors: (example.authors || [])
         .filter(user => user.user_id !== example.uploader.user_id)
         .map(user => user.user_id),
-      shared_with: (example.owners || [])
+      reviewers: (example.owners || [])
         .filter(user => user.user_id !== example.uploader.user_id)
         .map(user => user.user_id),
       datasets: (example.datasets || []).map(ds => ds.dataset_name)
@@ -1059,11 +1059,11 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="Co-author"
                 />
               </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('shared_with', true)}>
+              <UserMetadataField {...metadataFieldProps('reviewers', true)}>
                 <ListTextInput
                   component={UserInput}
-                  {...listTextInputProps('shared_with', true)}
-                  label="Shared with"
+                  {...listTextInputProps('reviewers', true)}
+                  label="Reviewers"
                 />
               </UserMetadataField>
               <UserMetadataField {...metadataFieldProps('datasets', true)}>

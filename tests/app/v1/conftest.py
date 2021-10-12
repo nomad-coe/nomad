@@ -60,16 +60,18 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         upload_id='id_embargo',
         calc_id='id_embargo',
         material_id='id_embargo',
-        mainfile='test_content/test_embargo_entry/mainfile.json',
-        shared_with=[],
-        with_embargo=True)
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+    data.create_upload(
+        upload_id='id_embargo_shared_upload',
+        upload_name='name_embargo_shared',
+        published=True,
+        reviewers=[other_test_user.user_id],
+        embargo_length=12)
     data.create_entry(
-        upload_id='id_embargo',
+        upload_id='id_embargo_shared_upload',
         calc_id='id_embargo_shared',
         material_id='id_embargo_shared',
-        mainfile='test_content/test_embargo_entry_shared/mainfile.json',
-        shared_with=[other_test_user],
-        with_embargo=True)
+        mainfile='test_content/test_embargo_entry_shared/mainfile.json')
 
     # one upload with two calc in staging, one shared
     data.create_upload(
@@ -79,18 +81,16 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         upload_id='id_unpublished',
         calc_id='id_unpublished',
         material_id='id_unpublished',
-        mainfile='test_content/test_entry/mainfile.json',
-        with_embargo=False,
-        shared_with=[],
-        published=False)
+        mainfile='test_content/test_entry/mainfile.json')
+    data.create_upload(
+        upload_id='id_unpublished_shared_upload',
+        published=False,
+        reviewers=[other_test_user.user_id])
     data.create_entry(
-        upload_id='id_unpublished',
+        upload_id='id_unpublished_shared_upload',
         calc_id='id_unpublished_shared',
         material_id='id_unpublished_shared',
-        mainfile='test_content/test_entry_shared/mainfile.json',
-        shared_with=[other_test_user],
-        with_embargo=False,
-        published=False)
+        mainfile='test_content/test_entry_shared/mainfile.json')
 
     # one upload with 23 calcs published
     data.create_upload(
@@ -145,9 +145,7 @@ def example_data_writeable(mongo, test_user, normalized):
     data.create_entry(
         upload_id='id_published_w',
         calc_id='id_published_w_entry',
-        mainfile='test_content/test_embargo_entry/mainfile.json',
-        shared_with=[],
-        with_embargo=True)
+        mainfile='test_content/test_embargo_entry/mainfile.json')
 
     # one upload with one entry, unpublished
     data.create_upload(
@@ -157,10 +155,7 @@ def example_data_writeable(mongo, test_user, normalized):
     data.create_entry(
         upload_id='id_unpublished_w',
         calc_id='id_unpublished_w_entry',
-        mainfile='test_content/test_embargo_entry/mainfile.json',
-        shared_with=[],
-        with_embargo=True,
-        published=False)
+        mainfile='test_content/test_embargo_entry/mainfile.json')
 
     # one upload, no entries, still processing
     data.create_upload(

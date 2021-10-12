@@ -51,6 +51,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
         return dataset
 
     data = ExampleData(uploader=test_user)
+    data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(
         upload_id='upload_1',
         calc_id='entry_1',
@@ -85,7 +86,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
                 dataset_type='foreign',
                 doi='test_doi')
         ])
-
+    data.create_upload(upload_id='other_data', published=True)
     for i in range(1, 4):
         data.create_entry(
             upload_id='other_data',

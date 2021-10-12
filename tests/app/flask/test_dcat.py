@@ -49,21 +49,19 @@ def data(test_user, other_test_user, elastic_infra):
     example_attrs = dict(
         entry_id='test-id',
         upload_id='upload-id',
-        upload_create_time=datetime.now(),
         last_processing_time=datetime.now(),
-        uploader=test_user,
         entry_coauthors=[other_test_user],
-        comment='this is a calculation comment',
-        published=True)
+        comment='this is a calculation comment')
 
-    data = ExampleData()
+    data = ExampleData(uploader=test_user)
+    data.create_upload(
+        upload_id='upload-id', upload_create_time=datetime(2000, 1, 1), published=True, embargo_length=0)
     archive = data.create_entry(**example_attrs)
     archive.m_create(Results).m_create(Material).chemical_formula_descriptive = 'H2O'
 
     for i in range(1, 11):
         example_attrs.update(
             entry_id='test-id-%d' % i,
-            upload_create_time=datetime(2000, 1, 1),
             last_processing_time=datetime(2020, 1, i))
         data.create_entry(**example_attrs)
 

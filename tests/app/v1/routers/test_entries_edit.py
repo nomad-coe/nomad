@@ -55,16 +55,12 @@ class TestEditRepo():
         example_data = ExampleData()
 
         example_data.create_upload('upload_1', user_id=test_user.user_id, published=True, embargo_length=0)
-        example_data.create_entry(
-            upload_id='upload_1', uploader=test_user, published=True, with_embargo=False)
+        example_data.create_entry(upload_id='upload_1')
         example_data.create_upload('upload_2', user_id=test_user.user_id, published=True, embargo_length=36)
-        example_data.create_entry(
-            upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
-        example_data.create_entry(
-            upload_id='upload_2', uploader=test_user, published=True, with_embargo=True)
+        example_data.create_entry(upload_id='upload_2')
+        example_data.create_entry(upload_id='upload_2')
         example_data.create_upload('upload_3', user_id=other_test_user.user_id, published=True, embargo_length=0)
-        example_data.create_entry(
-            upload_id='upload_3', uploader=other_test_user, published=True, with_embargo=False)
+        example_data.create_entry(upload_id='upload_3')
 
         example_data.save()
 
@@ -143,8 +139,8 @@ class TestEditRepo():
         edit_data = dict(
             comment='test_edit_props',
             references=['http://test', 'http://test2'],
-            entry_coauthors=[other_test_user.user_id],
-            shared_with=[other_test_user.user_id])
+            # reviewers=[other_test_user.user_id],  # TODO: need to set on upload level
+            entry_coauthors=[other_test_user.user_id])
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
         assert rv.status_code == 200, result
@@ -160,18 +156,17 @@ class TestEditRepo():
         assert self.mongo(1, comment='test_edit_props')
         assert self.mongo(1, references=['http://test', 'http://test2'])
         assert self.mongo(1, entry_coauthors=[other_test_user.user_id])
-        assert self.mongo(1, shared_with=[other_test_user.user_id])
+        # assert self.mongo(1, reviewers=[other_test_user.user_id])  TODO: need to be set on upload level
 
         self.assert_elastic(1, comment='test_edit_props')
         self.assert_elastic(1, references=['http://test', 'http://test2'])
         self.assert_elastic(1, authors=[test_user.user_id, other_test_user.user_id])
-        self.assert_elastic(1, owners=[test_user.user_id, other_test_user.user_id])
+        # self.assert_elastic(1, owners=[test_user.user_id, other_test_user.user_id])
 
         edit_data = dict(
             comment='',
             references=[],
-            entry_coauthors=[],
-            shared_with=[])
+            entry_coauthors=[])
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
         assert rv.status_code == 200
@@ -187,7 +182,7 @@ class TestEditRepo():
         assert self.mongo(1, comment=None)
         assert self.mongo(1, references=[])
         assert self.mongo(1, entry_coauthors=[])
-        assert self.mongo(1, shared_with=[])
+        assert self.mongo(1, reviewers=None)
 
         self.assert_elastic(1, comment=None)
         self.assert_elastic(1, references=[])

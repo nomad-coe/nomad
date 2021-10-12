@@ -116,14 +116,12 @@ def test_mapping_compatibility(elastic_infra):
 @pytest.fixture()
 def example_data(elastic, test_user, other_test_user):
     data = ExampleData(uploader=test_user)
-
+    data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
     for i in range(0, 4):
         data.create_entry(
             upload_id='test_upload_id',
             calc_id=f'test_entry_id_{i}',
-            mainfile='test_content/test_embargo_entry/mainfile.json',
-            shared_with=[],
-            with_embargo=True)
+            mainfile='test_content/test_embargo_entry/mainfile.json')
 
     data.save(with_files=False, with_mongo=False)
 

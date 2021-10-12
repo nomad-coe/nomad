@@ -339,7 +339,7 @@ def test_entries_all_metrics(client, data):
                     }
                 }
             },
-            3, 3, 200, 'test_user', id='entries-exclude'),
+            5, 5, 200, 'test_user', id='entries-exclude'),
         pytest.param(
             {'terms': {'quantity': 'entry_id', 'value_filter': '_0'}},
             9, 9, 200, None, id='filter'),
@@ -489,16 +489,14 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     data.create_entry(
         upload_id='with_compr_published',
         calc_id='with_compr_published',
-        mainfile='test_content/test_entry/mainfile.json',
-        shared_with=[])
+        mainfile='test_content/test_entry/mainfile.json')
     data.create_upload(
         upload_id='with_compr_unpublished',
         published=False)
     data.create_entry(
         upload_id='with_compr_unpublished',
         calc_id='with_compr_unpublished',
-        mainfile='test_content/test_entry/mainfile.json',
-        shared_with=[])
+        mainfile='test_content/test_entry/mainfile.json')
 
     data.save()
 

@@ -305,9 +305,11 @@ def example_data(username: str):
     data = ExampleData(uploader=user)
 
     # one upload with two calc published with embargo, one shared
+    upload_id = utils.create_uuid()
+    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
     data.create_entry(
         calc_id=utils.create_uuid(),
-        upload_id=utils.create_uuid(),
+        upload_id=upload_id,
         mainfile='test_content/test_embargo_entry/mainfile.json')
 
     data.save(with_files=True, with_es=True, with_mongo=True)
