@@ -212,6 +212,7 @@ keycloak:
   realm_name: fairdi_nomad_test
 ```
 
+### App and Worker
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
 the NOMAD cli. These commands will run the services and show their logout put. You should open
 them in separate shells as they run continuously. They will not watch code changes and
@@ -255,6 +256,21 @@ install them for your platform.
 cd gui
 yarn
 yarn start
+```
+
+### JupyterHUB
+
+NOMAD also has a build in JupyterHUB that is used to launch remote tools (e.g. Jupyter
+notebooks). The JupyterHUB is a separate application. You can run the JuypterHUB similar
+tp the other part.
+
+```sh
+nomad admin run hub
+```
+
+To run the JupyterHUB directly, do (from the root)
+```sh
+jupyterhub -f nomad/jupyterhub_config.py --port 9000
 ```
 
 ## Running tests

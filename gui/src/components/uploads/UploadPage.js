@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
@@ -42,6 +42,13 @@ import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
+import HubButton from '../aitoolkit/HubButton'
+
+const uploadContext = React.createContext()
+
+export function useUpload() {
+  return useContext(uploadContext)
+}
 
 export const uploadPageContext = React.createContext()
 
@@ -444,6 +451,7 @@ function UploadPage() {
               <ReprocessIcon />
             </Tooltip>
           </IconButton>
+          <HubButton path={`uploads/${upload.upload_id}`} />
           <IconButton disabled={isPublished || !isWriter} onClick={handleDelete}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />

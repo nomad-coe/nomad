@@ -125,12 +125,20 @@ celery = NomadConfig(
 fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
+    staging_external=None,
     public='.volumes/fs/public',
+    public_external=None,
     local_tmp='/tmp',
     prefix_size=2,
     archive_version_suffix=None,
     working_directory=os.getcwd()
 )
+
+try:
+    fs.staging_external = os.path.abspath(fs.staging)
+    fs.public_external = os.path.abspath(fs.public)
+except Exception:
+    pass
 
 elastic = NomadConfig(
     host='localhost',
@@ -375,6 +383,13 @@ bundle_import = NomadConfig(
         add_matched_entries_to_published=True,
         delete_unmatched_published_entries=False
     )
+)
+
+north = NomadConfig(
+    docker_host_ip='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    docker_network=None,
+    hub_port=9000,
+    hub_base_path='/fairdi/nomad/latest/north'
 )
 
 auxfile_cutoff = 100

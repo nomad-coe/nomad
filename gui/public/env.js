@@ -4,6 +4,7 @@ window.nomadEnv = {
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'encyclopediaBase': 'https://nomad-lab.eu/prod/rae/encyclopedia/#',
+  'northBase': 'http://localhost:9000/fairdi/nomad/latest/north',
   'debug': false,
   'version': {
     'label': '1.0.0',

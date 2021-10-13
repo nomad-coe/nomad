@@ -27,6 +27,11 @@ def run():
     pass
 
 
+@run.command(help='Run the jupyter hub.')
+def hub():
+    run_hub()
+
+
 @run.command(help='Run the nomad development worker.')
 def worker():
     run_worker()
@@ -55,6 +60,14 @@ def run_worker():
     config.meta.service = 'worker'
     from nomad import processing
     processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery,uploads,calcs'])
+
+
+def run_hub():
+    from jupyterhub.app import main
+    import sys
+
+    config.meta.service = 'hub'
+    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py']))
 
 
 @run.command(help='Run both app and worker.')

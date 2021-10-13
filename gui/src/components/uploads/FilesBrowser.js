@@ -24,6 +24,8 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import FilePreview from './FilePreview'
+import HubButton from '../aitoolkit/HubButton'
+import { useUpload } from './UploadPage'
 
 const useFolderStyles = makeStyles(theme => ({
   root: {},
@@ -63,8 +65,9 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, path}) {
   const classes = useFolderStyles()
+  const upload = useUpload()
   const handleToggle = event => {
     event.stopPropagation()
     if (onToggle) {
@@ -92,6 +95,9 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       <div className={classes.tags}>
         {parser && <Chip size="small" label={parser} color="primary" />}
       </div>
+      <div className={classes.actions}>
+        {name?.endsWith('.ipynb') && upload && <HubButton path={`uploads/${upload.upload_id}/${path}`} />}
+      </div>
     </div>
     <Collapse in={open} className={classes.children}>
       {children || 'loading ...'}
@@ -105,6 +111,8 @@ FileOrFolder.propTypes = {
   hasChildren: PropTypes.bool,
   children: PropTypes.arrayOf(PropTypes.object),
   name: PropTypes.string,
+  path: PropTypes.string,
+  uploadId: PropTypes.string,
   parser: PropTypes.string,
   info: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -210,6 +218,8 @@ export default function FilesBrower({uploadId, disabled}) {
     const mapContent = item => renderFileOrFolder(`${pathPrefix}${item.name}`, item)
     const props = {
       key: path,
+      path: path,
+      uploadId: uploadId,
       hasChildren: !is_file,
       open: data?.open,
       children: data?.content?.map(mapContent),

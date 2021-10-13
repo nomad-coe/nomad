@@ -131,6 +131,8 @@ class UploadProcData(ProcData):
     entries: int = Field(
         0,
         description='The number of identified entries in this upload.')
+    upload_files_server_path: Optional[str] = Field(
+        None, description='The path to the uploads files on the server.')
 
 
 class EntryProcData(ProcData):
@@ -1529,6 +1531,12 @@ def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
     pydantic_upload = UploadProcData.from_orm(upload)
     pydantic_upload.entries = upload.total_calcs
+    try:
+        pydantic_upload.upload_files_server_path = upload.upload_files.external_os_path
+    except KeyError:
+        # In case the files are missing for one reason or another
+        pass
+
     return pydantic_upload
 
 
