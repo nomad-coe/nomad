@@ -3,12 +3,24 @@
 ## Getting started
 
 ### Clone the sources
-If not already done, you should clone nomad. Note that the access protocols for NOMAD repository is restricted to only
-using SSH, and it is necessary to activate the ssh key in your gitlab account (see [here](https://docs.gitlab.com/ee/ssh/)). To clone the main NOMAD repository:
+If not already done, you should clone nomad. If you have a gitlab@MPCDF account, you can clone with git URL:
+
 ```
 git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git nomad
+```
+
+Otherwise, clone using HTTPS URL:
+
+```
+git clone https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git nomad
+```
+
+then change directory to nomad 
+
+```
 cd nomad
 ```
+
 There are several branches in the repository. The master branch contains the latest released version, but there are also
 develop branches for each version called vX.X.X. Checkout the branch you want to work on it
 ```
