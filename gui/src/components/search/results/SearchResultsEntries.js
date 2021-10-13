@@ -91,7 +91,7 @@ const defaultSelectedColumns = [
 const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
   const [selected, setSelected] = useState([])
   const searchQuery = useQuery()
-  const {pagination} = props
+  const {pagination, data} = props
 
   const query = useMemo(() => {
     if (selected === 'all') {
@@ -105,7 +105,7 @@ const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
     selected={selected} onSelectedChanged={setSelected}
   >
-    <DatatableToolbar title={`${pagination.total} search results`}>
+    <DatatableToolbar title={`${data.length}/${pagination.total} search results`}>
       <DatatableToolbarActions selection>
         <DownloadButton tooltip="Download files" query={query} />
       </DatatableToolbarActions>
@@ -116,7 +116,8 @@ const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
   </Datatable>
 })
 SearchResultsEntries.propTypes = {
-  pagination: PropTypes.object
+  pagination: PropTypes.object,
+  data: PropTypes.arrayOf(PropTypes.object)
 }
 
 export default SearchResultsEntries

@@ -749,6 +749,10 @@ def test_entries_pagination(client, data, pagination, response_pagination, statu
     if response_pagination is None:
         return
     for key in response_pagination:
-        assert response_json['pagination'][key] == response_pagination[key]
+        if response_pagination[key] is None:
+            assert key not in response_json['pagination']
+        else:
+            assert response_json['pagination'][key] == response_pagination[key]
     if len(response_json['data']) > 0 and 'order_by' not in pagination:
-        assert response_json['data'][-1]['entry_id'] == response_pagination['next_page_after_value']
+        if response_pagination['next_page_after_value'] is not None:
+            assert response_json['data'][-1]['entry_id'] == response_pagination['next_page_after_value']

@@ -34,7 +34,7 @@ const orderByMap = {
 const SearchResults = React.memo(function SearchResults() {
   const {resource} = useSearchContext()
   const {data, pagination, setPagination} = useScrollResults({
-    page_size: 10, order_by: orderByMap[resource]
+    page_size: 20, order_by: orderByMap[resource]
   })
 
   if (pagination.total === 0) {

@@ -144,6 +144,7 @@ def pagination_test_parameters(elements: str, n_elements: str, crystal_system: s
         pytest.param({'page_size': 0}, {'total': total, 'page_size': 0}, 200, id='size-0'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
         pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
+        pytest.param({'page_size': 10, 'page_after_value': 'id_22', 'order': 'asc'}, {'next_page_after_value': None}, 200, id='after-exhausted'),
         pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
         pytest.param({'page_size': 1, 'order_by': crystal_system}, {'next_page_after_value': 'cubic:id_01'}, 200, id='order-by-after-nested'),
         pytest.param({'page_size': -1}, None, 422, id='bad-size'),

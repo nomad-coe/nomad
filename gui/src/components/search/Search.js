@@ -51,7 +51,7 @@ const useStyles = makeStyles(theme => {
     center: {
       flexGrow: 1,
       height: '100%',
-      overflow: 'scroll'
+      overflow: 'visible'
     },
     searchBar: {
       display: 'flex',
