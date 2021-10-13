@@ -212,10 +212,10 @@ const useStylesList = makeStyles(theme => ({
   },
   textLevel: {
     textAlign: 'left',
-    color: 'rgba(127, 239, 239, 1)',
+    color: '#2A3C67',
     fontSize: '22px',
     height: '22px',
-    fontFamily: 'TitilliumRegular',
+    fontFamily: 'TitilliumLight',
     marginTop: '-16px'
   },
   tutorialsDivider: {

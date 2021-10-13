@@ -11,3 +11,7 @@ body {
 @font-face {
   font-family: 'TitilliumBold';
   src: url(./components/aitoolkit/fonts/TitilliumWeb-Bold.ttf) format('truetype');}
+
+@font-face {
+  font-family: 'TitilliumLight';
+  src: url(./components/aitoolkit/fonts/TitilliumWeb-Light.ttf) format('truetype');}
