@@ -152,18 +152,23 @@ function AccordionsList(props) {
               <Grid item xs={7} className={classes.tutorialActions}>
                 <Grid container spacing={0}>
                   <Grid item xs={5}>
-                    <Button href={tutorial.link} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
+                    <Button href={tutorial.link_public} target="tutorial" startIcon={<img src={AccessIcon}></img>}>
                       <Typography className={classes.fieldText} >
                         <b>Access tutorial</b>
                       </Typography>
                     </Button>
                   </Grid>
                   <Grid item xs={5} >
-                    <Button width='10px' color='#2A3C67' href={tutorial.link_public} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
-                      <Typography className={classes.fieldText} >
-                        <b>Watch video</b>
-                      </Typography>
-                    </Button>
+                    <div>
+                      { tutorial.link_video
+                        ? <Button width='10px' color='#2A3C67' href={tutorial.link_video} target="tutorial" startIcon={<img src={WatchIcon}></img>}>
+                          <Typography className={classes.fieldText} >
+                            <b>Watch video</b>
+                          </Typography>
+                        </Button>
+                        : <div></div>
+                      }
+                    </div>
                   </Grid>
                 </Grid>
               </Grid>
@@ -176,12 +181,20 @@ function AccordionsList(props) {
                     </Typography>
                   </Grid>
                   <Grid item xs={2} >
-                    <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={DoiIcon}></img>}>
-                    </Button>
+                    <div>
+                      {tutorial.link_paper
+                        ? <Button color='#2A3C67' href={tutorial.link_paper} target="tutorial" startIcon={<img src={DoiIcon}></img>}> </Button>
+                        : <div></div>
+                      }
+                    </div>
                   </Grid>
                   <Grid item xs={2}>
-                    <Button color='#2A3C67' href={tutorial.link} target="tutorial" startIcon={<img src={PdfIcon}></img>}>
-                    </Button>
+                    <div>
+                      {tutorial.link_paper
+                        ? <Button color='#2A3C67' href={tutorial.link_paper} target="tutorial" startIcon={<img src={PdfIcon}></img>}> </Button>
+                        : <div></div>
+                      }
+                    </div>
                   </Grid>
                 </Grid>
               </Grid>
