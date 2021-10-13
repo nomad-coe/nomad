@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from subprocess import PIPE
 import typing
 import click
 import tabulate
@@ -419,7 +420,7 @@ def prepare_migration(ctx, uploads, dry):
 
         if not upload.published:
             print('   upload is not published, nothing to do')
-            return
+            break
 
         with_embargo_values: typing.List[bool] = []
         for with_embargo_value in [True, False]:
@@ -452,7 +453,6 @@ def prepare_migration(ctx, uploads, dry):
             if not dry:
                 to_move.delete()
             print('   removed empty zip', upload.upload_id, to_move.os_path)
-            return
 
         elif with_embargo:
             print('   !!! embargo upload with non empty public file !!!')
@@ -463,6 +463,50 @@ def prepare_migration(ctx, uploads, dry):
                 assert not target.exists()
                 os.rename(to_move.os_path, target.os_path)
             print('   quarantined', upload.upload_id, to_move.os_path)
+
+
+@uploads.command(help='Moves certain files from public or restricted to quarantine in published uploads.')
+@click.argument('UPLOADS', nargs=-1)
+@click.option(
+    '--file-pattern', type=str, multiple=True,
+    help=('The files as .zip patterns, e.g. "*/POTCAR". Default is all possible POTCAR patterns.'))
+@click.option('--dry', is_flag=True, help='Just check, do nothing.')
+@click.pass_context
+def quarantine_raw_files(ctx, uploads, dry, file_pattern):
+    import os.path
+    import os
+    import subprocess
+
+    if len(file_pattern) == 0:
+        file_pattern = [
+            '*/POTCAR', '*/POTCAR.gz', '*/POTCAR.xz', 'POTCAR', 'POTCAR.gz', 'POTCAR.xz']
+
+    sh_script = os.path.abspath('ops/scripts/quarantine-raw-files.sh')
+    cwd = os.path.abspath(os.curdir)
+
+    _, uploads = query_uploads(ctx, uploads)
+    for upload in uploads:
+        print(f'Moving {" ".join(file_pattern)} to quarantine in {upload.upload_id} ...')
+
+        if not upload.published:
+            print('   upload is not published, nothing to do')
+            break
+
+        upload_files = files.PublicUploadFiles(
+            upload.upload_id, is_authorized=lambda *args, **kwargs: True, create=False)
+
+        try:
+            os.chdir(upload_files.os_path)
+            p = subprocess.Popen(
+                ['sh', sh_script] + list(file_pattern), stdout=PIPE, stderr=PIPE)
+            _, err = p.communicate()
+
+            if p.returncode > 0:
+                print(f'   !!! could not move files: script has error output {err} !!!')
+        except Exception as e:
+            print(f'   !!! could not move files: {e} !!!')
+        finally:
+            os.chdir(cwd)
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
