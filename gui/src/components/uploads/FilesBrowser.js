@@ -186,7 +186,9 @@ export default function FilesBrower({uploadId, disabled}) {
       })
       setRenderCounter(renderCounter => renderCounter + 1)
     }
-    fetchData().catch(errors.raiseError)
+    if (!disabled) {
+      fetchData().catch(errors.raiseError)
+    }
   }, [uploadId, api, errors, setRenderCounter])
 
   useEffect(() => {
