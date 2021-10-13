@@ -29,8 +29,7 @@ import IconWork2 from './assets/AIT_ico_bp_work.svg'
 import {useStylesLanding} from './styles.js'
 import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 import FigureAI from './assets/AIT_illu_AIT.svg'
-
-// import ReactPlayer from 'react-player/youtube'
+import YoutubeEmbed from './YoutubeEmbed'
 
 export default function AIToolkitPage() {
   const classes = useStylesLanding()
@@ -95,9 +94,21 @@ export default function AIToolkitPage() {
         <img src={FigureAI} style={{marginTop: '150px'}}></img>
       </Grid>
       <Grid item xs={8} >
+        <Typography className={classes.highlightedText}>How to get started </Typography>
+        <div className="App" style={{marginTop: '30px'}}>
+          <YoutubeEmbed embedId="v_Ie5TPXrd0" />
+        </div>
+
+        <Typography className={classes.bodyText}>NOMAD Artificial Toolkit is very accessible. Watch this video and learn more about its features. Our philosophy is... </Typography>
+      </Grid>
+      <div className="App" style={{marginTop: '30px'}}>
+        <YoutubeEmbed embedId="7R4EHsSRork" />
+      </div>
+
+      <Grid item xs={8} >
         <Typography className={classes.highlightedText}>Access the tutorials </Typography>
 
-        <Typography className={classes.bodyText}>Ready to start? Click on one of the options below. If you're new, we suggest starting with the AI Tutorials for materials science. </Typography>
+        <Typography className={classes.bodyText}>Ready to start? Click on one of the options below. If you're new, we suggest starting with the tutorials. </Typography>
       </Grid>
     </Grid>
 
@@ -111,7 +122,7 @@ export default function AIToolkitPage() {
       <Grid item xs={3}> <img src={IconWork2} className={classes.iconsBottom}/>
       </Grid>
       <Grid item xs={3}>
-        <Button color='#2A3C67' href='reproduce' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
+        <Button color='#2A3C67' to='reproduce' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
           <Box className={classes.fieldText} >
           Query the Archive
           </Box>
