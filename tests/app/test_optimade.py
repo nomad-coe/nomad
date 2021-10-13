@@ -40,7 +40,7 @@ def test_get_entry(published: Upload):
 
 
 def test_no_optimade(mongo, elastic, raw_files, client, test_user):
-    example_data = ExampleData(uploader=test_user)
+    example_data = ExampleData(main_author=test_user)
     example_data.create_upload(upload_id='test_upload', published=True, embargo_length=0)
     example_data.create_structure('test_upload', 1, 2, 1, [], 0)
     example_data.create_structure('test_upload', 2, 2, 1, [], 0, optimade=False)
@@ -57,7 +57,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra, test_user):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    example_data = ExampleData(uploader=test_user)
+    example_data = ExampleData(main_author=test_user)
     example_data.create_upload(
         upload_id='test_upload', upload_create_time='1978-04-08T10:10:00Z',
         published=True, embargo_length=0)

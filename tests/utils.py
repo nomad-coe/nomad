@@ -147,6 +147,7 @@ class ExampleData:
         # Save
         if with_mongo:
             for upload_id, upload_dict in self.uploads.items():
+                upload_dict['main_author'] = upload_dict['main_author'].user_id
                 mongo_upload = proc.Upload(**upload_dict)
                 mongo_upload.save()
 
@@ -217,8 +218,8 @@ class ExampleData:
                 upload_dict['publish_time'] = self._next_time_stamp()
             elif not published:
                 assert not upload_dict.get('publish_time')
-        if 'user_id' not in upload_dict and 'uploader' in self.entry_defaults:
-            upload_dict['user_id'] = self.entry_defaults['uploader'].user_id
+        if 'main_author' not in upload_dict and 'main_author' in self.entry_defaults:
+            upload_dict['main_author'] = self.entry_defaults['main_author']
         self.uploads[upload_id] = upload_dict
 
     def create_entry(
@@ -264,12 +265,10 @@ class ExampleData:
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
         # Fetch data from Upload
-        upload_keys = ['upload_name', 'user_id', 'reviewers', 'upload_create_time', 'license', 'publish_time']
+        upload_keys = ['upload_name', 'main_author', 'reviewers', 'upload_create_time', 'publish_time', 'license']
         upload_values = {k: upload_dict[k] for k in upload_keys if k in upload_dict}
         upload_values['with_embargo'] = upload_dict['embargo_length'] > 0
         upload_values['published'] = upload_dict.get('publish_time') is not None
-        if 'user_id' in upload_values:
-            upload_values['uploader'] = upload_values.pop('user_id')
         for k in upload_keys + ['with_embargo', 'published']:
             assert k not in kwargs, f'Upload level metadata specified on entry level: {k}'
         entry_metadata.m_update(**upload_values)

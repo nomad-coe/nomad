@@ -1008,7 +1008,7 @@ def test_put_upload_metadata(
         # Arguments for testing changing protected fields
         query_args = dict(
             upload_create_time=(upload.upload_create_time - timedelta(hours=3, seconds=14)).isoformat(),
-            uploader=test_users_dict['other_test_user'].user_id)
+            main_author=test_users_dict['other_test_user'].user_id)
     user_auth, token = test_auth_dict[user]
     if use_upload_token:
         user_auth = None
@@ -1030,9 +1030,9 @@ def test_put_upload_metadata(
                 if 'upload_name' in query_args:
                     assert upload.upload_name == query_args.get('upload_name')
                     assert entry_metadata.upload_name == es_data['upload_name'] == upload.upload_name
-                if 'uploader' in query_args:
-                    assert upload.user_id == query_args['uploader']
-                    assert entry_metadata.uploader.user_id == es_data['uploader']['user_id'] == upload.user_id
+                if 'main_author' in query_args:
+                    assert upload.main_author == query_args['main_author']
+                    assert entry_metadata.main_author.user_id == es_data['main_author']['user_id'] == upload.main_author
                 if 'upload_create_time' in query_args:
                     assert upload.upload_create_time == datetime.fromisoformat(query_args['upload_create_time'])
                     assert entry_metadata.upload_create_time == upload.upload_create_time

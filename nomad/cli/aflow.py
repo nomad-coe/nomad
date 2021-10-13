@@ -188,9 +188,9 @@ class DbUpdater:
                 servers = ['LIB%d_LIB' % n for n in range(1, 10)] + ['ICSD_WEB']
                 paths = [s for s in servers if s in self.root_url]
                 paths = paths if paths else servers
-                # uploader: Stefano Curtarolo
+                # main_author: Stefano Curtarolo
                 query = dict(
-                    uploader_id='81b96683-7170-49d7-8c4e-e9f34906b3ea',
+                    main_author_id='81b96683-7170-49d7-8c4e-e9f34906b3ea',
                     paths=paths)
 
             self.nomad_files = []

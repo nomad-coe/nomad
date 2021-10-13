@@ -18,7 +18,7 @@ from nomad.client import Auth, upload_file
 nomad_url = config.client.url
 user = 'youruser'
 password = 'yourpassword'
-uploader_id = None
+main_author = None
 
 
 # create an auth object
@@ -27,7 +27,7 @@ auth = Auth(user=user, password=password)
 
 def upload(
         path: str, local_path: bool = False, metadata_path: str = None,
-        publish_directly: bool = False, uploader_id: str = None):
+        publish_directly: bool = False, main_author: str = None):
     '''
     Arguments:
         path: The file path to the upload file.
@@ -53,8 +53,8 @@ def upload(
     if publish_directly:
         kwargs['publish_directly'] = True
 
-    if uploader_id is not None:
-        kwargs['uploader_id'] = uploader_id
+    if main_author is not None:
+        kwargs['main_author'] = main_author
 
     upload_id = upload_file(path, auth, local_path=local_path)
     if upload_id is None:
@@ -77,4 +77,4 @@ if __name__ == '__main__':
     for path in paths:
         upload(
             path, metadata_path=metadata_path, local_path=True, publish_directly=True,
-            uploader_id=uploader_id)
+            main_author=main_author)

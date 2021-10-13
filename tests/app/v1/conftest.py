@@ -47,8 +47,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     raw files and archive file for id_02 are missing
     id_10, id_11 reside in the same directory
     '''
-    data = ExampleData(
-        uploader=test_user)
+    data = ExampleData(main_author=test_user)
 
     # one upload with two calc published with embargo, one shared
     data.create_upload(
@@ -135,7 +134,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
 
 @pytest.fixture(scope='function')
 def example_data_writeable(mongo, test_user, normalized):
-    data = ExampleData(uploader=test_user)
+    data = ExampleData(main_author=test_user)
 
     # one upload with one entry, published
     data.create_upload(

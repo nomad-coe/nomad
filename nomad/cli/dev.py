@@ -290,19 +290,19 @@ def update_parser_readmes(parser):
 
 
 @dev.command(help='Adds a few pieces of data to NOMAD.')
-@click.option('--username', '-u', type=str, help='The uploader username.')
+@click.option('--username', '-u', type=str, help='The main author username.')
 def example_data(username: str):
     from nomad import infrastructure, utils
     from tests.utils import ExampleData
 
     infrastructure.setup()
 
-    user = infrastructure.keycloak.get_user(username=username)
-    if user is None:
+    main_author = infrastructure.keycloak.get_user(username=username)
+    if main_author is None:
         print(f'The user {username} does not exist.')
         sys.exit(1)
 
-    data = ExampleData(uploader=user)
+    data = ExampleData(main_author=main_author)
 
     # one upload with two calc published with embargo, one shared
     upload_id = utils.create_uuid()

@@ -54,12 +54,12 @@ class TestEditRepo():
         # TODO
         example_data = ExampleData()
 
-        example_data.create_upload('upload_1', user_id=test_user.user_id, published=True, embargo_length=0)
+        example_data.create_upload('upload_1', main_author=test_user, published=True, embargo_length=0)
         example_data.create_entry(upload_id='upload_1')
-        example_data.create_upload('upload_2', user_id=test_user.user_id, published=True, embargo_length=36)
+        example_data.create_upload('upload_2', main_author=test_user, published=True, embargo_length=36)
         example_data.create_entry(upload_id='upload_2')
         example_data.create_entry(upload_id='upload_2')
-        example_data.create_upload('upload_3', user_id=other_test_user.user_id, published=True, embargo_length=0)
+        example_data.create_upload('upload_3', main_author=other_test_user, published=True, embargo_length=0)
         example_data.create_entry(upload_id='upload_3')
 
         example_data.save()
@@ -230,7 +230,7 @@ class TestEditRepo():
         rv = self.perform_edit(entry_coauthors=[other_test_user.user_id, other_test_user.user_id], query=self.query('upload_1'))
         self.assert_edit(rv, status_code=400, quantity='entry_coauthors', success=False, message=True)
 
-    def test_edit_uploader_as_coauthor(self, test_user):
+    def test_edit_main_author_as_coauthor(self, test_user):
         rv = self.perform_edit(entry_coauthors=[test_user.user_id], query=self.query('upload_1'))
         self.assert_edit(rv, status_code=400, quantity='entry_coauthors', success=False, message=True)
 
@@ -293,7 +293,7 @@ class TestEditRepo():
         rv = self.perform_edit(entry_coauthors=[other_test_user.user_id], query=self.query('upload_1'))
         self.assert_edit(rv, quantity='entry_coauthors', success=True, message=False)
 
-    @pytest.mark.skip(reason='Not necessary during transition. Fails because uploader is not editable anyways.')
+    @pytest.mark.skip(reason='Not necessary during transition. Fails because main_author is not editable anyways.')
     def test_admin_only(self, other_test_user):
-        rv = self.perform_edit(uploader=other_test_user.user_id)
+        rv = self.perform_edit(main_author=other_test_user.user_id)
         assert rv.status_code != 200

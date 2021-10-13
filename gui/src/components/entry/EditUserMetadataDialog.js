@@ -809,10 +809,10 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       comment: example.comment || '',
       references: example.references || [],
       entry_coauthors: (example.authors || [])
-        .filter(user => user.user_id !== example.uploader.user_id)
+        .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
       reviewers: (example.owners || [])
-        .filter(user => user.user_id !== example.uploader.user_id)
+        .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
       datasets: (example.datasets || []).map(ds => ds.dataset_name)
     }
@@ -953,7 +953,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const { classes, buttonProps, total, user, example, disabled, title } = this.props
     const { open, actions, verified, submitting, success, message } = this.state
 
-    const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
+    const dialogEnabled = user && example.main_author && example.main_author.user_id === user.sub && !disabled
     const submitEnabled = Object.keys(actions).length && !submitting && verified
 
     const editDataToActions = editData => {

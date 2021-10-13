@@ -114,8 +114,8 @@ def test_mapping_compatibility(elastic_infra):
 
 
 @pytest.fixture()
-def example_data(elastic, test_user, other_test_user):
-    data = ExampleData(uploader=test_user)
+def example_data(elastic, test_user):
+    data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
     for i in range(0, 4):
         data.create_entry(

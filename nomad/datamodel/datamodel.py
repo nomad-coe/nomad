@@ -91,8 +91,8 @@ class User(Author):
     ''' A NOMAD user.
 
     Typically a NOMAD user has a NOMAD account. The user related data is managed by
-    NOMAD keycloak user-management system. Users are used to denote uploaders, authors,
-    people to shared data with embargo with, and owners of datasets.
+    NOMAD keycloak user-management system. Users are used to denote authors,
+    reviewers, and owners of datasets.
 
     Args:
         user_id: The unique, persistent keycloak UUID
@@ -210,7 +210,7 @@ class Dataset(metainfo.MSection):
             can only be extended after a DOI was assigned. A foreign dataset cannot be changed
             once a DOI was assigned.
         dataset_type: The type determined if a dataset is owned, i.e. was created by
-            the uploader/owner of the contained entries; or if a dataset is foreign,
+            the authors of the contained entries; or if a dataset is foreign,
             i.e. it was created by someone not necessarily related to the entries.
     '''
     m_def = metainfo.Section(a_mongo=MongoDocument(), a_pydantic=PydanticModel())
@@ -315,17 +315,19 @@ def derive_origin(entry: 'EntryMetadata') -> str:
     if entry.external_db is not None:
         return str(entry.external_db)
 
-    if entry.uploader:
-        return entry.uploader.name
+    if entry.main_author:
+        return entry.main_author.name
 
     return None
 
 
 def derive_authors(entry: 'EntryMetadata') -> List[User]:
-    uploaders: List[User] = []
-    if entry.uploader is not None and entry.external_db is None:
-        uploaders = [entry.uploader]
-    return uploaders + entry.entry_coauthors
+    authors: List[User] = []
+    if entry.main_author is not None and entry.external_db is None:
+        authors.append(entry.main_author)
+    if entry.entry_coauthors:
+        authors.extend(entry.entry_coauthors)
+    return authors
 
 
 class UploadMetadata(metainfo.MSection):
@@ -339,7 +341,7 @@ class UploadMetadata(metainfo.MSection):
     upload_create_time = metainfo.Quantity(
         type=metainfo.Datetime,
         description='The date and time when the upload was created')
-    uploader = metainfo.Quantity(
+    main_author = metainfo.Quantity(
         type=user_reference,
         description='The creator of the upload')
     embargo_length = metainfo.Quantity(
@@ -369,15 +371,16 @@ class EntryMetadata(metainfo.MSection):
         nomad_commit: The NOMAD commit used for the last processing.
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
-        uploader: Id of the uploader of this entry.
-        reviewers: Ids of users who can review the upload which this entry belongs to. Like the
-            uploader, reviewers can find, see, and download all data from the upload, even
-            if it is in staging or has an embargo.
-        entry_coauthors: Ids of all co-authors (excl. the uploader) specified on the entry level,
-            rather than on the upload level. They are shown as authors of this entry alongside
-            its uploader.
-        with_embargo: Entries with embargo are only visible to the uploader, the admin
-            user, and users registered as reviewers of the uplod (see reviewers).
+        main_author: Id of the main author of this entry.
+        reviewers: Ids of users who can review the upload which this entry belongs to. Like
+            the main author and the upload coauthors, reviewers can find, see, and download
+            all data from the upload and all its entries, even if it is in staging or has
+            an embargo.
+        entry_coauthors: Ids of all co-authors (excl. the main author and upload coauthors)
+            specified on the entry level, rather than on the upload level. They are shown
+            as authors of this entry alongside its main author and upload coauthors.
+        with_embargo: Entries with embargo are only visible to the main author, the upload
+            coauthors, and the upload reviewers (and the admin user).
         upload_create_time: The time that the upload was created
         entry_create_time: The time that the entry was created
         publish_time: The time when the upload was published
@@ -491,16 +494,16 @@ class EntryMetadata(metainfo.MSection):
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    uploader = metainfo.Quantity(
-        type=user_reference, categories=[],  # TODO: fix categories after refactoring
-        description='The uploader of the entry',
+    main_author = metainfo.Quantity(
+        type=user_reference, categories=[MongoUploadMetadata],
+        description='The main author of the entry',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     origin = metainfo.Quantity(
         type=str,
         description='''
             A short human readable description of the entries origin. Usually it is the
-            handle of an external database/repository or the name of the uploader.
+            handle of an external database/repository or the name of the main author.
         ''',
         derived=derive_origin,
         a_elasticsearch=Elasticsearch(material_entry_type))
@@ -514,7 +517,7 @@ class EntryMetadata(metainfo.MSection):
 
     authors = metainfo.Quantity(
         type=author_reference, shape=['0..*'],
-        description='All authors (uploader and co-authors)',
+        description='All authors (main author and co-authors)',
         derived=derive_authors,
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
 
@@ -527,8 +530,8 @@ class EntryMetadata(metainfo.MSection):
 
     owners = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
-        description='All owner (uploader and shared with users)',
-        derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.reviewers,
+        description='All viewers (main author, upload coauthors, and reviewers)',
+        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.reviewers,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     license = metainfo.Quantity(

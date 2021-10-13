@@ -142,7 +142,7 @@ export function Published(props) {
   const {entry} = props
   if (entry.published) {
     if (entry.with_embargo) {
-      if (user && entry.uploader.user_id === user.sub) {
+      if (user && entry.main_author.user_id === user.sub) {
         if (entry.owners.length === 1) {
           return <Tooltip title="published with embargo by you and only accessible by you">
             <UploaderIcon color="error" />

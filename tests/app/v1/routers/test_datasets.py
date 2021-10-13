@@ -50,7 +50,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
         dataset.m_get_annotations('mongo').save()
         return dataset
 
-    data = ExampleData(uploader=test_user)
+    data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(
         upload_id='upload_1',

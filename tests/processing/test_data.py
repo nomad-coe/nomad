@@ -64,10 +64,10 @@ def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None
     yield example_upload_id, example_file
 
 
-def run_processing(uploaded: Tuple[str, str], test_user, **kwargs) -> Upload:
+def run_processing(uploaded: Tuple[str, str], main_author, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
     upload = Upload.create(
-        upload_id=uploaded_id, user=test_user, **kwargs)
+        upload_id=uploaded_id, main_author=main_author, **kwargs)
     assert upload.process_status == ProcessStatus.READY
     assert upload.current_process_step is None
     upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
@@ -667,15 +667,15 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         'test_user', dict(upload_name='hello', embargo_length=13),
         True, id='unprotected-attributes'),
     pytest.param(
-        'test_user', dict(uploader='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
+        'test_user', dict(main_author='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
         True, id='protected-attributes')])
 def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
 
     upload_id = 'test_ems_upload'
     user = test_users_dict[user]
     upload = run_processing((upload_id, 'tests/data/proc/examples_ems.zip'), user)
-    if 'uploader' in metadata_to_set:
-        metadata_to_set['uploader'] = test_users_dict[metadata_to_set['uploader']].user_id
+    if 'main_author' in metadata_to_set:
+        metadata_to_set['main_author'] = test_users_dict[metadata_to_set['main_author']].user_id
     upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
     try:
         upload.set_upload_metadata(upload_metadata.m_to_dict())
@@ -691,9 +691,9 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
             if expected_upload_name is not None:
                 assert upload.upload_name == (expected_upload_name or None)
                 assert entry_metadata.upload_name == upload.upload_name
-            if 'uploader' in metadata_to_set:
-                assert upload.user_id == metadata_to_set['uploader']
-                assert entry_metadata.uploader.user_id == upload.user_id
+            if 'main_author' in metadata_to_set:
+                assert upload.main_author == metadata_to_set['main_author']
+                assert entry_metadata.main_author.user_id == upload.main_author
             if 'upload_create_time' in metadata_to_set:
                 assert upload.upload_create_time == metadata_to_set['upload_create_time']
                 assert entry_metadata.upload_create_time == upload.upload_create_time

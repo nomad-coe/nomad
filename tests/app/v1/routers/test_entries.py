@@ -480,8 +480,7 @@ def test_entry_raw_download(client, data, entry_id, files, files_per_entry, stat
 
 @pytest.fixture(scope='function')
 def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
-    data = ExampleData(
-        uploader=test_user)
+    data = ExampleData(main_author=test_user)
 
     data.create_upload(
         upload_id='with_compr_published',

@@ -185,7 +185,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
             {
                 'terms': {
                     'quantity': f'{entry_prefix}upload_id',
-                    'pagination': {'order_by': f'{entry_prefix}uploader.user_id'}
+                    'pagination': {'order_by': f'{entry_prefix}main_author.user_id'}
                 }
             },
             5, 5, 200, 'test_user', id='order-str'),
@@ -221,7 +221,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                 'terms': {
                     'quantity': f'{entry_prefix}upload_id',
                     'pagination': {
-                        'order_by': f'{entry_prefix}uploader.name',
+                        'order_by': f'{entry_prefix}main_author.name',
                         'page_after_value': 'Sheldon Cooper:id_published'
                     }
                 }
@@ -243,7 +243,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'entries': {
                         'size': 10,
                         'required': {
-                            'include': [f'{entry_prefix}entry_id', f'{entry_prefix}uploader.*']
+                            'include': [f'{entry_prefix}entry_id', f'{entry_prefix}main_author.*']
                         }
                     }
                 }

@@ -53,7 +53,7 @@ def data(test_user, other_test_user, elastic_infra):
         entry_coauthors=[other_test_user],
         comment='this is a calculation comment')
 
-    data = ExampleData(uploader=test_user)
+    data = ExampleData(main_author=test_user)
     data.create_upload(
         upload_id='upload-id', upload_create_time=datetime(2000, 1, 1), published=True, embargo_length=0)
     archive = data.create_entry(**example_attrs)

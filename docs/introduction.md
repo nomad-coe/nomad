@@ -160,18 +160,20 @@ belong to one *material* based on the simulated system.
   (even among different nomad installations)
 
 ### Uploads
-- An upload contains related calculations in the form of raw code input and output files
-- Uploader are encouraged to upload all relevant files
-- The directory structure of an upload might be used to relate calculations to each other
+- An upload contains a directory structure of *raw files*, which are parsed to produce *archive entries*.
 - Uploads have a unique randomly choosen `upload_id` (UUID)
-- The `uploader` is the user that created the upload (always set, and cannot be changed).
-- Currently, uploads can be provided as `.zip` or `.tar.gz` files.
+- Uploaders are encouraged to put all files that could be relevant in the same upload
+- If a file is encountered, which can be parsed, this file will be the *mainfile* of the resulting entry.
+- After parsing a mainfile, an *archive file* containing the parser result/archive entry is created and stored within the upload (separated from the raw files).
+- The directory structure of an upload is used to relate different entries and files within the upload to each other. Files in the same directory as a mainfile are considered to be auxiliary files belonging to this entry. (Note, if there are two mainfiles in the same directory, they will therefore be considered aux files of each other)
+- The `main_author` is set at creation to the user that created the upload. The field cannot be modified after that (unless by an admin user).
+- When an upload is created, it is first created in the *staging area*. Here, the upload metadata can be edited, raw files can be uploaded or deleted, etc.
+- You can upload uncompressed or compressed (`.zip` or `.tar.gz`) files to an upload when it is in staging. Compressed files will be unpacked automatically.
 
 ### Entries (Calculations, Code runs)
 - There are confusing names. Internally, in the nomad source code, the term `calc` is used.
 An entry represents a single set of input/output used and produces by an individual run of a
-DFT code. If nomad is applied to other domains, i.e. experimental material science, entries might represent
-experiments or other entities.
+DFT code. If nomad is applied to other domains, i.e. experimental material science, entries might represent experiments or other entities.
 - An entry (calculation) has a unique `calc_id` that is based on the upload's id and the `mainfile`
 - The `mainfile` is a upload relative path to the main output file.
 - Each calculation, when published, gets a unique `pid`. Pids are ascending intergers. For

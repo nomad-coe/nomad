@@ -98,7 +98,7 @@ test('correctly renders metadata and all properties', async () => {
   const references = screen.getByTitle('User provided references (URLs) for this entry')
   expect(within(references).getByText('references')).toBeInTheDocument()
   expect(within(references).getByText(entry.references[0])).toBeInTheDocument()
-  const authors = screen.getByTitle('All authors (uploader and co-authors)')
+  const authors = screen.getByTitle('All authors (main author and co-authors)')
   expect(within(authors).getByText('authors')).toBeInTheDocument()
   expect(within(authors).getByText(entry.authors[0].name)).toBeInTheDocument()
   const datasets = screen.getByTitle('A list of user curated datasets this entry belongs to.')

@@ -172,9 +172,9 @@ class FAQ extends React.Component {
 
           ### How can I share credit with my co authors?
 
-          When you edit entries, you can mark other NOMAD users as *co-authors*. You
-          (the uploader) and the *co-authors* will comprise the respective authors list
-          displayed for each entry.
+          When you edit the metadata, you can mark other NOMAD users as *co-authors* of
+          an upload or an entry. The main author and the co-authors will comprise the
+          respective authors list displayed for each entry.
 
           ### I want to upload data from a code that is not yet supported?
 

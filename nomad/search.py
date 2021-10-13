@@ -382,7 +382,7 @@ def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = en
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user.')
 
-        q = term_query(uploader__user_id=user_id)
+        q = term_query(main_author__user_id=user_id)
     elif owner == 'staging':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user')
