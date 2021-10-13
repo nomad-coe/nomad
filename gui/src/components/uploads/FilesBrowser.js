@@ -24,8 +24,8 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import FilePreview from './FilePreview'
-import HubButton from '../aitoolkit/HubButton'
 import { useUpload } from './UploadPage'
+import NorthButton from '../aitoolkit/NorthButton'
 
 const useFolderStyles = makeStyles(theme => ({
   root: {},
@@ -96,7 +96,7 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
         {parser && <Chip size="small" label={parser} color="primary" />}
       </div>
       <div className={classes.actions}>
-        {name?.endsWith('.ipynb') && upload && <HubButton path={`uploads/${upload.upload_id}/${path}`} />}
+        {name?.endsWith('.ipynb') && upload && <NorthButton path={`tree/uploads/${upload.upload_id}/${path}`} />}
       </div>
     </div>
     <Collapse in={open} className={classes.children}>

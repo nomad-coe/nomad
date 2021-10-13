@@ -28,6 +28,8 @@ services:
             - discovery.type=single-node
         volumes:
             - nomad_oasis_elastic:/usr/share/elasticsearch/data
+        ports:
+            - "9200:9200"
 
     # the user data db
     mongo:
@@ -75,21 +77,55 @@ services:
             - nomad_oasis_files:/app/.volumes/fs
         command: ./run.sh
 
+    # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
+    north:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        container_name: nomad_oasis_north
+        environment:
+            <<: *nomad_backend_env
+            NOMAD_SERVICE: nomad_oasis_north
+            NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_network
+            NOMAD_NORTH_HUB_IP_CONNECT: north
+            NOMAD_NORTH_HUB_IP: '0.0.0.0'
+            NOMAD_NORTH_SHARED_FS: nomad_oasis_north_shared_files
+            NOMAD_NORTH_USER_FS: nomad_oasis_north_shared_files
+            NOMAD_NORTH_NOMAD_API_URL: http://app:9000/nomad-oasis/api
+            JUPYTERHUB_CRYPT_KEY: aa2f31be658f0ad1b3f5c247fa7c427e778e8f8557a59215a49667432fca4c77
+        links:
+            - app
+        volumes:
+            - ./nomad.yaml:/app/nomad.yaml
+            - nomad_oasis_files:/app/.volumes/fs
+            - /var/run/docker.sock:/var/run/docker.sock
+            - nomad_oasis_north_shared_files
+            - nomad_oasis_north_user_files
+        command: python -m jupyterhub -f nomad/jupyterhub_config.py --debug
+        user: root
+
     # nomad gui (a reverse proxy for nomad)
     gui:
         restart: always
-        image: nginx:1.13.9-alpine
+        image: nginx:1.13.9-alpine^
         container_name: nomad_oasis_gui
         command: nginx -g 'daemon off;'
         volumes:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
         links:
             - app
+            - north
         ports:
             - 80:80
+
 
 volumes:
     nomad_oasis_mongo:
     nomad_oasis_elastic:
     nomad_oasis_rabbitmq:
     nomad_oasis_files:
+    nomad_oasis_north_shared_files:
+    nomad_oasis_north_user_files:
+
+networks:
+    default:
+        name: nomad_oasis_network

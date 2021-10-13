@@ -386,10 +386,14 @@ bundle_import = NomadConfig(
 )
 
 north = NomadConfig(
-    docker_host_ip='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    hub_ip_connect='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    hub_ip=None,
     docker_network=None,
     hub_port=9000,
-    hub_base_path='/fairdi/nomad/latest/north'
+    hub_base_path='/fairdi/nomad/latest/north',
+    shared_fs='.volumes/north/shared',
+    users_fs='.volumes/north/users',
+    nomad_api_url=api_url(ssl=False)
 )
 
 auxfile_cutoff = 100

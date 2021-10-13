@@ -42,7 +42,7 @@ import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
-import HubButton from '../aitoolkit/HubButton'
+import NorthButton from '../aitoolkit/NorthButton'
 
 const uploadContext = React.createContext()
 
@@ -451,7 +451,7 @@ function UploadPage() {
               <ReprocessIcon />
             </Tooltip>
           </IconButton>
-          <HubButton path={`uploads/${upload.upload_id}`} />
+          <NorthButton path={`tree/uploads/${upload.upload_id}`} />
           <IconButton disabled={isPublished || !isWriter} onClick={handleDelete}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />

@@ -21,12 +21,23 @@ Configuration for JuypterHUB. We use JuypterHUB to run remote tools, like jupyte
 NOMAD servers.
 '''
 
+from jupyterhub.handlers.base import BaseHandler
 from oauthenticator.generic import GenericOAuthenticator
 from traitlets import Unicode
 import os
+import os.path
 import requests
+import pathlib
 
 from nomad import config
+
+
+class AnonymousLoginHandler(BaseHandler):
+    async def get(self):
+        # TODO somehow set a fake user to avoid login
+        # - read cookie and use cookie, or create, set, and use cookie
+        await self.login_user(data='anonymous')
+        self.redirect(self.get_next_url())
 
 
 class NomadAuthenticator(GenericOAuthenticator):
@@ -41,11 +52,26 @@ class NomadAuthenticator(GenericOAuthenticator):
         help='Nomad Api Url. This is used to get all staging upload ids for the loggedin user.',
     )
 
+    def get_handlers(self, app):
+        ''' Add an additional handler for anonymous logins. '''
+        handlers = super().get_handlers(app)
+        return handlers + [(r'/anonymous_login', AnonymousLoginHandler)]
+
+    async def authenticate(self, handler, data=None):
+        if data == 'anonymous':
+            return 'anonymous'
+
+        return await super().authenticate(handler, data=data)
+
     async def pre_spawn_start(self, user, spawner):
         '''
         Uses the user credentials to request all staging uploads and pass the
         respective path as volume host mounts to the spawner.
         '''
+
+        if user.name == 'anonymous':
+            return
+
         auth_state = await user.get_auth_state()
         if not auth_state:
             self.log.warn('Authentication state is not configured!')
@@ -54,14 +80,31 @@ class NomadAuthenticator(GenericOAuthenticator):
         access_token = auth_state['access_token']
         api_headers = {'Authorization': f'Bearer {access_token}'}
 
-        uploads_response = requests.get(
-            f'{self.nomad_api_url}/v1/uploads?is_published=false&per_page=100',
-            headers=api_headers)
-        if not uploads_response.status_code == 200:
+        try:
+            uploads_response = requests.get(
+                f'{self.nomad_api_url}/v1/uploads?is_published=false&per_page=100',
+                headers=api_headers)
+        except Exception as e:
+            self.log.error('Cannot access Nomad API: %s', e)
+            return
+
+        if uploads_response.status_code != 200:
             self.log.error('Cannot get user uploads: %s', uploads_response.text)
             return
 
-        volumes = {}
+        user_dir = os.path.abspath(f'{config.north.users_fs}/{user.name}')
+        if not os.path.exists(user_dir):
+            pathlib.Path(user_dir).mkdir(parents=True, exist_ok=True)
+
+        shared_dir = os.path.abspath(config.north.shared_fs)
+        if not os.path.exists(shared_dir):
+            pathlib.Path(user_dir).mkdir(parents=True, exist_ok=True)
+
+        volumes = {
+            user_dir: f'/home/jovyan/work',
+            shared_dir: f'/home/jovyan/shared'
+        }
+
         for upload in uploads_response.json()['data']:
             if 'upload_files_server_path' in upload:
                 upload_id = upload['upload_id']
@@ -90,7 +133,7 @@ c.GenericOAuthenticator.userdata_params = {'state': 'state'}
 c.GenericOAuthenticator.username_key = 'preferred_username'
 c.GenericOAuthenticator.userdata_method = 'GET'
 c.GenericOAuthenticator.scope = ['openid', 'profile']
-c.NomadAuthenticator.nomad_api_url = config.api_url(ssl=False)
+c.NomadAuthenticator.nomad_api_url = config.north.nomad_api_url
 
 c.Authenticator.auto_login = True
 
@@ -100,4 +143,7 @@ c.DockerSpawner.image = 'jupyter/base-notebook'
 c.DockerSpawner.remove = True
 if config.north.docker_network:
     c.DockerSpawner.network_name = config.north.docker_network
-c.DockerSpawner.hub_ip_connect = config.north.docker_host_ip
+c.JupyterHub.hub_ip_connect = config.north.hub_ip_connect
+if config.north.hub_ip:
+    c.JupyterHub.hub_ip = config.north.hub_ip
+c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
