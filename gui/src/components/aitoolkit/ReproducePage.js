@@ -18,7 +18,7 @@
 
 import React, { useMemo } from 'react'
 import {useStylesList} from './styles.js'
-import { Box, Button, Grid, TextField, Divider } from '@material-ui/core'
+import { Box, Button, Grid, TextField, Divider, IconButton } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import { StringParam, useQueryParams } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
@@ -26,6 +26,7 @@ import TutorialsIcon from './assets/AIT_ico_bb_tutorial.svg'
 import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from './assets/AIT_ico_bp_replicate.svg'
 import AccordionsList from './AccordionsList'
+import FigureAI from './assets/AIT_illu_AIT.svg'
 
 export default function AIToolkitPage() {
   const classes = useStylesList()
@@ -166,14 +167,21 @@ export default function AIToolkitPage() {
       </Box>
       <Box className={classes.deck}>
         {
-          'Recent applications of artificial-intelligence in science build on top of solid methodologies, that have been developing over last decades. You can learn the basics of AI to better understand its latest applications in materials science.'
+          'Recent applications of artificial-intelligence in science build on top of solid methodologies, that have been developing over the last decades. Exploring the following tutorials, you can learn the basics of AI to better understand their latest applications in materials science.'
         }
       </Box>
-      <Button width='10px' color='#2A3C67' href={'tutorials'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
-        <Box className={classes.fieldText} >
-          AI tutorials
-        </Box>
-      </Button>
+      <Grid container spacing={1}>
+        <Grid item xs={4}>
+          <IconButton href={'aitoolkit'} style={{marginRight: '0px', marginTop: '20px'}} > <img src={FigureAI} style={{width: '120px'}} ></img> </IconButton>
+        </Grid>
+        <Grid item xs={8}>
+          <Button width='10px' color='#2A3C67' href={'tutorials'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
+            <Box className={classes.fieldText} >
+              AI tutorials
+            </Box>
+          </Button>
+        </Grid>
+      </Grid>
     </Grid>
     <Grid item xs={4} className={classes.sectionIcon}>
       <img src={TutorialsIcon} className={classes.bottomIcon}/>

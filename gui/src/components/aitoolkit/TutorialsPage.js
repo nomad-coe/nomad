@@ -17,7 +17,7 @@
  */
 import React, { useMemo } from 'react'
 import {useStylesList} from './styles.js'
-import { Box, Button, Grid, TextField, Divider } from '@material-ui/core'
+import { Box, Button, Grid, TextField, Divider, IconButton } from '@material-ui/core'
 import tutorials from '../../toolkitMetadata'
 import { StringParam, useQueryParams } from 'use-query-params'
 import Autocomplete from '@material-ui/lab/Autocomplete'
@@ -25,6 +25,7 @@ import TutorialsIcon from './assets/AIT_ico_bp_tutorial.svg'
 import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from './assets/AIT_ico_bb_replicate.svg'
 import AccordionsList from './AccordionsList'
+import FigureAI from './assets/AIT_illu_AIT.svg'
 
 export default function AIToolkitPage() {
   const classes = useStylesList()
@@ -193,18 +194,24 @@ export default function AIToolkitPage() {
       </Box>
       <Box className={classes.deck}>
         {
-          'After learning the basics of machine learning, you can apply the latest AI developments to timely problems in materials science. These outstanding applications allow to reproduce results that have been recently published in scientific journals.'
+          'After learning the basics of machine learning, you can apply the latest AI developments to timely problems in materials science. These outstanding applications allow to reproduce results that have been published recently in scientific journals.'
         }
       </Box>
-      <Button width='10px' color='#2A3C67' href={'reproduce'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
-        <Box className={classes.fieldText} >
-          Advanced applications
-        </Box>
-      </Button>
+      <Grid container spacing={1}>
+        <Grid item xs={4}>
+          <IconButton href={'aitoolkit'} style={{marginRight: '0px', marginTop: '20px'}} > <img src={FigureAI} style={{width: '120px'}} ></img> </IconButton>
+        </Grid>
+        <Grid item xs={8}>
+          <Button width='10px' color='#2A3C67' href={'reproduce'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
+            <Box className={classes.fieldText} >
+              Advanced applications
+            </Box>
+          </Button>
+        </Grid>
+      </Grid>
     </Grid>
     <Grid item xs={4} className={classes.sectionIcon}>
       <img src={ReproduceIcon} className={classes.bottomIcon}/>
     </Grid>
-
   </Grid>
 }
