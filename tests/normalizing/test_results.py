@@ -224,6 +224,23 @@ def test_method_gw(gw):
     assert method.simulation.gw.starting_point == ["GGA_C_PBE", "GGA_X_PBE"]
 
 
+def test_eels(eels):
+    method = eels.results.method
+    assert method.method_name == "EELS"
+    assert method.experiment.eels.resolution.to(ureg.electron_volt).magnitude == pytest.approx(1)
+    assert method.experiment.eels.min_energy.to(ureg.electron_volt).magnitude == pytest.approx(100)
+    assert method.experiment.eels.max_energy.to(ureg.electron_volt).magnitude == pytest.approx(200)
+    assert method.experiment.eels.detector_type == "Quantum GIF"
+    spectra = eels.results.properties.spectroscopy.eels
+    assert spectra.n_values == spectra.count.shape[0] == spectra.energy.shape[0]
+    material = eels.results.material
+    assert material.n_elements == 2
+    assert material.elements == ["Si", "O"]
+    assert material.chemical_formula_hill == "OSi"
+    assert material.chemical_formula_reduced == "SiO"
+    assert material.chemical_formula_descriptive == "OSi"
+
+
 def test_dos_electronic():
     gap_fill = [[0, 1], [2, 3]]
 
@@ -285,7 +302,6 @@ def test_band_structure_electronic():
     assert bs.reciprocal_cell.shape == (3, 3)
     assert bs.spin_polarized is False
     assert len(channel_info) == 0
-    print(bs.segment)
     assert bs.segment[0].energies.shape == (1, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
 

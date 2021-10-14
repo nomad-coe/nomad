@@ -17,21 +17,24 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import PropertyCard from './PropertyCard'
+import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
 import { refPath, resolveRef } from '../../archive/metainfo'
 import VibrationalProperties from '../../visualization/VibrationalProperties'
 
-export default function VibrationalPropertiesCard({entryMetadata, archive}) {
+/**
+ * Card displaying vibrational properties.
+ */
+const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archive}) => {
   const units = useUnits()
 
-  const properties = new Set(
-    entryMetadata.results ? entryMetadata.results.properties.available_properties : [])
+  // Find out which properties are present
   const hasDos = properties.has('dos_phonon')
   const hasBs = properties.has('band_structure_phonon')
   const hasEnergyFree = properties.has('energy_free_helmholtz')
   const hasHeatCapacity = properties.has('heat_capacity_constant_volume')
 
+  // Do not show the card if none of the properties are available
   if (!hasDos && !hasBs && !hasEnergyFree && !hasHeatCapacity) {
     return null
   }
@@ -82,9 +85,12 @@ export default function VibrationalPropertiesCard({entryMetadata, archive}) {
       units={units}
     />
   </PropertyCard>
-}
+})
 
 VibrationalPropertiesCard.propTypes = {
   entryMetadata: PropTypes.object.isRequired,
+  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
+
+export default VibrationalPropertiesCard

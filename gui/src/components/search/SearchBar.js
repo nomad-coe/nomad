@@ -34,7 +34,7 @@ import {
 import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../api'
 import { useUnits } from '../../units'
-import { isMetaNumber, isMetaTimestamp } from '../../utils'
+import { DType, getDatatype } from '../../utils'
 import {
   useSetFilters,
   useFiltersLocked,
@@ -186,7 +186,8 @@ const SearchBar = React.memo(({
           return
         }
         quantityFullname = isAQuantity ? aFullname : bFullname
-        if (!isMetaNumber(quantityFullname) && !isMetaTimestamp(quantityFullname)) {
+        const dtype = getDatatype(quantityFullname)
+        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
@@ -213,7 +214,8 @@ const SearchBar = React.memo(({
         const op2 = ltegteSandwich[4]
         const c = ltegteSandwich[5]
         quantityFullname = filterFullnames[b]
-        if (!isMetaNumber(quantityFullname) && !isMetaTimestamp(quantityFullname)) {
+        const dtype = getDatatype(quantityFullname)
+        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }

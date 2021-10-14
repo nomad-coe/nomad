@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -31,7 +31,7 @@ import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCa
 import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
-import SpectrumCard from './properties/SpectrumCard'
+import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 
@@ -85,6 +85,12 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const [archive, setArchive] = useState(null)
   const {api} = useApi()
+  const properties = useMemo(() => {
+    return new Set(entry?.results
+      ? entry.results.properties.available_properties
+      : []
+    )
+  }, [entry])
 
   useEffect(() => {
     api.entry(entryId).then(response => {
@@ -203,11 +209,11 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>
-        <MaterialCard entryMetadata={entry} archive={archive} />
-        <ElectronicPropertiesCard entryMetadata={entry} archive={archive} />
-        <VibrationalPropertiesCard entryMetadata={entry} archive={archive} />
-        <GeometryOptimizationCard entryMetadata={entry} archive={archive} />
-        <SpectrumCard entryMetadata={entry} archive={archive} />
+        <MaterialCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <ElectronicPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <VibrationalPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <GeometryOptimizationCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <SpectroscopyCard entryMetadata={entry} archive={archive} properties={properties}/>
       </Grid>
     </Grid>
   </Page>

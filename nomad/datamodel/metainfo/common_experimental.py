@@ -46,15 +46,28 @@ class DeviceSettings(MSection):
     detector_voltage = Quantity(type=str)
     workfunction = Quantity(type=str)
     channel_id = Quantity(type=str)
-    max_energy = Quantity(type=str)
-    min_energy = Quantity(type=str)
+    max_energy = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule"
+    )
+    min_energy = Quantity(
+        type=np.dtype(np.float64),
+        unit="joule"
+    )
     guntype = Quantity(type=str)
     beam_energy = Quantity(type=str)
-    resolution = Quantity(type=str)
+    resolution = Quantity(
+        type=np.dtype(np.float64),
+        description='Energy resolution for the measurement.',
+        unit="joule"
+    )
     step_size = Quantity(type=str)
     acquisition_mode = Quantity(type=str)
     beam_current = Quantity(type=str)
-    detector_type = Quantity(type=str)
+    detector_type = Quantity(
+        type=str,
+        description='Detector type used in the measurement.'
+    )
     dark_current = Quantity(type=str)
 
 

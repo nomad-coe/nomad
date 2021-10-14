@@ -37,10 +37,10 @@ import jmespath
 
 from nomad.units import ureg as units
 
-
 m_package: 'Package' = None
 
 is_bootstrapping = True
+Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 T = TypeVar('T')
 
@@ -1785,7 +1785,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return errors, warnings
 
-    def m_copy(self: MSectionBound, deep=False, parent=None) -> MSectionBound:
+    def m_copy(
+            self: MSectionBound,
+            deep=False,
+            parent=None,
+            es_annotation: List[Elasticsearch] = None) -> MSectionBound:
+        '''
+            es_annotation: Optional annotation for ElasticSearch. Will override
+                any existing annotation.
+        '''
         # TODO this a shallow copy, but should be a deep copy
         copy = self.m_def.section_cls()
         copy.__dict__.update(**self.__dict__)
@@ -1808,6 +1816,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     else:
                         copy.__dict__[sub_section_def.name] = None
 
+        if es_annotation:
+            copy.m_annotations["elasticsearch"] = es_annotation
         return cast(MSectionBound, copy)
 
     def m_all_validate(self):

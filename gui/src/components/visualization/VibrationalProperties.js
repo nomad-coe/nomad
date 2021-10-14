@@ -22,7 +22,7 @@ import { Box } from '@material-ui/core'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
-import PropertyContainer from './PropertyContainer'
+import { PropertyContent } from '../entry/properties/PropertyCard'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
 import { toUnitSystem } from '../../units'
 import { makeStyles } from '@material-ui/core/styles'
@@ -94,7 +94,7 @@ const VibrationalProperties = React.memo(({
 
   return (
     <Box className={styles.row}>
-      <PropertyContainer title="Phonon dispersion" className={styles.bs}>
+      <PropertyContent title="Phonon dispersion" className={styles.bs}>
         <BandStructure
           data={bs}
           layout={bsLayout}
@@ -107,8 +107,8 @@ const VibrationalProperties = React.memo(({
           type="vibrational"
           data-testid="bs-phonon"
         ></BandStructure>
-      </PropertyContainer>
-      <PropertyContainer title="Phonon density of states" className={styles.dos}>
+      </PropertyContent>
+      <PropertyContent title="Phonon density of states" className={styles.dos}>
         <DOS
           data={dos}
           layout={dosLayout}
@@ -121,23 +121,23 @@ const VibrationalProperties = React.memo(({
           type="vibrational"
           data-testid="dos-phonon"
         ></DOS>
-      </PropertyContainer>
-      <PropertyContainer title="Heat capacity" className={styles.heat_capacity}>
+      </PropertyContent>
+      <PropertyContent title="Heat capacity" className={styles.heat_capacity}>
         <HeatCapacity
           data={heatCapacity}
           aspectRatio={1}
           units={{...units, 'energy': 'joule'}}
           data-testid="heat-capacity"
         />
-      </PropertyContainer>
-      <PropertyContainer title="Helmholtz free energy" className={styles.free_energy}>
+      </PropertyContent>
+      <PropertyContent title="Helmholtz free energy" className={styles.free_energy}>
         <HelmholtzFreeEnergy
           data={freeEnergy}
           aspectRatio={1}
           units={{...units, 'energy': 'joule'}}
           data-testid="energy-free"
         />
-      </PropertyContainer>
+      </PropertyContent>
     </Box>
   )
 })

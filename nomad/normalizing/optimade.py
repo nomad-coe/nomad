@@ -131,7 +131,6 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         '''
-
         if self.entry_archive.metadata is None:
             self.entry_archive.m_create(EntryMetadata)
         optimade = self.entry_archive.metadata.m_create(OptimadeEntry)

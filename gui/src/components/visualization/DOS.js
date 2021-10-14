@@ -28,6 +28,9 @@ import { Unit, toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { msgNormalizationWarning } from '../../config'
 
+const energyUnit = new Unit('joule')
+const valueUnit = new Unit('1/joule')
+const valueDisplayUnit = new Unit('state/joule', undefined, false)
 const useStyles = makeStyles({
   root: {}
 })
@@ -44,10 +47,6 @@ const DOS = React.memo(({
   'data-testid': testID,
   ...other
 }) => {
-  const energyUnit = useMemo(() => new Unit('joule'), [])
-  const valueUnit = useMemo(() => new Unit('1/joule'), [])
-  const valueDisplayUnit = useMemo(() => new Unit('state/joule', undefined, false), [])
-
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
     let defaultLayout = {
@@ -71,7 +70,7 @@ const DOS = React.memo(({
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, energyUnit, units, type])
+  }, [layout, units, type])
 
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [finalLayout, setFinalLayout] = useState(initialLayout)
@@ -185,7 +184,7 @@ const DOS = React.memo(({
     setFinalData(plotData)
     setFinalLayout(computedLayout)
     setNormalizedToHOE(normalized)
-  }, [data, energyUnit, valueUnit, valueDisplayUnit, units, initialLayout, normalizedToHOE, theme, type])
+  }, [data, units, initialLayout, normalizedToHOE, theme, type])
 
   return (
     <Box className={clsx(styles.root, className)}>

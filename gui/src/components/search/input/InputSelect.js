@@ -90,7 +90,6 @@ const InputSelect = React.memo(({
   description,
   visible,
   initialScale,
-  initialAggSize,
   className,
   classes,
   'data-testid': testID
@@ -185,15 +184,13 @@ InputSelect.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool.isRequired,
   initialScale: PropTypes.number,
-  initialAggSize: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
 }
 
 InputSelect.defaultProps = {
-  initialScale: 1,
-  initialAggSize: 10
+  initialScale: 1
 }
 
 export default InputSelect

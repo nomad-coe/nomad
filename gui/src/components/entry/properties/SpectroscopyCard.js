@@ -17,34 +17,50 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import PropertyCard from './PropertyCard'
+import { Grid } from '@material-ui/core'
+import { PropertyCard, PropertyContent } from './PropertyCard'
 import { useUnits } from '../../../units'
 import EELS from '../../visualization/EELS'
 import { resolveRef } from '../../archive/metainfo'
 
-export default function SpectrumCard({entryMetadata, archive}) {
+/**
+ * Card displaying spectroscopic properties.
+*/
+const SpectroscopyCard = React.memo(({entryMetadata, properties, archive}) => {
   const units = useUnits()
 
-  const hasData = entryMetadata?.results?.properties?.available_properties?.includes('spectra.eels')
+  // Find out which properties are present
+  const hasEELS = properties.has('eels')
 
-  if (!hasData) {
+  // Do not show the card if none of the properties are available
+  if (!hasEELS) {
     return null
   }
 
-  const dataRef = archive?.results?.properties?.spectra?.eels
+  // Resolve EELS data
+  const dataRef = archive?.results?.properties?.spectroscopy?.eels
   const data = dataRef && resolveRef(dataRef, archive)
 
-  return <PropertyCard title="Electron Energy Loss Spectrum">
-    <EELS
-      data={data}
-      layout={{yaxis: {autorange: true}}}
-      aspectRatio={2}
-      units={units}
-    />
+  return <PropertyCard title="Spectroscopy">
+    <Grid>
+      <Grid item xs={12}>
+        <PropertyContent title="Electron energy loss spectroscopy">
+          <EELS
+            data={data}
+            layout={{yaxis: {autorange: true}}}
+            aspectRatio={2}
+            units={units}
+          />
+        </PropertyContent>
+      </Grid>
+    </Grid>
   </PropertyCard>
-}
+})
 
-SpectrumCard.propTypes = {
+SpectroscopyCard.propTypes = {
   entryMetadata: PropTypes.object.isRequired,
+  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
+
+export default SpectroscopyCard

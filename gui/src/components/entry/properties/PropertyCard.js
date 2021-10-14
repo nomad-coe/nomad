@@ -17,9 +17,19 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Card, CardContent, CardHeader } from '@material-ui/core'
+import clsx from 'clsx'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  makeStyles
+} from '@material-ui/core'
 
-export default function PropertyCard({children, ...headerProps}) {
+/**
+ * Card for displaying a set of related properties.
+ */
+export function PropertyCard({children, ...headerProps}) {
   return <Card>
     <CardHeader {...headerProps} />
     <CardContent>
@@ -27,10 +37,34 @@ export default function PropertyCard({children, ...headerProps}) {
     </CardContent>
   </Card>
 }
-
 PropertyCard.propTypes = {
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
+}
+
+/**
+ * For displaying an individual property, typically within a PropertyCard.
+ */
+const usePropertyContentStyles = makeStyles(theme => ({
+  root: {
+  },
+  title: {
+    marginBottom: theme.spacing(1)
+  }
+}))
+export function PropertyContent({title, className, classes, children}) {
+  const styles = usePropertyContentStyles({classes: classes})
+  return <div className={clsx(className, styles.root)}>
+    <Typography variant="subtitle1" align='center' className={styles.title}>{title}</Typography>
+    {children}
+  </div>
+}
+
+PropertyContent.propTypes = {
+  title: PropTypes.string,
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.any
 }

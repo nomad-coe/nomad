@@ -31,8 +31,10 @@ import FilterSubMenuMethod from './FilterSubMenuMethod'
 import FilterSubMenuSimulation from './FilterSubMenuSimulation'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
 import FilterSubMenuGW from './FilterSubMenuGW'
+import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
+import FilterSubMenuSpectroscopy from './FilterSubMenuSpectroscopy.js'
 import FilterSubMenuAuthor from './FilterSubMenuAuthor'
 import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
@@ -45,6 +47,8 @@ import {
   labelSimulation,
   labelDFT,
   labelGW,
+  labelExperiment,
+  labelEELS,
   labelProperties,
   labelElectronic,
   labelVibrational,
@@ -52,7 +56,8 @@ import {
   labelDataset,
   labelIDs,
   labelAccess,
-  useSearchContext
+  useSearchContext,
+  labelSpectroscopy
 } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
 
@@ -100,9 +105,12 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelSimulation} depth={1}/>
       <FilterMenuItem value={labelDFT} depth={2}/>
       <FilterMenuItem value={labelGW} depth={2}/>
+      <FilterMenuItem value={labelExperiment} depth={1} disableButton/>
+      <FilterMenuItem value={labelEELS} depth={2}/>
       <FilterMenuItem value={labelProperties} depth={0} disableButton/>
       <FilterMenuItem value={labelElectronic} depth={1}/>
       <FilterMenuItem value={labelVibrational} depth={1}/>
+      <FilterMenuItem value={labelSpectroscopy} depth={1}/>
       <FilterMenuItem value={labelAuthor} depth={0}/>
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
@@ -126,8 +134,10 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuSimulation value={labelSimulation}/>
         <FilterSubMenuDFT value={labelDFT}/>
         <FilterSubMenuGW value={labelGW}/>
+        <FilterSubMenuEELS value={labelEELS}/>
         <FilterSubMenuElectronic value={labelElectronic}/>
         <FilterSubMenuVibrational value={labelVibrational}/>
+        <FilterSubMenuSpectroscopy value={labelSpectroscopy}/>
         <FilterSubMenuAuthor value={labelAuthor}/>
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>
