@@ -325,6 +325,8 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     authors: List[User] = []
     if entry.main_author is not None and entry.external_db is None:
         authors.append(entry.main_author)
+    if entry.coauthors:
+        authors.extend(entry.coauthors)
     if entry.entry_coauthors:
         authors.extend(entry.entry_coauthors)
     return authors
@@ -387,6 +389,8 @@ class EntryMetadata(metainfo.MSection):
         origin: A short human readable description of the entries origin. Usually it is the
             handle of an external database/repository or the name of the main author.
         main_author: Id of the main author of this entry.
+        coauthors: A user provided list of co-authors for the whole upload. These can view
+            and edit the upload when in staging, and view it also if it is embargoed.
         entry_coauthors: Ids of all co-authors (excl. the main author and upload coauthors)
             specified on the entry level, rather than on the upload level. They are shown
             as authors of this entry alongside its main author and upload coauthors.
@@ -561,6 +565,13 @@ class EntryMetadata(metainfo.MSection):
         description='The main author of the entry',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    coauthors = metainfo.Quantity(
+        type=author_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='''
+            A user provided list of co-authors for the whole upload. These can view and edit the
+            upload when in staging, and view it also if it is embargoed.
+        ''')
+
     entry_coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
         description='''
@@ -581,10 +592,16 @@ class EntryMetadata(metainfo.MSection):
         derived=derive_authors,
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
 
+    writers = metainfo.Quantity(
+        type=user_reference, shape=['0..*'],
+        description='All viewers (main author, upload coauthors, and reviewers)',
+        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
     owners = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
         description='All viewers (main author, upload coauthors, and reviewers)',
-        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.reviewers,
+        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors + entry.reviewers,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     datasets = metainfo.Quantity(

@@ -30,6 +30,7 @@ from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, Results
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
+from nomad.processing.data import _mongo_upload_metadata
 from tests.normalizing.conftest import run_normalize
 
 
@@ -265,11 +266,10 @@ class ExampleData:
             parser_name='parsers/vasp')
         entry_metadata.m_update(**self.entry_defaults)
         # Fetch data from Upload
-        upload_keys = ['upload_name', 'main_author', 'reviewers', 'upload_create_time', 'publish_time', 'license']
-        upload_values = {k: upload_dict[k] for k in upload_keys if k in upload_dict}
+        upload_values = {k: upload_dict[k] for k in _mongo_upload_metadata if k in upload_dict}
         upload_values['with_embargo'] = upload_dict['embargo_length'] > 0
         upload_values['published'] = upload_dict.get('publish_time') is not None
-        for k in upload_keys + ['with_embargo', 'published']:
+        for k in list(_mongo_upload_metadata) + ['with_embargo', 'published']:
             assert k not in kwargs, f'Upload level metadata specified on entry level: {k}'
         entry_metadata.m_update(**upload_values)
         entry_metadata.m_update(**kwargs)

@@ -37,61 +37,59 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     Provides a couple of uploads and entries including metadata, raw-data, and
     archive files.
 
-    23 entries, 6 materials published without embargo
-    1 entry, 1 material unpublished
-    1 entry, 1 material unpublished shared
-    1 entry, 1 material published with embargo
-    1 entry, 1 material published shared with embargo
-
-    partial archive exists only for id_01
-    raw files and archive file for id_02 are missing
-    id_10, id_11 reside in the same directory
+    id_embargo:
+        1 entry, 1 material, published with embargo
+    id_embargo_w_coauthor:
+        1 entry, 1 material, published with embargo and coauthor
+    id_embargo_w_reviewer:
+        1 entry, 1 material, published with embargo and reviewer
+    id_unpublished:
+        1 entry, 1 material, unpublished
+    id_unpublished_w_coauthor:
+        1 entry, 1 material, unpublished with coauthor
+    id_unpublished_w_reviewer:
+        1 entry, 1 material, unpublished with reviewer
+    id_published:
+        23 entries, 6 materials published without embargo
+        partial archive exists only for id_01
+        raw files and archive file for id_02 are missing
+        id_10, id_11 reside in the same directory
+    id_processing:
+        unpublished upload without any entries, in status processing
+    id_empty:
+        unpublished upload without any entries
     '''
     data = ExampleData(main_author=test_user)
 
-    # one upload with two calc published with embargo, one shared
-    data.create_upload(
-        upload_id='id_embargo',
-        upload_name='name_embargo',
-        published=True,
-        embargo_length=12)
-    data.create_entry(
-        upload_id='id_embargo',
-        calc_id='id_embargo',
-        material_id='id_embargo',
-        mainfile='test_content/test_embargo_entry/mainfile.json')
-    data.create_upload(
-        upload_id='id_embargo_shared_upload',
-        upload_name='name_embargo_shared',
-        published=True,
-        reviewers=[other_test_user.user_id],
-        embargo_length=12)
-    data.create_entry(
-        upload_id='id_embargo_shared_upload',
-        calc_id='id_embargo_shared',
-        material_id='id_embargo_shared',
-        mainfile='test_content/test_embargo_entry_shared/mainfile.json')
+    # 6 uploads with different combinations of main_type and sub_type
+    for main_type in ('embargo', 'unpublished'):
+        for sub_type in ('', 'w_coauthor', 'w_reviewer'):
+            upload_id = 'id_' + main_type + ('_' if sub_type else '') + sub_type
+            if main_type == 'embargo':
+                published = True
+                embargo_length = 12
+                upload_name = 'name_' + upload_id[3:]
+            else:
+                published = False
+                embargo_length = 0
+                upload_name = None
+            calc_id = upload_id + '_1'
+            coauthors = [other_test_user.user_id] if sub_type == 'w_coauthor' else None
+            reviewers = [other_test_user.user_id] if sub_type == 'w_reviewer' else None
+            data.create_upload(
+                upload_id=upload_id,
+                upload_name=upload_name,
+                coauthors=coauthors,
+                reviewers=reviewers,
+                published=published,
+                embargo_length=embargo_length)
+            data.create_entry(
+                upload_id=upload_id,
+                calc_id=calc_id,
+                material_id=upload_id,
+                mainfile=f'test_content/{calc_id}/mainfile.json')
 
-    # one upload with two calc in staging, one shared
-    data.create_upload(
-        upload_id='id_unpublished',
-        published=False)
-    data.create_entry(
-        upload_id='id_unpublished',
-        calc_id='id_unpublished',
-        material_id='id_unpublished',
-        mainfile='test_content/test_entry/mainfile.json')
-    data.create_upload(
-        upload_id='id_unpublished_shared_upload',
-        published=False,
-        reviewers=[other_test_user.user_id])
-    data.create_entry(
-        upload_id='id_unpublished_shared_upload',
-        calc_id='id_unpublished_shared',
-        material_id='id_unpublished_shared',
-        mainfile='test_content/test_entry_shared/mainfile.json')
-
-    # one upload with 23 calcs published
+    # one upload with 23 calcs, published, no embargo
     data.create_upload(
         upload_id='id_published',
         upload_name='name_published',

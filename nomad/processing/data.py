@@ -810,6 +810,7 @@ class Upload(Proc):
     upload_name = StringField(default=None)
     upload_create_time = DateTimeField(required=True)
     main_author = StringField(required=True)
+    coauthors = ListField(StringField(), default=None)
     reviewers = ListField(StringField(), default=None)
     last_update = DateTimeField()
     publish_time = DateTimeField()
@@ -1717,10 +1718,11 @@ class Upload(Proc):
                 assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
             # Check user references
             check_user_ids([upload_dict['main_author']], 'Invalid main_author: {id}')
+            check_user_ids(upload_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
             check_user_ids(upload_dict.get('reviewers', []), 'Invalid reviewers reference: {id}')
             # Define which keys we think okay to copy from the bundle
             upload_keys_to_copy = [
-                'upload_name', 'main_author', 'reviewers', 'embargo_length', 'license',
+                'upload_name', 'main_author', 'coauthors', 'reviewers', 'embargo_length', 'license',
                 'from_oasis', 'oasis_deployment_id']
             if settings.keep_original_timestamps:
                 upload_keys_to_copy.extend(('upload_create_time', 'publish_time',))
