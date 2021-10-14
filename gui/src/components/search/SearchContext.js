@@ -37,9 +37,9 @@ import qs from 'qs'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
-import { setToArray, formatMeta, parseMeta } from '../../utils'
+import { setToArray, getDatatype, getSerializer, getDeserializer } from '../../utils'
 import searchQuantities from '../../searchQuantities'
-import { Quantity } from '../../units'
+import { Quantity, getDimension } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination } from '../datatable/Datatable'
 import InputList from './input/InputList'
@@ -59,9 +59,12 @@ export const labelMethod = 'Method'
 export const labelSimulation = 'Simulation'
 export const labelDFT = 'DFT'
 export const labelGW = 'GW'
+export const labelExperiment = 'Experiment'
+export const labelEELS = 'EELS'
 export const labelProperties = 'Properties'
 export const labelElectronic = 'Electronic'
 export const labelVibrational = 'Vibrational'
+export const labelSpectroscopy = 'Spectroscopy'
 export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
@@ -92,7 +95,18 @@ export const labelIDs = 'IDs'
  * controls whether setting the value appends or overwrites.
  * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
  */
-function registerFilter(name, group, statConfig, agg, value, multiple = true, exclusive = true, options) {
+function registerFilter(
+  name,
+  group,
+  statConfig,
+  agg,
+  value,
+  multiple = true,
+  exclusive = true,
+  options,
+  dtype,
+  unit
+) {
   filters.add(name)
   if (group) {
     filterGroups[group]
@@ -120,6 +134,12 @@ function registerFilter(name, group, statConfig, agg, value, multiple = true, ex
   data.exclusive = exclusive
   data.statConfig = statConfig
   data.options = options
+  data.unit = unit || searchQuantities[name]?.unit
+  data.dtype = dtype || getDatatype(name)
+  data.serializerExact = getSerializer(data.dtype, false)
+  data.serializerPretty = getSerializer(data.dtype, true)
+  data.dimension = getDimension(data.unit)
+  data.deserializer = getDeserializer(data.dtype, data.dimension)
   filterData[name] = data
 }
 
@@ -186,6 +206,8 @@ registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT
 registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, listStatConfig, 'terms')
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, listStatConfig, 'terms')
 registerFilter('results.method.simulation.gw.type', labelGW, listStatConfig, 'terms')
+registerFilter('results.method.experiment.eels.detector_type', labelEELS, listStatConfig, 'terms')
+registerFilter('results.method.experiment.eels.resolution', labelEELS, InputSlider, 'min_max', undefined, false)
 registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, listStatConfig, 'terms')
 registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, InputSlider, 'min_max', undefined, false)
 registerFilter('external_db', labelAuthor, listStatConfig, 'terms')
@@ -239,8 +261,7 @@ registerFilter(
       const data = newQuery['results.properties.available_properties'] || new Set()
       value.forEach((item) => { data.add(item) })
       newQuery['results.properties.available_properties'] = data
-    },
-    get: (data) => (data.results.properties.available_properties)
+    }
   },
   true,
   false,
@@ -268,12 +289,65 @@ registerFilter(
       const data = newQuery['results.properties.available_properties'] || new Set()
       value.forEach((item) => { data.add(item) })
       newQuery['results.properties.available_properties'] = data
-    },
-    get: (data) => (data.results.properties.available_properties)
+    }
   },
   true,
   false,
   vibrationalOptions
+)
+// Spectroscopic properties: subset of results.properties.available_properties
+export const spectroscopicOptions = {
+  eels: {label: 'Electron energy loss spectrum'}
+}
+const spectroscopicProps = new Set(Object.keys(spectroscopicOptions))
+registerFilter(
+  'spectroscopic_properties',
+  labelSpectroscopy,
+  listStatConfig,
+  {
+    set: {'results.properties.available_properties': 'terms'},
+    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+      .filter((value) => spectroscopicProps.has(value.value)))
+  },
+  {
+    set: (newQuery, oldQuery, value) => {
+      const data = newQuery['results.properties.available_properties'] || new Set()
+      value.forEach((item) => { data.add(item) })
+      newQuery['results.properties.available_properties'] = data
+    }
+  },
+  true,
+  false,
+  spectroscopicOptions
+)
+// EELS energy window: a slider that combines two metainfo values: min_energy
+// and max_energy.
+registerFilter(
+  'results.method.experiment.eels.energy_window',
+  labelEELS,
+  listStatConfig,
+  {
+    set: {
+      'results.method.experiment.eels.min_energy': 'min_max',
+      'results.method.experiment.eels.max_energy': 'min_max'
+    },
+    get: (aggs) => {
+      const min = aggs['results.method.experiment.eels.min_energy']
+      const max = aggs['results.method.experiment.eels.max_energy']
+      return [min.min_max.data[0], max.min_max.data[1]]
+    }
+  },
+  {
+    set: (newQuery, oldQuery, value) => {
+      newQuery['results.method.experiment.eels.min_energy'] = {gte: value.gte}
+      newQuery['results.method.experiment.eels.max_energy'] = {lte: value.lte}
+    }
+  },
+  false,
+  false,
+  vibrationalOptions,
+  'number',
+  'joule'
 )
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
@@ -876,23 +950,23 @@ export function searchToQsData(query, locked, statistics) {
       if (locked[key]) {
         continue
       }
-      const {formatter} = formatMeta(key, false)
+      const serializer = filterData[key].serializerExact
       let newValue
       const newKey = filterAbbreviations[key] || key
       if (isPlainObject(value)) {
         if (!isNil(value.gte)) {
-          queryStringQuery[`${newKey}:gte`] = formatter(value.gte)
+          queryStringQuery[`${newKey}:gte`] = serializer(value.gte)
         }
         if (!isNil(value.lte)) {
-          queryStringQuery[`${newKey}:lte`] = formatter(value.lte)
+          queryStringQuery[`${newKey}:lte`] = serializer(value.lte)
         }
       } else {
         if (isArray(value)) {
-          newValue = value.map(formatter)
+          newValue = value.map(serializer)
         } else if (value instanceof Set) {
-          newValue = [...value].map(formatter)
+          newValue = [...value].map(serializer)
         } else {
-          newValue = formatter(value)
+          newValue = serializer(value)
         }
         queryStringQuery[newKey] = newValue
       }
@@ -930,7 +1004,10 @@ export const initialAggsState = atom({
  */
 export function useInitialAgg(name) {
   const aggs = useRecoilValue(initialAggsState)
-  return aggs?.[name]
+  const agg = useMemo(() => (
+    aggs && {total: aggs.total, data: aggs.data?.[name]}
+  ), [aggs, name])
+  return agg
 }
 
 /**
@@ -1234,20 +1311,20 @@ function toAPIQueryValue(value) {
  */
 export function toGUIFilter(name, value, units = undefined) {
   let multiple = filterData[name].multiple
+  const deserializer = filterData[name].deserializer
   let newValue
-  const {parser} = parseMeta(name)
   if (isArray(value)) {
-    newValue = new Set(value.map((v) => parser(v, units)))
+    newValue = new Set(value.map((v) => deserializer(v, units)))
   } else if (isPlainObject(value)) {
     newValue = {}
     if (!isNil(value.gte)) {
-      newValue.gte = parser(value.gte, units)
+      newValue.gte = deserializer(value.gte, units)
     }
     if (!isNil(value.lte)) {
-      newValue.lte = parser(value.lte, units)
+      newValue.lte = deserializer(value.lte, units)
     }
   } else {
-    newValue = parser(value, units)
+    newValue = deserializer(value, units)
     if (multiple) {
       newValue = new Set([newValue])
     }

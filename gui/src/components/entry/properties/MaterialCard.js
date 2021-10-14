@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import _ from 'lodash'
-import PropertyCard from './PropertyCard'
+import { get } from 'lodash'
+import { PropertyCard } from './PropertyCard'
 import { toMateriaStructure } from '../../../utils'
 import Quantity from '../../Quantity'
 import { Box, Grid, makeStyles, Typography } from '@material-ui/core'
@@ -56,7 +56,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function MaterialCard({entryMetadata, archive}) {
+const MaterialCard = React.memo(({entryMetadata, properties, archive}) => {
   const classes = useStyles()
   const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
   const structuresUrl = `${archiveUrl}/results/properties/structures`
@@ -106,7 +106,7 @@ export default function MaterialCard({entryMetadata, archive}) {
                   data={entryMetadata}
                 >
                   <Typography noWrap>
-                    {normalizeDisplayValue(_.get(entryMetadata, 'results.material.symmetry.space_group_symbol'))} ({normalizeDisplayValue(_.get(entryMetadata, 'results.material.symmetry.space_group_number'))})
+                    {normalizeDisplayValue(get(entryMetadata, 'results.material.symmetry.space_group_symbol'))} ({normalizeDisplayValue(get(entryMetadata, 'results.material.symmetry.space_group_number'))})
                   </Typography>
                 </Quantity>
               </Quantity>
@@ -129,9 +129,12 @@ export default function MaterialCard({entryMetadata, archive}) {
       </Grid>
     </Grid>
   </PropertyCard>
-}
+})
 
 MaterialCard.propTypes = {
   entryMetadata: PropTypes.object.isRequired,
+  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
+
+export default MaterialCard

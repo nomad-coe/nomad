@@ -24,9 +24,10 @@ import {
 } from '@material-ui/core'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
-import { toUnitSystem } from '../../units'
+import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
+const energyUnit = new Unit('joule')
 const useStyles = makeStyles({
   root: {}
 })
@@ -48,12 +49,12 @@ function EELS({data, layout, aspectRatio, className, classes, units, ...other}) 
       xaxis: {
         showexponent: 'first',
         title: {
-          text: `Electron energy loss (joule)`
+          text: `Electron energy loss (${energyUnit.label(units)})`
         }
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout])
+  }, [layout, units])
 
   // Styles
   const style = useStyles(classes)
@@ -66,7 +67,7 @@ function EELS({data, layout, aspectRatio, className, classes, units, ...other}) 
       return
     }
     const plotData = []
-    const energies = toUnitSystem(data.energy, 'joule', units)
+    const energies = toUnitSystem(data.energy, energyUnit, units)
     plotData.push(
       {
         x: energies,

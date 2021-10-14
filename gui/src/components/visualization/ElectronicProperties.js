@@ -26,7 +26,7 @@ import BrillouinZone from './BrillouinZone'
 import SectionTable from './SectionTable'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
-import PropertyContainer from './PropertyContainer'
+import { PropertyContent } from '../entry/properties/PropertyCard'
 
 // Styles
 const useStyles = makeStyles((theme) => {
@@ -103,7 +103,7 @@ const ElectronicProperties = React.memo(({
 
   return <>
     <Box className={styles.row}>
-      <PropertyContainer title="Band structure" className={styles.bs}>
+      <PropertyContent title="Band structure" className={styles.bs}>
         <BandStructure
           data={bs}
           layout={bsLayout}
@@ -116,8 +116,8 @@ const ElectronicProperties = React.memo(({
           layoutSubject={dosYSubject}
           data-testid="bs-electronic"
         ></BandStructure>
-      </PropertyContainer>
-      <PropertyContainer title="Density of states" className={styles.dos}>
+      </PropertyContent>
+      <PropertyContent title="Density of states" className={styles.dos}>
         <DOS
           data={dos}
           layout={dosLayout}
@@ -130,18 +130,18 @@ const ElectronicProperties = React.memo(({
           layoutSubject={bsYSubject}
           data-testid="dos-electronic"
         ></DOS>
-      </PropertyContainer>
+      </PropertyContent>
     </Box>
     {bs !== false && <Box marginTop={2}>
       <Box className={styles.row}>
-        <PropertyContainer title="Brillouin zone" className={styles.bz}>
+        <PropertyContent title="Brillouin zone" className={styles.bz}>
           <BrillouinZone
             data={bs}
             aspectRatio={0.6 * 65 / 35}
             data-testid="bz-electronic"
           ></BrillouinZone>
-        </PropertyContainer>
-        <PropertyContainer title="Band gaps" className={styles.gaps}>
+        </PropertyContent>
+        <PropertyContent title="Band gaps" className={styles.gaps}>
           <SectionTable
             horizontal
             section="results.properties.electronic.band_structure_electronic.channel_info"
@@ -150,7 +150,7 @@ const ElectronicProperties = React.memo(({
             aspectRatio={0.6}
             units={units}
           />
-        </PropertyContainer>
+        </PropertyContent>
       </Box>
     </Box>}
   </>

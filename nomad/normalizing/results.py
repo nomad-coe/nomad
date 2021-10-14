@@ -37,7 +37,7 @@ from nomad.datamodel.results import (
     GeometryOptimizationProperties,
     GeometryOptimizationMethod,
     Properties,
-    Spectra,
+    SpectroscopyProperties,
     Symmetry,
     Structures,
     Structure,
@@ -59,6 +59,8 @@ from nomad.datamodel.results import (
     DOSPhonon,
     EnergyFreeHelmholtz,
     HeatCapacityConstantVolume,
+    Experiment,
+    EELS,
 )
 
 re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
@@ -118,7 +120,7 @@ class ResultsNormalizer(Normalizer):
             self.normalize_run(logger=self.logger)
 
         if self.entry_archive.section_measurement and len(self.entry_archive.section_measurement) > 0:
-            self.normalize_measurment(self.entry_archive.section_measurement[0], logger=self.logger)
+            self.normalize_measurement(self.entry_archive.section_measurement[0], logger=self.logger)
 
         # Add the present quantities. The full path will be saved for each
         # property, and if the leaf quantity/section name is unambiguous, also
@@ -140,19 +142,36 @@ class ResultsNormalizer(Normalizer):
         available_properties |= set([str(x) for x in shorthand_prop])
         results.properties.available_properties = list(available_properties)
 
-    def normalize_measurment(self, measurement, logger) -> None:
+    def normalize_measurement(self, measurement, logger) -> None:
         results = self.entry_archive.results
+        experiment = measurement.section_metadata.section_experiment
 
         # Method
         if results.method is None:
             results.m_create(Method)
-        method_name = measurement.section_metadata.section_experiment.method_name
+        if results.method.experiment is None:
+            results.method.m_create(Experiment)
+        method_name = experiment.method_name
         if method_name == 'electron energy loss spectroscopy':
-            results.method.method_name = 'EELS'
+            try:
+                device_settings = measurement.section_metadata.section_instrument.section_device_settings
+                n_settings = len(device_settings)
+                if n_settings > 1:
+                    raise ValueError("Found multiple device settings.")
+                device_settings = device_settings[0]
+            except Exception as e:
+                logger.error('no unique device settings available', exc_info=e)
+            else:
+                results.method.method_name = 'EELS'
+                eels = results.method.experiment.m_create(EELS)
+                eels.resolution = device_settings.resolution
+                eels.detector_type = device_settings.detector_type
+                eels.min_energy = device_settings.min_energy
+                eels.max_energy = device_settings.max_energy
         elif method_name == 'XPS':
             results.method.method_name = 'XPS'
         else:
-            logger.error('unknown measurment method', data=results.method.method_name)
+            logger.error('unknown measurement method', data=results.method.method_name)
 
         # Material
         if results.material is None:
@@ -178,15 +197,18 @@ class ResultsNormalizer(Normalizer):
             logger.warn('could not normalize material', exc_info=e)
 
         # Properties
-        if measurement.section_data.section_spectrum:
-            if results.properties is None:
-                results.m_create(Properties)
-            if results.properties.spectra is None:
-                results.properties.m_create(Spectra)
-            if results.method.method_name == 'EELS':
-                results.properties.spectra.eels = measurement.section_data.section_spectrum
-            else:
-                results.properties.spectra.other_spectrum = measurement.section_data.section_spectrum
+        data = measurement.section_data
+        if data:
+            spectrum = data.section_spectrum
+            if spectrum:
+                if results.properties is None:
+                    results.m_create(Properties)
+                if results.properties.spectroscopy is None:
+                    results.properties.m_create(SpectroscopyProperties)
+                if results.method.method_name == 'EELS':
+                    results.properties.spectroscopy.eels = spectrum
+                else:
+                    results.properties.spectroscopy.other_spectrum = spectrum
 
     def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered

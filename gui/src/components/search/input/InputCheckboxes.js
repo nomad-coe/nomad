@@ -80,10 +80,13 @@ const InputCheckboxes = React.memo(({
       }
       return opt
     }
-    // As a last resort, use the initial aggregation results as options.
-    if (initialAgg) {
+    // As a last resort, use the initial aggregation results as options. We
+    // cannot use the agg results because the page may be loaded with additional
+    // filters e.g. from the query string which will alter the available
+    // options.
+    if (initialAgg?.data) {
       const opt = {}
-      for (const value of initialAgg) {
+      for (const value of initialAgg.data) {
         opt[value.value] = {label: value.value}
       }
       return opt

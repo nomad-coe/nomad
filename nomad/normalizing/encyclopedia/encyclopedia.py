@@ -19,6 +19,7 @@
 from typing import Any
 
 from nomad.normalizing.normalizer import Normalizer
+from nomad.datamodel import EntryMetadata
 from nomad.datamodel.encyclopedia import (
     EncyclopediaMetadata,
     Material,
@@ -188,6 +189,8 @@ class EncyclopediaNormalizer(Normalizer):
         """The caller will automatically log if the normalizer succeeds or ends
         up with an exception.
         """
+        if self.entry_archive.metadata is None:
+            self.entry_archive.m_create(EntryMetadata)
         sec_enc = self.entry_archive.metadata.m_create(EncyclopediaMetadata)
         status_enums = EncyclopediaMetadata.status.type
         calc_enums = Calculation.calculation_type.type

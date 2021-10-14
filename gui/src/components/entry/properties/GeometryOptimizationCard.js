@@ -17,22 +17,23 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import PropertyCard from './PropertyCard'
+import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
 import { resolveRef } from '../../archive/metainfo'
 import GeometryOptimization from '../../visualization/GeometryOptimization'
 
-export default function GeometryOptimizationCard({entryMetadata, archive}) {
+export default function GeometryOptimizationCard({entryMetadata, archive, properties}) {
   const units = useUnits()
 
-  const properties = new Set(
-    entryMetadata.results ? entryMetadata.results.properties.available_properties : [])
+  // Find out which properties are present
   const hasGeometryOptimization = properties.has('geometry_optimization')
 
+  // Do not show the card if none of the properties are available
   if (!hasGeometryOptimization) {
     return null
   }
 
+  // Resolve geometry optimization data
   let geometryOptimization = hasGeometryOptimization ? null : false
   const geoOptProps = archive?.results?.properties?.geometry_optimization
   const geoOptMethod = entryMetadata.results.method?.simulation?.geometry_optimization
@@ -49,5 +50,6 @@ export default function GeometryOptimizationCard({entryMetadata, archive}) {
 
 GeometryOptimizationCard.propTypes = {
   entryMetadata: PropTypes.object.isRequired,
+  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }

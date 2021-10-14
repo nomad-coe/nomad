@@ -208,7 +208,7 @@ class Api {
                 geometry_optimization: {
                   energies: 'include-resolved'
                 },
-                spectra: 'include-resolved'
+                spectroscopy: 'include-resolved'
               }
             }
           }

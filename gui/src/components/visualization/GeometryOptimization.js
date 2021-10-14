@@ -23,7 +23,7 @@ import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
-import PropertyContainer from './PropertyContainer'
+import { PropertyContent } from '../entry/properties/PropertyCard'
 
 const useStyles = makeStyles((theme) => {
   return {
@@ -165,7 +165,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
 
   return (
     <Box className={style.root}>
-      <PropertyContainer title="Energy convergence" className={style.energies}>
+      <PropertyContent title="Energy convergence" className={style.energies}>
         <ErrorHandler message='Could not load energies.'>
           <Plot
             data={finalData}
@@ -175,7 +175,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
           >
           </Plot>
         </ErrorHandler>
-      </PropertyContainer>
+      </PropertyContent>
     </Box>
   )
 })

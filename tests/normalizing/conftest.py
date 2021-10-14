@@ -31,6 +31,17 @@ from nomad.datamodel.metainfo.simulation.method import (
     Electronic, Smearing, Scf, XCFunctional, Functional, GW)
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms as AtomsMethod)
+from nomad.datamodel.metainfo.common_experimental import (
+    Measurement,
+    Experiment,
+    Metadata,
+    Data,
+    Instrument,
+    Sample,
+    Spectrum,
+    SampleMaterial,
+    DeviceSettings,
+)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization
@@ -63,8 +74,8 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
     return run_normalize(parsed_template_example)
 
 
-def get_template() -> EntryArchive:
-    """Returns a basic archive template.
+def get_template_dft() -> EntryArchive:
+    """Returns a basic archive template for a DFT calculation.
     """
     template = EntryArchive()
     run = template.m_create(Run)
@@ -101,8 +112,37 @@ def get_template() -> EntryArchive:
     return template
 
 
+def get_template_eels() -> EntryArchive:
+    """Returns a basic archive template for an EELS experiment.
+    """
+    template = EntryArchive()
+    measurement = template.m_create(Measurement)
+    metadata = measurement.m_create(Metadata)
+    data = measurement.m_create(Data)
+    spectrum = data.m_create(Spectrum)
+    experiment = metadata.m_create(Experiment)
+    instrument = metadata.m_create(Instrument)
+    sample = metadata.m_create(Sample)
+    material = sample.m_create(SampleMaterial)
+    material.elements = ["Si", "O"]
+    material.formula = "SiO"
+    device_settings = instrument.m_create(DeviceSettings)
+    experiment.method_name = "electron energy loss spectroscopy"
+    device_settings.detector_type = "Quantum GIF"
+    min_energy = 100
+    max_energy = 200
+    resolution = 1
+    device_settings.min_energy = min_energy * ureg.electron_volt
+    device_settings.max_energy = max_energy * ureg.electron_volt
+    device_settings.resolution = resolution * ureg.electron_volt
+    spectrum.count = np.linspace(0, 100, 1)
+    spectrum.energy = np.linspace(min_energy, max_energy, resolution)
+    spectrum.n_values = spectrum.energy.shape[0]
+    return template
+
+
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:
-    template = get_template()
+    template = get_template_dft()
     template.run[0].calculation[0].system_ref = None
     template.run[0].system = None
 
@@ -151,7 +191,7 @@ def get_template_dos(
     """
     if len(fill) > 1 and type != "electronic":
         raise ValueError("Cannot create spin polarized DOS for non-electronic data.")
-    template = get_template()
+    template = get_template_dft()
     scc = template.run[0].calculation[0]
     dos_type = Calculation.dos_electronic if type == "electronic" else Calculation.dos_phonon
     dos = scc.m_create(Dos, dos_type)
@@ -208,7 +248,7 @@ def get_template_band_structure(
     """
     if band_gaps is None:
         band_gaps = [None]
-    template = get_template()
+    template = get_template_dft()
     scc = template.run[0].calculation[0]
     if type == "electronic":
         bs = scc.m_create(BandStructure, Calculation.band_structure_electronic)
@@ -285,7 +325,7 @@ def get_template_band_structure(
 @pytest.fixture(scope='session')
 def dft() -> EntryArchive:
     """DFT calculation."""
-    template = get_template()
+    template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
@@ -307,7 +347,7 @@ def dft() -> EntryArchive:
 @pytest.fixture(scope='session')
 def dft_method_referenced() -> EntryArchive:
     """DFT calculation with two methods: one referencing the other."""
-    template = get_template()
+    template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
@@ -332,7 +372,7 @@ def dft_method_referenced() -> EntryArchive:
 @pytest.fixture(scope='session')
 def dft_plus_u() -> EntryArchive:
     """DFT+U calculation."""
-    template = get_template()
+    template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
@@ -352,7 +392,7 @@ def dft_plus_u() -> EntryArchive:
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
     """GW calculation."""
-    template = get_template()
+    template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
@@ -369,6 +409,13 @@ def gw() -> EntryArchive:
     method_gw = run.m_create(Method)
     method_gw.gw = GW(type="G0W0", starting_point="GGA_C_PBE GGA_X_PBE")
     method_gw.starting_method_ref = run.method[0]
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def eels() -> EntryArchive:
+    """EELS experiment."""
+    template = get_template_eels()
     return run_normalize(template)
 
 
@@ -428,14 +475,14 @@ def one_d() -> EntryArchive:
 @pytest.fixture(scope='session')
 def single_point() -> EntryArchive:
     """Single point calculation."""
-    template = get_template()
+    template = get_template_dft()
 
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def geometry_optimization() -> EntryArchive:
-    template = get_template()
+    template = get_template_dft()
     template.run[0].system = None
     template.run[0].calculation = None
     run = template.run[0]
@@ -467,7 +514,7 @@ def geometry_optimization() -> EntryArchive:
 @pytest.fixture(scope='session')
 def molecular_dynamics() -> EntryArchive:
     """Molecular dynamics calculation."""
-    template = get_template()
+    template = get_template_dft()
     workflow = template.m_create(Workflow)
     workflow.type = "molecular_dynamics"
     return run_normalize(template)

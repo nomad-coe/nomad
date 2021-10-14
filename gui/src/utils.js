@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { cloneDeep, merge, isSet, isNil, isString, isNumber } from 'lodash'
-import { toUnitSystem, Quantity, getDimension } from './units'
+import { toUnitSystem, Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import searchQuantities from './searchQuantities.json'
@@ -370,47 +370,48 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
 }
 
 /**
- * Checks if the given metainfo is numeric.
+ * Determines the data type of the given metainfo.
  *
- * @param {string} quantity
+ * @param {string} quantity The metainfo name (full path). Must exist in
+ * searchQuantities.json.
  *
- * @return {bool} Whether the given metainfo is numeric or not.
+ * @return {string} The data type of the metainfo. Can be one of the following:
+ *   - number
+ *   - timestamp
+ *   - string
+ *   - unknown
  */
-export function isMetaNumber(quantity) {
+export const DType = {
+  Number: 'number',
+  Timestamp: 'timestamp',
+  String: 'string',
+  Unknown: 'unknown'
+}
+export function getDatatype(quantity) {
   const type = searchQuantities[quantity]?.type?.type_data
-  return isString(type) && (type.startsWith('int') || type.startsWith('float'))
+
+  if (isString(type) && (type.startsWith('int') || type.startsWith('float'))) {
+    return DType.Number
+  } else if (type === 'nomad.metainfo.metainfo._Datetime') {
+    return DType.Timestamp
+  } else if (type === 'str') {
+    return DType.String
+  } else {
+    return DType.Unknown
+  }
 }
 
 /**
- * Checks if the given metainfo is a timestamp.
+ * Returns a function that can be used to serialize values for a given datatype.
+ * @param {string} dtype The datatype
+ * @param {bool} pretty Whether to serialize using a prettier, but possibly
+ * lossy format.
  *
- * @param {string} quantity
- *
- * @return {bool} Whether the given metainfo is numeric or not.
+ * @return {func} Function for serializing values with the given datatype.
  */
-export function isMetaTimestamp(quantity) {
-  const type = searchQuantities[quantity]?.type?.type_data
-  return isString(type) && type === 'nomad.metainfo.metainfo._Datetime'
-}
-
-/**
- * Determines the data type of the given metainfo and returns a function for
- * formatting values associated with it.
- *
- * @param {string} quantity The metainfo name (full path)
- * @param {bool} pretty Whether to format using a prettier, but possibly lossy
- * format.
- *
- * @return {obj} Object with two entries:
- *   type = data type of the metainfo
- *   formatter = function for formatting values associated with this metainfo.
- */
-export function formatMeta(quantity, pretty = true) {
-  let type
-  let formatter
-  if (isMetaNumber(quantity)) {
-    type = 'number'
-    formatter = (value, units) => {
+export function getSerializer(dtype, pretty = true) {
+  if (dtype === 'number') {
+    return (value, units) => {
       if (isNil(value)) {
         return value
       }
@@ -428,38 +429,29 @@ export function formatMeta(quantity, pretty = true) {
       }
       return pretty ? formatNumber(value) : value
     }
-  } else if (isMetaTimestamp(quantity)) {
-    type = 'timestamp'
-    formatter = (value) => {
+  } else if (dtype === 'timestamp') {
+    return (value) => {
       if (isNil(value)) {
         return value
       }
       return pretty ? format(fromUnixTime(value / 1000), dateFormat) : value
     }
   } else {
-    type = 'unknown'
-    formatter = (value) => value
+    return (value) => value
   }
-  return {type, formatter}
 }
 
 /**
- * Determines the data type of the given metainfo and returns a function for
- * parsing values associated with it.
+ * Returns a function that can be used to deserialize values for a given datatype.
+ * @param {string} dtype The datatype
+ * @param {bool} pretty Whether to deserialize using a prettier, but possibly
+ * lossy format.
  *
- * @param {string} quantity The metainfo name (full path)
- *
- * @return {obj} Object with two entries:
- *   type = data type of the metainfo
- *   parser = function for formatting values associated with this metainfo.
+ * @return {func} Function for deserializing values with the given datatype.
  */
-export function parseMeta(quantity, pretty = true) {
-  let type
-  let parser
-  if (isMetaNumber(quantity)) {
-    type = 'number'
-    const dimension = getDimension(quantity)
-    parser = (value, units) => {
+export function getDeserializer(dtype, dimension) {
+  if (dtype === 'number') {
+    return (value, units) => {
       if (isNil(value)) {
         return value
       }
@@ -472,22 +464,20 @@ export function parseMeta(quantity, pretty = true) {
         return split.length === 1
           ? new Quantity(value, units?.[dimension] || 'dimensionless')
           : new Quantity(value, split[1])
-      } if (isNumber) {
+      } if (isNumber(value)) {
         return new Quantity(value, units?.[dimension] || 'dimensionless')
       }
-      return pretty ? formatNumber(value) : value
+      return value
     }
-  } else if (isMetaTimestamp(quantity)) {
-    type = 'timestamp'
-    parser = (value) => {
+  } else if (dtype === 'timestamp') {
+    return (value) => {
       if (isNil(value)) {
         return value
       }
       return parseInt(value)
     }
   } else {
-    type = 'unknown'
-    parser = (value) => {
+    return (value) => {
       const keywords = {
         true: true,
         false: false
@@ -498,7 +488,6 @@ export function parseMeta(quantity, pretty = true) {
       return value
     }
   }
-  return {type, parser}
 }
 
 /**

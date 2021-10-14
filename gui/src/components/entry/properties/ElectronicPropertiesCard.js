@@ -17,25 +17,25 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import PropertyCard from './PropertyCard'
+import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 import { refPath, resolveRef } from '../../archive/metainfo'
 
-export default function ElectronicPropertiesCard({entryMetadata, archive}) {
+const ElectronicPropertiesCard = React.memo(({entryMetadata, properties, archive}) => {
   const units = useUnits()
+  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
 
-  const properties = new Set(
-    entryMetadata.results ? entryMetadata.results.properties.available_properties : [])
+  // Find out which properties are present
   const hasDos = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
 
+  // Do not show the card if none of the properties are available
   if (!hasDos && !hasBs) {
     return null
   }
 
-  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
-
+  // Resolve DOS data
   let dos = hasDos ? null : false
   const dosData = archive?.results?.properties?.electronic?.dos_electronic
   if (dosData) {
@@ -48,6 +48,7 @@ export default function ElectronicPropertiesCard({entryMetadata, archive}) {
     dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
+  // Resolve band structure data
   let bs = hasBs ? null : false
   const bsData = archive?.results?.properties?.electronic?.band_structure_electronic
   if (bsData) {
@@ -64,9 +65,12 @@ export default function ElectronicPropertiesCard({entryMetadata, archive}) {
   return <PropertyCard title="Electronic properties">
     <ElectronicProperties bs={bs} dos={dos} units={units} />
   </PropertyCard>
-}
+})
 
 ElectronicPropertiesCard.propTypes = {
   entryMetadata: PropTypes.object.isRequired,
+  properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
+
+export default ElectronicPropertiesCard

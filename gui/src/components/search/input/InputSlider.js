@@ -31,7 +31,7 @@ import InputTooltip from './InputTooltip'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
+import { useFilterState, useFilterLocked, useAgg, filterData } from '../SearchContext'
 
 function format(value) {
   return formatNumber(value, 'float', 6, true)
@@ -92,7 +92,7 @@ const InputSlider = React.memo(({
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, visible)
+  const agg = useAgg(quantity, visible, true)
   const [minGlobalSI, maxGlobalSI] = agg?.data || [undefined, undefined]
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
@@ -105,7 +105,7 @@ const InputSlider = React.memo(({
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
-  const unitSI = def?.unit || 'dimensionless'
+  const unitSI = filterData[quantity].unit || def?.unit || 'dimensionless'
   const unit = useMemo(() => {
     return unitSI && new Unit(unitSI, units)
   }, [unitSI, units])

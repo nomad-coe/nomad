@@ -22,7 +22,7 @@ from elasticsearch_dsl import Text
 from ase.data import chemical_symbols
 
 from nomad import config
-from nomad.datamodel.metainfo.common_experimental import Spectrum
+from nomad.datamodel.metainfo.common_experimental import Spectrum, DeviceSettings
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type, material_entry_type
 
 from nomad.metainfo import (
@@ -842,6 +842,26 @@ class QuantumCMS(MSection):
     quantum_circuit = SubSection(sub_section=QuantumCircuit)
 
 
+class EELS(MSection):
+    m_def = Section(
+        description="""
+        Methodology for electron energy loss spectroscopy (EELS).
+        """
+    )
+    detector_type = DeviceSettings.detector_type.m_copy(es_annotation=[
+        Elasticsearch(material_entry_type),
+    ])
+    resolution = DeviceSettings.resolution.m_copy(es_annotation=[
+        Elasticsearch(material_entry_type),
+    ])
+    max_energy = DeviceSettings.max_energy.m_copy(es_annotation=[
+        Elasticsearch(material_entry_type),
+    ])
+    min_energy = DeviceSettings.min_energy.m_copy(es_annotation=[
+        Elasticsearch(material_entry_type),
+    ])
+
+
 class Simulation(MSection):
     m_def = Section(
         description="""
@@ -875,6 +895,15 @@ class Simulation(MSection):
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
 
 
+class Experiment(MSection):
+    m_def = Section(
+        description="""
+        Contains method details for an experiment.
+        """
+    )
+    eels = SubSection(sub_section=EELS.m_def, repeats=False)
+
+
 class Method(MSection):
     m_def = Section(
         description="""
@@ -904,6 +933,7 @@ class Method(MSection):
         ],
     )
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
+    experiment = SubSection(sub_section=Experiment.m_def, repeats=False)
 
 
 class DOS(MSection):
@@ -1158,7 +1188,12 @@ class ElasticProperties(MSection):
     )
 
 
-class Spectra(MSection):
+class SpectroscopyProperties(MSection):
+    m_def = Section(
+        description="""
+        Spectroscopic properties.
+        """,
+    )
     eels = Quantity(type=Spectrum)
     other_spectrum = Quantity(type=Spectrum)
 
@@ -1176,7 +1211,7 @@ class Properties(MSection):
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
     elastic = SubSection(sub_section=ElasticProperties.m_def, repeats=False)
-    spectra = SubSection(sub_section=Spectra.m_def, repeats=False)
+    spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
 
     n_calculations = Quantity(
         type=int,

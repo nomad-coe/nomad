@@ -22,8 +22,12 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import FilterChip from './FilterChip'
-import { useFiltersState, useFiltersLockedState, filterAbbreviations } from './SearchContext'
-import { formatMeta } from '../../utils'
+import {
+  useFiltersState,
+  useFiltersLockedState,
+  filterAbbreviations,
+  filterData
+} from './SearchContext'
 import { useUnits } from '../../units'
 
 /**
@@ -68,15 +72,16 @@ const FilterSummary = React.memo(({
       if (isNil(filterValue)) {
         continue
       }
-      // Is query has multiple elements, we display a chip for each. For numerical
-      // values we also display the quantity name.
-      const {metaType, formatter} = formatMeta(quantity)
+      // Is query has multiple elements, we display a chip for each. For
+      // numerical values we also display the quantity name.
+      const metaType = filterData[quantity].dtype
+      const serializer = filterData[quantity].serializerPretty
       const isArray = filterValue instanceof Array
       const isSet = filterValue instanceof Set
       const isObj = isPlainObject(filterValue)
       if (isArray || isSet) {
         filterValue.forEach((value, index) => {
-          const displayValue = formatter(value, units)
+          const displayValue = serializer(value, units)
           const item = <FilterChip
             key={chips.length}
             locked={locked}
@@ -97,10 +102,10 @@ const FilterSummary = React.memo(({
         })
       // Is query is an object, it is assumed to represent a range filter.
       } else if (isObj) {
-        let lte = formatter(filterValue.lte, units)
-        let gte = formatter(filterValue.gte, units)
-        let lt = formatter(filterValue.lt, units)
-        let gt = formatter(filterValue.gt, units)
+        let lte = serializer(filterValue.lte, units)
+        let gte = serializer(filterValue.gte, units)
+        let lt = serializer(filterValue.lt, units)
+        let gt = serializer(filterValue.gt, units)
         let label
         if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
           label = `${filterAbbr}${!isNil(gte) ? ` >= ${gte}` : ''}${!isNil(gt) ? ` > ${gt}` : ''}`
@@ -124,7 +129,7 @@ const FilterSummary = React.memo(({
         const item = <FilterChip
           key={chips.length}
           locked={locked}
-          label={`${filterAbbr}=${formatter(filterValue)}`}
+          label={`${filterAbbr}=${serializer(filterValue)}`}
           onDelete={() => {
             setFilter([quantity, undefined])
           }}
