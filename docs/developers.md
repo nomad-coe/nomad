@@ -170,6 +170,13 @@ docker-compose up -d mongo elastic rabbitmq
 cd ../../..
 ```
 
+If your system almost ran out of disk space the elasticsearch enforces a read-only index block ([read more](https://www.elastic.co/guide/en/elasticsearch/reference/6.2/disk-allocator.html)), but
+after clearing up the disk space you need to reset it manually using the following command:
+
+```sh
+curl -XPUT -H "Content-Type: application/json" http://localhost:9200/_all/_settings -d '{"index.blocks.read_only_allow_delete": false}'
+```
+
 To shut down everything, just `ctrl-c` the running output. If you started everything
 in *deamon* mode (`-d`) use:
 ```sh
