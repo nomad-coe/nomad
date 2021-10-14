@@ -802,8 +802,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     if (example.authors) {
       example.authors.forEach(user => update_local_user(user))
     }
-    if (example.owners) {
-      example.owners.forEach(user => update_local_user(user))
+    if (example.viewers) {
+      example.viewers.forEach(user => update_local_user(user))
     }
     this.editData = {
       comment: example.comment || '',
@@ -811,7 +811,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
       entry_coauthors: (example.authors || [])
         .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
-      reviewers: (example.owners || [])
+      reviewers: (example.viewers || [])
         .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
       datasets: (example.datasets || []).map(ds => ds.dataset_name)

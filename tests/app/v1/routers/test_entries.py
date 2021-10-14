@@ -585,7 +585,7 @@ def test_entries_archive_download(client, data, query, files, total, status_code
     pytest.param('*', 200, id='full'),
     pytest.param({'metadata': '*'}, 200, id='partial'),
     pytest.param({'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param({'metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param({'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
     pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
 ])
 def test_entries_archive(client, data, required, status_code):
@@ -622,7 +622,7 @@ def test_entry_archive_download(client, data, entry_id, status_code):
     pytest.param('id_02', '*', 404, id='404'),
     pytest.param('id_01', {'metadata': '*'}, 200, id='partial'),
     pytest.param('id_01', {'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param('id_01', {'metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param('id_01', {'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
     pytest.param('id_01', {'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
     pytest.param('id_01', {'resolve-inplace': 'NotBool', 'workflow': '*'}, 422, id='bad-required-4'),
     pytest.param('id_01', {'resolve-inplace': True, 'metadata': 'include-resolved'}, 200, id='resolve-inplace')

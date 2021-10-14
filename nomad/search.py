@@ -366,18 +366,18 @@ def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = en
     if owner == 'all':
         q = term_query(published=True)
         if user_id is not None:
-            q = q | term_query(owners__user_id=user_id)
+            q = q | term_query(viewers__user_id=user_id)
     elif owner == 'public':
         q = term_query(published=True) & term_query(with_embargo=False)
     elif owner == 'visible':
         q = term_query(published=True) & term_query(with_embargo=False)
         if user_id is not None:
-            q = q | term_query(owners__user_id=user_id)
+            q = q | term_query(viewers__user_id=user_id)
     elif owner == 'shared':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value shared.')
 
-        q = term_query(owners__user_id=user_id)
+        q = term_query(viewers__user_id=user_id)
     elif owner == 'user':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user.')
@@ -386,7 +386,7 @@ def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = en
     elif owner == 'staging':
         if user_id is None:
             raise AuthenticationRequiredError('Authentication required for owner value user')
-        q = term_query(published=False) & term_query(owners__user_id=user_id)
+        q = term_query(published=False) & term_query(viewers__user_id=user_id)
     elif owner == 'admin':
         if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
             raise AuthenticationRequiredError('This can only be used by the admin user.')

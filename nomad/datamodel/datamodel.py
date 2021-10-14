@@ -598,7 +598,7 @@ class EntryMetadata(metainfo.MSection):
         derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    owners = metainfo.Quantity(
+    viewers = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
         description='All viewers (main author, upload coauthors, and reviewers)',
         derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors + entry.reviewers,

@@ -277,7 +277,7 @@ class DocumentType():
                 if is_section_reference:
                     # Treat referenced sections as sub-sections
                     assert quantity_def.type.target_section_def is not None
-                    # TODO e.g. owners, entry_coauthors, etc. ... should be treated as multiple inner docs
+                    # TODO e.g. viewers, entry_coauthors, etc. ... should be treated as multiple inner docs
                     # assert quantity_def.is_scalar
 
                     if prefix is None:

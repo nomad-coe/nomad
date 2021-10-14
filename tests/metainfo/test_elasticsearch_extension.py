@@ -131,7 +131,7 @@ class Entry(MSection):
         a_eleasticsearch=Elasticsearch(auto_include_subsections=True))
     data = SubSection(sub_section=Data.m_def)
 
-    owners = Quantity(
+    viewers = Quantity(
         type=User, shape=['*'], a_elasticsearch=Elasticsearch())
 
     not_indexed = Quantity(type=str)
@@ -240,8 +240,8 @@ def test_mappings(indices):
     assert_mapping(entry_mapping, 'results.properties.band_gap', 'double')
     assert_mapping(entry_mapping, 'results.properties.data.n_points', 'integer')
     assert_mapping(entry_mapping, 'results.properties.n_series', 'integer')
-    assert_mapping(entry_mapping, 'owners.user_id', 'keyword')
-    assert_mapping(entry_mapping, 'owners.name', 'keyword')
+    assert_mapping(entry_mapping, 'viewers.user_id', 'keyword')
+    assert_mapping(entry_mapping, 'viewers.name', 'keyword')
     assert_mapping(entry_mapping, 'files', 'text')
     assert_mapping(entry_mapping, 'files', 'keyword', 'keyword')
     assert_mapping(entry_mapping, 'results.properties.dos', 'nested')
@@ -270,17 +270,17 @@ def test_mappings(indices):
 
     assert entry_type.metrics['uploads'] == ('cardinality', entry_type.quantities['upload_id'])
 
-    assert 'owners.user_id' in entry_type.quantities
-    assert Entry.owners in entry_type.indexed_properties
+    assert 'viewers.user_id' in entry_type.quantities
+    assert Entry.viewers in entry_type.indexed_properties
     assert User.user_id in entry_type.indexed_properties
-    assert Entry.owners not in material_entry_type.indexed_properties
+    assert Entry.viewers not in material_entry_type.indexed_properties
     assert User.user_id not in material_entry_type.indexed_properties
 
 
 def test_index_docs(indices):
     user = User(user_id='test_user_id', name='Test User')
     entry = Entry(
-        entry_id='test_entry_id', mainfile='test_mainfile', owners=[user, user],
+        entry_id='test_entry_id', mainfile='test_mainfile', viewers=[user, user],
         not_indexed='value')
     data = entry.m_create(Data, points=[[0.1, 0.2], [1.1, 1.2]])
     results = entry.m_create(Results)
@@ -298,7 +298,7 @@ def test_index_docs(indices):
     assert entry_doc == {
         'entry_id': 'test_entry_id',
         'mainfile': 'other_mainfile',
-        'owners': [
+        'viewers': [
             {
                 'user_id': 'test_user_id',
                 'name': 'Test User'

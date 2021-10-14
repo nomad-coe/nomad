@@ -121,7 +121,7 @@ class TestEditRepo():
                 assert len(entries) > 0, entry_id
                 for entry in entries:
                     for key, value in kwargs.items():
-                        if key in ['authors', 'owners']:
+                        if key in ['authors', 'viewers']:
                             ids = [user['user_id'] for user in entry.get(key)]
                             if ids != value:
                                 return False
@@ -161,7 +161,7 @@ class TestEditRepo():
         self.assert_elastic(1, comment='test_edit_props')
         self.assert_elastic(1, references=['http://test', 'http://test2'])
         self.assert_elastic(1, authors=[test_user.user_id, other_test_user.user_id])
-        # self.assert_elastic(1, owners=[test_user.user_id, other_test_user.user_id])
+        # self.assert_elastic(1, viewers=[test_user.user_id, other_test_user.user_id])
 
         edit_data = dict(
             comment='',
@@ -187,7 +187,7 @@ class TestEditRepo():
         self.assert_elastic(1, comment=None)
         self.assert_elastic(1, references=[])
         self.assert_elastic(1, authors=[test_user.user_id])
-        self.assert_elastic(1, owners=[test_user.user_id])
+        self.assert_elastic(1, viewers=[test_user.user_id])
 
     def test_edit_all(self):
         rv = self.perform_edit(comment='test_edit_all')
