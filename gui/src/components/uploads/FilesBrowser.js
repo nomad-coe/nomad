@@ -186,14 +186,14 @@ export default function FilesBrower({uploadId, disabled}) {
       })
       setRenderCounter(renderCounter => renderCounter + 1)
     }
-    if (!disabled) {
-      fetchData().catch(errors.raiseError)
-    }
+    fetchData().catch(errors.raiseError)
   }, [uploadId, api, errors, setRenderCounter])
 
   useEffect(() => {
-    fetchData('')
-  }, [fetchData])
+    if (!disabled) {
+      fetchData('')
+    }
+  }, [fetchData, disabled])
 
   const handleToggle = (path) => {
     const folderData = allData.current[path]
