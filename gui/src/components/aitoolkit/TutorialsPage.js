@@ -16,19 +16,124 @@
  * limitations under the License.
  */
 import React, { useMemo } from 'react'
-import {useStylesList} from './styles.js'
-import { Box, Button, Grid, TextField, Divider, IconButton } from '@material-ui/core'
-import tutorials from '../../toolkitMetadata'
-import { StringParam, useQueryParams } from 'use-query-params'
+import {
+  Box,
+  Button,
+  Grid,
+  TextField,
+  Typography,
+  Divider,
+  IconButton,
+  makeStyles
+} from '@material-ui/core'
+import { Link } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import TutorialsIcon from './assets/AIT_ico_bp_tutorial.svg'
-import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
-import ReproduceIcon from './assets/AIT_ico_bb_replicate.svg'
+import { StringParam, useQueryParams } from 'use-query-params'
+import TutorialsIcon from '../../images/AIT_ico_bp_tutorial.svg'
+import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
+import ReproduceIcon from '../../images/AIT_ico_bb_replicate.svg'
 import AccordionsList from './AccordionsList'
-import FigureAI from './assets/AIT_illu_AIT.svg'
+import FigureAI from '../../images/AIT_illu_AIT.svg'
+import tutorials from '../../toolkitMetadata'
 
-export default function AIToolkitPage() {
-  const classes = useStylesList()
+export const useStyles = makeStyles(theme => ({
+  root: {
+    margin: theme.spacing(3),
+    width: '100%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1052px'
+  },
+  sectionIcon: {
+    marginTop: theme.spacing(3)
+  },
+  sectionTitle: {
+    marginBottom: theme.spacing(1),
+    marginLeft: theme.spacing(2),
+    marginTop: '105px'
+  },
+  title: {
+    color: '#2A3C67',
+    fontSize: '35px',
+    marginLeft: '-10px',
+    fontWeight: theme.typography.fontWeightMedium,
+    marginTop: '-70px'
+  },
+  deck: {
+    color: '#2A3C67',
+    fontSize: '22px',
+    marginTop: '20px',
+    lineHeight: '30px',
+    marginLeft: '-10px',
+    width: '518px'
+  },
+  icon: {
+    height: '371px',
+    marginTop: '-20px',
+    marginLeft: '100px'
+  },
+  filter: {
+    fontWeight: theme.typography.fontWeightMedium,
+    color: '#2A3C67',
+    fontSize: '20px',
+    marginTop: '60px',
+    marginLeft: '0px'
+  },
+  autocomplete: {
+    height: 'auto',
+    color: '#2A3C67',
+    border: '3px solid rgba(127, 239, 239, 1)',
+    borderRadius: '10px 10px 10px 10px',
+    marginTop: '10px',
+    marginLeft: '0px'
+  },
+  tutorialsList: {
+    marginTop: '50px'
+  },
+  fieldText: {
+    color: '#2A3C67',
+    fontWeight: theme.typography.fontWeightMedium
+  },
+  textLevel: {
+    textAlign: 'left',
+    color: '#2A3C67',
+    fontSize: '22px',
+    height: '22px',
+    marginTop: '-16px'
+  },
+  tutorialsDivider: {
+    backgroundColor: 'rgba(127, 239, 239, 1)',
+    height: '13px',
+    borderRadius: '4px'
+  },
+  titleSecondary: {
+    fontWeight: 'bold',
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: '35px',
+    marginLeft: '-10px'
+  },
+  bottomButton: {
+    color: '#F3F2F5',
+    backgroundColor: '#F3F2F5',
+    borderRadius: '30px',
+    width: '242px',
+    height: '70px',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '40px',
+    textTransform: 'none',
+    fontSize: '12pt',
+    lineHeight: '20px'
+  },
+  bottomIcon: {
+    height: '300px',
+    marginTop: '80px',
+    marginLeft: '120px'
+  }
+}))
+
+export default function TutorialsPage() {
+  const styles = useStyles()
   const [queryParameters, setQueryParameters] = useQueryParams({
     author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
   })
@@ -77,41 +182,45 @@ export default function AIToolkitPage() {
     }
   }, [tutorials_list])
 
-  return <Grid container spacing={1} className={classes.root}>
-    <Grid container spacing={0} className={classes.Heading}>
-      <Grid item xs={6} className={classes.sectionTitle} >
-        <Box className={classes.title}>
-          {
-            'Learn from tutorials'
-          }
-        </Box>
-        <Box className={classes.deck}>
-          {
-            'We develop and implement methods that identify correlations and structure in big data of materials. This will enable scientists and engineers to decide which materials are useful for specific applications or which new materials should be the focus of future studies. The following tutorials are designed to get started with the AI Toolkit.'
-          }
-        </Box>
+  return <Grid container spacing={1} className={styles.root}>
+    <Grid container spacing={0} className={styles.Heading}>
+      <Grid item xs={6} className={styles.sectionTitle}>
+        <Typography className={styles.title}>
+          Learn from tutorials
+        </Typography>
+        <Typography className={styles.deck}>
+          We develop and implement methods that identify correlations and
+          structure in big data of materials. This will enable scientists and
+          engineers to decide which materials are useful for specific
+          applications or which new materials should be the focus of future
+          studies. The following tutorials are designed to get started with the
+          AI Toolkit.
+        </Typography>
       </Grid>
-      <Grid item xs={4} className={classes.sectionIcon}>
-        <img src={TutorialsIcon} className={classes.icon}/>
+      <Grid item xs={4} className={styles.sectionIcon}>
+        <img src={TutorialsIcon} className={styles.icon}/>
       </Grid>
     </Grid>
     <Grid container spacing={0}>
       <Grid item xs={12} >
-        <Box className={classes.filter} >
-          {
-            'Filter Tutorials'
-          }
-        </Box>
+        <Typography className={styles.filter}>
+          Filter Tutorials
+        </Typography>
       </Grid>
       <Grid item xs={2}>
         <Autocomplete
           id="combo-box-demo"
           options={authors}
-          className={classes.autocomplete}
+          className={styles.autocomplete}
           getOptionLabel={option => option}
           style={{height: '50px', width: '150px'}}
           renderInput={params => (
-            <TextField {...params} label="Author" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField
+              {...params}
+              label="Author"
+              InputProps={{...params.InputProps, disableUnderline: true}}
+              fullWidth
+            />
           )}
           value={queryParameters.author}
           onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
@@ -122,10 +231,15 @@ export default function AIToolkitPage() {
           id="combo-box-demo"
           options={keywords}
           style={{height: '50px', width: '150px'}}
-          className={classes.autocomplete}
+          className={styles.autocomplete}
           getOptionLabel={option => option}
           renderInput={params => (
-            <TextField {...params} label="Keyword" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField
+              {...params}
+              label="Keyword"
+              InputProps={{...params.InputProps, disableUnderline: true}}
+              fullWidth
+            />
           )}
           value={queryParameters.keyword}
           onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
@@ -136,23 +250,30 @@ export default function AIToolkitPage() {
           id="combo-box-demo"
           options={methods}
           style={{height: '50px', width: '150px'}}
-          className={classes.autocomplete}
+          className={styles.autocomplete}
           renderInput={params => (
-            <TextField {...params} label="Method" InputProps={{...params.InputProps, disableUnderline: true}} fullWidth />
+            <TextField
+              {...params}
+              label="Method"
+              InputProps={{...params.InputProps, disableUnderline: true}}
+              fullWidth
+            />
           )}
           value={queryParameters.method}
           onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
         />
       </Grid>
     </Grid>
-    <Grid container spacing={1} className={classes.tutorialsList}>
+    <Grid container spacing={1} className={styles.tutorialsList}>
       <Grid item xs={12}>
         <Grid container spacing={1}>
-          <Grid item xs={3} className={classes.textLevel}>
-            BEGINNER LEVEL
+          <Grid item xs={3}>
+            <Typography className={styles.textLevel}>
+              BEGINNER LEVEL
+            </Typography>
           </Grid>
           <Grid item xs={9}>
-            <Divider disableGutters className={classes.tutorialsDivider}></Divider>
+            <Divider disableGutters className={styles.tutorialsDivider}></Divider>
           </Grid>
         </Grid>
         <AccordionsList tutorials_list={tutorials_list_beginner}
@@ -166,11 +287,13 @@ export default function AIToolkitPage() {
       </Grid>
       <Box mt={'100px'}>
         <Grid container spacing={1}>
-          <Grid item xs={3} className={classes.textLevel}>
-            INTERMEDIATE LEVEL
+          <Grid item xs={3}>
+            <Typography className={styles.textLevel}>
+              INTERMEDIATE LEVEL
+            </Typography>
           </Grid>
           <Grid item xs={9}>
-            <Divider disableGutters className={classes.tutorialsDivider}></Divider>
+            <Divider disableGutters className={styles.tutorialsDivider}></Divider>
           </Grid>
         </Grid>
         <Grid item xs={12}>
@@ -186,32 +309,43 @@ export default function AIToolkitPage() {
       </Box>
 
     </Grid>
-    <Grid item xs={6} className={classes.sectionTitle} >
-      <Box className={classes.titleSecondary}>
-        {
-          'Next advanced level'
-        }
-      </Box>
-      <Box className={classes.deck}>
-        {
-          'After learning the basics of machine learning, you can apply the latest AI developments to timely problems in materials science. These outstanding applications allow to reproduce results that have been published recently in scientific journals.'
-        }
-      </Box>
+    <Grid item xs={6} className={styles.sectionTitle}>
+      <Typography className={styles.titleSecondary}>
+        Next advanced level
+      </Typography>
+      <Typography className={styles.deck}>
+        After learning the basics of machine learning, you can apply the latest
+        AI developments to timely problems in materials science. These
+        outstanding applications allow to reproduce results that have been
+        published recently in scientific journals.
+      </Typography>
       <Grid container spacing={1}>
         <Grid item xs={4}>
-          <IconButton href={'aitoolkit'} style={{marginRight: '0px', marginTop: '20px'}} > <img src={FigureAI} style={{width: '120px'}} ></img> </IconButton>
+          <IconButton
+            href={'aitoolkit'}
+            style={{marginRight: '0px', marginTop: '20px'}}
+          >
+            <img src={FigureAI} style={{width: '120px'}} ></img>
+          </IconButton>
         </Grid>
         <Grid item xs={8}>
-          <Button width='10px' color='#2A3C67' href={'reproduce'} target="tutorial" className={classes.bottomButton} endIcon={<img src={ArrowIcon}></img>}>
-            <Box className={classes.fieldText} >
+          <Button
+            width='10px'
+            color='#2A3C67'
+            component={Link}
+            to="reproduce"
+            className={styles.bottomButton}
+            endIcon={<img src={ArrowIcon}></img>}
+          >
+            <Typography className={styles.fieldText}>
               Advanced applications
-            </Box>
+            </Typography>
           </Button>
         </Grid>
       </Grid>
     </Grid>
-    <Grid item xs={4} className={classes.sectionIcon}>
-      <img src={ReproduceIcon} className={classes.bottomIcon}/>
+    <Grid item xs={4} className={styles.sectionIcon}>
+      <img src={ReproduceIcon} className={styles.bottomIcon}/>
     </Grid>
   </Grid>
 }

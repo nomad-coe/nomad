@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
-import {ReactComponent as AboutSvg} from './about.svg'
+import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'

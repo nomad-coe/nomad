@@ -17,47 +17,164 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Grid, Box, Button, Typography, Popover, IconButton } from '@material-ui/core'
-import IconQuery from './assets/AIT_ico_bb_query.svg'
-import IconReplicate from './assets/AIT_ico_bb_replicate.svg'
-import IconTutorial from './assets/AIT_ico_bb_tutorial.svg'
-import IconWork from './assets/AIT_ico_bb_work.svg'
-import IconQuery2 from './assets/AIT_ico_bp_query.svg'
-import IconReplicate2 from './assets/AIT_ico_bp_replicate.svg'
-import IconTutorial2 from './assets/AIT_ico_bp_tutorial.svg'
-import IconWork2 from './assets/AIT_ico_bp_work.svg'
-import {useStylesLanding} from './styles.js'
-import ArrowIcon from './assets/AIT_ico_bd_link_go_to.svg'
-import FigureAI from './assets/AIT_illu_AIT.svg'
-import YoutubeEmbed from './YoutubeEmbed'
-import InfoIcon from './assets/AIT_ico_bd_info_circle.svg'
+import {
+  Grid,
+  Box,
+  Button,
+  Typography,
+  Popover,
+  IconButton,
+  makeStyles
+} from '@material-ui/core'
+import { Link } from 'react-router-dom'
+import IconQuery from '../../images/AIT_ico_bb_query.svg'
+import IconReplicate from '../../images/AIT_ico_bb_replicate.svg'
+import IconTutorial from '../../images/AIT_ico_bb_tutorial.svg'
+import IconWork from '../../images/AIT_ico_bb_work.svg'
+import IconQuery2 from '../../images/AIT_ico_bp_query.svg'
+import IconReplicate2 from '../../images/AIT_ico_bp_replicate.svg'
+import IconTutorial2 from '../../images/AIT_ico_bp_tutorial.svg'
+import IconWork2 from '../../images/AIT_ico_bp_work.svg'
+import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
+import FigureAI from '../../images/AIT_illu_AIT.svg'
+import YouTubeEmbed from '../YouTubeEmbed'
+import InfoIcon from '../../images/AIT_ico_bd_info_circle.svg'
+import Background from '../../images/AIT_bg_title.jpg'
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    margin: theme.spacing(3),
+    width: '100%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1920px'
+  },
+  background: {
+    backgroundImage: `url(${Background})`,
+    height: '840px',
+    marginTop: '-50px'
+  },
+  boxIcons: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '-150px'
+  },
+  title: {
+    fontWeight: theme.typography.fontWeightMedium,
+    fontSize: '55px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '100px',
+    width: '450px',
+    height: '140px',
+    letterSpacing: 0,
+    lineHeight: '62px',
+    color: 'white'
+  },
+  deck: {
+    letterSpacing: 0,
+    marginTop: '-170px',
+    wordSpacing: '5px',
+    lineHeight: '43px',
+    color: 'white',
+    fontSize: '34px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    left: '736px',
+    top: '270px',
+    width: '550px',
+    height: '140px'
+  },
+  button: {
+    fontWeight: theme.typography.fontWeightMedium,
+    backgroundColor: 'rgba(255,255,255,1)',
+    fontSize: '20px',
+    lineHeight: '20px',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '30px',
+    width: '207px',
+    height: '70px',
+    textTransform: 'none',
+    marginTop: '-50px',
+    zIndex: 0
+  },
+  body: {
+    width: '1052px',
+    margin: theme.spacing(3),
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
+  highlightedText: {
+    fontWeight: theme.typography.fontWeightMedium,
+    color: 'rgba(127, 239, 239, 1)',
+    fontSize: '35px',
+    width: '518px',
+    lineHeight: '42px',
+    marginTop: '80px'
+  },
+  bodyText: {
+    color: '#2A3C67',
+    lineHeight: '30px',
+    fontSize: '22px',
+    width: '607px',
+    marginTop: '40px'
+  },
+  boxIconsBottom: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '50px'
+  },
+  buttonBottom: {
+    fontWeight: theme.typography.fontWeightMedium,
+    backgroundColor: '#F3F2F5',
+    fontSize: '20px',
+    lineHeight: '20px',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '30px',
+    width: '207px',
+    height: '70px',
+    textTransform: 'none'
+  },
+  iconsBottom: {
+    width: '200px'
+  },
+  toolTipText: {
+    width: '400px',
+    height: '500px',
+    marginRight: '15px',
+    marginLeft: '15px',
+    marginTop: '10px'
+  }
+}))
 
 export default function AIToolkitPage() {
   const [anchorEl, setAnchorEl] = React.useState(null)
-
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget)
   }
-
   const handleClose = () => {
     setAnchorEl(null)
   }
 
   const open = Boolean(anchorEl)
   const id = open ? 'simple-popover' : undefined
-  const classes = useStylesLanding()
+  const styles = useStyles()
 
-  return <Grid container spacing={2} className={classes.root}>
-    <Grid container className={classes.background}>
+  return <Grid container spacing={2} className={styles.root}>
+    <Grid container className={styles.background}>
       <Grid item xs={12} >
-        <Box className={classes.title}>
-         Powerful Tools for Materials Science  </Box>
+        <Typography className={styles.title}>Powerful Tools for Materials Science</Typography>
       </Grid>
       <Grid item xs={12}>
-        <Box className={classes.deck}>
-      Find new Patterns and Information in Materials Science Big Data  </Box>
+        <Typography className={styles.deck}>Find new Patterns and Information in Materials Science Big Data</Typography>
       </Grid>
-      <Grid container spacing={1} className={classes.boxIcons}>
+      <Grid container spacing={1} className={styles.boxIcons}>
         <Grid item xs={3} style={{zIndex: 1}}> <img src={IconQuery} />
         </Grid>
         <Grid item xs={3} style={{zIndex: 1}}> <img src={IconTutorial} />
@@ -67,25 +184,45 @@ export default function AIToolkitPage() {
         <Grid item xs={3} style={{zIndex: 1}}> <img src={IconWork} />
         </Grid>
         <Grid item xs={3}>
-          <Button color='#2A3C67' href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
-            <Box className={classes.fieldText} > Query the Archive </Box>
+          <Button
+            color='#2A3C67'
+            href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'
+            className={styles.button}
+            endIcon={<img src={ArrowIcon}></img>}
+          >
+            <Box className={styles.fieldText}>Query the Archive</Box>
           </Button>
         </Grid>
         <Grid item xs={3} >
-          <Button color='#2A3C67' href='tutorials' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
-            <Box className={classes.fieldText} > View tutorials </Box>
+          <Button
+            color='#2A3C67'
+            component={Link}
+            to="tutorials"
+            className={styles.button}
+            endIcon={<img src={ArrowIcon}></img>}
+          >
+            <Box className={styles.fieldText}>View tutorials</Box>
           </Button>
         </Grid>
         <Grid item xs={3}>
-          <Button href='reproduce' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
-            <Box className={classes.fieldText} > Published results </Box>
+          <Button
+            component={Link}
+            to="reproduce"
+            className={styles.button}
+            endIcon={<img src={ArrowIcon}></img>}
+          >
+            <Box className={styles.fieldText}>Published results</Box>
           </Button>
         </Grid>
         <Grid item xs={3}>
           <Grid container >
             <Grid item xs={11}>
-              <Button color='#2A3C67' href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks' className={classes.button} endIcon={<img src={ArrowIcon}></img>}>
-                <Box className={classes.fieldText} > Get to work </Box>
+              <Button
+                color='#2A3C67'
+                href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks'
+                className={styles.button} endIcon={<img src={ArrowIcon}></img>}
+              >
+                <Box className={styles.fieldText}>Get to work</Box>
               </Button>
             </Grid>
             <Grid item xs={1} style={{marginTop: '-35px', marginLeft: '-20px'}}>
@@ -102,16 +239,26 @@ export default function AIToolkitPage() {
                   horizontal: 'left'
                 }}
               >
-                <Typography style={{width: '400px', height: '500px', marginRight: '15px', marginLeft: '15px', marginTop: '10px', fontFamily: 'TitilliumRegular'}}>
-                  Clicking on the 'Get to work' button will redirect to a personal space that is available to each NOMAD user.
-                  After logging in, you can access a 'tutorials' and 'work' directory.
-                  The 'tutorials' directory contains all notebooks available in the AI toolkit, while the 'work' directory offers some space to save personal work.
-                  When you are in the 'work' directory, click on the 'new' icon on the top right and then select 'Python 3'.
-                  This will create a Jupyter notebook that is stored in the AI toolkit and can be reaccessed and iteratively modified by the user.
-                  All packages installed in the AI toolkit are also available in the 'work' directory, thus making possible to employ the same code syntax that is used in each tutorial presented in the AI toolkit.
-                  It is possible, for example, to deploy any of the methodologies described in tutorials on a novel dataset.
-                  You can also upload your own data with the 'Upload' button on the top right, or even download a novel dataset from the NOMAD Archive.
-                  Make sure to learn how to download NOMAD data, that is explained in the tutorial accessible from the 'Query the Archive' button.
+                <Typography className={styles.toolTipText}>
+                  Clicking on the 'Get to work' button will redirect to a
+                  personal space that is available to each NOMAD user.  After
+                  logging in, you can access a 'tutorials' and 'work' directory.
+                  The 'tutorials' directory contains all notebooks available in
+                  the AI toolkit, while the 'work' directory offers some space
+                  to save personal work.  When you are in the 'work' directory,
+                  click on the 'new' icon on the top right and then select
+                  'Python 3'. This will create a Jupyter notebook that is
+                  stored in the AI toolkit and can be reaccessed and iteratively
+                  modified by the user.  All packages installed in the AI
+                  toolkit are also available in the 'work' directory, thus
+                  making possible to employ the same code syntax that is used in
+                  each tutorial presented in the AI toolkit.  It is possible,
+                  for example, to deploy any of the methodologies described in
+                  tutorials on a novel dataset.  You can also upload your own
+                  data with the 'Upload' button on the top right, or even
+                  download a novel dataset from the NOMAD Archive.  Make sure to
+                  learn how to download NOMAD data, that is explained in the
+                  tutorial accessible from the 'Query the Archive' button.
                 </Typography>
               </Popover>
             </Grid>
@@ -119,76 +266,107 @@ export default function AIToolkitPage() {
         </Grid>
       </Grid>
     </Grid>
-    <Grid container spacing={1} className={classes.body}>
+    <Grid container spacing={1} className={styles.body}>
       <Grid item xs={8} >
-        <Typography className={classes.highlightedText}>What is the NOMAD Artificial Intelligence Toolkit? </Typography>
-
-        <Typography className={classes.bodyText}>
-          The preparation, synthesis, and characterization of new materials is a complex and costly aspect of materials design.
-          The number of possible materials is practically infinite, about 200,000 materials are “known” to exist.
-          But the basic properties (e.g., optical gap, elasticity constants, plasticity, piezoelectric tensors, conductivity, etc.) have been determined for very few of them.
-          NOMAD develops and provides a big set of tools- the Artificial Intelligence Toolkit - using the latest machine learning and artificial intelligence approaches that make it possible to sort all available material data, to identify correlations and structures, and to detect trends and anomalies.
-          Thus, the Artificial Intelligence Toolkit enables scientists and engineers to decide which materials are useful for specific applications or which new materials should be the focus of future studies. </Typography>
+        <Typography className={styles.highlightedText}>
+          What is the NOMAD Artificial Intelligence Toolkit?
+        </Typography>
+        <Typography className={styles.bodyText}>
+          The preparation, synthesis, and characterization of new materials is a
+          complex and costly aspect of materials design. The number of possible
+          materials is practically infinite, about 200,000 materials are “known”
+          to exist. But the basic properties (e.g., optical gap, elasticity
+          constants, plasticity, piezoelectric tensors, conductivity, etc.) have
+          been determined for very few of them.  NOMAD develops and provides a
+          big set of tools- the Artificial Intelligence Toolkit - using the
+          latest machine learning and artificial intelligence approaches that
+          make it possible to sort all available material data, to identify
+          correlations and structures, and to detect trends and anomalies.
+          Thus, the Artificial Intelligence Toolkit enables scientists and
+          engineers to decide which materials are useful for specific
+          applications or which new materials should be the focus of future
+          studies.
+        </Typography>
       </Grid>
-
       <Grid item xs={4}>
         <img src={FigureAI} style={{marginTop: '150px'}}></img>
       </Grid>
       <Grid item xs={8} >
-        <Typography className={classes.highlightedText}>How to get started </Typography>
+        <Typography className={styles.highlightedText}>How to get started</Typography>
         <div className="App" style={{marginTop: '30px'}}>
-          <YoutubeEmbed embedId="v_Ie5TPXrd0" />
+          <YouTubeEmbed embedId="v_Ie5TPXrd0" />
         </div>
-
-        <Typography className={classes.bodyText}>
-          NOMAD Artificial Toolkit is very accessible.
-          Watch this video and learn more about its features. Our philosophy is... </Typography>
+        <Typography className={styles.bodyText}>
+          NOMAD Artificial Toolkit is very accessible. Watch this video and
+          learn more about its features. Our philosophy is...
+        </Typography>
       </Grid>
       <div className="App" style={{marginTop: '30px'}}>
-        <YoutubeEmbed embedId="7R4EHsSRork" />
+        <YouTubeEmbed embedId="7R4EHsSRork" />
       </div>
-
       <Grid item xs={8} >
-        <Typography className={classes.highlightedText}>Access the tutorials </Typography>
-
-        <Typography className={classes.bodyText}>Ready to start? Click on one of the options below. If you're new, we suggest starting with the tutorials. </Typography>
+        <Typography className={styles.highlightedText}>Access the tutorials </Typography>
+        <Typography className={styles.bodyText}>
+          Ready to start? Click on one of the options below. If you're new, we
+          suggest starting with the tutorials.
+        </Typography>
       </Grid>
     </Grid>
 
-    <Grid container spacing={1} className={classes.boxIconsBottom}>
-      <Grid item xs={3}> <img src={IconQuery2} className={classes.iconsBottom}/>
+    <Grid container spacing={1} className={styles.boxIconsBottom}>
+      <Grid item xs={3}> <img src={IconQuery2} className={styles.iconsBottom}/>
       </Grid>
-      <Grid item xs={3}> <img src={IconTutorial2} className={classes.iconsBottom}/>
+      <Grid item xs={3}> <img src={IconTutorial2} className={styles.iconsBottom}/>
       </Grid>
-      <Grid item xs={3}> <img src={IconReplicate2} className={classes.iconsBottom}/>
+      <Grid item xs={3}> <img src={IconReplicate2} className={styles.iconsBottom}/>
       </Grid>
-      <Grid item xs={3}> <img src={IconWork2} className={classes.iconsBottom}/>
+      <Grid item xs={3}> <img src={IconWork2} className={styles.iconsBottom}/>
       </Grid>
       <Grid item xs={3}>
-        <Button color='#2A3C67' href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
-          <Box className={classes.fieldText} >
-          Query the Archive
+        <Button
+          color='#2A3C67'
+          href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'
+          className={styles.buttonBottom}
+          endIcon={<img src={ArrowIcon}></img>}
+        >
+          <Box className={styles.fieldText} >
+            Query the Archive
           </Box>
         </Button>
       </Grid>
       <Grid item xs={3} >
-        <Button color='#2A3C67' href='tutorials' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
-          <Box className={classes.fieldText} >
-          View tutorials
+        <Button
+          color='#2A3C67'
+          component={Link}
+          to="tutorials"
+          className={styles.buttonBottom} endIcon={<img src={ArrowIcon}></img>}
+        >
+          <Box className={styles.fieldText} >
+            View tutorials
           </Box>
         </Button>
       </Grid>
       <Grid item xs={3}>
-        <Button href='reproduce' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
-          <Box className={classes.fieldText} >
-          Published results
+        <Button
+          component={Link}
+          to="reproduce"
+          className={styles.buttonBottom}
+          endIcon={<img src={ArrowIcon}></img>}
+        >
+          <Box className={styles.fieldText}>
+            Published results
           </Box>
         </Button>
       </Grid>
       <Grid item xs={3}>
-        <Button href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks' color='#2A3C67' className={classes.buttonBottom} endIcon={<img src={ArrowIcon}></img>}>
-          <Box className={classes.fieldText} >
-          Get to work
+        <Button
+          href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks'
+          color='#2A3C67'
+          className={styles.buttonBottom}
+          endIcon={<img src={ArrowIcon}></img>}
+        >
+          <Box className={styles.fieldText}>
+            Get to work
           </Box>
         </Button>
       </Grid>

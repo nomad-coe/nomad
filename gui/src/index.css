@@ -3,15 +3,3 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
-
-@font-face {
-  font-family: 'TitilliumRegular';
-  src: url(./components/aitoolkit/fonts/TitilliumWeb-Regular.ttf) format('truetype');}
-
-@font-face {
-  font-family: 'TitilliumBold';
-  src: url(./components/aitoolkit/fonts/TitilliumWeb-Bold.ttf) format('truetype');}
-
-@font-face {
-  font-family: 'TitilliumLight';
-  src: url(./components/aitoolkit/fonts/TitilliumWeb-Light.ttf) format('truetype');}
