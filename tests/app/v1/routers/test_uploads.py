@@ -212,7 +212,7 @@ def assert_processing(
         all_entries_should_succeed=True):
     response_data = block_until_completed(client, upload_id, user_auth)
 
-    assert response_data['process_status'] == ProcessStatus.SUCCESS
+    assert response_data['process_status'] in (ProcessStatus.SUCCESS, ProcessStatus.READY)
     assert not response_data['process_running']
 
     response_entries = perform_get(client, f'uploads/{upload_id}/entries', user_auth)

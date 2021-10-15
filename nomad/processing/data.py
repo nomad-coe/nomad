@@ -30,7 +30,7 @@ calculations, and files
 
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
 from mongoengine import (
-    StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
+    StringField, DateTimeField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
@@ -822,7 +822,6 @@ class Upload(Proc):
     published_to = ListField(StringField())
 
     publish_directly = BooleanField(default=False)
-    pending_operations = ListField(DictField(), default=[])
     joined = BooleanField(default=False)
 
     meta: Any = {
@@ -953,31 +952,6 @@ class Upload(Proc):
 
             self.delete()
 
-    def schedule_operation_add_files(self, path: str, target_dir: str, temporary: bool):
-        assert type(path) == str and type(target_dir) == str and type(temporary) == bool
-        self._schedule_operation(dict(op='ADD', path=path, target_dir=target_dir, temporary=temporary))
-
-    def schedule_operation_delete_path(self, path):
-        assert type(path) == str
-        self._schedule_operation(dict(op='DELETE', path=path))
-
-    def _schedule_operation(self, operation: Dict):
-        '''
-        Adds a dictionary, defining a pending operation, to the pending_operations queue and
-        saves the document.
-        '''
-        self.pending_operations.append(operation)
-        self.save()
-
-    def _take_next_pending_operation(self) -> Dict:
-        '''
-        Gets the next pending operation for the specified upload from the queue, and saves
-        the document (=an atomic operation). If unsuccessful, an exception will be raised.
-        '''
-        next_operation = self.pending_operations.pop(0)
-        self.save()
-        return next_operation
-
     @process
     def delete_upload(self):
         '''
@@ -1069,7 +1043,8 @@ class Upload(Proc):
             PathObject(tmp_dir).delete()
 
     @process
-    def process_upload(self, reprocess_settings: Dict[str, Any] = None):
+    def process_upload(
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
         A *process* that executes pending operations (if any), matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
@@ -1079,13 +1054,20 @@ class Upload(Proc):
         upload in the staging area, or no longer match because of modified parsers, etc).
 
         Arguments:
+            file_operation: A dictionary specifying a file operation to perform before
+                the actual processing. The dictionary should contain a key `op` which defines
+                the operation, either "ADD" or "DELETE". The "ADD" operation further expects
+                keys named `path` (the path to the source file), `target_dir` (the destination
+                path relative to the raw folder), and `temporary` (if the source file and parent
+                folder should be deleted when done). The "DELETE" operation expects a key named
+                `path` (specifying the path relative to the raw folder which is to be deleted).
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        return self.process_upload_local(reprocess_settings)
+        return self.process_upload_local(file_operation, reprocess_settings)
 
-    def process_upload_local(self, reprocess_settings: Dict[str, Any]):
+    def process_upload_local(self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
         The function doing the actual processing, but locally, not as a @process.
         See :func:`process_upload`
@@ -1093,7 +1075,7 @@ class Upload(Proc):
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
-        self.extracting()
+        self.update_files(file_operation)
         self.parse_all(reprocess_settings)
         self.set_last_status_message('Waiting for entry results')
         return ProcessStatus.WAITING_FOR_RESULT
@@ -1115,38 +1097,40 @@ class Upload(Proc):
     def staging_upload_files(self) -> StagingUploadFiles:
         return self.upload_files.to_staging_upload_files()
 
-    def extracting(self):
+    def update_files(self, file_operation: Dict[str, Any]):
         '''
         The process step performed before the actual parsing/normalizing: executes the pending
         file operations.
         '''
-        self.set_last_status_message('Updating files')
         logger = self.get_logger()
 
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
             # Clean up staging files, if they exist, and unpack the public files to the
             # staging area.
+            self.set_last_status_message('Refreshing staging files')
             self._cleanup_staging_files()
             with utils.timer(logger, 'upload extracted'):
                 self.upload_files.to_staging_upload_files(create=True)
         elif not StagingUploadFiles.exists_for(self.upload_id):
             # Create staging files
+            self.set_last_status_message('Creating staging files')
             StagingUploadFiles(self.upload_id, create=True)
 
         staging_upload_files = self.staging_upload_files
-        # Execute any pending operations
-        while self.pending_operations:
-            operation = self._take_next_pending_operation()
-            op = operation['op']
+        # Execute the requested file_operation, if any
+        if file_operation:
+            op = file_operation['op']
             if op == 'ADD':
+                self.set_last_status_message('Adding files')
                 with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
                     staging_upload_files.add_rawfiles(
-                        operation['path'],
-                        operation['target_dir'],
-                        cleanup_source_file_and_dir=operation['temporary'])
+                        file_operation['path'],
+                        file_operation['target_dir'],
+                        cleanup_source_file_and_dir=file_operation['temporary'])
             elif op == 'DELETE':
+                self.set_last_status_message('Deleting files')
                 with utils.timer(logger, 'Deleting files or folders from upload'):
-                    staging_upload_files.delete_rawfiles(operation['path'])
+                    staging_upload_files.delete_rawfiles(file_operation['path'])
             else:
                 raise ValueError(f'Unknown operation {op}')
 
@@ -1852,7 +1836,7 @@ class Upload(Proc):
             if settings.trigger_processing:
                 reprocess_settings = {
                     k: v for k, v in settings.items() if k in config.reprocess}
-                return self.process_upload_local(reprocess_settings)
+                return self.process_upload_local(reprocess_settings=reprocess_settings)
 
         except Exception as e:
             if settings.get('delete_upload_on_fail'):

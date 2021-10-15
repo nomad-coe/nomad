@@ -732,8 +732,8 @@ async def put_upload_raw_path(
     _check_upload_not_processing(upload)  # Uploading the file could take long time
 
     upload.reset()
-    upload.schedule_operation_add_files(upload_path, path, temporary=(method != 0))
-    upload.process_upload()
+    upload.process_upload(
+        file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)))
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -785,8 +785,7 @@ async def delete_upload_raw_path(
             detail='No file or folder with that path found.')
 
     upload.reset()
-    upload.schedule_operation_delete_path(path)
-    upload.process_upload()
+    upload.process_upload(file_operation=dict(op='DELETE', path=path))
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
@@ -888,9 +887,8 @@ async def post_upload(
     logger.info('upload created', upload_id=upload_id)
 
     if upload_path:
-        upload.schedule_operation_add_files(upload_path, '', temporary=(method != 0))
-
-    upload.process_upload()
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0)))
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
