@@ -62,7 +62,6 @@ def reset_processing(zero_complete_time):
         in_processing.update(
             process_status=proc.ProcessStatus.READY,
             current_process=None,
-            current_process_step=None,
             worker_hostname=None,
             celery_task_id=None,
             errors=[], warnings=[],

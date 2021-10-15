@@ -69,9 +69,9 @@ def run_processing(uploaded: Tuple[str, str], main_author, **kwargs) -> Upload:
     upload = Upload.create(
         upload_id=uploaded_id, main_author=main_author, **kwargs)
     assert upload.process_status == ProcessStatus.READY
-    assert upload.current_process_step is None
-    upload.schedule_operation_add_files(uploaded_path, '', kwargs.get('temporary', False))
-    upload.process_upload()  # pylint: disable=E1101
+    assert upload.last_status_message is None
+    upload.process_upload(
+        file_operation=dict(op='ADD', path=uploaded_path, target_dir='', temporary=kwargs.get('temporary', False)))
     upload.block_until_complete(interval=.01)
 
     return upload
@@ -506,7 +506,6 @@ def test_re_pack(published: Upload):
 
 def mock_failure(cls, function_name, monkeypatch):
     def mock(self, *args, **kwargs):
-        self.set_process_step(function_name)
         raise Exception('fail for test')
 
     mock.__name__ = function_name
@@ -514,7 +513,7 @@ def mock_failure(cls, function_name, monkeypatch):
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
 
 
-@pytest.mark.parametrize('function', ['extracting', 'parse_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize('function', ['update_files', 'parse_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
     upload_id, _ = uploaded
@@ -535,18 +534,15 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
 
     if function != 'parsing':
         assert upload.process_status == ProcessStatus.FAILURE
-        assert upload.current_process_step == function
         assert len(upload.errors) > 0
     else:
         # there is an empty example with no calcs, even if past parsing_all step
         utils.get_logger(__name__).error('fake')
         if upload.total_calcs > 0:  # pylint: disable=E1101
             assert upload.process_status == ProcessStatus.SUCCESS
-            assert upload.current_process_step == 'cleanup'
             assert len(upload.errors) == 0
             for calc in upload.all_calcs(0, 100):  # pylint: disable=E1101
                 assert calc.process_status == ProcessStatus.FAILURE
-                assert calc.current_process_step == 'parsing'
                 assert len(calc.errors) > 0
 
     calc = Calc.objects(upload_id=upload_id).first()
@@ -573,7 +569,6 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     upload = run_processing((example_upload_id, example_file), test_user)
 
     assert not upload.process_running
-    assert upload.current_process_step == 'cleanup'
     assert len(upload.errors) == 0
     assert upload.process_status == ProcessStatus.SUCCESS
 

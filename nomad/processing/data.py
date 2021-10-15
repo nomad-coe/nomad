@@ -30,7 +30,7 @@ calculations, and files
 
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
 from mongoengine import (
-    StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
+    StringField, DateTimeField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
 from contextlib import contextmanager
 import os.path
@@ -454,7 +454,7 @@ class Calc(Proc):
             logger.error('calculation upload does not exist')
 
         # 1. Determine if we should parse or not
-        self.set_process_step('Determining action')
+        self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
         self._is_initial_processing = self.nomad_version is None
@@ -497,7 +497,7 @@ class Calc(Proc):
         if should_parse:
             # 2a. Parse (or reparse) it
             try:
-                self.set_process_step('Initializing metadata')
+                self.set_last_status_message('Initializing metadata')
                 self._initialize_metadata_for_processing()
 
                 if len(self._entry_metadata.files) >= config.auxfile_cutoff:
@@ -518,7 +518,7 @@ class Calc(Proc):
                     logger.error('could not unload processing results', exc_info=e)
         else:
             # 2b. Keep published entry as it is
-            self.set_process_step('Preserving entry data')
+            self.set_last_status_message('Preserving entry data')
             try:
                 upload_files = PublicUploadFiles(self.upload_id)
                 with upload_files.read_archive(self.calc_id) as archive:
@@ -573,7 +573,7 @@ class Calc(Proc):
 
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
-        self.set_process_step('parsing')
+        self.set_last_status_message('Parsing mainfile')
         context = dict(parser=self.parser_name, step=self.parser_name)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser_name]
@@ -683,7 +683,7 @@ class Calc(Proc):
 
     def normalizing(self):
         ''' The process step that encapsulates all normalizing related actions. '''
-        self.set_process_step('normalizing')
+        self.set_last_status_message('Normalizing')
         # allow normalizer to access and add data to the entry metadata
         if self._parser_results.metadata is None:
             self._parser_results.m_add_sub_section(
@@ -706,7 +706,7 @@ class Calc(Proc):
 
     def archiving(self):
         ''' The process step that encapsulates all archival related actions. '''
-        self.set_process_step('archiving')
+        self.set_last_status_message('Archiving')
         logger = self.get_logger()
 
         self._entry_metadata.apply_archvie_metadata(self._parser_results)
@@ -822,7 +822,6 @@ class Upload(Proc):
     published_to = ListField(StringField())
 
     publish_directly = BooleanField(default=False)
-    pending_operations = ListField(DictField(), default=[])
     joined = BooleanField(default=False)
 
     meta: Any = {
@@ -953,31 +952,6 @@ class Upload(Proc):
 
             self.delete()
 
-    def schedule_operation_add_files(self, path: str, target_dir: str, temporary: bool):
-        assert type(path) == str and type(target_dir) == str and type(temporary) == bool
-        self._schedule_operation(dict(op='ADD', path=path, target_dir=target_dir, temporary=temporary))
-
-    def schedule_operation_delete_path(self, path):
-        assert type(path) == str
-        self._schedule_operation(dict(op='DELETE', path=path))
-
-    def _schedule_operation(self, operation: Dict):
-        '''
-        Adds a dictionary, defining a pending operation, to the pending_operations queue and
-        saves the document.
-        '''
-        self.pending_operations.append(operation)
-        self.save()
-
-    def _take_next_pending_operation(self) -> Dict:
-        '''
-        Gets the next pending operation for the specified upload from the queue, and saves
-        the document (=an atomic operation). If unsuccessful, an exception will be raised.
-        '''
-        next_operation = self.pending_operations.pop(0)
-        self.save()
-        return next_operation
-
     @process
     def delete_upload(self):
         '''
@@ -1037,18 +1011,15 @@ class Upload(Proc):
         tmp_dir = create_tmp_dir('export_' + self.upload_id)
         bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
         try:
-            self.last_status_message = 'Creating bundle.'
-            self.save()
+            self.set_last_status_message('Creating bundle.')
 
             self.export_bundle(
                 export_as_stream=False, export_path=bundle_path,
                 zipped=True, move_files=False, overwrite=False,
                 include_raw_files=True, include_archive_files=True, include_datasets=True)
 
-            self.last_status_message = 'Bundle created.'
-            self.save()
-
             # upload to central NOMAD
+            self.set_last_status_message('Uploading bundle to central NOMAD.')
             upload_auth = client.Auth(
                 user=config.keycloak.username,
                 password=config.keycloak.password)
@@ -1065,16 +1036,15 @@ class Upload(Proc):
                 self.get_logger().error(
                     'Could not upload to central NOMAD',
                     status_code=response.status_code, body=response.text)
-                self.last_status_message = 'Could not upload to central NOMAD.'
-                return
+                raise ProcessFailure('Error message from central NOMAD: {response.text}')
 
             self.published_to.append(config.oasis.central_nomad_deployment_id)
-            self.last_status_message = 'Successfully uploaded to central NOMAD.'
         finally:
             PathObject(tmp_dir).delete()
 
     @process
-    def process_upload(self, reprocess_settings: Dict[str, Any] = None):
+    def process_upload(
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
         A *process* that executes pending operations (if any), matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
@@ -1084,13 +1054,20 @@ class Upload(Proc):
         upload in the staging area, or no longer match because of modified parsers, etc).
 
         Arguments:
+            file_operation: A dictionary specifying a file operation to perform before
+                the actual processing. The dictionary should contain a key `op` which defines
+                the operation, either "ADD" or "DELETE". The "ADD" operation further expects
+                keys named `path` (the path to the source file), `target_dir` (the destination
+                path relative to the raw folder), and `temporary` (if the source file and parent
+                folder should be deleted when done). The "DELETE" operation expects a key named
+                `path` (specifying the path relative to the raw folder which is to be deleted).
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        return self.process_upload_local(reprocess_settings)
+        return self.process_upload_local(file_operation, reprocess_settings)
 
-    def process_upload_local(self, reprocess_settings: Dict[str, Any]):
+    def process_upload_local(self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
         The function doing the actual processing, but locally, not as a @process.
         See :func:`process_upload`
@@ -1098,9 +1075,9 @@ class Upload(Proc):
         logger = self.get_logger()
         logger.info('starting to (re)process')
 
-        self.extracting()
+        self.update_files(file_operation)
         self.parse_all(reprocess_settings)
-        self.set_process_step('collecting entry results')
+        self.set_last_status_message('Waiting for entry results')
         return ProcessStatus.WAITING_FOR_RESULT
 
     def on_waiting_for_result(self):
@@ -1120,38 +1097,40 @@ class Upload(Proc):
     def staging_upload_files(self) -> StagingUploadFiles:
         return self.upload_files.to_staging_upload_files()
 
-    def extracting(self):
+    def update_files(self, file_operation: Dict[str, Any]):
         '''
         The process step performed before the actual parsing/normalizing: executes the pending
         file operations.
         '''
-        self.set_process_step('updating files')
         logger = self.get_logger()
 
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
             # Clean up staging files, if they exist, and unpack the public files to the
             # staging area.
+            self.set_last_status_message('Refreshing staging files')
             self._cleanup_staging_files()
             with utils.timer(logger, 'upload extracted'):
                 self.upload_files.to_staging_upload_files(create=True)
         elif not StagingUploadFiles.exists_for(self.upload_id):
             # Create staging files
+            self.set_last_status_message('Creating staging files')
             StagingUploadFiles(self.upload_id, create=True)
 
         staging_upload_files = self.staging_upload_files
-        # Execute any pending operations
-        while self.pending_operations:
-            operation = self._take_next_pending_operation()
-            op = operation['op']
+        # Execute the requested file_operation, if any
+        if file_operation:
+            op = file_operation['op']
             if op == 'ADD':
+                self.set_last_status_message('Adding files')
                 with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
                     staging_upload_files.add_rawfiles(
-                        operation['path'],
-                        operation['target_dir'],
-                        cleanup_source_file_and_dir=operation['temporary'])
+                        file_operation['path'],
+                        file_operation['target_dir'],
+                        cleanup_source_file_and_dir=file_operation['temporary'])
             elif op == 'DELETE':
+                self.set_last_status_message('Deleting files')
                 with utils.timer(logger, 'Deleting files or folders from upload'):
-                    staging_upload_files.delete_rawfiles(operation['path'])
+                    staging_upload_files.delete_rawfiles(file_operation['path'])
             else:
                 raise ValueError(f'Unknown operation {op}')
 
@@ -1224,7 +1203,7 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        self.set_process_step('parse all')
+        self.set_last_status_message('Parsing all files')
         logger = self.get_logger()
 
         with utils.timer(logger, 'calcs processing called'):
@@ -1420,7 +1399,7 @@ class Upload(Proc):
         The process step that "cleans" the processing, i.e. removed obsolete files and performs
         pending archival operations. Depends on the type of processing.
         '''
-        self.set_process_step('cleanup')
+        self.set_last_status_message('Cleanup')
         search.refresh()
         self._cleanup_after_processing()
 
@@ -1792,9 +1771,8 @@ class Upload(Proc):
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = list(_mongo_entry_metadata)
                 entry_keys_to_copy.extend((
-                    'upload_id', 'errors', 'warnings',
-                    'last_status_message', 'current_process', 'current_process_step',
-                    'complete_time', 'worker_hostname', 'celery_task_id'))
+                    'upload_id', 'errors', 'warnings', 'last_status_message',
+                    'current_process', 'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
                     update['calc_id'] = entry_dict['_id']
@@ -1858,7 +1836,7 @@ class Upload(Proc):
             if settings.trigger_processing:
                 reprocess_settings = {
                     k: v for k, v in settings.items() if k in config.reprocess}
-                return self.process_upload_local(reprocess_settings)
+                return self.process_upload_local(reprocess_settings=reprocess_settings)
 
         except Exception as e:
             if settings.get('delete_upload_on_fail'):

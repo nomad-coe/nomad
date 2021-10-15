@@ -62,13 +62,23 @@ upload_metadata_parameters = parameter_dependency_from_model(
 
 
 class ProcData(BaseModel):
-    process_running: bool = Field()
-    current_process: Optional[str] = Field()
-    current_process_step: Optional[str] = Field()
-    process_status: str = Field()
-    errors: List[str] = Field()
-    warnings: List[str] = Field()
-    complete_time: Optional[datetime] = Field()
+    process_running: bool = Field(
+        description='If a process is running')
+    current_process: Optional[str] = Field(
+        description='Name of the current or last completed process')
+    process_status: str = Field(
+        description='The status of the current or last completed process')
+    last_status_message: Optional[str] = Field(
+        description='A short, human readable message from the current process, with '
+                    'information about what the current process is doing, or information '
+                    'about the completion (successful or not) of the last process, if no '
+                    'process is currently running.')
+    errors: List[str] = Field(
+        descriptions='A list of error messages that occurred during the last processing')
+    warnings: List[str] = Field(
+        description='A list of warning messages that occurred during the last processing')
+    complete_time: Optional[datetime] = Field(
+        description='Date and time of the completion of the last process')
 
     class Config:
         orm_mode = True
@@ -98,9 +108,6 @@ class UploadProcData(ProcData):
         description='The length of the requested embargo, in months. 0 if no embargo is requested.')
     license: str = Field(
         description='The license under which this upload is distributed.')
-    last_status_message: Optional[str] = Field(
-        None,
-        description='The last informative message that the processing saved about this uploads status.')
     entries: int = Field(
         0,
         description='The number of identified entries in this upload.')
@@ -725,8 +732,8 @@ async def put_upload_raw_path(
     _check_upload_not_processing(upload)  # Uploading the file could take long time
 
     upload.reset()
-    upload.schedule_operation_add_files(upload_path, path, temporary=(method != 0))
-    upload.process_upload()
+    upload.process_upload(
+        file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)))
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -778,8 +785,7 @@ async def delete_upload_raw_path(
             detail='No file or folder with that path found.')
 
     upload.reset()
-    upload.schedule_operation_delete_path(path)
-    upload.process_upload()
+    upload.process_upload(file_operation=dict(op='DELETE', path=path))
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
@@ -881,9 +887,8 @@ async def post_upload(
     logger.info('upload created', upload_id=upload_id)
 
     if upload_path:
-        upload.schedule_operation_add_files(upload_path, '', temporary=(method != 0))
-
-    upload.process_upload()
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0)))
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(

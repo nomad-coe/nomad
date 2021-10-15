@@ -171,10 +171,12 @@ class Proc(Document):
             run
         warnings: a list of warnings that happened during processing. Warnings do not
             fail a processing run
+        last_status_message: A short, human readable message from the current process, with
+            information about what the current process is doing, or information about the
+            completion (successful or not) of the last process, if no process is currently
+            running.
         complete_time: the time that processing completed (successfully or not)
         current_process: the currently or last run asyncronous process
-        current_process_step: an optional string, describing the current step of the process,
-            or the last step executed (successfully or not) by a completed process.
         process_status: one of the values defined by :class:`ProcessStatus`.
     '''
 
@@ -189,7 +191,6 @@ class Proc(Document):
     last_status_message = StringField(default=None)
 
     current_process = StringField(default=None)
-    current_process_step = StringField(default=None)
     process_status = StringField(default=None)
 
     worker_hostname = StringField(default=None)
@@ -208,8 +209,7 @@ class Proc(Document):
     def get_logger(self):
         return utils.get_logger(
             'nomad.processing', proc=self.__class__.__name__,
-            process=self.current_process, process_step=self.current_process_step,
-            process_status=self.process_status)
+            process=self.current_process, process_status=self.process_status)
 
     @classmethod
     def create(cls, **kwargs):
@@ -230,7 +230,6 @@ class Proc(Document):
         assert not self.process_running or force
 
         self.current_process = None
-        self.current_process_step = None
         self.process_status = process_status
         self.errors = []
         self.warnings = []
@@ -240,7 +239,7 @@ class Proc(Document):
     def reset_pymongo_update(cls, worker_hostname: str = None):
         ''' Returns a pymongo update dict part to reset calculations. '''
         return dict(
-            current_process=None, current_process_step=None, process_status=ProcessStatus.READY,
+            current_process=None, process_status=ProcessStatus.READY,
             errors=[], warnings=[], worker_hostname=worker_hostname)
 
     @classmethod
@@ -287,8 +286,8 @@ class Proc(Document):
     def fail(self, *errors, log_level=logging.ERROR, **kwargs):
         '''
         Allows to fail the process. Takes strings or exceptions as args. The method
-        logs the error(s), updates `self.errors`, `self.process_status`, calls :func:`on_fail`,
-        and saves.
+        logs the error(s), updates `self.errors`, `self.last_status_message`,
+        `self.process_status`, calls :func:`on_fail`, and saves.
         '''
         assert self.process_running, 'Cannot fail a completed process.'
 
@@ -318,7 +317,7 @@ class Proc(Document):
 
         logger.info('process failed')
         if len(self.errors) > 0:
-            self.last_satus_message = 'ERROR: %s' % self.errors[-1]
+            self.last_status_message = f'Process {self.current_process} failed: {self.errors[-1]}'
 
         self.save()
 
@@ -333,9 +332,10 @@ class Proc(Document):
             self.warnings.append(warning)
             Proc.log(logger, log_level, 'task with warning', warning=warning)
 
-    def set_process_step(self, process_step: str):
+    def set_last_status_message(self, last_status_message: str):
+        ''' Sets the `last_status_message` and saves. '''
         assert self.process_running
-        self.current_process_step = process_step
+        self.last_status_message = last_status_message
         self.save()
 
     def on_success(self):
@@ -547,9 +547,11 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
         with utils.timer(logger, 'process executed on worker'):
             # Actually call the process function
             self.process_status = ProcessStatus.RUNNING
+            self.last_status_message = 'Started process: ' + func_attr
             self.save()
             rv = func(self, *process_args, **process_kwargs)
             if self.errors:
+                # Should not happen, but handle just in case
                 # Must have called self.fail, but continued execution and returned normally
                 # Set complete_time and process_status, just in case...
                 self.complete_time = datetime.utcnow()
@@ -561,6 +563,10 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
                 self.process_status = ProcessStatus.SUCCESS
                 self.on_success()
                 self.complete_time = datetime.utcnow()
+                if self.warnings:
+                    self.last_status_message = f'Process {func_attr} completed with warnings'
+                else:
+                    self.last_status_message = f'Process {func_attr} completed successfully'
                 self.save()
                 self.get_logger().info('completed process')
             elif rv == ProcessStatus.WAITING_FOR_RESULT:
