@@ -123,7 +123,7 @@ const useUploadNameStyles = makeStyles(theme => ({
   }
 }))
 
-function UploadName({name, onChange}) {
+function UploadName({upload_name, onChange}) {
   const [edit, setEdit] = useState(false)
   const [value, setValue] = useState(null)
   const classes = useUploadNameStyles()
@@ -143,15 +143,15 @@ function UploadName({name, onChange}) {
   }
 
   return <WithButton size="small"
-    icon={<EditIcon style={{fontSize: 24}} />} onClick={() => { setEdit(true); setValue(name) }}
+    icon={<EditIcon style={{fontSize: 24}} />} onClick={() => { setEdit(true); setValue(upload_name) }}
   >
     <Typography variant="h6">
-      {name || <i>unnamed upload</i>}
+      {upload_name || <i>unnamed upload</i>}
     </Typography>
   </WithButton>
 }
 UploadName.propTypes = {
-  name: PropTypes.string,
+  upload_name: PropTypes.string,
   onChange: PropTypes.func
 }
 
@@ -352,8 +352,8 @@ function UploadPage() {
       })
   }
 
-  const handleNameChange = (name) => {
-    api.put(`/uploads/${uploadId}/metadata?upload_name=${name}`)
+  const handleNameChange = (upload_name) => {
+    api.put(`/uploads/${uploadId}/metadata?upload_name=${upload_name}`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
   }
@@ -409,7 +409,7 @@ function UploadPage() {
         <UploadStatus upload={upload} fontSize="large" />
       </Grid>
       <Grid item style={{flexGrow: 1}}>
-        <UploadName name={upload?.upload_name} onChange={handleNameChange} />
+        <UploadName upload_name={upload?.upload_name} onChange={handleNameChange} />
         <WithButton clipboard={uploadId}>
           <Typography>upload id: {uploadId}</Typography>
         </WithButton>

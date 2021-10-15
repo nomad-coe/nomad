@@ -193,7 +193,7 @@ export default function RawFiles({data, entryId}) {
 
   const filterPotcar = useCallback((file) => {
     if (file.substring(file.lastIndexOf('/')).includes('POTCAR') && !file.endsWith('.stripped')) {
-      return user && data.uploader.user_id === user.sub
+      return user && data.main_author.user_id === user.sub
     } else {
       return true
     }

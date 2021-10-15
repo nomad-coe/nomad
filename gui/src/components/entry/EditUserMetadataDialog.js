@@ -776,8 +776,8 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     this.editData = {
       comment: '',
       references: [],
-      coauthors: [],
-      shared_with: [],
+      entry_coauthors: [],
+      reviewers: [],
       datasets: []
     }
     this.unmounted = false
@@ -802,17 +802,17 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     if (example.authors) {
       example.authors.forEach(user => update_local_user(user))
     }
-    if (example.owners) {
-      example.owners.forEach(user => update_local_user(user))
+    if (example.viewers) {
+      example.viewers.forEach(user => update_local_user(user))
     }
     this.editData = {
       comment: example.comment || '',
       references: example.references || [],
-      coauthors: (example.authors || [])
-        .filter(user => user.user_id !== example.uploader.user_id)
+      entry_coauthors: (example.authors || [])
+        .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
-      shared_with: (example.owners || [])
-        .filter(user => user.user_id !== example.uploader.user_id)
+      reviewers: (example.viewers || [])
+        .filter(user => user.user_id !== example.main_author.user_id)
         .map(user => user.user_id),
       datasets: (example.datasets || []).map(ds => ds.dataset_name)
     }
@@ -953,7 +953,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
     const { classes, buttonProps, total, user, example, disabled, title } = this.props
     const { open, actions, verified, submitting, success, message } = this.state
 
-    const dialogEnabled = user && example.uploader && example.uploader.user_id === user.sub && !disabled
+    const dialogEnabled = user && example.main_author && example.main_author.user_id === user.sub && !disabled
     const submitEnabled = Object.keys(actions).length && !submitting && verified
 
     const editDataToActions = editData => {
@@ -1052,18 +1052,18 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   label="References"
                 />
               </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('coauthors', true)}>
+              <UserMetadataField {...metadataFieldProps('entry_coauthors', true)}>
                 <ListTextInput
                   component={UserInput}
-                  {...listTextInputProps('coauthors', true)}
+                  {...listTextInputProps('entry_coauthors', true)}
                   label="Co-author"
                 />
               </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('shared_with', true)}>
+              <UserMetadataField {...metadataFieldProps('reviewers', true)}>
                 <ListTextInput
                   component={UserInput}
-                  {...listTextInputProps('shared_with', true)}
-                  label="Shared with"
+                  {...listTextInputProps('reviewers', true)}
+                  label="Reviewers"
                 />
               </UserMetadataField>
               <UserMetadataField {...metadataFieldProps('datasets', true)}>

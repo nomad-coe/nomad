@@ -142,18 +142,22 @@ export function Published(props) {
   const {entry} = props
   if (entry.published) {
     if (entry.with_embargo) {
-      if (user && entry.uploader.user_id === user.sub) {
-        if (entry.owners.length === 1) {
+      if (user && entry.main_author.user_id === user.sub) {
+        if (entry.viewers.length === 1) {
           return <Tooltip title="published with embargo by you and only accessible by you">
             <UploaderIcon color="error" />
           </Tooltip>
         } else {
-          return <Tooltip title="published with embargo by you and only accessible to you and users you shared the data with">
+          return <Tooltip title="published with embargo by you and only accessible to you and the specified coauthors and reviewers">
             <SharedIcon color="error" />
           </Tooltip>
         }
-      } else if (user && entry.owners.find(user => user.user_id === user.sub)) {
-        return <Tooltip title="published with embargo and shared with you">
+      } else if (user && entry.coauthors.find(user => user.user_id === user.sub)) {
+        return <Tooltip title="published with embargo and visible to you as a coauthor">
+          <SharedIcon color="error" />
+        </Tooltip>
+      } else if (user && entry.reviewers.find(user => user.user_id === user.sub)) {
+        return <Tooltip title="published with embargo and visible to you as a reviewer">
           <SharedIcon color="error" />
         </Tooltip>
       } else {
@@ -184,7 +188,7 @@ Published.propTypes = {
 
 export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...props}) {
   const {user} = useApi()
-  const hide = data.with_embargo && !user && !data.owners.find(owner => owner.user_id === user.sub)
+  const hide = data.with_embargo && !user && !data.viewers.find(viewer => viewer.user_id === user.sub)
   if (hide) {
     return ''
   }

@@ -252,7 +252,7 @@ def ls(ctx, uploads, calculations, ids, json):
         row = [
             upload.upload_id,
             upload.upload_name,
-            upload.user_id,
+            upload.main_author,
             upload.process_status,
             upload.published]
 
@@ -295,7 +295,7 @@ def chown(ctx, username, uploads):
     print('%d uploads selected, changing owner ...' % uploads.count())
 
     user = datamodel.User.get(username=username)
-    upload_metadata = datamodel.UploadMetadata(uploader=user)
+    upload_metadata = datamodel.UploadMetadata(main_author=user)
     for upload in uploads:
         upload.set_upload_metadata(upload_metadata.m_to_dict())
 

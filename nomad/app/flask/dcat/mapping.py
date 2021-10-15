@@ -103,13 +103,13 @@ class Mapping():
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
         self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
-        self.g.add((dataset, DCT.publisher, self.map_user(entry['uploader']['user_id'])))
+        self.g.add((dataset, DCT.publisher, self.map_user(entry['main_author']['user_id'])))
         try:
             for author in entry['authors']:
                 self.g.add((dataset, DCT.creator, self.map_user(author['user_id'])))
         except (KeyError, AttributeError):
             pass
-        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry['uploader']['user_id'])))
+        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry['main_author']['user_id'])))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))

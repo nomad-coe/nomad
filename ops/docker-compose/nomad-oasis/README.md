@@ -608,15 +608,18 @@ There are three reasons: You want to manage data in private, you want local avai
 ### How to organize data in NOMAD Oasis?
 
 #### How can I categorize or label my data?
-Current, NOMAD supports the following mechanism to organize data:
-data always belongs to one upload, one uploading user, and is assigned an upload datetime; uploads can have a custom name
+Currently, NOMAD supports the following mechanism to organize data:
+data always belongs to one upload, which has a main author, and is assigned various metadata, like upload create time, a custom, human friendly upload name, etc.
 data can be assigned to multiple independent datasets
 data can hold a proprietary id called “external_id”
-data can be assigned multiple authors in addition to the uploading user
-The next NOMAD release (0.8.x) will contain more features to filter data based on uploader and upload time. It will also include a revised search bar that makes it easier to filter for external_id or upload_name.
+data can be assigned multiple coauthors in addition to the main author
+Data can be filtered and searched in various ways.
 
 ####  Is there some rights-based visibility?
-No. Currently, NOMAD only supports uploader controlled visibility. The uploader decides when to make an upload public (with or without embargo). The embargo can be used to limit the visibility of an upload to users that the uploader want to share his upload with.
+An upload can be viewed at any time by the main author, the upload coauthors, and the
+upload reviewers. Other users will not be able to see the upload until it is published and
+the embargo (if requested) has been lifted. The main author decides which users to register as coauthors and reviewers, when to publish and if it should be published with an embargo.
+The main author and upload coauthors are the only users who can edit the upload while it is in staging.
 
 ### How to share data with the central NOMAD?
 

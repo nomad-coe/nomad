@@ -1144,7 +1144,10 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
 
 
 def get_quantity_values(quantity, **kwargs):
-    ''' Get all the uploader from the query, to check coauthers and shared_with for uploaders. '''
+    '''
+    Performs the search defined by `kwargs`, aggregated by quantity, and returns the encountered
+    values of this quantity.
+    '''
     response = perform_search(
         **kwargs,
         aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity=quantity))),
@@ -1182,7 +1185,7 @@ async def post_entry_metadata_edit(
     verify = data.verify
     data.success = True
     mongo_update = {}
-    uploader_ids = None
+    main_author_ids = None
     has_error = False
     removed_datasets = None
 
@@ -1201,7 +1204,7 @@ async def post_entry_metadata_edit(
             # TODO this does not work. Because the quantities are not in EditableUserMetadata
             # they are also not in the model and ignored by fastapi. This probably
             # also did not work in the old API.
-            if action_quantity_name in ['uploader', 'upload_create_time']:
+            if action_quantity_name in ['main_author', 'upload_create_time']:
                 if not user.is_admin():
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -1246,13 +1249,13 @@ async def post_entry_metadata_edit(
                         action.message = 'User does not exist'
                         continue
 
-                    if uploader_ids is None:
-                        uploader_ids = get_quantity_values(
-                            quantity='uploader.user_id', owner=Owner.user, query=data.query, user_id=user.user_id)
-                    if action_value in uploader_ids:
+                    if main_author_ids is None:
+                        main_author_ids = get_quantity_values(
+                            quantity='main_author.user_id', owner=Owner.user, query=data.query, user_id=user.user_id)
+                    if action_value in main_author_ids:
                         action.success = False
                         has_error = True
-                        action.message = 'This user is already an uploader of one entry in the query'
+                        action.message = 'This user is already the main author of an entry in the query'
                         continue
 
                 elif verify_reference == datamodel.Dataset:

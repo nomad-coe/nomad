@@ -176,8 +176,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         actions = {
             'comment': {'value': 'Test comment'},
             'references': [{'value': 'http;//test_reference.com'}],
-            'coauthors': [{'value': user['user_id']}],
-            'shared_with': [{'value': user['user_id']}],
+            'entry_coauthors': [{'value': user['user_id']}],
             'datasets': [{'value': dataset}]}
 
         response = api.post(

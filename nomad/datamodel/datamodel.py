@@ -91,8 +91,8 @@ class User(Author):
     ''' A NOMAD user.
 
     Typically a NOMAD user has a NOMAD account. The user related data is managed by
-    NOMAD keycloak user-management system. Users are used to denote uploaders, authors,
-    people to shared data with embargo with, and owners of datasets.
+    NOMAD keycloak user-management system. Users are used to denote authors,
+    reviewers, and owners of datasets.
 
     Args:
         user_id: The unique, persistent keycloak UUID
@@ -210,7 +210,7 @@ class Dataset(metainfo.MSection):
             can only be extended after a DOI was assigned. A foreign dataset cannot be changed
             once a DOI was assigned.
         dataset_type: The type determined if a dataset is owned, i.e. was created by
-            the uploader/owner of the contained entries; or if a dataset is foreign,
+            the authors of the contained entries; or if a dataset is foreign,
             i.e. it was created by someone not necessarily related to the entries.
     '''
     m_def = metainfo.Section(a_mongo=MongoDocument(), a_pydantic=PydanticModel())
@@ -315,17 +315,21 @@ def derive_origin(entry: 'EntryMetadata') -> str:
     if entry.external_db is not None:
         return str(entry.external_db)
 
-    if entry.uploader:
-        return entry.uploader.name
+    if entry.main_author:
+        return entry.main_author.name
 
     return None
 
 
 def derive_authors(entry: 'EntryMetadata') -> List[User]:
-    uploaders: List[User] = []
-    if entry.uploader is not None and entry.external_db is None:
-        uploaders = [entry.uploader]
-    return uploaders + entry.coauthors
+    authors: List[User] = []
+    if entry.main_author is not None and entry.external_db is None:
+        authors.append(entry.main_author)
+    if entry.coauthors:
+        authors.extend(entry.coauthors)
+    if entry.entry_coauthors:
+        authors.extend(entry.entry_coauthors)
+    return authors
 
 
 class UploadMetadata(metainfo.MSection):
@@ -339,7 +343,7 @@ class UploadMetadata(metainfo.MSection):
     upload_create_time = metainfo.Quantity(
         type=metainfo.Datetime,
         description='The date and time when the upload was created')
-    uploader = metainfo.Quantity(
+    main_author = metainfo.Quantity(
         type=user_reference,
         description='The creator of the upload')
     embargo_length = metainfo.Quantity(
@@ -351,41 +355,65 @@ class EntryMetadata(metainfo.MSection):
     '''
     Attributes:
         upload_id: The ``upload_id`` of the calculations upload (random UUID).
+        upload_name: The user provided upload name.
+        upload_create_time: The time that the upload was created
         calc_id: The unique mainfile based calculation id.
         calc_hash: The raw file content based checksum/hash of this calculation.
-        pid: The unique persistent id of this calculation.
-        external_db: The repository or external database where the original data resides.
+        entry_create_time: The time that the entry was created
+        last_edit_time: The date and time the user metadata was last edited.
+        parser_name: The NOMAD parser used for the last processing.
+        mainfile: The upload relative mainfile path.
+        files: A list of all files, relative to upload.
+        pid: The unique, sequentially enumerated, integer PID that was used in the legacy
+            NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
+        raw_id: The code specific identifier extracted from the entry's raw files by the parser,
+            if supported.
         external_id: A user provided external id. Usually the id for an entry in an external
             database where the data was imported from.
-        mainfile: The upload relative mainfile path.
-
-        files: A list of all files, relative to upload.
+        published: Indicates if the entry is published.
+        publish_time: The time when the upload was published.
+        with_embargo: Indicated if this entry is under an embargo. Entries with embargo are
+            only visible to the main author, the upload coauthors, and the upload reviewers.
+        license: A short license description (e.g. CC BY 4.0), that refers to the
+            license of this entry.
         processed: Boolean indicating if this calc was successfully processed and archive
             data and calc metadata is available.
         last_processing_time: The date and time of the last processing.
-        last_edit_time: The date and time the user metadata was last edited.
+        processing_errors: Errors that occured during processing.
         nomad_version: A string that describes the version of the nomad software that was
             used to do the last successful processing.
         nomad_commit: The NOMAD commit used for the last processing.
         comment: An arbitrary string with user provided information about the entry.
         references: A list of URLs for resources that are related to the entry.
-        uploader: Id of the uploader of this entry.
-        coauthors: Ids of all co-authors (excl. the uploader) of this entry. Co-authors are
-            shown as authors of this entry alongside its uploader.
-        shared_with: Ids of all users that this entry is shared with. These users can find,
-            see, and download all data for this entry, even if it is in staging or
-            has an embargo.
-        with_embargo: Entries with embargo are only visible to the uploader, the admin
-            user, and users the entry is shared with (see shared_with).
-        upload_create_time: The time that the upload was created
-        entry_create_time: The time that the entry was created
-        publish_time: The time when the upload was published
+        external_db: The repository or external database where the original data resides.
+        origin: A short human readable description of the entries origin. Usually it is the
+            handle of an external database/repository or the name of the main author.
+        main_author: Id of the main author of this entry.
+        coauthors: A user provided list of co-authors for the whole upload. These can view
+            and edit the upload when in staging, and view it also if it is embargoed.
+        entry_coauthors: Ids of all co-authors (excl. the main author and upload coauthors)
+            specified on the entry level, rather than on the upload level. They are shown
+            as authors of this entry alongside its main author and upload coauthors.
+        reviewers: Ids of users who can review the upload which this entry belongs to. Like
+            the main author and the upload coauthors, reviewers can find, see, and download
+            all data from the upload and all its entries, even if it is in staging or has
+            an embargo.
         datasets: Ids of all datasets that this entry appears in
     '''
     upload_id = metainfo.Quantity(
         type=str, categories=[MongoUploadMetadata],
         description='The persistent and globally unique identifier for the upload of the entry',
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_uploads='cardinality')))
+
+    upload_name = metainfo.Quantity(
+        type=str, categories=[MongoUploadMetadata],
+        description='The user provided upload name',
+        a_elasticsearch=Elasticsearch())
+
+    upload_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[MongoUploadMetadata],
+        description='The date and time when the upload was created in nomad',
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     calc_id = metainfo.Quantity(
         type=str,
@@ -399,6 +427,21 @@ class EntryMetadata(metainfo.MSection):
         description='A raw file content based checksum/hash',
         categories=[MongoEntryMetadata])
 
+    entry_create_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        description='The date and time when the entry was created in nomad',
+        a_flask=dict(admin_only=True),
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    last_edit_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[MongoEntryMetadata],
+        description='The date and time the user metadata was last edited.')
+
+    parser_name = metainfo.Quantity(
+        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        description='The NOMAD parser used for the last processing',
+        a_elasticsearch=Elasticsearch())
+
     mainfile = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The path to the mainfile from the root directory of the uploaded files',
@@ -407,39 +450,64 @@ class EntryMetadata(metainfo.MSection):
     files = metainfo.Quantity(
         type=str, shape=['0..*'],
         description='''
-        The paths to the files within the upload that belong to this entry.
-        All files within the same directory as the entry's mainfile are considered the
-        auxiliary files that belong to the entry.
+            The paths to the files within the upload that belong to this entry.
+            All files within the same directory as the entry's mainfile are considered the
+            auxiliary files that belong to the entry.
         ''',
         a_elasticsearch=PathSearch())
 
     pid = metainfo.Quantity(
         type=str,
         description='''
-        The unique, sequentially enumerated, integer PID that was used in the legacy
-        NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.''',
+            The unique, sequentially enumerated, integer PID that was used in the legacy
+            NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
+        ''',
         categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     raw_id = metainfo.Quantity(
         type=str,
         description='''
-        The code specific identifier extracted from the entry's raw files by the parser,
-        if supported.''',
+            The code specific identifier extracted from the entry's raw files by the parser,
+            if supported.
+        ''',
         categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
-    domain = metainfo.Quantity(
-        type=metainfo.MEnum('dft', 'ems'),
-        description='The material science domain',
-        categories=[UserProvidableMetadata],
-        a_elasticsearch=Elasticsearch(material_entry_type))
+    external_id = metainfo.Quantity(
+        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata],
+        description='''
+            A user provided external id. Usually the id for an entry in an external database
+            where the data was imported from.
+        ''',
+        a_elasticsearch=Elasticsearch())
 
     published = metainfo.Quantity(
         type=bool, default=False,
         description='Indicates if the entry is published',
         categories=[MongoUploadMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
+
+    publish_time = metainfo.Quantity(
+        type=metainfo.Datetime, categories=[MongoUploadMetadata],
+        description='The date and time when the upload was published in nomad',
+        a_flask=dict(admin_only=True),
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    with_embargo = metainfo.Quantity(
+        type=bool, default=False,
+        categories=[MongoUploadMetadata, MongoSystemMetadata],
+        description='Indicated if this entry is under an embargo',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    license = metainfo.Quantity(
+        type=str,
+        description='''
+            A short license description (e.g. CC BY 4.0), that refers to the
+            license of this entry.
+        ''',
+        default='CC BY 4.0',
+        categories=[MongoUploadMetadata, EditableUserMetadata])
 
     processed = metainfo.Quantity(
         type=bool, default=False, categories=[MongoEntryMetadata, MongoSystemMetadata],
@@ -468,11 +536,6 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoEntryMetadata],
         a_elasticsearch=Elasticsearch())
 
-    parser_name = metainfo.Quantity(
-        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
-        description='The NOMAD parser used for the last processing',
-        a_elasticsearch=Elasticsearch())
-
     comment = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A user provided comment for this entry',
@@ -488,76 +551,58 @@ class EntryMetadata(metainfo.MSection):
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    uploader = metainfo.Quantity(
-        type=user_reference, categories=[],  # TODO: fix categories after refactoring
-        description='The uploader of the entry',
-        a_elasticsearch=Elasticsearch(material_entry_type))
-
     origin = metainfo.Quantity(
         type=str,
         description='''
             A short human readable description of the entries origin. Usually it is the
-            handle of an external database/repository or the name of the uploader.
+            handle of an external database/repository or the name of the main author.
         ''',
         derived=derive_origin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    main_author = metainfo.Quantity(
+        type=user_reference, categories=[MongoUploadMetadata],
+        description='The main author of the entry',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
     coauthors = metainfo.Quantity(
+        type=author_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='''
+            A user provided list of co-authors for the whole upload. These can view and edit the
+            upload when in staging, and view it also if it is embargoed.
+        ''')
+
+    entry_coauthors = metainfo.Quantity(
         type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
-        description='A user provided list of co-authors')
+        description='''
+            A user provided list of co-authors specific for this entry. Note that normally,
+            coauthors should be set on the upload level.
+        ''')
+
+    reviewers = metainfo.Quantity(
+        type=user_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='''
+            A user provided list of reviewers. Reviewers can see the whole upload, also if
+            it is unpublished or embargoed
+        ''')
 
     authors = metainfo.Quantity(
         type=author_reference, shape=['0..*'],
-        description='All authors (uploader and co-authors)',
+        description='All authors (main author and co-authors)',
         derived=derive_authors,
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
 
-    shared_with = metainfo.Quantity(
-        type=user_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
-        description='A user provided list of userts to share the entry with')
-
-    owners = metainfo.Quantity(
+    writers = metainfo.Quantity(
         type=user_reference, shape=['0..*'],
-        description='All owner (uploader and shared with users)',
-        derived=lambda entry: ([entry.uploader] if entry.uploader is not None else []) + entry.shared_with,
+        description='All viewers (main author, upload coauthors, and reviewers)',
+        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    license = metainfo.Quantity(
-        type=str,
-        description='''
-            A short license description (e.g. CC BY 4.0), that refers to the
-            license of this entry.
-        ''',
-        default='CC BY 4.0',
-        categories=[MongoUploadMetadata, EditableUserMetadata])
-
-    with_embargo = metainfo.Quantity(
-        type=bool, default=False,
-        categories=[MongoUploadMetadata, MongoSystemMetadata],
-        description='Indicated if this entry is under an embargo',
+    viewers = metainfo.Quantity(
+        type=user_reference, shape=['0..*'],
+        description='All viewers (main author, upload coauthors, and reviewers)',
+        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors + entry.reviewers,
         a_elasticsearch=Elasticsearch(material_entry_type))
-
-    upload_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata],
-        description='The date and time when the upload was created in nomad',
-        a_elasticsearch=Elasticsearch(material_entry_type))
-
-    entry_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata],
-        description='The date and time when the entry was created in nomad',
-        a_flask=dict(admin_only=True),
-        a_elasticsearch=Elasticsearch(material_entry_type))
-
-    publish_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata],
-        description='The date and time when the upload was published in nomad',
-        a_flask=dict(admin_only=True),
-        a_elasticsearch=Elasticsearch(material_entry_type))
-
-    upload_name = metainfo.Quantity(
-        type=str, categories=[MongoUploadMetadata],
-        description='The user provided upload name',
-        a_elasticsearch=Elasticsearch())
 
     datasets = metainfo.Quantity(
         type=dataset_reference, shape=['0..*'], default=[],
@@ -565,21 +610,16 @@ class EntryMetadata(metainfo.MSection):
         description='A list of user curated datasets this entry belongs to.',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    external_id = metainfo.Quantity(
-        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata],
-        description='''
-        A user provided external id. Usually the id for an entry in an external database
-        where the data was imported from.''',
-        a_elasticsearch=Elasticsearch())
-
-    last_edit_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoEntryMetadata],
-        description='The date and time the user metadata was last edited.')
-
     optimade = metainfo.SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
         a_elasticsearch=Elasticsearch(entry_type))
+
+    domain = metainfo.Quantity(
+        type=metainfo.MEnum('dft', 'ems'),
+        description='The material science domain',
+        categories=[UserProvidableMetadata],
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_quantities = metainfo.Quantity(
         type=int, default=0, description='Number of metainfo quantities parsed from the entry.',
@@ -591,10 +631,6 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=QuantitySearch())
 
     encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess])
-
-    def apply_user_metadata(self, metadata: dict):
-        ''' Applies a user provided metadata dict to this calc. '''
-        self.m_update(**metadata)
 
     def apply_archvie_metadata(self, archive):
         quantities = set()
@@ -625,6 +661,7 @@ class EntryMetadata(metainfo.MSection):
             n_quantities += 1
 
         self.quantities = list(quantities)
+        self.quantities.sort()
         self.n_quantities = n_quantities
 
 

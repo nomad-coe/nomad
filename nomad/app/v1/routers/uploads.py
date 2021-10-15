@@ -51,8 +51,8 @@ class UploadMetadata(BaseModel):
         A user-firendly name of the upload. Does not need to be unique'''))
     embargo_length: Optional[int] = Field(None, description=strip('''
         The embargo length in months (max 36).'''))
-    uploader: Optional[str] = Field(None, description=strip('''
-        The uploader (owner) of the upload. **Note! Can only be updated by admin users.**'''))
+    main_author: Optional[str] = Field(None, description=strip('''
+        The main author of the upload. **Note! Can only be updated by admin users.**'''))
     upload_create_time: Optional[datetime] = Field(None, description=strip('''
         The time of the creation of the upload. **Note! Can only be updated by admin users.**'''))
 
@@ -363,7 +363,7 @@ async def get_uploads(
     '''
     # Build query
     query_kwargs: Dict[str, Any] = {}
-    query_kwargs.update(user_id=str(user.user_id))
+    query_kwargs.update(main_author=str(user.user_id))
 
     if query.upload_id:
         query_kwargs.update(upload_id__in=query.upload_id)
@@ -844,7 +844,7 @@ async def post_upload(
     '''
     if not user.is_admin:
         # Check upload limit
-        if _query_mongodb(user_id=str(user.user_id), publish_time=None).count() >= config.services.upload_limit:  # type: ignore
+        if _query_mongodb(main_author=str(user.user_id), publish_time=None).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
@@ -869,7 +869,7 @@ async def post_upload(
 
     upload = Upload.create(
         upload_id=upload_id,
-        user=checked_upload_metadata.uploader or user,
+        main_author=checked_upload_metadata.main_author or user,
         upload_name=checked_upload_metadata.upload_name,
         upload_create_time=checked_upload_metadata.upload_create_time or datetime.utcnow(),
         embargo_length=checked_upload_metadata.embargo_length or 0,
@@ -1381,7 +1381,7 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if user and (user.is_admin or upload.user_id == str(user.user_id)):
+    if user and (user.is_admin or upload.main_author == str(user.user_id)):
         # Ok, it exists and belongs to user, or we have an admin user
         return upload
     elif include_others:
@@ -1413,7 +1413,7 @@ def _get_upload_with_write_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if upload.user_id != str(user.user_id) and not user.is_admin:
+    if upload.main_author != str(user.user_id) and not user.is_admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             You do not have write access to the specified upload.'''))
     if upload.published:
@@ -1463,7 +1463,7 @@ def _check_upload_metadata(
         current_embargo_length: the current embargo_length of the upload.
     '''
     if not is_admin:
-        for field in ('uploader', 'upload_create_time'):
+        for field in ('main_author', 'upload_create_time'):
             if getattr(metadata, field) is not None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1474,15 +1474,15 @@ def _check_upload_metadata(
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail=f'Upload is published, changing {field} requires admin.')
-    if metadata.uploader is not None:
+    if metadata.main_author is not None:
         try:
-            uploader = datamodel.User.get(user_id=metadata.uploader)
+            main_author = datamodel.User.get(user_id=metadata.main_author)
         except KeyError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`uploader` is not a valid user id.')
+                detail='`main_author` is not a valid user id.')
     else:
-        uploader = None
+        main_author = None
     if metadata.embargo_length is not None:
         if not 0 <= metadata.embargo_length <= 36:
             raise HTTPException(
@@ -1501,6 +1501,6 @@ def _check_upload_metadata(
     upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
     upload_metadata.upload_name = metadata.upload_name
     upload_metadata.embargo_length = metadata.embargo_length
-    upload_metadata.uploader = uploader
+    upload_metadata.main_author = main_author
     upload_metadata.upload_create_time = metadata.upload_create_time
     return upload_metadata

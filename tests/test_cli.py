@@ -265,9 +265,10 @@ class TestAdminUploads:
 
     def test_chown(self, published: Upload, test_user, other_test_user):
         upload_id = published.upload_id
+        assert published.main_author == test_user.user_id
         with published.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
-                assert entry_metadata.uploader.user_id == test_user.user_id
+                assert entry_metadata.main_author.user_id == test_user.user_id
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
@@ -277,10 +278,10 @@ class TestAdminUploads:
 
         published.block_until_complete()
 
-        assert published.user_id == other_test_user.user_id
+        assert published.main_author == other_test_user.user_id
         with published.entries_metadata() as entries_metadata:
             for entry_metadata in entries_metadata:
-                assert entry_metadata.uploader.user_id == other_test_user.user_id
+                assert entry_metadata.main_author.user_id == other_test_user.user_id
 
     @pytest.mark.parametrize('with_calcs,success,failure', [
         (True, False, False),

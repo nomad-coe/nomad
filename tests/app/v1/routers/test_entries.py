@@ -339,7 +339,7 @@ def test_entries_all_metrics(client, data):
                     }
                 }
             },
-            3, 3, 200, 'test_user', id='entries-exclude'),
+            7, 7, 200, 'test_user', id='entries-exclude'),
         pytest.param(
             {'terms': {'quantity': 'entry_id', 'value_filter': '_0'}},
             9, 9, 200, None, id='filter'),
@@ -480,8 +480,7 @@ def test_entry_raw_download(client, data, entry_id, files, files_per_entry, stat
 
 @pytest.fixture(scope='function')
 def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
-    data = ExampleData(
-        uploader=test_user)
+    data = ExampleData(main_author=test_user)
 
     data.create_upload(
         upload_id='with_compr_published',
@@ -489,16 +488,14 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     data.create_entry(
         upload_id='with_compr_published',
         calc_id='with_compr_published',
-        mainfile='test_content/test_entry/mainfile.json',
-        shared_with=[])
+        mainfile='test_content/test_entry/mainfile.json')
     data.create_upload(
         upload_id='with_compr_unpublished',
         published=False)
     data.create_entry(
         upload_id='with_compr_unpublished',
         calc_id='with_compr_unpublished',
-        mainfile='test_content/test_entry/mainfile.json',
-        shared_with=[])
+        mainfile='test_content/test_entry/mainfile.json')
 
     data.save()
 
@@ -537,10 +534,11 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     pytest.param('with_compr_unpublished', 'mainfile.xz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-xz-unpublished'),
     pytest.param('with_compr_unpublished', 'mainfile.gz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-gz-unpublished'),
     pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
-    pytest.param('id_embargo', 'mainfile.json', {}, 404, id='404-embargo'),
-    pytest.param('id_embargo', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo'),
-    pytest.param('id_embargo', 'mainfile.json', {'user': 'other-test-user'}, 404, id='404-embargo-shared'),
-    pytest.param('id_embargo_shared', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-shared')
+    pytest.param('id_embargo_1', 'mainfile.json', {}, 404, id='404-embargo-no-user'),
+    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'other-test-user'}, 404, id='404-embargo-no-access'),
+    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo-main_author'),
+    pytest.param('id_embargo_w_coauthor_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-coauthor'),
+    pytest.param('id_embargo_w_reviewer_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-reviewer')
 ])
 def test_entry_raw_download_file(
         client, data, example_data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
@@ -587,7 +585,7 @@ def test_entries_archive_download(client, data, query, files, total, status_code
     pytest.param('*', 200, id='full'),
     pytest.param({'metadata': '*'}, 200, id='partial'),
     pytest.param({'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param({'metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param({'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
     pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
 ])
 def test_entries_archive(client, data, required, status_code):
@@ -624,7 +622,7 @@ def test_entry_archive_download(client, data, entry_id, status_code):
     pytest.param('id_02', '*', 404, id='404'),
     pytest.param('id_01', {'metadata': '*'}, 200, id='partial'),
     pytest.param('id_01', {'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param('id_01', {'metadata': {'owners[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param('id_01', {'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
     pytest.param('id_01', {'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
     pytest.param('id_01', {'resolve-inplace': 'NotBool', 'workflow': '*'}, 422, id='bad-required-4'),
     pytest.param('id_01', {'resolve-inplace': True, 'metadata': 'include-resolved'}, 200, id='resolve-inplace')

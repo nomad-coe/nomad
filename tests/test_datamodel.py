@@ -23,7 +23,6 @@ A generator for random test calculations.
 import random
 from essential_generators import DocumentGenerator
 
-from nomad import datamodel, utils
 from nomad.parsing.parsers import parser_dict
 
 number_of = 20
@@ -47,51 +46,6 @@ low_numbers_for_files = [1, 2, 2, 3, 3, 3, 3, 3, 4, 4]
 low_numbers_for_refs_and_datasets = [0, 0, 0, 0, 1, 1, 1, 2]
 low_numbers_for_total_energies = [1, 2, 2, 2, 3, 4, 5, 6, 10, 100]
 low_numbers_for_geometries = [1, 2, 2, 3, 3, 4, 4]
-
-
-def _gen_user():
-    return random.choice(users)
-
-
-def _gen_dataset():
-    id, dataset_name = random.choice(datasets)
-    id_str = str(id)
-    if datamodel.Dataset.m_def.a_mongo.objects(dataset_id=id_str).first() is None:
-        datamodel.Dataset(
-            user_id=random.choice(users), dataset_id=id_str, dataset_name=dataset_name,
-            doi=_gen_ref().value).a_mongo.create()
-    return id_str
-
-
-def _gen_ref():
-    return random.choice(references)
-
-
-def generate_calc(pid: int = 0, calc_id: str = None, upload_id: str = None, with_embargo=None) -> datamodel.EntryMetadata:
-    random.seed(pid)
-
-    entry = datamodel.EntryMetadata()
-
-    entry.upload_id = upload_id if upload_id is not None else utils.create_uuid()
-    entry.calc_id = calc_id if calc_id is not None else utils.create_uuid()
-
-    entry.calc_hash = utils.create_uuid()
-    entry.pid = str(pid)
-    entry.mainfile = random.choice(filepaths)
-    entry.files = list([entry.mainfile] + random.choices(filepaths, k=random.choice(low_numbers_for_files)))
-    entry.uploader = _gen_user()
-
-    entry.with_embargo = with_embargo if with_embargo is not None else random.choice([True, False])
-    entry.published = True
-    entry.coauthors = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    entry.shared_with = list(_gen_user() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    entry.comment = random.choice(comments)
-    entry.references = list(_gen_ref() for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-    entry.datasets = list(
-        _gen_dataset()
-        for _ in range(0, random.choice(low_numbers_for_refs_and_datasets)))
-
-    return entry
 
 
 def test_common_metainfo():
