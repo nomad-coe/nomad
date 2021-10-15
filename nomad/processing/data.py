@@ -454,7 +454,7 @@ class Calc(Proc):
             logger.error('calculation upload does not exist')
 
         # 1. Determine if we should parse or not
-        self.set_process_step('Determining action')
+        self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
         self._is_initial_processing = self.nomad_version is None
@@ -497,7 +497,7 @@ class Calc(Proc):
         if should_parse:
             # 2a. Parse (or reparse) it
             try:
-                self.set_process_step('Initializing metadata')
+                self.set_last_status_message('Initializing metadata')
                 self._initialize_metadata_for_processing()
 
                 if len(self._entry_metadata.files) >= config.auxfile_cutoff:
@@ -518,7 +518,7 @@ class Calc(Proc):
                     logger.error('could not unload processing results', exc_info=e)
         else:
             # 2b. Keep published entry as it is
-            self.set_process_step('Preserving entry data')
+            self.set_last_status_message('Preserving entry data')
             try:
                 upload_files = PublicUploadFiles(self.upload_id)
                 with upload_files.read_archive(self.calc_id) as archive:
@@ -573,7 +573,7 @@ class Calc(Proc):
 
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
-        self.set_process_step('parsing')
+        self.set_last_status_message('Parsing mainfile')
         context = dict(parser=self.parser_name, step=self.parser_name)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser_name]
@@ -683,7 +683,7 @@ class Calc(Proc):
 
     def normalizing(self):
         ''' The process step that encapsulates all normalizing related actions. '''
-        self.set_process_step('normalizing')
+        self.set_last_status_message('Normalizing')
         # allow normalizer to access and add data to the entry metadata
         if self._parser_results.metadata is None:
             self._parser_results.m_add_sub_section(
@@ -706,7 +706,7 @@ class Calc(Proc):
 
     def archiving(self):
         ''' The process step that encapsulates all archival related actions. '''
-        self.set_process_step('archiving')
+        self.set_last_status_message('Archiving')
         logger = self.get_logger()
 
         self._entry_metadata.apply_archvie_metadata(self._parser_results)
@@ -1037,18 +1037,15 @@ class Upload(Proc):
         tmp_dir = create_tmp_dir('export_' + self.upload_id)
         bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
         try:
-            self.last_status_message = 'Creating bundle.'
-            self.save()
+            self.set_last_status_message('Creating bundle.')
 
             self.export_bundle(
                 export_as_stream=False, export_path=bundle_path,
                 zipped=True, move_files=False, overwrite=False,
                 include_raw_files=True, include_archive_files=True, include_datasets=True)
 
-            self.last_status_message = 'Bundle created.'
-            self.save()
-
             # upload to central NOMAD
+            self.set_last_status_message('Uploading bundle to central NOMAD.')
             upload_auth = client.Auth(
                 user=config.keycloak.username,
                 password=config.keycloak.password)
@@ -1065,11 +1062,9 @@ class Upload(Proc):
                 self.get_logger().error(
                     'Could not upload to central NOMAD',
                     status_code=response.status_code, body=response.text)
-                self.last_status_message = 'Could not upload to central NOMAD.'
-                return
+                raise ProcessFailure('Error message from central NOMAD: {response.text}')
 
             self.published_to.append(config.oasis.central_nomad_deployment_id)
-            self.last_status_message = 'Successfully uploaded to central NOMAD.'
         finally:
             PathObject(tmp_dir).delete()
 
@@ -1100,7 +1095,7 @@ class Upload(Proc):
 
         self.extracting()
         self.parse_all(reprocess_settings)
-        self.set_process_step('collecting entry results')
+        self.set_last_status_message('Waiting for entry results')
         return ProcessStatus.WAITING_FOR_RESULT
 
     def on_waiting_for_result(self):
@@ -1125,7 +1120,7 @@ class Upload(Proc):
         The process step performed before the actual parsing/normalizing: executes the pending
         file operations.
         '''
-        self.set_process_step('updating files')
+        self.set_last_status_message('Updating files')
         logger = self.get_logger()
 
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
@@ -1224,7 +1219,7 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        self.set_process_step('parse all')
+        self.set_last_status_message('Parsing all files')
         logger = self.get_logger()
 
         with utils.timer(logger, 'calcs processing called'):
@@ -1420,7 +1415,7 @@ class Upload(Proc):
         The process step that "cleans" the processing, i.e. removed obsolete files and performs
         pending archival operations. Depends on the type of processing.
         '''
-        self.set_process_step('cleanup')
+        self.set_last_status_message('Cleanup')
         search.refresh()
         self._cleanup_after_processing()
 
@@ -1792,9 +1787,8 @@ class Upload(Proc):
                 # Instantiate an entry object from the json, and validate it
                 entry_keys_to_copy = list(_mongo_entry_metadata)
                 entry_keys_to_copy.extend((
-                    'upload_id', 'errors', 'warnings',
-                    'last_status_message', 'current_process', 'current_process_step',
-                    'complete_time', 'worker_hostname', 'celery_task_id'))
+                    'upload_id', 'errors', 'warnings', 'last_status_message',
+                    'current_process', 'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
                     update['calc_id'] = entry_dict['_id']

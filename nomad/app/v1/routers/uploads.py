@@ -62,13 +62,23 @@ upload_metadata_parameters = parameter_dependency_from_model(
 
 
 class ProcData(BaseModel):
-    process_running: bool = Field()
-    current_process: Optional[str] = Field()
-    current_process_step: Optional[str] = Field()
-    process_status: str = Field()
-    errors: List[str] = Field()
-    warnings: List[str] = Field()
-    complete_time: Optional[datetime] = Field()
+    process_running: bool = Field(
+        description='If a process is running')
+    current_process: Optional[str] = Field(
+        description='Name of the current or last completed process')
+    process_status: str = Field(
+        description='The status of the current or last completed process')
+    last_status_message: Optional[str] = Field(
+        description='A short, human readable message from the current process, with '
+                    'information about what the current process is doing, or information '
+                    'about the completion (successful or not) of the last process, if no '
+                    'process is currently running.')
+    errors: List[str] = Field(
+        descriptions='A list of error messages that occurred during the last processing')
+    warnings: List[str] = Field(
+        description='A list of warning messages that occurred during the last processing')
+    complete_time: Optional[datetime] = Field(
+        description='Date and time of the completion of the last process')
 
     class Config:
         orm_mode = True
@@ -98,9 +108,6 @@ class UploadProcData(ProcData):
         description='The length of the requested embargo, in months. 0 if no embargo is requested.')
     license: str = Field(
         description='The license under which this upload is distributed.')
-    last_status_message: Optional[str] = Field(
-        None,
-        description='The last informative message that the processing saved about this uploads status.')
     entries: int = Field(
         0,
         description='The number of identified entries in this upload.')

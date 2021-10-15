@@ -70,7 +70,7 @@ def _run_parallel(uploads, parallel: int, callable, label: str):
         logger.info(
             'cli schedules parallel %s processing for upload' % label,
             current_process=upload.current_process,
-            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+            last_status_message=upload.last_status_message, upload_id=upload.upload_id)
         with cv:
             cv.wait_for(lambda: state['available_threads_count'] > 0)
             state['available_threads_count'] -= 1
@@ -92,12 +92,12 @@ def _run_processing(
         logger.info(
             'cli calls %s processing' % label,
             current_process=upload.current_process,
-            current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+            last_status_message=upload.last_status_message, upload_id=upload.upload_id)
         if upload.process_running and not reprocess_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
                 current_process=upload.current_process,
-                current_process_step=upload.current_process_step, upload_id=upload.upload_id)
+                last_status_message=upload.last_status_message, upload_id=upload.upload_id)
             return False
 
         if reset_first:
