@@ -21,6 +21,7 @@ import { useHistory, useLocation } from 'react-router-dom'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
+import PropTypes from 'prop-types'
 
 export default function NewUploadButton({...props}) {
   const {api} = useApi()
@@ -44,4 +45,7 @@ export default function NewUploadButton({...props}) {
   return <Button variant="contained" onClick={handleClick} disabled={clicked || isDisabled} {...props}>
     Create a new upload
   </Button>
+}
+NewUploadButton.propTypes = {
+  isDisable: PropTypes.bool
 }
