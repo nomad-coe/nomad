@@ -413,6 +413,7 @@ async def get_uploads(
         pagination=pagination_response,
         data=data)
 
+
 @router.get(
     '/info', tags=[default_tag],
     summary='Get information about all the uploads of authenticated user.',
@@ -435,6 +436,7 @@ async def get_uploads_info(
         published_count=published_count,
         unpublished_count=unpublished_count,
         max_unpublished_limit=max_unpublished_limit)
+
 
 @router.get(
     '/{upload_id}', tags=[default_tag],
