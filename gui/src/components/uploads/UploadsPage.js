@@ -232,12 +232,21 @@ function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
   const [data, setData] = useState(null)
+  const [info, setInfo] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
     order_by: 'upload_create_time'
   })
+
+  useEffect(() => {
+    api.get(`/uploads/info`)
+      .then(setInfo)
+      .catch(errors.raiseError)
+  }, [setInfo, errors, api])
+
+  const isDisable = info ? info.unpublished_count >= info.max_unpublished_limit : true
 
   useEffect(() => {
     const {page_size, page} = pagination
@@ -258,7 +267,10 @@ function UploadsPage() {
         You can create an upload and upload files through this browser-based interface:
       </Typography>
     </Box>
-    <NewUploadButton color="primary" />
+    <NewUploadButton color="primary" isDisable={isDisable}/>
+    <Typography color="secondary" hidden={!isDisable}>
+      You have reached maximum number of unpublished uploads!
+    </Typography>
     <Box marginTop={4}>
       <Typography>
         Or, you can create an upload by sending a file-archive via shell command:
