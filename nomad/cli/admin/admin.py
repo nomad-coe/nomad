@@ -736,6 +736,7 @@ window.nomadEnv = {
     'debug': false,
     'matomoEnabled': false,
     'encyclopediaEnabled': true,
+    'aitoolkitEnabled': true,
     'oasis': %s
 };''' % (
                 config.services.api_base_path,
