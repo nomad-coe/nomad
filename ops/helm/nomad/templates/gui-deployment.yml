@@ -85,24 +85,18 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/uploads\/?$ {
+      location ~ /api/uploads(/?$|.*/raw/|.*/bundle/?$)  {
         client_max_body_size 35g;
         proxy_request_buffering off;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/(raw|archive) {
+      location ~ /api/.*/download {
         proxy_buffering off;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/mirror {
-        proxy_buffering off;
-        proxy_read_timeout {{ .Values.proxy.mirrorTimeout }};
-        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-      }
-
-      location ~ \/api\/repo\/edit {
+      location ~ \/api\/entries\/edit {
         proxy_buffering off;
         proxy_read_timeout {{ .Values.proxy.editTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;

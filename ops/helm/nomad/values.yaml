@@ -97,7 +97,6 @@ proxy:
   nodePort:
   nodeIP:
   timeout: 120
-  mirrorTimeout: 600
   editTimeout: 1800
   external:
     host: "nomad-lab.eu"
