@@ -15,7 +15,7 @@
 * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -157,6 +157,9 @@ export default function TutorialsPage() {
     }
     return true
   }
+  console.log(filter)
+  console.log(queryParameters)
+  console.log(setQueryParameters)
 
   const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.application_section[0] === 'Tutorials for artificial-intelligence methods')
 
@@ -181,6 +184,10 @@ export default function TutorialsPage() {
       methods: Object.keys(methods).sort()
     }
   }, [tutorials_list])
+
+  const [valAuthor, setAuthor] = useState({})
+  const [valKeyword, setKeyword] = useState({})
+  const [valMethod, setMethod] = useState({})
 
   return <Grid container spacing={1} className={styles.root}>
     <Grid container spacing={0} className={styles.Heading}>
@@ -222,8 +229,11 @@ export default function TutorialsPage() {
               fullWidth
             />
           )}
-          value={queryParameters.author}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
+          value={valAuthor}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, author: value})
+            setAuthor(value)
+          }}
         />
       </Grid>
       <Grid item xs={2}>
@@ -241,8 +251,11 @@ export default function TutorialsPage() {
               fullWidth
             />
           )}
-          value={queryParameters.keyword}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
+          value={valKeyword}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, keyword: value})
+            setKeyword(value)
+          }}
         />
       </Grid>
       <Grid item xs={2}>
@@ -259,8 +272,11 @@ export default function TutorialsPage() {
               fullWidth
             />
           )}
-          value={queryParameters.method}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
+          value={valMethod}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, method: value})
+            setMethod(value)
+          }}
         />
       </Grid>
     </Grid>
@@ -278,8 +294,11 @@ export default function TutorialsPage() {
         </Grid>
         <AccordionsList tutorials_list={tutorials_list_beginner}
           author={authors}
+          setAuthor = {setAuthor}
           keyword={keywords}
+          setKeyword={setKeyword}
           method={methods}
+          setMethod={setMethod}
           filter={filter}
           setQueryParameters={setQueryParameters}
           queryParameters={queryParameters}
@@ -299,8 +318,11 @@ export default function TutorialsPage() {
         <Grid item xs={12}>
           <AccordionsList tutorials_list={tutorials_list_intermediate}
             author={authors}
+            setAuthor = {setAuthor}
             keyword={keywords}
+            setKeyword={setKeyword}
             method={methods}
+            setMethod={setMethod}
             filter={filter}
             setQueryParameters={setQueryParameters}
             queryParameters={queryParameters}
@@ -334,6 +356,7 @@ export default function TutorialsPage() {
             color='#2A3C67'
             component={Link}
             to="reproduce"
+            onClick = {() => { setQueryParameters({author: 'Sbailò, Luigi'}) }}
             className={styles.bottomButton}
             endIcon={<img src={ArrowIcon}></img>}
           >

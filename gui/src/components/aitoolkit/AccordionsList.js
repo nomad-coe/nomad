@@ -130,10 +130,13 @@ function AccordionsList(props) {
                       return <Link
                         className={styles.linkAuthors}
                         key={name}
-                        onClick={() => props.setQueryParameters({
-                          ...props.emptyQuery,
-                          author: props.queryParameters.author === name ? null : name
-                        })}
+                        onClick={() => {
+                          props.setQueryParameters({
+                            ...props.emptyQuery,
+                            author: props.queryParameters.author === name ? null : name
+                          })
+                          props.setAuthor(name)
+                        }}
                       >
                         {label}
                       </Link>
@@ -160,10 +163,13 @@ function AccordionsList(props) {
                       <Link
                         className={styles.linkKeywords}
                         key={keyword}
-                        onClick={() => props.setQueryParameters({
-                          ...props.emptyQuery,
-                          keyword: props.queryParameters.keyword === keyword ? null : keyword
-                        })}
+                        onClick={() => {
+                          props.setQueryParameters({
+                            ...props.emptyQuery,
+                            keyword: props.queryParameters.keyword === keyword ? null : keyword
+                          })
+                          props.setKeyword(keyword)
+                        }}
                       >
                         {keyword}
                       </Link>
@@ -179,10 +185,13 @@ function AccordionsList(props) {
                       <Link
                         className={styles.linkKeywords}
                         key={method}
-                        onClick={() => props.setQueryParameters({
-                          ...props.emptyQuery,
-                          method: props.queryParameters.method === method ? null : method
-                        })}
+                        onClick={() => {
+                          props.setQueryParameters({
+                            ...props.emptyQuery,
+                            method: props.queryParameters.method === method ? null : method
+                          })
+                          props.setMethod(method)
+                        }}
                       >
                         {method}
                       </Link>
