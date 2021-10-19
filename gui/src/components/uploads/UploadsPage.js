@@ -217,13 +217,11 @@ function UploadCommands({uploadCommands}) {
 }
 
 const UploadActions = React.memo(function UploadActions({data}) {
-  return <div>
-    <Tooltip title="Open this upload">
-      <UploadButton component={IconButton} uploadId={data.upload_id}>
-        <DetailsIcon />
-      </UploadButton>
-    </Tooltip>
-  </div>
+  return <Tooltip title="Open this upload">
+    <UploadButton component={IconButton} uploadId={data.upload_id}>
+      <DetailsIcon />
+    </UploadButton>
+  </Tooltip>
 })
 UploadActions.propTypes = {
   data: PropTypes.object.isRequired
