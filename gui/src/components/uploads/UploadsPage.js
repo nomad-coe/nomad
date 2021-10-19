@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React, {useContext, useEffect, useState} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
@@ -38,7 +38,6 @@ import {
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Autorenew'
-import DeleteIcon from '@material-ui/icons/Delete'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -115,6 +114,7 @@ an upload to open its details, and press the edit button there. User metadata ca
 be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
 contains more information.
 `
+const uploadsPageContext = React.createContext()
 
 const columns = [
   {key: 'upload_id'},
@@ -217,33 +217,7 @@ function UploadCommands({uploadCommands}) {
 }
 
 const UploadActions = React.memo(function UploadActions({data}) {
-  const {api} = useApi()
-  const errors = useErrors()
-  const [pagination] = useState({
-    page_size: 10,
-    page: 1,
-    order_by: 'upload_create_time'
-  })
-
-  const handleReload = () => {
-    const {page_size, page} = pagination
-    api.get(`/uploads?page_size=${page_size}&page=${page}`)
-      .then()
-      .catch(errors.raiseError)
-  }
-
-  const handleDelete = () => {
-    api.delete(`/uploads/${data.upload_id}`)
-      .then(handleReload())
-      .catch(errors.raiseError)
-  }
-
   return <div>
-    <IconButton disabled={data.published} onClick={handleDelete}>
-      <Tooltip title="Delete this upload">
-        <DeleteIcon />
-      </Tooltip>
-    </IconButton>
     <Tooltip title="Open this upload">
       <UploadButton component={IconButton} uploadId={data.upload_id}>
         <DetailsIcon />
@@ -302,48 +276,50 @@ function UploadsPage() {
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
 
-  return <Page loading={!(data && uploadCommands)}>
-    <Box marginBottom={2}>
-      <Typography>
-        You can create an upload and upload files through this browser-based interface:
-      </Typography>
-    </Box>
-    <NewUploadButton color="primary" isDisable={isDisable}/>
-    <Box marginTop={4}>
-      <Typography>
-        Or, you can create an upload by sending a file-archive via shell command:
-      </Typography>
-    </Box>
-    <Box marginBottom={-2}>
-      {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
-    </Box>
-    {(data?.pagination?.total || 0) > 0 && <React.Fragment>
-      <Box marginTop={2} marginBottom={2}>
-        <Divider/>
+  return <uploadsPageContext.Provider value={{reload: handleReload}}>
+    <Page loading={!(data && uploadCommands)}>
+      <Box marginBottom={2}>
+        <Typography>
+          You can create an upload and upload files through this browser-based interface:
+        </Typography>
       </Box>
-      <Paper>
-        <Datatable
-          columns={columns} selectedColumns={columns.map(column => column.key)}
-          data={data.data || []}
-          pagination={combinePagination(pagination, data.pagination)}
-          onPaginationChanged={setPagination}
-        >
-          <DatatableToolbar title="Your existing uploads">
-            <TooltipButton
-              title="Reload the uploads"
-              component={IconButton}
-              onClick={handleReload}
-            >
-              <ReloadIcon/>
-            </TooltipButton>
-          </DatatableToolbar>
-          <DatatableTable actions={UploadActions}>
-            <DatatableLoadMorePagination />
-          </DatatableTable>
-        </Datatable>
-      </Paper>
-    </React.Fragment>}
-  </Page>
+      <NewUploadButton color="primary" isDisable={isDisable}/>
+      <Box marginTop={4}>
+        <Typography>
+          Or, you can create an upload by sending a file-archive via shell command:
+        </Typography>
+      </Box>
+      <Box marginBottom={-2}>
+        {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
+      </Box>
+      {(data?.pagination?.total || 0) > 0 && <React.Fragment>
+        <Box marginTop={2} marginBottom={2}>
+          <Divider/>
+        </Box>
+        <Paper>
+          <Datatable
+            columns={columns} selectedColumns={columns.map(column => column.key)}
+            data={data.data || []}
+            pagination={combinePagination(pagination, data.pagination)}
+            onPaginationChanged={setPagination}
+          >
+            <DatatableToolbar title="Your existing uploads">
+              <TooltipButton
+                title="Reload the uploads"
+                component={IconButton}
+                onClick={handleReload}
+              >
+                <ReloadIcon/>
+              </TooltipButton>
+            </DatatableToolbar>
+            <DatatableTable actions={UploadActions}>
+              <DatatableLoadMorePagination />
+            </DatatableTable>
+          </Datatable>
+        </Paper>
+      </React.Fragment>}
+    </Page>
+  </uploadsPageContext.Provider>
 }
 
 export default withLoginRequired(UploadsPage)
