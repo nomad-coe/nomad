@@ -24,7 +24,7 @@ import {
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import HelpDialog from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { guiBase } from '../../config'
+import { guiBase, servicesUploadLimit } from '../../config'
 import NewUploadButton from './NewUploadButton'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
@@ -36,6 +36,9 @@ import { UploadButton } from '../nav/Routes'
 import {
   addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
+import TooltipButton from '../utils/TooltipButton'
+import ReloadIcon from '@material-ui/icons/Autorenew'
+import DeleteIcon from '@material-ui/icons/Delete'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -213,14 +216,42 @@ function UploadCommands({uploadCommands}) {
   </div>
 }
 
-const VisitUploadAction = React.memo(function VisitUploadAction({data}) {
-  return <Tooltip title="Open this upload">
-    <UploadButton component={IconButton} uploadId={data.upload_id}>
-      <DetailsIcon />
-    </UploadButton>
-  </Tooltip>
+const UploadActions = React.memo(function UploadActions({data}) {
+  const {api} = useApi()
+  const errors = useErrors()
+  const [pagination] = useState({
+    page_size: 10,
+    page: 1,
+    order_by: 'upload_create_time'
+  })
+
+  const handleReload = () => {
+    const {page_size, page} = pagination
+    api.get(`/uploads?page_size=${page_size}&page=${page}`)
+      .then()
+      .catch(errors.raiseError)
+  }
+
+  const handleDelete = () => {
+    api.delete(`/uploads/${data.upload_id}`)
+      .then(handleReload())
+      .catch(errors.raiseError)
+  }
+
+  return <div>
+    <IconButton disabled={data.published} onClick={handleDelete}>
+      <Tooltip title="Delete this upload">
+        <DeleteIcon />
+      </Tooltip>
+    </IconButton>
+    <Tooltip title="Open this upload">
+      <UploadButton component={IconButton} uploadId={data.upload_id}>
+        <DetailsIcon />
+      </UploadButton>
+    </Tooltip>
+  </div>
 })
-VisitUploadAction.propTypes = {
+UploadActions.propTypes = {
   data: PropTypes.object.isRequired
 }
 
@@ -232,7 +263,6 @@ function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
   const [data, setData] = useState(null)
-  const [info, setInfo] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
     page_size: 10,
@@ -240,13 +270,20 @@ function UploadsPage() {
     order_by: 'upload_create_time'
   })
 
-  useEffect(() => {
-    api.get(`/uploads/info`)
-      .then(setInfo)
+  const handleReload = () => {
+    const {page_size, page} = pagination
+    api.get(`/uploads?page_size=${page_size}&page=${page}`)
+      .then(setData)
       .catch(errors.raiseError)
-  }, [setInfo, errors, api])
+  }
 
-  const isDisable = info ? info.unpublished_count >= info.max_unpublished_limit : true
+  useEffect(() => {
+    api.get(`/uploads?is_published=false&page_size=0`)
+      .then(setData)
+      .catch(errors.raiseError)
+  }, [setData, errors, api])
+
+  const isDisable = data ? (data.pagination ? data.pagination.total >= servicesUploadLimit : true) : true
 
   useEffect(() => {
     const {page_size, page} = pagination
@@ -290,8 +327,16 @@ function UploadsPage() {
           pagination={combinePagination(pagination, data.pagination)}
           onPaginationChanged={setPagination}
         >
-          <DatatableToolbar title="Your existing uploads" />
-          <DatatableTable actions={VisitUploadAction}>
+          <DatatableToolbar title="Your existing uploads">
+            <TooltipButton
+              title="Reload the uploads"
+              component={IconButton}
+              onClick={handleReload}
+            >
+              <ReloadIcon/>
+            </TooltipButton>
+          </DatatableToolbar>
+          <DatatableTable actions={UploadActions}>
             <DatatableLoadMorePagination />
           </DatatableTable>
         </Datatable>
