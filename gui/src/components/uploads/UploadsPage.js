@@ -305,9 +305,6 @@ function UploadsPage() {
       </Typography>
     </Box>
     <NewUploadButton color="primary" isDisable={isDisable}/>
-    <Typography color="secondary" hidden={!isDisable}>
-      You have reached maximum number of unpublished uploads!
-    </Typography>
     <Box marginTop={4}>
       <Typography>
         Or, you can create an upload by sending a file-archive via shell command:
