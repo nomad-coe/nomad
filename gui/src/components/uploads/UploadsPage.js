@@ -276,6 +276,9 @@ function UploadsPage() {
     api.get(`/uploads?page_size=${page_size}&page=${page}`)
       .then(setData)
       .catch(errors.raiseError)
+    api.get(`/uploads?is_published=false&page_size=0`)
+      .then(setUnpublished)
+      .catch(errors.raiseError)
   }
 
   useEffect(() => {
