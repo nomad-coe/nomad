@@ -237,14 +237,6 @@ class UploadCommandExamplesResponse(BaseModel):
     upload_command_form: str = Field()
     upload_tar_command: str = Field()
 
-
-class UploadInfoResponse(BaseModel):
-    upload_count: int = Field(None, description=strip('Total number of uploads.'))
-    published_count: int = Field(None, description=strip('The number of published uploads.'))
-    unpublished_count: int = Field(None, description=strip('The number of unpublished uploads.'))
-    max_unpublished_limit: int = Field(None, description=strip('The limit of unpublished uploads.'))
-
-
 _not_authorized = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
@@ -412,31 +404,6 @@ async def get_uploads(
         query=query,
         pagination=pagination_response,
         data=data)
-
-
-@router.get(
-    '/info', tags=[default_tag],
-    summary='Get information about all the uploads of authenticated user.',
-    response_model=UploadInfoResponse,
-    responses=create_responses(_not_authorized),
-    response_model_exclude_unset=True,
-    response_model_exclude_none=True)
-async def get_uploads_info(
-        user: User = Depends(create_user_dependency(required=True))):
-    '''
-    Retrieves statistic info about all uploads.
-    '''
-    upload_count = _query_mongodb(main_author=str(user.user_id)).count()
-    unpublished_count = _query_mongodb(main_author=str(user.user_id), publish_time=None).count()
-    published_count = upload_count - unpublished_count
-    max_unpublished_limit = config.services.upload_limit
-
-    return UploadInfoResponse(
-        upload_count=upload_count,
-        published_count=published_count,
-        unpublished_count=unpublished_count,
-        max_unpublished_limit=max_unpublished_limit)
-
 
 @router.get(
     '/{upload_id}', tags=[default_tag],
