@@ -24,6 +24,7 @@ export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 export const apiBase = `${appBase}/api`
 export const guiBase = process.env.PUBLIC_URL
 export const matomoUrl = window.nomadEnv.matomoUrl
+export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
 export const matomoSiteId = window.nomadEnv.matomoSiteId
 export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm

@@ -2,7 +2,6 @@ window.nomadEnv = {
   'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
   'keycloakRealm': 'fairdi_nomad_test',
   'keycloakClientId': 'nomad_gui_dev',
-  'appBase': 'http://nomad-lab.eu/prod/rae/beta',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
   'matomoEnabled': false,
@@ -17,5 +16,6 @@ window.nomadEnv = {
   },
   'encyclopediaEnabled': true,
   'aitoolkitEnabled': false,
-  'oasis': false
+  'oasis': false,
+  'servicesUploadLimit': 10
 }
