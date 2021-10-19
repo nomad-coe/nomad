@@ -31,6 +31,9 @@ import pathlib
 
 from nomad import config
 
+# TODO The AnonymousLogin kinda works, but it won't logout or remove old containers,
+# if the user is still logged in non anonymously.
+
 
 class AnonymousLoginHandler(BaseHandler):
     async def get(self):
@@ -68,6 +71,13 @@ class NomadAuthenticator(GenericOAuthenticator):
         Uses the user credentials to request all staging uploads and pass the
         respective path as volume host mounts to the spawner.
         '''
+
+        # This is guacamole specific
+        # linuxserver/webtop guacamole-lite based guacamole client use SUBFOLDER to
+        # confiugure base path
+        if not spawner.environment:
+            spawner.environment = {}
+        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/'
 
         if user.name == 'anonymous':
             return
@@ -146,4 +156,15 @@ if config.north.docker_network:
 c.JupyterHub.hub_ip_connect = config.north.hub_ip_connect
 if config.north.hub_ip:
     c.JupyterHub.hub_ip = config.north.hub_ip
-c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
+
+north_tool = 'webtop'
+
+if north_tool == 'jupyter':
+    c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
+
+if north_tool == 'webtop':
+    c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop'
+    c.DockerSpawner.cmd = ["/bin/sh", "-c", "sleep infinity"]
+
+if north_tool == 'jyp_test':
+    c.DockerSpawner.image = 'jyp_test'

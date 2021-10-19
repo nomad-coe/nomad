@@ -85,7 +85,7 @@ ENV PATH /app/node_modules/.bin:$PATH
 COPY gui/package.json /app/package.json
 COPY gui/yarn.lock /app/yarn.lock
 COPY gui/materia /app/materia
-RUN yarn
+RUN yarn --network-timeout 1200000
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json

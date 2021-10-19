@@ -67,7 +67,7 @@ def run_hub():
     import sys
 
     config.meta.service = 'hub'
-    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py']))
+    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--debug']))
 
 
 @run.command(help='Run both app and worker.')
