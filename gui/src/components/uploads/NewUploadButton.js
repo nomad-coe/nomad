@@ -43,7 +43,7 @@ export default function NewUploadButton({...props}) {
   }
 
   return <Button variant="contained" onClick={handleClick} disabled={clicked || isDisabled} {...props}>
-    {!isDisabled ? 'Create a new upload' : 'You have reached maximum number of unpublished uploads!'}
+    Create a new upload
   </Button>
 }
 NewUploadButton.propTypes = {
