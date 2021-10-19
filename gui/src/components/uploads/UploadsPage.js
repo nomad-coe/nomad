@@ -263,6 +263,7 @@ function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
   const [data, setData] = useState(null)
+  const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
     page_size: 10,
@@ -279,11 +280,11 @@ function UploadsPage() {
 
   useEffect(() => {
     api.get(`/uploads?is_published=false&page_size=0`)
-      .then(setData)
+      .then(setUnpublished)
       .catch(errors.raiseError)
   }, [setData, errors, api])
 
-  const isDisable = data ? (data.pagination ? data.pagination.total >= servicesUploadLimit : true) : true
+  const isDisable = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : true) : true
 
   useEffect(() => {
     const {page_size, page} = pagination
