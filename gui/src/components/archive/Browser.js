@@ -280,7 +280,7 @@ List.propTypes = ({
 })
 
 export function Content({children}) {
-  return <Box padding={1}>
+  return <Box padding={1} style={{maxWidth: 340}}>
     {children}
   </Box>
 }
