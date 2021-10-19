@@ -237,6 +237,7 @@ class UploadCommandExamplesResponse(BaseModel):
     upload_command_form: str = Field()
     upload_tar_command: str = Field()
 
+
 _not_authorized = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
@@ -404,6 +405,7 @@ async def get_uploads(
         query=query,
         pagination=pagination_response,
         data=data)
+
 
 @router.get(
     '/{upload_id}', tags=[default_tag],
