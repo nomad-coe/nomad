@@ -37,7 +37,7 @@ import {
   addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 import TooltipButton from '../utils/TooltipButton'
-import ReloadIcon from '@material-ui/icons/Autorenew'
+import ReloadIcon from '@material-ui/icons/Replay'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
