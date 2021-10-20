@@ -36,8 +36,11 @@ gui/src/metainfo.json
 gui/src/searchQuantities.json
 gui/src/toolkitMetadata.json
 gui/src/unitsData.js
+gui/src/parserMetadata.js
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
-*/node_modules/
-
+**/node_modules/
+jupyterhub_cookie_secret
+jupyterhub.sqlite
+jupyterhub-proxy.pid

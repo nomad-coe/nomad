@@ -41,29 +41,6 @@ build:
     - /^dev-.*$/
     - tags
 
-prepare:
-  stage: prepare
-  image: $TEST_IMAGE
-  script:
-    - python -m nomad.cli dev metainfo > gui/src/metainfo.json
-    - python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-    - python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-    - python -m nomad.cli dev units > gui/src/unitsData.js
-  except:
-    - /^dev-.*$/
-    - tags
-  # The configuration files created with python are passed down as Gitlab CI
-  # Artifacts to the GUI tests. This ensures that the latest versions are
-  # always used by the tests.
-  artifacts:
-    paths:
-    - gui/src/metainfo.json
-    - gui/src/searchQuantities.json
-    - gui/src/parserMetadata.json
-    - gui/src/toolkitMetadata.json
-    - gui/src/unitsData.js
-    expire_in: 1 hrs
-
 python linting:
   stage: test
   image: $TEST_IMAGE
@@ -81,10 +58,17 @@ python linting:
 
 gui linting:
   stage: test
-  image: node:14
+  before_script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
   script:
     - cd gui
-    - yarn
+    - yarn --network-timeout 1200000
     - yarn run lint
   except:
     refs:
@@ -129,12 +113,17 @@ python tests:
 
 gui tests:
   stage: test
-  image: node:14
-  script:
+  before_script:
     - git submodule sync
     - git submodule update --init -- gui/materia
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+  script:
     - cd gui
-    - yarn
+    - yarn --network-timeout 1200000
     - yarn run test
   except:
     refs:

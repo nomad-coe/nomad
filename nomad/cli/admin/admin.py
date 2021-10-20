@@ -172,13 +172,13 @@ def nginx_conf(prefix, host, port, server):
         proxy_pass http://{1}:{2};
     }}
 
-    location ~ /api/uploads(/?$|.*/raw/|.*/bundle/?$) {{
+    location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$) {{
         client_max_body_size 35g;
         proxy_request_buffering off;
         proxy_pass http://{1}:{2};
     }}
 
-    location ~ /api/.*/download {{
+    location ~ /api/v1/.*/download {{
         proxy_buffering off;
         proxy_pass http://{1}:{2};
     }}
