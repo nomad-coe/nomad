@@ -52,7 +52,9 @@ const useStyles = makeStyles(theme => ({
   background: {
     backgroundImage: `url(${Background})`,
     height: '840px',
-    marginTop: '-50px'
+    marginTop: '-50px',
+    zIndex: 0
+
   },
   boxIcons: {
     width: '1000px',
@@ -76,9 +78,9 @@ const useStyles = makeStyles(theme => ({
     letterSpacing: 0,
     marginTop: '-170px',
     wordSpacing: '5px',
-    lineHeight: '43px',
+    lineHeight: '42px',
     color: 'white',
-    fontSize: '34px',
+    fontSize: '35px',
     margin: 'auto',
     textAlign: 'center',
     align: 'center',
@@ -87,20 +89,31 @@ const useStyles = makeStyles(theme => ({
     width: '550px',
     height: '140px'
   },
-  button: {
+  topIcon: {
+    width: '180px',
+    marginLeft: '10px'
+  },
+  topButton: {
     fontWeight: theme.typography.fontWeightMedium,
     backgroundColor: 'rgba(255,255,255,1)',
+    borderRadius: '30px',
+    // width: '207px',
+    // height: '60px',
+    textTransform: 'none',
+    marginTop: '-38px',
     fontSize: '20px',
     lineHeight: '20px',
     color: '#2A3C67',
     textAlign: 'center',
     align: 'center',
-    borderRadius: '30px',
-    width: '207px',
-    height: '70px',
-    textTransform: 'none',
-    marginTop: '-50px',
-    zIndex: 0
+    paddingTop: '15px',
+    paddingBottom: '15px',
+    paddingRight: '35px',
+    paddingLeft: '15px'
+  },
+  arrowGrid: {
+    marginTop: '-32px',
+    marginLeft: '-45px'
   },
   body: {
     width: '1052px',
@@ -154,6 +167,8 @@ const useStyles = makeStyles(theme => ({
 }))
 
 export default function AIToolkitPage() {
+  const styles = useStyles()
+
   const [anchorEl, setAnchorEl] = React.useState(null)
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget)
@@ -161,10 +176,8 @@ export default function AIToolkitPage() {
   const handleClose = () => {
     setAnchorEl(null)
   }
-
   const open = Boolean(anchorEl)
   const id = open ? 'simple-popover' : undefined
-  const styles = useStyles()
 
   return <Grid container spacing={2} className={styles.root}>
     <Grid container className={styles.background}>
@@ -175,57 +188,85 @@ export default function AIToolkitPage() {
         <Typography className={styles.deck}>Find new Patterns and Information in Materials Science Big Data</Typography>
       </Grid>
       <Grid container spacing={1} className={styles.boxIcons}>
-        <Grid item xs={3} style={{zIndex: 1}}> <img src={IconQuery} />
-        </Grid>
-        <Grid item xs={3} style={{zIndex: 1}}> <img src={IconTutorial} />
-        </Grid>
-        <Grid item xs={3} style={{zIndex: 1}}> <img src={IconReplicate} />
-        </Grid>
-        <Grid item xs={3} style={{zIndex: 1}}> <img src={IconWork} />
-        </Grid>
-        <Grid item xs={3}>
-          <Button
-            color='#2A3C67'
-            href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'
-            className={styles.button}
-            endIcon={<img src={ArrowIcon}></img>}
-          >
-            <Box className={styles.fieldText}>Query the Archive</Box>
-          </Button>
+        <Grid item xs={3} >
+          <img src={IconQuery} className={styles.topIcon} style={{zIndex: 2, position: 'relative'}}/>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                color='#2A3C67'
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
+              >
+                Query the Archive
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+                <img src={ArrowIcon} style={{width: '20px', zIndex: 4, position: 'relative'}} ></img>
+              </IconButton>
+            </Grid>
+          </Grid>
         </Grid>
         <Grid item xs={3} >
-          <Button
-            color='#2A3C67'
-            component={Link}
-            to="tutorials"
-            className={styles.button}
-            endIcon={<img src={ArrowIcon}></img>}
-          >
-            <Box className={styles.fieldText}>View tutorials</Box>
-          </Button>
+          <img src={IconTutorial} className={styles.topIcon} style={{zIndex: 2, position: 'relative'}}/>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                color='#2A3C67'
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
+              >
+                View tutorials
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton to="tutorials" component={Link}>
+                <img src={ArrowIcon} style={{width: '20px', zIndex: 4, position: 'relative'}} ></img>
+              </IconButton>
+            </Grid>
+          </Grid>
         </Grid>
-        <Grid item xs={3}>
-          <Button
-            component={Link}
-            to="reproduce"
-            className={styles.button}
-            endIcon={<img src={ArrowIcon}></img>}
-          >
-            <Box className={styles.fieldText}>Published results</Box>
-          </Button>
+        <Grid item xs={3} >
+          <img src={IconReplicate} className={styles.topIcon} style={{zIndex: 2, position: 'relative'}}/>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                color='#2A3C67'
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
+              >
+                Published results
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton to="reproduce" component={Link}>
+                <img src={ArrowIcon} style={{width: '20px', zIndex: 4, position: 'relative'}} ></img>
+              </IconButton>
+            </Grid>
+          </Grid>
         </Grid>
-        <Grid item xs={3}>
+        <Grid item xs={3} >
           <Grid container >
             <Grid item xs={11}>
-              <Button
-                color='#2A3C67'
-                href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks'
-                className={styles.button} endIcon={<img src={ArrowIcon}></img>}
-              >
-                <Box className={styles.fieldText}>Get to work</Box>
-              </Button>
+              <img src={IconWork} className={styles.topIcon} style={{zIndex: 2, position: 'relative'}}/>
+              <Grid container spacing={0}>
+                <Grid item xs={11}>
+                  <Typography
+                    color='#2A3C67'
+                    className={styles.topButton}
+                    style={{zIndex: 1, position: 'relative'}}
+                  >
+                Get to work
+                  </Typography>
+                </Grid>
+                <Grid item xs={1} className={styles.arrowGrid}>
+                  <IconButton href="https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks">
+                    <img src={ArrowIcon} style={{width: '20px', zIndex: 4, position: 'relative'}} ></img>
+                  </IconButton>
+                </Grid>
+              </Grid>
             </Grid>
-            <Grid item xs={1} style={{marginTop: '-35px', marginLeft: '-20px'}}>
+            <Grid item xs={1} style={{marginTop: '150px', marginLeft: '-20px'}}>
               <IconButton aria-describedby={id} variant="contained" onClick={handleClick}>
                 <img src={InfoIcon} ></img>
               </IconButton>
@@ -240,25 +281,7 @@ export default function AIToolkitPage() {
                 }}
               >
                 <Typography className={styles.toolTipText}>
-                  Clicking on the 'Get to work' button will redirect to a
-                  personal space that is available to each NOMAD user.  After
-                  logging in, you can access a 'tutorials' and 'work' directory.
-                  The 'tutorials' directory contains all notebooks available in
-                  the AI toolkit, while the 'work' directory offers some space
-                  to save personal work.  When you are in the 'work' directory,
-                  click on the 'new' icon on the top right and then select
-                  'Python 3'. This will create a Jupyter notebook that is
-                  stored in the AI toolkit and can be reaccessed and iteratively
-                  modified by the user.  All packages installed in the AI
-                  toolkit are also available in the 'work' directory, thus
-                  making possible to employ the same code syntax that is used in
-                  each tutorial presented in the AI toolkit.  It is possible,
-                  for example, to deploy any of the methodologies described in
-                  tutorials on a novel dataset.  You can also upload your own
-                  data with the 'Upload' button on the top right, or even
-                  download a novel dataset from the NOMAD Archive.  Make sure to
-                  learn how to download NOMAD data, that is explained in the
-                  tutorial accessible from the 'Query the Archive' button.
+
                 </Typography>
               </Popover>
             </Grid>
@@ -314,7 +337,10 @@ export default function AIToolkitPage() {
     </Grid>
 
     <Grid container spacing={1} className={styles.boxIconsBottom}>
-      <Grid item xs={3}> <img src={IconQuery2} className={styles.iconsBottom}/>
+      <Grid item xs={3}>
+        <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+          <img src={IconQuery2} className={styles.iconsBottom}/>
+        </IconButton>
       </Grid>
       <Grid item xs={3}> <img src={IconTutorial2} className={styles.iconsBottom}/>
       </Grid>
