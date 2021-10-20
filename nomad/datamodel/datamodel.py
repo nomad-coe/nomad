@@ -322,9 +322,7 @@ def derive_origin(entry: 'EntryMetadata') -> str:
 
 
 def derive_authors(entry: 'EntryMetadata') -> List[User]:
-    authors: List[User] = []
-    if entry.main_author is not None and entry.external_db is None:
-        authors.append(entry.main_author)
+    authors: List[User] = [entry.main_author]
     if entry.coauthors:
         authors.extend(entry.coauthors)
     if entry.entry_coauthors:
@@ -547,7 +545,8 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'), categories=[MongoEntryMetadata, UserProvidableMetadata],
+        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'),
+        categories=[MongoUploadMetadata, UserProvidableMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
