@@ -333,7 +333,7 @@ export default function TutorialsPage() {
         Next advanced level
       </Typography>
       <Typography className={styles.deck}>
-        After learning the basics of machine learning, you can apply the latest
+        After learning the basics of artificial-intelligence, you can apply the latest
         AI developments to timely problems in materials science. These
         outstanding applications allow to reproduce results that have been
         published recently in scientific journals.

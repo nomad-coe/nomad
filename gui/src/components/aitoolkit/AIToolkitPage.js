@@ -68,7 +68,7 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     align: 'center',
     marginTop: '100px',
-    width: '450px',
+    width: '650px',
     height: '140px',
     letterSpacing: 0,
     lineHeight: '62px',
@@ -97,8 +97,6 @@ const useStyles = makeStyles(theme => ({
     fontWeight: theme.typography.fontWeightMedium,
     backgroundColor: 'rgba(255,255,255,1)',
     borderRadius: '30px',
-    // width: '207px',
-    // height: '60px',
     textTransform: 'none',
     marginTop: '-38px',
     fontSize: '20px',
@@ -182,10 +180,14 @@ export default function AIToolkitPage() {
   return <Grid container spacing={2} className={styles.root}>
     <Grid container className={styles.background}>
       <Grid item xs={12} >
-        <Typography className={styles.title}>Powerful Tools for Materials Science</Typography>
+        <Typography className={styles.title}>
+          Artificial-Intelligence Tools for Materials Science
+        </Typography>
       </Grid>
       <Grid item xs={12}>
-        <Typography className={styles.deck}>Find new Patterns and Information in Materials Science Big Data</Typography>
+        <Typography className={styles.deck}>
+          Find new Patterns and Trends in Materials Science Big Data
+        </Typography>
       </Grid>
       <Grid container spacing={1} className={styles.boxIcons}>
         <Grid item xs={3} >
@@ -350,13 +352,13 @@ export default function AIToolkitPage() {
           to exist. But the basic properties (e.g., optical gap, elasticity
           constants, plasticity, piezoelectric tensors, conductivity, etc.) have
           been determined for very few of them.  NOMAD develops and provides a
-          big set of tools- the Artificial Intelligence Toolkit - using the
-          latest machine learning and artificial intelligence approaches that
-          make it possible to sort all available material data, to identify
-          correlations and structures, and to detect trends and anomalies.
-          Thus, the Artificial Intelligence Toolkit enables scientists and
-          engineers to decide which materials are useful for specific
-          applications or which new materials should be the focus of future
+          big set of tools - the Artificial-Intelligence Toolkit - using the
+          latest artificial-intelligence approaches (including machine-learning,
+          compressed sensing, and data mining) that make it possible to sort all
+          available material data, to identify correlations and structures, and
+          to detect trends and anomalies. Thus, the Artificial Intelligence Toolkit
+          enables scientists and engineers to decide which materials are useful for
+          specific applications or which new materials should be the focus of future
           studies.
         </Typography>
       </Grid>
@@ -364,13 +366,18 @@ export default function AIToolkitPage() {
         <img alt='AI toolkit logo' src={FigureAI} style={{marginTop: '150px'}}/>
       </Grid>
       <Grid item xs={8} >
-        <Typography className={styles.highlightedText}>How to get started</Typography>
+        <Typography className={styles.highlightedText}>
+          How to get started
+        </Typography>
+        <Typography className={styles.bodyText}>
+          Introduction to the scope of the NOMAD Artificial-Intelligence toolkit.
+        </Typography>
         <div className="App" style={{marginTop: '30px'}}>
           <YouTubeEmbed embedId="v_Ie5TPXrd0" />
         </div>
         <Typography className={styles.bodyText}>
           NOMAD Artificial Toolkit is very accessible. Watch this video and
-          learn more about its features. Our philosophy is...
+          learn more about its features.
         </Typography>
       </Grid>
       <div className="App" style={{marginTop: '30px'}}>

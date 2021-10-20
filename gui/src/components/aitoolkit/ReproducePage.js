@@ -186,8 +186,8 @@ export default function ReproducePage() {
         Explore the basics of AI
       </Typography>
       <Typography className={styles.deck}>
-        Recent applications of artificial-intelligence in science build on top
-        of solid methodologies, that have been developing over the last decades.
+        Recent applications of artificial intelligence in science build on top
+        of solid methodologies that have been being developed over the last decades.
         Exploring the following tutorials, you can learn the basics of AI to
         better understand their latest applications in materials science.
       </Typography>
