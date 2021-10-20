@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
@@ -243,7 +243,7 @@ function UploadsPage() {
     order_by: 'upload_create_time'
   })
 
-  const handleReload = () => {
+  const fetchData = useCallback(() => {
     const {page_size, page} = pagination
     api.get(`/uploads?page_size=${page_size}&page=${page}`)
       .then(setData)
@@ -251,22 +251,17 @@ function UploadsPage() {
     api.get(`/uploads?is_published=false&page_size=0`)
       .then(setUnpublished)
       .catch(errors.raiseError)
+  }, [pagination, setData, setUnpublished, errors, api])
+
+  const handleReload = () => {
+    fetchData()
   }
 
   useEffect(() => {
-    api.get(`/uploads?is_published=false&page_size=0`)
-      .then(setUnpublished)
-      .catch(errors.raiseError)
-  }, [setData, errors, api])
+    fetchData()
+  }, [fetchData])
 
   const isDisable = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : true) : true
-
-  useEffect(() => {
-    const {page_size, page} = pagination
-    api.get(`/uploads?page_size=${page_size}&page=${page}`)
-      .then(setData)
-      .catch(errors.raiseError)
-  }, [pagination, setData, errors, api])
 
   useEffect(() => {
     api.get('/uploads/command-examples')
@@ -281,7 +276,14 @@ function UploadsPage() {
           You can create an upload and upload files through this browser-based interface:
         </Typography>
       </Box>
-      <NewUploadButton color="primary" isDisable={isDisable}/>
+      <Box>
+        <NewUploadButton color="primary" isDisable={isDisable}/>
+        <Box display="inline-block" marginLeft={2}>
+          <Typography hidden={!isDisable} color="error">
+            You have reached maximum number of unpublished uploads!
+          </Typography>
+        </Box>
+      </Box>
       <Box marginTop={4}>
         <Typography>
           Or, you can create an upload by sending a file-archive via shell command:
