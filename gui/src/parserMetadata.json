@@ -330,6 +330,15 @@
     "parserSpecific": "",
     "tableOfFiles": ""
   },
+  "OpenMX": {
+    "codeLabel": "openMX",
+    "codeLabelStyle": "Capitals: M,X",
+    "codeUrl": "http://www.openmx-square.org/",
+    "parserDirName": "dependencies/parsers/openmx/",
+    "parserGitUrl": "https://github.com/ondracka/nomad-parser-openmx",
+    "parserSpecific": "",
+    "tableOfFiles": ""
+  },
   "ORCA": {
     "codeLabel": "ORCA",
     "codeLabelStyle": "All in capitals",
