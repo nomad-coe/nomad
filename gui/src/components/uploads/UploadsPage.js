@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
@@ -24,7 +24,7 @@ import {
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import HelpDialog from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { guiBase } from '../../config'
+import { guiBase, servicesUploadLimit } from '../../config'
 import NewUploadButton from './NewUploadButton'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
@@ -36,6 +36,8 @@ import { UploadButton } from '../nav/Routes'
 import {
   addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
+import TooltipButton from '../utils/TooltipButton'
+import ReloadIcon from '@material-ui/icons/Replay'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -112,6 +114,7 @@ an upload to open its details, and press the edit button there. User metadata ca
 be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
 contains more information.
 `
+const uploadsPageContext = React.createContext()
 
 const columns = [
   {key: 'upload_id'},
@@ -213,14 +216,14 @@ function UploadCommands({uploadCommands}) {
   </div>
 }
 
-const VisitUploadAction = React.memo(function VisitUploadAction({data}) {
+const UploadActions = React.memo(function UploadActions({data}) {
   return <Tooltip title="Open this upload">
     <UploadButton component={IconButton} uploadId={data.upload_id}>
       <DetailsIcon />
     </UploadButton>
   </Tooltip>
 })
-VisitUploadAction.propTypes = {
+UploadActions.propTypes = {
   data: PropTypes.object.isRequired
 }
 
@@ -232,6 +235,7 @@ function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
   const [data, setData] = useState(null)
+  const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
     page_size: 10,
@@ -239,12 +243,25 @@ function UploadsPage() {
     order_by: 'upload_create_time'
   })
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const {page_size, page} = pagination
     api.get(`/uploads?page_size=${page_size}&page=${page}`)
       .then(setData)
       .catch(errors.raiseError)
-  }, [pagination, setData, errors, api])
+    api.get(`/uploads?is_published=false&page_size=0`)
+      .then(setUnpublished)
+      .catch(errors.raiseError)
+  }, [pagination, setData, setUnpublished, errors, api])
+
+  const handleReload = () => {
+    fetchData()
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const isDisable = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : true) : true
 
   useEffect(() => {
     api.get('/uploads/command-examples')
@@ -252,40 +269,57 @@ function UploadsPage() {
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
 
-  return <Page loading={!(data && uploadCommands)}>
-    <Box marginBottom={2}>
-      <Typography>
-        You can create an upload and upload files through this browser-based interface:
-      </Typography>
-    </Box>
-    <NewUploadButton color="primary" />
-    <Box marginTop={4}>
-      <Typography>
-        Or, you can create an upload by sending a file-archive via shell command:
-      </Typography>
-    </Box>
-    <Box marginBottom={-2}>
-      {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
-    </Box>
-    {(data?.pagination?.total || 0) > 0 && <React.Fragment>
-      <Box marginTop={2} marginBottom={2}>
-        <Divider/>
+  return <uploadsPageContext.Provider value={{reload: handleReload}}>
+    <Page loading={!(data && uploadCommands)}>
+      <Box marginBottom={2}>
+        <Typography>
+          You can create an upload and upload files through this browser-based interface:
+        </Typography>
       </Box>
-      <Paper>
-        <Datatable
-          columns={columns} selectedColumns={columns.map(column => column.key)}
-          data={data.data || []}
-          pagination={combinePagination(pagination, data.pagination)}
-          onPaginationChanged={setPagination}
-        >
-          <DatatableToolbar title="Your existing uploads" />
-          <DatatableTable actions={VisitUploadAction}>
-            <DatatableLoadMorePagination />
-          </DatatableTable>
-        </Datatable>
-      </Paper>
-    </React.Fragment>}
-  </Page>
+      <Box>
+        <NewUploadButton color="primary" isDisable={isDisable}/>
+        <Box display="inline-block" marginLeft={2}>
+          <Typography hidden={!isDisable} color="error">
+            You have reached maximum number of unpublished uploads!
+          </Typography>
+        </Box>
+      </Box>
+      <Box marginTop={4}>
+        <Typography>
+          Or, you can create an upload by sending a file-archive via shell command:
+        </Typography>
+      </Box>
+      <Box marginBottom={-2}>
+        {uploadCommands && <UploadCommands uploadCommands={uploadCommands}/>}
+      </Box>
+      {(data?.pagination?.total || 0) > 0 && <React.Fragment>
+        <Box marginTop={2} marginBottom={2}>
+          <Divider/>
+        </Box>
+        <Paper>
+          <Datatable
+            columns={columns} selectedColumns={columns.map(column => column.key)}
+            data={data.data || []}
+            pagination={combinePagination(pagination, data.pagination)}
+            onPaginationChanged={setPagination}
+          >
+            <DatatableToolbar title="Your existing uploads">
+              <TooltipButton
+                title="Reload the uploads"
+                component={IconButton}
+                onClick={handleReload}
+              >
+                <ReloadIcon/>
+              </TooltipButton>
+            </DatatableToolbar>
+            <DatatableTable actions={UploadActions}>
+              <DatatableLoadMorePagination />
+            </DatatableTable>
+          </Datatable>
+        </Paper>
+      </React.Fragment>}
+    </Page>
+  </uploadsPageContext.Provider>
 }
 
 export default withLoginRequired(UploadsPage)

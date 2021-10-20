@@ -32,6 +32,7 @@ import { useErrors } from '../errors'
 import ProcessingTable from './ProcessingTable'
 import EditIcon from '@material-ui/icons/Edit'
 import DeleteIcon from '@material-ui/icons/Delete'
+import ReprocessIcon from '@material-ui/icons/Autorenew'
 import MembersIcon from '@material-ui/icons/People'
 import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
@@ -364,6 +365,13 @@ function UploadPage() {
       .catch(errors.raiseError)
   }
 
+  const handleReprocess = () => {
+    setDeleteClicked(true)
+    api.post(`/uploads/${uploadId}/action/process`)
+      .then(results => setUpload(results.data))
+      .catch(errors.raiseError)
+  }
+
   const handleDelete = () => {
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
@@ -418,6 +426,11 @@ function UploadPage() {
         <IconButton>
           <Tooltip title="Manage upload members">
             <MembersIcon />
+          </Tooltip>
+        </IconButton>
+        <IconButton disabled={isPublished} onClick={handleReprocess}>
+          <Tooltip title="Reprocess">
+            <ReprocessIcon />
           </Tooltip>
         </IconButton>
         <IconButton disabled={isPublished} onClick={handleDelete}>

@@ -102,7 +102,8 @@ data:
         "officialUrl": "{{ .Values.version.officialUrl }}"
       },
       "encyclopediaEnabled": {{ .Values.gui.encyclopediaEnabled }},
-      "aitoolkitEnabled": {{ .Values.gui.aitoolkitEnabled }}
+      "aitoolkitEnabled": {{ .Values.gui.aitoolkitEnabled }},
+      "servicesUploadLimit": {{ .Values.api.uploadLimit }}
     };
 ---
 apiVersion: v1
