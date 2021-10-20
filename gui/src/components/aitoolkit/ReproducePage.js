@@ -98,7 +98,7 @@ export default function ReproducePage() {
         </Typography>
       </Grid>
       <Grid item xs={4} className={styles.sectionIcon}>
-        <img src={ReproduceIcon} className={styles.icon}/>
+        <img alt='Reproduce icon' src={ReproduceIcon} className={styles.icon}/>
       </Grid>
     </Grid>
     <Grid container spacing={0}>
@@ -198,7 +198,7 @@ export default function ReproducePage() {
             to="aitoolkit"
             style={{marginRight: '0px', marginTop: '20px'}}
           >
-            <img src={FigureAI} style={{width: '120px'}}/>
+            <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
           </IconButton>
         </Grid>
         <Grid item xs={8}>
@@ -208,7 +208,7 @@ export default function ReproducePage() {
             component={Link}
             to="tutorials"
             className={styles.bottomButton}
-            endIcon={<img src={ArrowIcon}></img>}
+            endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
           >
             <Typography className={styles.fieldText} >
               AI tutorials
@@ -218,7 +218,7 @@ export default function ReproducePage() {
       </Grid>
     </Grid>
     <Grid item xs={4} className={styles.sectionIcon}>
-      <img src={TutorialsIcon} className={styles.bottomIcon}/>
+      <img alt='Tutorials icon' src={TutorialsIcon} className={styles.bottomIcon}/>
     </Grid>
   </Grid>
 }

@@ -157,9 +157,6 @@ export default function TutorialsPage() {
     }
     return true
   }
-  console.log(filter)
-  console.log(queryParameters)
-  console.log(setQueryParameters)
 
   const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.application_section[0] === 'Tutorials for artificial-intelligence methods')
 
@@ -205,7 +202,7 @@ export default function TutorialsPage() {
         </Typography>
       </Grid>
       <Grid item xs={4} className={styles.sectionIcon}>
-        <img src={TutorialsIcon} className={styles.icon}/>
+        <img alt='Tutorials icon' src={TutorialsIcon} className={styles.icon}/>
       </Grid>
     </Grid>
     <Grid container spacing={0}>
@@ -347,7 +344,7 @@ export default function TutorialsPage() {
             href={'aitoolkit'}
             style={{marginRight: '0px', marginTop: '20px'}}
           >
-            <img src={FigureAI} style={{width: '120px'}} ></img>
+            <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
           </IconButton>
         </Grid>
         <Grid item xs={8}>
@@ -358,7 +355,7 @@ export default function TutorialsPage() {
             to="reproduce"
             onClick = {() => { setQueryParameters({author: 'Sbailò, Luigi'}) }}
             className={styles.bottomButton}
-            endIcon={<img src={ArrowIcon}></img>}
+            endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
           >
             <Typography className={styles.fieldText}>
               Advanced applications
@@ -368,7 +365,7 @@ export default function TutorialsPage() {
       </Grid>
     </Grid>
     <Grid item xs={4} className={styles.sectionIcon}>
-      <img src={ReproduceIcon} className={styles.bottomIcon}/>
+      <img alt='Reproduce icon' src={ReproduceIcon} className={styles.bottomIcon}/>
     </Grid>
   </Grid>
 }
