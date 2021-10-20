@@ -82,7 +82,7 @@ recommonmark
 jinja2
 rdflib==5.0.0
 fastapi
-uvicorn[standard]==0.13.4
+uvicorn[standard]==0.15.0
 a2wsgi==1.4.0
 python-multipart
 
