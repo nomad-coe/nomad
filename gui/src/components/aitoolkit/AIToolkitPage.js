@@ -95,7 +95,7 @@ const useStyles = makeStyles(theme => ({
   },
   topIcon: {
     width: '180px',
-    marginLeft: '10px'
+    marginBottom: '-10px'
   },
   topButton: {
     fontWeight: theme.typography.fontWeightMedium,
@@ -209,12 +209,14 @@ export default function AIToolkitPage() {
       </Grid>
       <Grid container spacing={1} className={styles.boxIcons}>
         <Grid item xs={3} >
-          <img
-            src={IconQuery}
-            className={styles.topIcon}
-            style={{zIndex: 2, position: 'relative'}}
-            alt='Query Archive icon'
-          />
+          <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+            <img
+              src={IconQuery}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+              alt='Query Archive icon'
+            />
+          </IconButton>
           <Grid container spacing={0}>
             <Grid item xs={11}>
               <Typography
@@ -236,12 +238,14 @@ export default function AIToolkitPage() {
           </Grid>
         </Grid>
         <Grid item xs={3} >
-          <img
-            alt='Tutorials icon'
-            src={IconTutorial}
-            className={styles.topIcon}
-            style={{zIndex: 2, position: 'relative'}}
-          />
+          <IconButton to="tutorials" component={Link}>
+            <img
+              alt='Tutorials icon'
+              src={IconTutorial}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+            />
+          </IconButton>
           <Grid container spacing={0}>
             <Grid item xs={11}>
               <Typography
@@ -263,12 +267,14 @@ export default function AIToolkitPage() {
           </Grid>
         </Grid>
         <Grid item xs={3} >
-          <img
-            alt='Reproduce icon'
-            src={IconReplicate}
-            className={styles.topIcon}
-            style={{zIndex: 2, position: 'relative'}}
-          />
+          <IconButton to="reproduce" component={Link}>
+            <img
+              alt='Reproduce icon'
+              src={IconReplicate}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+            />
+          </IconButton>
           <Grid container spacing={0}>
             <Grid item xs={11}>
               <Typography
@@ -292,12 +298,14 @@ export default function AIToolkitPage() {
         <Grid item xs={3} >
           <Grid container >
             <Grid item xs={11}>
-              <img
-                alt='Get to work icon'
-                src={IconWork}
-                className={styles.topIcon}
-                style={{zIndex: 2, position: 'relative'}}
-              />
+              <IconButton href="https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks">
+                <img
+                  alt='Get to work icon'
+                  src={IconWork}
+                  className={styles.topIcon}
+                  style={{zIndex: 2, position: 'relative'}}
+                />
+              </IconButton>
               <Grid container spacing={0}>
                 <Grid item xs={11}>
                   <Typography
@@ -317,7 +325,7 @@ export default function AIToolkitPage() {
                 </Grid>
               </Grid>
             </Grid>
-            <Grid item xs={1} style={{marginTop: '150px', marginLeft: '-20px'}}>
+            <Grid item xs={1} style={{marginTop: '161px', marginLeft: '-20px'}}>
               <IconButton aria-describedby={id} variant="contained" onClick={handleClick}>
                 <img alt='Info icon' src={InfoIcon} />
               </IconButton>

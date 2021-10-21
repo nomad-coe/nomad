@@ -103,12 +103,6 @@ export const useStyles = makeStyles(theme => ({
     height: '22px',
     marginTop: '-16px'
   },
-  // tutorialsDivider: {
-  //   backgroundColor: 'rgba(127, 239, 239, 1)',
-  //   height: '13px',
-  //   borderRadius: '4px',
-  //   marginBottom: '-8px'
-  // },
   titleSecondary: {
     fontWeight: 'bold',
     color: 'rgba(127, 239, 239, 1)',
@@ -129,7 +123,6 @@ export const useStyles = makeStyles(theme => ({
     lineHeight: '20px'
   },
   bottomIcon: {
-    height: '300px',
     marginTop: '80px',
     marginLeft: '120px'
   }
@@ -351,7 +344,8 @@ export default function TutorialsPage() {
       <Grid container spacing={1}>
         <Grid item xs={4}>
           <IconButton
-            href={'aitoolkit'}
+            component={Link}
+            to="aitoolkit"
             style={{marginRight: '0px', marginTop: '20px'}}
           >
             <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
@@ -363,7 +357,6 @@ export default function TutorialsPage() {
             color='#2A3C67'
             component={Link}
             to="reproduce"
-            onClick = {() => { setQueryParameters({author: 'Sbailò, Luigi'}) }}
             className={styles.bottomButton}
             endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
           >
@@ -375,7 +368,13 @@ export default function TutorialsPage() {
       </Grid>
     </Grid>
     <Grid item xs={4} className={styles.sectionIcon}>
-      <img alt='Reproduce icon' src={ReproduceIcon} className={styles.bottomIcon}/>
+      <IconButton
+        component={Link}
+        to="reproduce"
+        className={styles.bottomIcon}
+      >
+        <img alt='Reproduce icon' src={ReproduceIcon} style={{width: '300px'}}/>
+      </IconButton>
     </Grid>
   </Grid>
 }

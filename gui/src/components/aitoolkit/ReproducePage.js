@@ -222,7 +222,14 @@ export default function ReproducePage() {
       </Grid>
     </Grid>
     <Grid item xs={4} className={styles.sectionIcon}>
-      <img alt='Tutorials icon' src={TutorialsIcon} className={styles.bottomIcon}/>
+      <IconButton
+        component={Link}
+        to="tutorials"
+        className={styles.bottomIcon}
+      >
+        <img alt='Tutorials icon' src={TutorialsIcon} style={{width: '300px'}}/>
+      </IconButton>
+
     </Grid>
   </Grid>
 }
