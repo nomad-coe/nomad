@@ -93,7 +93,7 @@ export default function ReproducePage() {
           structure in big data of materials. This will enable scientists and
           engineers to decide which materials are useful for specific
           applications or which new materials should be the focus of future
-          studies. The following tutorials are designed to reproduce result
+          studies. The following notebooks are designed to reproduce result
           published in scientific journals.
         </Typography>
       </Grid>

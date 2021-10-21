@@ -42,7 +42,8 @@ export const useStyles = makeStyles(theme => ({
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: '1052px'
+    maxWidth: '1052px',
+    marginBottom: '150px'
   },
   sectionIcon: {
     marginTop: theme.spacing(3)
@@ -334,7 +335,7 @@ export default function TutorialsPage() {
         Next advanced level
       </Typography>
       <Typography className={styles.deck}>
-        After learning the basics of artificial-intelligence, you can apply the latest
+        After learning the basics of artificial-intelligence tools, you can apply the latest
         AI developments to timely problems in materials science. These
         outstanding applications allow to reproduce results that have been
         published recently in scientific journals.
