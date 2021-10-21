@@ -27,6 +27,7 @@ import {
   makeStyles
 } from '@material-ui/core'
 import { Link } from 'react-router-dom'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import IconQuery from '../../images/AIT_ico_bb_query.svg'
 import IconReplicate from '../../images/AIT_ico_bb_replicate.svg'
 import IconTutorial from '../../images/AIT_ico_bb_tutorial.svg'
@@ -38,6 +39,7 @@ import IconWork2 from '../../images/AIT_ico_bp_work.svg'
 import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
 import FigureAI from '../../images/AIT_illu_AIT.svg'
 import YouTubeEmbed from '../YouTubeEmbed'
+import ScrollButton from '../ScrollButton'
 import InfoIcon from '../../images/AIT_ico_bd_info_circle.svg'
 import Background from '../../images/AIT_bg_title.jpg'
 
@@ -50,11 +52,20 @@ const useStyles = makeStyles(theme => ({
     maxWidth: '1920px'
   },
   background: {
+    position: 'relative',
     backgroundImage: `url(${Background})`,
     height: '840px',
     marginTop: '-50px',
     zIndex: 0
-
+  },
+  scrollButton: {
+    position: 'absolute',
+    bottom: theme.spacing(2),
+    right: theme.spacing(2),
+    backgroundColor: theme.palette.background.paper,
+    '&:hover, &.Mui-focusVisible': {
+      backgroundColor: theme.palette.background.paper
+    }
   },
   boxIcons: {
     width: '1000px',
@@ -179,6 +190,9 @@ export default function AIToolkitPage() {
 
   return <Grid container spacing={2} className={styles.root}>
     <Grid container className={styles.background}>
+      <ScrollButton scrollAmount={840} className={styles.scrollButton}>
+        <ExpandMoreIcon/>
+      </ScrollButton>
       <Grid item xs={12} >
         <Typography className={styles.title}>
           Artificial-Intelligence Tools for Materials Science
