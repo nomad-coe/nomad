@@ -65,7 +65,6 @@ const useFolderStyles = makeStyles(theme => ({
 
 function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
   const classes = useFolderStyles()
-  const [hover, setHover] = useState(false)
   const handleToggle = event => {
     event.stopPropagation()
     if (onToggle) {
@@ -81,7 +80,7 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
     : <div className={classes.icon} />
 
   return <div className={classes.root}>
-    <div onClick={handleToggle} className={classes.item} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div onClick={handleToggle} className={classes.item}>
       {icon}
       <Box marginLeft={icon ? 1 : 0}>
         <Typography className={classes.name}>{name || '/'}</Typography>
@@ -93,13 +92,6 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       <div className={classes.tags}>
         {parser && <Chip size="small" label={parser} color="primary" />}
       </div>
-      {hover && <div className={classes.actions}>
-        {/* parser && <IconButton size="small" onClick={onView}><PreviewIcon fontSize="small" variant="outlined" /></IconButton> */}
-        {/* <IconButton size="small"><DownloadIcon fontSize="small" variant="outlined" /></IconButton>
-        <span>&nbsp;</span>
-        <IconButton size="small"><DeleteIcon fontSize="small" variant="outlined" /></IconButton>
-        <IconButton size="small"><UploadIcon fontSize="small" variant="outlined" /></IconButton> */}
-      </div>}
     </div>
     <Collapse in={open} className={classes.children}>
       {children || 'loading ...'}
