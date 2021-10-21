@@ -39,36 +39,6 @@ import WatchIcon from '../../images/AIT_ico_bd_youtube.svg'
 import PdfIcon from '../../images/AIT_ico_bd_link_pdf.svg'
 import DoiIcon from '../../images/AIT_ico_bd_link_doi.svg'
 
-const Accordion = styled((props) => (
-  <MuiAccordion disableGutters elevation={0} square {...props} />
-))(({ theme }) => ({
-  borderBottom: '13px solid rgba(127, 239, 239, 1)',
-  '&:not(:last-child)': {
-    borderBottom: 0
-  },
-  '&:before': {
-    display: 'none'
-  }
-}))
-
-const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
-    {...props}
-  />
-))(({ theme }) => ({
-
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)'
-  },
-  '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(1),
-    marginTop: '20px',
-    marginBottom: '20px'
-  }
-}))
-
 const useStyles = makeStyles(theme => ({
   tutorialTitleGrid: {
     marginRight: '40px'
@@ -115,6 +85,35 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
+const Accordion = styled((props) => (
+  <MuiAccordion disableGutters elevation={0} square {...props} />
+))(({ theme }) => ({
+  borderBottom: '13px solid rgba(127, 239, 239, 1)',
+  '&:not(:last-child)': {
+    borderBottom: 0
+  },
+  '&:before': {
+    display: 'none'
+  }
+}))
+
+const AccordionSummary = styled((props) => (
+  <MuiAccordionSummary
+    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
+    {...props}
+  />
+))(({ theme }) => ({
+  flexDirection: 'row-reverse',
+  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+    transform: 'rotate(90deg)'
+  },
+  '& .MuiAccordionSummary-content': {
+    marginLeft: theme.spacing(1),
+    marginTop: '20px',
+    marginBottom: '20px'
+  }
+}))
+
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2)
 }))
@@ -124,10 +123,10 @@ function AccordionsList(props) {
   const [expanded, setExpanded] = useQueryParam('expanded', StringParam)
   return (
     props.tutorials_list.map(tutorial => (
+      props.filter(tutorial) &&
       <div key={tutorial.title} >
         <Accordion
           key={tutorial.key}
-          disabled={!props.filter(tutorial)}
           expanded={expanded === tutorial.key}
           onChange={() => setExpanded(expanded === tutorial.key ? null : tutorial.key)}
           elevation={0}
