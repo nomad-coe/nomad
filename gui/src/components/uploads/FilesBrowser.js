@@ -64,7 +64,7 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, onView, open, hasChildren, children, name, parser, info}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
   const classes = useFolderStyles()
   const [hover, setHover] = useState(false)
   const handleToggle = event => {
@@ -95,7 +95,7 @@ function FileOrFolder({onToggle, onView, open, hasChildren, children, name, pars
         {parser && <Chip size="small" label={parser} color="primary" />}
       </div>
       {hover && <div className={classes.actions}>
-        {parser && <IconButton size="small" onClick={onView}><PreviewIcon fontSize="small" variant="outlined" /></IconButton>}
+        {/* parser && <IconButton size="small" onClick={onView}><PreviewIcon fontSize="small" variant="outlined" /></IconButton> */}
         {/* <IconButton size="small"><DownloadIcon fontSize="small" variant="outlined" /></IconButton>
         <span>&nbsp;</span>
         <IconButton size="small"><DeleteIcon fontSize="small" variant="outlined" /></IconButton>
@@ -110,7 +110,6 @@ function FileOrFolder({onToggle, onView, open, hasChildren, children, name, pars
 
 FileOrFolder.propTypes = {
   onToggle: PropTypes.func,
-  onView: PropTypes.func,
   open: PropTypes.bool,
   hasChildren: PropTypes.bool,
   children: PropTypes.arrayOf(PropTypes.object),
@@ -222,7 +221,6 @@ export default function FilesBrower({uploadId, disabled}) {
       open: data?.open,
       children: data?.content?.map(mapContent),
       onToggle: is_file ? null : () => handleToggle(path),
-      onView: () => setPreviewPath(path),
       // TODO
       // info: !is_file && data?.content?.length === 0 && <Typography variant="caption">
       //   {'empty directory'}
