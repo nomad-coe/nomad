@@ -277,7 +277,7 @@ function UploadsPage() {
         </Typography>
       </Box>
       <Box>
-        <NewUploadButton color="primary" isDisable={isDisable}/>
+        <NewUploadButton color="primary" disabled={isDisable}/>
         <Box display="inline-block" marginLeft={2}>
           <Typography hidden={!isDisable} color="error">
             You have reached maximum number of unpublished uploads!
