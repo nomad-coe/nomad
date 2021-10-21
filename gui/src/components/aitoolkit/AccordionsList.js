@@ -88,6 +88,7 @@ const useStyles = makeStyles(theme => ({
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
   borderBottom: '13px solid rgba(127, 239, 239, 1)',
   '&:not(:last-child)': {
     borderBottom: 0
@@ -250,13 +251,14 @@ function AccordionsList(props) {
                   </Grid>
                 </Grid>
               </Grid>
+              {tutorial.link_paper &&
               <Grid item xs={4} className={styles.tutorialResources}>
+                <Grid item xs={12}>
+                  <Typography className={styles.fieldText}>
+                    <b>Additional Resources</b>:
+                  </Typography>
+                </Grid>
                 <Grid container spacing={0}>
-                  <Grid item xs={12}>
-                    <Typography className={styles.fieldText}>
-                      <b>Additional Resources</b>:
-                    </Typography>
-                  </Grid>
                   <Grid item xs={2} >
                     <div>
                       {tutorial.link_paper && <Button
@@ -279,6 +281,7 @@ function AccordionsList(props) {
                   </Grid>
                 </Grid>
               </Grid>
+              }
             </Grid>
           </AccordionActions>
           <Divider />
