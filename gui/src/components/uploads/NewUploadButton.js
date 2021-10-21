@@ -36,9 +36,6 @@ export default function NewUploadButton({...props}) {
         history.push(getUrl(`upload/id/${upload.upload_id}`, location))
       })
       .catch(errors.raiseError)
-      .finally(() => {
-        setClicked(false)
-      })
   }
 
   return <Button variant="contained" onClick={handleClick} disabled={clicked} {...props}>
