@@ -42,7 +42,7 @@ import YouTubeEmbed from '../YouTubeEmbed'
 import ScrollButton from '../ScrollButton'
 import InfoIcon from '../../images/AIT_ico_bd_info_circle.svg'
 import Background from '../../images/AIT_bg_title.jpg'
-import ImgNatRev from '../../images/AIT_img_natrev.jpg'
+import ImgNatRev from '../../images/AIT_slide_nature.png'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -382,6 +382,7 @@ export default function AIToolkitPage() {
       </Grid>
       <Grid item xs={4}>
         <img alt='AI toolkit logo' src={FigureAI} style={{marginTop: '150px'}}/>
+
       </Grid>
       <Grid item xs={8} >
         <Typography className={styles.highlightedText}>
@@ -393,32 +394,36 @@ export default function AIToolkitPage() {
         <div className="App" style={{marginTop: '30px'}}>
           <YouTubeEmbed embedId="v_Ie5TPXrd0" />
         </div>
-        <Grid container spacing={1}>
-          <Grid item xs={8}>
-            <Typography
-              style={{
-                color: '#2A3C67',
-                lineHeight: '30px',
-                fontSize: '22px',
-                marginTop: '30px'
-              }}>
+        <Grid item xs={8}>
+          <Typography className={styles.bodyText}>
           The NOMAD Artificial Toolkit is very accessible. Watch this video and
           learn more about its features.
-            </Typography>
-          </Grid>
-          <Grid item xs={2}>
-            <IconButton
-              href='https://www.nature.com/articles/s42254-021-00373-8'
-              style={{marginRight: '0px', marginTop: '20px'}}
-            >
-              <img alt='Nature logo' src={ImgNatRev} style={{width: '120px'}}/>
-            </IconButton>
-          </Grid>
+          </Typography>
         </Grid>
       </Grid>
       <div className="App" style={{marginTop: '30px'}}>
         <YouTubeEmbed embedId="7R4EHsSRork" />
       </div>
+      <Grid item xs={8} >
+        <Typography className={styles.highlightedText}>
+          Read about us!
+        </Typography>
+        <Typography className={styles.bodyText}>
+          Clicking on the image below, you will access a Nature Reviews paper
+          which gives an introduction to the NOMAD Artificial Intelligence Toolkit.
+        </Typography>
+        <IconButton
+          href='https://www.nature.com/articles/s42254-021-00373-8'
+          style={{marginRight: '0px', marginTop: '20px'}}
+        >
+          <img alt='Nature logo' src={ImgNatRev}
+            style={{width: '550px',
+              marginTop: '15px',
+              marginLeft: '-10px' }}
+          />
+        </IconButton>
+      </Grid>
+
       <Grid item xs={8} >
         <Typography className={styles.highlightedText}>Access the tutorials </Typography>
         <Typography className={styles.bodyText}>
