@@ -37,7 +37,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
     print('get the upload command')
     response = api.get('uploads/command-examples', auth=auth)
     assert response.status_code == 200, response.text
-    command = response.json()['upload_command']
+    command = response.json()['upload_command_with_name']
 
     def get_upload(upload):
         first = True

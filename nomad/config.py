@@ -179,8 +179,8 @@ services = NomadConfig(
 )
 
 oasis = NomadConfig(
-    central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/rae',
+    central_nomad_api_url='https://nomad-lab.eu/prod/v1/api',
+    central_nomad_deployment_id='nomad-lab.eu/prod/v1',
     allowed_users=None  # a list of usernames or user account emails
 )
 
@@ -291,7 +291,7 @@ paths = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://nomad-lab.eu/prod/rae/api'
+    url='http://nomad-lab.eu/prod/v1/api'
 )
 
 datacite = NomadConfig(
@@ -314,7 +314,7 @@ meta = NomadConfig(
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de',
-    deployment_id='nomad-lab.eu/prod/rae'
+    deployment_id='nomad-lab.eu/prod/v1'
 )
 
 gitlab = NomadConfig(
