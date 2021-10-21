@@ -18,12 +18,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Chip, CircularProgress, Collapse, IconButton, makeStyles, Paper, Typography } from '@material-ui/core'
+import { Box, Chip, CircularProgress, Collapse, makeStyles, Paper, Typography } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import PreviewIcon from '@material-ui/icons/Visibility'
 import FilePreview from './FilePreview'
 
 const useFolderStyles = makeStyles(theme => ({
