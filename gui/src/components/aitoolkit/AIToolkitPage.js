@@ -42,6 +42,7 @@ import YouTubeEmbed from '../YouTubeEmbed'
 import ScrollButton from '../ScrollButton'
 import InfoIcon from '../../images/AIT_ico_bd_info_circle.svg'
 import Background from '../../images/AIT_bg_title.jpg'
+import ImgNatRev from '../../images/AIT_img_natrev.jpg'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -49,7 +50,8 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: '1920px'
+    maxWidth: '1920px',
+    marginBottom: '150px'
   },
   background: {
     position: 'relative',
@@ -391,10 +393,28 @@ export default function AIToolkitPage() {
         <div className="App" style={{marginTop: '30px'}}>
           <YouTubeEmbed embedId="v_Ie5TPXrd0" />
         </div>
-        <Typography className={styles.bodyText}>
-          NOMAD Artificial Toolkit is very accessible. Watch this video and
+        <Grid container spacing={1}>
+          <Grid item xs={8}>
+            <Typography
+              style={{ 
+                color: '#2A3C67',
+                lineHeight: '30px',
+                fontSize: '22px',
+                marginTop: '30px'
+                }}>
+          The NOMAD Artificial Toolkit is very accessible. Watch this video and
           learn more about its features.
-        </Typography>
+            </Typography>
+          </Grid>
+          <Grid item xs={2}>
+            <IconButton
+              href='https://www.nature.com/articles/s42254-021-00373-8'
+              style={{marginRight: '0px', marginTop: '20px'}}
+            >
+              <img alt='Nature logo' src={ImgNatRev} style={{width: '120px'}}/>
+            </IconButton>
+          </Grid>
+        </Grid>
       </Grid>
       <div className="App" style={{marginTop: '30px'}}>
         <YouTubeEmbed embedId="7R4EHsSRork" />
