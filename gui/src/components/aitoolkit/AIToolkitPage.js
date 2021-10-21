@@ -361,7 +361,7 @@ export default function AIToolkitPage() {
     <Grid container spacing={1} className={styles.body}>
       <Grid item xs={8} >
         <Typography className={styles.highlightedText}>
-          What is the NOMAD Artificial Intelligence Toolkit?
+          What is the NOMAD Artificial-Intelligence Toolkit?
         </Typography>
         <Typography className={styles.bodyText}>
           The preparation, synthesis, and characterization of new materials is a
@@ -396,7 +396,7 @@ export default function AIToolkitPage() {
         </div>
         <Grid item xs={8}>
           <Typography className={styles.bodyText}>
-          The NOMAD Artificial Toolkit is very accessible. Watch this video and
+          The NOMAD Artificial-Intelligence Toolkit is very accessible. Watch this video and
           learn more about its features.
           </Typography>
         </Grid>
@@ -410,7 +410,7 @@ export default function AIToolkitPage() {
         </Typography>
         <Typography className={styles.bodyText}>
           Clicking on the image below, you will access a Nature Reviews paper
-          which gives an introduction to the NOMAD Artificial Intelligence Toolkit.
+          which gives an introduction to the NOMAD Artificial-Intelligence Toolkit.
         </Typography>
         <IconButton
           href='https://www.nature.com/articles/s42254-021-00373-8'
