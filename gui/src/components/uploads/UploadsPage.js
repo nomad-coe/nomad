@@ -261,7 +261,7 @@ function UploadsPage() {
     fetchData()
   }, [fetchData])
 
-  const isDisable = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : true) : true
+  const isDisabled = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : true) : true
 
   useEffect(() => {
     api.get('/uploads/command-examples')
@@ -277,9 +277,9 @@ function UploadsPage() {
         </Typography>
       </Box>
       <Box>
-        <NewUploadButton color="primary" disabled={isDisable}/>
+        <NewUploadButton color="primary" disabled={isDisabled}/>
         <Box display="inline-block" marginLeft={2}>
-          <Typography hidden={!isDisable} color="error">
+          <Typography hidden={!isDisabled} color="error">
             You have reached maximum number of unpublished uploads!
           </Typography>
         </Box>
