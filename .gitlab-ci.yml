@@ -104,6 +104,8 @@ python tests:
       # fix issue with running elastic in gitlab ci runner:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
+    - name: mongo:4
+      alias: mongo
   variables:
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
