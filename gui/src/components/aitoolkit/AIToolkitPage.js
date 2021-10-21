@@ -396,12 +396,12 @@ export default function AIToolkitPage() {
         <Grid container spacing={1}>
           <Grid item xs={8}>
             <Typography
-              style={{ 
+              style={{
                 color: '#2A3C67',
                 lineHeight: '30px',
                 fontSize: '22px',
                 marginTop: '30px'
-                }}>
+              }}>
           The NOMAD Artificial Toolkit is very accessible. Watch this video and
           learn more about its features.
             </Typography>
