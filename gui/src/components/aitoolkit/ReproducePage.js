@@ -107,13 +107,12 @@ export default function ReproducePage() {
           Filter Tutorials
         </Typography>
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={authors}
           className={styles.autocomplete}
           getOptionLabel={option => option}
-          style={{height: '50px', width: '150px'}}
           renderInput={params => (
             <TextField
               {...params}
@@ -126,11 +125,10 @@ export default function ReproducePage() {
           onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={keywords}
-          style={{height: '50px', width: '150px'}}
           className={styles.autocomplete}
           getOptionLabel={option => option}
           renderInput={params => (
@@ -145,11 +143,10 @@ export default function ReproducePage() {
           onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={methods}
-          style={{height: '50px', width: '150px'}}
           className={styles.autocomplete}
           renderInput={params => (
             <TextField

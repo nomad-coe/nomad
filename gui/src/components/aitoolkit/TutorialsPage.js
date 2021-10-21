@@ -85,7 +85,8 @@ export const useStyles = makeStyles(theme => ({
     border: '3px solid rgba(127, 239, 239, 1)',
     borderRadius: '10px 10px 10px 10px',
     marginTop: '10px',
-    marginLeft: '0px'
+    marginLeft: '0px',
+    width: '240px'
   },
   tutorialsList: {
     marginTop: '50px'
@@ -211,13 +212,13 @@ export default function TutorialsPage() {
           Filter Tutorials
         </Typography>
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={authors}
           className={styles.autocomplete}
           getOptionLabel={option => option}
-          style={{height: '50px', width: '150px'}}
+          // style={{height: '50px', width: '150px'}}
           renderInput={params => (
             <TextField
               {...params}
@@ -233,11 +234,11 @@ export default function TutorialsPage() {
           }}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={keywords}
-          style={{height: '50px', width: '150px'}}
+          // style={{height: '50px', width: '250px'}}
           className={styles.autocomplete}
           getOptionLabel={option => option}
           renderInput={params => (
@@ -255,11 +256,11 @@ export default function TutorialsPage() {
           }}
         />
       </Grid>
-      <Grid item xs={2}>
+      <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
           options={methods}
-          style={{height: '50px', width: '150px'}}
+          // style={{height: '50px', width: '250px'}}
           className={styles.autocomplete}
           renderInput={params => (
             <TextField
