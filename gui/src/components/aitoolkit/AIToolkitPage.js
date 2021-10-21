@@ -58,15 +58,6 @@ const useStyles = makeStyles(theme => ({
     marginTop: '-50px',
     zIndex: 0
   },
-  scrollButton: {
-    position: 'absolute',
-    bottom: theme.spacing(2),
-    right: theme.spacing(2),
-    backgroundColor: theme.palette.background.paper,
-    '&:hover, &.Mui-focusVisible': {
-      backgroundColor: theme.palette.background.paper
-    }
-  },
   boxIcons: {
     width: '1000px',
     margin: 'auto',
@@ -123,6 +114,17 @@ const useStyles = makeStyles(theme => ({
   arrowGrid: {
     marginTop: '-32px',
     marginLeft: '-45px'
+  },
+  scrollButton: {
+    position: 'absolute',
+    bottom: '70px',
+    left: theme.spacing(2),
+    color: '#2A3C67',
+    backgroundColor: theme.palette.background.paper,
+    '&:hover, &.Mui-focusVisible': {
+      color: 'rgba(127, 239, 239, 1)',
+      backgroundColor: theme.palette.background.paper
+    }
   },
   body: {
     width: '1052px',
