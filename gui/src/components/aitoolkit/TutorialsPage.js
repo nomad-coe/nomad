@@ -103,11 +103,12 @@ export const useStyles = makeStyles(theme => ({
     height: '22px',
     marginTop: '-16px'
   },
-  tutorialsDivider: {
-    backgroundColor: 'rgba(127, 239, 239, 1)',
-    height: '13px',
-    borderRadius: '4px'
-  },
+  // tutorialsDivider: {
+  //   backgroundColor: 'rgba(127, 239, 239, 1)',
+  //   height: '13px',
+  //   borderRadius: '4px',
+  //   marginBottom: '-8px'
+  // },
   titleSecondary: {
     fontWeight: 'bold',
     color: 'rgba(127, 239, 239, 1)',
@@ -219,7 +220,6 @@ export default function TutorialsPage() {
           options={authors}
           className={styles.autocomplete}
           getOptionLabel={option => option}
-          // style={{height: '50px', width: '150px'}}
           renderInput={params => (
             <TextField
               {...params}
@@ -239,7 +239,6 @@ export default function TutorialsPage() {
         <Autocomplete
           id="combo-box-demo"
           options={keywords}
-          // style={{height: '50px', width: '250px'}}
           className={styles.autocomplete}
           getOptionLabel={option => option}
           renderInput={params => (
@@ -261,7 +260,6 @@ export default function TutorialsPage() {
         <Autocomplete
           id="combo-box-demo"
           options={methods}
-          // style={{height: '50px', width: '250px'}}
           className={styles.autocomplete}
           renderInput={params => (
             <TextField
@@ -288,7 +286,12 @@ export default function TutorialsPage() {
             </Typography>
           </Grid>
           <Grid item xs={9}>
-            <Divider disableGutters className={styles.tutorialsDivider}></Divider>
+            <Divider disableGutters
+              style={{
+                backgroundColor: 'rgba(127, 239, 239, 1)',
+                height: '13px',
+                borderRadius: '4px'
+              }}/>
           </Grid>
         </Grid>
         <AccordionsList tutorials_list={tutorials_list_beginner}
@@ -311,7 +314,12 @@ export default function TutorialsPage() {
             </Typography>
           </Grid>
           <Grid item xs={9}>
-            <Divider disableGutters className={styles.tutorialsDivider}></Divider>
+            <Divider disableGutters
+              style={{
+                backgroundColor: 'rgba(127, 239, 239, 1)',
+                height: '13px',
+                borderRadius: '4px'
+              }}/>
           </Grid>
         </Grid>
         <Grid item xs={12}>

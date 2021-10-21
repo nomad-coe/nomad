@@ -164,7 +164,14 @@ export default function ReproducePage() {
     <Grid container spacing={1} className={styles.tutorialsList}>
 
       <Grid item xs={12}>
-        <Divider disableGutters className={styles.tutorialsDivider}></Divider>
+        <Divider
+          style={{
+            backgroundColor: 'rgba(127, 239, 239, 1)',
+            height: '13px',
+            borderRadius: '4px',
+            marginBottom: '-8px'
+          }}
+        />
       </Grid>
       <Grid item xs={12}>
         <AccordionsList tutorials_list={tutorials_list_advanced}
