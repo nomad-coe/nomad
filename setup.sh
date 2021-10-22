@@ -10,8 +10,4 @@ git submodule update --init --jobs=4
 ./dependencies.sh -e
 pip install -e .[all]
 
-nomad dev metainfo > gui/src/metainfo.json
-nomad dev search-quantities > gui/src/searchQuantities.json
-nomad dev units > gui/src/unitsData.js
-nomad dev toolkit-metadata > gui/src/toolkitMetadata.json
-nomad dev parser-metadata > gui/src/parserMetadata.json
+./generate_gui_artifacts.sh

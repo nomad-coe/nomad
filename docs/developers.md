@@ -103,11 +103,20 @@ pip install -e .[all] --prefer-binary
 ### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
-nomad dev metainfo > gui/src/metainfo.json
-nomad dev search-quantities > gui/src/searchQuantities.json
-nomad dev units > gui/src/units.js
-./gitinfo.sh
+nomad.cli dev metainfo > gui/src/metainfo.json
+nomad.cli dev search-quantities > gui/src/searchQuantities.json
+nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+nomad.cli dev units > gui/src/unitsData.js
+nomad.cli dev parser-metadata > gui/src/parserMetadata.json
 ```
+
+Or simply run
+```sh
+./generate_gui_artifacts.sh
+```
+
+The generated files are not stored in GIT. If you pull a different commit, the GUI code
+might not match the expected data in outdated files. If there are changes to units, metainfo, new parsers, new toolkits it might be necessary to regenerate these gui artifacts.
 
 In additional, you have to do some more steps to prepare your working copy to run all
 the tests. See below.

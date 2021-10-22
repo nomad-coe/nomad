@@ -69,11 +69,7 @@ WORKDIR /install
 COPY . /install
 RUN python setup.py compile
 RUN pip install .[all]
-RUN python -m nomad.cli dev metainfo > gui/src/metainfo.json
-RUN python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-RUN python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
-RUN python -m nomad.cli dev units > gui/src/unitsData.js
-RUN python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+RUN ./generate_gui_artifacts.sh
 WORKDIR /install/docs
 RUN make html
 RUN \
