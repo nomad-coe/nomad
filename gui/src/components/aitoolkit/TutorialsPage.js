@@ -272,6 +272,7 @@ export default function TutorialsPage() {
     </Grid>
     <Grid container spacing={1} className={styles.tutorialsList}>
       <Grid item xs={12}>
+        {tutorials_list_beginner.some(tutorial => filter(tutorial)) &&
         <Grid container spacing={1}>
           <Grid item xs={3}>
             <Typography className={styles.textLevel}>
@@ -287,6 +288,7 @@ export default function TutorialsPage() {
               }}/>
           </Grid>
         </Grid>
+        }
         <AccordionsList tutorials_list={tutorials_list_beginner}
           author={authors}
           setAuthor = {setAuthor}
@@ -300,6 +302,7 @@ export default function TutorialsPage() {
           emptyQuery={queryParameters} />
       </Grid>
       <Box mt={'100px'}>
+        {tutorials_list_intermediate.some(tutorial => filter(tutorial)) &&
         <Grid container spacing={1}>
           <Grid item xs={3}>
             <Typography className={styles.textLevel}>
@@ -315,6 +318,7 @@ export default function TutorialsPage() {
               }}/>
           </Grid>
         </Grid>
+        }
         <Grid item xs={12}>
           <AccordionsList tutorials_list={tutorials_list_intermediate}
             author={authors}
