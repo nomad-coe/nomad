@@ -154,29 +154,20 @@ def search_quantities():
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
 def parser_metadata():
-    import inspect
-    import re
     import json
     import yaml
-
-    from nomad.parsing import Parser
-    from nomad.parsing.parsers import parser_dict
+    import os
+    import os.path
 
     parsers_metadata = {}
-    for parser in parser_dict.values():
-        if isinstance(parser, Parser):
-            parser_class = parser.__class__
-        else:
-            continue
-        parser_code_file = inspect.getfile(parser_class)
-
-        path_match = re.match(r'(.*/dependencies/parsers/[^/]+)/.*', parser_code_file)
-        if path_match:
-            parser_metadata_file = os.path.join(path_match.group(1), 'metadata.yaml')
-            if os.path.exists(parser_metadata_file):
-                with open(parser_metadata_file) as f:
-                    parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
-                parsers_metadata[parser.code_name] = parser_metadata
+    parsers_path = 'dependencies/parsers'
+    for parser_dir in os.listdir(parsers_path):
+        parser_path = os.path.join(parsers_path, parser_dir)
+        parser_metadata_file = os.path.join(parser_path, 'metadata.yaml')
+        if os.path.exists(parser_metadata_file):
+            with open(parser_metadata_file) as f:
+                parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+            parsers_metadata[parser_dir] = parser_metadata
 
     parsers_metadata = {
         key: parsers_metadata[key]
