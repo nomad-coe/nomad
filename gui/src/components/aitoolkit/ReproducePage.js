@@ -83,9 +83,20 @@ export default function ReproducePage() {
   return <Grid container spacing={1} className={styles.root}>
     <Grid container spacing={0} className={styles.Heading}>
       <Grid item xs={6} className={styles.sectionTitle} >
-        <Typography className={styles.title}>
-          Reproduce published results
-        </Typography>
+        <Grid container spacing={0}>
+          <Grid item xs={4} style={{marginTop: '-100px', marginLeft: '-20px'}}>
+            <IconButton
+              component={Link}
+              to="aitoolkit">
+              <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
+            </IconButton>
+          </Grid>
+          <Grid item xs={8}>
+            <Typography className={styles.title}>
+              Reproduce published results
+            </Typography>
+          </Grid>
+        </Grid>
         <Typography className={styles.deck}>
           We develop and implement methods that identify correlations and
           structure in big data of materials. This will enable scientists and
