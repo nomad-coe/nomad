@@ -340,21 +340,21 @@ export default function AIToolkitPage() {
                 }}
               >
                 <Typography className={styles.toolTipText}>
-                  Clicking on the 'Get to work' button will redirect to a
+                  By clicking on the 'Get to work' button you will access a
                   personal space that is available to each NOMAD user.  After
-                  logging in, you can access a 'tutorials' and 'work' directory.
+                  logging in, you will see a 'tutorials' and 'work' directory.
                   The 'tutorials' directory contains all notebooks available in
                   the AI toolkit, while the 'work' directory offers some space
                   to save personal work.  When you are in the 'work' directory,
                   click on the 'new' icon on the top right and then select
                   'Python 3'. This will create a Jupyter notebook that is
                   stored in the AI toolkit and can be reaccessed and iteratively
-                  modified by the user.  All packages installed in the AI
-                  toolkit are also available in the 'work' directory, thus
-                  making possible to employ the same code syntax that is used in
-                  each tutorial presented in the AI toolkit.  It is possible,
-                  for example, to deploy any of the methodologies described in
-                  tutorials on a novel dataset.  You can also upload your own
+                  modified by the user.  All packages and software installed in the AI
+                  toolkit are also available in the 'work' directory, that
+                  makes it possible to employ the same code syntax used in
+                  each tutorial contained in the AI toolkit for your own project.
+                  For example, you can deploy any of the methodologies described in
+                  tutorials on a different dataset.  You can upload your own
                   data with the 'Upload' button on the top right, or even
                   download a novel dataset from the NOMAD Archive.  Make sure to
                   learn how to download NOMAD data, that is explained in the
@@ -417,7 +417,7 @@ export default function AIToolkitPage() {
           Read about us!
         </Typography>
         <Typography className={styles.bodyText}>
-          Clicking on the image below, you will access a Nature Reviews paper
+          By clicking on the image below, you will access a Nature Reviews paper
           which gives an introduction to the NOMAD Artificial-Intelligence Toolkit.
         </Typography>
         <IconButton
