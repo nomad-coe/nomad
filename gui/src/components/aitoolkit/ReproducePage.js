@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useStyles } from './TutorialsPage'
 import {
   Button,
@@ -82,6 +82,10 @@ export default function ReproducePage() {
     }
   }, [tutorials_list_advanced])
 
+  const [valAuthor, setAuthor] = useState({})
+  const [valKeyword, setKeyword] = useState({})
+  const [valMethod, setMethod] = useState({})
+
   return <Grid container spacing={1} className={styles.root}>
     <Grid container spacing={0} className={styles.Heading}>
       <Grid item xs={6} className={styles.sectionTitle} >
@@ -121,8 +125,11 @@ export default function ReproducePage() {
               fullWidth
             />
           )}
-          value={queryParameters.author}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
+          value={valAuthor}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, author: value})
+            setAuthor(value)
+          }}
         />
       </Grid>
       <Grid item xs={3}>
@@ -139,8 +146,11 @@ export default function ReproducePage() {
               fullWidth
             />
           )}
-          value={queryParameters.keyword}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
+          value={valKeyword}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, keyword: value})
+            setKeyword(value)
+          }}
         />
       </Grid>
       <Grid item xs={3}>
@@ -156,8 +166,11 @@ export default function ReproducePage() {
               fullWidth
             />
           )}
-          value={queryParameters.method}
-          onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
+          value={valMethod}
+          onChange={(_, value) => {
+            setQueryParameters({...emptyQuery, method: value})
+            setMethod(value)
+          }}
         />
       </Grid>
     </Grid>
@@ -176,8 +189,11 @@ export default function ReproducePage() {
       <Grid item xs={12}>
         <AccordionsList tutorials_list={tutorials_list_advanced}
           author={authors}
+          setAuthor = {setAuthor}
           keyword={keywords}
+          setKeyword={setKeyword}
           method={methods}
+          setMethod={setMethod}
           filter={filter}
           setQueryParameters={setQueryParameters}
           queryParameters={queryParameters}
