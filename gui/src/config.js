@@ -47,7 +47,7 @@ you and users you share your data with. The *embargo period* lasts up to 36 mont
 After the *embargo* your published data will be public. **Note that public data
 is visible to others and files become downloadable by everyone.**
 
-This web-site uses *cookies*. We use cookies to track you login status for all NOMAD services
+This web-site uses *cookies*. We use cookies to track your login status for all NOMAD services
 and optionally to store information about your use of NOMAD. None of this information is
 shared with other parties. By using this web-site you agree to the described use of *cookies*.
 [Learn more](https://www.cookiesandyou.com/).
