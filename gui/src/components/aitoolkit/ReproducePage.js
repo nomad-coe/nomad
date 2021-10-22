@@ -184,7 +184,7 @@ export default function ReproducePage() {
       <Grid item xs={12}>
         <Divider
           style={{
-            backgroundColor: 'rgba(127, 239, 239, 1)',
+            backgroundColor: '#7FEFEF',
             height: '13px',
             borderRadius: '4px',
             marginBottom: '-8px'
@@ -235,7 +235,7 @@ export default function ReproducePage() {
             className={styles.bottomButton}
             endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
           >
-            <Typography className={styles.fieldText} >
+            <Typography className={styles.bottomButtonText} >
               AI tutorials
             </Typography>
           </Button>

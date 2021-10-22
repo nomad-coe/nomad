@@ -83,7 +83,7 @@ export const useStyles = makeStyles(theme => ({
   autocomplete: {
     height: 'auto',
     color: '#2A3C67',
-    border: '3px solid rgba(127, 239, 239, 1)',
+    border: '3px solid #00DFE0',
     borderRadius: '10px 10px 10px 10px',
     marginTop: '10px',
     marginLeft: '0px',
@@ -91,10 +91,6 @@ export const useStyles = makeStyles(theme => ({
   },
   tutorialsList: {
     marginTop: '50px'
-  },
-  fieldText: {
-    color: '#2A3C67',
-    fontWeight: theme.typography.fontWeightMedium
   },
   textLevel: {
     textAlign: 'left',
@@ -105,7 +101,7 @@ export const useStyles = makeStyles(theme => ({
   },
   titleSecondary: {
     fontWeight: 'bold',
-    color: 'rgba(127, 239, 239, 1)',
+    color: '#00DFE0',
     fontSize: '35px',
     marginLeft: '-10px'
   },
@@ -121,6 +117,10 @@ export const useStyles = makeStyles(theme => ({
     textTransform: 'none',
     fontSize: '12pt',
     lineHeight: '20px'
+  },
+  bottomButtonText: {
+    color: '#2A3C67',
+    fontWeight: theme.typography.fontWeightMedium
   },
   bottomIcon: {
     marginTop: '80px',
@@ -287,7 +287,7 @@ export default function TutorialsPage() {
           <Grid item xs={9}>
             <Divider disableGutters
               style={{
-                backgroundColor: 'rgba(127, 239, 239, 1)',
+                backgroundColor: '#7FEFEF',
                 height: '13px',
                 borderRadius: '4px'
               }}/>
@@ -369,7 +369,7 @@ export default function TutorialsPage() {
             className={styles.bottomButton}
             endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
           >
-            <Typography className={styles.fieldText}>
+            <Typography className={styles.bottomButtonText}>
               Advanced applications
             </Typography>
           </Button>

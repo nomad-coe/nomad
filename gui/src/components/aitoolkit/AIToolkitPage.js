@@ -99,7 +99,7 @@ const useStyles = makeStyles(theme => ({
   },
   topButton: {
     fontWeight: theme.typography.fontWeightMedium,
-    backgroundColor: 'rgba(255,255,255,1)',
+    backgroundColor: 'white',
     borderRadius: '30px',
     textTransform: 'none',
     marginTop: '-38px',
@@ -124,7 +124,7 @@ const useStyles = makeStyles(theme => ({
     color: '#2A3C67',
     backgroundColor: theme.palette.background.paper,
     '&:hover, &.Mui-focusVisible': {
-      color: 'rgba(127, 239, 239, 1)',
+      color: '#2A3C67',
       backgroundColor: theme.palette.background.paper
     }
   },
@@ -136,7 +136,7 @@ const useStyles = makeStyles(theme => ({
   },
   highlightedText: {
     fontWeight: theme.typography.fontWeightMedium,
-    color: 'rgba(127, 239, 239, 1)',
+    color: '#00DFE0',
     fontSize: '35px',
     width: '518px',
     lineHeight: '42px',

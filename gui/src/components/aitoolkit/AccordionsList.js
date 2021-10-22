@@ -69,7 +69,7 @@ const useStyles = makeStyles(theme => ({
     marginLeft: '80px'
   },
   linkKeywords: {
-    border: '1.5px solid rgba(127, 239, 239, 1)',
+    border: '1.5px solid #00DFE0',
     lineHeight: '35px',
     color: '#2A3C67',
     cursor: 'pointer',
@@ -89,7 +89,7 @@ const Accordion = styled((props) => (
   <MuiAccordion {...props} />
 ))(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
-  borderBottom: '13px solid rgba(127, 239, 239, 1)'
+  borderBottom: '13px solid #7FEFEF'
 }))
 
 const AccordionSummary = styled((props) => (
