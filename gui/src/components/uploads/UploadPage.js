@@ -340,7 +340,7 @@ function UploadPage() {
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
     setUploading(0)
-    api.put(`/uploads/${uploadId}/raw`, formData, {
+    api.put(`/uploads/${uploadId}/raw/`, formData, {
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
         setUploading(percentCompleted)
