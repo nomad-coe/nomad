@@ -41,12 +41,6 @@ export default function ReproducePage() {
   const [queryParameters, setQueryParameters] = useQueryParams({
     author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
   })
-  const emptyQuery = {
-    author: null,
-    keyword: null,
-    method: null,
-    filterString: null
-  }
 
   const filter = tutorial => {
     const {author, keyword, method} = queryParameters
@@ -127,7 +121,7 @@ export default function ReproducePage() {
           )}
           value={valAuthor}
           onChange={(_, value) => {
-            setQueryParameters({...emptyQuery, author: value})
+            setQueryParameters({author: value})
             setAuthor(value)
           }}
         />
@@ -148,7 +142,7 @@ export default function ReproducePage() {
           )}
           value={valKeyword}
           onChange={(_, value) => {
-            setQueryParameters({...emptyQuery, keyword: value})
+            setQueryParameters({keyword: value})
             setKeyword(value)
           }}
         />
@@ -168,7 +162,7 @@ export default function ReproducePage() {
           )}
           value={valMethod}
           onChange={(_, value) => {
-            setQueryParameters({...emptyQuery, method: value})
+            setQueryParameters({method: value})
             setMethod(value)
           }}
         />
