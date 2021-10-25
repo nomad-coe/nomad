@@ -164,7 +164,7 @@ class Calc(Proc):
             that normally, coauthors should be set on the upload level.
         datasets: a list of user curated datasets this entry belongs to
     '''
-    upload_id = StringField()
+    upload_id = StringField(required=True)
     calc_id = StringField(primary_key=True)
     calc_hash = StringField()
     entry_create_time = DateTimeField(required=True)
@@ -178,7 +178,7 @@ class Calc(Proc):
     nomad_commit = StringField()
     comment = StringField()
     references = ListField(StringField(), default=None)
-    entry_coauthors = ListField(StringField(), default=None)
+    entry_coauthors = ListField(default=None)
     datasets = ListField(StringField(), default=None)
 
     meta: Any = {
@@ -291,8 +291,6 @@ class Calc(Proc):
 
             try:
                 self._entry_metadata.m_set(definition, val)
-                if definition == EntryMetadata.calc_id:
-                    self.calc_id = val
             except Exception as e:
                 logger.error(
                     'Could not apply user metadata from nomad.yaml/json file',
@@ -811,7 +809,7 @@ class Upload(Proc):
     upload_create_time = DateTimeField(required=True)
     external_db = StringField()
     main_author = StringField(required=True)
-    coauthors = ListField(StringField(), default=None)
+    coauthors = ListField(default=None)
     reviewers = ListField(StringField(), default=None)
     last_update = DateTimeField()
     publish_time = DateTimeField()
