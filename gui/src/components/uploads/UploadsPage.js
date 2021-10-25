@@ -34,8 +34,9 @@ import UploaderIcon from '@material-ui/icons/AccountCircle'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
 import { UploadButton } from '../nav/Routes'
 import {
-  addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
-  DatatableTable, DatatableToolbar } from '../datatable/Datatable'
+  addColumnDefaults, combinePagination, Datatable, DatatablePagePagination,
+  DatatableTable, DatatableToolbar
+} from '../datatable/Datatable'
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
 
@@ -313,7 +314,7 @@ function UploadsPage() {
               </TooltipButton>
             </DatatableToolbar>
             <DatatableTable actions={UploadActions}>
-              <DatatableLoadMorePagination />
+              <DatatablePagePagination />
             </DatatableTable>
           </Datatable>
         </Paper>
