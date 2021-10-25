@@ -172,7 +172,7 @@ const useStyles = makeStyles(theme => ({
   },
   toolTipText: {
     width: '400px',
-    height: '500px',
+    height: '520px',
     marginRight: '15px',
     marginLeft: '15px',
     marginTop: '10px'
@@ -354,11 +354,11 @@ export default function AIToolkitPage() {
                   makes it possible to employ the same code syntax used in
                   each tutorial contained in the AI toolkit for your own project.
                   For example, you can deploy any of the methodologies described in
-                  tutorials on a different dataset.  You can upload your own
-                  data with the 'Upload' button on the top right, or even
-                  download a novel dataset from the NOMAD Archive.  Make sure to
-                  learn how to download NOMAD data, that is explained in the
-                  tutorial accessible from the 'Query the Archive' button.
+                  tutorials on a different dataset. You can also upload your own data with
+                  the 'Upload' button (via the menu bar on top, under the 'Publish' menu),
+                  or directly access datasets in the NOMAD Archive. Make sure to learn
+                  how to access the data in the NOMAD Archive, which is explained in the
+                   tutorial accessible from the 'Query the Archive' button.
                 </Typography>
               </Popover>
             </Grid>
