@@ -366,7 +366,6 @@ function UploadPage() {
   }
 
   const handleReprocess = () => {
-    setDeleteClicked(true)
     api.post(`/uploads/${uploadId}/action/process`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
@@ -467,7 +466,7 @@ function UploadPage() {
                 disabled={isProcessing} />
             </React.Fragment>
           )}
-          <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing} />
+          <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
         </StepContent>
       </Step>
       <Step expanded={!isEmpty}>
