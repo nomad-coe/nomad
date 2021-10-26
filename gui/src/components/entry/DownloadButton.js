@@ -47,7 +47,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
     setAnchorEl(null)
     let queryStringData = searchToQsData({query})
     const openDownload = () => {
-      const url = `${apiBase}/v1/entries/${choice}/download?${stringify(queryStringData)}`
+      const url = `${apiBase}/v1/entries/${choice}/download?owner=visible&${stringify(queryStringData)}`
       FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
     }
 
