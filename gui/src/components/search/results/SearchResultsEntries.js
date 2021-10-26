@@ -98,7 +98,7 @@ const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
       return searchQuery
     }
 
-    return {owner: 'visible', entry_id: selected.map(data => data.entry_id)}
+    return {entry_id: selected.map(data => data.entry_id)}
   }, [selected, searchQuery])
 
   return <Datatable
