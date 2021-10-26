@@ -20,7 +20,7 @@ import click
 import logging
 import os
 
-from nomad import config
+from nomad import config, utils
 
 
 class POPO(dict):
@@ -61,6 +61,7 @@ def cli(ctx, verbose: bool, debug: bool):
         config.console_log_level = logging.INFO
     else:
         config.console_log_level = logging.WARNING
+    utils.set_console_log_level(config.console_log_level)
 
 
 def run_cli():
