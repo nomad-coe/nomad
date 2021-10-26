@@ -81,10 +81,10 @@ export default function ProcessingTable(props) {
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {
-      return {owner: 'visible', 'upload_id': upload.upload_id}
+      return {'upload_id': upload.upload_id}
     }
 
-    return {owner: 'visible', entry_id: selected.map(data => data.entry_id)}
+    return {entry_id: selected.map(data => data.entry_id)}
   }, [selected, upload])
 
   return <Paper>
