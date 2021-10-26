@@ -28,7 +28,6 @@ export default function NewUploadButton({...props}) {
   const errors = useErrors()
   const history = useHistory()
   const location = useLocation()
-  const isDisabled = props.isDisable
   const [clicked, setClicked] = useState(false)
   const handleClick = () => {
     setClicked(true)
@@ -36,13 +35,13 @@ export default function NewUploadButton({...props}) {
       .then((upload) => {
         history.push(getUrl(`upload/id/${upload.upload_id}`, location))
       })
-      .catch(errors.raiseError)
-      .finally(() => {
+      .catch((error) => {
         setClicked(false)
+        errors.raiseError(error)
       })
   }
 
-  return <Button variant="contained" onClick={handleClick} disabled={clicked || isDisabled} {...props}>
+  return <Button variant="contained" onClick={handleClick} disabled={clicked} {...props}>
     Create a new upload
   </Button>
 }

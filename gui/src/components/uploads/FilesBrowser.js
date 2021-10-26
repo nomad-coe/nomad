@@ -18,12 +18,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Chip, CircularProgress, Collapse, IconButton, makeStyles, Paper, Typography } from '@material-ui/core'
+import { Box, Chip, CircularProgress, Collapse, makeStyles, Paper, Typography } from '@material-ui/core'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import PreviewIcon from '@material-ui/icons/Visibility'
 import FilePreview from './FilePreview'
 
 const useFolderStyles = makeStyles(theme => ({
@@ -64,9 +63,8 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, onView, open, hasChildren, children, name, parser, info}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
   const classes = useFolderStyles()
-  const [hover, setHover] = useState(false)
   const handleToggle = event => {
     event.stopPropagation()
     if (onToggle) {
@@ -82,7 +80,7 @@ function FileOrFolder({onToggle, onView, open, hasChildren, children, name, pars
     : <div className={classes.icon} />
 
   return <div className={classes.root}>
-    <div onClick={handleToggle} className={classes.item} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div onClick={handleToggle} className={classes.item}>
       {icon}
       <Box marginLeft={icon ? 1 : 0}>
         <Typography className={classes.name}>{name || '/'}</Typography>
@@ -94,13 +92,6 @@ function FileOrFolder({onToggle, onView, open, hasChildren, children, name, pars
       <div className={classes.tags}>
         {parser && <Chip size="small" label={parser} color="primary" />}
       </div>
-      {hover && <div className={classes.actions}>
-        {parser && <IconButton size="small" onClick={onView}><PreviewIcon fontSize="small" variant="outlined" /></IconButton>}
-        {/* <IconButton size="small"><DownloadIcon fontSize="small" variant="outlined" /></IconButton>
-        <span>&nbsp;</span>
-        <IconButton size="small"><DeleteIcon fontSize="small" variant="outlined" /></IconButton>
-        <IconButton size="small"><UploadIcon fontSize="small" variant="outlined" /></IconButton> */}
-      </div>}
     </div>
     <Collapse in={open} className={classes.children}>
       {children || 'loading ...'}
@@ -110,7 +101,6 @@ function FileOrFolder({onToggle, onView, open, hasChildren, children, name, pars
 
 FileOrFolder.propTypes = {
   onToggle: PropTypes.func,
-  onView: PropTypes.func,
   open: PropTypes.bool,
   hasChildren: PropTypes.bool,
   children: PropTypes.arrayOf(PropTypes.object),
@@ -222,7 +212,6 @@ export default function FilesBrower({uploadId, disabled}) {
       open: data?.open,
       children: data?.content?.map(mapContent),
       onToggle: is_file ? null : () => handleToggle(path),
-      onView: () => setPreviewPath(path),
       // TODO
       // info: !is_file && data?.content?.length === 0 && <Typography variant="caption">
       //   {'empty directory'}
