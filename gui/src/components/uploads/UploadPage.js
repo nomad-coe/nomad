@@ -33,7 +33,6 @@ import ProcessingTable from './ProcessingTable'
 import EditIcon from '@material-ui/icons/Edit'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReprocessIcon from '@material-ui/icons/Autorenew'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
 import MembersIcon from '@material-ui/icons/People'
 import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
@@ -43,7 +42,7 @@ import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
-import FileSaver from 'file-saver'
+import DownloadButton from '../entry/DownloadButton'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -373,14 +372,6 @@ function UploadPage() {
       .catch(errors.raiseError)
   }
 
-  const handleDownload = () => {
-    api.get(`uploads/${uploadId}/raw/?offset=0&length=-1&decompress=false&compress=false&compress=true`)
-      .then(function(response) {
-        const fileURL = URL.createObjectURL(response)
-        FileSaver.saveAs(fileURL, 'a.zip')
-      }).catch(errors.raiseError)
-  }
-
   const handleDelete = () => {
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
@@ -437,11 +428,7 @@ function UploadPage() {
             <MembersIcon />
           </Tooltip>
         </IconButton>
-        <IconButton onClick={handleDownload}>
-          <Tooltip title="Download the archive">
-            <DownloadIcon />
-          </Tooltip>
-        </IconButton>
+        <DownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
             <ReprocessIcon />
