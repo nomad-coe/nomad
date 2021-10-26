@@ -1078,7 +1078,8 @@ export function searchToQsData(search) {
     for (const [key, value] of Object.entries(query)) {
       const valueConverted = convert(key, value)
       if (!isNil(valueConverted)) {
-        const newKey = filterAbbreviations[key] || key
+        // const newKey = filterAbbreviations[key] || key
+        const newKey = key
         queryStringQuery[newKey] = valueConverted
       }
     }
