@@ -149,11 +149,13 @@ export default function TutorialsPage() {
   }
 
   const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.category[0] === 'beginner_tutorial' ||
-   tutorial.labels.category[0] === 'intermediate_tutorial')
+   tutorial.labels.category[0] === 'intermediate_tutorial' || tutorial.labels.category[0] === 'query_tutorial')
 
   const tutorials_list_beginner = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'beginner_tutorial')
 
   const tutorials_list_intermediate = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'intermediate_tutorial')
+
+  const tutorials_list_query = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'query_tutorial')
 
   const {authors, systems, methods} = useMemo(() => {
     const authors = {}
@@ -324,6 +326,35 @@ export default function TutorialsPage() {
         }
         <Grid item xs={12}>
           <AccordionsList tutorials_list={tutorials_list_intermediate}
+            setAuthor = {setAuthor}
+            setSystem={setSystem}
+            setMethod={setMethod}
+            filter={filter}
+            setQueryParameters={setQueryParameters}
+            queryParameters={queryParameters}
+            emptyQuery={queryParameters} />
+        </Grid>
+      </Box>
+      <Box mt={'100px'}>
+        {tutorials_list_query.some(tutorial => filter(tutorial)) &&
+        <Grid container spacing={1}>
+          <Grid item xs={3}>
+            <Typography className={styles.textLevel}>
+              TOOLKIT INFRASTRUCTURE
+            </Typography>
+          </Grid>
+          <Grid item xs={9}>
+            <Divider disableGutters
+              style={{
+                backgroundColor: 'rgba(127, 239, 239, 1)',
+                height: '13px',
+                borderRadius: '4px'
+              }}/>
+          </Grid>
+        </Grid>
+        }
+        <Grid item xs={12}>
+          <AccordionsList tutorials_list={tutorials_list_query}
             setAuthor = {setAuthor}
             setSystem={setSystem}
             setMethod={setMethod}
