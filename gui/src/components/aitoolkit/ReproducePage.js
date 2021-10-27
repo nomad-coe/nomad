@@ -98,12 +98,11 @@ export default function ReproducePage() {
           </Grid>
         </Grid>
         <Typography className={styles.deck}>
-          We develop and implement methods that identify correlations and
-          structure in big data of materials. This will enable scientists and
-          engineers to decide which materials are useful for specific
-          applications or which new materials should be the focus of future
-          studies. The following notebooks are designed to reproduce result
-          published in scientific journals.
+          Reproducibility is key in scientific research. The advent of AI-driven big-data analytics has
+          introduced a new possible source of uncertainty in scientific communication: The AI workflow are
+          typically complex and there is no standard way to describe them. A solution is offered by the
+          NOMAD AI toolkit, which hosts open-access notebooks that allow to reproduce result published in
+          scientific journals. Explore them below
         </Typography>
       </Grid>
       <Grid item xs={4} className={styles.sectionIcon}>
