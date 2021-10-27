@@ -34,6 +34,7 @@ import datetime
 import numpy as np
 import re
 import fnmatch
+import json
 
 from nomad import datamodel  # pylint: disable=unused-import
 from nomad.utils import strip
@@ -322,6 +323,7 @@ class QueryParameters:
         request: Request,
         owner: Optional[Owner] = FastApiQuery(
             'public', description=strip(Owner.__doc__)),
+        json_query: Optional[str] = FastApiQuery(None),
         q: Optional[List[str]] = FastApiQuery(
             [], description=strip('''
                 Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
@@ -408,6 +410,14 @@ class QueryParameters:
             else:
                 raise HTTPException(
                     422, detail=[{'loc': ['query', key], 'msg': 'operator %s is unknown' % op}])
+
+        # process the json_query
+        if json_query is not None:
+            try:
+                query.update(**json.loads(json_query))
+            except Exception:
+                raise HTTPException(
+                    422, detail=[{'loc': ['json_query'], 'msg': 'cannot parse json_query'}])
 
         return WithQuery(query=query, owner=owner)
 
