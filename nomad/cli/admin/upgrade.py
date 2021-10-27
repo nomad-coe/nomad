@@ -29,6 +29,7 @@ from pymongo.database import Database
 from pymongo.cursor import Cursor
 from nomad import config, utils, infrastructure
 from nomad.processing import ProcessStatus, Upload, Calc
+from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
 
 
@@ -72,13 +73,13 @@ def upgrade():
     help='''Reads upload IDs from the specified file. Cannot be used together with the --query
             option.
             This can for example be used to retry just the uploads that has previously failed
-            (as these can be exported to file using --failed-ids-to-file). You can specify both
+            (as these ids can be exported to file using --failed-ids-to-file). You can specify both
             --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
 @click.option(
     '--failed-ids-to-file', type=str,
     help='''Write the IDs of failed and skipped uploads to the specified file.
             This can for example be used to subsequently retry just the uploads that failed
-            (as these ids be loaded from file using --ids-from-file). You can specify both
+            (as these ids can be loaded from file using --ids-from-file). You can specify both
             --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
 @click.option(
     '--fix-problems', is_flag=True,
@@ -171,7 +172,7 @@ def _migrate_mongo_uploads(
                 failed_and_skipped.append(upload_id)
             else:
                 entry_dicts, dataset_dicts = _convert_mongo_upload(
-                    db_src, upload_dict, fix_problems, migrated_dataset_ids, stats)
+                    db_src, upload_dict, fix_problems, migrated_dataset_ids, stats, logger)
                 if not dry:
                     _commit_upload(upload_dict, entry_dicts, dataset_dicts, db_dst, stats)
                 del entry_dicts, dataset_dicts  # To free up memory immediately
@@ -218,7 +219,7 @@ def _migrate_mongo_uploads(
 
 def _convert_mongo_upload(
         db_src: Database, upload_dict: Dict[str, Any], fix_problems: bool,
-        migrated_dataset_ids: Set[str], stats: _UpgradeStatistics):
+        migrated_dataset_ids: Set[str], stats: _UpgradeStatistics, logger):
     '''
     Converts (upgrades) an upload_dict and all related records. If successful,
     returns two lists: one with converted entry dicts, and one with converted dataset dicts.
@@ -258,6 +259,7 @@ def _convert_mongo_upload(
         first_entry_coauthors = first_metadata.get('coauthors', ())
         common_coauthors = set(_wrap_author(ca) for ca in first_entry_coauthors)
 
+        fixed_external_db = False
         for entry_dict in entry_dicts:
             assert 'metadata' in entry_dict, 'Entry dict has no metadata key'
             entry_metadata_dict: Dict[str, Any] = entry_dict['metadata']
@@ -275,8 +277,12 @@ def _convert_mongo_upload(
                 elif not fix_problems:
                     assert False, 'Inconsistent external_db for entries - use --fix-problems to fix'
                 first_external_db = first_external_db or external_db  # Fix it
+                fixed_external_db = True
             common_coauthors.intersection_update(
                 _wrap_author(ca) for ca in entry_metadata_dict.get('coauthors', ()))
+
+        if fixed_external_db:
+            logger.warn('Fixed inconsistent external_db for upload', upload_id=upload_id)
 
         # Check embargo setting on the upload
         if published:
@@ -310,7 +316,7 @@ def _convert_mongo_upload(
     for entry_dict in entry_dicts:
         assert not _is_processing(entry_dict), (
             f'the entry {entry_dict["_id"]} has status processing, but the upload is not processing.')
-        _convert_mongo_entry(entry_dict, common_coauthors)
+        _convert_mongo_entry(entry_dict, common_coauthors, fix_problems, logger)
         stats.entries.converted += 1
         # Add encountered datasets
         datasets = entry_dict.get('datasets')
@@ -334,8 +340,16 @@ def _convert_mongo_upload(
     return entry_dicts, dataset_dicts
 
 
-def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set):
+def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_problems: bool, logger):
     _convert_mongo_proc(entry_dict)
+    # Validate the id and possibly fix problems
+    generated_entry_id = generate_entry_id(entry_dict['upload_id'], entry_dict['mainfile'])
+    if entry_dict['_id'] != generated_entry_id:
+        if not fix_problems:
+            assert False, f'Entry id {entry_dict["_id"]} does not match generated value - use --fix-problems to fix'
+        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], new_id=generated_entry_id)
+        entry_dict['_id'] = generated_entry_id
+    # Convert old v0 metadata
     if 'metadata' in entry_dict:
         _rename_key(entry_dict, 'parser', 'parser_name')
         _rename_key(entry_dict, 'create_time', 'entry_create_time')
@@ -414,7 +428,7 @@ def _commit_upload(
         for dataset_dict in dataset_dicts:
             dataset_writes.append(ReplaceOne({'_id': dataset_dict['_id']}, dataset_dict, upsert=True))
         db_dst.dataset.bulk_write(dataset_writes)
-        stats.datasets.migrated += len(dataset_dict)
+        stats.datasets.migrated += len(dataset_dicts)
     # Commit upload
     db_dst.upload.replace_one({'_id': upload_dict['_id']}, upload_dict, upsert=True)
     stats.uploads.migrated += 1
