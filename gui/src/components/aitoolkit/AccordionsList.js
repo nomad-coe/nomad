@@ -167,32 +167,10 @@ function AccordionsList(props) {
               </Grid>
               <Grid item xs={4} className={styles.keywordsGrid}>
                 <Typography className={styles.fieldText}>
-                  <b>Keywords</b>:
+                  <b>AI methods</b>:
                 </Typography>
                 <Typography>
-                  {tutorial.labels.application_keyword
-                    .map(keyword => (
-                      <Link
-                        className={styles.linkKeywords}
-                        key={keyword}
-                        onClick={() => {
-                          props.setQueryParameters({
-                            ...props.emptyQuery,
-                            keyword: props.queryParameters.keyword === keyword ? null : keyword
-                          })
-                          props.setKeyword(keyword)
-                        }}
-                      >
-                        {keyword}
-                      </Link>
-                    )).reduce((prev, curr) => [prev, '    ', curr])
-                  }
-                </Typography>
-                <Typography className={styles.fieldText}>
-                  <b>Methods</b>:
-                </Typography>
-                <Typography>
-                  {tutorial.labels.data_analytics_method
+                  {tutorial.labels.ai_methods
                     .map(method => (
                       <Link
                         className={styles.linkKeywords}
@@ -206,6 +184,28 @@ function AccordionsList(props) {
                         }}
                       >
                         {method}
+                      </Link>
+                    )).reduce((prev, curr) => [prev, '    ', curr])
+                  }
+                </Typography>
+                <Typography className={styles.fieldText}>
+                  <b>System</b>:
+                </Typography>
+                <Typography>
+                  {tutorial.labels.application_system
+                    .map(system => (
+                      <Link
+                        className={styles.linkKeywords}
+                        key={system}
+                        onClick={() => {
+                          props.setQueryParameters({
+                            ...props.emptyQuery,
+                            system: props.queryParameters.system === system ? null : system
+                          })
+                          props.setSystem(system)
+                        }}
+                      >
+                        {system}
                       </Link>
                     )).reduce((prev, curr) => [prev, '    ', curr])
                   }

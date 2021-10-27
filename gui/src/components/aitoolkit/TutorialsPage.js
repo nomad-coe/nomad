@@ -131,49 +131,50 @@ export const useStyles = makeStyles(theme => ({
 export default function TutorialsPage() {
   const styles = useStyles()
   const [queryParameters, setQueryParameters] = useQueryParams({
-    author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
+    author: StringParam, system: StringParam, method: StringParam, filterString: StringParam
   })
 
   const filter = tutorial => {
-    const {author, keyword, method} = queryParameters
+    const {author, system, method} = queryParameters
     if (author && tutorial.authors.indexOf(author) === -1) {
       return false
     }
-    if (keyword && tutorial.labels.application_keyword.indexOf(keyword) === -1) {
+    if (system && tutorial.labels.application_system.indexOf(system) === -1) {
       return false
     }
-    if (method && tutorial.labels.data_analytics_method.indexOf(method) === -1) {
+    if (method && tutorial.labels.ai_methods.indexOf(method) === -1) {
       return false
     }
     return true
   }
 
-  const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.application_section[0] === 'Tutorials for artificial-intelligence methods')
+  const tutorials_list = tutorials.tutorials.filter(tutorial => tutorial.labels.category[0] === 'beginner_tutorial' ||
+   tutorial.labels.category[0] === 'intermediate_tutorial')
 
   const tutorials_list_beginner = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'beginner_tutorial')
 
   const tutorials_list_intermediate = tutorials_list.filter(tutorial => tutorial.labels.category[0] === 'intermediate_tutorial')
 
-  const {authors, keywords, methods} = useMemo(() => {
+  const {authors, systems, methods} = useMemo(() => {
     const authors = {}
-    const keywords = {}
+    const systems = {}
     const methods = {}
     tutorials_list.forEach(tutorial => {
       tutorial.key = tutorial.title.replace(/\W/gm, '_').toLowerCase()
       tutorial.authors.forEach(i => { authors[i] = i })
-      tutorial.labels.application_keyword.forEach(i => { keywords[i] = i })
-      tutorial.labels.data_analytics_method.forEach(i => { methods[i] = i })
+      tutorial.labels.application_system.forEach(i => { systems[i] = i })
+      tutorial.labels.ai_methods.forEach(i => { methods[i] = i })
     }
     )
     return {
       authors: Object.keys(authors).sort(),
-      keywords: Object.keys(keywords).sort(),
+      systems: Object.keys(systems).sort(),
       methods: Object.keys(methods).sort()
     }
   }, [tutorials_list])
 
   const [valAuthor, setAuthor] = useState({})
-  const [valKeyword, setKeyword] = useState({})
+  const [valSystem, setSystem] = useState({})
   const [valMethod, setMethod] = useState({})
 
   return <Grid container spacing={1} className={styles.root}>
@@ -236,33 +237,12 @@ export default function TutorialsPage() {
       <Grid item xs={3}>
         <Autocomplete
           id="combo-box-demo"
-          options={keywords}
-          className={styles.autocomplete}
-          getOptionLabel={option => option}
-          renderInput={params => (
-            <TextField
-              {...params}
-              label="Keyword"
-              InputProps={{...params.InputProps, disableUnderline: true}}
-              fullWidth
-            />
-          )}
-          value={valKeyword}
-          onChange={(_, value) => {
-            setQueryParameters({keyword: value})
-            setKeyword(value)
-          }}
-        />
-      </Grid>
-      <Grid item xs={3}>
-        <Autocomplete
-          id="combo-box-demo"
           options={methods}
           className={styles.autocomplete}
           renderInput={params => (
             <TextField
               {...params}
-              label="Method"
+              label="AI Method"
               InputProps={{...params.InputProps, disableUnderline: true}}
               fullWidth
             />
@@ -271,6 +251,27 @@ export default function TutorialsPage() {
           onChange={(_, value) => {
             setQueryParameters({method: value})
             setMethod(value)
+          }}
+        />
+      </Grid>
+      <Grid item xs={3}>
+        <Autocomplete
+          id="combo-box-demo"
+          options={systems}
+          className={styles.autocomplete}
+          getOptionLabel={option => option}
+          renderInput={params => (
+            <TextField
+              {...params}
+              label="System"
+              InputProps={{...params.InputProps, disableUnderline: true}}
+              fullWidth
+            />
+          )}
+          value={valSystem}
+          onChange={(_, value) => {
+            setQueryParameters({system: value})
+            setSystem(value)
           }}
         />
       </Grid>
@@ -295,11 +296,8 @@ export default function TutorialsPage() {
         </Grid>
         }
         <AccordionsList tutorials_list={tutorials_list_beginner}
-          author={authors}
           setAuthor = {setAuthor}
-          keyword={keywords}
-          setKeyword={setKeyword}
-          method={methods}
+          setSystem={setSystem}
           setMethod={setMethod}
           filter={filter}
           setQueryParameters={setQueryParameters}
@@ -326,11 +324,8 @@ export default function TutorialsPage() {
         }
         <Grid item xs={12}>
           <AccordionsList tutorials_list={tutorials_list_intermediate}
-            author={authors}
             setAuthor = {setAuthor}
-            keyword={keywords}
-            setKeyword={setKeyword}
-            method={methods}
+            setSystem={setSystem}
             setMethod={setMethod}
             filter={filter}
             setQueryParameters={setQueryParameters}
