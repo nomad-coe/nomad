@@ -23,7 +23,7 @@ import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
-import {toAPIQuery} from '../search/SearchContext'
+import { toAPIFilter } from '../search/SearchContext'
 
 const DownloadButton = React.memo(function DownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
@@ -40,7 +40,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
 
   const handleSelect = (choice) => {
     setAnchorEl(null)
-    let queryStringData = toAPIQuery({query})
+    let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
       const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
