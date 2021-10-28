@@ -261,7 +261,27 @@ yarn start
 ### JupyterHUB
 
 NOMAD also has a build in JupyterHUB that is used to launch remote tools (e.g. Jupyter
-notebooks). The JupyterHUB is a separate application. You can run the JuypterHUB similar
+notebooks).
+
+To run the JupyterHUB, some additional configuration might be necessary. First, if you
+are not on Linux, you need to configure how JupyterHUB can reach your host network from
+docker containers. With docker for macos, it would need to add the following to your
+`nomad.yaml`:
+
+```sh
+north:
+    hub_ip_connect: 'host.docker.internal'
+```
+
+Second, you might need to install [configurable-http-proxy](https://github.com/jupyterhub/configurable-http-proxy).
+It comes as a node package. See [node](https://nodejs.org) for how to install `npm`. The
+proxy can be globally installed with:
+
+```sh
+npm install -g configurable-http-proxy
+```
+
+The JupyterHUB is a separate application. You can run the JuypterHUB similar
 tp the other part.
 
 ```sh
