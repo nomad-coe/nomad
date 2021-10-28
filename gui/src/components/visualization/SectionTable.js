@@ -17,7 +17,6 @@
  */
 import React from 'react'
 import {
-  Typography,
   Tooltip,
   Table,
   TableBody,
@@ -30,7 +29,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import Placeholder from './Placeholder'
-import AspectRatio from './AspectRatio'
+import NoData from './NoData'
 import { formatNumber } from '../../utils'
 import { Unit, toUnitSystem } from '../../units'
 import searchQuantities from '../../searchQuantities'
@@ -39,95 +38,108 @@ import searchQuantities from '../../searchQuantities'
  * Used to display data from one or many sections in a table.
  */
 const useStyles = makeStyles(theme => ({
-  root: {},
+  root: {
+    width: '100%',
+    height: '100%'
+  },
   table: {
-    padding: '1em',
-    boxSizing: 'border-box'
+    width: '100%',
+    height: '100%',
+    marginBottom: theme.spacing(1)
   }
 }))
 const SectionTable = React.memo(({
   data,
-  label,
   section,
   quantities,
   horizontal,
-  aspectRatio,
   classes,
   className,
   units,
   'data-testid': testID
 }) => {
   const styles = useStyles({classes: classes})
-  return <AspectRatio
-    aspectRatio={aspectRatio}
-    className={clsx(className, styles.root)}
-    data-testid={testID}
-  >
-    { data
-      ? <TableContainer className={styles.table}>
-        <Table size="small" aria-label="table">
-          <TableHead>
-            {horizontal
-              ? <TableRow>
-                {Object.keys(quantities).map((key, index) => {
+
+  // If data is set explicitly to False, we show the NoData component.
+  let content
+  if (data === false) {
+    content = <NoData data-testid={`${testID}-nodata`}/>
+  } else if (!data) {
+    content = <Placeholder variant="rect" data-testid={`${testID}-placeholder`}/>
+  } else {
+    content = <TableContainer className={styles.table}>
+      <Table size="small" aria-label="table">
+        <TableHead>
+          {horizontal
+            ? <TableRow>
+              {Object.keys(quantities).map((key, index) => {
+                const defCustom = quantities[key]
+                const def = searchQuantities[`${section}.${key}`]
+                const unitName = defCustom.unit || def?.unit
+                const unit = unitName && new Unit(unitName)
+                const unitLabel = unit && unit.label(units)
+                const description = defCustom.description || def.description || ''
+                const content = unit ? `${defCustom.label} (${unitLabel})` : defCustom.label
+                const align = defCustom.align || 'right'
+                return <TableCell key={index} align={align}>
+                  <Tooltip title={description}>
+                    <span>
+                      {content}
+                    </span>
+                  </Tooltip>
+                </TableCell>
+              })}
+            </TableRow>
+            : null
+          }
+        </TableHead>
+        <TableBody>
+          {horizontal
+            ? <>{data.data.map((row, i) => (
+              <TableRow key={i}>
+                {Object.keys(quantities).map((key, j) => {
                   const defCustom = quantities[key]
                   const def = searchQuantities[`${section}.${key}`]
-                  const unitName = defCustom.unit || def?.unit
-                  const unit = unitName && new Unit(unitName)
-                  const unitLabel = unit && unit.label(units)
-                  const description = defCustom.description || def.description || ''
-                  const content = unit ? `${defCustom.label} (${unitLabel})` : defCustom.label
-                  return <TableCell key={index} align="left">
-                    <Tooltip title={description}>
-                      <Typography variant="overline">{content}</Typography>
-                    </Tooltip>
-                  </TableCell>
+                  const unit = defCustom.unit || def?.unit
+                  const dtype = defCustom?.type?.type_data || def?.type?.type_data
+                  const align = defCustom.align || 'right'
+                  let value = row[key]
+                  if (value !== undefined) {
+                    if (!isNaN(value)) {
+                      value = formatNumber(
+                        unit ? toUnitSystem(value, unit, units, false) : value,
+                        dtype
+                      )
+                    }
+                  } else {
+                    value = defCustom.placeholder || 'unavailable'
+                  }
+                  return <TableCell key={j} align={align}>{value}</TableCell>
                 })}
               </TableRow>
-              : null
-            }
-          </TableHead>
-          <TableBody>
-            {horizontal
-              ? <>{data.map((row, i) => (
-                <TableRow key={i}>
-                  {Object.keys(quantities).map((key, j) => {
-                    const defCustom = quantities[key]
-                    const def = searchQuantities[`${section}.${key}`]
-                    const unit = defCustom.unit || def?.unit
-                    const dtype = defCustom?.type?.type_data || def?.type?.type_data
-                    let value = row[key]
-                    if (value !== undefined) {
-                      if (!isNaN(value)) {
-                        value = formatNumber(
-                          unit ? toUnitSystem(value, unit, units, false) : value,
-                          dtype
-                        )
-                      }
-                    } else {
-                      value = defCustom.placeholder || 'unavailable'
-                    }
-                    return <TableCell key={j} align="left">{value}</TableCell>
-                  })}
-                </TableRow>
-              ))}</>
-              : null
-            }
-          </TableBody>
-        </Table>
-      </TableContainer>
-      : <Placeholder variant="rect" data-testid={`${testID}-placeholder`}/>
-    }
-  </AspectRatio>
+            ))}</>
+            : null
+          }
+        </TableBody>
+      </Table>
+    </TableContainer>
+  }
+
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    {content}
+  </div>
 })
 
 SectionTable.propTypes = {
-  data: PropTypes.any,
-  label: PropTypes.string,
+  data: PropTypes.oneOfType([
+    PropTypes.bool, // Set to False to show NoData component
+    PropTypes.shape({
+      data: PropTypes.arrayOf(PropTypes.object).isRequired
+    })
+  ]),
   section: PropTypes.string,
   quantities: PropTypes.any,
   horizontal: PropTypes.bool,
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,

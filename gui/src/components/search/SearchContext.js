@@ -43,8 +43,7 @@ import { Quantity, getDimension } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination } from '../datatable/Datatable'
 import InputList from './input/InputList'
-import InputSlider from './input/InputSlider'
-import InputDateRange from './input/InputDateRange'
+import { inputSectionContext } from './input/InputSection'
 import InputPeriodicTable from './input/InputPeriodicTable'
 
 export const filters = new Set() // Contains the full names of all the available filters
@@ -64,84 +63,12 @@ export const labelEELS = 'EELS'
 export const labelProperties = 'Properties'
 export const labelElectronic = 'Electronic'
 export const labelVibrational = 'Vibrational'
+export const labelMechanical = 'Mechanical'
 export const labelSpectroscopy = 'Spectroscopy'
 export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
-
-/**
- * This function is used to register a new filter within the FilterContext.
- * Filters are entities that can be searched throuh the filter panel and the
- * search bar, and can be encoded in the URL. Notice that a filter in this
- * context does not have to correspond to a quantity in the metainfo.
- *
- * Only registered filters may be searched for. The registration must happen
- * before any components use the filters. This is because:
- *  - The initial aggregation results must be fetched before any components
- *  using the filter values are rendered.
- *  - Several components need to know the list of available filters (e.g. the
- *  search bar and  the search panel). If filters are only registered during
- *  component initialization, it may already be too late to update other
- *  components.
- *
- * @param {string} name Name of the filter.
- * @param {string} group The group into which the filter belongs to. Groups
- * are used to e.g. in showing FilterSummaries about a group of filters.
- * @param {string|object} agg Custom setter/getter for the aggregation value. As a
- * shortcut you can provide an ES aggregation type as a string,
- * @param {object} value Custom setter/getter for the filter value.
- * @param {bool} multiple Whether this filter supports several values:
- * controls whether setting the value appends or overwrites.
- * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
- */
-function registerFilter(
-  name,
-  group,
-  statConfig,
-  agg,
-  value,
-  multiple = true,
-  exclusive = true,
-  options,
-  dtype,
-  unit
-) {
-  filters.add(name)
-  if (group) {
-    filterGroups[group]
-      ? filterGroups[group].add(name)
-      : filterGroups[group] = new Set([name])
-  }
-
-  const data = filterData[name] || {}
-  if (agg) {
-    let aggSet, aggGet
-    if (isString(agg)) {
-      aggSet = {[name]: agg}
-      aggGet = (aggs) => (aggs[name][agg].data)
-    } else {
-      aggSet = agg.set
-      aggGet = agg.get
-    }
-    data.aggSet = aggSet
-    data.aggGet = aggGet
-  }
-  if (value) {
-    data.valueSet = value.set
-  }
-  data.multiple = multiple
-  data.exclusive = exclusive
-  data.statConfig = statConfig
-  data.options = options
-  data.unit = unit || searchQuantities[name]?.unit
-  data.dtype = dtype || getDatatype(name)
-  data.serializerExact = getSerializer(data.dtype, false)
-  data.serializerPretty = getSerializer(data.dtype, true)
-  data.dimension = getDimension(data.unit)
-  data.deserializer = getDeserializer(data.dtype, data.dimension)
-  filterData[name] = data
-}
 
 const listStatConfig = {
   component: InputList,
@@ -182,118 +109,291 @@ export const widthMapping = {
   }
 }
 
+/**
+ * This function is used to register a new filter within the FilterContext.
+ * Filters are entities that can be searched throuh the filter panel and the
+ * search bar, and can be encoded in the URL. Notice that a filter in this
+ * context does not have to correspond to a quantity in the metainfo.
+ *
+ * Only registered filters may be searched for. The registration must happen
+ * before any components use the filters. This is because:
+ *  - The initial aggregation results must be fetched before any components
+ *  using the filter values are rendered.
+ *  - Several components need to know the list of available filters (e.g. the
+ *  search bar and  the search panel). If filters are only registered during
+ *  component initialization, it may already be too late to update other
+ *  components.
+ *
+ * @param {string} name Name of the filter.
+ * @param {string} group The group into which the filter belongs to. Groups
+ * are used to e.g. in showing FilterSummaries about a group of filters.
+ * @param {string|object} agg Custom setter/getter for the aggregation value. As a
+ * shortcut you can provide an ES aggregation type as a string,
+ * @param {object} value Custom setter/getter for the filter value.
+ * @param {bool} multiple Whether this filter supports several values:
+ * controls whether setting the value appends or overwrites.
+ * @param {bool} exclusive Whether this filter is exclusive: only one value may be associated with an entry.
+ */
+function registerFilterData(name, group, quantity) {
+  const agg = quantity.agg
+  const value = quantity.value
+  const stats = quantity.stats
+  const multiple = quantity.multiple === undefined ? true : quantity.multiple
+  const exclusive = quantity.exclusive === undefined ? true : quantity.exclusive
+  const options = quantity.options
+  const unit = quantity.unit
+  const dtype = quantity.dtype
+  const label = quantity.label
+  const description = quantity.description
+  const queryMode = quantity.queryMode
+
+  filters.add(name)
+  if (group) {
+    filterGroups[group]
+      ? filterGroups[group].add(name)
+      : filterGroups[group] = new Set([name])
+  }
+
+  const data = filterData[name] || {}
+  if (agg) {
+    let aggSet, aggGet
+    if (isString(agg)) {
+      aggSet = {[name]: agg}
+      aggGet = (aggs) => (aggs[name][agg].data)
+    } else {
+      aggSet = agg.set
+      aggGet = agg.get
+    }
+    data.aggSet = aggSet
+    data.aggGet = aggGet
+  }
+  if (value) {
+    data.valueSet = value.set
+  }
+  data.multiple = multiple
+  data.exclusive = exclusive
+  data.stats = stats
+  data.options = options
+  data.unit = unit || searchQuantities[name]?.unit
+  data.dtype = dtype || getDatatype(name)
+  data.serializerExact = getSerializer(data.dtype, false)
+  data.serializerPretty = getSerializer(data.dtype, true)
+  data.dimension = getDimension(data.unit)
+  data.deserializer = getDeserializer(data.dtype, data.dimension)
+  data.label = label
+  data.description = description
+  data.queryMode = queryMode || 'any'
+  filterData[name] = data
+}
+
+function registerFilter(name, group, quantity) {
+  registerFilterData(name, group, quantity)
+}
+
+function registerFilterNested(name, group, quantity, subQuantities) {
+  // Register section
+  registerFilterData(name, group, quantity)
+  filterData[name].nested = true
+
+  // Register section subquantities
+  for (let quantity of subQuantities) {
+    let subname = `${name}.${quantity.name}`
+    registerFilterData(subname, group, quantity)
+  }
+}
+
+// Presets for different kind of quantities
+const termQuantity = {agg: 'terms', stats: listStatConfig}
+const noAggQuantity = {stats: listStatConfig}
+const nestedQuantity = {}
+const noQueryQuantity = {value: {set: () => {}}, multiple: false}
+const rangeQuantity = {agg: 'min_max', multiple: false}
+
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, listStatConfig, 'terms')
-registerFilter('results.material.functional_type', labelMaterial, listStatConfig, 'terms')
-registerFilter('results.material.compound_type', labelMaterial, listStatConfig, 'terms')
-registerFilter('results.material.material_name', labelMaterial, listStatConfig, 'terms')
-registerFilter('results.material.chemical_formula_hill', labelElements, listStatConfig, 'terms')
-registerFilter('results.material.chemical_formula_anonymous', labelElements, listStatConfig, 'terms')
-registerFilter('results.material.n_elements', labelElements, InputSlider, 'min_max', undefined, false)
-registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.crystal_system', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.structure_name', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.point_group', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, listStatConfig, 'terms')
-registerFilter('results.method.method_name', labelMethod, listStatConfig, 'terms')
-registerFilter('results.method.simulation.program_name', labelSimulation, listStatConfig, 'terms')
-registerFilter('results.method.simulation.program_version', labelSimulation, listStatConfig, 'terms')
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, listStatConfig, 'terms')
-registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, listStatConfig, 'terms')
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, listStatConfig, 'terms')
-registerFilter('results.method.simulation.dft.relativity_method', labelDFT, listStatConfig, 'terms')
-registerFilter('results.method.simulation.gw.type', labelGW, listStatConfig, 'terms')
-registerFilter('results.method.experiment.eels.detector_type', labelEELS, listStatConfig, 'terms')
-registerFilter('results.method.experiment.eels.resolution', labelEELS, InputSlider, 'min_max', undefined, false)
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap_type', labelElectronic, listStatConfig, 'terms')
-registerFilter('results.properties.electronic.band_structure_electronic.channel_info.band_gap', labelElectronic, InputSlider, 'min_max', undefined, false)
-registerFilter('external_db', labelAuthor, listStatConfig, 'terms')
-registerFilter('authors.name', labelAuthor, listStatConfig, 'terms')
-registerFilter('upload_create_time', labelAuthor, InputDateRange, 'min_max', undefined, false)
-registerFilter('datasets.dataset_name', labelDataset, listStatConfig)
-registerFilter('datasets.doi', labelDataset, listStatConfig)
-registerFilter('entry_id', labelIDs, listStatConfig)
-registerFilter('upload_id', labelIDs, listStatConfig)
-registerFilter('results.material.material_id', labelIDs, listStatConfig)
-registerFilter('datasets.dataset_id', labelIDs, listStatConfig)
+registerFilter('results.material.structural_type', labelMaterial, termQuantity)
+registerFilter('results.material.functional_type', labelMaterial, termQuantity)
+registerFilter('results.material.compound_type', labelMaterial, termQuantity)
+registerFilter('results.material.material_name', labelMaterial, termQuantity)
+registerFilter('results.material.chemical_formula_hill', labelElements, termQuantity)
+registerFilter('results.material.chemical_formula_anonymous', labelElements, termQuantity)
+registerFilter('results.material.n_elements', labelElements, {...rangeQuantity, label: 'Number of Elements', queryMode: 'all'})
+registerFilter('results.material.symmetry.bravais_lattice', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.crystal_system', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.structure_name', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.strukturbericht_designation', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
+registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
+registerFilter('results.method.method_name', labelMethod, termQuantity)
+registerFilter('results.method.simulation.program_name', labelSimulation, termQuantity)
+registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, termQuantity)
+registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
+registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
+registerFilter('results.method.experiment.eels.detector_type', labelEELS, termQuantity)
+registerFilter('results.method.experiment.eels.resolution', labelEELS, rangeQuantity)
+registerFilterNested(
+  'results.properties.electronic.band_structure_electronic.band_gap',
+  labelElectronic,
+  nestedQuantity,
+  [
+    {name: 'type', ...termQuantity},
+    {name: 'value', ...rangeQuantity}
+  ]
+)
+registerFilterNested(
+  'results.properties.mechanical.bulk_modulus',
+  labelMechanical,
+  {...nestedQuantity, label: 'Bulk modulus'},
+  [
+    {name: 'type', ...termQuantity},
+    {name: 'value', ...rangeQuantity}
+  ]
+)
+registerFilterNested(
+  'results.properties.mechanical.shear_modulus',
+  labelMechanical,
+  nestedQuantity,
+  [
+    {name: 'type', ...termQuantity},
+    {name: 'value', ...rangeQuantity}
+  ]
+)
+registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
+registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
+registerFilter('upload_create_time', labelAuthor, rangeQuantity)
+registerFilter('datasets.dataset_name', labelDataset, {...noAggQuantity, label: 'Dataset Name'})
+registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
+registerFilter('entry_id', labelIDs, noAggQuantity)
+registerFilter('upload_id', labelIDs, noAggQuantity)
+registerFilter('results.material.material_id', labelIDs, noAggQuantity)
+registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
+// Visibility: controls the 'owner'-parameter in the API query, not part of the
+// query itself.
+registerFilter('visibility', labelAccess, noQueryQuantity)
+// Restricted: controls whether materials search is done in a restricted mode.
+registerFilter('restricted', undefined, noQueryQuantity)
+// Exclusive: controls the way elements search is done.
+registerFilter('exclusive', undefined, noQueryQuantity)
 
 // In exclusive element query the elements names are sorted and concatenated
 // into a single string.
 registerFilter(
   'results.material.elements',
   labelElements,
-  ptStatConfig,
-  'terms',
   {
-    set: (newQuery, oldQuery, value) => {
-      if (oldQuery.exclusive) {
-        if (value.size !== 0) {
-          newQuery['results.material.elements_exclusive'] = setToArray(value).sort().join(' ')
+    stats: ptStatConfig,
+    agg: 'terms',
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        if (oldQuery.exclusive) {
+          if (value.size !== 0) {
+            newQuery['results.material.elements_exclusive'] = setToArray(value).sort().join(' ')
+          }
+        } else {
+          newQuery['results.material.elements'] = value
         }
-      } else {
-        newQuery['results.material.elements'] = value
       }
-    }
-  },
-  true,
-  false
+    },
+    multiple: true,
+    exclusive: false
+  }
 )
 // Electronic properties: subset of results.properties.available_properties
 const electronicOptions = {
-  band_structure_electronic: {label: 'band structure'},
-  dos_electronic: {label: 'density of states'}
+  band_structure_electronic: {label: 'Band structure'},
+  dos_electronic: {label: 'Density of states'}
 }
 const electronicProps = new Set(Object.keys(electronicOptions))
 registerFilter(
   'electronic_properties',
   labelElectronic,
-  listStatConfig,
   {
-    set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-      .filter((value) => electronicProps.has(value.value)))
-  },
-  {
-    set: (newQuery, oldQuery, value) => {
-      const data = newQuery['results.properties.available_properties'] || new Set()
-      value.forEach((item) => { data.add(item) })
-      newQuery['results.properties.available_properties'] = data
-    }
-  },
-  true,
-  false,
-  electronicOptions
+    stats: listStatConfig,
+    agg: {
+      set: {'results.properties.available_properties': 'terms'},
+      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+        .filter((value) => electronicProps.has(value.value)))
+    },
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        const data = newQuery['results.properties.available_properties'] || new Set()
+        value.forEach((item) => { data.add(item) })
+        newQuery['results.properties.available_properties:all'] = data
+      }
+    },
+    multiple: true,
+    exclusive: false,
+    options: electronicOptions,
+    label: 'Electronic properties',
+    description: 'The electronic properties that are present in an entry.'
+  }
 )
 // Vibrational properties: subset of results.properties.available_properties
 export const vibrationalOptions = {
-  dos_phonon: {label: 'phonon density of states'},
-  band_structure_phonon: {label: 'phonon band structure'},
+  dos_phonon: {label: 'Phonon density of states'},
+  band_structure_phonon: {label: 'Phonon band structure'},
   energy_free_helmholtz: {label: 'Helmholtz free energy'},
-  heat_capacity_constant_volume: {label: 'heat capacity constant volume'}
+  heat_capacity_constant_volume: {label: 'Heat capacity constant volume'}
 }
 const vibrationalProps = new Set(Object.keys(vibrationalOptions))
 registerFilter(
   'vibrational_properties',
   labelVibrational,
-  listStatConfig,
   {
-    set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-      .filter((value) => vibrationalProps.has(value.value)))
-  },
+    stats: listStatConfig,
+    agg: {
+      set: {'results.properties.available_properties': 'terms'},
+      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+        .filter((value) => vibrationalProps.has(value.value)))
+    },
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        const data = newQuery['results.properties.available_properties'] || new Set()
+        value.forEach((item) => { data.add(item) })
+        newQuery['results.properties.available_properties:all'] = data
+      }
+    },
+    multiple: true,
+    exclusive: false,
+    options: vibrationalOptions,
+    label: 'Vibrational properties',
+    description: 'The vibrational properties that are present in an entry.'
+  }
+)
+// Mechanical properties: subset of results.properties.available_properties
+export const mechanicalOptions = {
+  energy_volume_curve: {label: 'Energy-volume curve'},
+  bulk_modulus: {label: 'Bulk modulus'},
+  shear_modulus: {label: 'Shear modulus'}
+}
+const mechanicalProps = new Set(Object.keys(mechanicalOptions))
+registerFilter(
+  'mechanical_properties',
+  labelMechanical,
   {
-    set: (newQuery, oldQuery, value) => {
-      const data = newQuery['results.properties.available_properties'] || new Set()
-      value.forEach((item) => { data.add(item) })
-      newQuery['results.properties.available_properties'] = data
-    }
-  },
-  true,
-  false,
-  vibrationalOptions
+    stats: listStatConfig,
+    agg: {
+      set: {'results.properties.available_properties': 'terms'},
+      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+        .filter((value) => mechanicalProps.has(value.value)))
+    },
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        const data = newQuery['results.properties.available_properties'] || new Set()
+        value.forEach((item) => { data.add(item) })
+        newQuery['results.properties.available_properties:all'] = data
+      }
+    },
+    multiple: true,
+    exclusive: false,
+    options: mechanicalOptions,
+    label: 'Mechanical properties',
+    description: 'The mechanical properties that are present in an entry.'
+  }
 )
 // Spectroscopic properties: subset of results.properties.available_properties
 export const spectroscopicOptions = {
@@ -303,79 +403,59 @@ const spectroscopicProps = new Set(Object.keys(spectroscopicOptions))
 registerFilter(
   'spectroscopic_properties',
   labelSpectroscopy,
-  listStatConfig,
   {
-    set: {'results.properties.available_properties': 'terms'},
-    get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-      .filter((value) => spectroscopicProps.has(value.value)))
-  },
-  {
-    set: (newQuery, oldQuery, value) => {
-      const data = newQuery['results.properties.available_properties'] || new Set()
-      value.forEach((item) => { data.add(item) })
-      newQuery['results.properties.available_properties'] = data
-    }
-  },
-  true,
-  false,
-  spectroscopicOptions
+    stats: listStatConfig,
+    agg: {
+      set: {'results.properties.available_properties': 'terms'},
+      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
+        .filter((value) => spectroscopicProps.has(value.value)))
+    },
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        const data = newQuery['results.properties.available_properties'] || new Set()
+        value.forEach((item) => { data.add(item) })
+        newQuery['results.properties.available_properties:all'] = data
+      }
+    },
+    multiple: true,
+    exclusive: false,
+    options: spectroscopicOptions,
+    label: 'Spectroscopic properties',
+    description: 'The spectroscopic properties that are present in an entry.'
+  }
 )
 // EELS energy window: a slider that combines two metainfo values: min_energy
 // and max_energy.
 registerFilter(
   'results.method.experiment.eels.energy_window',
   labelEELS,
-  listStatConfig,
   {
-    set: {
-      'results.method.experiment.eels.min_energy': 'min_max',
-      'results.method.experiment.eels.max_energy': 'min_max'
+    stats: listStatConfig,
+    agg: {
+      set: {
+        'results.method.experiment.eels.min_energy': 'min_max',
+        'results.method.experiment.eels.max_energy': 'min_max'
+      },
+      get: (aggs) => {
+        const min = aggs['results.method.experiment.eels.min_energy']
+        const max = aggs['results.method.experiment.eels.max_energy']
+        return [min.min_max.data[0], max.min_max.data[1]]
+      }
     },
-    get: (aggs) => {
-      const min = aggs['results.method.experiment.eels.min_energy']
-      const max = aggs['results.method.experiment.eels.max_energy']
-      return [min.min_max.data[0], max.min_max.data[1]]
-    }
-  },
-  {
-    set: (newQuery, oldQuery, value) => {
-      newQuery['results.method.experiment.eels.min_energy'] = {gte: value.gte}
-      newQuery['results.method.experiment.eels.max_energy'] = {lte: value.lte}
-    }
-  },
-  false,
-  false,
-  vibrationalOptions,
-  'number',
-  'joule'
-)
-// Visibility: controls the 'owner'-parameter in the API query, not part of the
-// query itself.
-registerFilter(
-  'visibility',
-  labelAccess,
-  undefined,
-  undefined,
-  {set: () => {}},
-  false
-)
-// Restricted: controls whether materials search is done in a restricted mode.
-registerFilter(
-  'restricted',
-  undefined,
-  undefined,
-  undefined,
-  {set: () => {}},
-  false
-)
-// Exclusive: controls the way elements search is done.
-registerFilter(
-  'exclusive',
-  undefined,
-  undefined,
-  undefined,
-  {set: () => {}},
-  false
+    value: {
+      set: (newQuery, oldQuery, value) => {
+        newQuery['results.method.experiment.eels.min_energy'] = {gte: value.gte}
+        newQuery['results.method.experiment.eels.max_energy'] = {lte: value.lte}
+      }
+    },
+    multiple: false,
+    exlusive: false,
+    options: vibrationalOptions,
+    dtype: 'number',
+    unit: 'joule',
+    label: 'Energy Window',
+    description: 'Defines bounds for the minimum and maximum energies in the spectrum.'
+  }
 )
 
 // The filter abbreviation mapping has to be done only after all filters have
@@ -391,6 +471,7 @@ for (const [fullname, abbreviation] of nameAbbreviationPairs) {
     abbreviations[abbreviation] += 1
   }
   filterAbbreviations[fullname] = fullname
+  filterFullnames[fullname] = fullname
 }
 for (const [fullname, abbreviation] of nameAbbreviationPairs) {
   if (abbreviations[abbreviation] === 1) {
@@ -472,11 +553,7 @@ export const SearchContext = React.memo(({
     setStatistics(statistics)
     // Transform the locked values into a GUI-suitable format and store them
     if (filtersLocked) {
-      const filtersLockedGUI = {}
-      for (const [key, value] of Object.entries(filtersLocked)) {
-        filtersLockedGUI[key] = toGUIFilter(key, value)
-      }
-      setLocked(filtersLockedGUI)
+      setLocked(toGUIFilter(filtersLocked))
     }
   }, [setLocked, setQuery, setStatistics, query, statistics, filtersLocked])
 
@@ -754,7 +831,16 @@ const lockedState = selector({
  * @returns currently set filter value.
  */
 export function useFilterValue(name) {
-  return useRecoilValue(queryFamily(name))
+  // See in which context this filter is being called. If defined within an
+  // inputSectionContext, we set the filter inside nested query.
+  const sectionContext = useContext(inputSectionContext)
+  const section = sectionContext?.section
+  const subname = useMemo(() => name.split('.').pop(), [name])
+
+  const value = useRecoilValue(queryFamily(section || name))
+  return section
+    ? value?.[subname]
+    : value
 }
 
 /**
@@ -766,7 +852,25 @@ export function useFilterValue(name) {
  * @returns function for setting the value for the given quantity
  */
 export function useSetFilter(name) {
-  return useSetRecoilState(queryFamily(name))
+  // See in which context this filter is being called. If defined within an
+  // inputSectionContext, we set the filter inside nested query.
+  const sectionContext = useContext(inputSectionContext)
+  const section = sectionContext?.section
+  const subname = useMemo(() => name.split('.').pop(), [name])
+
+  const setter = useSetRecoilState(queryFamily(section || name))
+
+  const handleSet = useCallback((value) => {
+    section
+      ? setter(old => {
+        const newValue = isNil(old) ? {} : {...old}
+        newValue[subname] = value
+        return newValue
+      })
+      : setter(value)
+  }, [section, subname, setter])
+
+  return handleSet
 }
 
 /**
@@ -776,8 +880,10 @@ export function useSetFilter(name) {
  * @param {string} name Name of the filter.
  * @returns Array containing the filter value and setter function for it.
  */
-export function useFilterState(name) {
-  return useRecoilState(queryFamily(name))
+export function useFilterState(name, section) {
+  const value = useFilterValue(name, section)
+  const setter = useSetFilter(name, section)
+  return useMemo(() => [value, setter], [value, setter])
 }
 
 /**
@@ -912,67 +1018,71 @@ function qsToSearch(queryString) {
   }
 
   // Deserialize query
-  const query = {}
-  for (let [key, value] of Object.entries(queryObj)) {
-    const split = key.split(':')
-    key = split[0]
-    let newKey = filterFullnames[key] || key
-    const valueGUI = toGUIFilter(newKey, value)
-    if (split.length !== 1) {
-      const op = split[1]
-      const oldValue = query[newKey]
-      if (!oldValue) {
-        query[newKey] = {[op]: valueGUI}
-      } else {
-        query[newKey][op] = valueGUI
-      }
-    } else {
-      query[newKey] = valueGUI
-    }
-  }
+  const query = toGUIFilter(queryObj)
   return [query, statistics]
 }
 
 /**
- * Converts a query into an object that uses NOMAD API query string keys and values.
- * @param {object} query A query object representing the currently active
- * filters.
- * @returns {object} An object that can be serialized into a query string
+ * Used to create an object that represents the current search context state in
+ * a serializable format. Can e.g. be used to build a query string.
+ *
+ * @param {object} search Object representing the currently active search
+ * context.
+ *  - query: Object representing the active search filters.
+ *  - locked: Object representing the currently locked filters.
+ *  - statistics: Object containing the currently shown statistics
+ * @returns {object} An object that can e.g. be serialized into a query string.
  */
-export function searchToQsData(query, locked, statistics) {
-  locked = locked || {}
-  const queryStringQuery = {}
+export function searchToQsData(search) {
+  const query = search.query
+  const locked = search.locked || {}
+  const statistics = search.statistics
+
+  // Used to recursively convert the query into a serializable format.
+  function convert(key, value, path) {
+    if (locked[key]) {
+      return undefined
+    }
+    // If the key is an operator, the filter name is read from the path.
+    const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
+    const fullPath = path ? `${path}.${key}` : key
+    const filterPath = opKeys.has(key) ? path : fullPath
+    let newValue
+    if (isPlainObject(value)) {
+      newValue = {}
+      for (let [keyInner, valueInner] of Object.entries(value)) {
+        const valueConverted = convert(
+          keyInner,
+          valueInner,
+          path ? fullPath : key
+        )
+        newValue[keyInner] = valueConverted
+      }
+    } else {
+      const serializer = filterData[filterPath].serializerExact
+      if (isArray(value)) {
+        newValue = value.map(serializer)
+      } else if (value instanceof Set) {
+        newValue = [...value].map(serializer)
+      } else {
+        newValue = serializer(value)
+      }
+    }
+    return newValue
+  }
 
   // The query is serialized first: locked items will not be displayed in the
   // URL
+  const queryStringQuery = {}
   if (query) {
     for (const [key, value] of Object.entries(query)) {
-      if (locked[key]) {
-        continue
-      }
-      const serializer = filterData[key].serializerExact
-      let newValue
-      const newKey = filterAbbreviations[key] || key
-      if (isPlainObject(value)) {
-        if (!isNil(value.gte)) {
-          queryStringQuery[`${newKey}:gte`] = serializer(value.gte)
-        }
-        if (!isNil(value.lte)) {
-          queryStringQuery[`${newKey}:lte`] = serializer(value.lte)
-        }
-      } else {
-        if (isArray(value)) {
-          newValue = value.map(serializer)
-        } else if (value instanceof Set) {
-          newValue = [...value].map(serializer)
-        } else {
-          newValue = serializer(value)
-        }
-        queryStringQuery[newKey] = newValue
+      const valueConverted = convert(key, value)
+      if (!isNil(valueConverted)) {
+        const newKey = filterAbbreviations[key] || key
+        queryStringQuery[newKey] = valueConverted
       }
     }
   }
-
   // The shown statistics are serialized here: the order is preserved
   if (!isEmpty(statistics)) {
     queryStringQuery.statistics = Object.keys(statistics)
@@ -988,7 +1098,7 @@ export function searchToQsData(query, locked, statistics) {
  * @returns URL querystring, not encoded if possible to improve readability.
  */
 function searchToQs(query, locked, statistics) {
-  const queryData = searchToQsData(query, locked, statistics)
+  const queryData = searchToQsData({query, locked, statistics, abbreviate: true})
   return qs.stringify(queryData, {indices: false, encode: false})
 }
 
@@ -1036,12 +1146,23 @@ export function useAgg(name, update = true, restrict = undefined, delay = 500) {
   const apiCall = useCallback((query) => {
     // If the restrict option is enabled, the filters targeting the specified
     // quantity will be removed. This way all possible options pre-selection can
-    // be returned.
+    // be returned. Notice that the original query is made immutable by
+    // Recoil.js: we have to work on a copy.
     let queryCleaned = {...query}
-    if (finalRestrict && query && name in query) {
-      delete queryCleaned[name]
+    if (finalRestrict && query) {
+      if (name in query) {
+        delete queryCleaned[name]
+      }
+      const splitted = name.split('.')
+      const sectionName = splitted.slice(0, -1).join('.')
+      const propName = splitted.pop()
+      if (sectionName in query && propName in query[sectionName]) {
+        const section = {...query[sectionName]}
+        delete section[propName]
+        queryCleaned[sectionName] = section
+      }
     }
-    queryCleaned = toAPIQuery(queryCleaned, resource, query.restricted)
+    queryCleaned = toAPIFilter(queryCleaned, resource, query.restricted)
     const aggRequest = {}
     toAPIAgg(aggRequest, name, resource)
     const search = {
@@ -1116,7 +1237,7 @@ export function useScrollResults(initialPagination, delay = 500) {
 
     const request = {
       owner: query.visibility || 'visible',
-      query: toAPIQuery(query, resource, query.restricted),
+      query: toAPIFilter(query, resource, query.restricted),
       pagination: pagination
     }
 
@@ -1183,7 +1304,7 @@ export function useScrollResults(initialPagination, delay = 500) {
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIQuery(query, resource, restricted) {
+export function toAPIFilter(query, resource, restricted) {
   // Perform custom transformations
   let queryCustomized = {}
   for (let [k, v] of Object.entries(query)) {
@@ -1195,38 +1316,16 @@ export function toAPIQuery(query, resource, restricted) {
     }
   }
 
+  // Create the API-compatible keys and values.
   let queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
-    // Transform sets into lists and Quantities into SI values and modify keys
-    // according to target resource (entries/materials).
-    let newValue
-    if (isPlainObject(v)) {
-      newValue = {}
-      if (!isNil(v.lte)) {
-        newValue.lte = toAPIQueryValue(v.lte)
-      }
-      if (!isNil(v.gte)) {
-        newValue.gte = toAPIQueryValue(v.gte)
-      }
-    } else {
-      newValue = toAPIQueryValue(v)
-    }
-
-    // The postfixes are added here. By default query items with array values
-    // get the 'any'-postfix.
-    let postfix
-    if (isArray(newValue)) {
-      const fieldPostfixMap = {
-        'results.properties.available_properties': 'all',
-        'results.material.elements': 'all'
-      }
-      postfix = fieldPostfixMap[k] || 'any'
-    }
-
-    // For material query the keys are remapped.
-    let newKey = resource === 'materials' ? materialNames[k] : k
-    newKey = postfix ? `${newKey}:${postfix}` : newKey
-    queryNormalized[newKey] = newValue
+    const [newKey, newValue] = toAPIFilterSingle(k, v)
+    const splitted = newKey.split(':')
+    const filterName = splitted[0]
+    const queryMode = splitted.length > 1 ? splitted[1] : undefined
+    let finalKey = resource === 'materials' ? materialNames[filterName] : filterName
+    finalKey = queryMode ? `${finalKey}:${queryMode}` : finalKey
+    queryNormalized[finalKey] = newValue
   }
 
   if (resource === 'materials') {
@@ -1272,13 +1371,14 @@ export function toAPIQuery(query, resource, restricted) {
 }
 
 /**
- * Cleans a filter value into a form that is supported by the API. This includes:
+ * Cleans a single filter value into a form that is supported by the API. This includes:
  * - Sets are transformed into Arrays
  * - Quantities are converted to SI values.
  *
  * @returns {any} The filter value in a format that is suitable for the API.
  */
-function toAPIQueryValue(value) {
+function toAPIFilterSingle(key, value, path = undefined) {
+  // Determine the API-compatible value.
   let newValue
   if (value instanceof Set) {
     newValue = setToArray(value)
@@ -1295,36 +1395,80 @@ function toAPIQueryValue(value) {
     } else {
       newValue = value.map((item) => item instanceof Quantity ? item.toSI() : item)
     }
+  } else if (isPlainObject(value)) {
+    newValue = {}
+    for (let [keyInner, valueInner] of Object.entries(value)) {
+      const [apiKey, apiValue] = toAPIFilterSingle(keyInner, valueInner, key)
+      if (!isNil(apiValue)) {
+        newValue[apiKey] = apiValue
+      }
+    }
+    if (isEmpty(newValue)) {
+      newValue = undefined
+    }
   } else {
     newValue = value
   }
-  return newValue
+
+  // Determine the final API key. It depends on the particular queryMode.
+  let queryMode
+  if (isArray(newValue)) {
+    const fullPath = path ? `${path}.${key}` : key
+    queryMode = filterData[fullPath]?.queryMode
+  }
+  const newKey = queryMode ? `${key}:${queryMode}` : key
+
+  return [newKey, newValue]
 }
 
 /**
- * Cleans a filter value into a form that is supported by the GUI. This includes:
+ * Cleans an entire query object into a form that is supported by the GUI. This includes:
+ * - Arrays are are transformed into Sets
+ * - If multiple values are supported, scalar values are stored inside sets.
+ * - Numerical values with units are transformed into Quantities.
+ *
+ * @returns {any} The filter object in a format that is suitable for the GUI.
+ */
+export function toGUIFilter(query, units = undefined) {
+  const newQuery = {}
+  for (let [key, value] of Object.entries(query)) {
+    let newKey = filterFullnames[key] || key
+    const valueGUI = toGUIFilterSingle(newKey, value, units)
+    newQuery[newKey] = valueGUI
+  }
+  return newQuery
+}
+
+/**
+ * Cleans a single filter value into a form that is supported by the GUI. This includes:
  * - Arrays are are transformed into Sets
  * - If multiple values are supported, scalar values are stored inside sets.
  * - Numerical values with units are transformed into Quantities.
  *
  * @returns {any} The filter value in a format that is suitable for the GUI.
  */
-export function toGUIFilter(name, value, units = undefined) {
-  let multiple = filterData[name].multiple
-  const deserializer = filterData[name].deserializer
+export function toGUIFilterSingle(key, value, units = undefined, path = undefined) {
   let newValue
-  if (isArray(value)) {
-    newValue = new Set(value.map((v) => deserializer(v, units)))
-  } else if (isPlainObject(value)) {
+  const fullPath = path ? `${path}.${key}` : key
+  if (isPlainObject(value)) {
     newValue = {}
-    if (!isNil(value.gte)) {
-      newValue.gte = deserializer(value.gte, units)
-    }
-    if (!isNil(value.lte)) {
-      newValue.lte = deserializer(value.lte, units)
+    for (let [keyInner, valueInner] of Object.entries(value)) {
+      const valueConverted = toGUIFilterSingle(keyInner, valueInner, units, fullPath)
+      if (!isNil(valueConverted)) {
+        newValue[keyInner] = valueConverted
+      }
     }
   } else {
-    newValue = deserializer(value, units)
+    // If the key is an operator, the filter name is read from the path.
+    const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
+    const filterPath = opKeys.has(key) ? path : fullPath
+    let multiple = filterData[filterPath].multiple
+    const deserializer = filterData[filterPath].deserializer
+    if (isArray(value)) {
+      newValue = new Set(value.map((v) => deserializer(v, units)))
+    } else {
+      newValue = deserializer(value, units)
+    }
     if (multiple) {
       newValue = new Set([newValue])
     }

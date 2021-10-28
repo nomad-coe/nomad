@@ -17,8 +17,7 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
-import { PropertyCard, PropertyContent } from './PropertyCard'
+import { PropertyCard, PropertyGrid, PropertyItem } from './PropertyCard'
 import { useUnits } from '../../../units'
 import EELS from '../../visualization/EELS'
 import { resolveRef } from '../../archive/metainfo'
@@ -42,18 +41,16 @@ const SpectroscopyCard = React.memo(({entryMetadata, properties, archive}) => {
   const data = dataRef && resolveRef(dataRef, archive)
 
   return <PropertyCard title="Spectroscopy">
-    <Grid>
-      <Grid item xs={12}>
-        <PropertyContent title="Electron energy loss spectroscopy">
-          <EELS
-            data={data}
-            layout={{yaxis: {autorange: true}}}
-            aspectRatio={2}
-            units={units}
-          />
-        </PropertyContent>
-      </Grid>
-    </Grid>
+    <PropertyGrid>
+      <PropertyItem title="Electron energy loss spectroscopy" xs={12}>
+        <EELS
+          data={data}
+          layout={{yaxis: {autorange: true}}}
+          aspectRatio={2}
+          units={units}
+        />
+      </PropertyItem>
+    </PropertyGrid>
   </PropertyCard>
 })
 

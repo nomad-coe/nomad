@@ -17,34 +17,21 @@
  */
 import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Box } from '@material-ui/core'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
-import { PropertyContent } from '../entry/properties/PropertyCard'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
-const useStyles = makeStyles((theme) => {
-  return {
-    root: {
-      display: 'flex',
-      width: '100%'
-    },
-    energies: {
-      flex: '1 1 66.6%'
-    },
-    structure: {
-      flex: '1 1 33.3%'
-    }
-  }
-})
-
+/**
+ * A thin wrapper for the Plot-component that is used for plotting geometry
+ * optimization convergence.
+ */
+const energyUnit = new Unit('joule')
 const GeometryOptimization = React.memo(({data, className, classes, units}) => {
   const [finalData, setFinalData] = useState(data)
-  const style = useStyles(classes)
   const theme = useTheme()
-  const energyUnit = useMemo(() => new Unit('joule'), [])
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff within useEffect (instead of e.g. useMemo),
@@ -109,7 +96,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
       })
     }
     setFinalData(traces)
-  }, [data, units, energyUnit, theme])
+  }, [data, units, theme])
 
   const plotLayout = useMemo(() => {
     if (!data) {
@@ -161,23 +148,20 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         side: 'right'
       }
     }
-  }, [data, theme, units, energyUnit])
+  }, [data, theme, units])
 
-  return (
-    <Box className={style.root}>
-      <PropertyContent title="Energy convergence" className={style.energies}>
-        <ErrorHandler message='Could not load energies.'>
-          <Plot
-            data={finalData}
-            layout={plotLayout}
-            aspectRatio={2}
-            floatTitle="Energy convergence"
-          >
-          </Plot>
-        </ErrorHandler>
-      </PropertyContent>
-    </Box>
-  )
+  return <PropertyGrid>
+    <PropertyItem title="Energy convergence" xs={12}>
+      <ErrorHandler message='Could not load energies.'>
+        <Plot
+          data={finalData}
+          layout={plotLayout}
+          aspectRatio={2}
+          floatTitle="Energy convergence"
+        />
+      </ErrorHandler>
+    </PropertyItem>
+  </PropertyGrid>
 })
 
 GeometryOptimization.propTypes = {

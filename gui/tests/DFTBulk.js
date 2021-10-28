@@ -52,17 +52,43 @@ const basisSetType = 'plane waves'
 const programName = 'VASP'
 const programVersion = '1'
 
-const workflow = [{
-  thermodynamics: [
-    {
-      heat_capacity_c_v: [0, 1],
-      vibrational_free_energy_at_constant_volume: [0, 1],
-      temperature: [0, 100]
-    }
-  ],
-  workflow_type: 'phonon',
-  calculation_result_ref: '/run/0/calculation/0'
-}]
+const workflow = [
+  {
+    thermodynamics: [
+      {
+        heat_capacity_c_v: [0, 1],
+        vibrational_free_energy_at_constant_volume: [0, 1],
+        temperature: [0, 100]
+      }
+    ],
+    type: 'phonon',
+    calculation_result_ref: '/run/0/calculation/0'
+  },
+  {
+    equation_of_state: {
+      energies: [0, 1],
+      volumes: [0, 1],
+      eos_fit: [
+        {
+          function_name: 'murnaghan',
+          fitted_energies: [0, 1],
+          bulk_modulus: 1
+        }
+      ]
+    },
+    type: 'equation_of_state',
+    calculation_result_ref: '/run/0/calculation/0'
+  },
+  {
+    elastic: [
+      {
+        shear_modulus_hill: 1
+      }
+    ],
+    type: 'elastic',
+    calculation_result_ref: '/run/0/calculation/0'
+  }
+]
 
 // Indexed data that is specific to results
 const resultsDftBulk = {
@@ -102,23 +128,26 @@ const resultsDftBulk = {
       'dos_phonon',
       'band_structure_phonon',
       'heat_capacity_constant_volume',
-      'energy_free_helmholtz'
+      'energy_free_helmholtz',
+      'bulk_modulus',
+      'shear_modulus',
+      'energy_volume_curve'
     ],
     electronic: {
       dos_electronic: {
         energies: '/run/0/calculation/0/dos_electronic/0/energies',
         total: '/run/0/calculation/0/dos_electronic/0/total',
-        channel_info: [{
+        band_gap: [{
           energy_highest_occupied: 0
         }]
       },
       band_structure_electronic: {
         segment: ['/run/0/calculation/0/band_structure_electronic/0/segment/0'],
         reciprocal_cell: '/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell',
-        channel_info: [{
+        band_gap: [{
           energy_highest_occupied: 0,
-          band_gap: 1e-19,
-          band_gap_type: 'indirect'
+          value: 1e-19,
+          type: 'indirect'
         }]
       }
     },
@@ -138,6 +167,27 @@ const resultsDftBulk = {
         energies: '/workflow/0/thermodynamics/0/vibrational_free_energy_at_constant_volume',
         temperatures: '/workflow/0/thermodynamics/0/temperature'
       }
+    },
+    mechanical: {
+      bulk_modulus: [
+        {
+          type: 'murnaghan',
+          value: 1
+        }
+      ],
+      shear_modulus: [
+        {
+          type: 'voigt_reuss_hill_average',
+          value: 1
+        }
+      ],
+      energy_volume_curve: [
+        {
+          type: 'murhaghan',
+          volumes: '/workflow/1/equation_of_state/volumes',
+          energies_fit: '/workflow/1/equation_of_state/eos_fit/0/fitted_energies'
+        }
+      ]
     }
   }
 }
@@ -181,7 +231,7 @@ const run = [{
               spin: 0
             }
           ],
-          channel_info: [{
+          band_gap: [{
             energy_highest_occupied: 0,
             index: 0
           }]
@@ -208,10 +258,10 @@ const run = [{
               endpoints_labels: ['L', 'K']
             }
           ],
-          channel_info: [{
+          band_gap: [{
             energy_highest_occupied: 0,
-            band_gap: 1e-19,
-            band_gap_type: 'indirect'
+            value: 1e-19,
+            type: 'indirect'
           }]
         }
       ],

@@ -17,28 +17,17 @@
  */
 import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
-import clsx from 'clsx'
-import {
-  Box
-} from '@material-ui/core'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { add, distance, mergeObjects } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { msgNormalizationWarning } from '../../config'
 
-const useStyles = makeStyles({
-  root: {
-  }
-})
-
 const BandStructure = React.memo(({
   data,
   layout,
-  aspectRatio,
   className,
-  classes,
   placeholderStyle,
   units,
   type,
@@ -47,7 +36,6 @@ const BandStructure = React.memo(({
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [pathSegments, setPathSegments] = useState(undefined)
   const energyUnit = useMemo(() => new Unit('joule'), [])
-  const style = useStyles(classes)
   const theme = useTheme()
 
   // Determine the energy reference and normalization
@@ -232,7 +220,10 @@ const BandStructure = React.memo(({
         x: 1,
         y: 0,
         xanchor: 'right',
-        yanchor: 'bottom'
+        yanchor: 'bottom',
+        font: {
+          size: 13
+        }
       }
     }
     return mergeObjects(layout, defaultLayout)
@@ -300,21 +291,17 @@ const BandStructure = React.memo(({
     return mergeObjects(computedLayout, tmpLayout)
   }, [computedLayout, tmpLayout])
 
-  return (
-    <Box className={clsx(style.root, className)}>
-      <Plot
-        data={finalData}
-        layout={finalLayout}
-        aspectRatio={aspectRatio}
-        floatTitle={'Band structure'}
-        warning={normalized ? null : msgNormalizationWarning}
-        placeholderStyle={placeholderStyle}
-        metaInfoLink={data?.m_path}
-        {...other}
-      >
-      </Plot>
-    </Box>
-  )
+  return <Plot
+    data={finalData}
+    layout={finalLayout}
+    floatTitle={'Band structure'}
+    warning={normalized ? null : msgNormalizationWarning}
+    placeholderStyle={placeholderStyle}
+    metaInfoLink={data?.m_path}
+    className={className}
+    {...other}
+  >
+  </Plot>
 })
 
 BandStructure.propTypes = {
@@ -327,8 +314,6 @@ BandStructure.propTypes = {
     })
   ]),
   layout: PropTypes.object,
-  aspectRatio: PropTypes.number,
-  classes: PropTypes.object,
   className: PropTypes.string,
   placeholderStyle: PropTypes.any,
   units: PropTypes.object, // Contains the unit configuration

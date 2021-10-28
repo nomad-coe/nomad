@@ -17,8 +17,9 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
+import InputSection from '../input/InputSection'
 import InputSlider from '../input/InputSlider'
 import InputCheckboxes from '../input/InputCheckboxes'
 import { Quantity, useUnits } from '../../../units'
@@ -34,30 +35,31 @@ const FilterSubMenuElectronic = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <InputSlider
-          quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap"
-          units={units}
-          step={step}
+    <InputGrid>
+      <InputGridItem xs={12}>
+        <InputSection
+          section="results.properties.electronic.band_structure_electronic.band_gap"
           visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
+        >
+          <InputCheckboxes
+            quantity="results.properties.electronic.band_structure_electronic.band_gap.type"
+            visible={visible}
+          />
+          <InputSlider
+            quantity="results.properties.electronic.band_structure_electronic.band_gap.value"
+            units={units}
+            step={step}
+            visible={visible}
+          />
+        </InputSection>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputCheckboxes
-          quantity="results.properties.electronic.band_structure_electronic.channel_info.band_gap_type"
-          visible={visible}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <InputCheckboxes
-          label="available electronic properties"
-          description="The electronic properties that are present in an entry."
           quantity="electronic_properties"
           visible={visible}
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuElectronic.propTypes = {

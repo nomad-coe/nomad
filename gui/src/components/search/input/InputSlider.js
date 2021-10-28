@@ -26,7 +26,7 @@ import {
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
@@ -263,7 +263,7 @@ const InputSlider = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel
+      <InputHeader
         quantity={quantity}
         label={title}
         description={desc}

@@ -194,13 +194,15 @@ class DocumentType():
         self.root_section_def = None
         self.mapping: Dict[str, Any] = None
         self.indexed_properties: Set[Definition] = set()
-        self.nested_object_keys: List[str] = list()
+        self.nested_object_keys: List[str] = []
+        self.nested_sections: List[SearchQuantity] = []
         self.quantities: Dict[str, SearchQuantity] = {}
         self.metrics: Dict[str, Tuple[str, SearchQuantity]] = {}
 
     def _reset(self):
         self.indexed_properties.clear()
         self.nested_object_keys.clear()
+        self.nested_sections.clear()
         self.quantities.clear()
         self.metrics.clear()
 
@@ -336,6 +338,9 @@ class DocumentType():
                 self.indexed_properties.add(sub_section_def)
                 if nested and qualified_name not in self.nested_object_keys:
                     self.nested_object_keys.append(qualified_name)
+
+                    search_quantity = SearchQuantity(annotation=annotation, doc_type=self, prefix=prefix)
+                    self.nested_sections.append(search_quantity)
                     self.nested_object_keys.sort(key=lambda item: len(item))
 
         self.mapping = dict(properties=mappings)

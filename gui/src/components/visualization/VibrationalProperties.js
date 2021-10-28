@@ -18,23 +18,18 @@
 import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Subject } from 'rxjs'
-import { Box } from '@material-ui/core'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
-import { PropertyContent } from '../entry/properties/PropertyCard'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
 import { toUnitSystem } from '../../units'
-import { makeStyles } from '@material-ui/core/styles'
 
 const VibrationalProperties = React.memo(({
   bs,
   dos,
   freeEnergy,
   heatCapacity,
-  className,
-  classes,
-  raiseError,
   units
 }) => {
   // Find minimum and maximum from DOS/BS. Use this range for both plots.
@@ -54,34 +49,6 @@ const VibrationalProperties = React.memo(({
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      row: {
-        display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        width: '100%',
-        height: '100%'
-      },
-      free_energy: {
-        flex: '0 1 50%'
-      },
-      heat_capacity: {
-        flex: '0 1 50%'
-      },
-      bs: {
-        flex: '0 0 66.6%'
-      },
-      dos: {
-        flex: '0 0 33.3%'
-      }
-    }
-  })
-  const styles = useStyles(classes)
-
   // Synchronize panning between BS/DOS plots
   const handleBSRelayouting = useCallback((event) => {
     let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
@@ -92,54 +59,52 @@ const VibrationalProperties = React.memo(({
     dosYSubject.next(update)
   }, [dosYSubject])
 
-  return (
-    <Box className={styles.row}>
-      <PropertyContent title="Phonon dispersion" className={styles.bs}>
-        <BandStructure
-          data={bs}
-          layout={bsLayout}
-          aspectRatio={1.2}
-          units={units}
-          onRelayouting={handleBSRelayouting}
-          onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
-          layoutSubject={dosYSubject}
-          metaInfoLink={bs?.m_path}
-          type="vibrational"
-          data-testid="bs-phonon"
-        ></BandStructure>
-      </PropertyContent>
-      <PropertyContent title="Phonon density of states" className={styles.dos}>
-        <DOS
-          data={dos}
-          layout={dosLayout}
-          aspectRatio={0.6}
-          onRelayouting={handleDOSRelayouting}
-          onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
-          units={units}
-          layoutSubject={bsYSubject}
-          metaInfoLink={dos?.m_path}
-          type="vibrational"
-          data-testid="dos-phonon"
-        ></DOS>
-      </PropertyContent>
-      <PropertyContent title="Heat capacity" className={styles.heat_capacity}>
-        <HeatCapacity
-          data={heatCapacity}
-          aspectRatio={1}
-          units={{...units, 'energy': 'joule'}}
-          data-testid="heat-capacity"
-        />
-      </PropertyContent>
-      <PropertyContent title="Helmholtz free energy" className={styles.free_energy}>
-        <HelmholtzFreeEnergy
-          data={freeEnergy}
-          aspectRatio={1}
-          units={{...units, 'energy': 'joule'}}
-          data-testid="energy-free"
-        />
-      </PropertyContent>
-    </Box>
-  )
+  return <PropertyGrid>
+    <PropertyItem title="Phonon dispersion" xs={8}>
+      <BandStructure
+        data={bs}
+        layout={bsLayout}
+        aspectRatio={1.2}
+        units={units}
+        onRelayouting={handleBSRelayouting}
+        onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
+        layoutSubject={dosYSubject}
+        metaInfoLink={bs?.m_path}
+        type="vibrational"
+        data-testid="bs-phonon"
+      />
+    </PropertyItem>
+    <PropertyItem title="Phonon density of states" xs={4}>
+      <DOS
+        data={dos}
+        layout={dosLayout}
+        aspectRatio={0.6}
+        onRelayouting={handleDOSRelayouting}
+        onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
+        units={units}
+        layoutSubject={bsYSubject}
+        metaInfoLink={dos?.m_path}
+        type="vibrational"
+        data-testid="dos-phonon"
+      />
+    </PropertyItem>
+    <PropertyItem title="Heat capacity" xs={6}>
+      <HeatCapacity
+        data={heatCapacity}
+        aspectRatio={1}
+        units={{...units, 'energy': 'joule'}}
+        data-testid="heat-capacity"
+      />
+    </PropertyItem>
+    <PropertyItem title="Helmholtz free energy" xs={6}>
+      <HelmholtzFreeEnergy
+        data={freeEnergy}
+        aspectRatio={1}
+        units={{...units, 'energy': 'joule'}}
+        data-testid="energy-free"
+      />
+    </PropertyItem>
+  </PropertyGrid>
 })
 
 VibrationalProperties.propTypes = {
@@ -148,9 +113,6 @@ VibrationalProperties.propTypes = {
   freeEnergy: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   heatCapacity: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   range: PropTypes.array,
-  className: PropTypes.string,
-  classes: PropTypes.object,
-  raiseError: PropTypes.func,
   units: PropTypes.object // Contains the unit configuration
 }
 

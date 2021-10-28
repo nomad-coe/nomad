@@ -17,8 +17,8 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputSelect from '../input/InputSelect'
 import InputText from '../input/InputText'
 
@@ -30,19 +30,19 @@ const FilterSubMenuDFT = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid spacing={2}>
+      <InputGridItem xs={12}>
         <InputSelect
           quantity="results.method.simulation.program_name"
           visible={visible}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.method.simulation.program_version"
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuDFT.propTypes = {

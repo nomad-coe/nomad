@@ -25,7 +25,7 @@ export const unitMap = {
   atomic_unit_of_time: {
     dimension: 'time',
     label: 'Atomic unit of time',
-    abbreviation: 'atomic_unit_of_time'
+    abbreviation: 'a_u_time'
   },
   meter: {
     dimension: 'length',
@@ -65,7 +65,7 @@ export const unitMap = {
   atomic_unit_of_current: {
     dimension: 'current',
     label: 'Atomic unit of current',
-    abbreviation: 'atomic_unit_of_current'
+    abbreviation: 'a_u_current'
   },
   mole: {
     dimension: 'substance',
@@ -95,7 +95,7 @@ export const unitMap = {
   atomic_unit_of_temperature: {
     dimension: 'temperature',
     label: 'Atomic unit of temperature',
-    abbreviation: 'atomic_unit_of_temperature'
+    abbreviation: 'a_u_temperature'
   },
   newton: {
     dimension: 'force',
@@ -105,12 +105,22 @@ export const unitMap = {
   atomic_unit_of_force: {
     dimension: 'force',
     label: 'Atomic unit of force',
-    abbreviation: 'atomic_unit_of_force'
+    abbreviation: 'a_u_force'
   },
   pascal: {
     dimension: 'pressure',
     label: 'Pascal',
     abbreviation: 'Pa'
+  },
+  gigapascal: {
+    dimension: 'pressure',
+    label: 'Gigapascal',
+    abbreviation: 'GPa'
+  },
+  atomic_unit_of_pressure: {
+    dimension: 'pressure',
+    label: 'Atomic unit of pressure',
+    abbreviation: 'a_u_pressure'
   },
   joule: {
     dimension: 'energy',
@@ -354,11 +364,25 @@ export const conversionMap = {
   },
   pressure: {
     units: [
-      'pascal'
+      'pascal',
+      'gigapascal',
+      'atomic_unit_of_pressure'
     ],
     multipliers: {
       pascal: {
-        pascal: 1
+        pascal: 1,
+        gigapascal: 1.0000000000000003e-09,
+        atomic_unit_of_pressure: 3.3989309217619455e-14
+      },
+      gigapascal: {
+        pascal: 1000000000.0,
+        gigapascal: 1,
+        atomic_unit_of_pressure: 3.398930921761947e-05
+      },
+      atomic_unit_of_pressure: {
+        pascal: 29421015696359.54,
+        gigapascal: 29421.015696359544,
+        atomic_unit_of_pressure: 1
       }
     }
   },
@@ -526,7 +550,8 @@ export const unitSystems = {
       current: 'atomic_unit_of_current',
       temperature: 'atomic_unit_of_temperature',
       force: 'atomic_unit_of_force',
-      energy: 'hartree'
+      energy: 'hartree',
+      pressure: 'atomic_unit_of_pressure'
     }
   }
 }

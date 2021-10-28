@@ -17,8 +17,8 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputText from '../input/InputText'
 import InputCheckboxes from '../input/InputCheckboxes'
 import InputSelect from '../input/InputSelect'
@@ -31,54 +31,54 @@ const FilterSubMenuSymmetry = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid>
+      <InputGridItem xs={12}>
         <InputCheckboxes
           quantity="results.material.symmetry.bravais_lattice"
           visible={visible}
           xs={6}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputCheckboxes
           quantity="results.material.symmetry.crystal_system"
           visible={visible}
           xs={12}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSelect
           quantity="results.material.symmetry.structure_name"
           visible={visible}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSelect
           quantity="results.material.symmetry.strukturbericht_designation"
           visible={visible}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.material.symmetry.space_group_symbol"
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.material.symmetry.point_group"
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.material.symmetry.hall_symbol"
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.material.symmetry.prototype_aflow_id"
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuSymmetry.propTypes = {

@@ -40,7 +40,7 @@ import {
   useFiltersLocked,
   filterFullnames,
   filterAbbreviations,
-  toGUIFilter,
+  toGUIFilterSingle,
   filterData,
   filters
 } from './SearchContext'
@@ -162,7 +162,7 @@ const SearchBar = React.memo(({
         return
       }
       try {
-        queryValue = toGUIFilter(quantityFullname, equals[2], units)
+        queryValue = toGUIFilterSingle(quantityFullname, equals[2], units)
       } catch (error) {
         setError(`Invalid value for this metainfo. Please check your syntax.`)
         return
@@ -193,8 +193,9 @@ const SearchBar = React.memo(({
         }
         let quantityValue
         try {
-          quantityValue = toGUIFilter(quantityFullname, isAQuantity ? b : a, units)
+          quantityValue = toGUIFilterSingle(quantityFullname, isAQuantity ? b : a, units)
         } catch (error) {
+          console.log(error)
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
         }
@@ -227,8 +228,8 @@ const SearchBar = React.memo(({
 
         queryValue = {}
         try {
-          queryValue[opMapReverse[op1]] = toGUIFilter(quantityFullname, a, units)
-          queryValue[opMap[op2]] = toGUIFilter(quantityFullname, c, units)
+          queryValue[opMapReverse[op1]] = toGUIFilterSingle(quantityFullname, a, units)
+          queryValue[opMap[op2]] = toGUIFilterSingle(quantityFullname, c, units)
         } catch (error) {
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return

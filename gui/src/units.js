@@ -30,6 +30,7 @@ for (const dimension in conversionMap) {
 const override = {
   'length': 'angstrom',
   'energy': 'electron_volt',
+  'pressure': 'gigapascal',
   'system': 'custom'
 }
 defaults = {...defaults, ...override}

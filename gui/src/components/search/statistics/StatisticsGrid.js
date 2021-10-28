@@ -89,7 +89,7 @@ const StatisticsGrid = React.memo(({
           hideDuration={0}
         >
           {Object.keys(statistics).map((filter) => {
-            const config = filterData[filter].statConfig
+            const config = filterData[filter].stats
             const layout = config.layout
             const muuriOuterItem = getResponsiveStyle({
               columns: widthMapping[layout.widthDefault][size] / 12,

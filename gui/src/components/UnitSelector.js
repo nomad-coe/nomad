@@ -103,7 +103,7 @@ const UnitSelector = React.memo(({
 
   // Ordered list of controllable units. It may be smaller than the full list of
   // units.
-  const unitNames = ['energy', 'length', 'force', 'mass', 'time', 'temperature']
+  const unitNames = ['energy', 'length', 'force', 'mass', 'time', 'temperature', 'pressure']
   const systemNames = ['SI', 'AU']
 
   return <>

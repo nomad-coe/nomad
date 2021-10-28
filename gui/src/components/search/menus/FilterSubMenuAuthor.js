@@ -17,8 +17,8 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputText from '../input/InputText'
 import InputCheckboxes from '../input/InputCheckboxes'
 import InputDateRange from '../input/InputDateRange'
@@ -31,28 +31,26 @@ const FilterSubMenuAuthor = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid>
+      <InputGridItem xs={12}>
         <InputText
-          label="author name"
           quantity="authors.name"
           visible={visible}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputCheckboxes
-          label="external database"
           quantity="external_db"
           visible={visible}
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputDateRange
           quantity="upload_create_time"
           visible={visible}
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuAuthor.propTypes = {

@@ -17,26 +17,20 @@
  */
 import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
-import clsx from 'clsx'
-import {
-  Box
-} from '@material-ui/core'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const energyUnit = new Unit('joule')
-const useStyles = makeStyles({
-  root: {}
-})
 
 /**
  * Graph for EELS (electron energy loss specroscopy) data.
  */
-function EELS({data, layout, aspectRatio, className, classes, units, ...other}) {
+function EELS({data, layout, aspectRatio, className, units, ...other}) {
   const [finalData, setFinalData] = useState(undefined)
+  const theme = useTheme()
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
@@ -55,10 +49,6 @@ function EELS({data, layout, aspectRatio, className, classes, units, ...other}) 
     }
     return mergeObjects(layout, defaultLayout)
   }, [layout, units])
-
-  // Styles
-  const style = useStyles(classes)
-  const theme = useTheme()
 
   // The plotted data is loaded only after the first render as a side effect to
   // avoid freezing the UI
@@ -83,19 +73,15 @@ function EELS({data, layout, aspectRatio, className, classes, units, ...other}) 
     setFinalData(plotData)
   }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
 
-  return (
-    <Box className={clsx(style.root, className)}>
-      <Plot
-        data={finalData}
-        layout={tmpLayout}
-        aspectRatio={aspectRatio}
-        floatTitle="EELS"
-        fixedMargins={true}
-        {...other}
-      >
-      </Plot>
-    </Box>
-  )
+  return <Plot
+    data={finalData}
+    layout={tmpLayout}
+    aspectRatio={aspectRatio}
+    floatTitle="EELS"
+    fixedMargins={true}
+    className={className}
+    {...other}
+  />
 }
 
 EELS.propTypes = {
@@ -105,7 +91,6 @@ EELS.propTypes = {
   }),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
-  classes: PropTypes.object,
   className: PropTypes.string,
   units: PropTypes.object
 }

@@ -42,8 +42,8 @@ const ElectronicPropertiesCard = React.memo(({entryMetadata, properties, archive
     dos = {}
     dos.energies = resolveRef(dosData.energies, archive)
     dos.densities = resolveRef(dosData.total, archive).map(dos => dos.value)
-    if (dosData.channel_info) {
-      dos.energy_highest_occupied = Math.max(...dosData.channel_info.map(x => x.energy_highest_occupied))
+    if (dosData.band_gap) {
+      dos.energy_highest_occupied = Math.max(...dosData.band_gap.map(x => x.energy_highest_occupied))
     }
     dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
@@ -55,9 +55,9 @@ const ElectronicPropertiesCard = React.memo(({entryMetadata, properties, archive
     bs = {}
     bs.reciprocal_cell = resolveRef(bsData.reciprocal_cell, archive)
     bs.segment = resolveRef(bsData.segment, archive)
-    if (bsData.channel_info) {
-      bs.energy_highest_occupied = Math.max(...bsData.channel_info.map(x => x.energy_highest_occupied))
-      bs.channel_info = bsData.channel_info
+    if (bsData.band_gap) {
+      bs.energy_highest_occupied = Math.max(...bsData.band_gap.map(x => x.energy_highest_occupied))
+      bs.band_gap = bsData.band_gap
     }
     bs.m_path = `${archiveUrl}/${refPath(bsData.reciprocal_cell.split('/').slice(0, -1).join('/'))}`
   }

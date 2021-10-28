@@ -30,7 +30,7 @@ from nomad.datamodel.optimade import OptimadeEntry, Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
 from nomad.datamodel.metainfo.simulation.method import Electronic
 from nomad.datamodel.results import (
-    ChannelInfo,
+    BandGap,
     Results,
     Material,
     Method,
@@ -50,6 +50,10 @@ from nomad.datamodel.results import (
     Simulation,
     DFT,
     GW,
+    EnergyVolumeCurve,
+    BulkModulus,
+    ShearModulus,
+    MechanicalProperties,
     xc_treatments,
     ElectronicProperties,
     VibrationalProperties,
@@ -513,11 +517,11 @@ class ResultsNormalizer(Normalizer):
                 bs_new.segment = bs.segment
                 bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
                 bs_new.energy_fermi = bs.energy_fermi
-                for info in bs.channel_info:
-                    info_new = bs_new.m_create(ChannelInfo)
+                for info in bs.band_gap:
+                    info_new = bs_new.m_create(BandGap)
                     info_new.index = info.index
-                    info_new.band_gap = info.band_gap
-                    info_new.band_gap_type = info.band_gap_type
+                    info_new.value = info.value
+                    info_new.type = info.type
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
                 return bs_new
@@ -543,8 +547,8 @@ class ResultsNormalizer(Normalizer):
                 n_channels = values.shape[0]
                 dos_new.spin_polarized = n_channels > 1
                 dos_new.energy_fermi = dos.energy_fermi
-                for info in dos.channel_info:
-                    info_new = dos_new.m_create(ChannelInfo)
+                for info in dos.band_gap:
+                    info_new = dos_new.m_create(BandGap)
                     info_new.index = info.index
                     info_new.energy_highest_occupied = info.energy_highest_occupied
                     info_new.energy_lowest_unoccupied = info.energy_lowest_unoccupied
@@ -724,6 +728,20 @@ class ResultsNormalizer(Normalizer):
                 vibrational.heat_capacity_constant_volume = heat_cap
             properties.vibrational = vibrational
 
+        # Mechanical
+        energy_volume_curves = self.energy_volume_curves()
+        bulk_modulus = self.bulk_modulus()
+        shear_modulus = self.shear_modulus()
+        if energy_volume_curves or bulk_modulus or shear_modulus:
+            mechanical = MechanicalProperties()
+            for ev in energy_volume_curves:
+                mechanical.m_add_sub_section(MechanicalProperties.energy_volume_curve, ev)
+            for bm in bulk_modulus:
+                mechanical.m_add_sub_section(MechanicalProperties.bulk_modulus, bm)
+            for sm in shear_modulus:
+                mechanical.m_add_sub_section(MechanicalProperties.shear_modulus, sm)
+            properties.mechanical = mechanical
+
         try:
             n_calc = len(self.section_run.calculation)
         except Exception:
@@ -824,6 +842,127 @@ class ResultsNormalizer(Normalizer):
         params.beta = float(param_values[4])
         params.gamma = float(param_values[5])
         return params
+
+    def energy_volume_curves(self) -> List[EnergyVolumeCurve]:
+        """Returns a list containing the found EnergyVolumeCurves.
+        """
+        workflows = self.entry_archive.workflow
+        ev_curves = []
+        for workflow in workflows:
+            # Equation of state must be present
+            equation_of_state = workflow.equation_of_state
+            if not equation_of_state:
+                continue
+
+            # Volumes must be present
+            volumes = equation_of_state.volumes
+            if not valid_array(volumes):
+                self.logger.warning("missing eos volumes")
+                continue
+
+            # Raw EV curve
+            energies_raw = equation_of_state.energies
+            if valid_array(energies_raw):
+                ev_curves.append(EnergyVolumeCurve(
+                    type="raw",
+                    volumes=equation_of_state,
+                    energies_raw=equation_of_state,
+                ))
+            else:
+                self.logger.warning("missing eos energies")
+
+            # Fitted EV curves
+            fits = equation_of_state.eos_fit
+            if not fits:
+                continue
+            for fit in fits:
+                energies_fitted = fit.fitted_energies
+                function_name = fit.function_name
+                if valid_array(energies_fitted):
+                    ev_curves.append(EnergyVolumeCurve(
+                        type=function_name,
+                        volumes=equation_of_state,
+                        energies_fit=fit,
+                    ))
+
+        return ev_curves
+
+    def bulk_modulus(self) -> List[BulkModulus]:
+        """Returns a list containing the found BulkModulus.
+        """
+        workflows = self.entry_archive.workflow
+        bulk_modulus = []
+        for workflow in workflows:
+            # From elastic workflow
+            elastic = workflow.elastic
+            if elastic:
+                bulk_modulus_vrh = elastic.bulk_modulus_hill
+                if bulk_modulus_vrh:
+                    bulk_modulus.append(BulkModulus(
+                        type="voigt_reuss_hill_average",
+                        value=bulk_modulus_vrh,
+                    ))
+                bulk_modulus_voigt = elastic.bulk_modulus_voigt
+                if bulk_modulus_voigt:
+                    bulk_modulus.append(BulkModulus(
+                        type="voigt_average",
+                        value=bulk_modulus_voigt,
+                    ))
+                bulk_modulus_reuss = elastic.bulk_modulus_reuss
+                if bulk_modulus_reuss:
+                    bulk_modulus.append(BulkModulus(
+                        type="reuss_average",
+                        value=bulk_modulus_reuss,
+                    ))
+
+            # From energy-volume curve fit
+            equation_of_state = workflow.equation_of_state
+            if equation_of_state:
+                fits = equation_of_state.eos_fit
+                if not fits:
+                    continue
+                for fit in fits:
+                    modulus = fit.bulk_modulus
+                    function_name = fit.function_name
+                    if modulus is not None and function_name:
+                        bulk_modulus.append(BulkModulus(
+                            type=function_name,
+                            value=modulus,
+                        ))
+                    else:
+                        self.logger.warning("missing eos fitted energies and/or function name")
+
+        return bulk_modulus
+
+    def shear_modulus(self) -> List[ShearModulus]:
+        """Returns a list containing the found ShearModulus.
+        """
+        workflows = self.entry_archive.workflow
+        shear_modulus = []
+        for workflow in workflows:
+            # From elastic workflow
+            elastic = workflow.elastic
+            if elastic:
+                shear_modulus_vrh = elastic.shear_modulus_hill
+                if shear_modulus_vrh:
+                    shear_modulus.append(ShearModulus(
+                        type="voigt_reuss_hill_average",
+                        value=shear_modulus_vrh,
+                    ))
+                shear_modulus_voigt = elastic.shear_modulus_voigt
+                if shear_modulus_voigt:
+                    shear_modulus.append(ShearModulus(
+                        type="voigt_average",
+                        value=shear_modulus_voigt,
+                    ))
+                shear_modulus_reuss = elastic.shear_modulus_reuss
+                if shear_modulus_reuss:
+                    shear_modulus.append(ShearModulus(
+                        type="reuss_average",
+                        value=shear_modulus_reuss,
+                    ))
+
+        return shear_modulus
 
     def traverse_reversed(self, path: List[str]) -> Any:
         """Traverses the given metainfo path in reverse order. Useful in

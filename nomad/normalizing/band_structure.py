@@ -21,7 +21,7 @@ import numpy as np
 import ase
 
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandStructure, ChannelInfo
+    BandStructure, BandGap
 )
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.normalizing.normalizer import Normalizer
@@ -61,7 +61,7 @@ class BandStructureNormalizer(Normalizer):
                 valid_band = self.validate_band(band)
                 if valid_band:
                     self.add_reciprocal_cell(band, system)
-                    self.add_channel_info(
+                    self.add_band_gap(
                         band,
                         energy_fermi,
                         energy_highest,
@@ -137,7 +137,7 @@ class BandStructureNormalizer(Normalizer):
 
         return k_point_distance
 
-    def add_channel_info(
+    def add_band_gap(
             self,
             band: BandStructure,
             energy_fermi: NDArray,
@@ -160,7 +160,7 @@ class BandStructureNormalizer(Normalizer):
         # energy if present
         n_channels = band.segment[0].energies.shape[0]
         for i_channel in range(n_channels):
-            info = band.channel_info[i_channel] if len(band.channel_info) > i_channel else band.m_create(ChannelInfo)
+            info = band.band_gap[i_channel] if len(band.band_gap) > i_channel else band.m_create(BandGap)
             info.index = i_channel
             if energy_highest is not None:
                 info.energy_highest_occupied = energy_highest
@@ -231,15 +231,15 @@ class BandStructureNormalizer(Normalizer):
 
             # Save the found energy references
             if i_energy_highest is not None:
-                band.channel_info[i_channel].energy_highest_occupied = i_energy_highest
+                band.band_gap[i_channel].energy_highest_occupied = i_energy_highest
             if i_energy_lowest is not None:
-                band.channel_info[i_channel].energy_lowest_unoccupied = i_energy_lowest
+                band.band_gap[i_channel].energy_lowest_unoccupied = i_energy_lowest
 
             # If highest occupied energy and a lowest unoccupied energy are
             # found, and the difference between them is positive, save
             # information about the band gap.
             gap_value = 0.0
-            info = band.channel_info[i_channel]
+            info = band.band_gap[i_channel]
             if i_energy_lowest is not None and i_energy_highest is not None:
                 gap_value = float(i_energy_lowest - i_energy_highest)
                 if gap_value > 0:
@@ -251,8 +251,8 @@ class BandStructureNormalizer(Normalizer):
                     is_direct_gap = k_point_distance <= config.normalize.k_space_precision
 
                     band_gap_type = "direct" if is_direct_gap else "indirect"
-                    info.band_gap_type = band_gap_type
-            info.band_gap = gap_value
+                    info.type = band_gap_type
+            info.value = gap_value
 
     def add_path_labels(self, band: BandStructure, system: System) -> None:
         """Adds special high symmmetry point labels to the band path. Only k

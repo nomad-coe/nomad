@@ -18,8 +18,8 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputPeriodicTable from '../input/InputPeriodicTable'
 import InputText from '../input/InputText'
 import InputSlider from '../input/InputSlider'
@@ -41,31 +41,32 @@ const FilterSubMenuElements = React.memo(({
   const units = useUnits()
 
   return <FilterSubMenu value={value} {...rest}>
-    <InputPeriodicTable
-      quantity="results.material.elements"
-      visible={visible}
-    />
-    <Grid container spacing={2} className={styles.grid}>
-      <Grid item xs={6}>
+    <InputGrid className={styles.grid}>
+      <InputGridItem xs={12}>
+        <InputPeriodicTable
+          quantity="results.material.elements"
+          visible={visible}
+        />
+      </InputGridItem>
+      <InputGridItem xs={6}>
         <InputText
           quantity="results.material.chemical_formula_hill"
         />
-      </Grid>
-      <Grid item xs={6}>
+      </InputGridItem>
+      <InputGridItem xs={6}>
         <InputText
           quantity="results.material.chemical_formula_anonymous"
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSlider
-          label="number of elements"
           quantity="results.material.n_elements"
           step={1}
           units={units}
           visible={visible}
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuElements.propTypes = {

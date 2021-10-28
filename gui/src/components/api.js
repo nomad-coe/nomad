@@ -202,13 +202,14 @@ class Api {
               properties: {
                 structures: '*',
                 electronic: 'include-resolved',
+                mechanical: 'include-resolved',
+                spectroscopy: 'include-resolved',
                 vibrational: 'include-resolved',
-                // We require only the energies: trajectory, optimized
-                // structure, etc. are unnecessary.
+                // For geometry optimizations we require only the energies.
+                // Trajectory, optimized structure, etc. are unnecessary.
                 geometry_optimization: {
                   energies: 'include-resolved'
-                },
-                spectroscopy: 'include-resolved'
+                }
               }
             }
           }

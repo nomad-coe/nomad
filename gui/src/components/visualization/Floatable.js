@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { useResizeDetector } from 'react-resize-detector'
 import { makeStyles } from '@material-ui/core/styles'
 import {
-  Box,
   Button,
   Dialog,
   DialogContent,
@@ -26,23 +26,52 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import AspectRatio from './AspectRatio'
 
 /**
  * Component that wraps it's children in a container that can be 'floated',
  * i.e. displayed on an html element that is positioned relative to the
  * viewport and is above all other elements.
  */
+const useStyles = makeStyles((theme) => {
+  const actionsHeight = 52.5 // Size of the actions element that is shown when floating
+  const padding = 20 // Padding arount the floating object
+  return {
+    root: {
+      width: '100%',
+      height: '100%'
+    },
+    dialogContent: {
+      boxSizing: 'border-box',
+      padding: padding
+    },
+    'dialogContent:first-child': {
+      paddingTop: `${padding} !important`
+    },
+    dialogActions: {
+      height: actionsHeight,
+      boxSizing: 'border-box'
+    }
+  }
+})
 export default function Floatable({
   className,
   classes,
+  style,
   float,
   children,
-  aspectRatio,
-  onFloat
+  onFloat,
+  onChangeRatio
 }) {
-  // Styles
-  const useStyles = makeStyles((theme) => {
+  // The ratio is calculated dynamically from the final size
+  const { height, width, ref } = useResizeDetector()
+  const ratio = useMemo(() => { return width / height }, [width, height])
+
+  useEffect(() => {
+    onChangeRatio && onChangeRatio(ratio)
+  }, [onChangeRatio, ratio])
+
+  // Dynamic styles
+  const useDynamicStyles = makeStyles((theme) => {
     // Calculate the fullscreen size
     const actionsHeight = 52.5 // Size of the actions element that is shown when floating
     const padding = 20 // Padding arount the floating object
@@ -53,28 +82,15 @@ export default function Floatable({
     const windowRatio = windowWidth / windowHeight
     let width
     let height
-    if (windowRatio > aspectRatio) {
-      width = (windowHeight) * aspectRatio + 2 * padding + 'px'
+    if (windowRatio > ratio) {
+      width = (windowHeight) * ratio + 2 * padding + 'px'
       height = windowHeight + actionsHeight + 2 * padding
     } else {
       width = windowWidth + 2 * padding
-      height = (windowWidth) / aspectRatio + actionsHeight + 2 * padding + 'px'
+      height = (windowWidth) / ratio + actionsHeight + 2 * padding + 'px'
     }
 
     return {
-      root: {
-      },
-      dialogContent: {
-        boxSizing: 'border-box',
-        padding: padding
-      },
-      'dialogContent:first-child': {
-        paddingTop: `${padding} !important`
-      },
-      dialogActions: {
-        height: actionsHeight,
-        boxSizing: 'border-box'
-      },
       dialogRoot: {
         width: width,
         height: height,
@@ -86,29 +102,24 @@ export default function Floatable({
       }
     }
   })
-  const style = useStyles({classes: classes})
+  const styles = useStyles({classes: classes})
+  const dynamicStyles = useDynamicStyles({classes: classes})
 
-  return (
-    <Box className={clsx(style.root, className)}>
-      <AspectRatio aspectRatio={aspectRatio}>
-        {float ? '' : children}
-      </AspectRatio>
-      <Dialog fullWidth={false} maxWidth={false} open={float}
-        classes={{paper: style.dialogRoot}}
-      >
-        <DialogContent className={[style.dialogContent, style['dialogContent:first-child']].join('_')}>
-          <AspectRatio aspectRatio={aspectRatio}>
-            {float ? children : ''}
-          </AspectRatio>
-        </DialogContent>
-        <DialogActions className={style.dialogActions}>
-          <Button onClick={() => onFloat(float)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  )
+  return <div ref={ref} className={clsx(styles.root, className)} style={style}>
+    {float ? '' : children}
+    <Dialog fullWidth={false} maxWidth={false} open={float}
+      classes={{paper: dynamicStyles.dialogRoot}}
+    >
+      <DialogContent className={[styles.dialogContent, styles['dialogContent:first-child']].join('_')}>
+        {float ? children : ''}
+      </DialogContent>
+      <DialogActions className={styles.dialogActions}>
+        <Button onClick={() => onFloat(float)}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </div>
 }
 
 Floatable.propTypes = {
@@ -117,18 +128,16 @@ Floatable.propTypes = {
    */
   float: PropTypes.bool.isRequired,
   /**
-   * Fixed aspect ratio that is enforced for this component.
-   */
-  aspectRatio: PropTypes.number.isRequired,
-  /**
    * Callback that is called whenever this component requests a change in the
    * float property. The callback accepts one parameter: 'float' that is a
    * boolean indicating the current float status.
    */
-  onFloat: PropTypes.any,
-  children: PropTypes.any,
+  onFloat: PropTypes.func,
+  onChangeRatio: PropTypes.func,
+  children: PropTypes.node,
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  style: PropTypes.object
 }
 Floatable.defaultProps = {
   float: false

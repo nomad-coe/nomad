@@ -1,4 +1,4 @@
-#
+
 # Copyright The NOMAD Authors.
 #
 # This file is part of NOMAD. See https://nomad-lab.eu for further info.
@@ -97,57 +97,43 @@ def metainfo_undecorated():
 def search_quantities():
     import json
 
-    # Add V0 searchable quantities
-    from nomad.metainfo.elasticsearch_extension import entry_type
-    # Due to this import, the parsing module will register all code_names based on parser
-    # implementations.
-    from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import
-
-    def to_dict(search_quantity):
-        result = {
-            'name': search_quantity.qualified_name,
-            'description': search_quantity.definition.description,
-            'many': not search_quantity.definition.is_scalar,
-        }
-
-        if search_quantity.statistic_fixed_size is not None:
-            result['statistic_size'] = search_quantity.statistic_fixed_size
-        if search_quantity.statistic_values is not None:
-            result['statistic_values'] = search_quantity.statistic_values
-
-        return result
-
-    export = {
-        search_quantity.qualified_name: to_dict(search_quantity)
-        for search_quantity in entry_type.quantities.values()
-    }
-
-    # Add V1 searchable quantities: currently only quantities with "entry_type"
-    # are included.
+    # Currently only quantities with "entry_type" are included.
     from nomad.metainfo.elasticsearch_extension import entry_type
     from nomad.datamodel import EntryArchive
     entry_section_def = EntryArchive.m_def
     entry_type.create_mapping(entry_section_def)
 
-    def to_dictV1(search_quantity):
-        metadict = search_quantity.definition.m_to_dict(with_meta=True)
+    def to_dict(search_quantity, section):
+        if section:
+            keys = ["name", "description"]
+            metadict = search_quantity.definition.sub_section.m_to_dict(with_meta=True)
+            metadict["name"] = search_quantity.definition.m_to_dict(with_meta=True)["name"]
+        else:
+            keys = ["name", "description", "type", "unit"]
+            metadict = search_quantity.definition.m_to_dict(with_meta=True)
         result = {}
-        for key in ["name", "description", "type", "unit"]:
+        for key in keys:
             val = metadict.get(key)
             if val is not None:
                 result[key] = val
         return result
 
     suggestions = []
+    export = {}
     suggestion_postfix = ".suggestion"
+    # Add quantities
     for search_quantity in entry_type.quantities.values():
         isSuggestion = search_quantity.search_field.endswith(suggestion_postfix)
         if not isSuggestion:
-            export[search_quantity.qualified_name] = to_dictV1(search_quantity)
+            export[search_quantity.qualified_name] = to_dict(search_quantity, False)
         else:
             suggestions.append(search_quantity.qualified_name[:-len(suggestion_postfix)])
+    # Add suggestion flag
     for suggestion in suggestions:
         export[suggestion]["suggestion"] = True
+    # Add nested sections
+    for search_quantity in entry_type.nested_sections:
+        export[search_quantity.qualified_name] = to_dict(search_quantity, True)
 
     print(json.dumps(export, indent=2))
 
@@ -326,7 +312,7 @@ def units(ctx):
         "atomic_unit_of_time": {
             "dimension": "time",
             "label": "Atomic unit of time",
-            "abbreviation": "atomic_unit_of_time",
+            "abbreviation": "a_u_time",
         },
         # Length
         "meter": {
@@ -369,7 +355,7 @@ def units(ctx):
         "atomic_unit_of_current": {
             "dimension": "current",
             "label": "Atomic unit of current",
-            "abbreviation": "atomic_unit_of_current",
+            "abbreviation": "a_u_current",
         },
         # Substance
         "mole": {
@@ -402,7 +388,7 @@ def units(ctx):
         "atomic_unit_of_temperature": {
             "dimension": "temperature",
             "label": "Atomic unit of temperature",
-            "abbreviation": "atomic_unit_of_temperature",
+            "abbreviation": "a_u_temperature",
         },
         # Force
         "newton": {
@@ -413,13 +399,23 @@ def units(ctx):
         "atomic_unit_of_force": {
             "dimension": "force",
             "label": "Atomic unit of force",
-            "abbreviation": "atomic_unit_of_force",
+            "abbreviation": "a_u_force",
         },
         # Pressure
         "pascal": {
             "dimension": "pressure",
             "label": "Pascal",
             "abbreviation": "Pa"
+        },
+        "gigapascal": {
+            "dimension": "pressure",
+            "label": "Gigapascal",
+            "abbreviation": "GPa"
+        },
+        "atomic_unit_of_pressure": {
+            "dimension": "pressure",
+            "label": "Atomic unit of pressure",
+            "abbreviation": "a_u_pressure"
         },
         # Energy
         "joule": {
@@ -570,6 +566,8 @@ def units(ctx):
         "pressure": {
             "units": [
                 "pascal",
+                "gigapascal",
+                "atomic_unit_of_pressure",
             ],
             "multipliers": {},
         },
@@ -679,6 +677,7 @@ def units(ctx):
                 "temperature": "atomic_unit_of_temperature",
                 "force": "atomic_unit_of_force",
                 "energy": "hartree",
+                "pressure": "atomic_unit_of_pressure",
             }
         }
     }

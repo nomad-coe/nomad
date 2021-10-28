@@ -17,11 +17,9 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Box,
-  Typography
-} from '@material-ui/core'
+import { Typography } from '@material-ui/core'
 import {
   Fullscreen,
   FullscreenExit,
@@ -34,11 +32,33 @@ import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { Actions, Action } from '../Actions'
-import clsx from 'clsx'
 
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
+const useStyles = makeStyles((theme) => {
+  return {
+    root: {},
+    column: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      flexDirection: 'column'
+    },
+    header: {
+      paddingRight: theme.spacing(1),
+      display: 'flex',
+      flexDirection: 'row',
+      zIndex: 1
+    },
+    canvas: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(2)
+    }
+  }
+})
 const BrillouinZone = React.memo(({
   className,
   classes,
@@ -46,54 +66,12 @@ const BrillouinZone = React.memo(({
   viewer,
   data,
   captureName,
-  aspectRatio,
   'data-testid': testID
 }) => {
-  // States
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  // Refs
   const refViewer = useRef(null)
-
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      root: {
-      },
-      container: {
-        display: 'flex',
-        width: '100%',
-        height: '100%',
-        flexDirection: 'column',
-        backgroundColor: 'white'
-      },
-      header: {
-        paddingRight: theme.spacing(1),
-        display: 'flex',
-        flexDirection: 'row',
-        zIndex: 1
-      },
-      spacer: {
-        flex: 1
-      },
-      viewerCanvas: {
-        flex: 1,
-        zIndex: 0,
-        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2)
-      },
-      errorMessage: {
-        flex: '0 0 70%',
-        color: '#aaa',
-        textAlign: 'center'
-      },
-      iconButton: {
-        backgroundColor: 'white'
-      }
-    }
-  })
-  let style = useStyles(classes)
+  const styles = useStyles(classes)
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -246,34 +224,34 @@ const BrillouinZone = React.memo(({
   if (loading) {
     return <Placeholder
       variant="rect"
-      aspectRatio={aspectRatio}
       data-testid={`${testID}-placeholder`}
     />
   }
 
-  const content = <Box className={style.container}>
-    {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
-    <div className={style.viewerCanvas} ref={refCanvas}></div>
-    <div className={style.header}>
-      <Actions>
-        <Action tooltip='Reset view' onClick={handleReset}>
-          <Replay/>
-        </Action>
-        <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
-        </Action>
-        <Action tooltip='Capture image' onClick={takeScreencapture}>
-          <CameraAlt/>
-        </Action>
-      </Actions>
+  return <Floatable
+    data-testid={testID}
+    className={clsx(styles.root, className)}
+    float={fullscreen}
+    onFloat={toggleFullscreen}
+  >
+    <div className={styles.column}>
+      {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
+      <div className={styles.canvas} ref={refCanvas}/>
+      <div className={styles.header}>
+        <Actions>
+          <Action tooltip='Reset view' onClick={handleReset}>
+            <Replay/>
+          </Action>
+          <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+            {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+          </Action>
+          <Action tooltip='Capture image' onClick={takeScreencapture}>
+            <CameraAlt/>
+          </Action>
+        </Actions>
+      </div>
     </div>
-  </Box>
-
-  return <Box className={clsx(style.root, className)} >
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
-  </Box>
+  </Floatable>
 })
 
 BrillouinZone.propTypes = {
@@ -284,13 +262,11 @@ BrillouinZone.propTypes = {
   }),
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
-  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   classes: PropTypes.object,
   className: PropTypes.string,
   'data-testid': PropTypes.string
 }
 BrillouinZone.defaultProps = {
-  aspectRatio: 4 / 3,
   captureName: 'brillouin_zone'
 }
 

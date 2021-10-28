@@ -32,7 +32,7 @@ import { isNil } from 'lodash'
 import { Unit } from '../../../units'
 import { useApi } from '../../api'
 import searchQuantities from '../../../searchQuantities'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { useSetFilter, useFilterLocked, filterData } from '../SearchContext'
 
@@ -198,7 +198,7 @@ const InputText = React.memo(({
 
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel
+      <InputHeader
         quantity={quantity}
         label={title}
         description={desc}

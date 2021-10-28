@@ -27,7 +27,7 @@ import {
   Tooltip
 } from '@material-ui/core'
 import InputCheckbox from './InputCheckbox'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -333,7 +333,7 @@ const InputPeriodicTable = React.memo(({
   }, [setFilter])
 
   const table = useMemo(() => (<div className={styles.root}>
-    <InputLabel
+    <InputHeader
       quantity={quantity}
       label={title}
       description={desc}
