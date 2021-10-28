@@ -17,4 +17,4 @@
 #
 
 # from . import admin, uploads, entries, run, clean, users  # noqa
-from . import admin, run, clean, users, entries, uploads, upgrade
+from . import admin, run, clean, users, entries, uploads
