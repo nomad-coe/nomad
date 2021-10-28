@@ -159,21 +159,21 @@ const routeSpecs = [
     component: MetainfoPage
   },
   {
-    path: '/aitoolkit',
+    path: '/aitoolkit/main',
     title: 'Artificial Intelligence Toolkit',
-    navPath: 'analyze/aitoolkit',
+    navPath: 'analyze/aitoolkit/main',
     component: AIToolkitPage
   },
   {
-    path: '/tutorials',
+    path: '/aitoolkit/tutorials',
     title: 'Artificial Intelligence Toolkit',
-    navPath: 'analyze/tutorials',
+    navPath: 'analyze/aitoolkit/tutorials',
     component: TutorialsPage
   },
   {
-    path: '/reproduce',
+    path: '/aitoolkit/reproduce',
     title: 'Artificial Intelligence Toolkit',
-    navPath: 'analyze/reproduce',
+    navPath: 'analyze/aitoolkit/reproduce',
     component: ReproducePage
   },
   {

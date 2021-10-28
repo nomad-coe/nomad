@@ -197,7 +197,7 @@ export default function About() {
     })
     makeClickable('toolkit', () => {
       if (aitoolkitEnabled) {
-        history.push('/aitoolkit')
+        history.push('/aitoolkit/main')
       } else {
         window.location.href = 'https://nomad-lab.eu/tools/AItutorials'
       }

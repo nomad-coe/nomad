@@ -186,7 +186,7 @@ export default function TutorialsPage() {
           <Grid item xs={4} style={{marginTop: '-100px', marginLeft: '-20px'}}>
             <IconButton
               component={Link}
-              to="aitoolkit">
+              to="main">
               <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
             </IconButton>
           </Grid>
@@ -380,7 +380,7 @@ export default function TutorialsPage() {
         <Grid item xs={4}>
           <IconButton
             component={Link}
-            to="aitoolkit"
+            to="main"
             style={{marginRight: '0px', marginTop: '20px'}}
           >
             <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
