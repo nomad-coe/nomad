@@ -48,7 +48,7 @@ elasticsearch==6.4.0
 msgpack==0.5.6
 celery[redis]==4.4.7
 mongoengine==0.19.1
-pymongo==3.12.1
+pymongo==3.11.4
 Werkzeug==0.16.1
 flask
 flask-restplus==0.13.0
