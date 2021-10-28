@@ -29,8 +29,10 @@ import { useApi } from '../api'
 import OverviewView from './OverviewView'
 
 jest.mock('../api')
+const { ResizeObserver } = window
 
 beforeAll(() => {
+  // API mock init
   useApi.mockReturnValue({
     api: {
       results: entry_id => wait(archives.get(entry_id)),
@@ -40,9 +42,24 @@ beforeAll(() => {
       })
     }
   })
+
+  // ResizeObserver mock init
+  delete window.ResizeObserver
+  window.ResizeObserver = jest.fn().mockImplementation(() => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn()
+  }))
 })
 
-afterAll(() => jest.unmock('../api'))
+afterAll(() => {
+  // API mock cleanup
+  jest.unmock('../api')
+
+  // ResizeObserver mock cleanup
+  window.ResizeObserver = ResizeObserver
+  jest.restoreAllMocks()
+})
 
 function expectPlotButtons(plot) {
   expect(within(plot).getByRole('button', {name: 'Reset view'})).toBeInTheDocument()
@@ -158,8 +175,12 @@ test('correctly renders metadata and all properties', async () => {
   expect(screen.getByText('Phonon density of states')).toBeInTheDocument()
   expect(screen.getByText('Heat capacity')).toBeInTheDocument()
   expect(screen.getByText('Helmholtz free energy')).toBeInTheDocument()
+  expect(screen.getByText('Mechanical properties')).toBeInTheDocument()
+  expect(screen.getByText('Energy-volume curve')).toBeInTheDocument()
+  expect(screen.getByText('Bulk modulus')).toBeInTheDocument()
+  expect(screen.getByText('Shear modulus')).toBeInTheDocument()
 
-  // Check for all visualization placeholder are shown
+  // Check if all visualization placeholders are shown
   const dosPhononPlaceholder = screen.getByTestId('dos-phonon-placeholder')
   expect(dosPhononPlaceholder).toBeInTheDocument()
   const bsPhononPlaceholder = screen.getByTestId('bs-phonon-placeholder')
@@ -172,6 +193,8 @@ test('correctly renders metadata and all properties', async () => {
   expect(dosElectronicPlaceholder).toBeInTheDocument()
   const bsElectronicPlaceholder = screen.getByTestId('bs-electronic-placeholder')
   expect(bsElectronicPlaceholder).toBeInTheDocument()
+  const energyVolumeCurvePlaceholder = screen.getByTestId('energy-volume-curve-placeholder')
+  expect(energyVolumeCurvePlaceholder).toBeInTheDocument()
 
   // Check if all placeholders disappear
   await waitFor(() => { expect(dosElectronicPlaceholder).not.toBeInTheDocument() })
@@ -180,6 +203,7 @@ test('correctly renders metadata and all properties', async () => {
   await waitFor(() => { expect(bsPhononPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(heatCapacityPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(energyFreePlaceholder).not.toBeInTheDocument() })
+  await waitFor(() => { expect(energyVolumeCurvePlaceholder).not.toBeInTheDocument() })
 
   // The test DOM does not support canvas or WebGL, and trying to add mocks for
   // them does not seem to work ATM. Thus we expect a message saying that the
@@ -200,4 +224,16 @@ test('correctly renders metadata and all properties', async () => {
   expectPlotButtons(heatCapacity)
   const energyFree = screen.getByTestId('energy-free')
   expectPlotButtons(energyFree)
+  const energyVolumeCurve = screen.getByTestId('energy-volume-curve')
+  expectPlotButtons(energyVolumeCurve)
+
+  // Check that tables are shown
+  const bulkModulus = screen.getByTestId('bulk-modulus')
+  expect(within(bulkModulus).getByText('Type')).toBeInTheDocument()
+  expect(within(bulkModulus).getByText('Value (GPa)')).toBeInTheDocument()
+  expect(within(bulkModulus).getByText('murnaghan')).toBeInTheDocument()
+  const shearModulus = screen.getByTestId('shear-modulus')
+  expect(within(shearModulus).getByText('Type')).toBeInTheDocument()
+  expect(within(shearModulus).getByText('Value (GPa)')).toBeInTheDocument()
+  expect(within(shearModulus).getByText('voigt_reuss_hill_average')).toBeInTheDocument()
 })

@@ -22,7 +22,7 @@ import PropTypes from 'prop-types'
 import { useResizeDetector } from 'react-resize-detector'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
@@ -140,7 +140,7 @@ const InputList = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel
+      <InputHeader
         quantity={quantity}
         label={title}
         description={desc}

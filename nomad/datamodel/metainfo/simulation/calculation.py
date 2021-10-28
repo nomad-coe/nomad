@@ -622,9 +622,9 @@ class Charges(Atomic):
     orbital_projected = SubSection(sub_section=ChargesValue.m_def, repeats=True)
 
 
-class ChannelInfo(MSection):
+class BandGap(MSection):
     '''
-    Section containing information on the electronic band structure.
+    Band gap information for each spin channel.
     '''
     m_def = Section(
         description="""
@@ -637,19 +637,19 @@ class ChannelInfo(MSection):
         The spin channel index.
         """)
 
-    band_gap = Quantity(
+    value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         unit='joule',
         description='''
-        Band gap energy. Value of zero corresponds to not having a band gap.
+        Band gap value. Value of zero corresponds to not having a band gap.
         ''')
 
-    band_gap_type = Quantity(
+    type = Quantity(
         type=MEnum('direct', 'indirect'),
         shape=[],
         description='''
-        Type of band gap.
+        Band gap type.
         ''')
 
     energy_highest_occupied = Quantity(
@@ -773,7 +773,7 @@ class BandStructure(MSection):
         The reciprocal cell within which the band structure is calculated.
         ''')
 
-    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
 
     energy_fermi = Quantity(
         type=np.dtype(np.float64),
@@ -906,7 +906,7 @@ class Dos(Atomic):
         the highest occupied energy level.
         ''')
 
-    channel_info = SubSection(sub_section=ChannelInfo.m_def, repeats=True)
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
 
     energy_fermi = Quantity(
         type=np.dtype(np.float64),

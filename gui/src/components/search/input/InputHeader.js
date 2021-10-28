@@ -18,8 +18,6 @@
 import React, { useMemo, useCallback, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import {
-  Tooltip,
-  Typography,
   Radio,
   FormControl,
   FormLabel,
@@ -33,6 +31,7 @@ import AddIcon from '@material-ui/icons/Add'
 import RemoveIcon from '@material-ui/icons/Remove'
 import DragHandleIcon from '@material-ui/icons/DragHandle'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
+import InputTitle from './InputTitle'
 import { useStatisticState } from '../SearchContext'
 import { Actions, Action } from '../../Actions'
 
@@ -50,11 +49,6 @@ const useStaticStyles = makeStyles(theme => ({
     margin: theme.spacing(2),
     marginTop: theme.spacing(1),
     marginBottom: theme.spacing(1)
-  },
-  label: {
-    textTransform: 'capitalize',
-    fontSize: '0.9rem',
-    color: '#383838'
   }
 }))
 const scales = {
@@ -64,10 +58,9 @@ const scales = {
   '1/8': 0.125
 }
 
-const FilterLabel = React.memo(({
+const InputHeader = React.memo(({
   quantity,
   label,
-  underscores,
   description,
   disableStatistics,
   scale,
@@ -110,26 +103,11 @@ const FilterLabel = React.memo(({
     onOpen: openTooltip
   }), [closeTooltip, openTooltip, isTooltipOpen])
 
-  // Remove underscores from name
-  const finalLabel = useMemo(() => {
-    let finalLabel = label || quantity
-    return !underscores ? finalLabel.replace(/_/g, ' ') : finalLabel
-  }, [label, quantity, underscores])
-
   // The tooltip needs to be controlled: otherwise it won't close as we open the
   // select menu
   return <Actions
     className={clsx(className, styles.root)}
-    header={
-      <Tooltip title={description || ''} placement="bottom">
-        <Typography
-          className={styles.label}
-          variant="button"
-        >
-          {finalLabel}
-        </Typography>
-      </Tooltip>
-    }
+    header={<InputTitle quantity={quantity} label={label} description={description}/>}
   >
     {!disableStatistics && <>
       <Action
@@ -183,11 +161,10 @@ const FilterLabel = React.memo(({
   </Actions>
 })
 
-FilterLabel.propTypes = {
+InputHeader.propTypes = {
   quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
-  underscores: PropTypes.bool,
   disableStatistics: PropTypes.bool,
   disableAggSize: PropTypes.bool,
   scale: PropTypes.oneOf(Object.values(scales)),
@@ -197,10 +174,10 @@ FilterLabel.propTypes = {
   classes: PropTypes.object
 }
 
-FilterLabel.defaultProps = {
+InputHeader.defaultProps = {
   underscores: false,
   disableStatistics: false,
   scale: 1
 }
 
-export default FilterLabel
+export default InputHeader

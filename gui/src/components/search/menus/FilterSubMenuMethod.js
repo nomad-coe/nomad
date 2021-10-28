@@ -17,8 +17,8 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputCheckboxes from '../input/InputCheckboxes'
 
 const FilterSubMenuMethod = React.memo(({
@@ -29,15 +29,15 @@ const FilterSubMenuMethod = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid>
+      <InputGridItem xs={12}>
         <InputCheckboxes
           quantity="results.method.method_name"
           visible={visible}
           xs={12}
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuMethod.propTypes = {

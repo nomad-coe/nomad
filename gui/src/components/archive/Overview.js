@@ -14,10 +14,12 @@ import EELS from '../visualization/EELS'
 import DOS from '../visualization/DOS'
 import { toUnitSystem } from '../../units'
 import { electronicRange } from '../../config'
+import EnergyVolumeCurve from '../visualization/EnergyVolumeCurve'
 
 const useOverviewAtomsStyles = makeStyles({
   root: {
-    width: '28rem',
+    width: '30rem',
+    height: '20rem',
     margin: 'auto'
   }
 })
@@ -33,7 +35,6 @@ export const OverviewAtoms = React.memo(({def, section}) => {
   }), [section])
 
   return <Structure
-    aspectRatio={4 / 3}
     className={style.root}
     data={system}
   ></Structure>
@@ -56,15 +57,14 @@ export const OverviewDOSElectronic = React.memo(({def, section, units}) => {
   const data = useMemo(() => ({
     energies: section.energies,
     densities: section.total.map(dos => dos.value),
-    energy_highest_occupied: section.channel_info
-      ? Math.max(...section.channel_info.map(x => x.energy_highest_occupied))
+    energy_highest_occupied: section.band_gap
+      ? Math.max(...section.band_gap.map(x => x.energy_highest_occupied))
       : undefined
   }), [section])
 
   return <DOS
     className={style.root}
     data={data}
-    aspectRatio={1 / 2}
     units={units}
     type="electronic"
   />
@@ -85,7 +85,6 @@ export const OverviewDOSPhonon = React.memo(({def, section, units}) => {
   return <DOS
     className={style.root}
     data={data}
-    aspectRatio={1 / 2}
     units={units}
     type="vibrational"
   />
@@ -113,7 +112,6 @@ export const OverviewBandstructurePhonon = React.memo(({def, section, units}) =>
   return <BandStructure
     className={style.root}
     data={data}
-    aspectRatio={1}
     units={units}
     type='vibrational'
   />
@@ -145,8 +143,8 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
   const data = useMemo(() => ({
     segment: section.segment,
     reciprocal_cell: section.reciprocal_cell,
-    energy_highest_occupied: section.channel_info
-      ? Math.max(...section.channel_info.map(x => x.energy_highest_occupied))
+    energy_highest_occupied: section.band_gap
+      ? Math.max(...section.band_gap.map(x => x.energy_highest_occupied))
       : undefined
   }), [section])
   const layout = useMemo(() => ({
@@ -162,14 +160,12 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
         className={style.root}
         data={data}
         layout={layout}
-        aspectRatio={1}
         units={units}
-      ></BandStructure>
+      />
       : <BrillouinZone
         className={style.root}
         data={section}
-        aspectRatio={1}
-      ></BrillouinZone>
+      />
     }
     <FormControl component="fieldset" className={style.radio}>
       <RadioGroup
@@ -216,11 +212,44 @@ export const OverviewEELS = React.memo(({def, section, units}) => {
     className={style.root}
     data={section}
     layout={{yaxis: {autorange: true}}}
-    aspectRatio={2}
     units={units}
   />
 })
 OverviewEELS.propTypes = ({
+  def: PropTypes.object,
+  section: PropTypes.object,
+  units: PropTypes.object
+})
+
+const useOverviewEquationOfStateStyles = makeStyles({
+  root: {
+    width: '30rem',
+    height: '25rem',
+    margin: 'auto'
+  }
+})
+export const OverviewEquationOfState = React.memo(({def, section, units}) => {
+  const style = useOverviewEquationOfStateStyles()
+  const data = [{
+    volumes: section.volumes,
+    energies: section.energies,
+    name: 'raw'
+  }]
+  section.eos_fit.forEach(fit => {
+    data.push({
+      volumes: section.volumes,
+      energies: fit.fitted_energies,
+      name: fit.function_name
+    })
+  })
+
+  return <EnergyVolumeCurve
+    className={style.root}
+    data={{data: data}}
+    units={units}
+  />
+})
+OverviewEquationOfState.propTypes = ({
   def: PropTypes.object,
   section: PropTypes.object,
   units: PropTypes.object
@@ -242,6 +271,8 @@ export const Overview = React.memo((props) => {
     return <OverviewDOSPhonon {...props}/>
   } else if (def.name === 'Spectrum') {
     return <OverviewEELS {...props}/>
+  } else if (def.name === 'EquationOfState') {
+    return <OverviewEquationOfState {...props}/>
   }
   return null
 })

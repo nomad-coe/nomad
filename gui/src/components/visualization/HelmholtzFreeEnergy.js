@@ -17,24 +17,17 @@
  */
 import React, {useEffect, useState, useMemo} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Box } from '@material-ui/core'
-import clsx from 'clsx'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
 import { Unit, toUnitSystem } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
-
-const useStyles = makeStyles({
-  root: {}
-})
 
 const HelmholtzFreeEnergy = React.memo(({
   data,
   layout,
   aspectRatio,
   className,
-  classes,
   placeholderStyle,
   units,
   'data-testid': testID,
@@ -63,7 +56,6 @@ const HelmholtzFreeEnergy = React.memo(({
   }, [layout, units, energyUnit, tempUnit])
 
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
-  const styles = useStyles(classes)
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -94,20 +86,16 @@ const HelmholtzFreeEnergy = React.memo(({
     setFinalData(plotData)
   }, [data, units, energyUnit, tempUnit, theme])
 
-  return (
-    <Box className={clsx(styles.root, className)}>
-      <Plot
-        data={finalData}
-        layout={finalLayout}
-        aspectRatio={aspectRatio}
-        floatTitle="Helmholtz free energy"
-        metaInfoLink={data?.m_path}
-        data-testid={testID}
-        {...other}
-      >
-      </Plot>
-    </Box>
-  )
+  return <Plot
+    data={finalData}
+    layout={finalLayout}
+    aspectRatio={aspectRatio}
+    floatTitle="Helmholtz free energy"
+    metaInfoLink={data?.m_path}
+    data-testid={testID}
+    className={className}
+    {...other}
+  />
 })
 
 HelmholtzFreeEnergy.propTypes = {
@@ -121,7 +109,6 @@ HelmholtzFreeEnergy.propTypes = {
   ]),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
-  classes: PropTypes.object,
   className: PropTypes.string,
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,

@@ -18,49 +18,69 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import { InputGrid, InputGridItem } from '../input/InputGrid'
+import InputSelect from '../input/InputSelect'
+import InputSlider from '../input/InputSlider'
 import InputCheckboxes from '../input/InputCheckboxes'
+import InputSection from '../input/InputSection'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
+import { Quantity, useUnits } from '../../../units'
 
-const FilterSubMenuDFT = React.memo(({
+const step = new Quantity(10, 'gigapascal')
+const FilterSubMenuElectronic = React.memo(({
   value,
   ...rest
 }) => {
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
+  const units = useUnits()
 
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.xc_functional_type"
+        <InputSection
+          section="results.properties.mechanical.bulk_modulus"
           visible={visible}
-          xs={12}
-        />
+        >
+          <InputSelect
+            quantity="results.properties.mechanical.bulk_modulus.type"
+            visible={visible}
+          />
+          <InputSlider
+            quantity="results.properties.mechanical.bulk_modulus.value"
+            units={units}
+            step={step}
+            visible={visible}
+          />
+        </InputSection>
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputSection
+          section="results.properties.mechanical.shear_modulus"
+          visible={visible}
+        >
+          <InputSelect
+            quantity="results.properties.mechanical.shear_modulus.type"
+            visible={visible}
+          />
+          <InputSlider
+            quantity="results.properties.mechanical.shear_modulus.value"
+            units={units}
+            step={step}
+            visible={visible}
+          />
+        </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputCheckboxes
-          quantity="results.method.simulation.dft.basis_set_type"
-          visible={visible}
-          xs={12}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.core_electron_treatment"
-          visible={visible}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputCheckboxes
-          quantity="results.method.simulation.dft.relativity_method"
+          quantity="mechanical_properties"
           visible={visible}
         />
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuDFT.propTypes = {
+FilterSubMenuElectronic.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuDFT
+export default FilterSubMenuElectronic

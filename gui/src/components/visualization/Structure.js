@@ -19,7 +19,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, fade } from '@material-ui/core/styles'
 import {
-  Box,
   Checkbox,
   Button,
   Menu,
@@ -47,16 +46,18 @@ import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
 import clsx from 'clsx'
 
-// Styles
+/**
+ * Used to show atomistic systems in an interactive 3D viewer based on the
+ * 'materia'-library.
+ */
 const useStyles = makeStyles((theme) => {
   return {
     root: {},
-    container: {
+    column: {
       display: 'flex',
       width: '100%',
       height: '100%',
-      flexDirection: 'column',
-      backgroundColor: 'white'
+      flexDirection: 'column'
     },
     header: {
       display: 'flex',
@@ -78,7 +79,7 @@ const useStyles = makeStyles((theme) => {
     title: {
       marginBottom: theme.spacing(1)
     },
-    viewerCanvas: {
+    canvas: {
       flex: 1,
       zIndex: 0,
       minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
@@ -98,11 +99,6 @@ const useStyles = makeStyles((theme) => {
     }
   }
 })
-
-/**
- * Used to show atomistic systems in an interactive 3D viewer based on the
- * 'materia'-library.
- */
 const Structure = React.memo(({
   className,
   classes,
@@ -111,7 +107,6 @@ const Structure = React.memo(({
   materialType,
   viewer,
   captureName,
-  aspectRatio,
   positionsOnly,
   sizeLimit,
   positionsSubject,
@@ -371,9 +366,7 @@ const Structure = React.memo(({
 
   // If data is set explicitly to false, we show the NoData component.
   if (data === false) {
-    return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}}/>
-    </Box>
+    return <NoData className={clsx(className, styles.root)} classes={{placeholder: noDataStyle}}/>
   }
 
   // Enforce at least one structure view option
@@ -406,10 +399,9 @@ const Structure = React.memo(({
     return <Placeholder
       variant="rect"
       className={clsx(styles.root, className)}
-      aspectRatio={aspectRatio}
       data-testid={testID}
       classes={{placeholder: placeHolderStyle}}
-    ></Placeholder>
+    />
   }
 
   const menuItems = [
@@ -467,65 +459,67 @@ const Structure = React.memo(({
     ])
   }
 
-  const content = <Box className={styles.container}>
-    {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
-    {(Array.isArray(data) && data.length > 1) && <ToggleButtonGroup
-      className={styles.toggles}
-      size="small"
-      exclusive
-      value={shownSystem}
-      onChange={handleStructureChange}
-    >
-      {structureToggles}
-    </ToggleButtonGroup>
-    }
-    {switching
-      ? <Placeholder
-        variant="rect"
-        className={styles.switchContainer}
-        classes={{placeholder: styles.switchPlaceholder}}
-      />
-      : <div className={styles.viewerCanvas} ref={refCanvas}></div>
-    }
-    <div className={styles.header}>
-      <Actions>
-        <Action tooltip='Reset view' onClick={handleReset}>
-          <Replay/>
-        </Action>
-        <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
-          {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
-        </Action>
-        <Action tooltip='Capture image' onClick={takeScreencapture}>
-          <CameraAlt/>
-        </Action>
-        {finalSystem?.path &&
-          <Action tooltip='View data in the archive' onClick={() => { history.push(finalSystem.path) }}>
-            <ViewList/>
-          </Action>
-        }
-        <Action tooltip='Options' onClick={openMenu}>
-          <MoreVert/>
-        </Action>
-      </Actions>
-      <Menu
-        id='settings-menu'
-        anchorEl={anchorEl}
-        getContentAnchorEl={null}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        keepMounted
-        open={open}
-        onClose={closeMenu}
+  return <Floatable
+    data-testid={testID}
+    className={clsx(styles.root, className)}
+    float={fullscreen}
+    onFloat={toggleFullscreen}
+  >
+    <div className={styles.column}>
+      {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
+      {(Array.isArray(data) && data.length > 1) && <ToggleButtonGroup
+        className={styles.toggles}
+        size="small"
+        exclusive
+        value={shownSystem}
+        onChange={handleStructureChange}
       >
-        {menuItems}
-      </Menu>
+        {structureToggles}
+      </ToggleButtonGroup>
+      }
+      {switching
+        ? <Placeholder
+          variant="rect"
+          className={styles.switchContainer}
+          classes={{placeholder: styles.switchPlaceholder}}
+        />
+        : <div className={styles.canvas} ref={refCanvas}></div>
+      }
+      <div className={styles.header}>
+        <Actions>
+          <Action tooltip='Reset view' onClick={handleReset}>
+            <Replay/>
+          </Action>
+          <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+            {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+          </Action>
+          <Action tooltip='Capture image' onClick={takeScreencapture}>
+            <CameraAlt/>
+          </Action>
+          {finalSystem?.path &&
+            <Action tooltip='View data in the archive' onClick={() => { history.push(finalSystem.path) }}>
+              <ViewList/>
+            </Action>
+          }
+          <Action tooltip='Options' onClick={openMenu}>
+            <MoreVert/>
+          </Action>
+        </Actions>
+        <Menu
+          id='settings-menu'
+          anchorEl={anchorEl}
+          getContentAnchorEl={null}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          keepMounted
+          open={open}
+          onClose={closeMenu}
+        >
+          {menuItems}
+        </Menu>
+      </div>
     </div>
-  </Box>
-  return <Box className={clsx(styles.root, className)} data-testid={testID}>
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
-  </Box>
+  </Floatable>
 })
 
 Structure.propTypes = {
@@ -541,7 +535,6 @@ Structure.propTypes = {
   options: PropTypes.object, // Viewer options
   materialType: PropTypes.string, // The material type, affects the visualization layout.
   captureName: PropTypes.string, // Name of the file that the user can download
-  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
   placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
@@ -555,7 +548,6 @@ Structure.propTypes = {
   'data-testid': PropTypes.string
 }
 Structure.defaultProps = {
-  aspectRatio: 4 / 3,
   captureName: 'structure',
   sizeLimit: 300
 }

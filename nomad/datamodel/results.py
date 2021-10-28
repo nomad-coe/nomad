@@ -23,6 +23,7 @@ from ase.data import chemical_symbols
 
 from nomad import config
 from nomad.datamodel.metainfo.common_experimental import Spectrum, DeviceSettings
+from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type, material_entry_type
 
 from nomad.metainfo import (
@@ -32,7 +33,7 @@ from nomad.metainfo import (
     Quantity,
     MEnum,
     Package,
-    Datetime
+    Datetime,
 )
 
 m_package = Package()
@@ -116,10 +117,10 @@ core_electron_treatments = [
 ]
 
 
-class ChannelInfo(MSection):
+class BandGap(MSection):
     m_def = Section(
         description="""
-        Contains information about each present spin channel.
+        Band gap information for each spin channel.
         """
     )
     index = Quantity(
@@ -129,33 +130,25 @@ class ChannelInfo(MSection):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    band_gap = Quantity(
+    value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
         unit='joule',
         description='''
-        Band gap size. Value of zero corresponds to not having a band gap.
+        Band gap value. Value of zero corresponds to not having a band gap.
         ''',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    band_gap_type = Quantity(
-        type=MEnum('direct', 'indirect', 'no_gap'),
+    type = Quantity(
+        type=MEnum('direct', 'indirect'),
         shape=[],
         description='''
-        Type of band gap.
+        Band gap type.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion=True)
         ],
-    )
-    energy_fermi = Quantity(
-        type=np.dtype(np.float64),
-        unit="joule",
-        shape=[],
-        description="""
-        Fermi energy.
-        """
     )
     energy_highest_occupied = Quantity(
         type=np.dtype(np.float64),
@@ -981,8 +974,8 @@ class DOSElectronic(DOS):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    channel_info = SubSection(
-        sub_section=ChannelInfo.m_def,
+    band_gap = SubSection(
+        sub_section=BandGap.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -1052,8 +1045,8 @@ class BandStructureElectronic(BandStructure):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    channel_info = SubSection(
-        sub_section=ChannelInfo.m_def,
+    band_gap = SubSection(
+        sub_section=BandGap.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
@@ -1170,6 +1163,113 @@ class VibrationalProperties(MSection):
     energy_free_helmholtz = SubSection(sub_section=EnergyFreeHelmholtz.m_def, repeats=False)
 
 
+class EnergyVolumeCurve(MSection):
+    m_def = Section(
+        description="""
+        Energy volume curve.
+        """,
+    )
+    type = Quantity(
+        type=MEnum(
+            "raw",
+            "mie_gruneisen",
+            "pack_evans_james",
+            "vinet",
+            "tait",
+            "birch_euler",
+            "pourier_tarantola",
+            "birch_lagrange",
+            "murnaghan",
+        ),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion=True)
+        ],
+    )
+    volumes = Quantity(type=EquationOfState.volumes)
+    energies_raw = Quantity(type=EquationOfState.energies)
+    energies_fit = Quantity(type=EOSFit.fitted_energies)
+
+
+class BulkModulus(MSection):
+    m_def = Section(
+        description="""
+        Contains bulk modulus values calculated with different methodologies.
+        """
+    )
+    type = Quantity(
+        type=MEnum(
+            "mie_gruneisen",
+            "pack_evans_james",
+            "vinet",
+            "tait",
+            "birch_euler",
+            "pourier_tarantola",
+            "birch_lagrange",
+            "murnaghan",
+            "voigt_average",
+            "reuss_average",
+            "voigt_reuss_hill_average",
+        ),
+        description="Describes the methodology for obtaining the value.",
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion=True)
+        ],
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        description="Bulk modulus value.",
+        unit='pascal',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class ShearModulus(MSection):
+    m_def = Section(
+        description="""
+        Contains shear modulus values calculated with different methodologies.
+        """,
+    )
+    type = Quantity(
+        type=MEnum(
+            "voigt_average",
+            "reuss_average",
+            "voigt_reuss_hill_average",
+        ),
+        description="Describes the methodology for obtaining the value.",
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion=True)
+        ],
+    )
+    value = Quantity(
+        type=np.dtype(np.float64),
+        description="Shear modulus value.",
+        unit='pascal',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class MechanicalProperties(MSection):
+    m_def = Section(
+        description="""
+        Mechanical properties.
+        """,
+    )
+    energy_volume_curve = SubSection(sub_section=EnergyVolumeCurve.m_def, repeats=True)
+    bulk_modulus = SubSection(
+        sub_section=BulkModulus.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+    shear_modulus = SubSection(
+        sub_section=ShearModulus.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+
 class ElectronicProperties(MSection):
     m_def = Section(
         description="""
@@ -1178,14 +1278,6 @@ class ElectronicProperties(MSection):
     )
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=False)
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=False)
-
-
-class ElasticProperties(MSection):
-    m_def = Section(
-        description="""
-        Elastic properties.
-        """,
-    )
 
 
 class SpectroscopyProperties(MSection):
@@ -1210,7 +1302,7 @@ class Properties(MSection):
     molecular_dynamics = SubSection(sub_section=MolecularDynamicsProperties.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
-    elastic = SubSection(sub_section=ElasticProperties.m_def, repeats=False)
+    mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
     spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
 
     n_calculations = Quantity(

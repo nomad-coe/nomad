@@ -30,6 +30,7 @@ import searchQuantities from '../../searchQuantities'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
+import MechanicalPropertiesCard from '../entry/properties/MechanicalPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
@@ -212,6 +213,7 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
         <MaterialCard entryMetadata={entry} archive={archive} properties={properties}/>
         <ElectronicPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <MechanicalPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
         <GeometryOptimizationCard entryMetadata={entry} archive={archive} properties={properties}/>
         <SpectroscopyCard entryMetadata={entry} archive={archive} properties={properties}/>
       </Grid>

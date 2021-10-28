@@ -27,7 +27,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import FilterChip from '../FilterChip'
 import searchQuantities from '../../../searchQuantities'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
 import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
@@ -143,7 +143,7 @@ const InputSelect = React.memo(({
 
   return <InputTooltip locked={locked} disabled={disabled}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel
+      <InputHeader
         quantity={quantity}
         label={title}
         description={desc}

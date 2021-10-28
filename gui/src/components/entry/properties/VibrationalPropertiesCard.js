@@ -27,6 +27,7 @@ import VibrationalProperties from '../../visualization/VibrationalProperties'
  */
 const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archive}) => {
   const units = useUnits()
+  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
 
   // Find out which properties are present
   const hasDos = properties.has('dos_phonon')
@@ -39,8 +40,7 @@ const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archiv
     return null
   }
 
-  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
-
+  // Resolve phonon DOS
   let dos = hasDos ? null : false
   const dosData = archive?.results?.properties?.vibrational?.dos_phonon
   if (dosData) {
@@ -50,6 +50,7 @@ const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archiv
     dos.m_path = `${archiveUrl}/${refPath(dosData.energies.split('/').slice(0, -1).join('/'))}`
   }
 
+  // Resolve phonon band structure
   let bs = hasBs ? null : false
   const bsData = archive?.results?.properties?.vibrational?.band_structure_phonon
   if (bsData) {
@@ -58,6 +59,7 @@ const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archiv
     bs.m_path = `${archiveUrl}/${refPath(bsData.segment[0].split('/').slice(0, -2).join('/'))}`
   }
 
+  // Resolve free energy
   let energyFree = hasEnergyFree ? null : false
   const energyFreeData = archive?.results?.properties?.vibrational?.energy_free_helmholtz
   if (energyFreeData) {
@@ -67,6 +69,7 @@ const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archiv
     energyFree.m_path = `${archiveUrl}/${refPath(energyFreeData.energies)}`
   }
 
+  // Resolve heat capacity
   let heatCapacity = hasHeatCapacity ? null : false
   const heatCapacityData = archive?.results?.properties?.vibrational?.heat_capacity_constant_volume
   if (heatCapacityData) {

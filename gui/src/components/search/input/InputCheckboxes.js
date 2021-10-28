@@ -21,7 +21,7 @@ import { Grid } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
-import InputLabel from './InputLabel'
+import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
 import {
@@ -47,8 +47,8 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const InputCheckboxes = React.memo(({
-  label,
   quantity,
+  label,
   description,
   visible,
   xs,
@@ -93,12 +93,6 @@ const InputCheckboxes = React.memo(({
     }
     return {}
   }, [quantity, initialAgg])
-
-  // Determine the description and units
-  const def = searchQuantities[quantity]
-  const desc = description || def?.description || ''
-  const name = label || def?.name
-  const title = name
 
   // Modify the checkboxes according to changing filters, changing aggregation
   // results or change in the available options.
@@ -153,10 +147,10 @@ const InputCheckboxes = React.memo(({
 
   return <InputTooltip locked={locked} disabled={false}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputLabel
+      <InputHeader
         quantity={quantity}
-        label={title}
-        description={desc}
+        label={label}
+        description={description}
         scale={scale}
         onChangeScale={setScale}
         disableAggSize
@@ -169,13 +163,13 @@ const InputCheckboxes = React.memo(({
 })
 
 InputCheckboxes.propTypes = {
+  quantity: PropTypes.string.isRequired,
   label: PropTypes.string,
-  quantity: PropTypes.string,
+  description: PropTypes.string,
   // Optional information about the options. Can also be used to enable/disable
   // options.
   visible: PropTypes.bool,
   xs: PropTypes.number,
-  description: PropTypes.string,
   initialScale: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,

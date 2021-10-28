@@ -17,8 +17,8 @@
  */
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputText from '../input/InputText'
 
 const FilterSubMenuIDs = React.memo(({
@@ -29,40 +29,40 @@ const FilterSubMenuIDs = React.memo(({
   const visible = value === selected
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid spacing={2}>
+      <InputGridItem xs={12}>
         <InputText
           quantity="entry_id"
           visible={visible}
           autocomplete='off'
           disableStatistics
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="upload_id"
           visible={visible}
           autocomplete='off'
           disableStatistics
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="results.material.material_id"
           visible={visible}
           autocomplete='off'
           disableStatistics
         />
-      </Grid>
-      <Grid item xs={12}>
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputText
           quantity="datasets.dataset_id"
           visible={visible}
           autocomplete='off'
           disableStatistics
         />
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuIDs.propTypes = {

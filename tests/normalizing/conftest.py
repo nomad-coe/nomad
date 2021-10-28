@@ -44,7 +44,13 @@ from nomad.datamodel.metainfo.common_experimental import (
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
-from nomad.datamodel.metainfo.workflow import Workflow, GeometryOptimization
+from nomad.datamodel.metainfo.workflow import (
+    Workflow,
+    GeometryOptimization,
+    Elastic,
+    EquationOfState,
+    EOSFit
+)
 
 from tests.parsing.test_parsing import parsed_vasp_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parsed_template_example  # pylint: disable=unused-import
@@ -416,6 +422,36 @@ def gw() -> EntryArchive:
 def eels() -> EntryArchive:
     """EELS experiment."""
     template = get_template_eels()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def mechanical() -> EntryArchive:
+    """Entry with mechanical properties."""
+    template = get_template_dft()
+
+    # Elastic workflow
+    workflow = template.m_create(Workflow)
+    workflow.type = "elastic"
+    workflow.elastic = Elastic(
+        shear_modulus_hill=10000,
+        shear_modulus_reuss=10000,
+        shear_modulus_voigt=10000,
+    )
+
+    # EOS workflow
+    workflow = template.m_create(Workflow)
+    workflow.type = "equation_of_state"
+    equation_of_state = EquationOfState(
+        volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
+        energies=np.linspace(0, 10, 10) * ureg.electron_volt,
+    )
+    eos_fit = equation_of_state.m_create(EOSFit)
+    eos_fit.function_name = "murnaghan"
+    eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
+    eos_fit.bulk_modulus = 10000
+    workflow.equation_of_state = equation_of_state
+
     return run_normalize(template)
 
 

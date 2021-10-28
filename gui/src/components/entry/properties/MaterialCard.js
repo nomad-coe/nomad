@@ -18,10 +18,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { get } from 'lodash'
-import { PropertyCard } from './PropertyCard'
+import { PropertyCard, PropertyGrid, PropertyItem } from './PropertyCard'
 import { toMateriaStructure } from '../../../utils'
 import Quantity from '../../Quantity'
-import { Box, Grid, makeStyles, Typography } from '@material-ui/core'
+import { Box, makeStyles, Typography } from '@material-ui/core'
 import { normalizeDisplayValue, encyclopediaEnabled } from '../../../config'
 import { MaterialButton } from '../../nav/Routes'
 import Structure from '../../visualization/Structure'
@@ -53,11 +53,25 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     flexDirection: 'column',
     alignItems: 'flex-start'
+  },
+  structureContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative'
+  },
+  structure: {
+    position: 'absolute',
+    width: 'auto',
+    height: 'auto',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: -20
   }
 }))
 
 const MaterialCard = React.memo(({entryMetadata, properties, archive}) => {
-  const classes = useStyles()
+  const styles = useStyles()
   const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
   const structuresUrl = `${archiveUrl}/results/properties/structures`
   const materialId = entryMetadata.results?.material?.material_id
@@ -84,9 +98,9 @@ const MaterialCard = React.memo(({entryMetadata, properties, archive}) => {
   }
 
   return <PropertyCard title="Material">
-    <Grid container spacing={1}>
-      <Grid item xs={5}>
-        <Box className={classes.properties}>
+    <PropertyGrid>
+      <PropertyItem xs={5} height="300px">
+        <Box className={styles.properties}>
           <Quantity column>
             <Formula data={entryMetadata} />
             <Quantity quantity="results.material.structural_type" label='structural type' noWrap data={entryMetadata}/>
@@ -118,16 +132,18 @@ const MaterialCard = React.memo(({entryMetadata, properties, archive}) => {
             </MaterialButton>
           }
         </Box>
-      </Grid>
-      <Grid item xs={7} style={{marginTop: '-2rem'}}>
-        <Structure
-          data={structures}
-          materialType={entryMetadata.results?.material?.structural_type}
-          aspectRatio={1.4}
-          data-testid="viewer-material"
-        />
-      </Grid>
-    </Grid>
+      </PropertyItem>
+      <PropertyItem xs={7} height="300px">
+        <div className={styles.structureContainer}>
+          <Structure
+            data={structures}
+            materialType={entryMetadata.results?.material?.structural_type}
+            data-testid="viewer-material"
+            className={styles.structure}
+          />
+        </div>
+      </PropertyItem>
+    </PropertyGrid>
   </PropertyCard>
 })
 

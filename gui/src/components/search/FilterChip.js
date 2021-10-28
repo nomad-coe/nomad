@@ -19,8 +19,9 @@ import React from 'react'
 import clsx from 'clsx'
 import { makeStyles } from '@material-ui/core/styles'
 import LockIcon from '@material-ui/icons/Lock'
-import { Chip } from '@material-ui/core'
+import { Chip, Paper } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import InputTitle from './input/InputTitle'
 
 /**
  * Thin wrapper for MUI Chip that is used for displaying (and possibly removing)
@@ -28,17 +29,17 @@ import PropTypes from 'prop-types'
  */
 const useStyles = makeStyles(theme => ({
   root: {
-    padding: theme.spacing(0.5)
+    padding: theme.spacing(0.5),
+    boxSizing: 'border-box',
+    maxWidth: '100%'
   },
   chip: {
     padding: theme.spacing(0.5),
-    maxWidth: '19rem'
-  },
-  colorSecondary: {
-    backgroundColor: theme.palette.secondary.light
+    maxWidth: '100%'
   }
 }))
-const FilterChip = React.memo(({
+export const FilterChip = React.memo(({
+  quantity,
   label,
   onDelete,
   color,
@@ -53,13 +54,13 @@ const FilterChip = React.memo(({
       onDelete={locked ? undefined : onDelete}
       color={color}
       className={styles.chip}
-      classes={{colorSecondary: styles.colorSecondary}}
       icon={locked ? <LockIcon/> : undefined}
     />
   </div>
 })
 
 FilterChip.propTypes = {
+  quantity: PropTypes.string,
   label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onDelete: PropTypes.func,
   color: PropTypes.string,
@@ -71,3 +72,53 @@ FilterChip.defaultProps = {
 }
 
 export default FilterChip
+
+/**
+ * Used to group several related filter chips inside one container.
+ */
+const useFilterChipGroupStyles = makeStyles(theme => ({
+  root: {
+    borderRadius: theme.spacing(1),
+    boxSizing: 'border-box',
+    padding: theme.spacing(0.5),
+    width: '100%'
+  },
+  paper: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: theme.spacing(0.5)
+  },
+  title: {
+    padding: theme.spacing(0.5)
+  }
+}))
+export const FilterChipGroup = React.memo(({
+  quantity,
+  className,
+  children
+}) => {
+  const styles = useFilterChipGroupStyles()
+
+  return <div className={clsx(className, styles.root)}>
+    <Paper className={styles.paper}>
+      <InputTitle
+        quantity={quantity}
+        variant="caption"
+        className={styles.title}
+      />
+      {children}
+    </Paper>
+  </div>
+})
+
+FilterChipGroup.propTypes = {
+  quantity: PropTypes.string,
+  color: PropTypes.string,
+  className: PropTypes.string,
+  children: PropTypes.node
+}
+FilterChipGroup.defaultProps = {
+  color: 'primary'
+}

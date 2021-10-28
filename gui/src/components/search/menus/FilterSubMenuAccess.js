@@ -17,8 +17,8 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Grid } from '@material-ui/core'
 import { FilterSubMenu } from './FilterMenu'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputRadio from '../input/InputRadio'
 import { useApi } from '../../api'
 
@@ -30,8 +30,8 @@ const FilterSubMenuAccess = React.memo(({
   const authenticated = api?.keycloak?.authenticated
 
   return <FilterSubMenu value={value} {...rest}>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
+    <InputGrid>
+      <InputGridItem xs={12}>
         <InputRadio
           quantity="visibility"
           label="Visibility"
@@ -46,8 +46,8 @@ const FilterSubMenuAccess = React.memo(({
             staging: {label: 'Unpublished', disabled: !authenticated, tooltip: 'Only search through unpublished entries.'}
           }}
         ></InputRadio>
-      </Grid>
-    </Grid>
+      </InputGridItem>
+    </InputGrid>
   </FilterSubMenu>
 })
 FilterSubMenuAccess.propTypes = {

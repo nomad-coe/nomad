@@ -966,7 +966,7 @@ class Decomposition(MSection):
         ''')
 
     formula = Quantity(
-        type=np.dtype(np.float64),
+        type=str,
         shape=[],
         description='''
         Chemical formula of the resulting system.

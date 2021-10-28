@@ -17,11 +17,7 @@
  */
 import React, {useEffect, useState, useMemo} from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
-import clsx from 'clsx'
-import {
-  Box
-} from '@material-ui/core'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { add, mergeObjects } from '../../utils'
 import { Unit, toUnitSystem } from '../../units'
@@ -31,16 +27,12 @@ import { msgNormalizationWarning } from '../../config'
 const energyUnit = new Unit('joule')
 const valueUnit = new Unit('1/joule')
 const valueDisplayUnit = new Unit('state/joule', undefined, false)
-const useStyles = makeStyles({
-  root: {}
-})
 
 const DOS = React.memo(({
   data,
   layout,
   aspectRatio,
   className,
-  classes,
   placeholderStyle,
   units,
   type,
@@ -75,7 +67,6 @@ const DOS = React.memo(({
   const [finalData, setFinalData] = useState(data === false ? data : undefined)
   const [finalLayout, setFinalLayout] = useState(initialLayout)
   const [normalizedToHOE, setNormalizedToHOE] = useState(true)
-  const styles = useStyles(classes)
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -177,6 +168,11 @@ const DOS = React.memo(({
             text: valueDisplayUnit.label(units)
           },
           range: range
+        },
+        legend: {
+          font: {
+            size: 13
+          }
         }
       },
       initialLayout
@@ -186,21 +182,18 @@ const DOS = React.memo(({
     setNormalizedToHOE(normalized)
   }, [data, units, initialLayout, normalizedToHOE, theme, type])
 
-  return (
-    <Box className={clsx(styles.root, className)}>
-      <Plot
-        data={finalData}
-        layout={finalLayout}
-        aspectRatio={aspectRatio}
-        floatTitle="Density of states"
-        warning={normalizedToHOE === false ? msgNormalizationWarning : null}
-        metaInfoLink={data?.m_path}
-        data-testid={testID}
-        {...other}
-      >
-      </Plot>
-    </Box>
-  )
+  return <Plot
+    data={finalData}
+    layout={finalLayout}
+    aspectRatio={aspectRatio}
+    floatTitle="Density of states"
+    warning={normalizedToHOE === false ? msgNormalizationWarning : null}
+    metaInfoLink={data?.m_path}
+    data-testid={testID}
+    className={className}
+    {...other}
+  >
+  </Plot>
 })
 
 DOS.propTypes = {
@@ -215,7 +208,6 @@ DOS.propTypes = {
   ]),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
-  classes: PropTypes.object,
   className: PropTypes.string,
   placeholderStyle: PropTypes.string,
   noDataStyle: PropTypes.string,

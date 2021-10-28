@@ -16,12 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
-import FilterChip from './FilterChip'
+import { FilterChip, FilterChipGroup } from './FilterChip'
 import {
   useFiltersState,
   useFiltersLockedState,
@@ -62,79 +62,122 @@ const FilterSummary = React.memo(({
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
-  const chips = []
+  let chips = []
+
+  // Creates a set of chips for a quantity
+  const createChips = useCallback((name, label, filterValue, onDelete) => {
+    const newChips = []
+    const locked = filtersLocked[name]
+    if (isNil(filterValue)) {
+      return
+    }
+    // Is query has multiple elements, we display a chip for each. For
+    // numerical values we also display the quantity name.
+    const metaType = filterData[name].dtype
+    const serializer = filterData[name].serializerPretty
+    const isArray = filterValue instanceof Array
+    const isSet = filterValue instanceof Set
+    const isObj = isPlainObject(filterValue)
+    if (isArray || isSet) {
+      filterValue.forEach((value, index) => {
+        const displayValue = serializer(value, units)
+        const item = <FilterChip
+          key={`${name}${index}`}
+          locked={locked}
+          quantity={name}
+          label={metaType === 'number' ? `${label} = ${displayValue}` : displayValue}
+          onDelete={() => {
+            let newValue
+            if (isSet) {
+              newValue = new Set(filterValue)
+              newValue.delete(value)
+            } else if (isArray) {
+              newValue = [...filterValue]
+              newValue.splice(index, 1)
+            }
+            onDelete(newValue)
+          }}
+        />
+        newChips.push(item)
+      })
+    } else if (isObj) {
+      // Range queries
+      let lte = serializer(filterValue.lte, units)
+      let gte = serializer(filterValue.gte, units)
+      let lt = serializer(filterValue.lt, units)
+      let gt = serializer(filterValue.gt, units)
+      if (!isNil(gte) || !isNil(gt) || !isNil(lte) || !isNil(lt)) {
+        let content
+        if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
+          content = `${label}${!isNil(gte) ? ` >= ${gte}` : ''}${!isNil(gt) ? ` > ${gt}` : ''}`
+        } else if ((!isNil(lte) || !isNil(lt)) && (isNil(gte) && isNil(gt))) {
+          content = `${label}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
+        } else {
+          content = `${!isNil(gte) ? `${gte} <= ` : ''}${!isNil(gt) ? `${gt} < ` : ''}${label}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
+        }
+        const item = <FilterChip
+          key={name}
+          locked={locked}
+          quantity={name}
+          label={content}
+          onDelete={() => {
+            onDelete(undefined)
+          }}
+        />
+        newChips.push(item)
+      }
+    } else {
+      const item = <FilterChip
+        key={name}
+        locked={locked}
+        quantity={name}
+        label={`${label}=${serializer(filterValue)}`}
+        onDelete={() => {
+          onDelete(undefined)
+        }}
+      />
+      newChips.push(item)
+    }
+    return newChips
+  }, [filtersLocked, units])
 
   if (quantities) {
     for (let quantity of quantities) {
       const filterValue = filters[quantity]
-      const locked = filtersLocked[quantity]
-      const filterAbbr = filterAbbreviations[quantity]
       if (isNil(filterValue)) {
         continue
       }
-      // Is query has multiple elements, we display a chip for each. For
-      // numerical values we also display the quantity name.
-      const metaType = filterData[quantity].dtype
-      const serializer = filterData[quantity].serializerPretty
-      const isArray = filterValue instanceof Array
-      const isSet = filterValue instanceof Set
-      const isObj = isPlainObject(filterValue)
-      if (isArray || isSet) {
-        filterValue.forEach((value, index) => {
-          const displayValue = serializer(value, units)
-          const item = <FilterChip
-            key={chips.length}
-            locked={locked}
-            label={metaType === 'number' ? `${filterAbbr} = ${displayValue}` : displayValue}
-            onDelete={() => {
-              if (isSet) {
-                const newSet = new Set(filterValue)
-                newSet.delete(value)
-                setFilter([quantity, newSet])
-              } else if (isArray) {
-                const newArray = [...filterValue]
-                newArray.splice(index, 1)
-                setFilter([quantity, newArray])
-              }
-            }}
-          />
-          chips.push(item)
-        })
-      // Is query is an object, it is assumed to represent a range filter.
-      } else if (isObj) {
-        let lte = serializer(filterValue.lte, units)
-        let gte = serializer(filterValue.gte, units)
-        let lt = serializer(filterValue.lt, units)
-        let gt = serializer(filterValue.gt, units)
-        let label
-        if ((!isNil(gte) || !isNil(gt)) && (isNil(lte) && isNil(lt))) {
-          label = `${filterAbbr}${!isNil(gte) ? ` >= ${gte}` : ''}${!isNil(gt) ? ` > ${gt}` : ''}`
-        } else if ((!isNil(lte) || !isNil(lt)) && (isNil(gte) && isNil(gt))) {
-          label = `${filterAbbr}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
-        } else {
-          label = `${!isNil(gte) ? `${gte} <= ` : ''}${!isNil(gt) ? `${gt} < ` : ''}${filterAbbr}${!isNil(lte) ? ` <= ${lte}` : ''}${!isNil(lt) ? ` < ${lt}` : ''}`
+      // Nested filters
+      const nested = filterData[quantity].nested
+      if (nested) {
+        let nestedChips = []
+        for (let [key, value] of Object.entries(filterValue)) {
+          const onDelete = (newValue) => {
+            let newSection = {...filterValue}
+            if (newValue === undefined) {
+              delete newSection[key]
+            } else {
+              newSection[key] = newValue
+            }
+            setFilter([quantity, newSection])
+          }
+          const newChips = createChips(`${quantity}.${key}`, key, value, onDelete)
+          nestedChips = nestedChips.concat(newChips)
         }
-        const item = <FilterChip
-          key={chips.length}
-          locked={locked}
-          label={label}
-          onDelete={() => {
-            setFilter([quantity, undefined])
-          }}
-        />
-        chips.push(item)
-      // If query is scalar-like, we show the quantity name together with the
-      // value
+        if (nestedChips.length > 0) {
+          const group = <FilterChipGroup
+            key={quantity}
+            quantity={quantity}
+          >{nestedChips}
+          </FilterChipGroup>
+          chips.push(group)
+        }
+      // Regular non-nested filters
       } else {
-        const item = <FilterChip
-          key={chips.length}
-          locked={locked}
-          label={`${filterAbbr}=${serializer(filterValue)}`}
-          onDelete={() => {
-            setFilter([quantity, undefined])
-          }}
-        />
-        chips.push(item)
+        const onDelete = (newValue) => setFilter([quantity, newValue])
+        const label = filterAbbreviations[quantity]
+        const newChips = createChips(quantity, label, filterValue, onDelete)
+        chips = chips.concat(newChips)
       }
     }
   }

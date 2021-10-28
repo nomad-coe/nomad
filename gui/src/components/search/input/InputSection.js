@@ -1,3 +1,4 @@
+
 /*
  * Copyright The NOMAD Authors.
  *
@@ -15,80 +16,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback } from 'react'
+import React, { createContext } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import InputHeader from './InputHeader'
-import InputItem from './InputItem'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked } from '../SearchContext'
+import InputHeader from './InputHeader'
+import InputTooltip from './InputTooltip'
+
+export const inputSectionContext = createContext()
 
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
     display: 'flex',
-    alignItems: 'flex-start',
     justifyContent: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
+  },
+  label: {
+    marginBottom: theme.spacing(-0.5)
   }
 }))
-const InputRadio = React.memo(({
-  quantity,
+const InputSection = React.memo(({
   label,
+  section,
   description,
-  initialValue,
-  options,
   className,
   classes,
+  children,
   'data-testid': testID
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const [filter, setFilter] = useFilterState(quantity)
-  const locked = useFilterLocked(quantity)
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
+  const def = searchQuantities[section]
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleChange = useCallback((value, selected) => {
-    setFilter(value)
-  }, [setFilter])
-
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputHeader
-      quantity={quantity}
-      label={title}
-      description={desc}
-      disableStatistics
-    />
-    {options && Object.entries(options).map(([key, value]) =>
-      <InputItem
-        key={key}
-        value={key}
-        label={value.label}
-        disabled={locked || value.disabled}
-        selected={(filter || initialValue) === key}
-        onChange={handleChange}
-        tooltip={value.tooltip}
-        variant="radio"
-      />
-    )}
-  </div>
+  return <inputSectionContext.Provider value={{
+    section: section
+  }}>
+    <InputTooltip>
+      <div className={clsx(className, styles.root)} data-testid={testID}>
+        <InputHeader
+          quantity={section}
+          label={title}
+          description={desc}
+          className={styles.label}
+          variant="section"
+          disableAggSize
+          disableStatistics
+        />
+        {children}
+      </div>
+    </InputTooltip>
+  </inputSectionContext.Provider>
 })
 
-InputRadio.propTypes = {
-  quantity: PropTypes.string.isRequired,
+InputSection.propTypes = {
   label: PropTypes.string,
+  section: PropTypes.string.isRequired,
   description: PropTypes.string,
-  initialValue: PropTypes.string,
-  options: PropTypes.object, // Mapping from option name to show label and tooltip
   className: PropTypes.string,
   classes: PropTypes.object,
+  children: PropTypes.node,
   'data-testid': PropTypes.string
 }
 
-export default InputRadio
+InputSection.defaultProps = {
+  initialScale: 1
+}
+
+export default InputSection

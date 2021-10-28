@@ -309,7 +309,8 @@ const useFilterMenuItemStyles = makeStyles(theme => {
       height: '2.6rem'
     },
     divider: {
-      width: '100%'
+      width: '100%',
+      backgroundColor: theme.palette.grey[300]
     }
   }
 })

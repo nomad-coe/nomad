@@ -22,7 +22,7 @@ from nptyping import NDArray
 from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Dos, DosFingerprint, ChannelInfo)
+    Dos, DosFingerprint, BandGap)
 from nomad.atomutils import get_volume
 
 from .normalizer import Normalizer
@@ -70,7 +70,7 @@ class DosNormalizer(Normalizer):
 
                     # Calculate the DOS fingerprint for successfully normalized DOS
                     normalization_reference = None
-                    for info in dos.channel_info:
+                    for info in dos.band_gap:
                         energy_highest = info.energy_highest_occupied
                         if energy_highest is not None:
                             if normalization_reference is None:
@@ -152,7 +152,7 @@ class DosNormalizer(Normalizer):
         dos_total = dos.total
         n_channels = len(dos_total)
         for i_channel in range(n_channels):
-            info = dos.channel_info[i_channel] if len(dos.channel_info) > i_channel else dos.m_create(ChannelInfo)
+            info = dos.band_gap[i_channel] if len(dos.band_gap) > i_channel else dos.m_create(BandGap)
             info.index = i_channel
             if energy_highest is not None:
                 info.energy_highest_occupied = energy_highest
@@ -168,7 +168,7 @@ class DosNormalizer(Normalizer):
 
         for i_channel in range(n_channels):
             dos_values = dos_values_normalized[i_channel]
-            info = dos.channel_info[i_channel]
+            info = dos.band_gap[i_channel]
             fermi_idx = (np.abs(dos.energies - eref)).argmin()
 
             # First check that the closest dos energy to energy reference

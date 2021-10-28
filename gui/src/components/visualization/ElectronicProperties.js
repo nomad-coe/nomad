@@ -18,7 +18,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import { Box } from '@material-ui/core'
 import { toUnitSystem } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
@@ -26,32 +25,11 @@ import BrillouinZone from './BrillouinZone'
 import SectionTable from './SectionTable'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
-import { PropertyContent } from '../entry/properties/PropertyCard'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
 // Styles
 const useStyles = makeStyles((theme) => {
   return {
-    row: {
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      alignItems: 'flex-start',
-      width: '100%',
-      height: '100%',
-      flexWrap: 'wrap'
-    },
-    bz: {
-      flex: '0 0 65%'
-    },
-    gaps: {
-      flex: '0 0 35%'
-    },
-    bs: {
-      flex: '0 0 65%'
-    },
-    dos: {
-      flex: '0 0 35%'
-    },
     nodata: {
       top: theme.spacing(1),
       left: theme.spacing(2),
@@ -69,9 +47,9 @@ const useStyles = makeStyles((theme) => {
 
 // Band gap quantities to show. Saved as const object to prevent re-renders
 const bandGapQuantities = {
-  index: {label: 'Ch.'},
-  band_gap: {label: 'Value'},
-  band_gap_type: {label: 'Type', placeholder: 'no gap'}
+  index: {label: 'Ch.', align: 'left'},
+  value: {label: 'Value'},
+  type: {label: 'Type', placeholder: 'no gap'}
 }
 
 const ElectronicProperties = React.memo(({
@@ -101,59 +79,51 @@ const ElectronicProperties = React.memo(({
     dosYSubject.next(update)
   }, [dosYSubject])
 
-  return <>
-    <Box className={styles.row}>
-      <PropertyContent title="Band structure" className={styles.bs}>
-        <BandStructure
+  return <PropertyGrid>
+    <PropertyItem title="Band structure" xs={8}>
+      <BandStructure
+        data={bs}
+        layout={bsLayout}
+        placeHolderStyle={styles.placeholder}
+        noDataStyle={styles.nodata}
+        units={units}
+        onRelayouting={handleBSRelayouting}
+        onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
+        layoutSubject={dosYSubject}
+        data-testid="bs-electronic"
+      />
+    </PropertyItem>
+    <PropertyItem title="Density of states" xs={4}>
+      <DOS
+        data={dos}
+        layout={dosLayout}
+        placeHolderStyle={styles.placeholder}
+        noDataStyle={styles.nodata}
+        onRelayouting={handleDOSRelayouting}
+        onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
+        units={units}
+        layoutSubject={bsYSubject}
+        data-testid="dos-electronic"
+      />
+    </PropertyItem>
+    {bs !== false && <>
+      <PropertyItem title="Brillouin zone" xs={8}>
+        <BrillouinZone
           data={bs}
-          layout={bsLayout}
-          aspectRatio={0.6 * 65 / 35}
-          placeHolderStyle={styles.placeholder}
-          noDataStyle={styles.nodata}
+          data-testid="bz-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Band gaps" xs={4}>
+        <SectionTable
+          horizontal
+          section="results.properties.electronic.band_structure_electronic.band_gap"
+          quantities={bandGapQuantities}
+          data={bs === false ? false : bs?.band_gap && {data: bs.band_gap}}
           units={units}
-          onRelayouting={handleBSRelayouting}
-          onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
-          layoutSubject={dosYSubject}
-          data-testid="bs-electronic"
-        ></BandStructure>
-      </PropertyContent>
-      <PropertyContent title="Density of states" className={styles.dos}>
-        <DOS
-          data={dos}
-          layout={dosLayout}
-          aspectRatio={0.6}
-          placeHolderStyle={styles.placeholder}
-          noDataStyle={styles.nodata}
-          onRelayouting={handleDOSRelayouting}
-          onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
-          units={units}
-          layoutSubject={bsYSubject}
-          data-testid="dos-electronic"
-        ></DOS>
-      </PropertyContent>
-    </Box>
-    {bs !== false && <Box marginTop={2}>
-      <Box className={styles.row}>
-        <PropertyContent title="Brillouin zone" className={styles.bz}>
-          <BrillouinZone
-            data={bs}
-            aspectRatio={0.6 * 65 / 35}
-            data-testid="bz-electronic"
-          ></BrillouinZone>
-        </PropertyContent>
-        <PropertyContent title="Band gaps" className={styles.gaps}>
-          <SectionTable
-            horizontal
-            section="results.properties.electronic.band_structure_electronic.channel_info"
-            quantities={bandGapQuantities}
-            data={bs?.channel_info}
-            aspectRatio={0.6}
-            units={units}
-          />
-        </PropertyContent>
-      </Box>
-    </Box>}
-  </>
+        />
+      </PropertyItem>
+    </>}
+  </PropertyGrid>
 })
 
 ElectronicProperties.propTypes = {

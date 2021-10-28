@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -33,7 +33,8 @@ import clsx from 'clsx'
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
-    height: '100%'
+    height: '100%',
+    position: 'relative'
   },
   placeholder: {
     position: 'absolute',
@@ -48,44 +49,22 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 const Placeholder = React.memo(({
-  aspectRatio,
   className,
   classes,
   'data-testid':
   testID,
   ...other
 }) => {
-  // If aspect ratio is provided, use it to determine width and height
-  const useStylesDynamic = makeStyles(theme => {
-    return {
-      containerOuter: aspectRatio
-        ? {
-          height: 0,
-          overflow: 'hidden',
-          paddingBottom: `${100 / aspectRatio}%`,
-          position: 'relative'
-        }
-        : {
-          width: '100%',
-          height: '100%',
-          position: 'relative'
-        }
-    }
-  })
-  const theme = useTheme()
-  const styles = useStyles({classes: classes, theme: theme})
-  const stylesDynamic = useStylesDynamic()
+  const styles = useStyles({classes: classes})
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <div className={stylesDynamic.containerOuter}>
-      <div className={styles.placeholder}>
-        <Skeleton className={styles.skeleton} {...other} />
-      </div>
+    <div className={styles.placeholder}>
+      <Skeleton className={styles.skeleton} {...other} />
     </div>
   </div>
 })
 
 Placeholder.propTypes = {
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
