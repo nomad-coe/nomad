@@ -21,6 +21,7 @@ Configuration for JuypterHUB. We use JuypterHUB to run remote tools, like jupyte
 NOMAD servers.
 '''
 
+from dockerspawner.dockerspawner import DockerSpawner
 from jupyterhub.handlers.base import BaseHandler
 from oauthenticator.generic import GenericOAuthenticator
 from traitlets import Unicode
@@ -130,6 +131,8 @@ c = get_config()  # type: ignore  # pylint: disable=undefined-variable
 
 nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
 
+c.JupyterHub.allow_named_servers = True
+
 c.JupyterHub.port = config.north.hub_port
 c.JupyterHub.base_url = config.north.hub_base_path
 c.JupyterHub.authenticator_class = NomadAuthenticator
@@ -147,8 +150,22 @@ c.NomadAuthenticator.nomad_api_url = config.north.nomad_api_url
 
 c.Authenticator.auto_login = True
 
+
+class NomadDockerSpawner(DockerSpawner):
+
+    async def start(self, image=None, extra_create_kwargs=None, extra_host_config=None):
+        tool = self.container_name.split('-')[-1]
+        if tool in tools:
+            tools[tool](self)
+        else:
+            configure_default(self)
+
+        return await super().start(image, extra_create_kwargs, extra_host_config)
+
+
 # launch with docker
-c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+c.JupyterHub.spawner_class = NomadDockerSpawner
+# c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = 'jupyter/base-notebook'
 c.DockerSpawner.remove = True
 if config.north.docker_network:
@@ -157,14 +174,26 @@ c.JupyterHub.hub_ip_connect = config.north.hub_ip_connect
 if config.north.hub_ip:
     c.JupyterHub.hub_ip = config.north.hub_ip
 
-north_tool = 'webtop'
 
-if north_tool == 'jupyter':
-    c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
+def configure_toolkit(spawner: DockerSpawner):
+    spawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
 
-if north_tool == 'webtop':
-    c.DockerSpawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop'
-    c.DockerSpawner.cmd = ["/bin/sh", "-c", "sleep infinity"]
 
-if north_tool == 'jyp_test':
-    c.DockerSpawner.image = 'jyp_test'
+def configure_webtop(spawner: DockerSpawner):
+    spawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop'
+    spawner.cmd = ["/bin/sh", "-c", "sleep infinity"]
+
+
+def configure_test(spawner: DockerSpawner):
+    spawner.image = 'jyp_test'
+
+
+def configure_default(spawner: DockerSpawner):
+    spawner.image = 'jupyter/base-notebook'
+
+
+tools = {
+    'toolkit': configure_toolkit,
+    'webtop': configure_webtop,
+    'test': configure_test
+}

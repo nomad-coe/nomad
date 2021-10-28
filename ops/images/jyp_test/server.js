@@ -6,11 +6,11 @@ const axios = require('axios')
 
 const port = 8888
 const app = express();
-const router = express.Router();
+const baserouter = express.Router();
 
 const clientHubApiUrl = 'http://localhost:9000/fairdi/nomad/latest/north/hub/api'; // process.env.JUPYTERHUB_API_URL
 const serverHubApiUrl = 'http://host.docker.internal:9000/fairdi/nomad/latest/north/hub/api';
-const baseurl = process.env.SUBFOLDER || '/';
+const baseurl = process.env.JUPYTERHUB_SERVICE_PREFIX || process.env.SUBFOLDER || '/';
 const secret = process.env.JUPYTERHUB_API_TOKEN
 const user = process.env.JUPYTERHUB_USER
 
@@ -46,11 +46,11 @@ passport.deserializeUser(function(user, done) {
   done(null, user);
 });
 
-router.use(session({ secret: secret, cookie: { maxAge: 60000, path: baseurl }}))
-router.use(passport.initialize());
-router.use(passport.session());
+baserouter.use(session({ secret: secret, cookie: { maxAge: 60000, path: baseurl }}))
+baserouter.use(passport.initialize());
+baserouter.use(passport.session());
 
-router.get('/', (req, res, next) => {
+baserouter.get('/', (req, res, next) => {
   if (!req.user) {
     res.redirect(`${baseurl}/login`);
     return
@@ -58,15 +58,23 @@ router.get('/', (req, res, next) => {
   res.send('Welcome Home');
 });
 
-router.get('/login', passport.authenticate('oauth2'));
+baserouter.get('/login', passport.authenticate('oauth2'));
 
-router.get('/oauth_callback',
+baserouter.get('/oauth_callback',
   passport.authenticate('oauth2'),
   function(req, res) {
     res.redirect(baseurl);
   });
 
-app.use(baseurl, router);
+app.use((req, res, next) => {
+  if (!req.path.startsWith(baseurl)) {
+    res.redirect(301, baseurl)
+  } else {
+    next()
+  }
+})
+
+app.use(baseurl, baserouter);
 
 app.listen(port, function () {
   console.log('Example app listening on port ' + port + '!');
