@@ -103,7 +103,8 @@ def get_query_test_parameters(
         pytest.param({'q': [elements + '__all__H', elements + '__all__O']}, 200, total, id='q-all'),
         pytest.param({'q': [elements + '__all__H', elements + '__all__X']}, 200, 0, id='q-all'),
         pytest.param({'q': f'{upload_create_time}__gt__1970-01-01'}, 200, total, id='date'),
-        pytest.param({'json_query': f'{{"{elements}": ["H", "O"]}}'}, 200, total, id='json_query')
+        pytest.param({'json_query': f'{{"{elements}": ["H", "O"]}}'}, 200, total, id='json_query'),
+        pytest.param({'json_query': f'{{"{elements}": ["H", "O"}}'}, 422, 0, id='invalid-json_query')
     ]
 
 
