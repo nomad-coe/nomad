@@ -26,20 +26,14 @@ import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
 
 const DownloadButton = React.memo(function DownloadButton(props) {
-  const {tooltip, disabled, buttonProps, dark, query} = props
+  const {tooltip, disabled, buttonProps, dark, query, choiceDisabled} = props
   const {api, user} = useApi()
   const {raiseError} = useErrors()
 
   const [preparingDownload, setPreparingDownload] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
 
-  const handleClick = event => {
-    event.stopPropagation()
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleSelect = (choice) => {
-    setAnchorEl(null)
+  const download = (choice) => {
     let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
@@ -59,6 +53,20 @@ const DownloadButton = React.memo(function DownloadButton(props) {
     } else {
       openDownload()
     }
+  }
+
+  const handleClick = event => {
+    event.stopPropagation()
+    if (choiceDisabled) {
+      download('raw')
+    } else {
+      setAnchorEl(event.currentTarget)
+    }
+  }
+
+  const handleSelect = (choice) => {
+    setAnchorEl(null)
+    download(choice)
   }
 
   const handleClose = () => {
@@ -103,7 +111,8 @@ DownloadButton.propTypes = {
    * Properties forwarded to the button.
    */
   buttonProps: PropTypes.object,
-  dark: PropTypes.bool
+  dark: PropTypes.bool,
+  choiceDisabled: PropTypes.bool
 }
 
 export default DownloadButton

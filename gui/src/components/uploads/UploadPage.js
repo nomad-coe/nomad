@@ -428,7 +428,7 @@ function UploadPage() {
             <MembersIcon />
           </Tooltip>
         </IconButton>
-        <DownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
+        <DownloadButton choiceDisabled={true} tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
             <ReprocessIcon />
