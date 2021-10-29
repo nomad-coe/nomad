@@ -304,3 +304,90 @@ window.nomadEnv = {
                 config.keycloak.realm_name,
                 config.keycloak.client_id
             )))
+
+
+@admin.group(help='Commands for upgrading to a newer NOMAD version')
+def upgrade():
+    pass
+
+
+@upgrade.command(
+    help='''Converts (upgrades) records from one mongodb and migrates to another.
+            Note, it is strongly recommended to run this command with loglevel verbosed, i.e.
+
+                nomad -v upgrade migrate-mongo ...
+
+         ''')
+@click.option(
+    '--host', type=str, default=config.mongo.host,
+    help='The mongodb host. By default same as the configureed db.')
+@click.option(
+    '--port', type=int, default=config.mongo.port,
+    help='The mongodb port. By default same as the configured db.')
+@click.option(
+    '--src-db-name', type=str, required=True,
+    help='The name of the source database.')
+@click.option(
+    '--dst-db-name', type=str, default=config.mongo.db_name,
+    help='The name of the destination database. By default same as the configured db.')
+@click.option(
+    '--query', type=str,
+    help='An mongo query, for selecting only some of the uploads in the source database for import.')
+@click.option(
+    '--ids-from-file', type=str,
+    help='''Reads upload IDs from the specified file. Cannot be used together with the --query
+            option.
+            This can for example be used to retry just the uploads that has previously failed
+            (as these ids can be exported to file using --failed-ids-to-file). You can specify both
+            --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
+@click.option(
+    '--failed-ids-to-file', type=str,
+    help='''Write the IDs of failed and skipped uploads to the specified file.
+            This can for example be used to subsequently retry just the uploads that failed
+            (as these ids can be loaded from file using --ids-from-file). You can specify both
+            --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
+@click.option(
+    '--fix-problems', is_flag=True,
+    help='''If a minor, fixable problem is encountered, fixes it automaticall; otherwise fail.''')
+@click.option(
+    '--dry', is_flag=True,
+    help='Dry run (not writing anything to the destination database).')
+def migrate_mongo(
+        host, port, src_db_name, dst_db_name, query, ids_from_file, failed_ids_to_file,
+        fix_problems, dry):
+    import json
+    from pymongo.database import Database
+    from nomad import utils, infrastructure
+    from .upgrade import create_collections_if_needed, migrate_mongo_uploads
+
+    logger = utils.get_logger('migrate-mongo')
+    config.mongo.host = host
+    config.mongo.port = port
+    config.mongo.db_name = dst_db_name
+    infrastructure.setup_mongo()
+
+    db_src: Database = infrastructure.mongo_client.get_database(src_db_name)
+    db_dst: Database = infrastructure.mongo_client.get_database(dst_db_name)
+
+    if not dry:
+        create_collections_if_needed(db_dst)
+
+    if ids_from_file:
+        if query is not None:
+            print('Cannot specify a query when using --ids-from-file.')
+            return -1
+        try:
+            with open(ids_from_file, 'r') as f:
+                upload_ids = [line.strip() for line in f.readlines() if line.strip()]
+        except FileNotFoundError:
+            logger.error(f'Could not open file {ids_from_file}')
+            return -1
+        query = {'_id': {'$in': upload_ids}}
+    elif query:
+        query = json.loads(query)
+
+    logger.info('Quering uploads...')
+    uploads = db_src.upload.find(query)
+
+    migrate_mongo_uploads(
+        db_src, db_dst, uploads, failed_ids_to_file, fix_problems, dry, logger)
