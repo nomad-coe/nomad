@@ -8,7 +8,7 @@ global.nomadEnv = {
   'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
   'matomoSiteId': '2',
   'version': {
-    'label': '0.10.8',
+    'label': '0.10.9',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,
