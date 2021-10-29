@@ -11,7 +11,7 @@ future
 nptyping
 cachetools
 docstring-parser
-Pint
+Pint==0.17
 orjson==3.6.0
 click
 requests

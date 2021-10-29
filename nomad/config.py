@@ -316,6 +316,8 @@ process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
 enable_lazy_import = True
+encyclopedia_enabled = True
+aitoolkit_enabled = True
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

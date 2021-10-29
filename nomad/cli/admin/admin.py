@@ -727,22 +727,18 @@ def gui_config():
     env_js_file = os.path.join(run_gui_folder, 'env.js')
     if not os.path.exists(env_js_file):
         with open(env_js_file, 'wt') as f:
-            f.write(('''
-window.nomadEnv = {
-    'appBase': '%s',
+            f.write(f'''
+window.nomadEnv = {{
+    'appBase': '{config.services.api_base_path}',
     'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
-    'keycloakRealm': '%s',
-    'keycloakClientId': '%s',
+    'keycloakRealm': '{config.keycloak.realm_name}',
+    'keycloakClientId': '{config.keycloak.client_id}',
     'debug': false,
     'matomoEnabled': false,
-    'encyclopediaEnabled': true,
-    'oasis': %s
-};''' % (
-                config.services.api_base_path,
-                config.keycloak.realm_name,
-                config.keycloak.client_id,
-                'true' if config.keycloak.oasis else 'false'
-            )))
+    'encyclopediaEnabled': {'true' if config.encyclopedia_enabled else 'false'},
+    'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
+    'oasis': {'true' if config.keycloak.oasis else 'false'}
+}};''')
 
     # replace base path in all GUI files
     source_file_globs = [

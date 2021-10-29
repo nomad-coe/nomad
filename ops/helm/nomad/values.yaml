@@ -176,3 +176,6 @@ reprocess_match: false
 datacite:
   enabled: false
   prefix: "10.17172"
+
+aitoolkit:
+  enabled: true

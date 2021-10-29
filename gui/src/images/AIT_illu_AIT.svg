@@ -1,0 +1,27 @@
+<svg id="AIT_illu_AIT" xmlns="http://www.w3.org/2000/svg" width="339.541" height="324.5" viewBox="0 0 339.541 324.5">
+  <path id="Pfad_683" data-name="Pfad 683" d="M-242.884,1665.4c2.315,7.482,4.7,15.422,6.857,23.615s4.091,16.64,5.508,25.135c13.038,43.142-9.023,93.977-56.021,106.446-39.006,9.592-82.274,9.379-118.437-7.175A135.394,135.394,0,0,1-430.692,1798c-48.638-32.073-76.453-104.01-39.046-154.845,39.325-52.754,89.2-91.12,141.251-126.608a101.86,101.86,0,0,1,27.2-9.592c18.344-3.357,36.328.479,49.277,18.224,23.02,30.693,15.346,70.018,7.908,104.928A303.386,303.386,0,0,0-242.884,1665.4Z" transform="translate(553.569 -1505.852)" fill="#00dfe0" opacity="0.24"/>
+  <g id="Gruppe_61" data-name="Gruppe 61" transform="translate(0 118.773)">
+    <g id="Gruppe_15" data-name="Gruppe 15" transform="translate(0 17.241)">
+      <path id="Pfad_226" data-name="Pfad 226" d="M324.816,151.649,270.45,97.264l-19.911,74.3,54.385,54.366Z" transform="translate(-176.242 -97.264)" fill="#17a5f7"/>
+      <path id="Pfad_227" data-name="Pfad 227" d="M257.092,117.175l74.3-19.911-19.911,74.3-74.3,19.892Z" transform="translate(-237.18 -97.264)" fill="#00dfe0"/>
+      <path id="Pfad_228" data-name="Pfad 228" d="M291.566,184.9,237.18,130.515l74.3-19.892,54.385,54.366Z" transform="translate(-237.18 -36.326)" fill="#4472db"/>
+    </g>
+    <g id="Gruppe_16" data-name="Gruppe 16" transform="translate(74.296)">
+      <path id="Pfad_229" data-name="Pfad 229" d="M335.707,147.018,282.871,94.164l-19.351,72.2L316.374,219.2Z" transform="translate(-191.316 -94.164)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.71"/>
+      <path id="Pfad_230" data-name="Pfad 230" d="M269.889,113.515l72.2-19.351-19.351,72.2-72.2,19.332Z" transform="translate(-250.538 -94.164)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.71"/>
+      <path id="Pfad_231" data-name="Pfad 231" d="M303.392,179.333l-52.854-52.854,72.2-19.332L375.6,159.982Z" transform="translate(-250.538 -34.942)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.71"/>
+    </g>
+  </g>
+  <g id="Gruppe_62" data-name="Gruppe 62" transform="translate(219.28 99.24)">
+    <g id="Ellipse_4" data-name="Ellipse 4" transform="translate(0.261 0.26)" fill="none" stroke="#17a5f7" stroke-width="4">
+      <ellipse cx="60" cy="60.5" rx="60" ry="60.5" stroke="none"/>
+      <ellipse cx="60" cy="60.5" rx="58" ry="58.5" fill="none"/>
+    </g>
+    <path id="Pfad_684" data-name="Pfad 684" d="M1091.333,1576.073l10.381-34.384s-21.748-6.151-35.807,8.787C1084.359,1568.709,1091.333,1576.073,1091.333,1576.073Z" transform="translate(-1031.656 -1513.359)" fill="none" stroke="#17a5f7" stroke-width="4"/>
+    <path id="Pfad_685" data-name="Pfad 685" d="M1082.941,1570.153l-23.066-22.846s-10.544,7.689-9.446,21.528C1067.124,1570.373,1082.941,1570.153,1082.941,1570.153Z" transform="translate(-1034.851 -1511.947)" fill="#17a5f7"/>
+    <path id="Pfad_686" data-name="Pfad 686" d="M1104.77,1597.07c-5.272-9.227-18.453-26.8-18.453-26.8l30.316,12.3S1113.557,1593.335,1104.77,1597.07Z" transform="translate(-1027.463 -1507.231)" fill="none" stroke="#17a5f7" stroke-width="4"/>
+    <path id="Pfad_687" data-name="Pfad 687" d="M1095.7,1549.312c9.463,4.732,20.954,10.646,17.405,35.994" transform="translate(-1026.742 -1512.741)" fill="none" stroke="#17a5f7" stroke-width="4"/>
+    <path id="Pfad_688" data-name="Pfad 688" d="M1108.006,1594.862c-8.059,3.25-39.448,10.608-44.01-24.541,23.489.676,27.206,0,27.206,0Z" transform="translate(-1032.048 -1507.22)" fill="none" stroke="#17a5f7" stroke-width="4"/>
+  </g>
+  <path id="Pfad_941" data-name="Pfad 941" d="M2.376,0H9.9l4.95-17.622h29.3L49.1,0h7.524L37.818-68.508H21.186ZM26.928-61.974h5.148l10.4,37.521H16.533ZM67.419,0h7.623V-68.508H67.419ZM84.645-61.677h21.087V0h7.524V-61.677h20.889v-6.831h-49.5Z" transform="translate(167.541 324.5)" fill="#fff"/>
+</svg>

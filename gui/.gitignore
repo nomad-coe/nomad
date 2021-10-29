@@ -13,6 +13,8 @@
 public/metainfo/
 public/meta.json
 
+src/toolkitMetadata.json
+
 # misc
 .DS_Store
 .env.local

@@ -18,6 +18,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
+import { useLocation } from 'react-router-dom'
 import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button } from '@material-ui/core'
 import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
@@ -136,7 +137,15 @@ const useStyles = makeStyles(theme => ({
 
 function Navigation() {
   const classes = useStyles()
+  const { pathname } = useLocation()
   const scrollParentRef = useRef(null)
+
+  // Scroll to top upon changing page
+  useEffect(() => {
+    if (scrollParentRef.current) {
+      scrollParentRef.current.scrollTo(0, 0)
+    }
+  }, [pathname])
 
   return (
     <div className={classes.root}>
