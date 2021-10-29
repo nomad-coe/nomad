@@ -20,25 +20,24 @@ import PropTypes from 'prop-types'
 import FileSaver from 'file-saver'
 import { useErrors } from '../errors'
 import { apiBase } from '../../config'
-import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
+import { Tooltip, IconButton } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
 
-const DownloadButton = React.memo(function DownloadButton(props) {
-  const {tooltip, disabled, buttonProps, dark, query, choiceDisabled} = props
+const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
+  const {tooltip, disabled, buttonProps, dark, query} = props
   const {api, user} = useApi()
   const {raiseError} = useErrors()
 
   const [preparingDownload, setPreparingDownload] = useState(false)
-  const [anchorEl, setAnchorEl] = useState(null)
 
-  const download = (choice) => {
+  const download = () => {
     let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
-      const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
-      FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
+      const url = `${apiBase}/v1/uploads/${query.upload_id}/raw?offset=0&length=-1&compress=true&owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
+      FileSaver.saveAs(url, `nomad-download.zip`)
     }
 
     if (user) {
@@ -57,20 +56,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
 
   const handleClick = event => {
     event.stopPropagation()
-    if (choiceDisabled) {
-      download('raw')
-    } else {
-      setAnchorEl(event.currentTarget)
-    }
-  }
-
-  const handleSelect = (choice) => {
-    setAnchorEl(null)
-    download(choice)
-  }
-
-  const handleClose = () => {
-    setAnchorEl(null)
+    download()
   }
 
   return <React.Fragment>
@@ -84,17 +70,9 @@ const DownloadButton = React.memo(function DownloadButton(props) {
         <DownloadIcon />
       </Tooltip>
     </IconButton>
-    <Menu
-      anchorEl={anchorEl}
-      open={Boolean(anchorEl)}
-      onClose={handleClose}
-    >
-      <MenuItem onClick={() => handleSelect('raw')}>Raw uploaded files</MenuItem>
-      <MenuItem onClick={() => handleSelect('archive')}>NOMAD Archive files</MenuItem>
-    </Menu>
   </React.Fragment>
 })
-DownloadButton.propTypes = {
+UploadDownloadButton.propTypes = {
   /**
    * The query that defines what to download.
    */
@@ -111,8 +89,7 @@ DownloadButton.propTypes = {
    * Properties forwarded to the button.
    */
   buttonProps: PropTypes.object,
-  dark: PropTypes.bool,
-  choiceDisabled: PropTypes.bool
+  dark: PropTypes.bool
 }
 
-export default DownloadButton
+export default UploadDownloadButton

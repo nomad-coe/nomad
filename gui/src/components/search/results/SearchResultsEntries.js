@@ -18,7 +18,7 @@
 import React, { useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Link } from '@material-ui/core'
-import DownloadButton from '../../entry/DownloadButton'
+import EntryDownloadButton from '../../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions, Published } from '../../entry/EntryDetails'
 import { authorList } from '../../../utils'
 import {
@@ -107,7 +107,7 @@ const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
   >
     <DatatableToolbar title={`${data.length}/${pagination.total} search results`}>
       <DatatableToolbarActions selection>
-        <DownloadButton tooltip="Download files" query={query} />
+        <EntryDownloadButton tooltip="Download files" query={query} />
       </DatatableToolbarActions>
     </DatatableToolbar>
     <DatatableTable actions={EntryRowActions} details={EntryDetails}>

@@ -42,7 +42,7 @@ import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
-import DownloadButton from '../entry/DownloadButton'
+import UploadDownloadButton from '../entry/UploadDownloadButton'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -428,7 +428,7 @@ function UploadPage() {
             <MembersIcon />
           </Tooltip>
         </IconButton>
-        <DownloadButton choiceDisabled={true} tooltip="Download files" query={{'upload_id': uploadId}} />
+        <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
             <ReprocessIcon />

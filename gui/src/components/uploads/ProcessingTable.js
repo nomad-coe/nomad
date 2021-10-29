@@ -24,7 +24,7 @@ import {
   addColumnDefaults,
   Datatable, DatatablePagePagination, DatatableTable,
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
-import DownloadButton from '../entry/DownloadButton'
+import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 
 const columns = [
@@ -94,7 +94,7 @@ export default function ProcessingTable(props) {
     >
       <DatatableToolbar title={`${pagination.total} search results`}>
         <DatatableToolbarActions selection>
-          <DownloadButton tooltip="Download files" query={selectedQuery} />
+          <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
           {!upload.published && <EditUserMetadataDialog
             example={selected === 'all' ? data[0] : selected[0]}
             query={selectedQuery}
