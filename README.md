@@ -46,6 +46,10 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v0.10.8
+- new AI Toolkit GUI page
+- many minor parser fixes and improvements
+
 ### v0.10.7
 - adding OpenMX parser
 

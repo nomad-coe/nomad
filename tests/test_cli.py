@@ -17,13 +17,18 @@
 # limitations under the License.
 #
 
+from typing import cast
 import pytest
 import click.testing
 import json
 import datetime
 import time
+import zipfile
+import os.path
+import os
+import re
 
-from nomad import search, processing as proc, files
+from nomad import search, processing as proc, files, config
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc
@@ -33,6 +38,7 @@ from tests.app.flask.test_app import BlueprintClient
 from tests.app.flask.conftest import (  # pylint: disable=unused-import
     test_user_bravado_client, client, session_client, admin_user_bravado_client)  # pylint: disable=unused-import
 from tests.app.conftest import test_user_auth, admin_user_auth  # pylint: disable=unused-import
+from tests.processing.test_data import run_processing
 
 # TODO there is much more to test
 
@@ -340,6 +346,132 @@ class TestAdminUploads:
             assert calc.tasks_status == proc.SUCCESS
         else:
             assert calc.tasks_status == expected_state
+
+    @pytest.mark.parametrize('paths,entries', [
+        pytest.param(['0/POTCAR'], ['public'], id='single'),
+        pytest.param(['0/POTCAR.gz', '0/POTCAR.xz', '0/POTCAR'], ['public'], id='multiple'),
+        pytest.param(['0/POTCAR', 'POTCAR.xz'], ['public'], id='root'),
+        pytest.param(['0/POTCAR'], ['embargo'], id='embargo')
+    ])
+    def test_quarantine_raw_files(self, paths, entries, test_user, proc_infra):
+        upload_path = os.path.join(config.fs.tmp, 'upload.zip')
+        nomad_json = {}
+        for i, entry in enumerate(entries):
+            if entry == 'embargo':
+                nomad_json.setdefault('entries', {})[f'{i}/archive.json'] = dict(with_embargo=True)
+        with zipfile.ZipFile(upload_path, 'w') as zf:
+            for path in paths:
+                with zf.open(path, 'w') as f:
+                    f.write(b'content')
+
+            for i, _ in enumerate(entries):
+                zf.write('tests/data/parsers/archive.json', f'{i}/archive.json')
+
+            with zf.open('nomad.json', 'w') as f:
+                f.write(json.dumps(nomad_json, indent=2).encode())
+
+        # process upload
+        upload = run_processing(('test_upload_id', upload_path), test_user)
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+        public_upload_files = cast(files.PublicUploadFiles, upload.upload_files)
+
+        # run command
+        exec_results = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'quarantine-raw-files', '--', 'test_upload_id'],
+            catch_exceptions=False)
+
+        # assert results
+        assert re.search(r'Moving .* to quarantine', exec_results.output) is not None, exec_results.output
+        assert re.search(r'could not move files', exec_results.output) is None, exec_results.output
+
+        # assert files
+        quarantined_zip = public_upload_files._raw_file_object('quarantined')
+        with zipfile.ZipFile(quarantined_zip.os_path, 'r') as zf:
+            for path in paths:
+                assert path in zf.namelist()
+
+    @pytest.mark.parametrize('entries,with_empty,results', [
+        pytest.param(['embargo', 'embargo'], True, [r'removed empty zip.*public'], id='embargo'),
+        pytest.param(['public', 'public'], True, [r'removed empty zip.*restricted'], id='public'),
+        pytest.param(['embargo'], False, [r'non empty public file'], id='non-empty-public'),
+        pytest.param(['embargo', 'embargo'], None, [r'was already removed.*public'], id='embargo-wo-empty'),
+        pytest.param(['public', 'public'], None, [r'was already removed.*restricted'], id='public-wo-empty'),
+        pytest.param(['public', 'embargo'], None, [r'inconsistent upload'], id='mixed'),
+        pytest.param(['public', 'public', 'other'], True, [r'quarantined'], id='mixed-other'),
+        pytest.param(['public', 'public', 'other-large'], True, [r'inconsistent pack'], id='mixed-other-large')
+    ])
+    def test_prepare_migration(self, entries, results, with_empty, proc_infra, test_user):
+        # create upload
+        upload_path = os.path.join(config.fs.tmp, 'upload.zip')
+        nomad_json = dict(entries={})
+        entries_json = nomad_json['entries']
+        with zipfile.ZipFile(upload_path, 'w') as zf:
+            for i, entry in enumerate(entries):
+                if entry in ['other', 'other-large']:
+                    continue
+
+                mainfile = f'{i}/archive.json'
+                zf.write('tests/data/parsers/archive.json', mainfile)
+                entries_json[mainfile] = {
+                    'with_embargo': entry == 'embargo'
+                }
+
+            with zf.open('nomad.json', 'w') as f:
+                f.write(json.dumps(nomad_json).encode())
+
+        # process upload
+        upload = run_processing(('test_upload_id', upload_path), test_user)
+        upload.publish_upload()
+        try:
+            upload.block_until_complete(interval=.01)
+        except Exception:
+            pass
+
+        public_upload_files = cast(files.PublicUploadFiles, upload.upload_files)
+
+        # Add other files
+        if any(entry in ['other', 'other-large'] for entry in entries):
+            restricted_zip = public_upload_files._raw_file_object('restricted')
+            with zipfile.ZipFile(restricted_zip.os_path, 'w') as zf:
+                for i, entry in enumerate(entries):
+                    if entry not in ['other', 'other-large']:
+                        continue
+                    with zf.open(f'{i}/not_nomad.txt', 'w') as f:
+                        if entry == 'other-large':
+                            f.write(b'I am not a nomad mainfile.' * 256)
+                        else:
+                            f.write(b'I am not a nomad mainfile.')
+
+        # create empty restricted or publish ... procesing isn't doing that anymore, but
+        # did in the past
+        if with_empty is not None:
+            for access in ['public', 'restricted']:
+                zip_path = public_upload_files._raw_file_object(access)
+                if zip_path.exists():
+                    continue
+                with zipfile.ZipFile(zip_path.os_path, 'w') as zf:
+                    if not with_empty:
+                        with zf.open('file.txt', 'w') as f:
+                            f.write(b'Content')
+                    pass
+
+        # run command
+        exec_results = click.testing.CliRunner().invoke(
+            cli, ['admin', 'uploads', 'prepare-migration', '--', 'test_upload_id'],
+            catch_exceptions=False)
+
+        # assert results
+        for result in results:
+            assert re.search(result, exec_results.output) is not None, exec_results.output
+
+        # assert files
+        has_quarantined = re.search(r'quarantined', exec_results.output) is not None
+        assert public_upload_files._raw_file_object('quarantined').exists() == has_quarantined
 
 
 @pytest.mark.usefixtures('reset_config')

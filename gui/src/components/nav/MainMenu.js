@@ -146,7 +146,7 @@ export default function MainMenu() {
     <MenuBarMenu name="analyze" route="/metainfo" icon={<AnalyticsIcon/>}>
       {(!oasis && aitoolkitEnabled)
         ? <MenuBarItem
-          label="AI Toolkit" name="aitoolkit" route="/aitoolkit"
+          label="AI Toolkit" name="aitoolkit" route="/aitoolkit/main"
           tooltip="NOMAD's Artificial Intelligence Toolkit tutorial Jupyter notebooks"
           icon={<MetainfoIcon />}
         />

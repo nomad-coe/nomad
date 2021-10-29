@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
-import {ReactComponent as AboutSvg} from './about.svg'
+import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
@@ -197,7 +197,7 @@ export default function About() {
     })
     makeClickable('toolkit', () => {
       if (aitoolkitEnabled) {
-        history.push('/aitoolkit')
+        history.push('/aitoolkit/main')
       } else {
         window.location.href = 'https://nomad-lab.eu/tools/AItutorials'
       }

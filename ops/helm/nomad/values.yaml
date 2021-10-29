@@ -1,6 +1,6 @@
 ## Default values for nomad@FAIRDI
 version:
-  label: "0.10.7"
+  label: "0.10.8"
   isTest: false
   isBeta: false
   usesBetaData: false
@@ -176,3 +176,6 @@ reprocess_match: false
 datacite:
   enabled: false
   prefix: "10.17172"
+
+aitoolkit:
+  enabled: true

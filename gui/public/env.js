@@ -9,13 +9,13 @@ window.nomadEnv = {
   'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
   'matomoSiteId': '2',
   'version': {
-    'label': '0.10.7',
+    'label': '0.10.8',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
   'encyclopediaEnabled': true,
-  'aitoolkitEnabled': false,
+  'aitoolkitEnabled': true,
   'oasis': false
 }
