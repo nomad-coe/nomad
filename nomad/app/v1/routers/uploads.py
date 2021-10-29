@@ -571,7 +571,7 @@ async def get_upload_raw_path(
                 Set if compressed files should be decompressed before streaming the
                 content (that is: if there are compressed files *within* the raw files).
                 Note, only some compression formats are supported.''')),
-        user: User = Depends(create_user_dependency(required=True))):
+        user: User = Depends(create_user_dependency(required=True, signature_token_auth_allowed=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
     at the given `path`. The data is zipped if `compress = true`.
