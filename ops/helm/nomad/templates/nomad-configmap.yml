@@ -22,6 +22,7 @@ data:
     reprocess_unmatched: {{ .Values.reprocess_unmatched }}
     reprocess_rematch: {{ .Values.reprocess_rematch }}
     process_reuse_parser: {{ .Values.process_reuse_parser }}
+    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     fs:
       tmp: "{{ .Values.volumes.tmp }}"
       prefix_size: {{ .Values.volumes.prefixSize }}
