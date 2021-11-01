@@ -213,8 +213,8 @@ const useEntryDetailsStyles = makeStyles(theme => ({
   },
   entryDetailsContents: {
     display: 'flex',
-    maxWidth: 1024,
-    margin: 'auto'
+    width: '100%',
+    margin: '0'
   },
   entryDetailsRow: {
     paddingRight: theme.spacing(3)
@@ -240,7 +240,7 @@ export const EntryDetails = React.memo(({data}) => {
           <DomainMetadata data={data} />
         </div>
 
-        <div className={classes.entryDetailsRow} style={{flexGrow: 1}}>
+        <div className={classes.entryDetailsRow} style={{flexGrow: 1, minWidth: 'fit-content'}}>
           <Quantity className={classes.entryDetailsRow} column>
             <Quantity quantity='comment' placeholder='no comment' data={data} />
             <Quantity quantity='references' placeholder='no references' data={data}>
