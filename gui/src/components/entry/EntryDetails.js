@@ -259,7 +259,7 @@ export const EntryDetails = React.memo(({data}) => {
               <div>
                 {(data.datasets || []).map(ds => (
                   <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
+                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
                     {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
                   </Typography>))}
               </div>
