@@ -46,14 +46,6 @@ def admin_user_auth(admin_user: User):
 
 
 @pytest.fixture(scope='module')
-def test_users_dict(test_user, other_test_user, admin_user):
-    return {
-        'test_user': test_user,
-        'other_test_user': other_test_user,
-        'admin_user': admin_user}
-
-
-@pytest.fixture(scope='module')
 def test_auth_dict(
         test_user, other_test_user, admin_user,
         test_user_auth, other_test_user_auth, admin_user_auth):

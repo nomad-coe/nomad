@@ -1241,7 +1241,7 @@ def test_post_upload_action_publish_to_central_nomad(
                 assert new_calc_metadata_dict[k] == (embargo_length > 0)
             elif k not in (
                     'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
-                    'last_processing_time', 'publish_time',
+                    'last_processing_time', 'publish_time', 'embargo_length',
                     'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
                 assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
         assert new_calc.datasets == ['dataset_id']

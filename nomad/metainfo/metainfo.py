@@ -1356,7 +1356,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize = serialize_dtype
 
             elif isinstance(quantity_type, MEnum):
-                serialize = str
+                def serialize_enum(value):
+                    return None if value is None else str(value)
+
+                serialize = serialize_enum
 
             elif quantity_type == Any:
                 def _serialize(value: Any):
