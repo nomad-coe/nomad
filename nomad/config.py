@@ -328,6 +328,7 @@ reprocess = NomadConfig(
     # staging, we always reparse, add newfound entries, and delete unmatched entries.
     reparse_published_if_parser_unchanged=True,
     reparse_published_if_parser_changed=True,
+    reparse_with_changed_parser=True,
     add_newfound_entries_to_published=True,
     delete_unmatched_published_entries=False
 )
@@ -358,6 +359,7 @@ bundle_import = NomadConfig(
         # initial processing behaviour (see the config for `reprocess` for more info).
         reparse_published_if_parser_unchanged=True,
         reparse_published_if_parser_changed=True,
+        reparse_with_changed_parser=True,
         add_newfound_entries_to_published=True,
         delete_unmatched_published_entries=True
     )

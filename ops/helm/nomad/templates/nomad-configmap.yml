@@ -18,20 +18,21 @@ data:
       {{ if .Values.meta.deployment }}
       deployment: "{{ .Values.meta.deployment }}"
       {{ end }}
+    process_reuse_parser: {{ .Values.processReuseParser }}
+    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
+    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     reprocess:
-      reparse_published_if_parser_unchanged: "{{ .Values.reprocess.reparse_published_if_parser_unchanged }}"
-      reparse_published_if_parser_changed: "{{ .Values.reprocess.reparse_published_if_parser_changed }}"
-      add_newfound_entries_to_published: "{{ .Values.reprocess.add_newfound_entries_to_published }}"
-      delete_unmatched_published_entries:  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
+      reparse_published_if_parser_unchanged: "{{ .Values.reprocess.reparsePublishedIfParserUnchanged }}"
+      reparse_published_if_parser_changed: "{{ .Values.reprocess.reparsePublishedIfParserChanged }}"
+      reparse_with_changed_parser: "{{ .Values.reprocess.reparseWithChangedParser }}"
+      add_newfound_entries_to_published: "{{ .Values.reprocess.addNewfoundEntriesToPublished }}"
+      delete_unmatched_published_entries:  "{{ .Values.reprocess.deleteUnmatchedPublishedEntries }}"
     beta:
       label: "{{ .Values.version.label }}"
       isBeta: {{ .Values.version.isBeta }}
       isTest: {{ .Values.version.isTest }}
       usesBetaData: {{ .Values.version.usesBetaData }}
       officialUrl: "{{ .Values.version.officialUrl }}"
-    process_reuse_parser: {{ .Values.process_reuse_parser }}
-    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
-    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}

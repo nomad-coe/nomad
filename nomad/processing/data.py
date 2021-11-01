@@ -463,6 +463,7 @@ class Calc(Proc):
             settings = config.reprocess.customize(reprocess_settings)  # Add default settings
             reparse_if_parser_unchanged = settings.reparse_published_if_parser_unchanged
             reparse_if_parser_changed = settings.reparse_published_if_parser_changed
+            reparse_with_changed_parser = settings.reparse_with_changed_parser
             if reparse_if_parser_unchanged or reparse_if_parser_changed:
                 with utils.timer(logger, 'parser matching executed'):
                     parser = match_parser(
@@ -483,11 +484,13 @@ class Calc(Proc):
                             logger.info(
                                 'parser renamed, using new parser name',
                                 parser=parser.name)
+                            self.parser_name = parser.name  # Parser renamed
                         else:
+                            if not reparse_with_changed_parser:
+                                self.parser_name = parser.name  # Parser changed
                             logger.info(
                                 'different parser matches during re-process, use new parser',
                                 parser=parser.name)
-                        self.parser_name = parser.name  # Parser changed or renamed
 
         # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
