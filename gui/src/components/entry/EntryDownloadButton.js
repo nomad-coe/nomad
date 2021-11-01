@@ -23,20 +23,37 @@ import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
-import qs from 'qs'
-import { searchToQsData } from '../search/SearchContext'
+import { toAPIFilter } from '../search/SearchContext'
 
-function stringify(query) {
-  return qs.stringify(query, {indices: false, encode: false})
-}
-
-const DownloadButton = React.memo(function DownloadButton(props) {
+const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
   const {api, user} = useApi()
   const {raiseError} = useErrors()
 
   const [preparingDownload, setPreparingDownload] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
+
+  const download = (choice) => {
+    let queryStringData = toAPIFilter(query)
+    const owner = query.visibility || 'visible'
+    const openDownload = (token) => {
+      const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
+      FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
+    }
+
+    if (user) {
+      setPreparingDownload(true)
+      api.get('/auth/signature_token')
+        .then(response => {
+          const token = response.signature_token
+          openDownload(token)
+        })
+        .catch(raiseError)
+        .finally(setPreparingDownload(false))
+    } else {
+      openDownload()
+    }
+  }
 
   const handleClick = event => {
     event.stopPropagation()
@@ -45,24 +62,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
 
   const handleSelect = (choice) => {
     setAnchorEl(null)
-    let queryStringData = searchToQsData({query})
-    const openDownload = () => {
-      const url = `${apiBase}/v1/entries/${choice}/download?${stringify(queryStringData)}`
-      FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
-    }
-
-    if (user) {
-      setPreparingDownload(true)
-      api.get('/auth/signature_token')
-        .then(response => {
-          queryStringData.signature_token = response.signature_token
-          openDownload()
-        })
-        .catch(raiseError)
-        .finally(setPreparingDownload(false))
-    } else {
-      openDownload()
-    }
+    download(choice)
   }
 
   const handleClose = () => {
@@ -90,7 +90,7 @@ const DownloadButton = React.memo(function DownloadButton(props) {
     </Menu>
   </React.Fragment>
 })
-DownloadButton.propTypes = {
+EntryDownloadButton.propTypes = {
   /**
    * The query that defines what to download.
    */
@@ -110,4 +110,4 @@ DownloadButton.propTypes = {
   dark: PropTypes.bool
 }
 
-export default DownloadButton
+export default EntryDownloadButton

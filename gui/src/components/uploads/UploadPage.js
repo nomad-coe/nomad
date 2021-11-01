@@ -42,6 +42,7 @@ import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
+import UploadDownloadButton from '../entry/UploadDownloadButton'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -366,7 +367,6 @@ function UploadPage() {
   }
 
   const handleReprocess = () => {
-    setDeleteClicked(true)
     api.post(`/uploads/${uploadId}/action/process`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
@@ -406,7 +406,7 @@ function UploadPage() {
             </Grid>
             <Grid item style={{flexGrow: 1}}>
               <Typography>Upload is processing ...</Typography>
-              <Typography>{data.upload.current_process}</Typography>
+              <Typography>{data.upload.last_status_message}</Typography>
             </Grid>
           </Grid>
         </Page>
@@ -428,6 +428,7 @@ function UploadPage() {
             <MembersIcon />
           </Tooltip>
         </IconButton>
+        <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
             <ReprocessIcon />
@@ -467,7 +468,7 @@ function UploadPage() {
                 disabled={isProcessing} />
             </React.Fragment>
           )}
-          <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing} />
+          <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
         </StepContent>
       </Step>
       <Step expanded={!isEmpty}>
