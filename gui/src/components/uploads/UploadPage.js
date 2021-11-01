@@ -406,7 +406,7 @@ function UploadPage() {
             </Grid>
             <Grid item style={{flexGrow: 1}}>
               <Typography>Upload is processing ...</Typography>
-              <Typography>{data.upload.current_process}</Typography>
+              <Typography>{data.upload.last_status_message}</Typography>
             </Grid>
           </Grid>
         </Page>
