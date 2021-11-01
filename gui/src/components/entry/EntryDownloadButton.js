@@ -26,7 +26,7 @@ import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
 
 const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
-  const {tooltip, disabled, buttonProps, dark, query, choiceDisabled} = props
+  const {tooltip, disabled, buttonProps, dark, query} = props
   const {api, user} = useApi()
   const {raiseError} = useErrors()
 
@@ -57,11 +57,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
 
   const handleClick = event => {
     event.stopPropagation()
-    if (choiceDisabled) {
-      download('raw')
-    } else {
-      setAnchorEl(event.currentTarget)
-    }
+    setAnchorEl(event.currentTarget)
   }
 
   const handleSelect = (choice) => {
@@ -111,8 +107,7 @@ EntryDownloadButton.propTypes = {
    * Properties forwarded to the button.
    */
   buttonProps: PropTypes.object,
-  dark: PropTypes.bool,
-  choiceDisabled: PropTypes.bool
+  dark: PropTypes.bool
 }
 
 export default EntryDownloadButton
