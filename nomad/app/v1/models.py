@@ -323,7 +323,9 @@ class QueryParameters:
         request: Request,
         owner: Optional[Owner] = FastApiQuery(
             'public', description=strip(Owner.__doc__)),
-        json_query: Optional[str] = FastApiQuery(None),
+        json_query: Optional[str] = FastApiQuery(None, description=strip('''
+                To pass a query string in the format of JSON e.g. '{{"results.material.elements": ["H", "O"]}}'.
+            ''')),
         q: Optional[List[str]] = FastApiQuery(
             [], description=strip('''
                 Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
