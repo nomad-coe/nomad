@@ -26,6 +26,7 @@ from pymongo.cursor import Cursor
 from nomad.processing import ProcessStatus, Upload, Calc
 from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
+from nomad.parsing.parsers import parser_dict
 
 
 _metadata_keys_to_flatten_v0 = (
@@ -288,6 +289,10 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
     # Check that all required fields are populated
     for field in ('_id', 'upload_id', 'entry_create_time', 'parser_name'):
         assert entry_dict.get(field) is not None, f'Missing required entry field: {field}'
+
+    # Check if the parser exists
+    parser_name = entry_dict.get('parser_name')
+    assert parser_name in parser_dict, f'Parser does not exist: {parser_name}'
 
 
 def _convert_mongo_proc(proc_dict: Dict[str, Any]):
