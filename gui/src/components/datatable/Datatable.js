@@ -352,6 +352,8 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
     })
   } : null
 
+  const timeKeySet = new Set(['upload_create_time', 'entry_create_time', 'last_processing_time'])
+
   return <React.Fragment>
     <TableRow
       className={clsx({
@@ -380,7 +382,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
           return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '150px', width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
             {(column?.render && column?.render(row)) || row[column.key] || ''}
           </TableCell>
-        } else if (column.key === 'upload_create_time') {
+        } else if (timeKeySet.has(column.key)) {
           return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '100px'}}>
             <Typography noWrap>
               {new Date(row[column.key]).toLocaleString()}
