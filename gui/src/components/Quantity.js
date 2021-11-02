@@ -509,3 +509,5 @@ SectionTable.propTypes = {
   units: PropTypes.object,
   'data-testid': PropTypes.string
 }
+
+export default withStyles(Quantity.styles)(Quantity)
