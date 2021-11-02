@@ -423,11 +423,6 @@ function UploadPage() {
         </WithButton>
       </Grid>
       <Grid>
-        <IconButton>
-          <Tooltip title="Manage upload members">
-            <MembersIcon />
-          </Tooltip>
-        </IconButton>
         <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
@@ -435,7 +430,7 @@ function UploadPage() {
           </Tooltip>
         </IconButton>
         <IconButton disabled={isPublished} onClick={handleDelete}>
-          <Tooltip title="Manage delete the upload">
+          <Tooltip title="Delete the upload">
             <DeleteIcon />
           </Tooltip>
         </IconButton>
