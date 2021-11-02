@@ -372,12 +372,16 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
         />
       </TableCell>}
       {columns.map(function(column) {
-        if (column.key === 'upload_id') {
+        if (column.key === 'upload_id' || column.key === 'entry_id') {
           return <TableCell key={column.key} align={column.align || 'right'}>
-            <Quantity quantity="upload_id" label="upload id" noTitle noWrap withClipboard data={data} />
+            <Quantity quantity="upload_id" label="upload id" noTitle noWrap withClipboard data={data}/>
+          </TableCell>
+        } else if (column.key === 'mainfile') {
+          return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '150px', width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+            {(column?.render && column?.render(row)) || row[column.key] || ''}
           </TableCell>
         } else {
-          return <TableCell key={column.key} align={column.align || 'right'}>
+          return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '100px'}}>
             {(column?.render && column?.render(row)) || row[column.key] || ''}
           </TableCell>
         }
