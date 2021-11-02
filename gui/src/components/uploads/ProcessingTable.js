@@ -72,8 +72,7 @@ addColumnDefaults(columns)
 const defaultSelectedColumns = [
   'entry_id',
   'mainfile',
-  'parser_name',
-  'complete_time']
+  'parser_name']
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
