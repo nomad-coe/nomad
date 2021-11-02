@@ -449,6 +449,8 @@ class Calc(Proc):
         if self.upload is None:
             logger.error('calculation upload does not exist')
 
+        settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+
         # 1. Determine if we should parse or not
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
@@ -456,41 +458,29 @@ class Calc(Proc):
         self._is_initial_processing = self.nomad_version is None
         if not self.upload.published or self._is_initial_processing:
             should_parse = True
-        else:
-            # This entry has already been published and has metadata.
-            # Determine if we should reparse or keep it.
+        elif not settings.reprocess_existing_entries:
             should_parse = False
-            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
-            reparse_if_parser_unchanged = settings.reparse_published_if_parser_unchanged
-            reparse_if_parser_changed = settings.reparse_published_if_parser_changed
-            reparse_with_changed_parser = settings.reparse_with_changed_parser
-            if reparse_if_parser_unchanged or reparse_if_parser_changed:
+        else:
+            if settings.rematch_published and not settings.use_original_parser:
                 with utils.timer(logger, 'parser matching executed'):
                     parser = match_parser(
                         self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
-                if parser is None:
-                    # Should only be possible if the upload is published and we have
-                    # settings.delete_unmatched_published_entries == False
-                    logger.warn('no parser matches during re-process, not updating the entry')
-                    self.warnings = ['no matching parser found during processing']
-                else:
-                    parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
-                    if reparse_if_parser_unchanged and not parser_changed:
-                        should_parse = True
-                    elif reparse_if_parser_changed and parser_changed:
-                        should_parse = True
-                    if should_parse and self.parser_name != parser.name:
-                        if parser_dict[self.parser_name].name == parser.name:
-                            logger.info(
-                                'parser renamed, using new parser name',
-                                parser=parser.name)
-                            self.parser_name = parser.name  # Parser renamed
-                        else:
-                            if not reparse_with_changed_parser:
-                                self.parser_name = parser.name  # Parser changed
-                            logger.info(
-                                'different parser matches during re-process, use new parser',
-                                parser=parser.name)
+            else:
+                parser = parser_dict[self.parser_name]
+
+            if parser is None:
+                # Should only be possible if the upload is published and we have
+                logger.warn('no parser matches during process, not updating the entry')
+                self.warnings = ['no matching parser found during processing']
+            else:
+                should_parse = True
+                parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
+                if parser_changed:
+                    if not settings.use_original_parser:
+                        logger.info(
+                            'different parser matches during process, use new parser',
+                            parser=parser.name)
+                        self.parser_name = parser.name  # Parser renamed
 
         # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
@@ -515,7 +505,7 @@ class Calc(Proc):
                         self._parser_results.m_resource.unload()
                 except Exception as e:
                     logger.error('could not unload processing results', exc_info=e)
-        else:
+        elif self.upload.published:
             # 2b. Keep published entry as it is
             self.set_last_status_message('Preserving entry data')
             try:
@@ -526,7 +516,9 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
-        return
+        else:
+            # 2b. Keep staging entry as it is
+            pass
 
     def on_fail(self):
         # in case of failure, index a minimum set of metadata and mark
@@ -1208,84 +1200,64 @@ class Upload(Proc):
         self.set_last_status_message('Parsing all files')
         logger = self.get_logger()
 
-        with utils.timer(logger, 'calcs processing called'):
-            try:
-                settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        try:
+            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
 
-                old_entries = Calc.objects(upload_id=self.upload_id)
-                has_old_entries = old_entries.count() > 0
-                matched_entries: Set[str] = set()
-                entries_to_delete: List[str] = []
-                count_already_processing = 0
-                for filename, parser in self.match_mainfiles():
-                    calc_id = generate_entry_id(self.upload_id, filename)
+            if not self.published or settings.rematch_published:
+                with utils.timer(logger, 'matching completed'):
+                    old_entries = set([entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)])
+                    for filename, parser in self.match_mainfiles():
+                        calc_id = generate_entry_id(self.upload_id, filename)
 
-                    try:
-                        entry = Calc.get(calc_id)
-                        # Matching entry already exists.
-                        if entry.process_running:
-                            count_already_processing += 1
-                        # Ensure that we update the parser if in staging
-                        if not self.published and parser.name != entry.parser_name:
-                            entry.parser_name = parser.name
-                            entry.save()
-                        matched_entries.add(calc_id)
-                    except KeyError:
-                        # No existing entry found
-                        if not self.published or settings.add_newfound_entries_to_published:
-                            entry = Calc.create(
-                                calc_id=calc_id,
-                                mainfile=filename,
-                                parser_name=parser.name,
-                                worker_hostname=self.worker_hostname,
-                                upload_id=self.upload_id)
-                            entry.save()
-                            matched_entries.add(calc_id)
-                # Done matching. Examine old unmatched entries.
-                for entry in old_entries:
-                    if entry.calc_id not in matched_entries:
-                        if entry.process_running:
-                            count_already_processing += 1
+                        try:
+                            entry = Calc.get(calc_id)
+                            # Matching entry already exists.
+                            # Ensure that we update the parser if in staging
+                            if not self.published and parser.name != entry.parser_name:
+                                entry.parser_name = parser.name
+                                entry.save()
+
+                            old_entries.remove(calc_id)
+                        except KeyError:
+                            # No existing entry found
+                            if not self.published or settings.add_matched_entries_to_published:
+                                entry = Calc.create(
+                                    calc_id=calc_id,
+                                    mainfile=filename,
+                                    parser_name=parser.name,
+                                    worker_hostname=self.worker_hostname,
+                                    upload_id=self.upload_id)
+                                entry.save()
+
+                    # Delete old entries
+                    if len(old_entries) > 0:
+                        entries_to_delete: List[str] = list(old_entries)
+                        logger.warn('Some entries did not match', count=len(entries_to_delete))
                         if not self.published or settings.delete_unmatched_published_entries:
-                            entries_to_delete.append(entry.calc_id)
+                            delete_partial_archives_from_mongo(entries_to_delete)
+                            for calc_id in entries_to_delete:
+                                search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
+                                entry = Calc.get(calc_id)
+                            entry.delete()
 
-                # Delete entries
-                if entries_to_delete:
-                    logger.warn(
-                        'Some entries are disappearing',
-                        count=len(entries_to_delete))
-                    delete_partial_archives_from_mongo(entries_to_delete)
-                    for calc_id in entries_to_delete:
-                        search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
-                        entry = Calc.get(calc_id)
-                        entry.delete()
+            # reset all calcs
+            with utils.timer(logger, 'calcs processing resetted'):
+                Calc._get_collection().update_many(
+                    dict(upload_id=self.upload_id),
+                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-                if has_old_entries:
-                    # Reset all entries on upload
-                    with utils.timer(logger, 'calcs resetted'):
-                        if count_already_processing > 0:
-                            logger.warn(
-                                'processes are still/already running some entries, they have been resetted',
-                                count=count_already_processing)
+            # process call calcs
+            with utils.timer(logger, 'calcs processing called'):
+                Calc.process_all(
+                    Calc.process_calc, dict(upload_id=self.upload_id),
+                    process_kwargs=dict(reprocess_settings=settings))
 
-                        # reset all calcs
-                        Calc._get_collection().update_many(
-                            dict(upload_id=self.upload_id),
-                            {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
-                with utils.timer(logger, 'calcs processing called'):
-                    # process call calcs
-                    Calc.process_all(
-                        Calc.process_calc, dict(upload_id=self.upload_id),
-                        process_kwargs=dict(reprocess_settings=settings))
-                    logger.info('completed to trigger process of all calcs')
-
-            except Exception as e:
-                # try to remove the staging copy in failure case
-                logger.error('failed to trigger processing of all entries', exc_info=e)
-                if self.published:
-                    self._cleanup_staging_files()
-                raise
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            logger.error('failed to trigger processing of all entries', exc_info=e)
+            if self.published:
+                self._cleanup_staging_files()
+            raise
 
     def check_join(self):
         '''

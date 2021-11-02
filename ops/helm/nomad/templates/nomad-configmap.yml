@@ -22,17 +22,18 @@ data:
     encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
     aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     reprocess:
-      reparse_published_if_parser_unchanged: "{{ .Values.reprocess.reparsePublishedIfParserUnchanged }}"
-      reparse_published_if_parser_changed: "{{ .Values.reprocess.reparsePublishedIfParserChanged }}"
-      reparse_with_changed_parser: "{{ .Values.reprocess.reparseWithChangedParser }}"
-      add_newfound_entries_to_published: "{{ .Values.reprocess.addNewfoundEntriesToPublished }}"
-      delete_unmatched_published_entries:  "{{ .Values.reprocess.deleteUnmatchedPublishedEntries }}"
+      rematch_published: {{ .Values.reprocess.rematchPublished }}
+      reprocess_existing_entries: {{ .Values.reprocess.reprocessExistingEntries }}
+      use_original_parser: {{ .Values.reprocess.useOriginalParser }}
+      add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
+      delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
     beta:
       label: "{{ .Values.version.label }}"
       isBeta: {{ .Values.version.isBeta }}
       isTest: {{ .Values.version.isTest }}
       usesBetaData: {{ .Values.version.usesBetaData }}
       officialUrl: "{{ .Values.version.officialUrl }}"
+    process_reuse_parser: {{ .Values.processReuseParser }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}

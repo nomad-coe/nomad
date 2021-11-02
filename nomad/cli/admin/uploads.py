@@ -83,7 +83,7 @@ def _run_parallel(uploads, parallel: int, callable, label: str):
 
 
 def _run_processing(
-        uploads, parallel: int, process, label: str, reprocess_running: bool = False,
+        uploads, parallel: int, process, label: str, process_running: bool = False,
         wait_until_complete: bool = True, reset_first: bool = False):
 
     from nomad import processing as proc
@@ -93,7 +93,7 @@ def _run_processing(
             'cli calls %s processing' % label,
             current_process=upload.current_process,
             last_status_message=upload.last_status_message, upload_id=upload.upload_id)
-        if upload.process_running and not reprocess_running:
+        if upload.process_running and not process_running:
             logger.warn(
                 'cannot trigger %s, since the upload is already/still processing' % label,
                 current_process=upload.current_process,
@@ -431,13 +431,18 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 @uploads.command(help='Reprocess selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
-@click.option('--reprocess-running', is_flag=True, help='Also reprocess already running processes.')
+@click.option('--process-running', is_flag=True, help='Also reprocess already running processes.')
+@click.option('--setting', type=str, multiple=True, help='key=value to overwrite a default reprocess config setting.')
 @click.pass_context
-def re_process(ctx, uploads, parallel: int, reprocess_running: bool):
+def process(ctx, uploads, parallel: int, process_running: bool, setting=typing.List[str]):
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+    settings: typing.Dict[str, bool] = {}
+    for settings_str in setting:
+        key, value = settings_str.split('=')
+        settings[key] = bool(value)
     _run_processing(
-        uploads, parallel, lambda upload: upload.process_upload(), 'processing',
-        reprocess_running=reprocess_running, reset_first=True)
+        uploads, parallel, lambda upload: upload.process_upload(reprocess_settings=settings),
+        'processing', process_running=process_running, reset_first=True)
 
 
 @uploads.command(help='Repack selected uploads.')

@@ -326,10 +326,10 @@ reprocess = NomadConfig(
     # Configures standard behaviour when reprocessing.
     # Note, the settings only matter for published uploads and entries. For uploads in
     # staging, we always reparse, add newfound entries, and delete unmatched entries.
-    reparse_published_if_parser_unchanged=True,
-    reparse_published_if_parser_changed=True,
-    reparse_with_changed_parser=True,
-    add_newfound_entries_to_published=True,
+    rematch_published=True,
+    reprocess_existing_entries=True,
+    use_original_parser=False,
+    add_matched_entries_to_published=True,
     delete_unmatched_published_entries=False
 )
 
@@ -357,11 +357,11 @@ bundle_import = NomadConfig(
 
         # When importing with trigger_processing=True, the settings below control the
         # initial processing behaviour (see the config for `reprocess` for more info).
-        reparse_published_if_parser_unchanged=True,
-        reparse_published_if_parser_changed=True,
-        reparse_with_changed_parser=True,
-        add_newfound_entries_to_published=True,
-        delete_unmatched_published_entries=True
+        rematch_published=True,
+        reprocess_existing_entries=True,
+        use_original_parser=False,
+        add_matched_entries_to_published=True,
+        delete_unmatched_published_entries=False
     )
 )
 

@@ -217,7 +217,7 @@ class TestAdminUploads:
         assert calc.nomad_version != 'test_version'
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 're-process', '--parallel', '2', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 'process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'processing' in result.stdout
