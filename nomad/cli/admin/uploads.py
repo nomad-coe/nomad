@@ -121,12 +121,12 @@ def _run_processing(
 
 
 @admin.group(help='Upload related commands')
-@click.option('--user', help='Select uploads of user with given id', type=str)
+@click.option('--uploads-mongo-query', type=str, help='A query')
+@click.option('--entries-mongo-query', type=str, help='A query')
+@click.option('--entries-es-query', type=str, help='A query')
 @click.option('--unpublished', help='Select only uploads in staging', is_flag=True)
 @click.option('--published', help='Select only uploads that are publised', is_flag=True)
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
-@click.option('--program-name', multiple=True, type=str, help='Select only uploads with calcs of given codes')
-@click.option('--query-mongo', is_flag=True, help='Select query mongo instead of elastic search.')
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
 @click.option('--processing-failure-calcs', is_flag=True, help='Select uploads with calcs with failed processing')
@@ -143,98 +143,109 @@ def uploads(ctx, **kwargs):
 
 def _query_uploads(
         uploads,
-        user: str, unpublished: bool, published: bool, processing: bool, outdated: bool,
-        program_name: typing.List[str], query_mongo: bool,
+        unpublished: bool, published: bool, processing: bool, outdated: bool,
+        uploads_mongo_query: str, entries_mongo_query: str, entries_es_query: str,
         processing_failure_uploads: bool, processing_failure_calcs: bool,
         processing_failure: bool, processing_incomplete_uploads: bool,
         processing_incomplete_calcs: bool, processing_incomplete: bool,
         processing_necessary: bool, unindexed: bool):
 
-    import mongoengine
+    '''
+    Produces a list of uploads (mongoengine proc.Upload objects) based on a given
+    list of upoad ids and further filter parameters.
+    '''
+
+    from typing import Set, cast
     import json
-    import elasticsearch_dsl as es
+    from mongoengine import Q
 
-    from nomad import infrastructure, processing as proc
+    from nomad import infrastructure, processing as proc, search
+    from nomad.app.v1 import models
 
-    mongo_client = infrastructure.setup_mongo()
+    infrastructure.setup_mongo()
     infrastructure.setup_elastic()
 
-    query = mongoengine.Q()
-    calc_query = None
-    if user is not None:
-        query |= mongoengine.Q(user_id=user)
-    if unpublished:
-        query |= mongoengine.Q(published=False)
-    if published:
-        query |= mongoengine.Q(published=True)
-    if processing:
-        query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+    if uploads is not None and len(uploads) == 0:
+        uploads = None  # None meaning all uploads
+    else:
+        uploads = set(uploads)
+
+    entries_mongo_query_q = None
+    if entries_mongo_query:
+        entries_mongo_query_q = Q(**json.loads(entries_mongo_query))
+
+    entries_query_uploads: Set[str] = set()
+
+    if entries_es_query is not None:
+        entries_es_query_dict = json.loads(entries_es_query)
+        results = search.search(
+            owner='admin',
+            query=entries_es_query_dict,
+            pagination=models.MetadataPagination(page_size=0),
+            user_id=config.services.admin_user_id,
+            aggregations={
+                'uploads': models.Aggregation(
+                    terms=models.TermsAggregation(
+                        quantity='upload_id',
+                        pagination=models.AggregationPagination(
+                            page_size=10000
+                        )
+                    )
+                )
+            })
+
+        es_based_uploads = set([
+            cast(str, bucket.value)
+            for bucket in results.aggregations['uploads'].terms.data])  # pylint: disable=no-member
+        entries_query_uploads.update(es_based_uploads)
 
     if outdated:
-        uploads = proc.Calc._get_collection().distinct(
-            'upload_id',
-            {'nomad_version': {'$ne': config.meta.version}})
-        query |= mongoengine.Q(upload_id__in=uploads)
-
-    if program_name is not None and len(program_name) > 0:
-        code_queries = [es.Q('match', **{'results.method.simulation.program_name': name}) for name in program_name]
-        code_query = es.Q('bool', should=code_queries, minimum_should_match=1)
-
-        code_search = es.Search(index=config.elastic.entries_index)
-        code_search = code_search.query(code_query)
-        code_search.aggs.bucket('uploads', es.A(
-            'terms', field='upload_id', size=10000, min_doc_count=1))
-        uploads = [
-            upload['key']
-            for upload in code_search.execute().aggs['uploads']['buckets']]
-
-        query |= mongoengine.Q(upload_id__in=uploads)
+        if not entries_mongo_query_q:
+            entries_mongo_query_q = Q()
+        entries_mongo_query_q |= Q(nomad_version={'$ne': config.meta.version})
 
     if processing_failure_calcs or processing_failure or processing_necessary:
-        if calc_query is None:
-            calc_query = mongoengine.Q()
-        calc_query |= mongoengine.Q(process_status=proc.ProcessStatus.FAILURE)
-    if processing_failure_uploads or processing_failure or processing_necessary:
-        query |= mongoengine.Q(process_status=proc.ProcessStatus.FAILURE)
+        if not entries_mongo_query_q:
+            entries_mongo_query_q = Q()
+        entries_mongo_query_q |= Q(process_status=proc.ProcessStatus.FAILURE)
+
     if processing_incomplete_calcs or processing_incomplete or processing_necessary:
-        if calc_query is None:
-            calc_query = mongoengine.Q()
-        calc_query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+        if not entries_mongo_query_q:
+            entries_mongo_query_q = Q()
+        entries_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+
+    if entries_mongo_query_q:
+        mongo_entry_based_uploads = proc.Calc.objects(entries_mongo_query_q).distinct(field="upload_id")
+        entries_query_uploads.update(mongo_entry_based_uploads)
+
+    if len(entries_query_uploads) > 0:
+        uploads_mongo_query_q = Q(upload_id__in=list(entries_query_uploads))
+    else:
+        uploads_mongo_query_q = Q()
+
+    if uploads_mongo_query:
+        uploads_mongo_query_q |= Q(**json.loads(uploads_mongo_query))
+
+    if published:
+        uploads_mongo_query_q |= Q(publish_time__exists=True)
+
+    if unpublished:
+        uploads_mongo_query_q |= Q(publish_time__exists=False)
+
+    if processing:
+        uploads_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+
+    if processing_failure_uploads or processing_failure or processing_necessary:
+        uploads_mongo_query_q |= Q(process_status=proc.ProcessStatus.FAILURE)
+
     if processing_incomplete_uploads or processing_incomplete or processing_necessary:
-        query |= mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+        uploads_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
-    if unindexed:
-        from nomad.search import quantity_values
-        uploads_in_es = set(quantity_values('upload_id', page_size=1000, owner='all'))
+    final_query = uploads_mongo_query_q
+    if uploads is not None:
+        final_query &= Q(upload_id__in=list(uploads))
 
-        uploads_in_mongo = mongo_client[config.mongo.db_name]['calc'].distinct('upload_id')
-
-        uploads_not_in_es = []
-        for upload_id in uploads_in_mongo:
-            if upload_id not in uploads_in_es:
-                uploads_not_in_es.append(upload_id)
-
-        query |= mongoengine.Q(
-            upload_id__in=uploads_not_in_es)
-
-    try:
-        json_query = json.loads(' '.join(uploads))
-        if query_mongo:
-            uploads = proc.Calc.objects(**json_query).distinct(field="upload_id")
-        else:
-            from nomad.search import quantity_values
-            uploads = list(quantity_values(
-                'upload_id', query=es.Q(json_query), page_size=1000, owner='all'))
-    except Exception:
-        pass
-
-    if calc_query is not None:
-        query |= mongoengine.Q(
-            upload_id__in=proc.Calc.objects(calc_query).distinct(field="upload_id"))
-    if len(uploads) > 0:
-        query |= mongoengine.Q(upload_id__in=uploads)
-
-    return query, proc.Upload.objects(query)
+    return final_query, proc.Upload.objects(final_query)
 
 
 @uploads.command(help='List selected uploads')

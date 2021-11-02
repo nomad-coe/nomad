@@ -141,27 +141,12 @@ def transform_for_index_test(calc):
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
 
-    @pytest.mark.parametrize('programs, count', [
-        (['VASP'], 1),
-        (['doesNotExist'], 0),
-        (['VASP', 'doesNotExist'], 1)])
-    def test_uploads_program(self, published, programs, count):
-        programs_args = []
-        for program in programs:
-            programs_args.append('--program-name')
-            programs_args.append(program)
-        result = invoke_cli(
-            cli, ['admin', 'uploads'] + programs_args + ['ls'], catch_exceptions=False)
-
-        assert result.exit_code == 0
-        assert '%d uploads selected' % count in result.stdout
-
     def test_query_mongo(self, published):
         upload_id = published.upload_id
 
         query = dict(upload_id=upload_id)
         result = invoke_cli(
-            cli, ['admin', 'uploads', '--query-mongo', 'ls', json.dumps(query)],
+            cli, ['admin', 'uploads', '--entries-mongo-query', json.dumps(query), 'ls'],
             catch_exceptions=False)
 
         assert result.exit_code == 0
@@ -180,7 +165,7 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'ls', '{"match":{"upload_id":"%s"}}' % upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', '--entries-es-query', f'{{"upload_id":"{upload_id}"}}', 'ls'], catch_exceptions=False)
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
