@@ -25,6 +25,7 @@ import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
 import searchQuantities from '../../searchQuantities'
+import Quantity from '../Quantity'
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})
@@ -370,9 +371,18 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
           onClick={handleSelect}
         />
       </TableCell>}
-      {columns.map(column => <TableCell key={column.key} align={column.align || 'right'}>
-        {(column?.render && column?.render(row)) || row[column.key] || ''}
-      </TableCell>)}
+      {columns.map(function(column) {
+        if (column.key === 'upload_id') {
+          return <TableCell key={column.key} align={column.align || 'right'}>
+            <Quantity quantity="upload_id" label="upload id" noTitle noWrap withClipboard data={data} />
+          </TableCell>
+        } else {
+          return <TableCell key={column.key} align={column.align || 'right'}>
+            {(column?.render && column?.render(row)) || row[column.key] || ''}
+          </TableCell>
+        }
+      })
+      }
       {actions && <TableCell
         align="right" size="small" className={classes.rowActionsCell}
         onClick={(event) => event.stopPropagation()}
