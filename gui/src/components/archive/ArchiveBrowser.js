@@ -29,6 +29,8 @@ import Markdown from '../Markdown'
 import { Overview } from './Overview'
 import { toUnitSystem, useUnits } from '../../units'
 
+const timeKeySet = new Set(['upload_create_time', 'entry_create_time', 'last_processing_time'])
+
 export const configState = atom({
   key: 'config',
   default: {
@@ -397,15 +399,25 @@ function Section({section, def, parent, units}) {
         .map(quantityDef => {
           const key = quantityDef.name
           const disabled = section[key] === undefined
-          return <Item key={key} itemKey={key} disabled={disabled}>
-            <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-              <Typography component="span">
-                <Box fontWeight="bold" component="span">
-                  {quantityDef.name}
-                </Box>
-              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} units={units}/></span>}
-            </Box>
-          </Item>
+          return (
+            <Item key={key} itemKey={key} disabled={disabled}>
+              <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+                <Typography component="span">
+                  <Box fontWeight="bold" component="span">
+                    {quantityDef.name}
+                  </Box>
+                </Typography>{!disabled &&
+                  <span>&nbsp;=&nbsp;
+                    <QuantityItemPreview
+                      value={(timeKeySet.has(quantityDef.name) ? new Date(section[quantityDef.name]).toLocaleString() : section[quantityDef.name])}
+                      def={quantityDef}
+                      units={units}
+                    />
+                  </span>
+                }
+              </Box>
+            </Item>
+          )
         })
       }
     </Compartment>
@@ -422,7 +434,11 @@ Section.propTypes = ({
 function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
-    <QuantityValue value={value} def={def} units={units} />
+    <QuantityValue
+      value={(timeKeySet.has(def.name) ? new Date(value).toLocaleString() : value)}
+      def={def}
+      units={units}
+    />
     <Meta def={def} />
   </Content>
 }
