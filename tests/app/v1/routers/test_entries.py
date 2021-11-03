@@ -29,8 +29,8 @@ from tests.utils import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import (
-    assert_response, assert_base_metadata_response, assert_metadata_response,
-    assert_required, assert_aggregations, assert_pagination,
+    aggregation_exclude_from_search_test_parameters, assert_response, assert_base_metadata_response,
+    assert_metadata_response, assert_required, assert_aggregations, assert_pagination,
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
     perform_owner_test, owner_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
@@ -366,6 +366,27 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
         assert_aggregations(
             response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
             default_key='entry_id')
+
+
+@pytest.mark.parametrize(
+    'query,aggs,agg_lengths,total,status_code',
+    aggregation_exclude_from_search_test_parameters(entry_prefix='', total_per_entity=1, total=23))
+def test_entries_aggregations_exclude_from_search(client, data, query, aggs, agg_lengths, total, status_code):
+    aggs = {f'agg_{i}': {'terms': agg} for i, agg in enumerate(aggs)}
+
+    response_json = perform_entries_metadata_test(
+        client, owner='visible',
+        query=query, aggregations=aggs,
+        pagination=dict(page_size=0),
+        status_code=status_code, http_method='post')
+
+    if response_json is None:
+        return
+
+    assert response_json['pagination']['total'] == total
+    for i, length in enumerate(agg_lengths):
+        response_agg = response_json['aggregations'][f'agg_{i}']['terms']
+    assert len(response_agg['data']) == length
 
 
 @pytest.mark.parametrize('required, status_code', [
