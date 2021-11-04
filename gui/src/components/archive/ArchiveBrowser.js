@@ -323,7 +323,7 @@ QuantityItemPreview.propTypes = ({
 })
 
 function QuantityValue({value, def, units}) {
-  const val = new Date(value).toLocaleString()
+  const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
     ? toUnitSystem(val, def.unit, units, true)
     : [val, def.unit]
