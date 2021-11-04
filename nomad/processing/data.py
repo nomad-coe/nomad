@@ -29,6 +29,7 @@ calculations, and files
 '''
 
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
+from eelsdbparser import eelsdb_parser
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
@@ -539,10 +540,20 @@ class Calc(Proc):
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
-            search.index(self._parser_results, update_materials=True)
+            try:
+                search.index(self._parser_results, update_materials=True)
+            except Exception as e:
+                self._parser_results = EntryArchive(
+                    entry_id=self._parser_results.entry_id,
+                    metadata=self._parser_results.metadata,
+                    processing_logs=self._parser_results.processing_logs)
+                search.index(self._parser_results, update_materials=False)
+                self.get_logger().error(
+                    'could not index archive after processing failure', exc_info=e)
+
         except Exception as e:
             self.get_logger().error(
-                'could not index after processing failure', exc_info=e)
+                'could not index minimal archive after processing failure', exc_info=e)
 
         try:
             self.write_archive(self._parser_results)

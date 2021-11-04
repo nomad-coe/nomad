@@ -321,7 +321,7 @@ class Structure(MSection):
     n_sites = Quantity(
         type=int,
         default=0,
-        derived=lambda a: len(a.cartesian_site_positions),
+        derived=lambda a: len(a.cartesian_site_positions) if a.cartesian_site_positions else 0,
         description="""
         An integer specifying the length of the cartesian_site_positions property.
         """,
