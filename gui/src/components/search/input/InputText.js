@@ -28,13 +28,14 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import CloseIcon from '@material-ui/icons/Close'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil } from 'lodash'
+import { isNil, debounce } from 'lodash'
 import { Unit } from '../../../units'
 import { useApi } from '../../api'
 import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { useSetFilter, useFilterLocked, filterData } from '../SearchContext'
+import { suggestionDebounceTime } from '../../../config'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -151,6 +152,8 @@ const InputText = React.memo(({
     }
   }, [api, autocomplete, quantity])
 
+  const fetchSuggestionsDebounced = useCallback(debounce(fetchSuggestions, suggestionDebounceTime), [])
+
   // Submit the input value upon the element losing focus. This ensures that any
   // filters that are typed and not manually submitted (using enter) will still
   // either raise an error or be applied.
@@ -192,9 +195,9 @@ const InputText = React.memo(({
       return
     }
     if (reason === 'input') {
-      fetchSuggestions(value)
+      fetchSuggestionsDebounced(value)
     }
-  }, [fetchSuggestions])
+  }, [fetchSuggestionsDebounced])
 
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)} data-testid={testID}>

@@ -16,24 +16,36 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 from collections import defaultdict
+from enum import Enum
 from pydantic import BaseModel, Field
 from fastapi import (
-    APIRouter, Depends, status, Request
+    APIRouter, Depends, Request
 )
 from elasticsearch_dsl import Search
+from elasticsearch_dsl.utils import AttrList
 from elasticsearch.exceptions import RequestError
 
-from nomad.utils import strip
-from nomad.metainfo.elasticsearch_extension import entry_index
+from nomad.metainfo.elasticsearch_extension import entry_index, entry_type
 
 from .auth import create_user_dependency
-from ..utils import create_responses
-from ..models import User, HTTPExceptionModel
+from ..models import User
 
 
 router = APIRouter()
+
+
+# This is a dynamically create enum class for enumerating all allowed
+# quantities. FastAPI uses python enums to validate and document options.
+class SuggestableQuantityEnum(str, Enum):
+    pass
+
+
+SuggestableQuantity = SuggestableQuantityEnum(  # type: ignore
+    'SuggestableQuantity',
+    {name: name for name in entry_type.suggestions.keys()}
+)
 
 
 class SuggestionError(Exception): pass
@@ -45,21 +57,14 @@ class Suggestion(BaseModel):
 
 
 class SuggestionsRequest(BaseModel):
-    quantities: List[str] = Field(None, description='List of quantities from which the suggestions are retrieved.')
-    input: str = Field(None, description='The input that is used as a basis for returning a suggestion.')
-
-
-class SuggestionsQuantityRequest(BaseModel):
-    query: Any = Field(None, description='The query that is used to restrict the suggestion context.')
-    input: str = Field(None, description='The input that is used as a basis for returning a suggestion.')
-
-
-_bad_quantity_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Suggestions for quantity not found. The given quantity name does not have any suggestions associated with it.
-    ''')
-}
+    quantities: List[SuggestableQuantity] = Field(  # type: ignore
+        None,
+        description='List of quantities for which the suggestions are retrieved.'
+    )
+    input: str = Field(
+        None,
+        description='The input that is used as a basis for returning a suggestion.'
+    )
 
 
 @router.post(
@@ -67,7 +72,6 @@ _bad_quantity_response = status.HTTP_404_NOT_FOUND, {
     tags=['suggestions'],
     summary='Get a list of suggestions for the given quantity names and input.',
     response_model=Dict[str, List[Suggestion]],
-    responses=create_responses(_bad_quantity_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_suggestions(
@@ -76,15 +80,18 @@ async def get_suggestions(
         user: User = Depends(create_user_dependency())):
 
     search = Search(index=entry_index.index_name)
-    quantities_es = [x.replace(".", "-") for x in data.quantities]
-    for quantity, quantity_es in zip(data.quantities, quantities_es):
+    quantities: List[str] = data.quantities
+    quantities_es = [x.replace(".", "-") for x in quantities]
+    for quantity, quantity_es in zip(quantities, quantities_es):
+        annotation = entry_type.suggestions[quantity]
+        postfix = ".suggestion" if annotation.field else "__suggestion"
         search = search.suggest(quantity_es, data.input, completion={
-            'field': '{}.suggestion'.format(quantity),
+            'field': f'{quantity}{postfix}',
             'size': 5,
             'skip_duplicates': True,
-            'fuzzy': {},
+            # 'fuzzy': {}, # Fuzzy search is disabled for now
         })
-    search = search.extra(_source='suggest')
+    search = search.extra(_source=quantities)
 
     try:
         # For some reason calling the search.extra()-method messes up the type
@@ -94,9 +101,53 @@ async def get_suggestions(
     except RequestError as e:
         raise SuggestionError(e)
 
+    # We return the original field in the source document.
     response: Dict[str, List[Suggestion]] = defaultdict(list)
-    for quantity, quantity_es in zip(data.quantities, quantities_es):
+    for quantity, quantity_es in zip(quantities, quantities_es):
         for option in es_response.suggest[quantity_es][0].options:
-            response[quantity].append(Suggestion(value=option.text, weight=option._score))
+            weight = option._score
+
+            # We use the original input text to do the matching. This works
+            # better than the text returned by the completion suggester
+            # (option.text), since it can match several items of there are
+            # multiple values per quantity.
+            text = data.input.lower().strip()
+
+            # Nested fields use the nested document as _source: we need to
+            # modify the path accordingly.
+            try:
+                nested_field = option._nested.field
+            except AttributeError:
+                nested_field = None
+            quantity_path = quantity[len(nested_field):] if nested_field else quantity
+
+            # Gather all options recursively. The source may contain
+            # inner/nested sections and also values may be lists.
+            def gather_options(root, parts, options):
+                original = root
+                for i, part in enumerate(parts):
+                    if part != "":
+                        original = original[part]
+                        if isinstance(original, AttrList):
+                            for item in original:
+                                gather_options(item, parts[i + 1:], options)
+                            return
+                original_type = type(original)
+                if original_type == str:
+                    options.append(original)
+                elif original_type == list:
+                    for item in original:
+                        options.append(item)
+            options: List[str] = []
+            parts = quantity_path.split('.')
+            gather_options(option._source, parts, options)
+
+            # If the data is a single string, we simply return it. In the case
+            # of a list of strings we have to linearly look for a match. The
+            # completion suggester does not have a mechanism for saving which
+            # item in a list was matched.
+            for option in options:
+                if text in option.lower().strip():
+                    response[quantity].append(Suggestion(value=option, weight=weight))
 
     return response

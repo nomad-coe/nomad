@@ -1220,7 +1220,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             categories: List[Union['Category', Type['MCategory']]] = None,
             include: TypingCallable[['Definition', 'MSection'], bool] = None,
             exclude: TypingCallable[['Definition', 'MSection'], bool] = None,
-            transform: TypingCallable[['Definition', 'MSection', Any], Any] = None) -> Dict[str, Any]:
+            transform: TypingCallable[['Definition', 'MSection', Any, str], Any] = None) -> Dict[str, Any]:
         '''
         Returns the data of this section as a (json serializeable) dictionary.
 
@@ -1251,11 +1251,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 section as arguments. The function returns true for excluding and false for
                 including the property. Exclude is applied recursively on sub-sections.
                 Overrides categories.
-            transform: A function that determines serialized quantity values. It takes the
-                quantity definition, current section, and the default serialized
-                value as arguments. Depending where this is used, you might have to ensure
-                that the result is JSON-serializable. By default values are serialized to
-                JSON according to the quantity type.
+            transform: A function that determines serialized quantity values.
+                It takes the quantity definition, current section, the default
+                serialized value and the metainfo path with respect to the
+                document root as arguments. Depending where this is used, you
+                might have to ensure that the result is JSON-serializable.  By
+                default values are serialized to JSON according to the quantity
+                type.
         '''
         kwargs: Dict[str, Any] = dict(
             with_meta=with_meta,
@@ -1295,19 +1297,25 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         prop in category.get_all_definitions()
                         for category in category_defs)
 
-        def serialize_quantity(quantity, is_set, is_derived):
+        def serialize_quantity(quantity, is_set, is_derived, path):
             quantity_type = quantity.type
 
             serialize: TypingCallable[[Any], Any] = str
             if resolve_references and isinstance(quantity_type, QuantityReference):
                 quantity_type = quantity_type.target_quantity_def.type
 
+            is_ref = False
             if isinstance(quantity_type, Reference):
-                def reference_serialize(value):
+                is_ref = True
+
+                def reference_serialize(value, path_override):
                     if resolve_references:
                         assert not isinstance(quantity_type, QuantityReference)
                         value = value.m_resolved()
-                        return value.m_to_dict(**kwargs)
+                        ref_kwargs = dict(kwargs)
+                        if kwargs["transform"]:
+                            ref_kwargs["transform"] = lambda q, s, v, p: kwargs["transform"](q, s, v, path_override)
+                        return value.m_to_dict(**ref_kwargs)
 
                     elif isinstance(value, MProxy):
                         if value.m_proxy_resolved is not None:
@@ -1388,17 +1396,26 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if transform is not None:
                 serialize_before_transform = serialize
 
-                def serialize_and_transform(value: Any):
-                    return transform(quantity, self, serialize_before_transform(value))
+                def serialize_and_transform(value: Any, path_override=None):
+                    if is_ref:
+                        return transform(quantity, self, serialize_before_transform(value, path_override), path_override)
+                    else:
+                        return transform(quantity, self, serialize_before_transform(value), path_override)
 
                 serialize = serialize_and_transform
 
             if isinstance(quantity_type, np.dtype):
                 return serialize(value)
             elif len(quantity.shape) == 0:
-                return serialize(value)
+                if is_ref:
+                    return serialize(value, path)
+                else:
+                    return serialize(value)
             elif len(quantity.shape) == 1:
-                return [serialize(i) for i in value]
+                if is_ref:
+                    return [serialize(item, f"{path}/{index}") for index, item in enumerate(value)]
+                else:
+                    return [serialize(item) for item in value]
             else:
                 raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
@@ -1412,14 +1429,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
 
             # quantities
+            sec_path = self.m_path()
             for name, quantity in self.m_def.all_quantities.items():
+                path = f"{sec_path}/{name}"
                 if exclude(quantity, self):
                     continue
 
                 try:
                     if quantity.virtual:
                         if include_derived and quantity.derived is not None:
-                            yield name, serialize_quantity(quantity, False, True)
+                            yield name, serialize_quantity(quantity, False, True, path)
                         continue
 
                     is_set = self.m_is_set(quantity)
@@ -1427,7 +1446,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         if not include_defaults or not quantity.m_is_set(Quantity.default):
                             continue
 
-                    yield name, serialize_quantity(quantity, is_set, False)
+                    yield name, serialize_quantity(quantity, is_set, False, path)
 
                 except ValueError as e:
                     import traceback

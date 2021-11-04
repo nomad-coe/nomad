@@ -74,7 +74,7 @@ class Author(metainfo.MSection):
         a_elasticsearch=[
             Elasticsearch(material_entry_type, _es_field='keyword'),
             Elasticsearch(material_entry_type, mapping='text', field='text', _es_field=''),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ])
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
@@ -224,7 +224,7 @@ class Dataset(metainfo.MSection):
         a_mongo=Mongo(index=True),
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True),
+            Elasticsearch(suggestion="default"),
         ])
     user_id = metainfo.Quantity(
         type=str,

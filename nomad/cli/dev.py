@@ -118,19 +118,18 @@ def search_quantities():
                 result[key] = val
         return result
 
-    suggestions = []
     export = {}
-    suggestion_postfix = ".suggestion"
+
     # Add quantities
     for search_quantity in entry_type.quantities.values():
-        isSuggestion = search_quantity.search_field.endswith(suggestion_postfix)
+        isSuggestion = search_quantity.annotation.suggestion
         if not isSuggestion:
             export[search_quantity.qualified_name] = to_dict(search_quantity, False)
-        else:
-            suggestions.append(search_quantity.qualified_name[:-len(suggestion_postfix)])
+
     # Add suggestion flag
-    for suggestion in suggestions:
+    for suggestion in entry_type.suggestions.keys():
         export[suggestion]["suggestion"] = True
+
     # Add nested sections
     for search_quantity in entry_type.nested_sections:
         export[search_quantity.qualified_name] = to_dict(search_quantity, True)

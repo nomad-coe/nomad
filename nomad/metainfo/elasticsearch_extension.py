@@ -157,7 +157,8 @@ sub-sections as if they were direct sub-sections.
 '''
 
 
-from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple
+from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple, DefaultDict
+from collections import defaultdict
 import numpy as np
 import re
 
@@ -197,6 +198,7 @@ class DocumentType():
         self.nested_object_keys: List[str] = []
         self.nested_sections: List[SearchQuantity] = []
         self.quantities: Dict[str, SearchQuantity] = {}
+        self.suggestions: Dict[str, Elasticsearch] = {}
         self.metrics: Dict[str, Tuple[str, SearchQuantity]] = {}
 
     def _reset(self):
@@ -210,17 +212,41 @@ class DocumentType():
         '''
         Creates an indexable document from the given archive.
         '''
-        def transform(quantity, section, value):
+        suggestions: DefaultDict = defaultdict(list)
+
+        def transform(quantity, section, value, path):
             '''
-            Custom transform function for m_to_dict that will resolve references
-            on a per-quantity basis based on the annotation setup.
+            Custom transform function that possibly transforms the indexed
+            values and also gathers the suggestion values for later storage.
             '''
             elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
             for elasticsearch_annotation in elasticsearch_annotations:
                 if elasticsearch_annotation.field is None:
-                    transform_function = elasticsearch_annotation.value
-                    if transform_function is not None:
-                        return transform_function(section)
+                    if elasticsearch_annotation.suggestion:
+                        # The suggestions may have a different doc_type: we don't
+                        # serialize them if the doc types don't match.
+                        if self != entry_type and elasticsearch_annotation.doc_type != self:
+                            continue
+
+                        # The suggestion values are saved into a temporary
+                        # dictionary. The actual path of the data in the metainfo
+                        # is used as a key.
+                        transform_function = elasticsearch_annotation.value
+                        if transform_function is not None:
+                            suggestion_value = transform_function(value)
+                        else:
+                            suggestion_value = value
+                        section_path = section.m_path()[len(root.m_path()):]
+                        name = elasticsearch_annotation.property_name
+                        if path:
+                            suggestion_path = f"{section_path}/{path}/{name}"
+                        else:
+                            suggestion_path = f"{section_path}/{name}"
+                        suggestions[suggestion_path].extend(suggestion_value)
+                    else:
+                        transform_function = elasticsearch_annotation.value
+                        if transform_function is not None:
+                            return transform_function(section)
 
             return value
 
@@ -240,6 +266,20 @@ class DocumentType():
         )
 
         result = root.m_to_dict(**kwargs)
+
+        # Add the collected suggestion values
+        for path, value in suggestions.items():
+            parts = path.split("/")
+            section = result
+            for part in parts[:-1]:
+                if part == "":
+                    continue
+                try:
+                    part = int(part)
+                except ValueError:
+                    pass
+                section = section[part]
+            section[parts[-1]] = value
 
         # TODO deal with metadata
         metadata = result.get('metadata')
@@ -274,6 +314,12 @@ class DocumentType():
                 if self != entry_type and elasticsearch_annotation.doc_type != self:
                     continue
 
+                if prefix is None:
+                    qualified_name = quantity_def.name
+                else:
+                    qualified_name = f'{prefix}.{quantity_def.name}'
+                if elasticsearch_annotation.suggestion:
+                    self.suggestions[qualified_name] = elasticsearch_annotation
                 is_section_reference = isinstance(quantity_def.type, Reference)
                 is_section_reference &= not isinstance(quantity_def.type, QuantityReference)
                 if is_section_reference:
@@ -282,13 +328,9 @@ class DocumentType():
                     # TODO e.g. viewers, entry_coauthors, etc. ... should be treated as multiple inner docs
                     # assert quantity_def.is_scalar
 
-                    if prefix is None:
-                        reference_prefix = quantity_def.name
-                    else:
-                        reference_prefix = f'{prefix}.{quantity_def.name}'
                     reference_mapping = self.create_mapping(
                         cast(Section, quantity_def.type.target_section_def),
-                        prefix=reference_prefix)
+                        prefix=qualified_name)
                     if len(reference_mapping['properties']) > 0:
                         mappings[quantity_def.name] = reference_mapping
                 else:
@@ -461,6 +503,28 @@ entry_index = Index(entry_type, index_config_key='entries_index')
 material_index = Index(material_type, index_config_key='materials_index')
 
 
+def tokenizer_default(value):
+    """The default suggestion tokenizer. Contains the full value and the value
+    split into tokens using whitespace, dot and underscore.
+    """
+    tokens = [value]
+    fragments = list(filter(lambda x: x != "", re.split(r'[\s_]', value)))
+    if len(fragments) > 1:
+        tokens += fragments
+    return tokens
+
+
+def tokenizer_formula(value):
+    """Suggestion tokenizer for chemical formulas. Contains the full value and the value
+    split into formula fragments.
+    """
+    tokens = [value]
+    fragments = re.findall(r'[A-Z][a-z]?\d*', value)
+    if len(fragments) > 1:
+        tokens += fragments
+    return tokens
+
+
 class Elasticsearch(DefinitionAnnotation):
     '''
     A metainfo annotation for quantity definitions. This annotation can be used multiple
@@ -521,15 +585,15 @@ class Elasticsearch(DefinitionAnnotation):
             If true the section is mapped to elasticsearch nested object and all queries
             become nested queries. Only applicable to sub sections.
         suggestion:
-            If true, a sub-field called 'suggestion' is automatically created for
-            this metainfo. This stores autocompletion suggestions for this
-            value.
+            If true, a mapping with postfix '__suggestion' or a field called
+            'suggestion' is automatically created for this metainfo (depends on
+            whether you have specified a custom tokenizer with "value" or
+            not). This stores autocompletion suggestions for this value.
 
     Attributes:
         name:
             The name of the quantity (plus additional field if set).
     '''
-
     def __init__(
             self,
             doc_type: DocumentType = entry_type,
@@ -544,18 +608,34 @@ class Elasticsearch(DefinitionAnnotation):
             many_all: bool = False,
             auto_include_subsections: bool = False,
             nested: bool = False,
-            suggestion: bool = False,
+            suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
+        if suggestion:
+            if doc_type != entry_type:
+                raise ValueError("Suggestions should only be stored in the entry index.")
+            for arg in [field, mapping, es_field, _es_field]:
+                if arg is not None:
+                    raise ValueError(f"You cannot modify the way suggestions are mapped or named.")
+            # If no tokenizer is specified, the suggestion is stored as a field
+            # that holds only the original value.
+            if suggestion == "simple":
+                field = "suggestion"
+            elif suggestion == "formula":
+                value = tokenizer_formula
+            elif suggestion == "default":
+                value = tokenizer_default
+            elif callable(suggestion):
+                value = suggestion
+            else:
+                raise ValueError(
+                    "Please provide the suggestion as one of the predefined "
+                    "shortcuts, False or a custom callable."
+                )
 
         self._custom_mapping = mapping
-        if suggestion:
-            if field is None:
-                field = "suggestion"
-            else:
-                raise ValueError("Cannot override suggestion field name.")
         self.field = field
         self._es_field = field if _es_field is None else _es_field
         self.doc_type = doc_type
@@ -647,12 +727,16 @@ class Elasticsearch(DefinitionAnnotation):
 
     @property
     def property_name(self) -> str:
+        if self.suggestion and not self.field:
+            return f'{self.definition.name}__suggestion'
         return self.definition.name
 
     @property
     def name(self) -> str:
         if self.field is not None:
             return f'{self.property_name}.{self.field}'
+        elif self.suggestion:
+            return f'{self.property_name}__suggestion'
         else:
             return self.property_name
 
@@ -678,8 +762,9 @@ class SearchQuantity():
     Attributes:
         qualified_field:
             The full qualified name of the resulting elasticsearch field in the entry
-            document type. This will be the quantity name (plus additional field if set)
-            with subsection names up to the root of the metainfo data.
+            document type. This will be the quantity name (plus additional
+            field or suggestion postfix if set) with subsection names up to the
+            root of the metainfo data.
         search_field:
             The full qualified name of the field in the elasticsearch index.
         qualified_name:
@@ -700,6 +785,9 @@ class SearchQuantity():
 
         if annotation.field is not None:
             qualified_field = f'{qualified_field}.{annotation.field}'
+
+        if annotation.suggestion:
+            qualified_field = f'{qualified_field}__suggestion'
 
         self.qualified_field = qualified_field
         self.qualified_name = qualified_field
