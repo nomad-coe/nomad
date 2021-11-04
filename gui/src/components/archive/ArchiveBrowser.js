@@ -323,9 +323,10 @@ QuantityItemPreview.propTypes = ({
 })
 
 function QuantityValue({value, def, units}) {
+  const val = new Date(value).toLocaleString()
   const [finalValue, finalUnit] = def.unit
-    ? toUnitSystem(value, def.unit, units, true)
-    : [value, def.unit]
+    ? toUnitSystem(val, def.unit, units, true)
+    : [val, def.unit]
 
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
@@ -434,7 +435,7 @@ function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
     <QuantityValue
-      value={(timeKeySet.has(def.name) ? new Date(value).toLocaleString() : value)}
+      value={value}
       def={def}
       units={units}
     />
