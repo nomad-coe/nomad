@@ -124,7 +124,7 @@ def test_categories(example):
 
 
 def test_transform(example):
-    def transform(quantity, section, value):
+    def transform(quantity, section, value, path):
         if quantity == Abstract.scalar and section.m_def == Root.m_def:
             return 'other_value'
 

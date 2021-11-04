@@ -45,6 +45,7 @@ import {
   filters
 } from './SearchContext'
 import searchQuantities from '../../searchQuantities'
+import { suggestionDebounceTime } from '../../config'
 
 const opMap = {
   '<=': 'lte',
@@ -307,7 +308,7 @@ const SearchBar = React.memo(({
       })
       .finally(() => setLoading(false))
   }, [api])
-  const suggestionDebounced = useCallback(debounce(suggestionCall, 150), [])
+  const suggestionDebounced = useCallback(debounce(suggestionCall, suggestionDebounceTime), [])
 
   // Handle typing events. After a debounce time has expired, a list of
   // suggestion will be retrieved if they are available for this metainfo and

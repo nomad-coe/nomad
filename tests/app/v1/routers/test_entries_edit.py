@@ -185,7 +185,7 @@ class TestEditRepo():
         assert self.mongo(1, reviewers=None)
 
         self.assert_elastic(1, comment=None)
-        self.assert_elastic(1, references=[])
+        self.assert_elastic(1, references=None)
         self.assert_elastic(1, authors=[test_user.user_id])
         self.assert_elastic(1, viewers=[test_user.user_id])
 

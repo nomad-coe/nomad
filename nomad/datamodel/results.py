@@ -24,7 +24,11 @@ from ase.data import chemical_symbols
 from nomad import config
 from nomad.datamodel.metainfo.common_experimental import Spectrum, DeviceSettings
 from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_type, material_entry_type
+from nomad.metainfo.elasticsearch_extension import (
+    Elasticsearch,
+    material_type,
+    material_entry_type,
+)
 
 from nomad.metainfo import (
     MSection,
@@ -147,7 +151,7 @@ class BandGap(MSection):
         ''',
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     energy_highest_occupied = Quantity(
@@ -426,7 +430,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     crystal_system = Quantity(
@@ -437,7 +441,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     hall_number = Quantity(
@@ -456,7 +460,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     point_group = Quantity(
@@ -467,7 +471,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     space_group_number = Quantity(
@@ -488,7 +492,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     prototype_formula = Quantity(
@@ -507,7 +511,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
     structure_name = Quantity(
@@ -517,7 +521,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     strukturbericht_designation = Quantity(
@@ -528,7 +532,7 @@ class Symmetry(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ],
     )
 
@@ -554,7 +558,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     structural_type = Quantity(
@@ -564,7 +568,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     functional_type = Quantity(
@@ -575,7 +579,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type, default_aggregation_size=20),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     compound_type = Quantity(
@@ -586,7 +590,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type, default_aggregation_size=20),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     elements = Quantity(
@@ -598,7 +602,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type, many_all=True),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="simple")
         ]
     )
     n_elements = Quantity(
@@ -627,7 +631,10 @@ class Material(MSection):
             The chemical formula for a structure as a string in a form chosen by the API
             implementation.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion="formula")
+        ],
     )
     chemical_formula_reduced = Quantity(
         type=str,
@@ -635,7 +642,10 @@ class Material(MSection):
             The reduced chemical formula for a structure as a string with element symbols and
             integer chemical proportion numbers. The proportion number MUST be omitted if it is 1.
         """,
-        a_elasticsearch=Elasticsearch(material_type),
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion="formula")
+        ],
     )
     chemical_formula_hill = Quantity(
         type=str,
@@ -645,7 +655,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="formula")
         ],
     )
     chemical_formula_anonymous = Quantity(
@@ -658,7 +668,7 @@ class Material(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="formula")
         ],
     )
     chemical_formula_reduced_fragments = Quantity(
@@ -685,13 +695,13 @@ class DFT(MSection):
         description="The used basis set functions.",
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     basis_set_name = BasisSet.name.m_copy()
     basis_set_name.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion=True)
+        Elasticsearch(suggestion="default")
     ]
     core_electron_treatment = Quantity(
         type=MEnum(core_electron_treatments),
@@ -701,7 +711,7 @@ class DFT(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     spin_polarized = Quantity(
@@ -717,19 +727,19 @@ class DFT(MSection):
     van_der_Waals_method.description = 'The used van der Waals method.'
     van_der_Waals_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion=True)
+        Elasticsearch(suggestion="default")
     ]
 
     relativity_method = Electronic.relativity_method.m_copy()
     relativity_method.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion=True)
+        Elasticsearch(suggestion="default")
     ]
 
     smearing_kind = Smearing.kind.m_copy()
     smearing_kind.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion=True)
+        Elasticsearch(suggestion="default")
     ]
 
     smearing_width = Smearing.width.m_copy()
@@ -758,7 +768,7 @@ class GW(MSection):
     type = GWMethod.type.m_copy()
     type.m_annotations["elasticsearch"] = [
         Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion=True)
+        Elasticsearch(suggestion="default")
     ]
     starting_point = Quantity(
         type=str,
@@ -867,7 +877,7 @@ class Simulation(MSection):
         description="The name of the used program.",
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     program_version = Quantity(
@@ -876,7 +886,7 @@ class Simulation(MSection):
         description="The version of the used program.",
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
@@ -922,7 +932,7 @@ class Method(MSection):
         """,
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
@@ -1183,7 +1193,7 @@ class EnergyVolumeCurve(MSection):
         ),
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     volumes = Quantity(type=EquationOfState.volumes)
@@ -1214,7 +1224,7 @@ class BulkModulus(MSection):
         description="Describes the methodology for obtaining the value.",
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     value = Quantity(
@@ -1240,7 +1250,7 @@ class ShearModulus(MSection):
         description="Describes the methodology for obtaining the value.",
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion=True)
+            Elasticsearch(suggestion="default")
         ],
     )
     value = Quantity(

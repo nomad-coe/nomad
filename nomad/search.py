@@ -953,6 +953,8 @@ def search(
         search = search.extra(search_after=page_after_value.rsplit(':', 1))
 
     # required
+    excludes = ["*__suggestion"]  # Suggestion values are always excluded
+    includes = None
     if required:
         for list_ in [required.include, required.exclude]:
             for quantity in [] if list_ is None else list_:
@@ -971,7 +973,10 @@ def search(
         if required.exclude is not None and doc_type.id_field in required.exclude:
             required.exclude.remove(doc_type.id_field)
 
-        search = search.source(includes=required.include, excludes=required.exclude)
+        if required.exclude:
+            excludes += required.exclude
+        includes = required.include
+    search = search.source(includes=includes, excludes=excludes)
 
     # aggregations
     for name, agg in aggregations.items():
