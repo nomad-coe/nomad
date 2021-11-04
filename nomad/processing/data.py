@@ -29,7 +29,6 @@ calculations, and files
 '''
 
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
-from eelsdbparser import eelsdb_parser
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField)
 from structlog import wrap_logger
