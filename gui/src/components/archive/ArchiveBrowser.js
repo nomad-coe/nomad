@@ -29,8 +29,6 @@ import Markdown from '../Markdown'
 import { Overview } from './Overview'
 import { toUnitSystem, useUnits } from '../../units'
 
-const timeKeySet = new Set(['upload_create_time', 'entry_create_time', 'last_processing_time'])
-
 export const configState = atom({
   key: 'config',
   default: {
@@ -308,9 +306,10 @@ function QuantityItemPreview({value, def, units}) {
       </Typography>
     </Box>
   } else {
+    const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
     const [finalValue, finalUnit] = def.unit
-      ? toUnitSystem(value, def.unit, units, true)
-      : [value, def.unit]
+      ? toUnitSystem(val, def.unit, units, true)
+      : [val, def.unit]
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
       {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
@@ -409,7 +408,7 @@ function Section({section, def, parent, units}) {
                 </Typography>{!disabled &&
                   <span>&nbsp;=&nbsp;
                     <QuantityItemPreview
-                      value={(timeKeySet.has(quantityDef.name) ? new Date(section[quantityDef.name]).toLocaleString() : section[quantityDef.name])}
+                      value={section[quantityDef.name]}
                       def={quantityDef}
                       units={units}
                     />
