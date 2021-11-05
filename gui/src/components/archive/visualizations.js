@@ -117,15 +117,11 @@ export function Matrix({values, shape, invert}) {
   const rowHeight = 24
   const rowCount = invert ? values.length : shape.length > 1 ? values[0].length : 1
   const columnCount = invert ? shape.length > 1 ? values[0].length : 1 : values.length
-  const height = Math.min(300, rowCount * rowHeight + 15)
+  const height = Math.min(300, rowCount * rowHeight)
 
   useLayoutEffect(() => {
-    if (columnCount === 1) {
-      matrixRef.current.style.width = '100%'
-    } else {
-      matrixRef.current.style.width = Math.min(
-        rootRef.current.clientWidth - 4, columnCount * columnWidth) + 'px'
-    }
+    matrixRef.current.style.width = Math.min(
+      rootRef.current.clientWidth - 4, columnCount * columnWidth) + 'px'
   })
 
   let value = shape.length > 1 ? ({rowIndex, columnIndex}) => values[columnIndex][rowIndex] : ({columnIndex}) => values[columnIndex]
