@@ -74,52 +74,6 @@ data:
     worker_connections = 1000
     workers = {{ .Values.app.worker }}
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "nomad.fullname" . }}-gui-env-js
-  labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-gui-env-js
-    helm.sh/chart: {{ include "nomad.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-data:
-  env.js: |
-    window.nomadEnv = {
-      "appBase": "{{ .Values.proxy.external.path }}",
-      "keycloakBase": "{{ .Values.keycloak.serverExternalUrl }}",
-      "keycloakRealm": "{{ .Values.keycloak.realmName }}",
-      "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
-      "debug": {{ .Values.gui.debug }},
-      "version": {
-        "label": "{{ .Values.version.label }}",
-        "isBeta": {{ .Values.version.isBeta }},
-        "isTest": {{ .Values.version.isTest }},
-        "usesBetaData": {{ .Values.version.usesBetaData }},
-        "officialUrl": "{{ .Values.version.officialUrl }}"
-      },
-      "encyclopediaEnabled": {{ .Values.gui.encyclopediaEnabled }},
-      "aitoolkitEnabled": {{ .Values.gui.aitoolkitEnabled }}
-    };
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "nomad.fullname" . }}-enc-conf-js
-  labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-enc-conf-js
-    helm.sh/chart: {{ include "nomad.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-data:
-  conf.js: |
-    window.nomadEnv = {
-      apiRoot: "{{ .Values.proxy.external.path }}/api/encyclopedia/",
-      keycloakBase: "{{ .Values.keycloak.serverExternalUrl }}",
-      keycloakRealm: "{{ .Values.keycloak.realmName }}",
-      keycloakClientId: "{{ .Values.keycloak.guiClientId }}"
-    };
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -165,14 +119,6 @@ spec:
           name: staging-volume
         - mountPath: /nomad
           name: nomad-volume
-        - mountPath: /app/nomad/app/static/gui/env.js
-          readOnly: true
-          subPath: env.js
-          name: gui-env-js
-        - mountPath: /app/nomad/app/static/encyclopedia/conf.js
-          readOnly: true
-          subPath: conf.js
-          name: enc-conf-js
         env:
         - name: NOMAD_META_SERVICE
           value: "app"
@@ -249,12 +195,6 @@ spec:
       - name: nomad-conf
         configMap:
           name: {{ include "nomad.fullname" . }}-configmap
-      - name: gui-env-js
-        configMap:
-          name: {{ include "nomad.fullname" . }}-gui-env-js
-      - name: enc-conf-js
-        configMap:
-          name: {{ include "nomad.fullname" . }}-enc-conf-js
       - name: public-volume
         hostPath:
           path: {{ .Values.volumes.public }}

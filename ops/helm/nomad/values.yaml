@@ -79,10 +79,14 @@ gui:
   debug: false
   ## automatically gz based on header
   gzip: true
+
+encyclopedia:
   ## enable links to the 'new' encyclopedia
-  encyclopediaEnabled: true
+  enabled: true
+
+aitoolkit:
   ## enable aitoolkit references
-  aitoolkitEnabled: true
+  enabled: false
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
@@ -170,6 +174,3 @@ reprocess_match: false
 datacite:
   enabled: false
   prefix: "10.17172"
-
-aitoolkit:
-  enabled: true
