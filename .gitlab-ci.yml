@@ -61,7 +61,7 @@ gui linting:
   image: node
   script:
     - cd gui
-    - yarn
+    - yarn --network-timeout 1200000
     - yarn run lint
   except:
     refs:
@@ -107,7 +107,7 @@ gui tests:
   image: node
   script:
     - cd gui
-    - yarn
+    - yarn --network-timeout 1200000
     - yarn run test
   except:
     refs:
