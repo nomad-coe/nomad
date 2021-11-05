@@ -15,17 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import { get } from 'lodash'
-import { PropertyCard, PropertyGrid, PropertyItem } from './PropertyCard'
-import { toMateriaStructure } from '../../../utils'
-import Quantity from '../../Quantity'
-import { Box, makeStyles, Typography } from '@material-ui/core'
-import { normalizeDisplayValue, encyclopediaEnabled } from '../../../config'
+import { get, capitalize, isEmpty } from 'lodash'
+import { Select, FormControl, MenuItem } from '@material-ui/core'
+import { PropertyCard, PropertyGrid, PropertyItem, PropertyCardActions } from './PropertyCard'
+import Quantity, { QuantityTable, QuantityRow, QuantityCell } from '../../Quantity'
 import { MaterialButton } from '../../nav/Routes'
 import Structure from '../../visualization/Structure'
+import NoData from '../../visualization/NoData'
+import searchQuantities from '../../../searchQuantities'
+import { toMateriaStructure } from '../../../utils'
+import { encyclopediaEnabled } from '../../../config'
 
+/**
+ * For displaying the most descriptive chemical formula that is present in an
+ * entry.
+*/
 export function Formula({data}) {
   const formula = (data) => {
     const material = data?.results?.material
@@ -38,7 +44,7 @@ export function Formula({data}) {
 
   return <Quantity
     quantity={formula} label='formula' noWrap data={data}
-    description="The chemical formula that describes the simulated system or experiment sample."
+    description="The chemical formula that describes the simulated system or experimental sample."
   />
 }
 
@@ -46,109 +52,167 @@ Formula.propTypes = {
   data: PropTypes.object
 }
 
-const useStyles = makeStyles(theme => ({
-  properties: {
-    height: '100%',
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexDirection: 'column',
-    alignItems: 'flex-start'
-  },
-  structureContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative'
-  },
-  structure: {
-    position: 'absolute',
-    width: 'auto',
-    height: 'auto',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    top: -20
-  }
-}))
+/**
+ * Displays a summary of material related properties for an entry.
+ */
+const nElementMap = {
+  1: 'unary',
+  2: 'binary',
+  3: 'ternary',
+  4: 'quaternary',
+  5: 'quinary',
+  6: 'sexinary',
+  7: 'septenary',
+  8: 'octanary',
+  9: 'nonary',
+  10: 'decimary'
+}
+const MaterialCard = React.memo(({index, properties, archive}) => {
+  // Find out which properties are present
+  const structures = index?.results?.properties?.structures
+  const hasStructures = structures?.structure_original ||
+    structures?.structure_conventional ||
+    structures?.structure_primitive
+  const hasLatticeParameters = structures?.structure_original?.lattice_parameters ||
+    structures?.structure_conventional?.lattice_parameters ||
+    structures?.structure_primitive?.lattice_parameters
+  const hasSymmetry = index?.results?.material?.symmetry
 
-const MaterialCard = React.memo(({entryMetadata, properties, archive}) => {
-  const styles = useStyles()
-  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
-  const structuresUrl = `${archiveUrl}/results/properties/structures`
-  const materialId = entryMetadata.results?.material?.material_id
-
-  let structures = null
-  if (archive?.results) {
-    structures = []
-    const structureKinds = ['original', 'conventional', 'primitive']
-    const archiveStructures = archive.results.properties?.structures
-    if (archiveStructures) {
-      structureKinds.forEach(structureKind => {
-        const key = `structure_${structureKind}`
-        const archiveStructure = archiveStructures[key]
-        const structureUrl = `${structuresUrl}/{key}`
-        if (archiveStructure) {
-          const materiaStructure = toMateriaStructure(archiveStructure, structureKind, structureUrl)
-          structures.push(materiaStructure)
-        }
-      })
-    }
-    if (structures.length === 0) {
-      structures = false
-    }
+  // Get all structure types that are present
+  const structureTypes = {}
+  if (structures) {
+    Object.keys(structures).forEach((key) => {
+      const name = capitalize(key.split('_').pop())
+      structureTypes[key] = name
+    })
   }
 
-  return <PropertyCard title="Material">
+  // Determine the structure to show by default
+  let defaultStructure
+  if (structures && !isEmpty(structures)) {
+    if ('structure_original' in structures) {
+      defaultStructure = 'structure_original'
+    } else if ('structure_conventional' in structures) {
+      defaultStructure = 'structure_conventional'
+    } else if (!isEmpty(structures)) {
+      defaultStructure = Object.keys(structures)[0]
+    }
+  }
+  const [structureType, setStructureType] = useState(defaultStructure)
+
+  // Prepare the data for the visualizer
+  const urlPrefix = `/entry/id/${index.upload_id}/${index.entry_id}/archive/results/properties/structures`
+  const materialId = index.results?.material?.material_id
+  const structurePath = `results.properties.structures.${structureType}`
+  const structureSection = archive?.results?.properties?.structures?.[structureType]
+  let structure = structureSection && toMateriaStructure(structureSection, structureType, `${urlPrefix}/${structureType}`)
+
+  const handleStructureChange = useCallback((event) => {
+    setStructureType(event.target.value)
+  }, [])
+
+  // Dropdown for selecting a specific structure
+  const select = hasStructures && <FormControl>
+    <Select
+      value={structureType}
+      onChange={handleStructureChange}
+      label="Structure"
+    >
+      {Object.entries(structureTypes).map(([type, name]) =>
+        <MenuItem key={type} value={type}>{name}</MenuItem>
+      )}
+    </Select>
+  </FormControl>
+
+  return <PropertyCard title="Material" action={select}>
     <PropertyGrid>
-      <PropertyItem xs={5} height="300px">
-        <Box className={styles.properties}>
-          <Quantity column>
-            <Formula data={entryMetadata} />
-            <Quantity quantity="results.material.structural_type" label='structural type' noWrap data={entryMetadata}/>
-            <Quantity quantity="results.material.material_name" label='material name' noWrap data={entryMetadata}/>
-            {entryMetadata.results?.material?.symmetry &&
-              <Quantity row>
-                <Quantity
-                  quantity="results.material.symmetry.crystal_system"
-                  label='crystal system'
-                  noWrap
-                  data={entryMetadata}
-                />
-                <Quantity
-                  description="Space group symbol and number"
-                  label="space group"
-                  noWrap
-                  data={entryMetadata}
-                >
-                  <Typography noWrap>
-                    {normalizeDisplayValue(get(entryMetadata, 'results.material.symmetry.space_group_symbol'))} ({normalizeDisplayValue(get(entryMetadata, 'results.material.symmetry.space_group_number'))})
-                  </Typography>
-                </Quantity>
-              </Quantity>
-            }
-          </Quantity>
-          {encyclopediaEnabled && materialId &&
-            <MaterialButton materialId={materialId}>
-              Encyclopedia
-            </MaterialButton>
-          }
-        </Box>
+      <PropertyItem title="Composition" xs={6} height="auto">
+        <QuantityTable data={index}>
+          <QuantityRow>
+            <QuantityCell colSpan={2}>
+              <Formula data={index}/>
+            </QuantityCell>
+          </QuantityRow>
+          <QuantityRow>
+            <QuantityCell quantity="results.material.structural_type"/>
+            <QuantityCell quantity="results.material.material_name"/>
+          </QuantityRow>
+          <QuantityRow>
+            <QuantityCell quantity="results.material.elements" colSpan={2}/>
+          </QuantityRow>
+          <QuantityRow>
+            <QuantityCell
+              label="number of elements"
+              description={searchQuantities['results.material.n_elements']?.description}
+              quantity={(data) => {
+                const n = get(data, 'results.material.n_elements')
+                const label = nElementMap[n]
+                return `${n}${label ? ` (${label})` : ''}`
+              }}
+            />
+          </QuantityRow>
+        </QuantityTable>
       </PropertyItem>
-      <PropertyItem xs={7} height="300px">
-        <div className={styles.structureContainer}>
-          <Structure
-            data={structures}
-            materialType={entryMetadata.results?.material?.structural_type}
+      <PropertyItem title="Structure" xs={6} height="280px">
+        {hasStructures
+          ? <Structure
+            data={structure}
+            materialType={index.results?.material?.structural_type}
             data-testid="viewer-material"
-            className={styles.structure}
           />
-        </div>
+          : <NoData/>}
+      </PropertyItem>
+      <PropertyItem title="Symmetry" xs={6} height="auto" minHeight="200px">
+        {hasSymmetry
+          ? <QuantityTable data={index}>
+            <QuantityRow>
+              <QuantityCell quantity="results.material.symmetry.crystal_system"/>
+              <QuantityCell quantity="results.material.symmetry.bravais_lattice"/>
+            </QuantityRow>
+            <QuantityRow>
+              <QuantityCell quantity="results.material.symmetry.space_group_number"/>
+              <QuantityCell quantity="results.material.symmetry.space_group_symbol"/>
+            </QuantityRow>
+            <QuantityRow>
+              <QuantityCell quantity="results.material.symmetry.point_group"/>
+              <QuantityCell quantity="results.material.symmetry.structure_name"/>
+            </QuantityRow>
+          </QuantityTable>
+          : <NoData/>
+        }
+      </PropertyItem>
+      <PropertyItem title="Lattice parameters" xs={6} height="auto" minHeight="200px">
+        {hasLatticeParameters
+          ? <QuantityTable data={index}>
+            <QuantityRow>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.a`}/>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.b`}/>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.c`}/>
+            </QuantityRow>
+            <QuantityRow>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.alpha`} label="α"/>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.beta`} label="β"/>
+              <QuantityCell quantity={`${structurePath}.lattice_parameters.gamma`} label="γ"/>
+            </QuantityRow>
+            <QuantityRow>
+              <QuantityCell colSpan={3} quantity={`${structurePath}.cell_volume`}/>
+            </QuantityRow>
+          </QuantityTable>
+          : <NoData/>}
       </PropertyItem>
     </PropertyGrid>
+    {encyclopediaEnabled && materialId &&
+      <PropertyCardActions>
+        <MaterialButton materialId={materialId}>
+          View in Encyclopedia
+        </MaterialButton>
+      </PropertyCardActions>
+    }
   </PropertyCard>
 })
 
 MaterialCard.propTypes = {
-  entryMetadata: PropTypes.object.isRequired,
+  index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }

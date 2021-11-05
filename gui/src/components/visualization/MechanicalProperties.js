@@ -17,7 +17,7 @@
  */
 import React, { } from 'react'
 import PropTypes from 'prop-types'
-import SectionTable from './SectionTable'
+import { SectionTable } from '../Quantity'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import EnergyVolumeCurve from '../visualization/EnergyVolumeCurve'
 

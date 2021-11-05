@@ -25,9 +25,9 @@ import MechanicalProperties from '../../visualization/MechanicalProperties'
 /**
  * Card displaying mechanical properties.
  */
-const MechanicalPropertiesCard = React.memo(({entryMetadata, properties, archive}) => {
+const MechanicalPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
+  const archiveUrl = `/entry/id/${index.upload_id}/${index.entry_id}/archive`
 
   // Find out which properties are present
   const hasEVCurves = properties.has('energy_volume_curve')
@@ -57,7 +57,7 @@ const MechanicalPropertiesCard = React.memo(({entryMetadata, properties, archive
   let bulkModulus = false
   if (hasBulkModulus) {
     bulkModulus = {
-      data: entryMetadata?.results?.properties?.mechanical?.bulk_modulus
+      data: index?.results?.properties?.mechanical?.bulk_modulus
     }
   }
 
@@ -65,7 +65,7 @@ const MechanicalPropertiesCard = React.memo(({entryMetadata, properties, archive
   let shearModulus = false
   if (hasShearModulus) {
     shearModulus = {
-      data: entryMetadata?.results?.properties?.mechanical?.shear_modulus
+      data: index?.results?.properties?.mechanical?.shear_modulus
     }
   }
 
@@ -80,7 +80,7 @@ const MechanicalPropertiesCard = React.memo(({entryMetadata, properties, archive
 })
 
 MechanicalPropertiesCard.propTypes = {
-  entryMetadata: PropTypes.object.isRequired,
+  index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }

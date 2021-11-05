@@ -402,6 +402,19 @@ export function getDatatype(quantity) {
 }
 
 /**
+ * Returns the unit of the given metainfo if any specified.
+ *
+ * @param {string} quantity The metainfo name (full path). Must exist in
+ * searchQuantities.json.
+ *
+ * @return {string} The unit of the metainfo or undefined if no unit definition
+ * found.
+ */
+export function getUnit(quantity) {
+  return searchQuantities[quantity]?.unit
+}
+
+/**
  * Returns a function that can be used to serialize values for a given datatype.
  * @param {string} dtype The datatype
  * @param {bool} pretty Whether to serialize using a prettier, but possibly
@@ -439,6 +452,21 @@ export function getSerializer(dtype, pretty = true) {
   } else {
     return (value) => value
   }
+}
+
+/**
+ *
+ */
+export function serializeMetainfo(quantity, value, units) {
+  const dtype = getDatatype(quantity)
+  if (dtype === DType.Number) {
+    if (!(value instanceof Quantity)) {
+      const unit = getUnit(quantity) || 'dimensionless'
+      value = new Quantity(value, unit)
+    }
+  }
+  const serializer = getSerializer(dtype)
+  return serializer(value, units)
 }
 
 /**

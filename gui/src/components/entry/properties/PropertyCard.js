@@ -17,27 +17,41 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
+import { isNil } from 'lodash'
 import {
   Card,
   CardContent,
   CardHeader,
+  CardActions,
   Grid,
   Typography,
   makeStyles
 } from '@material-ui/core'
 
+const gridSpacing = 2
+
 /**
  * Card for displaying a set of related properties.
  */
-export function PropertyCard({children, ...headerProps}) {
-  return <Card>
-    <CardHeader {...headerProps} />
-    <CardContent>
-      {children}
-    </CardContent>
+const usePropertyCardStyles = makeStyles(theme => ({
+  header: {
+    paddingBottom: theme.spacing(1)
+  },
+  action: {
+    marginRight: theme.spacing(0),
+    marginTop: theme.spacing(0)
+  }
+}))
+export function PropertyCard({className, children, ...headerProps}) {
+  const styles = usePropertyCardStyles()
+
+  return <Card className={className}>
+    <CardHeader {...headerProps} className={styles.header} classes={{action: styles.action}}/>
+    {children}
   </Card>
 }
 PropertyCard.propTypes = {
+  className: PropTypes.string,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
@@ -45,15 +59,53 @@ PropertyCard.propTypes = {
 }
 
 /**
+ * For displaying actions at the bottom of a PropertyCard.
+ */
+export function PropertyCardActions({children}) {
+  return <CardActions disableSpacing>
+    <div style={{marginLeft: 'auto'}}>
+      {children}
+    </div>
+  </CardActions>
+}
+
+PropertyCardActions.propTypes = {
+  children: PropTypes.any
+}
+
+/**
  * For displaying a row of properties, typically within a PropertyCard.
  */
-export function PropertyGrid({children}) {
-  return <Grid container spacing={2}>
+export function PropertyGrid({className, children}) {
+  return <CardContent>
+    <Grid container spacing={gridSpacing} className={className}>
+      {children}
+    </Grid>
+  </CardContent>
+}
+
+PropertyGrid.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.any
+}
+
+/**
+ * For displaying a grid of PropertyItems inside another PropertyItem.
+ */
+const usePropertySubGridStyles = makeStyles(theme => ({
+  root: {
+    height: `calc(100% + ${theme.spacing(gridSpacing)}px)`
+  }
+}))
+export function PropertySubGrid({children}) {
+  const styles = usePropertySubGridStyles()
+  return <Grid container spacing={gridSpacing} className={styles.root}>
     {children}
   </Grid>
 }
 
-PropertyGrid.propTypes = {
+PropertySubGrid.propTypes = {
+  className: PropTypes.string,
   children: PropTypes.any
 }
 
@@ -77,11 +129,11 @@ const usePropertyItemStyles = makeStyles(theme => ({
     minHeight: 0 // added min-height: 0 to allow the item to shrink to fit inside the container.
   }
 }))
-export function PropertyItem({title, classes, children, height, ...other}) {
+export function PropertyItem({title, align, className, classes, children, height, minHeight, ...other}) {
   const styles = usePropertyItemStyles({classes: classes})
-  return <Grid item {...other} style={height && {height: height}}>
+  return <Grid item {...other} className={className} style={(!isNil(height) || !isNil(minHeight)) && {height: height, minHeight: minHeight}}>
     <div className={styles.column}>
-      {title && <Typography variant="button" align='center' className={styles.title}>{title}</Typography>}
+      {title && <Typography variant="button" align={align || 'center'} className={styles.title}>{title}</Typography>}
       <div className={styles.content}>
         {children}
       </div>
@@ -91,7 +143,10 @@ export function PropertyItem({title, classes, children, height, ...other}) {
 
 PropertyItem.propTypes = {
   title: PropTypes.string,
+  align: PropTypes.string,
   height: PropTypes.string.isRequired,
+  minHeight: PropTypes.string,
+  className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.any
 }

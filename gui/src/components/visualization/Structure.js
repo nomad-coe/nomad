@@ -26,7 +26,7 @@ import {
   Typography,
   FormControlLabel
 } from '@material-ui/core'
-import { ToggleButton, ToggleButtonGroup, Alert } from '@material-ui/lab'
+import { Alert } from '@material-ui/lab'
 import {
   MoreVert,
   Fullscreen,
@@ -125,12 +125,8 @@ const Structure = React.memo(({
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [switching, setSwitching] = useState(false)
-  const [shownSystem, setShownSystem] = useState(null)
-  const [finalSystem, setFinalSystem] = useState(null)
 
   // Variables
-  const multiple = Array.isArray(data)
   const history = useHistory()
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
@@ -138,16 +134,9 @@ const Structure = React.memo(({
 
   useEffect(() => {
     if (data) {
-      let firstSystem
-      if (multiple) {
-        firstSystem = data[0]
-      } else {
-        firstSystem = data
-      }
-      setFinalSystem(firstSystem)
-      setShownSystem(0)
+      setLoading(true)
     }
-  }, [data, multiple])
+  }, [data])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -277,19 +266,18 @@ const Structure = React.memo(({
       refViewer.current.saveReset()
       refViewer.current.reset()
       setLoading(false)
-      setSwitching(false)
     }, 0)
   }, [materialType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
   useEffect(() => {
-    if (!finalSystem) {
+    if (!data) {
       return
     }
 
     if (!accepted) {
-      const nAtoms = finalSystem.positions.length
+      const nAtoms = data.positions.length
       setNAtoms(nAtoms)
       if (nAtoms > 300) {
         setShowPrompt(true)
@@ -298,13 +286,13 @@ const Structure = React.memo(({
     }
 
     if (positionsOnly && !!(refViewer?.current?.structure)) {
-      refViewer.current.setPositions(finalSystem.positions)
+      refViewer.current.setPositions(data.positions)
       setLoading(false)
       return
     }
 
-    loadSystem(finalSystem, refViewer)
-  }, [finalSystem, positionsOnly, accepted, loadSystem])
+    loadSystem(data, refViewer)
+  }, [data, positionsOnly, accepted, loadSystem])
 
   // Viewer settings
   useEffect(() => {
@@ -316,10 +304,10 @@ const Structure = React.memo(({
   }, [showLatticeConstants])
 
   useEffect(() => {
-    if (finalSystem?.cell) {
+    if (data?.cell) {
       refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
     }
-  }, [wrap, finalSystem])
+  }, [wrap, data])
 
   useEffect(() => {
     refViewer.current.setOptions({cell: {enabled: showCell}})
@@ -348,34 +336,9 @@ const Structure = React.memo(({
     refViewer.current.render()
   }, [])
 
-  const structureToggles = useMemo(() => {
-    if (data && multiple) {
-      const toggles = []
-      for (let i = 0; i < data.length; ++i) {
-        toggles.push(<ToggleButton
-          key={i}
-          value={i}
-          aria-label={i}
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >{data[i].name}</ToggleButton>)
-      }
-      return toggles
-    }
-    return null
-  }, [data, multiple, styles])
-
   // If data is set explicitly to false, we show the NoData component.
   if (data === false) {
     return <NoData className={clsx(className, styles.root)} classes={{placeholder: noDataStyle}}/>
-  }
-
-  // Enforce at least one structure view option
-  const handleStructureChange = (event, value) => {
-    if (value !== null) {
-      setSwitching(true)
-      setShownSystem(value)
-      setFinalSystem(data[value])
-    }
   }
 
   if (showPrompt) {
@@ -385,7 +348,7 @@ const Structure = React.memo(({
         <Button
           color="inherit"
           size="small"
-          onClick={e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}
+          onClick={e => { setShowPrompt(false); loadSystem(data, refViewer); setAccepted(true) }}
         >
             YES
         </Button>
@@ -418,7 +381,7 @@ const Structure = React.memo(({
       />
     </MenuItem>
   ]
-  if (finalSystem?.cell) {
+  if (data?.cell) {
     menuItems.push(...[
       <MenuItem key='show-axis'>
         <FormControlLabel
@@ -467,17 +430,7 @@ const Structure = React.memo(({
   >
     <div className={styles.column}>
       {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
-      {(Array.isArray(data) && data.length > 1) && <ToggleButtonGroup
-        className={styles.toggles}
-        size="small"
-        exclusive
-        value={shownSystem}
-        onChange={handleStructureChange}
-      >
-        {structureToggles}
-      </ToggleButtonGroup>
-      }
-      {switching
+      {loading
         ? <Placeholder
           variant="rect"
           className={styles.switchContainer}
@@ -496,8 +449,8 @@ const Structure = React.memo(({
           <Action tooltip='Capture image' onClick={takeScreencapture}>
             <CameraAlt/>
           </Action>
-          {finalSystem?.path &&
-            <Action tooltip='View data in the archive' onClick={() => { history.push(finalSystem.path) }}>
+          {data?.m_path &&
+            <Action tooltip='View data in the archive' onClick={() => { history.push(data.m_path) }}>
               <ViewList/>
             </Action>
           }
@@ -528,10 +481,8 @@ Structure.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
   data: PropTypes.oneOfType([
     PropTypes.bool,
-    PropTypes.object,
-    PropTypes.arrayOf(PropTypes.object)
+    PropTypes.object
   ]),
-  metaInfoLink: PropTypes.string, // A link to the metainfo definition
   options: PropTypes.object, // Viewer options
   materialType: PropTypes.string, // The material type, affects the visualization layout.
   captureName: PropTypes.string, // Name of the file that the user can download

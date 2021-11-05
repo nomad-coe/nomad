@@ -25,9 +25,9 @@ import VibrationalProperties from '../../visualization/VibrationalProperties'
 /**
  * Card displaying vibrational properties.
  */
-const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archive}) => {
+const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const archiveUrl = `/entry/id/${entryMetadata.upload_id}/${entryMetadata.entry_id}/archive`
+  const archiveUrl = `/entry/id/${index.upload_id}/${index.entry_id}/archive`
 
   // Find out which properties are present
   const hasDos = properties.has('dos_phonon')
@@ -91,7 +91,7 @@ const VibrationalPropertiesCard = React.memo(({entryMetadata, properties, archiv
 })
 
 VibrationalPropertiesCard.propTypes = {
-  entryMetadata: PropTypes.object.isRequired,
+  index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }
