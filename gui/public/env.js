@@ -5,9 +5,6 @@ window.nomadEnv = {
   'appBase': 'http://nomad-lab.eu/prod/rae/beta',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
-  'matomoEnabled': false,
-  'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
-  'matomoSiteId': '2',
   'version': {
     'label': '0.10.9',
     'isBeta': false,

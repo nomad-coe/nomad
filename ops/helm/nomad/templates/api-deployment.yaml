@@ -90,9 +90,6 @@ data:
       "keycloakBase": "{{ .Values.keycloak.serverExternalUrl }}",
       "keycloakRealm": "{{ .Values.keycloak.realmName }}",
       "keycloakClientId": "{{ .Values.keycloak.guiClientId }}",
-      "matomoSiteId": {{ .Values.gui.matomoSiteId }},
-      "matomoUrl": "{{ .Values.gui.matomoUrl }}",
-      "matomoEnabled": {{ .Values.gui.matomoEnabled }},
       "debug": {{ .Values.gui.debug }},
       "version": {
         "label": "{{ .Values.version.label }}",

@@ -734,7 +734,6 @@ window.nomadEnv = {{
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',
     'debug': false,
-    'matomoEnabled': false,
     'encyclopediaEnabled': {'true' if config.encyclopedia_enabled else 'false'},
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
     'oasis': {'true' if config.keycloak.oasis else 'false'}
