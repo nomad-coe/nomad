@@ -39,6 +39,7 @@ import {
 } from '../datatable/Datatable'
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
+import Quantity from '../Quantity'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -118,8 +119,14 @@ contains more information.
 const uploadsPageContext = React.createContext()
 
 const columns = [
-  {key: 'upload_id'},
-  {key: 'upload_create_time'},
+  {
+    key: 'upload_id',
+    render: upload => <Quantity quantity={'upload_id'} noTitle noWrap withClipboard data={upload}/>
+  },
+  {
+    key: 'upload_create_time',
+    render: upload => new Date(upload.upload_create_time).toLocaleString()
+  },
   {key: 'upload_name'},
   {key: 'last_status_message', label: 'Status'},
   {key: 'entries', render: upload => upload.entries, align: 'center'},
