@@ -331,7 +331,7 @@ function QuantityValue({value, def, units}) {
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
-    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={finalValue} exp={16} variant="body2" />}
+    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} type={def.type.type_data} /> : <Number value={finalValue} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
       <Typography noWrap variant="caption">
         ({def.shape.map((dimension, index) => <span key={index}>
