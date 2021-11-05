@@ -437,9 +437,20 @@ def validate_quantity(
     return quantity
 
 
+def _create_es_must(queries: Dict[str, EsQuery]):
+    # dictionary is like an "and" of all items in the dict
+    if len(queries) == 0:
+        return Q()
+
+    if len(queries) == 1:
+        return list(queries.values())[0]
+
+    return Q('bool', must=list(queries.values()))
+
+
 def validate_api_query(
         query: Query, doc_type: DocumentType, owner_query: EsQuery,
-        prefix: str = None) -> EsQuery:
+        prefix: str = None, results_dict: Dict[str, EsQuery] = None) -> EsQuery:
     '''
     Creates an ES query based on the API's query model. This needs to be a normalized
     query expression with explicit objects for logical, set, and comparison operators.
@@ -460,6 +471,11 @@ def validate_api_query(
             materials queries.
         prefix:
             An optional prefix that is added to all quantity names. Used for recursion.
+        results_dict:
+            If an empty dictionary is given and the query is a mapping, the top-level
+            criteria from this mapping will be added as individual es queries. The
+            keys will be the mapping keys and values the respective es queries. A logical
+            and (or es "must") would result in the overall resulting es query.
 
     Returns:
         A elasticsearch dsl query object.
@@ -564,11 +580,20 @@ def validate_api_query(
             return Q()
 
         if len(query) == 1:
-            key = next(iter(query))
-            return validate_criteria(key, query[key])
+            name = next(iter(query))
+            es_criteria_query = validate_criteria(name, query[name])
+            if results_dict is not None:
+                results_dict[name] = es_criteria_query
+            return es_criteria_query
 
-        return Q('bool', must=[
-            validate_criteria(name, value) for name, value in query.items()])
+        es_criteria_queries = []
+        for name, value in query.items():
+            es_criteria_query = validate_criteria(name, value)
+            es_criteria_queries.append(es_criteria_query)
+            if results_dict is not None:
+                results_dict[name] = es_criteria_query
+
+        return Q('bool', must=es_criteria_queries)
 
     raise NotImplementedError()
 
@@ -595,13 +620,20 @@ def validate_pagination(pagination: Pagination, doc_type: DocumentType, loc: Lis
 
 
 def _api_to_es_aggregation(
-        es_search: Search, name: str, agg: AggregationBase, doc_type: DocumentType) -> A:
+        es_search: Search, name: str, agg: AggregationBase, doc_type: DocumentType,
+        post_agg_queries: Dict[str, EsQuery]) -> A:
     '''
     Creates an ES aggregation based on the API's aggregation model.
     '''
 
     agg_name = f'agg:{name}'
     es_aggs = es_search.aggs
+
+    if post_agg_queries:
+        filter = post_agg_queries
+        if isinstance(agg, QuantityAggregation) and agg.exclude_from_search:
+            filter = {name: query for name, query in post_agg_queries.items() if name != agg.quantity}
+        es_aggs = es_aggs.bucket(f'{agg_name}:filtered', A('filter', filter=_create_es_must(filter)))
 
     if isinstance(agg, StatisticsAggregation):
         for metric_name in agg.metrics:
@@ -620,13 +652,11 @@ def _api_to_es_aggregation(
         return
 
     agg = cast(QuantityAggregation, agg)
-
     longest_nested_key = None
     quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
-
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
-            es_aggs = es_search.aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
+            es_aggs = es_aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
             longest_nested_key = nested_key
 
     es_agg = None
@@ -674,6 +704,11 @@ def _api_to_es_aggregation(
                 }
 
             if page_after_value is not None:
+                if post_agg_queries:
+                    raise QueryValidationError(
+                        f'aggregation page_after_value cannot be used with exclude_from_search in the same request',
+                        loc=['aggregations', name, 'terms', 'pagination', 'page_after_value'])
+
                 if order_quantity is None:
                     composite['after'] = {name: page_after_value}
                 else:
@@ -770,6 +805,11 @@ def _es_to_api_aggregation(
     the given aggregation.
     '''
     es_aggs = es_response.aggs
+
+    filtered_agg_name = f'agg:{name}:filtered'
+    if filtered_agg_name in es_response.aggs:
+        es_aggs = es_aggs[f'agg:{name}:filtered']
+
     aggregation_dict = agg.dict(by_alias=True)
 
     if isinstance(agg, StatisticsAggregation):
@@ -785,7 +825,7 @@ def _es_to_api_aggregation(
     longest_nested_key = None
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
-            es_aggs = es_response.aggs[f'nested_agg:{name}']
+            es_aggs = es_aggs[f'nested_agg:{name}']
             longest_nested_key = nested_key
 
     has_no_pagination = getattr(agg, 'pagination', None) is None
@@ -907,22 +947,24 @@ def search(
 
     doc_type = index.doc_type
 
-    # owner and query
+    # owner
     owner_query = _owner_es_query(owner=owner, user_id=user_id, doc_type=doc_type)
 
+    # query
     if query is None:
         query = {}
 
+    es_query_dict: Dict[str, EsQuery] = {}
     if isinstance(query, EsQuery):
         es_query = cast(EsQuery, query)
     else:
         es_query = validate_api_query(
-            cast(Query, query), doc_type=doc_type, owner_query=owner_query)
+            cast(Query, query), doc_type=doc_type, owner_query=owner_query,
+            results_dict=es_query_dict)
 
     if doc_type != entry_type:
-        es_query &= Q('nested', path='entries', query=owner_query)
-    else:
-        es_query &= owner_query
+        owner_query = Q('nested', path='entries', query=owner_query)
+    es_query &= owner_query
 
     # pagination
     if pagination is None:
@@ -933,7 +975,6 @@ def search(
 
     search = Search(index=index.index_name)
 
-    search = search.query(es_query)
     # TODO this depends on doc_type
     if pagination.order_by is None:
         pagination.order_by = doc_type.id_field
@@ -979,15 +1020,44 @@ def search(
     search = search.source(includes=includes, excludes=excludes)
 
     # aggregations
-    for name, agg in aggregations.items():
-        _api_to_es_aggregation(search, name, _specific_agg(agg), doc_type=doc_type)
+    aggs = [(name, _specific_agg(agg)) for name, agg in aggregations.items()]
+    post_agg_queries: Dict[str, EsQuery] = {}
+    excluded_agg_quantities = {
+        agg.quantity
+        for _, agg in aggs
+        if isinstance(agg, QuantityAggregation) and agg.exclude_from_search}
+
+    if len(excluded_agg_quantities) > 0:
+        if not isinstance(query, dict):
+            # "exclude_from_search" only work for toplevel mapping queries
+            raise QueryValidationError(
+                f'the query has to be a dictionary if there is an aggregation with exclude_from_search',
+                loc=['query'])
+
+        pre_agg_queries = {
+            quantity: es_query
+            for quantity, es_query in es_query_dict.items()
+            if quantity not in excluded_agg_quantities}
+        post_agg_queries = {
+            quantity: es_query
+            for quantity, es_query in es_query_dict.items()
+            if quantity in excluded_agg_quantities}
+
+        search = search.post_filter(_create_es_must(post_agg_queries))
+        search = search.query(_create_es_must(pre_agg_queries) & owner_query)
+
+    else:
+        search = search.query(es_query)  # pylint: disable=no-member
+
+    for name, agg in aggs:
+        _api_to_es_aggregation(
+            search, name, agg, doc_type=doc_type, post_agg_queries=post_agg_queries)
 
     # execute
     try:
         es_response = search.execute()
     except RequestError as e:
         raise SearchError(e)
-
     more_response_data = {}
 
     # pagination
