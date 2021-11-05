@@ -25,7 +25,6 @@ import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
 import searchQuantities from '../../searchQuantities'
-import Quantity from '../Quantity'
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})
@@ -352,8 +351,6 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
     })
   } : null
 
-  const timeKeySet = new Set(['upload_create_time', 'entry_create_time', 'last_processing_time'])
-
   return <React.Fragment>
     <TableRow
       className={clsx({
@@ -373,28 +370,9 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
           onClick={handleSelect}
         />
       </TableCell>}
-      {columns.map(function(column) {
-        if (column.key === 'upload_id' || column.key === 'entry_id' || column.key === 'dataset_id') {
-          return <TableCell key={column.key} align={column.align || 'right'}>
-            <Quantity quantity={column.key} noTitle noWrap withClipboard data={data}/>
-          </TableCell>
-        } else if (column.key === 'mainfile') {
-          return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '150px', width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-            {(column?.render && column?.render(row)) || row[column.key] || ''}
-          </TableCell>
-        } else if (timeKeySet.has(column.key)) {
-          return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '100px'}}>
-            <Typography noWrap>
-              {new Date(row[column.key]).toLocaleString()}
-            </Typography>
-          </TableCell>
-        } else {
-          return <TableCell key={column.key} align={column.align || 'right'} style={{maxWidth: '100px'}}>
-            {(column?.render && column?.render(row)) || row[column.key] || ''}
-          </TableCell>
-        }
-      })
-      }
+      {columns.map(column => <TableCell key={column.key} align={column.align || 'right'}>
+        {(column?.render && column?.render(row)) || row[column.key] || ''}
+      </TableCell>)}
       {actions && <TableCell
         align="right" size="small" className={classes.rowActionsCell}
         onClick={(event) => event.stopPropagation()}
