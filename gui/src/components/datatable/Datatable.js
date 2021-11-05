@@ -370,7 +370,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
           onClick={handleSelect}
         />
       </TableCell>}
-      {columns.map(column => <TableCell key={column.key} align={column.align || 'right'}>
+      {columns.map(column => <TableCell key={column.key} align={column.align || 'right'} style={column.style}>
         {(column?.render && column?.render(row)) || row[column.key] || ''}
       </TableCell>)}
       {actions && <TableCell

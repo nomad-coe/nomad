@@ -26,10 +26,19 @@ import {
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
+import Quantity from '../Quantity'
 
 const columns = [
-  {key: 'entry_id', align: 'left'},
-  {key: 'mainfile', align: 'left'},
+  {
+    key: 'entry_id',
+    align: 'left',
+    render: entry => <Quantity quantity={'entry_id'} noTitle noWrap withClipboard data={entry}/>
+  },
+  {
+    key: 'mainfile',
+    align: 'left',
+    style: {maxWidth: '150px', width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
+  },
   {key: 'parser_name', align: 'left'},
   {key: 'process_status', align: 'left'},
   {key: 'complete_time', align: 'left'},
