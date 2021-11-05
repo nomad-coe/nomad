@@ -22,7 +22,7 @@ import { toUnitSystem } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import SectionTable from './SectionTable'
+import { SectionTable } from '../Quantity'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
@@ -31,13 +31,13 @@ import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 const useStyles = makeStyles((theme) => {
   return {
     nodata: {
-      top: theme.spacing(1),
+      top: theme.spacing(0.7),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: '3.55rem'
     },
     placeholder: {
-      top: theme.spacing(1),
+      top: theme.spacing(0.7),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: theme.spacing(2)

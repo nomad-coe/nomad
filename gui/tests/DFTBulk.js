@@ -23,6 +23,7 @@
  * - Electronic DOS
  * - Electronic band structure
  */
+import { cloneDeep } from 'lodash'
 
 // Indexed data that is shared between metadata and results
 const common = {
@@ -42,9 +43,6 @@ const common = {
   formula: 'Si2'
 }
 
-const materialName = 'Silicon'
-const materialType = 'bulk'
-const crystalSystem = 'cubic'
 const vdwMethod = 'G06'
 const relativityMethod = 'scalar_relativistic_atomic_ZORA'
 const basisSetName = 'STO-3G'
@@ -94,16 +92,21 @@ const workflow = [
 const resultsDftBulk = {
   material: {
     material_id: 'Mock material id',
-    material_name: materialName,
-    structural_type: materialType,
+    material_name: 'Silicon',
+    structural_type: 'bulk',
+    elements: ['Si'],
+    n_elements: 1,
     chemical_formula_reduced: 'Si2',
     chemical_formula_hill: 'Si2',
     chemical_formula_anonymous: 'A2',
     chemical_formula_descriptive: 'Si2',
     symmetry: {
-      crystal_system: crystalSystem,
+      crystal_system: 'cubic',
+      bravais_lattice: 'cP',
+      structure_name: 'rock salt',
       space_group_symbol: 'Fd-3m',
-      space_group_number: 227
+      space_group_number: 227,
+      point_group: '6mm'
     }
   },
   method: {
@@ -149,6 +152,41 @@ const resultsDftBulk = {
           value: 1e-19,
           type: 'indirect'
         }]
+      }
+    },
+    structures: {
+      structure_original: {
+        lattice_parameters: {
+          a: 5e-10,
+          b: 5e-10,
+          c: 5e-10,
+          alpha: 0.9,
+          beta: 0.9,
+          gamma: 0.9
+        },
+        cell_volume: 125e-30
+      },
+      structure_conventional: {
+        lattice_parameters: {
+          a: 5e-10,
+          b: 5e-10,
+          c: 5e-10,
+          alpha: 0.9,
+          beta: 0.9,
+          gamma: 0.9
+        },
+        cell_volume: 125e-37
+      },
+      structure_primitive: {
+        lattice_parameters: {
+          a: 5e-10,
+          b: 5e-10,
+          c: 5e-10,
+          alpha: 0.9,
+          beta: 0.9,
+          gamma: 0.9
+        },
+        cell_volume: 125e-30
       }
     },
     vibrational: {
@@ -283,17 +321,21 @@ const run = [{
 ]
 
 // Results for a repository API query
-export const repoDftBulk = {
-  ...common,
-  results: {...resultsDftBulk}
+export function getIndex() {
+  return {
+    ...cloneDeep(common),
+    results: cloneDeep({...resultsDftBulk})
+  }
 }
 
 // Result for an archive API query
-export const archiveDftBulk = {
-  metadata: {
-    ...common
-  },
-  workflow: {...workflow},
-  results: {...resultsDftBulk},
-  run: run
+export function getArchive() {
+  return {
+    metadata: {
+      ...cloneDeep(common)
+    },
+    workflow: {...cloneDeep(workflow)},
+    results: {...cloneDeep(resultsDftBulk)},
+    run: cloneDeep(run)
+  }
 }

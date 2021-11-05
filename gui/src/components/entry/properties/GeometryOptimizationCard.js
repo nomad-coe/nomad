@@ -22,7 +22,7 @@ import { useUnits } from '../../../units'
 import { resolveRef } from '../../archive/metainfo'
 import GeometryOptimization from '../../visualization/GeometryOptimization'
 
-export default function GeometryOptimizationCard({entryMetadata, archive, properties}) {
+export default function GeometryOptimizationCard({index, archive, properties}) {
   const units = useUnits()
 
   // Find out which properties are present
@@ -36,7 +36,7 @@ export default function GeometryOptimizationCard({entryMetadata, archive, proper
   // Resolve geometry optimization data
   let geometryOptimization = hasGeometryOptimization ? null : false
   const geoOptProps = archive?.results?.properties?.geometry_optimization
-  const geoOptMethod = entryMetadata.results.method?.simulation?.geometry_optimization
+  const geoOptMethod = index.results.method?.simulation?.geometry_optimization
   if (geoOptProps) {
     geometryOptimization = {}
     geometryOptimization.energies = resolveRef(geoOptProps.energies, archive)
@@ -49,7 +49,7 @@ export default function GeometryOptimizationCard({entryMetadata, archive, proper
 }
 
 GeometryOptimizationCard.propTypes = {
-  entryMetadata: PropTypes.object.isRequired,
+  index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }

@@ -89,6 +89,13 @@ export const nomadTheme = createMuiTheme({
         fontWeight: 'normal',
         fontSize: '0.75rem'
       }
+    },
+    MuiTableRow: {
+      root: {
+        '&:last-child td': {
+          borderBottom: 0
+        }
+      }
     }
   }
 })

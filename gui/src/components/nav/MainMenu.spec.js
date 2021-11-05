@@ -18,20 +18,13 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { toBeInTheDocument } from '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { render, screen, within } from '../../testSetup'
 import MainMenu from './MainMenu'
 import { routes } from './Routes'
-import { withRecoilRoot } from '../../testutils'
-
-expect.extend({ toBeInTheDocument })
 
 describe('<MainMenu />', () => {
   it('renders menu items for all nav paths', () => {
-    render(withRecoilRoot(<MemoryRouter>
-      <MainMenu />
-    </MemoryRouter>))
+    render(<MainMenu/>)
     Object.keys(routes).forEach(key => {
       const route = routes[key]
       if (route.menu) {

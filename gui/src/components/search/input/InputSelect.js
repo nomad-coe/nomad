@@ -38,7 +38,7 @@ const MenuProps = {
 }
 
 // Customized input component
-const CustomInput = withStyles((theme) => ({
+export const CustomInput = withStyles((theme) => ({
   input: {
     padding: theme.spacing(1),
     minHeight: '2.5rem'

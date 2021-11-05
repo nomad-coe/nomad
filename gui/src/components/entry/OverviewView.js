@@ -81,23 +81,23 @@ const useStyles = makeStyles(theme => ({
  */
 const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
   const { raiseError } = useErrors()
-  const [entry, setEntry] = useState(null)
+  const [index, setIndex] = useState(null)
   const [exists, setExists] = useState(true)
   const [showAPIDialog, setShowAPIDialog] = useState(false)
   const [archive, setArchive] = useState(null)
   const {api} = useApi()
   const properties = useMemo(() => {
-    return new Set(entry?.results
-      ? entry.results.properties.available_properties
+    return new Set(index?.results
+      ? index.results.properties.available_properties
       : []
     )
-  }, [entry])
+  }, [index])
 
   useEffect(() => {
     api.entry(entryId).then(response => {
-      const entry = response.data
-      setEntry(entry)
-      api.results(entry.entry_id)
+      const index = response.data
+      setIndex(index)
+      api.results(index.entry_id)
         .then(setArchive)
         .catch(error => {
           if (error.name === 'DoesNotExist') {
@@ -112,7 +112,7 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
         raiseError(error)
       }
     })
-  }, [api, raiseError, entryId, setEntry, setExists, setArchive])
+  }, [api, raiseError, entryId, setIndex, setExists, setArchive])
 
   const classes = useStyles()
 
@@ -124,7 +124,7 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
     </Page>
   }
 
-  if (!entry) {
+  if (!index) {
     return null
   }
 
@@ -132,34 +132,34 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
     <Grid container spacing={0} className={classes.root}>
       <Grid item xs={4} className={classes.leftColumn}>
         <MetadataSection title='Method'>
-          <MethodMetadata data={entry} />
+          <MethodMetadata data={index} />
         </MetadataSection>
         <Divider className={classes.divider} />
         <MetadataSection title='Author metadata'>
           <Quantity flex>
-            <Quantity quantity='comment' placeholder='no comment' data={entry} />
-            <Quantity quantity='references' placeholder='no references' data={entry}>
-              {entry.references &&
+            <Quantity quantity='comment' placeholder='no comment' data={index} />
+            <Quantity quantity='references' placeholder='no references' data={index}>
+              {index.references &&
               <div style={{display: 'inline-grid'}}>
-                {entry.references.map(ref => <Typography key={ref} noWrap>
+                {index.references.map(ref => <Typography key={ref} noWrap>
                   <Link href={ref}>{ref}</Link>
                 </Typography>)}
               </div>}
             </Quantity>
-            <Quantity quantity='authors' data={entry}>
+            <Quantity quantity='authors' data={index}>
               <Typography>
-                {authorList(entry || [])}
+                {authorList(index || [])}
               </Typography>
             </Quantity>
             <Quantity
               description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
               label='datasets'
               placeholder='no datasets'
-              data={entry}
+              data={index}
             >
-              {(entry.datasets && entry.datasets.length !== 0) &&
+              {(index.datasets && index.datasets.length !== 0) &&
               <div>
-                {entry.datasets.map(ds => (
+                {index.datasets.map(ds => (
                   <Typography key={ds.dataset_id}>
                     <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
                     {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
@@ -171,30 +171,30 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
         <Divider className={classes.divider}/>
         <MetadataSection>
           <Quantity column style={{maxWidth: 350}}>
-            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard data={entry}/>
-            <Quantity quantity="entry_id" label='entry id' noWrap withClipboard data={entry}/>
-            <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard data={entry}/>
-            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard data={entry}/>
-            <Quantity quantity="upload_create_time" label='upload time' noWrap data={entry}>
+            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard data={index}/>
+            <Quantity quantity="entry_id" label='entry id' noWrap withClipboard data={index}/>
+            <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard data={index}/>
+            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard data={index}/>
+            <Quantity quantity="upload_create_time" noWrap data={index}>
               <Typography noWrap>
-                {new Date(entry.upload_create_time).toLocaleString()}
+                {new Date(index.upload_create_time).toLocaleString()}
               </Typography>
             </Quantity>
-            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={entry}/>
-            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard data={entry}/>
-            <Quantity quantity="last_processing_time" label='last processing time' placeholder="not processed" noWrap data={entry}>
+            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={index}/>
+            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard data={index}/>
+            <Quantity quantity="last_processing_time" label='last processing time' placeholder="not processed" noWrap data={index}>
               <Typography noWrap>
-                {new Date(entry.last_processing_time).toLocaleString()}
+                {new Date(index.last_processing_time).toLocaleString()}
               </Typography>
             </Quantity>
-            <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" data={entry}>
+            <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" data={index}>
               <Typography noWrap>
-                {entry.nomad_version}/{entry.nomad_commit}
+                {index.nomad_version}/{index.nomad_commit}
               </Typography>
             </Quantity>
           </Quantity>
         </MetadataSection>
-        <ApiDialog data={entry} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
+        <ApiDialog data={index} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
         <Actions
           justifyContent='flex-end'
           variant='outlined'
@@ -210,12 +210,12 @@ const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>
-        <MaterialCard entryMetadata={entry} archive={archive} properties={properties}/>
-        <ElectronicPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
-        <VibrationalPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
-        <MechanicalPropertiesCard entryMetadata={entry} archive={archive} properties={properties}/>
-        <GeometryOptimizationCard entryMetadata={entry} archive={archive} properties={properties}/>
-        <SpectroscopyCard entryMetadata={entry} archive={archive} properties={properties}/>
+        <MaterialCard index={index} archive={archive} properties={properties}/>
+        <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
+        <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
+        <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>
+        <GeometryOptimizationCard index={index} archive={archive} properties={properties}/>
+        <SpectroscopyCard index={index} archive={archive} properties={properties}/>
       </Grid>
     </Grid>
   </Page>

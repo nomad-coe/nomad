@@ -18,8 +18,8 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { toHaveStyle, toBeVisible, toBeInTheDocument } from '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { toHaveStyle } from '@testing-library/jest-dom'
+import { render, screen, fireEvent, waitFor } from '../../testSetup'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
 import { Router } from 'react-router-dom'
 import {createMemoryHistory} from 'history'
@@ -28,7 +28,7 @@ function toBePrimaryColored(htmlElement) {
   return toHaveStyle(htmlElement, 'color: rgb(63, 81, 181)')
 }
 
-expect.extend({ toHaveStyle, toBeVisible, toBeInTheDocument, toBePrimaryColored })
+expect.extend({toBePrimaryColored})
 
 describe('<NestedTopNav />', () => {
   const history = createMemoryHistory()

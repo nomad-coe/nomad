@@ -25,7 +25,7 @@ import { resolveRef } from '../../archive/metainfo'
 /**
  * Card displaying spectroscopic properties.
 */
-const SpectroscopyCard = React.memo(({entryMetadata, properties, archive}) => {
+const SpectroscopyCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
 
   // Find out which properties are present
@@ -55,7 +55,7 @@ const SpectroscopyCard = React.memo(({entryMetadata, properties, archive}) => {
 })
 
 SpectroscopyCard.propTypes = {
-  entryMetadata: PropTypes.object.isRequired,
+  index: PropTypes.object.isRequired,
   properties: PropTypes.object.isRequired,
   archive: PropTypes.object
 }

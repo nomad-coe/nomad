@@ -40,14 +40,15 @@ const useStyles = makeStyles(theme => ({
   },
   placeholder: {
     position: 'absolute',
-    top: theme.spacing(1),
-    left: theme.spacing(2),
-    right: theme.spacing(2),
-    bottom: theme.spacing(1),
-    backgroundColor: '#f3f3f3',
+    top: theme.spacing(0),
+    left: theme.spacing(1),
+    right: theme.spacing(1),
+    bottom: theme.spacing(0),
+    backgroundColor: theme.palette.grey[100],
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderRadius: theme.spacing(0.5)
   },
   message: {
     color: theme.palette.primary.main,

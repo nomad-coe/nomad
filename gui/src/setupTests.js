@@ -1,3 +1,9 @@
+/* eslint-disable */
+/**
+ * Code to configure or set up the testing framework before each test file in
+ * the suite is executed. Contains e.g. global setup/teardown functionality for
+ * tests.
+ */
 global.nomadEnv = {
   'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
   'keycloakRealm': 'fairdi_nomad_test',
@@ -21,3 +27,22 @@ global.nomadEnv = {
 // Increased the default jest timeout for individual tests
 // eslint-disable-next-line no-undef
 jest.setTimeout(10000)
+
+const { ResizeObserver } = window
+
+beforeAll(() => {
+  // ResizeObserver mock init
+  delete window.ResizeObserver
+  window.ResizeObserver = jest.fn().mockImplementation(() => ({
+    observe: jest.fn(),
+    unobserve: jest.fn(),
+    disconnect: jest.fn()
+  }))
+})
+
+afterAll(() => {
+  // ResizeObserver mock cleanup
+  window.ResizeObserver = ResizeObserver
+  jest.restoreAllMocks()
+})
+
