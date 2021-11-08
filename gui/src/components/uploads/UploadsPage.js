@@ -121,7 +121,7 @@ const uploadsPageContext = React.createContext()
 const columns = [
   {
     key: 'upload_id',
-    render: upload => <Quantity quantity={'upload_id'} noTitle noWrap withClipboard data={upload}/>
+    render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
   },
   {
     key: 'upload_create_time',

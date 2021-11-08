@@ -115,7 +115,7 @@ const Quantity = React.memo(({
   placeholder,
   typography,
   noWrap,
-  noTitle,
+  noLabel,
   row,
   column,
   flex,
@@ -207,42 +207,42 @@ const Quantity = React.memo(({
     return <div className={row ? styles.row : (column ? styles.column : styles.flex)}>{children}</div>
   } else {
     return (
-      <div className={styles.root}>
-        {!noTitle ? <Typography
-          noWrap
-          classes={{root: styles.label}}
-          variant="caption"
-        >{useLabel}</Typography> : ''}
-        <div className={styles.valueContainer}>
-          {loading
-            ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-              <i>loading ...</i>
-            </Typography>
-            : <Tooltip title={tooltip}>
-              {content}
-            </Tooltip>
-          }
-          {withClipboard
-            ? <CopyToClipboard
-              className={styles.valueAction}
-              text={clipboardContent}
-              onCopy={() => null}
-            >
-              <Tooltip title={`Copy ${useLabel} to clipboard`}>
-                <div>
-                  <IconButton
-                    disabled={!clipboardContent}
-                    classes={{root: styles.valueActionButton}}
-                  >
-                    <ClipboardIcon classes={{root: styles.valueActionIcon}}/>
-                  </IconButton>
-                </div>
-              </Tooltip>
-            </CopyToClipboard>
-            : ''
-          }
+      <Tooltip title={tooltip}>
+        <div className={styles.root}>
+          {!noLabel ? <Typography
+            noWrap
+            classes={{root: styles.label}}
+            variant="caption"
+          >{useLabel}</Typography> : ''}
+          <div className={styles.valueContainer}>
+            {loading
+              ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+                <i>loading ...</i>
+              </Typography>
+              : content
+            }
+            {withClipboard
+              ? <CopyToClipboard
+                className={styles.valueAction}
+                text={clipboardContent}
+                onCopy={() => null}
+              >
+                <Tooltip title={`Copy ${useLabel} to clipboard`}>
+                  <div>
+                    <IconButton
+                      disabled={!clipboardContent}
+                      classes={{root: styles.valueActionButton}}
+                    >
+                      <ClipboardIcon classes={{root: styles.valueActionIcon}}/>
+                    </IconButton>
+                  </div>
+                </Tooltip>
+              </CopyToClipboard>
+              : ''
+            }
+          </div>
         </div>
-      </div>
+      </Tooltip>
     )
   }
 })
@@ -254,7 +254,7 @@ Quantity.propTypes = {
   loading: PropTypes.bool,
   placeholder: PropTypes.string,
   noWrap: PropTypes.bool,
-  noTitle: PropTypes.bool,
+  noLabel: PropTypes.bool,
   row: PropTypes.bool,
   column: PropTypes.bool,
   flex: PropTypes.bool,
@@ -511,5 +511,3 @@ SectionTable.propTypes = {
   units: PropTypes.object,
   'data-testid': PropTypes.string
 }
-
-export default withStyles(Quantity.styles)(Quantity)

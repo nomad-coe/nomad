@@ -32,7 +32,7 @@ const columns = [
   {
     key: 'entry_id',
     align: 'left',
-    render: entry => <Quantity quantity={'entry_id'} noTitle noWrap withClipboard data={entry}/>
+    render: entry => <Quantity quantity={'entry_id'} noLabel noWrap withClipboard data={entry}/>
   },
   {
     key: 'mainfile',

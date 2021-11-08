@@ -40,7 +40,7 @@ very similar to labels, albums, or tags on other platforms.
 const columns = [
   {
     key: 'dataset_id',
-    render: dataset => <Quantity quantity={'dataset_id'} noTitle noWrap withClipboard data={dataset}/>
+    render: dataset => <Quantity quantity={'dataset_id'} noLabel noWrap withClipboard data={dataset}/>
   },
   {key: 'dataset_name'},
   {key: 'doi', label: 'Digital object identifier (DOI)'},
