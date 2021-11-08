@@ -77,18 +77,16 @@ gui:
   replicas: 1
   ## This variable is used in the GUI to show or hide additional information
   debug: false
-  ## URL for matomo(piwik) user tracking
-  matomoUrl: 'https://nomad-lab.eu/prod/stat'
-  ## site id for matomo(piwik) user tracking
-  matomoSiteId: 1
-  ## send matomo(piwik) user tracking data
-  matomoEnabled: false
   ## automatically gz based on header
   gzip: true
+
+encyclopedia:
   ## enable links to the 'new' encyclopedia
-  encyclopediaEnabled: true
+  enabled: true
+
+aitoolkit:
   ## enable aitoolkit references
-  aitoolkitEnabled: true
+  enabled: false
 
 ## Everything concerning the nginx that serves the gui, proxies the api
 #  It is run via NodePort service
@@ -176,6 +174,3 @@ reprocess_match: false
 datacite:
   enabled: false
   prefix: "10.17172"
-
-aitoolkit:
-  enabled: true

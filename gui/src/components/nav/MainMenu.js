@@ -16,16 +16,10 @@
  * limitations under the License.
  */
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-  FormGroup,
-  Switch} from '@material-ui/core'
-import React, { useEffect, useMemo, useState } from 'react'
-import Markdown from '../Markdown'
+import React from 'react'
 import { useRoute } from './Routes'
-import { matomo } from '../App'
-import { useCookies } from 'react-cookie'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
-import { guiBase, consent, appBase, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../../config'
+import { appBase, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../../config'
 
 import BackupIcon from '@material-ui/icons/Backup'
 import SearchIcon from '@material-ui/icons/Search'
@@ -39,82 +33,6 @@ import DocIcon from '@material-ui/icons/Help'
 import CodeIcon from '@material-ui/icons/Code'
 import TermsIcon from '@material-ui/icons/Assignment'
 import AnalyticsIcon from '@material-ui/icons/ShowChart'
-
-function Consent(moreProps) {
-  const [cookies, setCookie] = useCookies()
-  const [accepted, setAccepted] = useState(cookies['terms-accepted'])
-  const [optOut, setOptOut] = useState(cookies['tracking-enabled'] === 'false')
-  const cookieOptions = useMemo(() => ({
-    expires: new Date(2147483647 * 1000),
-    path: '/' + guiBase.split('/').slice(1).join('/')
-  }), [])
-
-  useEffect(() => {
-    if (!optOut) {
-      matomo.push(['setConsentGiven'])
-    } else {
-      matomo.push(['requireConsent'])
-    }
-  })
-
-  // Write again to push forwards Safari's hard-coded 7 days ITP window
-  useEffect(() => {
-    setCookie('terms-accepted', cookies['terms-accepted'], cookieOptions)
-    setCookie('tracking-enabled', cookies['tracking-enabled'], cookieOptions)
-  },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [])
-
-  const handleClosed = accepted => {
-    if (accepted) {
-      setCookie('terms-accepted', true, cookieOptions)
-      setCookie('tracking-enabled', !optOut, cookieOptions)
-      setAccepted(true)
-    }
-  }
-  const handleOpen = () => {
-    setCookie('terms-accepted', false, cookieOptions)
-    setAccepted(false)
-  }
-
-  return (
-    <React.Fragment>
-      <MenuBarItem
-        name="terms"
-        onClick={handleOpen}
-        tooltip="The terms of service and cookie consent"
-        icon={<TermsIcon/>}
-        {...moreProps}
-      />
-      <Dialog
-        disableBackdropClick disableEscapeKeyDown
-        open={!accepted}
-      >
-        <DialogTitle>Terms of Use</DialogTitle>
-        <DialogContent>
-          <Markdown>{consent}</Markdown>
-          <FormGroup>
-            <FormControlLabel
-              control={<Switch
-                checked={optOut}
-                onChange={(e) => {
-                  setOptOut(!optOut)
-                }}
-                color="primary"
-              />}
-              label="Do not provide information about your use of NOMAD (opt-out)."
-            />
-          </FormGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => handleClosed(true)} color="primary">
-            Accept
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </React.Fragment>
-  )
-}
 
 export default function MainMenu() {
   const route = useRoute()
@@ -192,7 +110,12 @@ export default function MainMenu() {
         tooltip="NOMAD's main Gitlab project"
         icon={<CodeIcon/>}
       />
-      <Consent />
+      <MenuBarItem
+        name="terms"
+        href="https://nomad-lab.eu/terms"
+        tooltip="The terms of service"
+        icon={<TermsIcon/>}
+      />
     </MenuBarMenu>
   </MenuBar>
 }

@@ -19,7 +19,7 @@ import React, { useContext, useLayoutEffect, useRef, useCallback, useEffect, use
 import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
-import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
+import { appBase, debug, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import { apiContext } from './api'
 import packageJson from '../../package.json'
 import { domains } from './domains'
@@ -248,7 +248,7 @@ export default function About() {
     <Grid className={classes.container} container spacing={2}>
       <Grid item xs={12}>
         <Markdown>{`
-        # The NOMAD Repository and Archive
+        # **NOMAD** &ndash; Manage and Publish Materials Data
 
         This is the *graphical user interface* (GUI) for the NOMAD Repository and
         Archive. It allows you to **search, access, and download all NOMAD data** in its
@@ -374,9 +374,6 @@ export default function About() {
         with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
         used for data that has no provenance with the original NOMAD CoE database.
         ` : ''}
-
-        ### Terms of use and licenses
-        ${consent}
 
         ### About this version
         - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`

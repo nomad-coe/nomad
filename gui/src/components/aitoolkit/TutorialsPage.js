@@ -35,6 +35,7 @@ import ReproduceIcon from '../../images/AIT_ico_bb_replicate.svg'
 import AccordionsList from './AccordionsList'
 import FigureAI from '../../images/AIT_illu_AIT.svg'
 import tutorials from '../../toolkitMetadata'
+import { aitoolkitEnabled } from '../../config'
 
 export const useStyles = makeStyles(theme => ({
   root: {
@@ -185,8 +186,8 @@ export default function TutorialsPage() {
         <Grid container spacing={0}>
           <Grid item xs={4} style={{marginTop: '-100px', marginLeft: '-20px'}}>
             <IconButton
-              component={Link}
-              to="main">
+              {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
+            >
               <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
             </IconButton>
           </Grid>
@@ -380,7 +381,7 @@ export default function TutorialsPage() {
         <Grid item xs={4}>
           <IconButton
             component={Link}
-            to="main"
+            {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
             style={{marginRight: '0px', marginTop: '20px'}}
           >
             <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>

@@ -715,6 +715,7 @@ def gui_config():
     from nomad import config
     import glob
     import shutil
+    import json
 
     gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/flask/static/gui'))
     run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
@@ -734,10 +735,10 @@ window.nomadEnv = {{
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',
     'debug': false,
-    'matomoEnabled': false,
     'encyclopediaEnabled': {'true' if config.encyclopedia_enabled else 'false'},
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
-    'oasis': {'true' if config.keycloak.oasis else 'false'}
+    'oasis': {'true' if config.keycloak.oasis else 'false'},
+    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()}
 }};''')
 
     # replace base path in all GUI files
