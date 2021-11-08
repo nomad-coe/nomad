@@ -45,7 +45,7 @@ import { Unit, toUnitSystem, useUnits } from '../units'
 */
 const useQuantityStyles = makeStyles(theme => ({
   root: {
-    maxWidth: '100%'
+    maxWidth: 'fit-content'
   },
   valueContainer: {
     display: 'flex',
