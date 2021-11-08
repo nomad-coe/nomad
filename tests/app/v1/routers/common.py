@@ -333,6 +333,134 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
     ]
 
 
+def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per_entity: int, total: int):
+    entry_id = f'{entry_prefix}entry_id'
+    upload_id = f'{entry_prefix}upload_id'
+    program_name = f'{entry_prefix}results.method.simulation.program_name'
+
+    return [
+        pytest.param(
+            {
+                f'{entry_id}:any': ['id_01']
+            },
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                }
+            ],
+            [10], 1, 200,
+            id='exclude'
+        ),
+        pytest.param(
+            {
+                f'{entry_id}:any': ['id_01']
+            },
+            [
+                {
+                    'exclude_from_search': False,
+                    'quantity': entry_id
+                }
+            ],
+            [total_per_entity], 1, 200,
+            id='dont-exclude'
+        ),
+        pytest.param(
+            {
+                f'{entry_id}:any': ['id_01'],
+                upload_id: 'id_published',
+                program_name: 'VASP'
+            },
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                },
+                {
+                    'exclude_from_search': True,
+                    'quantity': upload_id
+                }
+            ],
+            [10, 1], 1, 200,
+            id='two-aggs'
+        ),
+        pytest.param(
+            {
+                f'{entry_id}:any': ['id_01']
+            },
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                },
+                {
+                    'exclude_from_search': False,
+                    'quantity': entry_id
+                }
+            ],
+            [10, total_per_entity], 1, 200,
+            id='two-aggs-same-quantity'
+        ),
+        pytest.param(
+            {},
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                }
+            ],
+            [10], total, 200,
+            id='not-in-query'
+        ),
+        pytest.param(
+            {},
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id,
+                    'pagination': {
+                        'page_size': 20
+                    }
+                }
+            ],
+            [20], total, 200,
+            id='with-pagination'
+        ),
+        pytest.param(
+            {
+                'or': [{entry_id: 'id_01'}]
+            },
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                }
+            ],
+            [0], 0, 422,
+            id='non-dict-query'
+        ),
+        pytest.param(
+            {
+                f'{entry_id}:any': ['id_01']
+            },
+            [
+                {
+                    'exclude_from_search': True,
+                    'quantity': entry_id
+                },
+                {
+                    'quantity': entry_id,
+                    'pagination': {
+                        'page_after_value': 'id_published'
+                    }
+                }
+            ],
+            [0], 0, 422,
+            id='with-page-after-value'
+        )
+    ]
+
+
 def assert_response(response, status_code=None):
     ''' General assertions for status_code and error messages '''
     if status_code and response.status_code != status_code:

@@ -24,7 +24,7 @@ from nomad.metainfo.elasticsearch_extension import material_entry_type
 from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import (
-    assert_pagination, assert_metadata_response, assert_required, assert_aggregations,
+    aggregation_exclude_from_search_test_parameters, assert_pagination, assert_metadata_response, assert_required, assert_aggregations,
     perform_metadata_test, perform_owner_test, owner_test_parameters,
     post_query_test_parameters, get_query_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
@@ -72,6 +72,27 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
         assert_aggregations(
             response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
             default_key='material_id')
+
+
+@pytest.mark.parametrize(
+    'query,aggs,agg_lengths,total,status_code',
+    aggregation_exclude_from_search_test_parameters(entry_prefix='entries.', total_per_entity=3, total=6))
+def test_materials_aggregations_exclude_from_search(client, data, query, aggs, agg_lengths, total, status_code):
+    aggs = {f'agg_{i}': {'terms': agg} for i, agg in enumerate(aggs)}
+
+    response_json = perform_materials_metadata_test(
+        client, owner='visible',
+        query=query, aggregations=aggs,
+        pagination=dict(page_size=0),
+        status_code=status_code, http_method='post')
+
+    if response_json is None:
+        return
+
+    assert response_json['pagination']['total'] == total
+    for i, length in enumerate(agg_lengths):
+        response_agg = response_json['aggregations'][f'agg_{i}']['terms']
+    assert len(response_agg['data']) == length
 
 
 @pytest.mark.parametrize('required, status_code', [

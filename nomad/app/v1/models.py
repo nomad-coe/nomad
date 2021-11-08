@@ -788,6 +788,19 @@ class QuantityAggregation(AggregationBase):
         The manatory name of the quantity for the aggregation. Aggregations
         can only be computed for those search metadata that have discrete values;
         an aggregation buckets entries that have the same value for this quantity.'''))
+    exclude_from_search: bool = Field(
+        False, description=strip('''
+        If set to true, top-level search criteria involving the aggregation quantity, will not
+        be applied for this aggregation. Therefore, the aggregation will return all
+        values for the quantity, even if the possible values where filtered by the query.
+
+        There are two limitations. This is only supported with queries that start with a
+        dictionary. It will not work for queries with a boolean operator. It can only
+        exclude top-level criteria at the root of the query dictionary. Nested criteria,
+        e.g. within complex and/or constructs, cannot be considered. Using this might also
+        prohibit pagination with page_after_value on aggregations in the same request.
+        ''')
+    )
 
 
 class BucketAggregation(QuantityAggregation):
