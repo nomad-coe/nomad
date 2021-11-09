@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useMemo, useContext, useCallback, useState} from 'react'
+import React, {useMemo, useContext} from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import {
@@ -128,7 +128,6 @@ const Quantity = React.memo(({
 }) => {
   const styles = useQuantityStyles()
   const units = useUnits()
-  const [noToolTip, setNoToolTip] = useState(false)
   let content = null
   let clipboardContent = null
 
@@ -202,56 +201,48 @@ const Quantity = React.memo(({
     return useLabel
   }, [quantity, label, def])
 
-  const handleClipboardTooltipOpen = useCallback((event, value) => {
-    setNoToolTip(true)
-  }, [setNoToolTip])
-
-  const handleClipboardTooltipClose = useCallback((event, value) => {
-    setNoToolTip(false)
-  }, [setNoToolTip])
-
-  const tooltip = (noToolTip ? '' : description || def?.description || '')
+  const tooltip = description || def?.description || ''
 
   if (row || column || flex) {
     return <div className={row ? styles.row : (column ? styles.column : styles.flex)}>{children}</div>
   } else {
     return (
-      <Tooltip title={tooltip}>
-        <div className={styles.root}>
-          {!noLabel ? <Typography
-            noWrap
-            classes={{root: styles.label}}
-            variant="caption"
-          >{useLabel}</Typography> : ''}
-          <div className={styles.valueContainer}>
-            {loading
-              ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-                <i>loading ...</i>
-              </Typography>
-              : content
-            }
-            {withClipboard
-              ? <CopyToClipboard
-                className={styles.valueAction}
-                text={clipboardContent}
-                onCopy={() => null}
-              >
-                <Tooltip onClose={handleClipboardTooltipClose} onOpen={handleClipboardTooltipOpen} title={`Copy ${useLabel} to clipboard`}>
-                  <div>
-                    <IconButton
-                      disabled={!clipboardContent}
-                      classes={{root: styles.valueActionButton}}
-                    >
-                      <ClipboardIcon classes={{root: styles.valueActionIcon}}/>
-                    </IconButton>
-                  </div>
-                </Tooltip>
-              </CopyToClipboard>
-              : ''
-            }
-          </div>
+      <div className={styles.root}>
+        {!noLabel ? <Typography
+          noWrap
+          classes={{root: styles.label}}
+          variant="caption"
+        >{useLabel}</Typography> : ''}
+        <div className={styles.valueContainer}>
+          {loading
+            ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+              <i>loading ...</i>
+            </Typography>
+            : <Tooltip title={tooltip}>
+              {content}
+            </Tooltip>
+          }
+          {withClipboard
+            ? <CopyToClipboard
+              className={styles.valueAction}
+              text={clipboardContent}
+              onCopy={() => null}
+            >
+              <Tooltip title={`Copy ${useLabel} to clipboard`}>
+                <div>
+                  <IconButton
+                    disabled={!clipboardContent}
+                    classes={{root: styles.valueActionButton}}
+                  >
+                    <ClipboardIcon classes={{root: styles.valueActionIcon}}/>
+                  </IconButton>
+                </div>
+              </Tooltip>
+            </CopyToClipboard>
+            : ''
+          }
         </div>
-      </Tooltip>
+      </div>
     )
   }
 })
