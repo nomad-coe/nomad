@@ -404,8 +404,9 @@ def re_pack(ctx, uploads, parallel: int):
 @uploads.command(help='Prepares files for being used in the upcoming NOMAD v1.0.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--dry', is_flag=True, help='Just check, do nothing.')
+@click.option('-f', '--force', is_flag=True, help='Ignore warnings and perform the operation regardless.')
 @click.pass_context
-def prepare_migration(ctx, uploads, dry):
+def prepare_migration(ctx, uploads, dry, force):
     '''
     Removes one of the raw files, either public or restricted depending on the embargo.
     Files that need to be removed are saved as `quarantined` in the upload folder.
@@ -446,7 +447,7 @@ def prepare_migration(ctx, uploads, dry):
         if not to_move.exists():
             print('   obsolute raw.zip was already removed', upload.upload_id, to_move.os_path)
 
-        elif to_stay.size < to_move.size:
+        elif to_stay.size < to_move.size and not force:
             print('   !!! likely inconsistent pack !!!')
 
         elif to_move.size == 22:
@@ -454,7 +455,7 @@ def prepare_migration(ctx, uploads, dry):
                 to_move.delete()
             print('   removed empty zip', upload.upload_id, to_move.os_path)
 
-        elif with_embargo:
+        elif with_embargo and not force:
             print('   !!! embargo upload with non empty public file !!!')
 
         else:

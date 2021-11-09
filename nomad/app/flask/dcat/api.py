@@ -91,22 +91,17 @@ response_types = [
 def rdf_respose(g: Graph) -> Response:
     args = arg_parser.parse_args()
     format_ = args.get('format')
-    accept_header = None
     if format_ is None:
         accept_header = request.headers.get('Accept', None)
         if accept_header is not None:
             format_ = all_repsonse_types.get(accept_header, 'pretty-xml')
         else:
-            accept_header = None
             format_ = 'pretty-xml'
 
-    if accept_header is not None:
-        content_type = accept_header
-    else:
-        try:
-            content_type = next(key for key, value in all_repsonse_types.items() if value == format_)
-        except StopIteration:
-            content_type = 'application/xml' if format in ['xml', 'pretty-xml'] else 'text/%s' % format_
+    try:
+        content_type = next(key for key, value in all_repsonse_types.items() if value == format_)
+    except StopIteration:
+        content_type = 'application/xml' if format in ['xml', 'pretty-xml'] else 'text/%s' % format_
 
     return Response(
         g.serialize(format=format_).decode('utf-8'), 200,
