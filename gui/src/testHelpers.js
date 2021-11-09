@@ -36,7 +36,7 @@ export function expectQuantity(name, data, label = undefined, description = unde
   label = label || searchQuantities[name].name.replace(/_/g, ' ')
   const value = isPlainObject(data) ? get(data, name) : data
   const element = screen.getByTitle(description)
-  expect(within(element).getByText(label)).toBeInTheDocument()
+  expect(screen.getByText(label)).toBeInTheDocument()
   expect(within(element).getByText(value)).toBeInTheDocument()
 }
 

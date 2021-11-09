@@ -28,6 +28,7 @@ import { DatasetButton } from '../nav/Routes'
 import {
   addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
+import Quantity from '../Quantity'
 
 export const help = `
 NOMAD allows you to create *datasets* from your data. A dataset is like a tag that you
@@ -37,11 +38,22 @@ very similar to labels, albums, or tags on other platforms.
 `
 
 const columns = [
-  {key: 'dataset_id'},
-  {key: 'name'},
+  {
+    key: 'dataset_id',
+    render: dataset => <Quantity quantity={'dataset_id'} noLabel noWrap withClipboard data={dataset}/>
+  },
+  {key: 'dataset_name'},
   {key: 'doi', label: 'Digital object identifier (DOI)'},
-  {key: 'created', label: 'Create time'},
-  {key: 'modified', label: 'Modify time'}
+  {
+    key: 'dataset_create_time',
+    label: 'Create time',
+    render: dataset => new Date(dataset.dataset_create_time).toLocaleString()
+  },
+  {
+    key: 'dataset_modified_time',
+    label: 'Modify time',
+    render: dataset => (dataset.dataset_modified_time ? new Date(dataset.dataset_modified_time).toLocaleString() : '')
+  }
 ]
 
 addColumnDefaults(columns, {align: 'left'})

@@ -33,7 +33,6 @@ import ProcessingTable from './ProcessingTable'
 import EditIcon from '@material-ui/icons/Edit'
 import DeleteIcon from '@material-ui/icons/Delete'
 import ReprocessIcon from '@material-ui/icons/Autorenew'
-import MembersIcon from '@material-ui/icons/People'
 import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import UnPublishedIcon from '@material-ui/icons/AccountCircle'
@@ -423,11 +422,6 @@ function UploadPage() {
         </WithButton>
       </Grid>
       <Grid>
-        <IconButton>
-          <Tooltip title="Manage upload members">
-            <MembersIcon />
-          </Tooltip>
-        </IconButton>
         <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
         <IconButton disabled={isPublished} onClick={handleReprocess}>
           <Tooltip title="Reprocess">
@@ -435,7 +429,7 @@ function UploadPage() {
           </Tooltip>
         </IconButton>
         <IconButton disabled={isPublished} onClick={handleDelete}>
-          <Tooltip title="Manage delete the upload">
+          <Tooltip title="Delete the upload">
             <DeleteIcon />
           </Tooltip>
         </IconButton>

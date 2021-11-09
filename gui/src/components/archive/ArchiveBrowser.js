@@ -306,9 +306,10 @@ function QuantityItemPreview({value, def, units}) {
       </Typography>
     </Box>
   } else {
+    const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
     const [finalValue, finalUnit] = def.unit
-      ? toUnitSystem(value, def.unit, units, true)
-      : [value, def.unit]
+      ? toUnitSystem(val, def.unit, units, true)
+      : [val, def.unit]
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
       {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
@@ -322,14 +323,15 @@ QuantityItemPreview.propTypes = ({
 })
 
 function QuantityValue({value, def, units}) {
+  const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
-    ? toUnitSystem(value, def.unit, units, true)
-    : [value, def.unit]
+    ? toUnitSystem(val, def.unit, units, true)
+    : [val, def.unit]
 
   return <Box
     marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
   >
-    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={finalValue} exp={16} variant="body2" />}
+    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} type={def.type.type_data} /> : <Number value={finalValue} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
       <Typography noWrap variant="caption">
         ({def.shape.map((dimension, index) => <span key={index}>
@@ -397,15 +399,25 @@ function Section({section, def, parent, units}) {
         .map(quantityDef => {
           const key = quantityDef.name
           const disabled = section[key] === undefined
-          return <Item key={key} itemKey={key} disabled={disabled}>
-            <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-              <Typography component="span">
-                <Box fontWeight="bold" component="span">
-                  {quantityDef.name}
-                </Box>
-              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} units={units}/></span>}
-            </Box>
-          </Item>
+          return (
+            <Item key={key} itemKey={key} disabled={disabled}>
+              <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+                <Typography component="span">
+                  <Box fontWeight="bold" component="span">
+                    {quantityDef.name}
+                  </Box>
+                </Typography>{!disabled &&
+                  <span>&nbsp;=&nbsp;
+                    <QuantityItemPreview
+                      value={section[quantityDef.name]}
+                      def={quantityDef}
+                      units={units}
+                    />
+                  </span>
+                }
+              </Box>
+            </Item>
+          )
         })
       }
     </Compartment>
@@ -422,7 +434,11 @@ Section.propTypes = ({
 function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
-    <QuantityValue value={value} def={def} units={units} />
+    <QuantityValue
+      value={value}
+      def={def}
+      units={units}
+    />
     <Meta def={def} />
   </Content>
 }
