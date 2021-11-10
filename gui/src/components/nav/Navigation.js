@@ -16,19 +16,20 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import { useLocation } from 'react-router-dom'
-import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button } from '@material-ui/core'
+import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button, Link } from '@material-ui/core'
 import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
 import AppBar from './AppBar'
-import { version } from '../../config'
+import { version, guiBase } from '../../config'
 import Routes from './Routes'
 import { withApi } from '../api'
 import { serviceWorkerUpdateHandlerRef } from '../../index'
 import { ErrorBoundary } from '../errors'
+import { useCookies } from 'react-cookie'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -67,6 +68,43 @@ function ReloadSnack() {
         >
           reload
         </Button>
+      ]}
+    />
+  </Snackbar>
+}
+
+function TermsSnack() {
+  const [cookies, setCookie] = useCookies()
+  const [accepted, setAccepted] = useState(cookies['terms-accepted'])
+
+  const cookieOptions = useMemo(() => ({
+    expires: new Date(2147483647 * 1000),
+    path: '/' + guiBase.split('/').slice(1).join('/')
+  }), [])
+
+  return <Snackbar
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left'
+    }}
+    open={!accepted}
+  >
+    <SnackbarContent
+      message={<span>
+        NOMAD only uses cookies that are strictly necessary for this site&apos;s functionality.
+        No tracking or marketing cookies are used. By using this site you agree to
+        our <Link href="https://nomad-lab.eu/terms" title="terms of service">terms of service</Link>.
+      </span>}
+      action={[
+        <IconButton
+          size="small" key={0} color="inherit"
+          onClick={() => {
+            setCookie('terms-accepted', true, cookieOptions)
+            setAccepted(true)
+          }}
+        >
+          <UnderstoodIcon />
+        </IconButton>
       ]}
     />
   </Snackbar>
@@ -153,6 +191,7 @@ function Navigation() {
         <ReloadSnack/>
         <ErrorBoundary>
           <BetaSnack />
+          <TermsSnack />
           <AppBar />
           <main className={classes.content} ref={scrollParentRef}>
             <ScrollContext.Provider value={{scrollParentRef: scrollParentRef}}>

@@ -4,11 +4,8 @@ global.nomadEnv = {
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://nomad-lab.eu/prod/rae/beta',
   'debug': false,
-  'matomoEnabled': false,
-  'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
-  'matomoSiteId': '2',
   'version': {
-    'label': '0.10.8',
+    'label': '0.10.9',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,

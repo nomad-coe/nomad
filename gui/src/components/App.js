@@ -19,24 +19,13 @@ import React from 'react'
 import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
 import history from '../history'
-import PiwikReactRouter from 'piwik-react-router'
-import { nomadTheme, matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm,
-  keycloakClientId } from '../config'
+import { nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ApiProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
-
-export const matomo = matomoEnabled ? PiwikReactRouter({
-  url: matomoUrl,
-  siteId: matomoSiteId,
-  clientTrackerName: 'stat.js',
-  serverTrackerName: 'stat'
-}) : []
-
-// matomo.push('requireConsent')
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -47,7 +36,7 @@ const keycloak = Keycloak({
 export default function App() {
   return (
     <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false }} LoadingComponent={<div />}>
-      <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
+      <Router history={history}>
         <QueryParamProvider ReactRouterRoute={Route}>
           <MuiThemeProvider theme={nomadTheme}>
             <ErrorSnacks>

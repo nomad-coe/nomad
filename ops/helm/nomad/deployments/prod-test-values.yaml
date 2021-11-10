@@ -1,5 +1,5 @@
 version:
-  label: "v0.9.8"
+  label: "v0.10.9"
   isBeta: true
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
@@ -17,10 +17,6 @@ proxy:
 
 gui:
   debug: true
-  matomoEnabled: false
-  matomoSiteId: 2
-  encyclopediaEnabled: true
-  aitoolkitEnabled: true
 
 app:
   replicas: 1

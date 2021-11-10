@@ -35,6 +35,7 @@ import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
 import ReproduceIcon from '../../images/AIT_ico_bp_replicate.svg'
 import AccordionsList from './AccordionsList'
 import FigureAI from '../../images/AIT_illu_AIT.svg'
+import { aitoolkitEnabled } from '../../config'
 
 export default function ReproducePage() {
   const styles = useStyles()
@@ -87,7 +88,8 @@ export default function ReproducePage() {
           <Grid item xs={4} style={{marginTop: '-100px', marginLeft: '-20px'}}>
             <IconButton
               component={Link}
-              to="main">
+              {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
+            >
               <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
             </IconButton>
           </Grid>
@@ -216,7 +218,7 @@ export default function ReproducePage() {
         <Grid item xs={4}>
           <IconButton
             component={Link}
-            to="main"
+            {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
             style={{marginRight: '0px', marginTop: '20px'}}
           >
             <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>

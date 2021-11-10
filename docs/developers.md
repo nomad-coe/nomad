@@ -15,7 +15,7 @@ Otherwise, clone using HTTPS URL:
 git clone https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git nomad
 ```
 
-then change directory to nomad 
+then change directory to nomad
 
 ```
 cd nomad
@@ -238,11 +238,7 @@ yarn start
 To run the tests some additional settings and files are necessary that are not part
 of the code base.
 
-First, you need to provide the `springer.msg` Springer materials database. It can
-be copied from `/nomad/fairdi/db/data/springer.msg` on our servers and should
-be placed at `nomad/normalizing/data/springer.msg`.
-
-Second, you have to provide static files to serve the docs and NOMAD distribution:
+You have to provide static files to serve the docs and NOMAD distribution:
 ```sh
 cd docs
 make html

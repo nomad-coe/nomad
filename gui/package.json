@@ -1,6 +1,6 @@
 {
   "name": "nomad-fair-gui",
-  "version": "0.10.8",
+  "version": "0.10.9",
   "commit": "e98694e",
   "private": true,
   "workspaces": [
@@ -33,7 +33,6 @@
     "object-hash": "^2.0.3",
     "pace": "^0.0.4",
     "pace-js": "^1.0.2",
-    "piwik-react-router": "^0.12.1",
     "plotly.js-cartesian-dist-min": "^1.54.7",
     "qs": "^6.8.0",
     "react": "^16.13.1",
