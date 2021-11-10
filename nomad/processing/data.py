@@ -410,7 +410,8 @@ class Calc(Proc):
         '''
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id,
+            parser=self.parser_name, **kwargs)
 
         if self._calc_proc_logs is None:
             self._calc_proc_logs = []
@@ -575,7 +576,7 @@ class Calc(Proc):
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
         self.set_last_status_message('Parsing mainfile')
-        context = dict(parser=self.parser_name, step=self.parser_name)
+        context = dict(step=self.parser_name)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser_name]
         self._entry_metadata.parser_name = self.parser_name
@@ -609,7 +610,7 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            logger = self.get_logger(parser=self.parser_name, step=self.parser_name)
+            logger = self.get_logger()
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id)
