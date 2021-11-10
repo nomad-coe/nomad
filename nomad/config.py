@@ -135,6 +135,7 @@ fs = NomadConfig(
 elastic = NomadConfig(
     host='localhost',
     port=9200,
+    timeout=60,
     entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )

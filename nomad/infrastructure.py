@@ -86,7 +86,7 @@ def setup_elastic(create_indices=True):
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
-        timeout=60, max_retries=10, retry_on_timeout=True)
+        timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
 
     # Setup materials index mapping. An alias is used to be able to reindex the

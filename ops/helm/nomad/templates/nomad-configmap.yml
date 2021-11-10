@@ -58,6 +58,7 @@ data:
     elastic:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
+      timeout: {{ .Values.elastic.timeout }}
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:

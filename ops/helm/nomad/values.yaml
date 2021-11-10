@@ -127,6 +127,7 @@ mongo:
 elastic:
   host: nomad-flink-01.esc
   port: 9200
+  timeout: 60
 
 logstash:
   enabled: true
