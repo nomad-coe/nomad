@@ -518,6 +518,7 @@ export const SearchContext = React.memo(({
   const setLocked = useSetRecoilState(lockedState)
   const setStatistics = useSetRecoilState(statisticsState)
   const {api} = useApi()
+  const {raiseErrors} = useErrors()
   const setInitialAggs = useSetRecoilState(initialAggsState)
 
   // Reset the query/locks when entering the search context for the first time
@@ -580,7 +581,8 @@ export const SearchContext = React.memo(({
         }
         setInitialAggs(newData)
       })
-  }, [api, setInitialAggs, resource])
+      .catch(raiseErrors)
+  }, [api, raiseErrors, setInitialAggs, resource])
 
   const values = useMemo(() => ({
     resource,
@@ -1133,6 +1135,7 @@ export function useInitialAgg(name) {
  */
 export function useAgg(name, update = true, restrict = undefined, delay = 500) {
   const {api} = useApi()
+  const {raiseErrors} = useErrors()
   const { resource } = useSearchContext()
   const [results, setResults] = useState(undefined)
   const initialAggs = useRecoilValue(initialAggsState)
@@ -1182,7 +1185,8 @@ export function useAgg(name, update = true, restrict = undefined, delay = 500) {
         firstLoad.current = false
         setResults(newData)
       })
-  }, [api, name, finalRestrict, resource])
+      .then(raiseErrors)
+  }, [api, raiseErrors, name, finalRestrict, resource])
 
   // This is a debounced version of apiCall.
   const debounced = useCallback(debounce(apiCall, delay), [])

@@ -31,6 +31,7 @@ export const debug = window.nomadEnv.debug || false
 export const encyclopediaEnabled = window.nomadEnv.encyclopediaEnabled || false
 export const aitoolkitEnabled = window.nomadEnv.aitoolkitEnabled || false
 export const oasis = window.nomadEnv.oasis || false
+export const globalLoginRequired = window.nomadEnv.globalLoginRequired || false
 export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
 

@@ -193,6 +193,7 @@ class Keycloak():
             return datamodel.User(
                 user_id=user_id,
                 email=payload.get('email', None),
+                username=payload.get('preferred_username', None),
                 first_name=payload.get('given_name', None),
                 last_name=payload.get('family_name', None))
 

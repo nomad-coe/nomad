@@ -87,7 +87,7 @@ def create_user_dependency(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='Authentication is required for this Oasis',
                     headers={'WWW-Authenticate': 'Bearer'})
-            if user.email not in config.oasis.allowed_users:
+            if user.email not in config.oasis.allowed_users and user.username not in config.oasis.allowed_users:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='You are not authorized to access this Oasis',
