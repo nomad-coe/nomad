@@ -52,6 +52,10 @@ Omitted versions are plain bugfix releases with only minor changes and fixes.
 - refactored metainfo and parsers
 - new upload UI and incremental uploads
 
+### v0.10.9
+- new AI Toolkit GUI page
+- many minor parser fixes and improvements
+
 ### v0.10.7
 - adding OpenMX parser
 

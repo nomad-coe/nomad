@@ -314,7 +314,8 @@ meta = NomadConfig(
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de',
-    deployment_id='nomad-lab.eu/prod/v1'
+    deployment_id='nomad-lab.eu/prod/v1',
+    beta=None
 )
 
 gitlab = NomadConfig(
@@ -373,6 +374,8 @@ process_reuse_parser = True
 metadata_file_name = 'nomad'
 metadata_file_extensions = ('json', 'yaml', 'yml')
 enable_lazy_import = True
+encyclopedia_enabled = True
+aitoolkit_enabled = False
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -15,24 +16,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React from 'react'
 import {
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  AccordionActions,
-  makeStyles,
-  Link,
-  Button,
   Grid,
-  TextField
+  Box,
+  Button,
+  Typography,
+  Popover,
+  IconButton,
+  makeStyles
 } from '@material-ui/core'
-import tutorials from '../../toolkitMetadata'
+import { Link } from 'react-router-dom'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import Markdown from '../Markdown'
-import { StringParam, useQueryParams, useQueryParam } from 'use-query-params'
-import Autocomplete from '@material-ui/lab/Autocomplete'
+import IconQuery from '../../images/AIT_ico_bb_query.svg'
+import IconReplicate from '../../images/AIT_ico_bb_replicate.svg'
+import IconTutorial from '../../images/AIT_ico_bb_tutorial.svg'
+import IconWork from '../../images/AIT_ico_bb_work.svg'
+import IconQuery2 from '../../images/AIT_ico_bp_query.svg'
+import IconReplicate2 from '../../images/AIT_ico_bp_replicate.svg'
+import IconTutorial2 from '../../images/AIT_ico_bp_tutorial.svg'
+import IconWork2 from '../../images/AIT_ico_bp_work.svg'
+import ArrowIcon from '../../images/AIT_ico_bd_link_go_to.svg'
+import FigureAI from '../../images/AIT_illu_AIT.svg'
+import YouTubeEmbed from '../YouTubeEmbed'
+import ScrollButton from '../ScrollButton'
+import InfoIcon from '../../images/AIT_ico_bd_info_circle.svg'
+import Background from '../../images/AIT_bg_title.jpg'
+import ImgNatRev from '../../images/AIT_slide_nature.png'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -40,217 +50,458 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: 1024
+    maxWidth: '1920px',
+    marginBottom: '150px'
   },
-  section: {
-    marginTop: theme.spacing(3)
+  background: {
+    position: 'relative',
+    backgroundImage: `url(${Background})`,
+    height: '840px',
+    marginTop: '-50px',
+    zIndex: 0
   },
-  sectionTitle: {
-    marginBottom: theme.spacing(1),
-    marginLeft: theme.spacing(2)
+  boxIcons: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '-150px'
   },
-  tutorial: {
-
+  title: {
+    fontWeight: theme.typography.fontWeightMedium,
+    fontSize: '55px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    marginTop: '100px',
+    width: '650px',
+    height: '140px',
+    letterSpacing: 0,
+    lineHeight: '62px',
+    color: 'white'
   },
-  tutorialTitle: {
-    fontWeight: 'bold'
+  deck: {
+    letterSpacing: 0,
+    marginTop: '-170px',
+    wordSpacing: '5px',
+    lineHeight: '42px',
+    color: 'white',
+    fontSize: '35px',
+    margin: 'auto',
+    textAlign: 'center',
+    align: 'center',
+    left: '736px',
+    top: '270px',
+    width: '550px',
+    height: '140px'
   },
-  tutorialDetails: {
-    flexDirection: 'column',
-    '& *': {
-      marginTop: theme.spacing(1)
-    },
-    '& :first-child': {
-      marginTop: -theme.spacing(2)
+  topIcon: {
+    width: '180px',
+    marginBottom: '-10px'
+  },
+  topButton: {
+    fontWeight: theme.typography.fontWeightMedium,
+    backgroundColor: 'white',
+    borderRadius: '30px',
+    textTransform: 'none',
+    marginTop: '-38px',
+    fontSize: '20px',
+    lineHeight: '20px',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    paddingTop: '15px',
+    paddingBottom: '15px',
+    paddingRight: '35px',
+    paddingLeft: '15px'
+  },
+  arrowGrid: {
+    marginTop: '-32px',
+    marginLeft: '-45px'
+  },
+  scrollButton: {
+    position: 'absolute',
+    bottom: '70px',
+    left: theme.spacing(2),
+    color: '#2A3C67',
+    backgroundColor: theme.palette.background.paper,
+    '&:hover, &.Mui-focusVisible': {
+      color: '#2A3C67',
+      backgroundColor: theme.palette.background.paper
     }
   },
-  link: {
-    cursor: 'pointer'
+  body: {
+    width: '1052px',
+    margin: theme.spacing(3),
+    marginLeft: 'auto',
+    marginRight: 'auto'
+  },
+  highlightedText: {
+    fontWeight: theme.typography.fontWeightMedium,
+    color: '#00DFE0',
+    fontSize: '35px',
+    width: '518px',
+    lineHeight: '42px',
+    marginTop: '80px'
+  },
+  bodyText: {
+    color: '#2A3C67',
+    lineHeight: '30px',
+    fontSize: '22px',
+    width: '607px',
+    marginTop: '40px'
+  },
+  boxIconsBottom: {
+    width: '1000px',
+    margin: 'auto',
+    marginTop: '50px'
+  },
+  buttonBottom: {
+    fontWeight: theme.typography.fontWeightMedium,
+    backgroundColor: '#F3F2F5',
+    fontSize: '20px',
+    lineHeight: '20px',
+    color: '#2A3C67',
+    textAlign: 'center',
+    align: 'center',
+    borderRadius: '30px',
+    width: '207px',
+    height: '70px',
+    textTransform: 'none'
+  },
+  iconsBottom: {
+    width: '200px'
+  },
+  toolTipText: {
+    width: '400px',
+    height: '520px',
+    marginRight: '15px',
+    marginLeft: '15px',
+    marginTop: '10px'
   }
 }))
 
 export default function AIToolkitPage() {
-  const classes = useStyles()
-  const [expanded, setExpanded] = useQueryParam('expanded', StringParam)
-  const [queryParameters, setQueryParameters] = useQueryParams({
-    author: StringParam, keyword: StringParam, method: StringParam, filterString: StringParam
-  })
-  const emptyQuery = {
-    author: null,
-    keyword: null,
-    method: null,
-    filterString: null
+  const styles = useStyles()
+
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget)
   }
-
-  const filter = tutorial => {
-    const {author, keyword, method} = queryParameters
-    if (author && tutorial.authors.indexOf(author) === -1) {
-      return false
-    }
-    if (keyword && tutorial.labels.application_keyword.indexOf(keyword) === -1) {
-      return false
-    }
-    if (method && tutorial.labels.data_analytics_method.indexOf(method) === -1) {
-      return false
-    }
-    return true
+  const handleClose = () => {
+    setAnchorEl(null)
   }
+  const open = Boolean(anchorEl)
+  const id = open ? 'simple-popover' : undefined
 
-  const {sections, authors, keywords, methods} = useMemo(() => {
-    const authors = {}
-    const keywords = {}
-    const methods = {}
-    const sectionMap = tutorials.tutorials.reduce((sections, tutorial) => {
-      tutorial.labels.application_section.forEach(sectionTitle => {
-        sections[sectionTitle] = sections[sectionTitle] || {title: sectionTitle, tutorials: []}
-        tutorial.key = tutorial.title.replace(/\W/gm, '_').toLowerCase()
-        sections[sectionTitle].tutorials.push(tutorial)
-        tutorial.authors.forEach(i => { authors[i] = i })
-        tutorial.labels.application_keyword.forEach(i => { keywords[i] = i })
-        tutorial.labels.data_analytics_method.forEach(i => { methods[i] = i })
-      })
-      return sections
-    }, {})
-    return {
-      sections: Object.keys(sectionMap).map(key => sectionMap[key]).sort((a, b) => a.title.localeCompare(b.title)),
-      authors: Object.keys(authors).sort(),
-      keywords: Object.keys(keywords).sort(),
-      methods: Object.keys(methods).sort()
-    }
-  }, [])
-
-  return <Grid container spacing={2} className={classes.root}>
-    <Grid item xs={12}>
-      <Markdown>{`
-        # NOMAD Artificial Intelligence Toolkit
-
-        We develop and implement methods that identify correlations and structure in big data
-        of materials. This will enable scientists and engineers to decide which materials are
-        useful for specific applications or which new materials should be the focus of future studies.
-        The following tutorials are designed to get started with the AI Toolkit.
-
-        To log in directly, click [here](https://analytics-toolkit.nomad-coe.eu/hub).
-      `}</Markdown>
-    </Grid>
-    <Grid item xs={8}>
-      {sections.map(section => (
-        <div key={section.title} className={classes.section}>
-          <Typography className={classes.sectionTitle}>{section.title}</Typography>
-          <div>
-            {section.tutorials.map(tutorial => {
-              const key = tutorial.key
-              return <Accordion
-                key={key}
-                disabled={!filter(tutorial)}
-                expanded={expanded === key}
-                onChange={() => setExpanded(expanded === key ? null : key)}
-                className={classes.tutorial}
+  return <Grid container spacing={2} className={styles.root}>
+    <Grid container className={styles.background}>
+      <ScrollButton scrollAmount={840} className={styles.scrollButton}>
+        <ExpandMoreIcon/>
+      </ScrollButton>
+      <Grid item xs={12} >
+        <Typography className={styles.title}>
+          Artificial-Intelligence Tools for Materials Science
+        </Typography>
+      </Grid>
+      <Grid item xs={12}>
+        <Typography className={styles.deck}>
+          Find new Patterns and Trends in Materials Science Big Data
+        </Typography>
+      </Grid>
+      <Grid container spacing={1} className={styles.boxIcons}>
+        <Grid item xs={3} >
+          <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+            <img
+              src={IconQuery}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+              alt='Query Archive icon'
+            />
+          </IconButton>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
               >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography className={classes.tutorialTitle}>{tutorial.title}</Typography>
-                </AccordionSummary>
-                <AccordionDetails className={classes.tutorialDetails}>
-                  <Typography>
-                    {tutorial.authors
-                      .map(name => {
-                        const label = name.split(',').reverse().join(' ')
-                        return <Link
-                          className={classes.link}
-                          key={name}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            author: queryParameters.author === name ? null : name
-                          })}
-                        >
-                          <i>{label}</i>
-                        </Link>
-                      }).reduce((prev, curr) => [prev, ', ', curr])
-                    }
+                Query the Archive
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+                <img
+                  src={ArrowIcon}
+                  style={{width: '20px', zIndex: 4, position: 'relative'}}
+                  alt = 'Arrow Icon'
+                />
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid item xs={3} >
+          <IconButton to="tutorials" component={Link}>
+            <img
+              alt='Tutorials icon'
+              src={IconTutorial}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+            />
+          </IconButton>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
+              >
+                View tutorials
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton to="tutorials" component={Link}>
+                <img
+                  alt='Arrow Icon'
+                  src={ArrowIcon}
+                  style={{width: '20px', zIndex: 4, position: 'relative'}}
+                />
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid item xs={3} >
+          <IconButton to="reproduce" component={Link}>
+            <img
+              alt='Reproduce icon'
+              src={IconReplicate}
+              className={styles.topIcon}
+              style={{zIndex: 2, position: 'relative'}}
+            />
+          </IconButton>
+          <Grid container spacing={0}>
+            <Grid item xs={11}>
+              <Typography
+                className={styles.topButton}
+                style={{zIndex: 1, position: 'relative'}}
+              >
+                Published results
+              </Typography>
+            </Grid>
+            <Grid item xs={1} className={styles.arrowGrid}>
+              <IconButton to="reproduce" component={Link}>
+                <img
+                  alt='Arrow icon'
+                  src={ArrowIcon}
+                  style={{width: '20px', zIndex: 4, position: 'relative'}}
+                />
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Grid>
+        <Grid item xs={3} >
+          <Grid container >
+            <Grid item xs={11}>
+              <IconButton href="https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks">
+                <img
+                  alt='Get to work icon'
+                  src={IconWork}
+                  className={styles.topIcon}
+                  style={{zIndex: 2, position: 'relative'}}
+                />
+              </IconButton>
+              <Grid container spacing={0}>
+                <Grid item xs={11}>
+                  <Typography
+                    className={styles.topButton}
+                    style={{zIndex: 1, position: 'relative'}}
+                  >
+                Get to work
                   </Typography>
-                  <Markdown>
-                    {tutorial.description}
-                  </Markdown>
-                  <Typography>
-                    <b>keywords</b>: {tutorial.labels.application_keyword
-                      .map(keyword => (
-                        <Link
-                          className={classes.link}
-                          key={keyword}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            keyword: queryParameters.keyword === keyword ? null : keyword
-                          })}
-                        >
-                          {keyword}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                  <Typography>
-                    <b>method</b>: {tutorial.labels.data_analytics_method
-                      .map(method => (
-                        <Link
-                          className={classes.link}
-                          key={method}
-                          onClick={() => setQueryParameters({
-                            ...emptyQuery,
-                            method: queryParameters.method === method ? null : method
-                          })}
-                        >
-                          {method}
-                        </Link>
-                      )).reduce((prev, curr) => [prev, ', ', curr])
-                    }
-                  </Typography>
-                </AccordionDetails>
-                <AccordionActions>
-                  <Button color="primary" href={tutorial.link} target="tutorial">
-                    open with login
-                  </Button>
-                  <Button color="primary" href={tutorial.link_public} target="tutorial">
-                    open as guest
-                  </Button>
-                </AccordionActions>
-              </Accordion>
-            })}
-          </div>
-        </div>
-      ))}
+                </Grid>
+                <Grid item xs={1} className={styles.arrowGrid}>
+                  <IconButton href="https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks">
+                    <img
+                      alt='Arrow cion'
+                      src={ArrowIcon}
+                      style={{width: '20px', zIndex: 4, position: 'relative'}} />
+                  </IconButton>
+                </Grid>
+              </Grid>
+            </Grid>
+            <Grid item xs={1} style={{marginTop: '161px', marginLeft: '-20px'}}>
+              <IconButton aria-describedby={id} variant="contained" onClick={handleClick}>
+                <img alt='Info icon' src={InfoIcon} />
+              </IconButton>
+              <Popover
+                id={id}
+                open={open}
+                anchorEl={anchorEl}
+                onClose={handleClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'left'
+                }}
+              >
+                <Typography className={styles.toolTipText}>
+                  By clicking on the 'Get to work' button you will access a
+                  personal space that is available to each NOMAD user.  After
+                  logging in, you will see a 'tutorials' and 'work' directory.
+                  The 'tutorials' directory contains all notebooks available in
+                  the AI toolkit, while the 'work' directory offers some space
+                  to save personal work.  When you are in the 'work' directory,
+                  click on the 'new' icon on the top right and then select
+                  'Python 3'. This will create a Jupyter notebook that is
+                  stored in the AI toolkit and can be reaccessed and iteratively
+                  modified by the user.  All packages and software installed in the AI
+                  toolkit are also available in the 'work' directory, that
+                  makes it possible to employ the same code syntax used in
+                  each tutorial contained in the AI toolkit for your own project.
+                  For example, you can deploy any of the methodologies described in
+                  tutorials on a different dataset. You can also upload your own data with
+                  the 'Upload' button (via the menu bar on top, under the 'Publish' menu),
+                  or directly access datasets in the NOMAD Archive. Make sure to learn
+                  how to access the data in the NOMAD Archive, which is explained in the
+                   tutorial accessible from the 'Query the Archive' button.
+                </Typography>
+              </Popover>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
     </Grid>
-    <Grid item xs={4}>
-      <Autocomplete
-        id="combo-box-demo"
-        options={authors}
-        getOptionLabel={option => option}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="author" fullWidth />
-        )}
-        value={queryParameters.author}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, author: value})}
-      />
-      <Autocomplete
-        id="combo-box-demo"
-        options={keywords}
-        getOptionLabel={option => option}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="keyword" fullWidth />
-        )}
-        value={queryParameters.keyword}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, keyword: value})}
-      />
-      <Autocomplete
-        id="combo-box-demo"
-        options={methods}
-        style={{ width: '100%', marginBottom: 8 }}
-        renderInput={params => (
-          <TextField {...params} label="method" fullWidth />
-        )}
-        value={queryParameters.method}
-        onChange={(_, value) => setQueryParameters({...emptyQuery, method: value})}
-      />
-      {/* <TextField label="text filter" fullWidth /> */}
+    <Grid container spacing={1} className={styles.body}>
+      <Grid item xs={8} >
+        <Typography className={styles.highlightedText}>
+          What is the NOMAD Artificial-Intelligence Toolkit?
+        </Typography>
+        <Typography className={styles.bodyText}>
+          The preparation, synthesis, and characterization of new materials is a
+          complex and costly aspect of materials design. The number of possible
+          materials is practically infinite, about 200,000 materials are “known”
+          to exist. But the basic properties (e.g., optical gap, elasticity
+          constants, plasticity, piezoelectric tensors, conductivity, etc.) have
+          been determined for very few of them.  NOMAD develops and provides a
+          big set of tools - the Artificial-Intelligence Toolkit - using the
+          latest artificial-intelligence approaches (including machine-learning,
+          compressed sensing, and data mining) that make it possible to sort all
+          available material data, to identify correlations and structures, and
+          to detect trends and anomalies. Thus, the Artificial Intelligence Toolkit
+          enables scientists and engineers to decide which materials are useful for
+          specific applications or which new materials should be the focus of future
+          studies.
+        </Typography>
+      </Grid>
+      <Grid item xs={4}>
+        <img alt='AI toolkit logo' src={FigureAI} style={{marginTop: '150px'}}/>
+
+      </Grid>
+      <Grid item xs={8} >
+        <Typography className={styles.highlightedText}>
+          How to get started
+        </Typography>
+        <Typography className={styles.bodyText}>
+          Introduction to the scope of the NOMAD Artificial-Intelligence toolkit.
+        </Typography>
+        <div className="App" style={{marginTop: '30px'}}>
+          <YouTubeEmbed embedId="v_Ie5TPXrd0" />
+        </div>
+        <Grid item xs={8}>
+          <Typography className={styles.bodyText}>
+          The NOMAD Artificial-Intelligence Toolkit is very accessible. Watch this video and
+          learn more about its features.
+          </Typography>
+        </Grid>
+      </Grid>
+      <div className="App" style={{marginTop: '30px'}}>
+        <YouTubeEmbed embedId="7R4EHsSRork" />
+      </div>
+      <Grid item xs={8} >
+        <Typography className={styles.highlightedText}>
+          Read about us!
+        </Typography>
+        <Typography className={styles.bodyText}>
+          By clicking on the image below, you will access a Nature Reviews paper
+          which gives an introduction to the NOMAD Artificial-Intelligence Toolkit.
+        </Typography>
+        <IconButton
+          href='https://www.nature.com/articles/s42254-021-00373-8'
+          style={{marginRight: '0px', marginTop: '20px'}}
+        >
+          <img alt='Nature logo' src={ImgNatRev}
+            style={{width: '550px',
+              marginTop: '15px',
+              marginLeft: '-10px' }}
+          />
+        </IconButton>
+      </Grid>
+
+      <Grid item xs={8} >
+        <Typography className={styles.highlightedText}>Access the tutorials </Typography>
+        <Typography className={styles.bodyText}>
+          Ready to start? Click on one of the options below. If you're new, we
+          suggest starting with the tutorials.
+        </Typography>
+      </Grid>
+    </Grid>
+
+    <Grid container spacing={1} className={styles.boxIconsBottom}>
+      <Grid item xs={3}>
+        <IconButton href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'>
+          <img alt='Query the Archive logo' src={IconQuery2} className={styles.iconsBottom}/>
+        </IconButton>
+      </Grid>
+      <Grid item xs={3}>
+        <img alt='Tutorials logo' src={IconTutorial2} className={styles.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}>
+        <img alt='Reroduce logo' src={IconReplicate2} className={styles.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}>
+        <img alt='Get to work log' src={IconWork2} className={styles.iconsBottom}/>
+      </Grid>
+      <Grid item xs={3}>
+        <Button
+          href='https://analytics-toolkit.nomad-coe.eu/public/user-redirect/notebooks/tutorials/query_nomad_archive.ipynb'
+          className={styles.buttonBottom}
+          endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
+        >
+          <Box className={styles.fieldText} >
+            Query the Archive
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3} >
+        <Button
+          component={Link}
+          to="tutorials"
+          className={styles.buttonBottom}
+          endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
+        >
+          <Box className={styles.fieldText} >
+            View tutorials
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3}>
+        <Button
+          component={Link}
+          to="reproduce"
+          className={styles.buttonBottom}
+          endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
+        >
+          <Box className={styles.fieldText}>
+            Published results
+          </Box>
+        </Button>
+      </Grid>
+      <Grid item xs={3}>
+        <Button
+          href='https://analytics-toolkit.nomad-coe.eu/hub/user-redirect/notebooks'
+          className={styles.buttonBottom}
+          endIcon={<img alt='Arrow icon' src={ArrowIcon}/>}
+        >
+          <Box className={styles.fieldText}>
+            Get to work
+          </Box>
+        </Button>
+      </Grid>
     </Grid>
   </Grid>
 }

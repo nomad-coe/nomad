@@ -3,11 +3,34 @@
 ## Getting started
 
 ### Clone the sources
-If not already done, you should clone nomad. To clone the main NOMAD repository:
+If not already done, you should clone nomad. If you have a gitlab@MPCDF account, you can clone with git URL:
+
 ```
 git clone git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-FAIR.git nomad
+```
+
+Otherwise, clone using HTTPS URL:
+
+```
+git clone https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git nomad
+```
+
+then change directory to nomad
+
+```
 cd nomad
 ```
+
+There are several branches in the repository. The master branch contains the latest released version, but there are also
+develop branches for each version called vX.X.X. Checkout the branch you want to work on it
+```
+git checkout vX.X.X
+```
+The development branches are protected and you should create a new branch including your changes.
+```
+git checkout -b <my-branch-name>
+```
+This branch can be pushed to the repo, and then later may be merged to the relevant branch.
 
 ### Prepare your Python environment
 
@@ -47,7 +70,15 @@ To install libmagick for conda, you can use (other channels might also work):
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
-#### pip
+## Setup
+Using the following command one can install all the dependencies, and the sub-modules from the NOMAD-coe project
+```
+bash setup.sh
+```
+
+The script includes the following steps:
+
+### 1. pip
 Make sure you have the most recent version of pip:
 ```sh
 pip install --upgrade pip
@@ -65,7 +96,7 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
-### Install sub-modules.
+### 2. Install sub-modules
 Nomad is based on python modules from the NOMAD-coe project.
 This includes parsers, python-common and the meta-info. These modules are maintained as
 their own GITLab/git repositories. To clone and initialize them run:
@@ -88,7 +119,7 @@ to install set package manually.
 The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
 to change the downloaded dependency code without having to reinstall after.
 
-### Install nomad
+### 3. Install nomad
 Finally, you can add nomad to the environment itself (including all extras)
 ```sh
 pip install -e .[all]
@@ -100,7 +131,7 @@ If pip tries to use and compile sources and this creates errors, it can be told 
 pip install -e .[all] --prefer-binary
 ```
 
-### Generate GUI artifacts
+### 4. Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
 nomad.cli dev metainfo > gui/src/metainfo.json
@@ -121,9 +152,12 @@ might not match the expected data in outdated files. If there are changes to uni
 In additional, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
 
+## Install docker
+One needs to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
+
 ## Running the infrastructure
 
-To run NOMAD, some 3-rd party services are neeed
+To run NOMAD, some 3-rd party services are needed
 - elastic search: nomad's search and analytics engine
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
@@ -133,10 +167,23 @@ Keep in mind the *docker-compose* configures all services in a way that mirror
 the configuration of the python code in `nomad/config.py` and the gui config in
 `gui/.env.development`.
 
-You can run all services with:
+The default virtual memory for Elasticsearch is likely to be too low. On Linux, you can run the following command as root:
+```sh
+sysctl -w vm.max_map_count=262144
+```
+
+To set this value permanently, see [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html). Then, you can run all services with:
 ```sh
 cd ops/docker-compose/infrastructure
 docker-compose up -d mongo elastic rabbitmq
+cd ../../..
+```
+
+If your system almost ran out of disk space the elasticsearch enforces a read-only index block ([read more](https://www.elastic.co/guide/en/elasticsearch/reference/6.2/disk-allocator.html)), but
+after clearing up the disk space you need to reset it manually using the following command:
+
+```sh
+curl -XPUT -H "Content-Type: application/json" http://localhost:9200/_all/_settings -d '{"index.blocks.read_only_allow_delete": false}'
 ```
 
 Note that the ElasticSearch service has a known problem in quickly hitting the
@@ -157,7 +204,7 @@ via your preferred tools. Just make sure to use the right ports.
 ## Running NOMAD
 
 Before you run NOMAD for development purposes, you should configure it to use the `test`
-realm of our user management system. By default, NOMAD will use the `prod` realm.
+realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
 Create a `nomad.yaml` file in the root folder:
 
 ```
@@ -215,11 +262,7 @@ yarn start
 To run the tests some additional settings and files are necessary that are not part
 of the code base.
 
-First, you need to provide the `springer.msg` Springer materials database. It can
-be copied from `/nomad/fairdi/db/data/springer.msg` on our servers and should
-be placed at `nomad/normalizing/data/springer.msg`.
-
-Second, you have to provide static files to serve the docs and NOMAD distribution:
+You have to provide static files to serve the docs and NOMAD distribution:
 ```sh
 cd docs
 make html

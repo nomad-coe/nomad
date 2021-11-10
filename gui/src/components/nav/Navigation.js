@@ -16,17 +16,19 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button } from '@material-ui/core'
+import { useLocation } from 'react-router-dom'
+import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button, Link } from '@material-ui/core'
 import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
 import AppBar, { appBarHeight } from './AppBar'
-import { version } from '../../config'
+import { guiBase, version } from '../../config'
 import { Routes } from './Routes'
 import { serviceWorkerUpdateHandlerRef } from '../../serviceWorker'
 import { ErrorBoundary } from '../errors'
+import { useCookies } from 'react-cookie'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
 
@@ -65,6 +67,43 @@ function ReloadSnack() {
         >
           reload
         </Button>
+      ]}
+    />
+  </Snackbar>
+}
+
+function TermsSnack() {
+  const [cookies, setCookie] = useCookies()
+  const [accepted, setAccepted] = useState(cookies['terms-accepted'])
+
+  const cookieOptions = useMemo(() => ({
+    expires: new Date(2147483647 * 1000),
+    path: '/' + guiBase.split('/').slice(1).join('/')
+  }), [])
+
+  return <Snackbar
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'left'
+    }}
+    open={!accepted}
+  >
+    <SnackbarContent
+      message={<span>
+        NOMAD only uses cookies that are strictly necessary for this site&apos;s functionality.
+        No tracking or marketing cookies are used. By using this site you agree to
+        our <Link href="https://nomad-lab.eu/terms" title="terms of service">terms of service</Link>.
+      </span>}
+      action={[
+        <IconButton
+          size="small" key={0} color="inherit"
+          onClick={() => {
+            setCookie('terms-accepted', true, cookieOptions)
+            setAccepted(true)
+          }}
+        >
+          <UnderstoodIcon />
+        </IconButton>
       ]}
     />
   </Snackbar>
@@ -135,7 +174,15 @@ const useStyles = makeStyles(theme => ({
 
 export default function Navigation() {
   const classes = useStyles()
+  const { pathname } = useLocation()
   const scrollParentRef = useRef(null)
+
+  // Scroll to top upon changing page
+  useEffect(() => {
+    if (scrollParentRef.current) {
+      scrollParentRef.current.scrollTo(0, 0)
+    }
+  }, [pathname])
 
   return (
     <div className={classes.root}>
@@ -143,6 +190,7 @@ export default function Navigation() {
         <ReloadSnack/>
         <ErrorBoundary>
           <BetaSnack />
+          <TermsSnack />
           <AppBar />
           <main className={classes.content} ref={scrollParentRef}>
             <ScrollContext.Provider value={{scrollParentRef: scrollParentRef}}>

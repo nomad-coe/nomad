@@ -32,8 +32,10 @@ describe('<MainMenu />', () => {
         expect(menu).toBeInTheDocument()
         if (route.routes) {
           route.routes.forEach(route => {
-            const item = within(menu).getByTestId(route.menu)
-            expect(item).toBeInTheDocument()
+            if (route.menu) {
+              const item = within(menu).getByTestId(route.menu)
+              expect(item).toBeInTheDocument()
+            }
           })
         }
       }

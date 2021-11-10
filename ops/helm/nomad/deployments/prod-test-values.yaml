@@ -17,10 +17,6 @@ proxy:
 
 gui:
   debug: true
-  matomoEnabled: false
-  matomoSiteId: 2
-  encyclopediaEnabled: true
-  aitoolkitEnabled: true
 
 app:
   replicas: 1

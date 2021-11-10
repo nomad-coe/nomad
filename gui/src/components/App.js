@@ -20,26 +20,15 @@ import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
 import { RecoilRoot } from 'recoil'
 import history from '../history'
-import PiwikReactRouter from 'piwik-react-router'
 import DateFnsUtils from '@date-io/date-fns'
 import { MuiPickersUtilsProvider } from '@material-ui/pickers'
-import { nomadTheme, matomoEnabled, matomoUrl, matomoSiteId, keycloakBase, keycloakRealm,
-  keycloakClientId } from '../config'
+import { nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
 import { APIProvider } from './api'
-
-export const matomo = matomoEnabled ? PiwikReactRouter({
-  url: matomoUrl,
-  siteId: matomoSiteId,
-  clientTrackerName: 'stat.js',
-  serverTrackerName: 'stat'
-}) : []
-
-// matomo.push('requireConsent')
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -53,7 +42,7 @@ export default function App() {
       <RecoilRoot>
         <APIProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
-            <Router history={matomoEnabled ? matomo.connectToHistory(history) : history}>
+            <Router history={history}>
               <QueryParamProvider ReactRouterRoute={Route}>
                 <MuiThemeProvider theme={nomadTheme}>
                   <ErrorSnacks>

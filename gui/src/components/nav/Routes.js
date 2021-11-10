@@ -23,6 +23,8 @@ import { matchPath, useLocation, Redirect, useHistory } from 'react-router-dom'
 import { Button, Tooltip } from '@material-ui/core'
 import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
+import TutorialsPage from '../aitoolkit/TutorialsPage'
+import ReproducePage from '../aitoolkit/ReproducePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
 import UploadPage from '../uploads/UploadPage'
@@ -274,7 +276,17 @@ export const routes = [
         },
         component: MetainfoPage
       },
-      toolkitRoute
+      toolkitRoute,
+      {
+        path: 'tutorials',
+        title: 'Artificial Intelligence Toolkit',
+        component: TutorialsPage
+      },
+      {
+        path: 'reproduce',
+        title: 'Artificial Intelligence Toolkit',
+        component: ReproducePage
+      }
     ]
   },
   {

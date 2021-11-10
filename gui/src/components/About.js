@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 import React, { useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
-import {ReactComponent as AboutSvg} from './about.svg'
+import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
-import { appBase, debug, consent, aitoolkitEnabled, encyclopediaEnabled } from '../config'
+import { appBase, debug, aitoolkitEnabled, encyclopediaEnabled } from '../config'
 import packageJson from '../../package.json'
 import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
@@ -196,7 +196,7 @@ export default function About() {
     })
     makeClickable('toolkit', () => {
       if (aitoolkitEnabled) {
-        history.push('/aitoolkit')
+        history.push('/aitoolkit/main')
       } else {
         window.location.href = 'https://nomad-lab.eu/tools/AItutorials'
       }
@@ -247,7 +247,7 @@ export default function About() {
     <Grid className={classes.container} container spacing={2}>
       <Grid item xs={12}>
         <Markdown>{`
-        # The NOMAD Repository and Archive
+        # **NOMAD** &ndash; Manage and Publish Materials Data
 
         This is the *graphical user interface* (GUI) for the NOMAD Repository and
         Archive. It allows you to **search, access, and download all NOMAD data** in its
@@ -371,9 +371,6 @@ export default function About() {
         with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
         used for data that has no provenance with the original NOMAD CoE database.
         ` : ''}
-
-        ### Terms of use and licenses
-        ${consent}
 
         ### About this version
         - version (API): \`${info ? info.version : 'loading'}/${info ? info.git.commit : 'loading'}\`

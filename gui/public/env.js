@@ -4,9 +4,6 @@ window.nomadEnv = {
   'keycloakClientId': 'nomad_gui_dev',
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
-  'matomoEnabled': false,
-  'matomoUrl': 'https://nomad-lab.eu/fairdi/stat',
-  'matomoSiteId': '2',
   'version': {
     'label': '1.0.0',
     'isBeta': false,
@@ -14,7 +11,7 @@ window.nomadEnv = {
     'usesBetaData': true,
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
-  'encyclopediaEnabled': true,
+  'encyclopediaEnabled': false,
   'aitoolkitEnabled': false,
   'oasis': false,
   'servicesUploadLimit': 10

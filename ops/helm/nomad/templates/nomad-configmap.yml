@@ -23,7 +23,15 @@ data:
       reparse_published_if_parser_changed: "{{ .Values.reprocess.reparse_published_if_parser_changed }}"
       add_newfound_entries_to_published: "{{ .Values.reprocess.add_newfound_entries_to_published }}"
       delete_unmatched_published_entries:  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
+    beta:
+      label: "{{ .Values.version.label }}"
+      isBeta: {{ .Values.version.isBeta }}
+      isTest: {{ .Values.version.isTest }}
+      usesBetaData: {{ .Values.version.usesBetaData }}
+      officialUrl: "{{ .Values.version.officialUrl }}"
     process_reuse_parser: {{ .Values.process_reuse_parser }}
+    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
+    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}

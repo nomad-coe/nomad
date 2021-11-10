@@ -16,20 +16,11 @@
  * limitations under the License.
  */
 
-import React, { useState, useCallback } from 'react'
+import React from 'react'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
-import { useCookies } from 'react-cookie'
-import Consent from './Consent'
 import { routes } from './Routes'
 
 const MainMenu = React.memo(function MainMenu() {
-  const cookies = useCookies()[0]
-  const [consentOpen, setConsentOpen] = useState(cookies['terms-accepted'] !== 'true')
-
-  const handleConsentAccept = useCallback(() => {
-    setConsentOpen(false)
-  }, [])
-
   return <MenuBar>
     {routes.filter(route => route.menu).map((menuRoute, i) => (
       <MenuBarMenu key={i} label={menuRoute.menu} route={'/' + menuRoute.path}>
@@ -37,12 +28,11 @@ const MainMenu = React.memo(function MainMenu() {
           <MenuBarItem
             key={i} label={itemRoute.menu} tooltip={itemRoute.tooltip}
             route={itemRoute.path && `/${menuRoute.path}/${itemRoute.path}`}
-            href={itemRoute.href} onClick={itemRoute.consent && (() => setConsentOpen(true))}
+            href={itemRoute.href}
           />
         ))}
       </MenuBarMenu>
     ))}
-    <Consent open={consentOpen} onAccept={handleConsentAccept}/>
   </MenuBar>
 })
 
