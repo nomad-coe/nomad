@@ -347,8 +347,9 @@ def reset(ctx, uploads, with_calcs, success, failure):
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
+@click.option('--skip-materials', is_flag=True, help='Only update the entries index.')
 @click.pass_context
-def index(ctx, uploads, parallel, transformer):
+def index(ctx, uploads, parallel, transformer, skip_materials):
     from nomad import search
 
     transformer_func = None
@@ -375,7 +376,7 @@ def index(ctx, uploads, parallel, transformer):
             if transformer is not None:
                 transform(entries)
             archives = [entry.m_parent for entry in entries]
-            search.index(archives, update_materials=True, refresh=True)
+            search.index(archives, update_materials=not skip_materials, refresh=True)
 
         return True
 
