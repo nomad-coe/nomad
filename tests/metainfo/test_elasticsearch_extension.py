@@ -24,7 +24,7 @@ from elasticsearch_dsl import Keyword
 from nomad import config
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime
 from nomad.metainfo.elasticsearch_extension import (
-    Elasticsearch, create_indices, index_entry, index_entries,
+    Elasticsearch, create_indices, index_entries_with_materials,
     entry_type, material_type, material_entry_type, entry_index, material_index)
 
 from tests.conftest import clear_elastic_infra
@@ -340,7 +340,7 @@ def test_index_docs(indices):
 
 
 def test_index_entry(elastic, indices, example_entry):
-    index_entry(example_entry, update_material=True)
+    index_entries_with_materials([example_entry], refresh=True)
     assert_entry_indexed(example_entry)
 
 
@@ -375,7 +375,7 @@ def test_index_entries(elastic, indices, before, to_index, after):
             for entry_spec in spec.split(',')
             if entry_spec.strip() != '']
 
-    index_entries(create_entries(before), update_materials=True)
-    index_entries(create_entries(to_index), update_materials=True)
+    index_entries_with_materials(create_entries(before), refresh=True)
+    index_entries_with_materials(create_entries(to_index), refresh=True)
 
     assert_entries_indexed(create_entries(after))

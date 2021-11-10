@@ -27,6 +27,7 @@ data:
       use_original_parser: {{ .Values.reprocess.useOriginalParser }}
       add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
       delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
+      index_invidiual_entries: {{ .Values.reprocess.indexIndividualEntries }}
     beta:
       label: "{{ .Values.version.label }}"
       isBeta: {{ .Values.version.isBeta }}
@@ -59,6 +60,7 @@ data:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
       timeout: {{ .Values.elastic.timeout }}
+      bulk_timeout: "{{ .Values.elastic.bulkTimeout }}""
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:

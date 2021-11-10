@@ -207,6 +207,7 @@ class Calc(Proc):
         self._calc_proc_logs: List[Any] = None
 
         self._entry_metadata: EntryMetadata = None
+        self._perform_index = True
 
     @classmethod
     def get(cls, id) -> 'Calc':
@@ -457,6 +458,7 @@ class Calc(Proc):
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
         self._is_initial_processing = self.nomad_version is None
+        self._perform_index = self._is_initial_processing or settings.get('index_invidiual_entries', True)
         if not self.upload.published or self._is_initial_processing:
             should_parse = True
         elif not settings.reprocess_existing_entries:
@@ -522,7 +524,7 @@ class Calc(Proc):
             pass
 
     def on_fail(self):
-        # in case of failure, index a minimum set of metadata and mark
+        # in case of failure, create a minimum set of metadata and mark
         # processing failure
         try:
             if self._entry_metadata is None:
@@ -540,20 +542,23 @@ class Calc(Proc):
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
+        except Exception as e:
+            self._parser_results = EntryArchive(
+                entry_id=self._parser_results.entry_id,
+                metadata=self._parser_results.metadata,
+                processing_logs=self._parser_results.processing_logs)
+
+            self.get_logger().error(
+                'could not create minimal metadata after processing failure', exc_info=e)
+
+        if self._perform_index:
             try:
-                search.index(self._parser_results, update_materials=True)
+                search.index(self._parser_results)
             except Exception as e:
-                self._parser_results = EntryArchive(
-                    entry_id=self._parser_results.entry_id,
-                    metadata=self._parser_results.metadata,
-                    processing_logs=self._parser_results.processing_logs)
-                search.index(self._parser_results, update_materials=False)
+
+                search.index(self._parser_results)
                 self.get_logger().error(
                     'could not index archive after processing failure', exc_info=e)
-
-        except Exception as e:
-            self.get_logger().error(
-                'could not index minimal archive after processing failure', exc_info=e)
 
         try:
             self.write_archive(self._parser_results)
@@ -673,7 +678,7 @@ class Calc(Proc):
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
                 assert self._parser_results.metadata == self._entry_metadata
-                search.index(self._parser_results, update_materials=True)
+                search.index(self._parser_results)
 
             # persist the archive
             with utils.timer(
@@ -728,9 +733,10 @@ class Calc(Proc):
             self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
         # index in search
-        with utils.timer(logger, 'calc metadata indexed'):
-            assert self._parser_results.metadata == self._entry_metadata
-            search.index(self._parser_results, update_materials=True)
+        if self._perform_index:
+            with utils.timer(logger, 'calc metadata indexed'):
+                assert self._parser_results.metadata == self._entry_metadata
+                search.index(self._parser_results)
 
         # persist the archive
         with utils.timer(
@@ -1247,7 +1253,7 @@ class Upload(Proc):
                         if not self.published or settings.delete_unmatched_published_entries:
                             delete_partial_archives_from_mongo(entries_to_delete)
                             for calc_id in entries_to_delete:
-                                search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
+                                search.delete_entry(entry_id=calc_id, update_materials=True)
                                 entry = Calc.get(calc_id)
                             entry.delete()
 
@@ -1317,30 +1323,13 @@ class Upload(Proc):
         update.update(joined=False)
         return update
 
-    def _cleanup_after_processing(self):
+    def cleanup(self):
+        '''
+        The process step that "cleans" the processing, i.e. removed obsolete files and performs
+        pending archival operations. Depends on the type of processing.
+        '''
+        self.set_last_status_message('Cleanup')
         logger = self.get_logger()
-        # send email about process finish
-        if not self.publish_directly:
-            user = self.main_author_user
-            name = '%s %s' % (user.first_name, user.last_name)
-            message = '\n'.join([
-                'Dear %s,' % name,
-                '',
-                'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
-                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
-                '',
-                'If you encounter any issues with your upload, please let us know and reply to this email.',
-                '',
-                'The nomad team'
-            ])
-            try:
-                infrastructure.send_mail(
-                    name=name, email=user.email, message=message, subject='Processing completed')
-            except Exception as e:
-                # probably due to email configuration problems
-                # don't fail or present this error to clients
-                self.logger.error('could not send after processing email', exc_info=e)
 
         if self.published:
             # We have reprocessed an already published upload
@@ -1372,21 +1361,40 @@ class Upload(Proc):
                 self.last_update = datetime.utcnow()
                 self.save()
 
+        with self.entries_metadata() as entries:
+            with utils.timer(logger, 'upload entries and materials indexed'):
+                archives = [entry.m_parent for entry in entries]
+                search.index(archives, update_materials=True, refresh=True)
+
+        # send email about process finish
+        if not self.publish_directly:
+            user = self.main_author_user
+            name = '%s %s' % (user.first_name, user.last_name)
+            message = '\n'.join([
+                'Dear %s,' % name,
+                '',
+                'your data %suploaded at %s has completed processing.' % (
+                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
+                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
+                '',
+                'If you encounter any issues with your upload, please let us know and reply to this email.',
+                '',
+                'The nomad team'
+            ])
+            try:
+                infrastructure.send_mail(
+                    name=name, email=user.email, message=message, subject='Processing completed')
+            except Exception as e:
+                # probably due to email configuration problems
+                # don't fail or present this error to clients
+                self.logger.error('could not send after processing email', exc_info=e)
+
     def _cleanup_staging_files(self):
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
             if StagingUploadFiles.exists_for(self.upload_id):
                 staging_upload_files = StagingUploadFiles(self.upload_id)
                 with utils.timer(self.get_logger(), 'upload staging files deleted'):
                     staging_upload_files.delete()
-
-    def cleanup(self):
-        '''
-        The process step that "cleans" the processing, i.e. removed obsolete files and performs
-        pending archival operations. Depends on the type of processing.
-        '''
-        self.set_last_status_message('Cleanup')
-        search.refresh()
-        self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         ''' Returns the upload calc with the given id or ``None``. '''

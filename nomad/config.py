@@ -136,6 +136,7 @@ elastic = NomadConfig(
     host='localhost',
     port=9200,
     timeout=60,
+    bulk_timeout='10m',
     entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )
@@ -331,7 +332,8 @@ reprocess = NomadConfig(
     reprocess_existing_entries=True,
     use_original_parser=False,
     add_matched_entries_to_published=True,
-    delete_unmatched_published_entries=False
+    delete_unmatched_published_entries=False,
+    index_invidiual_entries=False
 )
 
 bundle_import = NomadConfig(

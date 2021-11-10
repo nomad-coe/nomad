@@ -374,7 +374,8 @@ def index(ctx, uploads, parallel, transformer):
         with upload.entries_metadata() as entries:
             if transformer is not None:
                 transform(entries)
-            search.index([entry.m_parent for entry in entries], update_materials=True, refresh=True)
+            archives = [entry.m_parent for entry in entries]
+            search.index(archives, update_materials=True, refresh=True)
 
         return True
 

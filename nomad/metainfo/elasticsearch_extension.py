@@ -858,18 +858,23 @@ def delete_indices():
     material_index.delete()
 
 
-def index_entry(entry: MSection, update_material: bool = False):
+def index_entry(entry: MSection, **kwargs):
     '''
     Upserts the given entry in the entry index. Optionally updates the materials index
     as well.
     '''
-    index_entries([entry], update_materials=update_material)
+    index_entries([entry], **kwargs)
+
+
+def index_entries_with_materials(entries: List, refresh: bool = False):
+    index_entries(entries, refresh=refresh)
+    update_materials(entries, refresh=refresh)
 
 
 _max_entries_index_size = 1000
 
 
-def index_entries(entries: List, update_materials: bool = True, refresh: bool = False):
+def index_entries(entries: List, refresh: bool = False):
     '''
     Upserts the given entries in the entry index. Optionally updates the materials index
     as well.
@@ -877,7 +882,7 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     # split into reasonably sized problems
     if len(entries) > _max_entries_index_size:
         for entries_part in [entries[i:i + _max_entries_index_size] for i in range(0, len(entries), _max_entries_index_size)]:
-            index_entries(entries_part, update_materials=update_materials)
+            index_entries(entries_part, refresh=refresh)
         return
 
     if len(entries) == 0:
@@ -890,9 +895,17 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
         entry_index_doc = entry_type.create_index_doc(entry)
         actions_and_docs.append(entry_index_doc)
 
-    elasticsearch_results = entry_index.bulk(body=actions_and_docs, refresh=True)
+    entry_index.bulk(body=actions_and_docs, refresh=refresh, timeout=config.elastic.bulk_timeout)
 
-    if not update_materials:
+
+def update_materials(entries: List, refresh: bool = False):
+    # split into reasonably sized problems
+    if len(entries) > _max_entries_index_size:
+        for entries_part in [entries[i:i + _max_entries_index_size] for i in range(0, len(entries), _max_entries_index_size)]:
+            update_materials(entries_part, refresh=refresh)
+        return
+
+    if len(entries) == 0:
         return
 
     def get_material_id(entry):
@@ -1033,9 +1046,8 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
     # Execute the created actions in bulk.
     if len(actions_and_docs) > 0:
-        material_index.bulk(body=actions_and_docs, refresh=True)
+        material_index.bulk(body=actions_and_docs, refresh=False, timeout=config.elastic.bulk_timeout)
 
     if refresh:
         entry_index.refresh()
-        if update_materials:
-            material_index.refresh()
+        material_index.refresh()

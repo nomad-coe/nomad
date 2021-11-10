@@ -128,6 +128,7 @@ elastic:
   host: nomad-flink-01.esc
   port: 9200
   timeout: 60
+  bulkTimeout: '10m'
 
 logstash:
   enabled: true
@@ -172,6 +173,7 @@ reprocess:
   useOriginalParser: false
   addMatchedEntriesToPublished: false
   deleteUnmatchedPublishedEntries: false
+  indexIndividualEntries: false
 
 processReuseParser: true
 
