@@ -170,11 +170,11 @@ def _query_uploads(
     else:
         uploads = set(uploads)
 
-    entries_mongo_query_q = None
+    entries_mongo_query_q = Q()
     if entries_mongo_query:
         entries_mongo_query_q = Q(**json.loads(entries_mongo_query))
 
-    entries_query_uploads: Set[str] = set()
+    entries_query_uploads: Set[str] = None
 
     if entries_es_query is not None:
         entries_es_query_dict = json.loads(entries_es_query)
@@ -194,52 +194,47 @@ def _query_uploads(
                 )
             })
 
-        es_based_uploads = set([
+        entries_query_uploads = set([
             cast(str, bucket.value)
             for bucket in results.aggregations['uploads'].terms.data])  # pylint: disable=no-member
-        entries_query_uploads.update(es_based_uploads)
 
     if outdated:
-        if not entries_mongo_query_q:
-            entries_mongo_query_q = Q()
-        entries_mongo_query_q |= Q(nomad_version={'$ne': config.meta.version})
+        entries_mongo_query_q &= Q(nomad_version={'$ne': config.meta.version})
 
     if processing_failure_calcs or processing_failure or processing_necessary:
-        if not entries_mongo_query_q:
-            entries_mongo_query_q = Q()
-        entries_mongo_query_q |= Q(process_status=proc.ProcessStatus.FAILURE)
+        entries_mongo_query_q &= Q(process_status=proc.ProcessStatus.FAILURE)
 
     if processing_incomplete_calcs or processing_incomplete or processing_necessary:
-        if not entries_mongo_query_q:
-            entries_mongo_query_q = Q()
-        entries_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+        entries_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
-    if entries_mongo_query_q:
-        mongo_entry_based_uploads = proc.Calc.objects(entries_mongo_query_q).distinct(field="upload_id")
-        entries_query_uploads.update(mongo_entry_based_uploads)
+    mongo_entry_based_uploads = set(proc.Calc.objects(entries_mongo_query_q).distinct(field="upload_id"))
+    if entries_query_uploads is not None:
+        entries_query_uploads = entries_query_uploads.intersection(mongo_entry_based_uploads)
+    else:
+        entries_query_uploads = mongo_entry_based_uploads
 
-    if len(entries_query_uploads) > 0:
+    if entries_query_uploads:
         uploads_mongo_query_q = Q(upload_id__in=list(entries_query_uploads))
     else:
         uploads_mongo_query_q = Q()
 
     if uploads_mongo_query:
-        uploads_mongo_query_q |= Q(**json.loads(uploads_mongo_query))
+        uploads_mongo_query_q &= Q(**json.loads(uploads_mongo_query))
 
     if published:
-        uploads_mongo_query_q |= Q(publish_time__exists=True)
+        uploads_mongo_query_q &= Q(publish_time__exists=True)
 
     if unpublished:
-        uploads_mongo_query_q |= Q(publish_time__exists=False)
+        uploads_mongo_query_q &= Q(publish_time__exists=False)
 
     if processing:
-        uploads_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+        uploads_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     if processing_failure_uploads or processing_failure or processing_necessary:
-        uploads_mongo_query_q |= Q(process_status=proc.ProcessStatus.FAILURE)
+        uploads_mongo_query_q &= Q(process_status=proc.ProcessStatus.FAILURE)
 
     if processing_incomplete_uploads or processing_incomplete or processing_necessary:
-        uploads_mongo_query_q |= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
+        uploads_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
     final_query = uploads_mongo_query_q
     if uploads is not None:
