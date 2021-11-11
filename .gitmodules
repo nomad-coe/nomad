@@ -213,6 +213,6 @@
 [submodule "dependencies/parsers/asr"]
 	path = dependencies/parsers/asr
 	url = https://github.com/nomad-coe/nomad-parser-asr.git
-[submodule "ops/images/webtop/north-guacamole-client"]
-	path = ops/images/webtop/north-guacamole-client
-	url = https://github.com/nomad-coe/north-guacamole-client.git
+[submodule "dependencies/nomad-remote-tools-hub"]
+	path = dependencies/nomad-remote-tools-hub
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git

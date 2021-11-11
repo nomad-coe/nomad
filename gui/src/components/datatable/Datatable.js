@@ -229,7 +229,8 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     onSelectedChanged,
     shownColumns,
     pagination,
-    onPaginationChanged
+    onPaginationChanged,
+    multiple
   } = useDatatableContext()
   const columns = shownColumns
   const {order, order_by} = pagination
@@ -256,13 +257,13 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
 
   return <TableHead>
     <TableRow>
-      {withSelectionFeature && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
-        <Checkbox
+      <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
+        {(withSelectionFeature && multiple) && <Checkbox
           indeterminate={selected.length > 0 && selected !== 'all'}
           checked={selected === 'all'}
           onChange={handleSelectAllChanged}
-        />
-      </TableCell>}
+        />}
+      </TableCell>
       {columns.map(column => (
         <TableCell
           classes={{stickyHeader: classes.stickyHeader}}
@@ -721,6 +722,8 @@ Datatable.propTypes = {
     PropTypes.oneOf(['all']),
     PropTypes.arrayOf(PropTypes.object)
   ]),
+  /** Whether multiple values can be selected or not */
+  multiple: PropTypes.bool,
   /** Optional callback for selection changes. Takes either "all" or new array of
    * selected row objects as parameter. */
   onSelectedChanged: PropTypes.func,
@@ -729,4 +732,8 @@ Datatable.propTypes = {
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
+}
+
+Datatable.defaultProps = {
+  multiple: true
 }

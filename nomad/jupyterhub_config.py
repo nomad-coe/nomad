@@ -29,6 +29,7 @@ import os
 import os.path
 import requests
 import pathlib
+import json
 
 from nomad import config
 
@@ -175,25 +176,25 @@ if config.north.hub_ip:
     c.JupyterHub.hub_ip = config.north.hub_ip
 
 
-def configure_toolkit(spawner: DockerSpawner):
-    spawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/analytics:latest'
-
-
-def configure_webtop(spawner: DockerSpawner):
-    spawner.image = 'gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop'
-    spawner.cmd = ["/bin/sh", "-c", "sleep infinity"]
-
-
-def configure_test(spawner: DockerSpawner):
-    spawner.image = 'jyp_test'
-
-
 def configure_default(spawner: DockerSpawner):
     spawner.image = 'jupyter/base-notebook'
 
 
+def create_configure_from_tool_json(tool_json):
+    def configure(spawner: DockerSpawner):
+        spawner.image = tool_json['image']
+
+    return configure
+
+
+tools_json_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    '../dependencies/nomad-remote-tools-hub/tools.json')
+
+with open(tools_json_path, 'rt') as f:
+    tools_json = json.load(f)
+
 tools = {
-    'toolkit': configure_toolkit,
-    'webtop': configure_webtop,
-    'test': configure_test
+    key: create_configure_from_tool_json(value)
+    for key, value in tools_json.items()
 }

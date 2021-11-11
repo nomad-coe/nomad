@@ -32,11 +32,6 @@ build/
 dist/
 setup.json
 parser.osio.log
-gui/src/metainfo.json
-gui/src/searchQuantities.json
-gui/src/toolkitMetadata.json
-gui/src/unitsData.js
-gui/src/parserMetadata.js
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py
@@ -44,4 +39,3 @@ nomad/gitinfo.py
 jupyterhub_cookie_secret
 jupyterhub.sqlite
 jupyterhub-proxy.pid
-gui/src/parserMetadata.json
