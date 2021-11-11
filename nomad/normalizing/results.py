@@ -384,10 +384,10 @@ class ResultsNormalizer(Normalizer):
 
     def xc_functional_names(self, repr_method) -> Union[List[str], None]:
         if repr_method:
-            functionals = []
+            functionals = set()
             try:
                 for functional_type in ['exchange', 'correlation', 'hybrid', 'contributions']:
-                    functionals.extend([f.name for f in repr_method.dft.xc_functional[functional_type]])
+                    functionals.update([f.name for f in repr_method.dft.xc_functional[functional_type]])
             except Exception:
                 pass
             if functionals:
