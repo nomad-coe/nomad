@@ -211,9 +211,9 @@ export const FilterMenuItems = React.memo(({
   // The clicks outside are thus detected by individual event listeners that
   // toggle the menu state.
   return <div className={clsx(className, styles.root)}>
-    <Scrollable
+    <div
       className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}
-      classes={{containerInner: styles.overflow}}>
+      classes={{containerInner: styles.overflow}} style={{position: 'sticky', top: '0px'}}>
       <div className={styles.padding}>
         <Actions
           header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
@@ -260,7 +260,7 @@ export const FilterMenuItems = React.memo(({
           {children}
         </List>
       </div>
-    </Scrollable>
+    </div>
     <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
       <Actions className={styles.header}>
         {collapsed && <Action
