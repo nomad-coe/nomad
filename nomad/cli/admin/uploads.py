@@ -295,9 +295,10 @@ def chown(ctx, username, uploads):
     print('%d uploads selected, changing owner ...' % uploads.count())
 
     user = datamodel.User.get(username=username)
-    upload_metadata = datamodel.UploadMetadata(main_author=user)
     for upload in uploads:
-        upload.set_upload_metadata(upload_metadata.m_to_dict())
+        upload.edit_upload_metadata(
+            edit_request=dict(metadata={'main_author': user.user_id}),
+            user_id=config.services.admin_user_id)
 
 
 @uploads.command(help='Reset the processing state.')

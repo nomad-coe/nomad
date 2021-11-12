@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 import pytest
+from datetime import datetime
 
 from nomad import datamodel, metainfo
 from nomad.processing import Upload
@@ -39,7 +40,7 @@ def assert_edit_request(user, **kwargs):
     # Perform edit request
     mer = MetadataEditRequest(
         upload_id=upload_id, query=query, metadata=metadata, entries=entries, verify=verify)
-
+    edit_start = datetime.utcnow().isoformat()[0:22]
     _response, status_code = Upload.edit_metadata(mer, user)
     # Validate result
     assert status_code == expected_status_code, 'Wrong status code returned'
@@ -48,9 +49,11 @@ def assert_edit_request(user, **kwargs):
             upload = Upload.get(upload_id)
             upload.block_until_complete()
             for entry in upload.calcs:
+                assert entry.last_edit_time
+                assert entry.last_edit_time.isoformat()[0:22] >= edit_start
                 entry_metadata_mongo = entry.mongo_metadata(upload).m_to_dict()
                 entry_metadata_es = search(owner=None, query={'calc_id': entry.calc_id}).data[0]
-                values_to_check = expected_metadata.copy()
+                values_to_check = expected_metadata
                 for quantity_name, value_expected in values_to_check.items():
                     # Note, the expected value is provided on the "request format"
                     quantity = _editable_metadata[quantity_name]
@@ -66,44 +69,54 @@ def assert_edit_request(user, **kwargs):
                             value_es = entry_metadata_es['writers']
                         elif quantity_name == 'reviewers':
                             value_es = entry_metadata_es['viewers']
-                        value_es = convert_to_mongo_value(quantity, value_es, 'es', user)
-                        value_expected = convert_to_mongo_value(quantity, value_expected, 'request', user)
-                        # Verify value_mongo
-                        assert value_mongo == value_expected
-                        # Verify value_es
-                        if quantity_name == 'coauthors':
+                        cmp_value_mongo = convert_to_comparable_value(quantity, value_mongo, 'mongo', user)
+                        cmp_value_es = convert_to_comparable_value(quantity, value_es, 'es', user)
+                        cmp_value_expected = convert_to_comparable_value(quantity, value_expected, 'request', user)
+                        # Verify mongo value
+                        assert cmp_value_mongo == cmp_value_expected
+                        # Verify ES value
+                        if quantity_name == 'license':
+                            continue  # Not stored indexed by ES
+                        elif quantity_name == 'coauthors':
                             # Check that writers == main_author + coauthors
-                            assert value_es == [upload.main_author] + value_expected
+                            assert cmp_value_es == [upload.main_author] + cmp_value_expected
                         elif quantity_name == 'reviewers':
                             # Check that viewers == main_author + coauthors + reviewers
-                            assert set(value_es) == set(
-                                [upload.main_author] + (upload.coauthors or []) + value_expected)
+                            assert set(cmp_value_es) == set(
+                                [upload.main_author] + (upload.coauthors or []) + cmp_value_expected)
                         else:
-                            assert value_es == value_expected
+                            assert cmp_value_es == cmp_value_expected
 
 
-def convert_to_mongo_value(quantity, value, from_format, user):
+def convert_to_comparable_value(quantity, value, from_format, user):
     '''
-    Converts `value` from the given source format ('es', 'request')
-    to the values type used in mongo (user_id for user references, dataset_id
-    for datasets, etc). List quantities are also guaranteed to be converted to lists.
+    Converts `value` from the given source format ('mongo', 'es', 'request')
+    to a value that can be compared (user_id for user references, dataset_id
+    for datasets, timestamp strings with no more than millisecond precision, etc).
+    List quantities are also guaranteed to be converted to lists.
     '''
     if quantity.is_scalar:
-        return convert_to_mongo_value_single(quantity, value, from_format, user)
+        return convert_to_comparable_value_single(quantity, value, from_format, user)
     if type(value) != list:
         value = [value]
-    return [convert_to_mongo_value_single(quantity, v, from_format, user) for v in value]
+    return [convert_to_comparable_value_single(quantity, v, from_format, user) for v in value]
 
 
-def convert_to_mongo_value_single(quantity, value, format, user):
+def convert_to_comparable_value_single(quantity, value, format, user):
     if quantity.type in (str, int, float, bool) or isinstance(quantity.type, metainfo.MEnum):
         if value == '' and format == 'request':
             return None
         return value
+    elif quantity.type == metainfo.Datetime:
+        if not value:
+            return None
+        return value[0:22]  # Only compare to the millisecond level (mongo's maximal precision)
     elif isinstance(quantity.type, metainfo.Reference):
         # Should be reference
         verify_reference = quantity.type.target_section_def.section_cls
         if verify_reference in [datamodel.User, datamodel.Author]:
+            if format == 'mongo':
+                return value
             if format == 'es':
                 return value['user_id']
             elif format == 'request':
@@ -115,7 +128,9 @@ def convert_to_mongo_value_single(quantity, value, format, user):
                     except KeyError:
                         return datamodel.User.get(email=value).user_id
         elif verify_reference == datamodel.Dataset:
-            if format == 'es':
+            if format == 'mongo':
+                return value
+            elif format == 'es':
                 return value['dataset_id']
             elif format == 'request':
                 try:
@@ -184,3 +199,20 @@ def test_set_and_clear_all(proc_infra, example_data_writeable, a_dataset, test_u
             references=[],
             external_db='',
             reviewers=[]))
+
+
+def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_test_user, admin_user):
+    now = datetime.utcnow()
+    now_iso = now.isoformat()
+    admin_fields = dict(
+        upload_create_time=now_iso,
+        entry_create_time=now_iso,
+        publish_time=now_iso,
+        license='a license',
+        main_author=other_test_user.user_id)
+    assert_edit_request(
+        user=admin_user, upload_id='id_published_w', metadata=admin_fields)
+    # try to do the same as a non-admin
+    for k, v in admin_fields.items():
+        assert_edit_request(
+            user=test_user, upload_id='id_published_w', metadata={k: v}, expected_status_code=401)

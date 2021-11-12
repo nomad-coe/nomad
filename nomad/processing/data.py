@@ -370,8 +370,9 @@ class MetadataEditRequestValidator:
             self, definition: metainfo.Definition, value: Any) -> Any:
         '''
         Verifies a *singular* action value (i.e. for list quantities we should run this method
-        for each value in the list, not with the list itself as input). Validates:
-            1) datatype,
+        for each value in the list, not with the list itself as input). Returns the verified
+        value, which may be different from the origial value. It:
+            1) ensures a return value of a primitive type (str, int, float, bool or None),
             2) that user refs exist,
             3) that datasets refs exist and do not have a doi.
             4) Translates user refs to user_id and dataset refs to dataset_id, if needed.
@@ -381,6 +382,10 @@ class MetadataEditRequestValidator:
             assert value is None or type(value) == definition.type, f'Expected a {definition.type.__name__}'
             if definition.name == 'embargo_length':
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
+            return None if value == '' else value
+        elif definition.type == metainfo.Datetime:
+            if value is not None:
+                datetime.fromisoformat(value)  # Throws exception if badly formatted timestamp
             return None if value == '' else value
         elif isinstance(definition.type, metainfo.MEnum):
             assert type(value) == str, 'Expected a string value'
@@ -430,6 +435,8 @@ class MetadataEditRequestValidator:
         '''
         definition = _editable_metadata[quantity_name]
         if definition.is_scalar:
+            if definition.type == metainfo.Datetime and action:
+                return datetime.fromisoformat(action)
             return action
         # Non-scalar property. Verified action should be a dict with op and values
         op, values = action['op'], action['values']
@@ -512,7 +519,7 @@ class MetadataEditRequestValidator:
             # We have no query. Return all entries for the upload
             return Calc.objects(upload_id=upload.upload_id)
 
-    def create_response(self) -> MetadataEditRequestResponse:
+    def create_request_response(self) -> MetadataEditRequestResponse:
         ''' Creates a :class:`MetadataEditRequestResponse` with the validation results. '''
         verified_dict = self.edit_request.dict()
         # Overwrite input values with verified values when possible
@@ -1959,7 +1966,7 @@ class Upload(Proc):
         # Validate the request
         validator.validate_request()
         # Create response
-        response = validator.create_response()
+        response = validator.create_request_response()
         if not response.error and not edit_request.verify_only:
             # Try to execute for all affected uploads
             request_dict = edit_request.dict()
@@ -1972,7 +1979,6 @@ class Upload(Proc):
             # Looks good, try to trigger processing
             for upload in validator.affected_uploads:
                 try:
-                    request_dict['upload_id'] = upload.upload_id
                     upload.edit_upload_metadata(request_dict, user.user_id)  # Trigger the process
                 except Exception as e:
                     response.error = f'Failed to start process for upload {upload.upload_id}: {e}'
@@ -1989,11 +1995,12 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
         user = datamodel.User.get(user_id=user_id)
-        edit_request_obj = MetadataEditRequest(**edit_request)
         # Some sanity checks, just in case
-        assert edit_request_obj.upload_id, 'Should specify upload_id in the edit request'
-        assert edit_request_obj.upload_id == self.upload_id, 'Invalid upload_id in edit_request'
-        assert not edit_request_obj.verify_only, 'Request has verify_only'
+        if 'upload_id' not in edit_request:
+            edit_request['upload_id'] = self.upload_id
+        assert edit_request['upload_id'] == self.upload_id, 'Invalid upload_id in edit_request'
+        assert not edit_request.get('verify_only'), 'Request has verify_only'
+        edit_request_obj = MetadataEditRequest(**edit_request)
 
         # Validate the request (the @process could have been invoked directly, without previous validation)
         validator = MetadataEditRequestValidator(logger, user, edit_request=edit_request_obj)
@@ -2311,8 +2318,9 @@ class Upload(Proc):
 
             # Validate embargo settings
             if embargo_length is not None:
-                assert 0 <= embargo_length <= 36, 'Invalid embargo_length, must be between 0 and 36 months'
-                self.embargo_length = embargo_length  # Set the flag also on the Upload level
+                self.embargo_length = embargo_length  # Importing with different embargo
+            assert type(self.embargo_length) == int and 0 <= self.embargo_length <= 36, (
+                'Invalid embargo_length, must be between 0 and 36 months')
 
             # Import the files
             bundle.import_upload_files(
