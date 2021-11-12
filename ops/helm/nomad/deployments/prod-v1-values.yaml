@@ -30,7 +30,7 @@ app:
   nomadNodeType: "public"
 
 worker:
-  replicas: 4
+  replicas: 2
   routing: "queue"
   processes: 12
   nomadNodeType: "worker"
