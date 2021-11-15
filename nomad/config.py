@@ -137,6 +137,8 @@ elastic = NomadConfig(
     port=9200,
     timeout=60,
     bulk_timeout='10m',
+    bulk_size=1000,
+    entries_per_material_cap=1000,
     entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )
@@ -336,6 +338,13 @@ reprocess = NomadConfig(
     index_invidiual_entries=False
 )
 
+process = NomadConfig(
+    index_materials=True,
+    reuse_parser=True,
+    metadata_file_name='nomad',
+    metadata_file_extensions=('json', 'yaml', 'yml')
+)
+
 bundle_import = NomadConfig(
     # Basic settings
     allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
@@ -374,13 +383,9 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
-use_empty_parsers = False
-process_reuse_parser = True
-metadata_file_name = 'nomad'
-metadata_file_extensions = ('json', 'yaml', 'yml')
-enable_lazy_import = True
 encyclopedia_enabled = True
 aitoolkit_enabled = False
+use_empty_parsers = False
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

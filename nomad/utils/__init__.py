@@ -208,13 +208,13 @@ def lnr(logger, event, **kwargs):
 
     except Exception as e:
         # ignore HTTPException as they are part of the normal app error handling
-        if e.__class__.__name__ == 'HTTPException':
+        if e.__class__.__name__ != 'HTTPException':
             logger.error(event, exc_info=e, **kwargs)
         raise e
 
 
 @contextmanager
-def timer(logger, event, method='info', **kwargs):
+def timer(logger, event, method='info', lnr_event: str = None, **kwargs):
     '''
     A context manager that takes execution time and produces a log entry with said time.
 
@@ -232,6 +232,11 @@ def timer(logger, event, method='info', **kwargs):
 
     try:
         yield kwargs
+    except Exception as e:
+        if lnr_event is not None:
+            stop = time.time()
+            logger.error(lnr_event, exc_info=e, exec_time=stop - start, **kwargs)
+        raise e
     finally:
         stop = time.time()
 

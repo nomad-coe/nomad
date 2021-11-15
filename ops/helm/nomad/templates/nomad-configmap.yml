@@ -18,9 +18,11 @@ data:
       {{ if .Values.meta.deployment }}
       deployment: "{{ .Values.meta.deployment }}"
       {{ end }}
-    process_reuse_parser: {{ .Values.processReuseParser }}
     encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
     aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
+    process:
+      reuse_parser: {{ .Values.process.reuseParser }}
+      index_materials: {{ .Values.process.indexMaterials }}
     reprocess:
       rematch_published: {{ .Values.reprocess.rematchPublished }}
       reprocess_existing_entries: {{ .Values.reprocess.reprocessExistingEntries }}
@@ -34,7 +36,6 @@ data:
       isTest: {{ .Values.version.isTest }}
       usesBetaData: {{ .Values.version.usesBetaData }}
       officialUrl: "{{ .Values.version.officialUrl }}"
-    process_reuse_parser: {{ .Values.processReuseParser }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
@@ -60,7 +61,9 @@ data:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
       timeout: {{ .Values.elastic.timeout }}
-      bulk_timeout: "{{ .Values.elastic.bulkTimeout }}""
+      bulk_timeout: "{{ .Values.elastic.bulkTimeout }}"
+      bulk_size=1000: {{ .Values.elastic.bulkSize }}
+      entries_per_material_cap: {{ .Values.elastic.entriesPerMaterialCap }}
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:

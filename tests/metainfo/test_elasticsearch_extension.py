@@ -344,6 +344,25 @@ def test_index_entry(elastic, indices, example_entry):
     assert_entry_indexed(example_entry)
 
 
+def create_entry(spec: str, material_kwargs: dict = None):
+    entry_id, material_id = spec.split('-')
+    changed = material_id.endswith('*')
+    if changed:
+        material_id = material_id[:-1]
+    entry = Entry(entry_id=entry_id)
+    entry.m_create(Results).m_create(
+        Material, material_id=material_id,
+        springer_labels=['A', 'B'] if changed else ['A'])
+    return entry
+
+
+def create_entries(spec: str):
+    return [
+        create_entry(entry_spec.strip())
+        for entry_spec in spec.split(',')
+        if entry_spec.strip() != '']
+
+
 # The parameters are before, to_index, after. Before and after describes what is in the index
 # before and after the test. To_index describes what is to be indexed in the test.
 # Both are strings with csv, where each value is a dash separated pair of numbers. The
@@ -358,24 +377,23 @@ def test_index_entry(elastic, indices, example_entry):
     pytest.param('1-1', '1-1*', '1-1*', id='update-material-property')
 ])
 def test_index_entries(elastic, indices, before, to_index, after):
-    def create_entry(spec: str, material_kwargs: dict = None):
-        entry_id, material_id = spec.split('-')
-        changed = material_id.endswith('*')
-        if changed:
-            material_id = material_id[:-1]
-        entry = Entry(entry_id=entry_id)
-        entry.m_create(Results).m_create(
-            Material, material_id=material_id,
-            springer_labels=['A', 'B'] if changed else ['A'])
-        return entry
-
-    def create_entries(spec: str):
-        return [
-            create_entry(entry_spec.strip())
-            for entry_spec in spec.split(',')
-            if entry_spec.strip() != '']
-
     index_entries_with_materials(create_entries(before), refresh=True)
     index_entries_with_materials(create_entries(to_index), refresh=True)
 
     assert_entries_indexed(create_entries(after))
+
+
+@pytest.mark.parametrize('cap, entries', [
+    pytest.param(2, 1, id='below-cap'),
+    pytest.param(2, 3, id='above-cap')
+])
+def test_index_materials_capped(elastic, indices, monkeypatch, cap, entries):
+    monkeypatch.setattr('nomad.config.elastic.entries_per_material_cap', cap)
+    index_entries_with_materials(create_entries(','.join([f'{i}-1' for i in range(1, entries + 1)])), refresh=True)
+
+    material_docs = [
+        hit['_source'] for hit in
+        material_index.search(body=dict(query=dict(match_all={})))['hits']['hits']]
+    for material_doc in material_docs:
+        assert len(material_doc['entries']) <= cap
+        assert material_doc['n_entries'] == entries

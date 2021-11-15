@@ -250,7 +250,7 @@ class Calc(Proc):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
-        metadata_file = config.metadata_file_name
+        metadata_file = config.process.metadata_file_name
         metadata_dir = os.path.dirname(self.mainfile_file.os_path)
         upload_raw_dir = self.upload_files._raw_dir.os_path
 
@@ -587,7 +587,7 @@ class Calc(Proc):
         self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            if not config.process_reuse_parser:
+            if not config.process.reuse_parser:
                 if isinstance(parser, parsing.FairdiParser):
                     try:
                         parser = parser.__class__()
@@ -849,7 +849,7 @@ class Upload(Proc):
 
     @lru_cache()
     def metadata_file_cached(self, path):
-        for ext in config.metadata_file_extensions:
+        for ext in config.process.metadata_file_extensions:
             full_path = '%s.%s' % (path, ext)
             if os.path.isfile(full_path):
                 try:
@@ -1185,7 +1185,7 @@ class Upload(Proc):
         staging_upload_files = self.staging_upload_files
 
         metadata = self.metadata_file_cached(
-            os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+            os.path.join(self.upload_files.os_path, 'raw', config.process.metadata_file_name))
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
@@ -1364,7 +1364,9 @@ class Upload(Proc):
         with self.entries_metadata() as entries:
             with utils.timer(logger, 'upload entries and materials indexed'):
                 archives = [entry.m_parent for entry in entries]
-                search.index(archives, update_materials=True, refresh=True)
+                search.index(
+                    archives, update_materials=config.process.index_materials,
+                    refresh=True)
 
         # send email about process finish
         if not self.publish_directly:
@@ -1526,7 +1528,9 @@ class Upload(Proc):
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
                 with utils.timer(logger, 'index updated'):
-                    search.update_metadata(entries_metadata, update_materials=True, refresh=True)
+                    search.update_metadata(
+                        entries_metadata, update_materials=config.process.index_materials,
+                        refresh=True)
 
     def entry_ids(self) -> List[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
@@ -1824,7 +1828,9 @@ class Upload(Proc):
 
             # Index in elastic search
             if entry_data_to_index:
-                search.index(entry_data_to_index, update_materials=True, refresh=True)
+                search.index(
+                    entry_data_to_index, update_materials=config.process.index_materials,
+                    refresh=True)
 
             if settings.trigger_processing:
                 reprocess_settings = {

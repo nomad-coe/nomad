@@ -129,6 +129,8 @@ elastic:
   port: 9200
   timeout: 60
   bulkTimeout: '10m'
+  bulk_size: 1000
+  entries_per_material_cap: 1000
 
 logstash:
   enabled: true
@@ -175,7 +177,9 @@ reprocess:
   deleteUnmatchedPublishedEntries: false
   indexIndividualEntries: false
 
-processReuseParser: true
+process:
+  reuseParser: true
+  indexMaterials: true
 
 datacite:
   enabled: false
