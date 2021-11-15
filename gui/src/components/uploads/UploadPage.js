@@ -24,7 +24,7 @@ import Dropzone from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { appBase } from '../../config'
 import { CodeList } from '../About'
-import { DoesNotExist, useApi, withLoginRequired } from '../api'
+import { DoesNotExist, useApi } from '../api'
 import { useParams } from 'react-router'
 import { useHistory, useLocation } from 'react-router-dom'
 import FilesBrower from './FilesBrowser'
@@ -42,6 +42,8 @@ import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
+
+export const uploadPageContext = React.createContext()
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -295,7 +297,7 @@ const useStyles = makeStyles(theme => ({
 function UploadPage() {
   const classes = useStyles()
   const { uploadId } = useParams()
-  const {api} = useApi()
+  const {api, user} = useApi()
   const errors = useErrors()
   const history = useHistory()
   const location = useLocation()
@@ -306,6 +308,7 @@ function UploadPage() {
   const [deleteClicked, setDeleteClicked] = useState(false)
   const [data, setData] = useState(null)
   const [uploading, setUploading] = useState(null)
+  const [err, setErr] = useState(null)
   const upload = data?.upload
   const setUpload = useMemo(() => (upload) => {
     setData(data => ({...data, upload: upload}))
@@ -320,7 +323,7 @@ function UploadPage() {
         if (error instanceof DoesNotExist && deleteClicked) {
           history.push(getUrl('uploads', location))
         } else {
-          errors.raiseError(error)
+          (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
         }
       })
   }, [api, uploadId, pagination, deleteClicked, history, errors, location])
@@ -378,137 +381,150 @@ function UploadPage() {
       .catch(errors.raiseError)
   }
 
+  const viewers = upload?.viewers
+  const writers = upload?.writers
+  const isViewer = user && viewers?.includes(user.sub)
+  const isWriter = user && writers?.includes(user.sub)
+
+  const contextValue = useMemo(() => ({
+    upload: upload,
+    isViewer: isViewer,
+    isWriter: isWriter
+  }), [upload, isViewer, isWriter])
+
   if (!upload) {
     return <Page limitedWidth>
-      <Typography>loading ...</Typography>
+      {(err ? <Typography> {err} </Typography> : <Typography>loading ...</Typography>)}
     </Page>
   }
 
+  const isAuthenticated = api.keycloak.authenticated
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
 
-  return <Page limitedWidth>
-    {(uploading || uploading === 0) && <Dialog open>
-      <DialogTitle>Uploading file ...</DialogTitle>
-      <DialogContent>
-        <Box width={300}>
-          <LinearProgressWithLabel value={uploading} />
-        </Box>
-      </DialogContent>
-    </Dialog>}
-    <Slide direction="down" in={isProcessing} mountOnEnter unmountOnExit>
-      <Paper className={classes.status}>
-        <Page limitedWidth>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item>
-              <CircularProgress />
+  return <uploadPageContext.Provider value={contextValue}>
+    <Page limitedWidth>
+      {(uploading || uploading === 0) && <Dialog open>
+        <DialogTitle>Uploading file ...</DialogTitle>
+        <DialogContent>
+          <Box width={300}>
+            <LinearProgressWithLabel value={uploading} />
+          </Box>
+        </DialogContent>
+      </Dialog>}
+      <Slide direction="down" in={isProcessing} mountOnEnter unmountOnExit>
+        <Paper className={classes.status}>
+          <Page limitedWidth>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item>
+                <CircularProgress />
+              </Grid>
+              <Grid item style={{flexGrow: 1}}>
+                <Typography>Upload is processing ...</Typography>
+                <Typography>{data.upload.last_status_message}</Typography>
+              </Grid>
             </Grid>
-            <Grid item style={{flexGrow: 1}}>
-              <Typography>Upload is processing ...</Typography>
-              <Typography>{data.upload.last_status_message}</Typography>
-            </Grid>
-          </Grid>
-        </Page>
-      </Paper>
-    </Slide>
-    <Grid container spacing={2} alignItems="center">
-      <Grid item>
-        <UploadStatus upload={upload} fontSize="large" />
+          </Page>
+        </Paper>
+      </Slide>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item>
+          <UploadStatus upload={upload} fontSize="large" />
+        </Grid>
+        <Grid item style={{flexGrow: 1}}>
+          <UploadName upload_name={upload?.upload_name} onChange={handleNameChange} />
+          <WithButton clipboard={uploadId}>
+            <Typography>upload id: {uploadId}</Typography>
+          </WithButton>
+        </Grid>
+        <Grid>
+          <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
+          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
+            <Tooltip title="Reprocess">
+              <ReprocessIcon />
+            </Tooltip>
+          </IconButton>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleDelete}>
+            <Tooltip title="Delete the upload">
+              <DeleteIcon />
+            </Tooltip>
+          </IconButton>
+        </Grid>
       </Grid>
-      <Grid item style={{flexGrow: 1}}>
-        <UploadName upload_name={upload?.upload_name} onChange={handleNameChange} />
-        <WithButton clipboard={uploadId}>
-          <Typography>upload id: {uploadId}</Typography>
-        </WithButton>
-      </Grid>
-      <Grid>
-        <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
-        <IconButton disabled={isPublished} onClick={handleReprocess}>
-          <Tooltip title="Reprocess">
-            <ReprocessIcon />
-          </Tooltip>
-        </IconButton>
-        <IconButton disabled={isPublished} onClick={handleDelete}>
-          <Tooltip title="Delete the upload">
-            <DeleteIcon />
-          </Tooltip>
-        </IconButton>
-      </Grid>
-    </Grid>
-    <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
-      <Step expanded active={false}>
-        <StepLabel>Prepare and upload your files</StepLabel>
-        <StepContent>
-          {isPublished && <Typography className={classes.stepContent}>
-            This upload is published and it&apos;s files can&apos;t be modified anymore.
-          </Typography>}
-          {!isPublished && (
-            <React.Fragment>
-              <Typography className={classes.stepContent}>
-                To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
-                all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
-                NOMAD will search through all files and identify the relevant files automatically.
-                Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
-                uploads</b> simultaneously. Your uploaded data is not published right away.
-                Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
-                our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
-                The following codes are supported: <CodeList withUploadInstructions />. Click
-                the code to get more specific information about how to prepare your files.
-              </Typography>
-              <DropButton
-                className={classes.stepContent}
-                size="large"
-                fullWidth onDrop={handleDrop}
-                disabled={isProcessing} />
-            </React.Fragment>
-          )}
-          <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
-        </StepContent>
-      </Step>
-      <Step expanded={!isEmpty}>
-        <StepLabel>Process data</StepLabel>
-        <StepContent>
-          <ProcessingStatus data={data} />
-          <ProcessingTable
-            upload={upload}
-            data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
-            pagination={combinePagination(pagination, data.pagination)}
-            onPaginationChanged={setPagination} />
-        </StepContent>
-      </Step>
-      <Step expanded={!isEmpty}>
-        <StepLabel>Edit metadata</StepLabel>
-        <StepContent>
-          <Typography className={classes.stepContent}>
-            You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
-            to publications), you can create <i>datasets</i> from your entries, or <i>share</i> private data
-            with outhers (e.g. before publishing or after publishing with an embargo.).
-            Please note that <b>we require you to list the <i>co-authors</i></b> before publishing.
-          </Typography>
-          <Typography className={classes.stepContent}>
-            You can either select and edit individual entries from the list above, or
-            edit all entries at once.
-          </Typography>
-          {!isEmpty && <EditUserMetadataDialog
-            example={data.data[0].entry_metadata || {}}
-            query={{'upload_id': [uploadId]}}
-            total={data.pagination.total}
-            onEditComplete={() => setPagination({...pagination})}
-            buttonProps={{variant: 'contained', color: 'primary', disabled: isProcessing}}
-            text={`Edit metadata of all ${data.pagination.total} entries`}
-            withoutLiftEmbargo={!isPublished}
-          />}
-        </StepContent>
-      </Step>
-      <Step expanded={!isEmpty}>
-        <StepLabel>Publish</StepLabel>
-        <StepContent>
-          {isPublished && <Typography>This upload has already been published.</Typography>}
-          {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
-        </StepContent>
-      </Step>
-    </Stepper>
-  </Page>
+      <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
+        <Step expanded active={false}>
+          <StepLabel>Prepare and upload your files</StepLabel>
+          <StepContent>
+            {isPublished && <Typography className={classes.stepContent}>
+              This upload is published and it&apos;s files can&apos;t be modified anymore.
+            </Typography>}
+            {!isPublished && (
+              <React.Fragment>
+                <Typography className={classes.stepContent}>
+                  To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
+                  all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
+                  NOMAD will search through all files and identify the relevant files automatically.
+                  Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
+                  uploads</b> simultaneously. Your uploaded data is not published right away.
+                  Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
+                  our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
+                  The following codes are supported: <CodeList withUploadInstructions />. Click
+                  the code to get more specific information about how to prepare your files.
+                </Typography>
+                <DropButton
+                  className={classes.stepContent}
+                  size="large"
+                  fullWidth onDrop={handleDrop}
+                  disabled={isProcessing} />
+              </React.Fragment>
+            )}
+            <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
+          </StepContent>
+        </Step>
+        <Step expanded={!isEmpty}>
+          <StepLabel>Process data</StepLabel>
+          <StepContent>
+            <ProcessingStatus data={data} />
+            <ProcessingTable
+              data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
+              pagination={combinePagination(pagination, data.pagination)}
+              onPaginationChanged={setPagination}/>
+          </StepContent>
+        </Step>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+          <StepLabel>Edit metadata</StepLabel>
+          <StepContent>
+            <Typography className={classes.stepContent}>
+              You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
+              to publications), you can create <i>datasets</i> from your entries, or <i>share</i> private data
+              with others (e.g. before publishing or after publishing with an embargo.).
+              Please note that <b>we require you to list the <i>co-authors</i></b> before publishing.
+            </Typography>
+            <Typography className={classes.stepContent}>
+              You can either select and edit individual entries from the list above, or
+              edit all entries at once.
+            </Typography>
+            {!isEmpty && <EditUserMetadataDialog
+              example={data.data[0].entry_metadata || {}}
+              query={{'upload_id': [uploadId]}}
+              total={data.pagination.total}
+              onEditComplete={() => setPagination({...pagination})}
+              buttonProps={{variant: 'contained', color: 'primary', disabled: isProcessing}}
+              text={`Edit metadata of all ${data.pagination.total} entries`}
+              withoutLiftEmbargo={!isPublished}
+            />}
+          </StepContent>
+        </Step>}
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+          <StepLabel>Publish</StepLabel>
+          <StepContent>
+            {isPublished && <Typography>This upload has already been published.</Typography>}
+            {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
+          </StepContent>
+        </Step>}
+      </Stepper>
+    </Page>
+  </uploadPageContext.Provider>
 }
 
-export default withLoginRequired(UploadPage)
+export default UploadPage

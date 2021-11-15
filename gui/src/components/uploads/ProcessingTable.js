@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useMemo, useState } from 'react'
+import React, {useContext, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { Paper, Link } from '@material-ui/core'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
@@ -27,6 +27,7 @@ import {
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Quantity from '../Quantity'
+import {uploadPageContext} from './UploadPage'
 
 const columns = [
   {
@@ -85,7 +86,8 @@ const defaultSelectedColumns = [
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
-  const {data, pagination, onPaginationChanged, upload} = props
+  const {data, pagination, onPaginationChanged} = props
+  const {upload, isWriter} = useContext(uploadPageContext)
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {
@@ -103,7 +105,7 @@ export default function ProcessingTable(props) {
       <DatatableToolbar title={`${pagination.total} search results`}>
         <DatatableToolbarActions selection>
           <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
-          {!upload.published && <EditUserMetadataDialog
+          {isWriter && <EditUserMetadataDialog
             example={selected === 'all' ? data[0] : selected[0]}
             query={selectedQuery}
             total={pagination.total}
@@ -121,7 +123,6 @@ export default function ProcessingTable(props) {
 }
 ProcessingTable.propTypes = {
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
-  upload: PropTypes.object.isRequired,
   pagination: PropTypes.object.isRequired,
   onPaginationChanged: PropTypes.func.isRequired
 }

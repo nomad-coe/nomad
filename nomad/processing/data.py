@@ -809,8 +809,8 @@ class Upload(Proc):
     upload_create_time = DateTimeField(required=True)
     external_db = StringField()
     main_author = StringField(required=True)
-    coauthors = ListField(default=None)
-    reviewers = ListField(StringField(), default=None)
+    coauthors = ListField(StringField(), default=[])
+    reviewers = ListField(StringField(), default=[])
     last_update = DateTimeField()
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)
@@ -829,6 +829,14 @@ class Upload(Proc):
             'main_author', 'process_status', 'upload_create_time', 'publish_time'
         ]
     }
+
+    @property
+    def viewers(self):
+        return [self.main_author] + self.coauthors + self.reviewers
+
+    @property
+    def writers(self):
+        return [self.main_author] + self.coauthors
 
     def __init__(self, **kwargs):
         kwargs.setdefault('upload_create_time', datetime.utcnow())
