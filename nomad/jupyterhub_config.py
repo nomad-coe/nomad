@@ -31,7 +31,7 @@ import requests
 import pathlib
 import json
 
-from nomad import config
+from nomad import config, infrastructure
 
 # TODO The AnonymousLogin kinda works, but it won't logout or remove old containers,
 # if the user is still logged in non anonymously.
@@ -66,7 +66,22 @@ class NomadAuthenticator(GenericOAuthenticator):
         if data == 'anonymous':
             return 'anonymous'
 
-        return await super().authenticate(handler, data=data)
+        try:
+            return await super().authenticate(handler, data=data)
+        except Exception as e:
+            # The default authenticate has failed, e.g. due to missing credentials.
+            # Check if there is bearer authorization and try to identify the user with
+            # this. Otherwise, propagate the exception.
+            authorization = handler.request.headers.get('Authorization')
+            if authorization.startswith('bearer ') or authorization.startswith('Bearer '):
+                try:
+                    user = infrastructure.keycloak.tokenauth(authorization[7:])
+                    if user is not None:
+                        return dict(name=user.username)
+                except Exception:
+                    pass
+
+            raise e
 
     async def pre_spawn_start(self, user, spawner):
         '''

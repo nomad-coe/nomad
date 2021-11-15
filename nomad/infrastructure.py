@@ -192,6 +192,7 @@ class Keycloak():
             from nomad import datamodel
             return datamodel.User(
                 user_id=user_id,
+                username=payload.get('preferred_username', None),
                 email=payload.get('email', None),
                 username=payload.get('preferred_username', None),
                 first_name=payload.get('given_name', None),
