@@ -177,6 +177,11 @@ def assert_upload(response_json, **kwargs):
     assert 'upload_id' in response_json
     assert 'upload_id' in data
     assert 'upload_create_time' in data
+    assert 'main_author' in data
+    assert 'coauthors' in data
+    assert 'reviewers' in data
+    assert 'viewers' in data
+    assert 'writers' in data
     assert 'published' in data
     assert 'with_embargo' in data
     assert 'embargo_length' in data
@@ -687,9 +692,6 @@ def test_get_upload_entry(
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='', accept='application/json'),
         200, 'application/json', ['test_content'], id='published-dir-json-root'),
-    pytest.param(dict(
-        user='other_test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
-        401, None, None, id='published-file-unauthorized'),
     pytest.param(dict(
         user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),

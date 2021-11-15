@@ -36,7 +36,7 @@ const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
     let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
-      const url = `${apiBase}/v1/uploads/${query.upload_id}/raw?offset=0&length=-1&compress=true&owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
+      const url = `${apiBase}/v1/uploads/${query.upload_id}/raw?offset=0&length=-1&compress=true&owner=${owner}${token ? '&signature_token=' + token : ''}&json_query=${JSON.stringify(queryStringData)}`
       FileSaver.saveAs(url, `nomad-download.zip`)
     }
 

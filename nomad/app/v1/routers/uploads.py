@@ -94,6 +94,21 @@ class UploadProcData(ProcData):
     upload_create_time: datetime = Field(
         None,
         description='Date and time of the creation of the upload.')
+    main_author: str = Field(
+        None,
+        description=strip('The main author of the upload.'))
+    coauthors: List[str] = Field(
+        None,
+        description=strip('A list of upload coauthors.'))
+    reviewers: List[str] = Field(
+        None,
+        description=strip('A user provided list of reviewers.'))
+    viewers: List[str] = Field(
+        None,
+        description=strip('All viewers (main author, upload coauthors, and reviewers)'))
+    writers: List[str] = Field(
+        None,
+        description=strip('All writers (main author, upload coauthors)'))
     published: bool = Field(
         False,
         description='If this upload is already published.')
@@ -450,12 +465,12 @@ async def get_upload_entries(
             ...,
             description='The unique id of the upload to retrieve entries for.'),
         pagination: EntryProcDataPagination = Depends(entry_proc_data_pagination_parameters),
-        user: User = Depends(create_user_dependency(required=True))):
+        user: User = Depends(create_user_dependency())):
     '''
     Fetches the entries of a specific upload. Pagination is used to browse through the
     results.
     '''
-    upload = _get_upload_with_read_access(upload_id, user)
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
@@ -474,8 +489,8 @@ async def get_upload_entries(
         }).query
     metadata_entries = search(
         pagination=MetadataPagination(page_size=len(entries)),
-        owner='admin' if user.is_admin else 'visible',
-        user_id=user.user_id,
+        owner='admin' if user and user.is_admin else 'visible',
+        user_id=user.user_id if user else None,
         query=metadata_entries_query)
     metadata_entries_map = {
         metadata_entry['entry_id']: metadata_entry
@@ -571,7 +586,7 @@ async def get_upload_raw_path(
                 Set if compressed files should be decompressed before streaming the
                 content (that is: if there are compressed files *within* the raw files).
                 Note, only some compression formats are supported.''')),
-        user: User = Depends(create_user_dependency(required=True, signature_token_auth_allowed=True))):
+        user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
     at the given `path`. The data is zipped if `compress = true`.
@@ -586,7 +601,7 @@ async def get_upload_raw_path(
     specify `re_pattern` or `glob_pattern` to filter the files based on the file names.
     '''
     # Get upload
-    upload = _get_upload_with_read_access(upload_id, user)
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
     _check_upload_not_processing(upload)
     # Get upload files
     upload_files = UploadFiles.get(upload_id)
@@ -1378,9 +1393,6 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         include_others: If uploads owned by others should be included. Access to the uploads
             of other users is only granted if the upload is published and not under embargo.
     '''
-    if not include_others and not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            User authentication required to access upload.'''))
     mongodb_query = _query_mongodb(upload_id=upload_id)
     if not mongodb_query.count():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
