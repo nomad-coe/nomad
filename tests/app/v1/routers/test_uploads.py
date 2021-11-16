@@ -29,7 +29,10 @@ from tests.test_files import (
     example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
     assert_upload_files)
 from tests.test_search import assert_search_upload
+from tests.processing.test_edit_metadata import (
+    assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
 from tests.app.v1.routers.common import assert_response
+from nomad.app.v1.models import MetadataEditRequest
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -992,8 +995,7 @@ def test_delete_upload_raw_path(
     pytest.param('invalid', 'id_unpublished_w', dict(upload_name='test_name'), True, 401, id='invalid-credentials-token'),
     pytest.param('other_test_user', 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='no-access'),
     pytest.param('test_user', 'id_processing_w', dict(upload_name='test_name'), False, 400, id='processing'),
-    pytest.param('test_user', 'id_empty_w', dict(upload_name='test_name'), False, 200, id='empty-upload-ok')]
-)
+    pytest.param('test_user', 'id_empty_w', dict(upload_name='test_name'), False, 200, id='empty-upload-ok')])
 def test_put_upload_metadata(
         client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
         user, upload_id, query_args, use_upload_token, expected_status_code):
@@ -1046,6 +1048,104 @@ def test_put_upload_metadata(
                 if 'embargo_length' in query_args:
                     assert upload.embargo_length == query_args['embargo_length']
                     assert entry_metadata.with_embargo == es_data['with_embargo'] == upload.with_embargo
+
+
+@pytest.mark.parametrize('user, upload_id, kwargs', [
+    pytest.param(
+        'test_user', 'id_unpublished_w', dict(
+            metadata=all_coauthor_metadata),
+        id='edit-all'),
+    pytest.param(
+        'test_user', 'id_published_w', dict(
+            metadata=dict(embargo_length=0)), id='lift-embargo'),
+    pytest.param(
+        'admin_user', 'id_published_w', dict(
+            metadata=all_admin_metadata),
+        id='protected-admin'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', dict(
+            metadata=dict(main_author='lhofstadter'),
+            expected_status_code=401),
+        id='protected-not-admin'),
+    pytest.param(
+        'test_user', 'silly_value', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=404),
+        id='bad-upload_id'),
+    pytest.param(
+        'admin_user', 'id_published_w', dict(
+            metadata=dict(upload_name='test_name')),
+        id='published-admin'),
+    pytest.param(
+        'test_user', 'id_published_w', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=401),
+        id='published-not-admin'),
+    pytest.param(
+        None, 'id_unpublished_w', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=401),
+        id='no-credentials'),
+    pytest.param(
+        'invalid', 'id_unpublished_w', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=401),
+        id='invalid-credentials'),
+    pytest.param(
+        'other_test_user', 'id_unpublished_w', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=401),
+        id='no-access'),
+    pytest.param(
+        'other_test_user', 'id_unpublished_w', dict(
+            metadata=dict(upload_name='test_name'),
+            add_coauthor=True),
+        id='coauthor-access'),
+    pytest.param(
+        'test_user', 'id_processing_w', dict(
+            metadata=dict(upload_name='test_name'),
+            expected_status_code=400),
+        id='processing'),
+    pytest.param(
+        'test_user', 'id_empty_w', dict(
+            metadata=dict(upload_name='test_name')),
+        id='empty-upload-ok')])
+def test_post_upload_edit(
+        client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
+        user, upload_id, kwargs):
+    '''
+    Note, since the endpoint basically just forwards the request to
+    `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
+    the more extensive testnig is done in `tests.processing.test_edit_metadata`.
+    '''
+    user_auth, _token = test_auth_dict[user]
+    user = test_users_dict.get(user)
+    query = kwargs.get('query')
+    metadata = kwargs.get('metadata')
+    entries = kwargs.get('entries')
+    entries_key = kwargs.get('entries_key')
+    verify_only = kwargs.get('verify_only', False)
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    if expected_status_code == 200 and not verify_only:
+        affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
+        expected_metadata = kwargs.get('expected_metadata', metadata)
+
+    add_coauthor = kwargs.get('add_coauthor', False)
+    if add_coauthor:
+        upload = Upload.get(upload_id)
+        upload.coauthors = [user.user_id]
+        upload.save()
+
+    mer = MetadataEditRequest(
+        query=query, metadata=metadata, entries=entries, entries_key=entries_key, verify_only=verify_only)
+    url = f'uploads/{upload_id}/edit'
+    edit_start = datetime.utcnow().isoformat()[0:22]
+    response = client.post(url, headers=user_auth, json=mer.dict())
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_metadata_edited(
+            user, upload_id, query, metadata, entries, entries_key, verify_only,
+            expected_status_code, expected_metadata, affected_upload_ids, edit_start)
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
@@ -1337,7 +1437,7 @@ def test_get_upload_bundle(
     include_raw_files = query_args.get('include_raw_files', True)
     include_archive_files = query_args.get('include_archive_files', True)
 
-    url = build_url(f'uploads/bundle/{upload_id}', query_args)
+    url = build_url(f'uploads/{upload_id}/bundle', query_args)
     response = perform_get(client, url, user_auth=test_auth_dict[user][0])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:

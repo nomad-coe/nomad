@@ -1062,35 +1062,25 @@ class MetadataEditListAction(BaseModel):
         The value or values to set/add/remove (string or list of strings)'''))
 
 
-def _basic_type(quantity):
-    if quantity.type in (str, int, float, bool):
-        return quantity.type
-    return str
-
-
 # Generate model for MetadataEditActions
-_metadata_edit_fields = {
-    quantity.name: (
-        Optional[_basic_type(quantity)] if quantity.is_scalar
-        else Optional[Union[str, List[str], MetadataEditListAction]], None)
-    for quantity in datamodel.EditableUserMetadata.m_def.definitions
-    if isinstance(quantity, metainfo.Quantity)
-}
-MetadataEditActions = create_model('MetadataEditActions', **_metadata_edit_fields)  # type: ignore
+_metadata_edit_actions_fields = {}
+for quantity in datamodel.EditableUserMetadata.m_def.definitions:
+    if quantity.is_scalar:
+        pydantic_type = quantity.type if quantity.type in (str, int, float, bool) else str
+    else:
+        pydantic_type = Union[str, List[str], MetadataEditListAction]
+    if getattr(quantity, 'a_auth_level', None) == datamodel.AuthLevel.admin:
+        description = '**NOTE:** Only editable by admin user'
+    else:
+        description = None
+    _metadata_edit_actions_fields[quantity.name] = (
+        Optional[pydantic_type], Field(description=description))
+
+MetadataEditActions = create_model('MetadataEditActions', **_metadata_edit_actions_fields)  # type: ignore
 
 
 class MetadataEditRequest(WithQuery):
-    '''
-    Defines a request to edit metadata. You can specify a query (which defines
-    a selection of entries), an upload_id, or both. Note that if a query is specified, you can
-    only edit entry level metadata (like for example `comment`), not upload level metadata
-    (like for example changing the `upload_name` or the embargo settings), since a query
-    may select entries from multiple uploads, or only a subset of all the entries from an upload.
-    '''
-    upload_id: Optional[str] = Field(
-        description=strip('''
-            An optional upload_id, for restricting ourselvs to one upload. If a query is
-            specified, it will be automatically restricted to entries of this upload.'''))
+    ''' Defines a request to edit metadata. '''
     metadata: Optional[MetadataEditActions] = Field(  # type: ignore
         description=strip('''
             Metadata to set, on the upload and/or selected entries.'''))

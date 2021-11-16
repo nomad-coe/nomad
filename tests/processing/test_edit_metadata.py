@@ -19,10 +19,31 @@ import pytest
 from datetime import datetime
 
 from nomad import datamodel, metainfo
-from nomad.processing import Upload
+from nomad.processing import Upload, MetadataEditRequestHandler
 from nomad.processing.data import _editable_metadata
 from nomad.search import search
 from nomad.app.v1.models import MetadataEditRequest
+
+
+all_coauthor_metadata = dict(
+    # All attributes which a coauthor+ can edit
+    upload_name='a humble upload name',
+    embargo_length=14,
+    coauthors=['lhofstadter'],
+    external_id='31415926536',
+    comment='a humble comment',
+    references=['a reference', 'another reference'],
+    external_db='AFLOW',
+    reviewers=['lhofstadter'],
+    datasets=['a dataset'])
+
+all_admin_metadata = dict(
+    # Every attribute which only admins can set
+    upload_create_time='2021-05-04T11:00:00',
+    entry_create_time='2021-05-04T11:00:00',
+    publish_time='2021-05-04T11:00:00',
+    license='a license',
+    main_author='lhofstadter')
 
 
 def assert_edit_request(user, **kwargs):
@@ -31,61 +52,71 @@ def assert_edit_request(user, **kwargs):
     query = kwargs.get('query')
     metadata = kwargs.get('metadata')
     entries = kwargs.get('entries')
-    verify = kwargs.get('verify', False)
+    entries_key = kwargs.get('entries_key', 'calc_id')
+    verify_only = kwargs.get('verify_only', False)
     expected_status_code = kwargs.get('expected_status_code', 200)
-    if expected_status_code == 200 and not verify:
+    if expected_status_code == 200 and not verify_only:
         affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
         expected_metadata = kwargs.get('expected_metadata', metadata)
-
     # Perform edit request
-    mer = MetadataEditRequest(
-        upload_id=upload_id, query=query, metadata=metadata, entries=entries, verify=verify)
+    mer = MetadataEditRequest(query=query, metadata=metadata, entries=entries, verify=verify_only)
     edit_start = datetime.utcnow().isoformat()[0:22]
-    _response, status_code = Upload.edit_metadata(mer, user)
+    _response, status_code = MetadataEditRequestHandler.edit_metadata(mer, upload_id, user)
     # Validate result
     assert status_code == expected_status_code, 'Wrong status code returned'
-    if status_code == 200 and not verify:
-        for upload_id in affected_upload_ids:
-            upload = Upload.get(upload_id)
-            upload.block_until_complete()
-            for entry in upload.calcs:
-                assert entry.last_edit_time
-                assert entry.last_edit_time.isoformat()[0:22] >= edit_start
-                entry_metadata_mongo = entry.mongo_metadata(upload).m_to_dict()
-                entry_metadata_es = search(owner=None, query={'calc_id': entry.calc_id}).data[0]
-                values_to_check = expected_metadata
-                for quantity_name, value_expected in values_to_check.items():
-                    # Note, the expected value is provided on the "request format"
-                    quantity = _editable_metadata[quantity_name]
-                    if quantity_name == 'embargo_length':
-                        assert upload.embargo_length == value_expected
-                        assert entry_metadata_mongo['embargo_length'] == value_expected
-                        assert entry_metadata_es['with_embargo'] == (value_expected > 0)
+    if status_code == 200 and not verify_only:
+        assert_metadata_edited(
+            user, upload_id, query, metadata, entries, entries_key, verify_only,
+            expected_status_code, expected_metadata, affected_upload_ids, edit_start)
+
+
+def assert_metadata_edited(
+        user, upload_id, query, metadata, entries, entries_key, verify_only,
+        expected_status_code, expected_metadata, affected_upload_ids, edit_start):
+
+    for upload_id in affected_upload_ids:
+        upload = Upload.get(upload_id)
+        upload.block_until_complete()
+        for entry in upload.calcs:
+            assert entry.last_edit_time
+            assert entry.last_edit_time.isoformat()[0:22] >= edit_start
+            entry_metadata_mongo = entry.mongo_metadata(upload).m_to_dict()
+            entry_metadata_es = search(owner=None, query={'calc_id': entry.calc_id}).data[0]
+            values_to_check = expected_metadata
+            for quantity_name, value_expected in values_to_check.items():
+                # Note, the expected value is provided on the "request format"
+                quantity = _editable_metadata[quantity_name]
+                if quantity_name == 'embargo_length':
+                    assert upload.embargo_length == value_expected
+                    assert entry_metadata_mongo['embargo_length'] == value_expected
+                    assert entry_metadata_es['with_embargo'] == (value_expected > 0)
+                else:
+                    value_mongo = entry_metadata_mongo.get(quantity_name)
+                    value_es = entry_metadata_es.get(quantity_name)
+                    # coauthors and reviewers are not stored in ES. Instead check viewers and writers
+                    if quantity_name == 'coauthors':
+                        value_es = entry_metadata_es['writers']
+                    elif quantity_name == 'reviewers':
+                        value_es = entry_metadata_es['viewers']
+                    cmp_value_mongo = convert_to_comparable_value(quantity, value_mongo, 'mongo', user)
+                    cmp_value_es = convert_to_comparable_value(quantity, value_es, 'es', user)
+                    cmp_value_expected = convert_to_comparable_value(quantity, value_expected, 'request', user)
+                    # Verify mongo value
+                    assert cmp_value_mongo == cmp_value_expected, f'Wrong mongo value for {quantity_name}'
+                    # Verify ES value
+                    if quantity_name == 'license':
+                        continue  # Not stored indexed by ES
+                    elif quantity_name == 'coauthors':
+                        # Check that writers == main_author + coauthors
+                        assert cmp_value_es == [upload.main_author] + cmp_value_expected, (
+                            f'Wrong es value for {quantity_name}')
+                    elif quantity_name == 'reviewers':
+                        # Check that viewers == main_author + coauthors + reviewers
+                        assert set(cmp_value_es) == set(
+                            [upload.main_author] + (upload.coauthors or []) + cmp_value_expected), (
+                                f'Wrong es value for {quantity_name}')
                     else:
-                        value_mongo = entry_metadata_mongo.get(quantity_name)
-                        value_es = entry_metadata_es.get(quantity_name)
-                        # coauthors and reviewers are not stored in ES. Instead check viewers and writers
-                        if quantity_name == 'coauthors':
-                            value_es = entry_metadata_es['writers']
-                        elif quantity_name == 'reviewers':
-                            value_es = entry_metadata_es['viewers']
-                        cmp_value_mongo = convert_to_comparable_value(quantity, value_mongo, 'mongo', user)
-                        cmp_value_es = convert_to_comparable_value(quantity, value_es, 'es', user)
-                        cmp_value_expected = convert_to_comparable_value(quantity, value_expected, 'request', user)
-                        # Verify mongo value
-                        assert cmp_value_mongo == cmp_value_expected
-                        # Verify ES value
-                        if quantity_name == 'license':
-                            continue  # Not stored indexed by ES
-                        elif quantity_name == 'coauthors':
-                            # Check that writers == main_author + coauthors
-                            assert cmp_value_es == [upload.main_author] + cmp_value_expected
-                        elif quantity_name == 'reviewers':
-                            # Check that viewers == main_author + coauthors + reviewers
-                            assert set(cmp_value_es) == set(
-                                [upload.main_author] + (upload.coauthors or []) + cmp_value_expected)
-                        else:
-                            assert cmp_value_es == cmp_value_expected
+                        assert cmp_value_es == cmp_value_expected, f'Wrong es value for {quantity_name}'
 
 
 def convert_to_comparable_value(quantity, value, from_format, user):
@@ -177,16 +208,7 @@ def test_set_and_clear_all(proc_infra, example_data_writeable, a_dataset, test_u
     # Set all fields a coauthor can set
     assert_edit_request(
         user=test_user,
-        metadata=dict(
-            upload_name='a humble upload name',
-            embargo_length=14,
-            coauthors=['lhofstadter'],
-            external_id='31415926536',
-            comment='a humble comment',
-            references=['a reference', 'another reference'],
-            external_db='AFLOW',
-            reviewers=['lhofstadter'],
-            datasets=a_dataset.dataset_id))
+        metadata=all_coauthor_metadata)
     # Clear all fields that can be cleared with a 'set' operation
     # = all of the above, except embargo_length and datasets
     assert_edit_request(
@@ -202,17 +224,9 @@ def test_set_and_clear_all(proc_infra, example_data_writeable, a_dataset, test_u
 
 
 def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_test_user, admin_user):
-    now = datetime.utcnow()
-    now_iso = now.isoformat()
-    admin_fields = dict(
-        upload_create_time=now_iso,
-        entry_create_time=now_iso,
-        publish_time=now_iso,
-        license='a license',
-        main_author=other_test_user.user_id)
     assert_edit_request(
-        user=admin_user, upload_id='id_published_w', metadata=admin_fields)
+        user=admin_user, upload_id='id_published_w', metadata=all_admin_metadata)
     # try to do the same as a non-admin
-    for k, v in admin_fields.items():
+    for k, v in all_admin_metadata.items():
         assert_edit_request(
-            user=test_user, upload_id='id_published_w', metadata={k: v}, expected_status_code=401)
+            user=test_user, upload_id='id_unpublished_w', metadata={k: v}, expected_status_code=401)

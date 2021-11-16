@@ -28,7 +28,7 @@ calculations, and files
 
 '''
 
-from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField)
 from pymongo import UpdateOne
@@ -135,15 +135,61 @@ def generate_entry_id(upload_id: str, mainfile: str) -> str:
     return utils.hash(upload_id, mainfile)
 
 
-class MetadataEditRequestValidator:
+class MetadataEditRequestHandler:
     '''
-    Class for parsing and validating a request to edit metadata. The request may originate
+    Class for handling a request to edit metadata. The request may originate
     either from metadata files in the raw directory or from a :class:`MetadataEditRequest`.
+    If the edit request is limited to a specific upload, `upload_id` should be specified
+    (only when this is the case can upload level metadata be edited).
     '''
+    @classmethod
+    def edit_metadata(
+            cls, edit_request: MetadataEditRequest, upload_id: str,
+            user: datamodel.User) -> Tuple[MetadataEditRequestResponse, int]:
+        '''
+        Method to verify and execute a request to edit metadata from a certain user. Optionally,
+        the request could be restricted to a single upload by specifying `upload_id`.
+        If `edit_request.verify_only` is True, only verification is carried out (i.e. nothing
+        is actually updated). To just run the verification should be quick in comparison to
+        actually executing the request (which may take some time and requires one or more
+        @process to finish). If `edit_request.verify_only` is False and the request passes
+        the verification step, we will send it for execution, by initiating the
+        @process :func:`edit_upload_metadata` for each affected upload.
+
+        The method returns a :class:`MetadataEditRequestResponse` with feedback about how it
+        went, and a html style status code (int, 200 if successful, otherwise an error code).
+        This method is designed to not raise any exceptions (rather, errors are reported
+        by return values).
+        '''
+        logger = utils.get_logger('nomad.processing.edit_metadata')
+        handler = MetadataEditRequestHandler(
+            logger, user, edit_request=edit_request, upload_id=upload_id)
+        # Validate the request
+        handler.validate_request()
+        # Create response
+        if not handler.error and not edit_request.verify_only:
+            # Try to execute for all affected uploads
+            request_dict = edit_request.dict()
+            # First check if any of the affected uploads are processing
+            for upload in handler.affected_uploads:
+                upload.reload()
+                if upload.process_running:
+                    handler._fatal_error(f'Upload {upload.upload_id} is currently processing')
+                    return handler.create_request_response(), 400
+            # Looks good, try to trigger processing
+            for upload in handler.affected_uploads:
+                try:
+                    upload.edit_upload_metadata(request_dict, user.user_id)  # Trigger the process
+                except Exception as e:
+                    handler._fatal_error(f'Failed to start process for upload {upload.upload_id}: {e}')
+                    return handler.create_request_response(), 400
+        return handler.create_request_response(), handler.status_code
+
     def __init__(
             self, logger, user: datamodel.User,
             edit_request: MetadataEditRequest = None,
-            upload_files: StagingUploadFiles = None):
+            upload_files: StagingUploadFiles = None,
+            upload_id: str = None):
         # Initialization
         assert user, 'Must specify `user`'
         assert (edit_request is None) != (upload_files is None), (
@@ -152,6 +198,7 @@ class MetadataEditRequestValidator:
         self.user = user
         self.edit_request = edit_request
         self.upload_files = upload_files
+        self.upload_id = upload_id
 
         self.status_code = 200  # A html style status code
         self.error: str = None  # A description of the last error, if any.
@@ -175,12 +222,12 @@ class MetadataEditRequestValidator:
         try:
             if not self.edit_request:
                 return self._fatal_error('No `edit_request`')
-            if not self.edit_request.upload_id and not self.edit_request.query:
-                return self._fatal_error('Must specify `query`, `upload_id`, or both - none provided')
+            if not self.upload_id and not self.edit_request.query:
+                return self._fatal_error('Must specify `query`')
             if self.edit_request.entries and not self.edit_request.entries_key:
                 return self._fatal_error('Must specify `entries_key` when specifying `entries`')
 
-            can_edit_upload_fields = bool(self.edit_request.upload_id and not self.edit_request.query)
+            can_edit_upload_fields = bool(self.upload_id and not self.edit_request.query)
             if self.edit_request.metadata:
                 self.root_metadata = self._verify_metadata_edit_actions(
                     self.edit_request.metadata.dict(), can_edit_upload_fields)
@@ -201,7 +248,7 @@ class MetadataEditRequestValidator:
 
             self.affected_uploads = self._find_request_uploads()
             if not self.affected_uploads:
-                return self._fatal_error('No matching uploads/entries')
+                return self._fatal_error('No matching uploads/entries found', 404)
             for upload in self.affected_uploads:
                 # Check permissions
                 coauthor = upload.coauthors and self.user.user_id in upload.coauthors
@@ -241,11 +288,9 @@ class MetadataEditRequestValidator:
         values have the correct type for mongo. Assumes that the corresponding validation method
         (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
         '''
-        rv = {}
+        rv: Dict[str, Any] = {}
         if self.root_metadata:
-            for quantity_name, action in self.root_metadata.items():
-                if quantity_name in _mongo_upload_metadata:
-                    rv[quantity_name] = self._applied_mongo_action(upload, quantity_name, action)
+            self._applied_mongo_actions(upload, self.root_metadata, rv)
         return rv
 
     def get_entry_metadata_to_set(self, upload: 'Upload', entry: 'Calc') -> Dict[str, Any]:
@@ -254,11 +299,9 @@ class MetadataEditRequestValidator:
         values have the correct type for mongo. Assumes that the corresponding validation method
         (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
         '''
-        rv = {}
+        rv: Dict[str, Any] = {}
         if self.root_metadata:
-            for quantity_name, action in self.root_metadata.items():
-                if quantity_name in _mongo_entry_metadata:
-                    rv[quantity_name] = self._applied_mongo_action(entry, quantity_name, action)
+            self._applied_mongo_actions(entry, self.root_metadata, rv)
         if self.edit_request:
             # Source = edit_request
             if self.entries_metadata:
@@ -266,8 +309,7 @@ class MetadataEditRequestValidator:
                 entry_metadata = self.entries_metadata.get(entry_key)
                 if entry_metadata:
                     # We also have actions for this particular entry specified
-                    for quantity_name, action in entry_metadata.items():
-                        rv[quantity_name] = self._applied_mongo_action(entry, quantity_name, action)
+                    self._applied_mongo_actions(entry, entry_metadata, rv)
         else:
             # Source = metadata files
             pass  # TODO
@@ -316,7 +358,7 @@ class MetadataEditRequestValidator:
             auth_level: AuthLevel) -> Tuple[bool, Any]:
         '''
         Performs basic validation of a single action. Returns (success, verified_action).
-         '''
+        '''
         definition = _editable_metadata.get(quantity_name)
         if not definition:
             self._quantity_error(quantity_name, 'Unknown quantity')
@@ -426,20 +468,30 @@ class MetadataEditRequestValidator:
         else:
             assert False, 'Unhandled value type'  # Should not happen
 
-    def _applied_mongo_action(self, mongo_doc, quantity_name: str, action: Any) -> Any:
+    def _applied_mongo_actions(
+            self, mongo_doc: Union['Upload', 'Calc'],
+            verified_actions: Dict[str, Any], applied_actions: Dict[str, Any]):
         '''
-        Calculates the value to set in mongo in order to carry out the (verified) `action`
-        on the provided `mongo_doc` (may be an :class:`Upload` or a :class:`Calc`).
-        The mongo doc needs to be provided since add and remove operations on lists require
-        us to know the previous value.
+        Calculates the upload or entry level *applied actions*, i.e. key-value pairs with
+        data to set on the provided `mongo_doc` in order to carry out the actions specified
+        by `verified_actions`. The result is added to `applied_actions`.
         '''
+        for quantity_name, verified_action in verified_actions.items():
+            if isinstance(mongo_doc, Calc) and quantity_name not in _mongo_entry_metadata:
+                continue
+            elif isinstance(mongo_doc, Upload) and quantity_name not in _mongo_upload_metadata:
+                continue
+            applied_actions[quantity_name] = self._applied_mongo_action(
+                mongo_doc, quantity_name, verified_action)
+
+    def _applied_mongo_action(self, mongo_doc, quantity_name: str, verified_action: Any) -> Any:
         definition = _editable_metadata[quantity_name]
         if definition.is_scalar:
-            if definition.type == metainfo.Datetime and action:
-                return datetime.fromisoformat(action)
-            return action
-        # Non-scalar property. Verified action should be a dict with op and values
-        op, values = action['op'], action['values']
+            if definition.type == metainfo.Datetime and verified_action:
+                return datetime.fromisoformat(verified_action)
+            return verified_action
+        # Non-scalar property. The verified action should be a dict with op and values
+        op, values = verified_action['op'], verified_action['values']
         old_list = getattr(mongo_doc, quantity_name, [])
         new_list = [] if op == 'set' else old_list.copy()
         for v in values:
@@ -497,14 +549,13 @@ class MetadataEditRequestValidator:
         '''
         Returns a list of :class:`Upload`s matching the edit request
         '''
-        upload_id = self.edit_request.upload_id
-        query = self._restricted_request_query(upload_id)
+        query = self._restricted_request_query(self.upload_id)
         if query:
             assert False, 'query not supported yet'
-        elif upload_id:
+        elif self.upload_id:
             # Request just specifies an upload_id, no query
             try:
-                return [Upload.get(upload_id)]
+                return [Upload.get(self.upload_id)]
             except KeyError:
                 pass
         return []
@@ -1943,48 +1994,6 @@ class Upload(Proc):
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
-    @classmethod
-    def edit_metadata(
-            cls, edit_request: MetadataEditRequest,
-            user: datamodel.User) -> Tuple[MetadataEditRequestResponse, int]:
-        '''
-        Method to verify and execute a request to edit metadata from a certain user.
-        If `edit_request.verify_only` is True, only verification is carried out (i.e. nothing
-        is actually updated). To just run the verification should be quick in comparison to
-        actually executing the request (which may take some time and requires one or more
-        @process to finish). If `edit_request.verify_only` is False and the request passes
-        the verification step, we will send it for execution, by initiating the
-        @process :func:`edit_upload_metadata` for each affected upload.
-
-        The method returns a :class:`MetadataEditRequestResponse` with feedback about how it
-        went, and a html style status code (int, 200 if successful, otherwise an error code).
-        This method is designed to not raise any exceptions (rather, errors are reported
-        by return values).
-        '''
-        logger = utils.get_logger('nomad.processing.edit_metadata')
-        validator = MetadataEditRequestValidator(logger, user, edit_request=edit_request)
-        # Validate the request
-        validator.validate_request()
-        # Create response
-        response = validator.create_request_response()
-        if not response.error and not edit_request.verify_only:
-            # Try to execute for all affected uploads
-            request_dict = edit_request.dict()
-            # First check if any of the affected uploads are processing
-            for upload in validator.affected_uploads:
-                upload.reload()
-                if upload.process_running:
-                    response.error = f'Upload {upload.upload_id} is currently processing'
-                    return response, 400
-            # Looks good, try to trigger processing
-            for upload in validator.affected_uploads:
-                try:
-                    upload.edit_upload_metadata(request_dict, user.user_id)  # Trigger the process
-                except Exception as e:
-                    response.error = f'Failed to start process for upload {upload.upload_id}: {e}'
-                    return response, 400
-        return response, validator.status_code
-
     @process
     def edit_upload_metadata(self, edit_request: Dict[str, Any], user_id: str):
         '''
@@ -1995,21 +2004,18 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
         user = datamodel.User.get(user_id=user_id)
-        # Some sanity checks, just in case
-        if 'upload_id' not in edit_request:
-            edit_request['upload_id'] = self.upload_id
-        assert edit_request['upload_id'] == self.upload_id, 'Invalid upload_id in edit_request'
         assert not edit_request.get('verify_only'), 'Request has verify_only'
         edit_request_obj = MetadataEditRequest(**edit_request)
 
         # Validate the request (the @process could have been invoked directly, without previous validation)
-        validator = MetadataEditRequestValidator(logger, user, edit_request=edit_request_obj)
-        validator.validate_request()
-        assert not validator.error, validator.error
+        handler = MetadataEditRequestHandler(
+            logger, user, edit_request=edit_request_obj, upload_id=self.upload_id)
+        handler.validate_request()
+        assert not handler.error, handler.error
 
         # Upload level metadata
         old_with_embargo = self.with_embargo
-        upload_updates = validator.get_upload_metadata_to_set(self)
+        upload_updates = handler.get_upload_metadata_to_set(self)
         if upload_updates:
             for quantity_name, mongo_value in upload_updates.items():
                 setattr(self, quantity_name, mongo_value)
@@ -2023,8 +2029,8 @@ class Upload(Proc):
         last_edit_time = datetime.utcnow()
         entry_mongo_writes = []
         updated_metadata: List[datamodel.EntryMetadata] = []
-        for entry in validator.find_request_entries(self):
-            entry_updates = validator.get_entry_metadata_to_set(self, entry)
+        for entry in handler.find_request_entries(self):
+            entry_updates = handler.get_entry_metadata_to_set(self, entry)
             entry_updates['last_edit_time'] = last_edit_time
             # Add mongo entry update operation to bulk write list
             entry_mongo_writes.append(UpdateOne({'_id': entry.calc_id}, {'$set': entry_updates}))
