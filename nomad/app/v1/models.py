@@ -1119,6 +1119,10 @@ class Bucket(BaseModel):
         None, description=strip('''The entries that were requested for each value.'''))
     count: int = Field(
         None, description=strip('''The amount of entries with this value.'''))
+    nested_count: int = Field(
+        None, description=strip('''
+            The amount of nested entries with this values. Is the same as count for
+            aggregations on non nested quantities.'''))
     metrics: Optional[Dict[str, int]]
 
     value: Union[float, str]

@@ -653,11 +653,13 @@ def _api_to_es_aggregation(
 
     agg = cast(QuantityAggregation, agg)
     longest_nested_key = None
+    is_nested = False
     quantity = validate_quantity(agg.quantity, doc_type=doc_type, loc=['aggregation', 'quantity'])
     for nested_key in doc_type.nested_object_keys:
         if agg.quantity.startswith(nested_key):
             es_aggs = es_aggs.bucket('nested_agg:%s' % name, 'nested', path=nested_key)
             longest_nested_key = nested_key
+            is_nested = True
 
     es_agg = None
 
@@ -752,6 +754,9 @@ def _api_to_es_aggregation(
 
             es_agg.metric('entries', A('top_hits', size=agg.entries.size, **kwargs))
 
+        if is_nested:
+            es_agg.bucket(f'agg:parents:{name}', A('reverse_nested'))
+
     elif isinstance(agg, DateHistogramAggregation):
         if not quantity.annotation.mapping['type'] in ['date']:
             raise QueryValidationError(
@@ -845,7 +850,11 @@ def _es_to_api_aggregation(
             else:
                 value = es_bucket.key[quantity.search_field]
 
-            count = es_bucket.doc_count
+            nested_count = es_bucket.doc_count
+            if f'agg:parents:{name}' in es_bucket:
+                count = es_bucket[f'agg:parents:{name}'].doc_count
+            else:
+                count = nested_count
             metrics = {}
             for metric in agg.metrics:  # type: ignore
                 metrics[metric] = es_bucket['metric:' + metric].value
@@ -860,7 +869,9 @@ def _es_to_api_aggregation(
             values.add(value)
             if len(metrics) == 0:
                 metrics = None
-            return Bucket(value=value, entries=entries, count=count, metrics=metrics)
+            return Bucket(
+                value=value, entries=entries, count=count, nested_count=nested_count,
+                metrics=metrics)
 
         data = [get_bucket(es_bucket) for es_bucket in es_agg.buckets]
 

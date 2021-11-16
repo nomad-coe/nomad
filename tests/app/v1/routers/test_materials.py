@@ -73,6 +73,11 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
             response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
             default_key='material_id')
 
+        # make sure that (nested) terms aggregation produce sensible counts
+        if 'terms' in aggregation:
+            for bucket in response_json['aggregations']['test_agg_name']['terms']['data']:
+                assert bucket['count'] <= 6  # the total number of materials, counting entries we would surpass this
+
 
 @pytest.mark.parametrize(
     'query,aggs,agg_lengths,total,status_code',
