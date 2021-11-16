@@ -69,7 +69,7 @@ const columns = [
     render: entry => {
       const datasets = entry.datasets || []
       if (datasets.length > 0) {
-        return datasets.map(dataset => dataset.name).join(', ')
+        return datasets.map(dataset => dataset.dataset_name).join(', ')
       } else {
         return <i>no datasets</i>
       }
