@@ -146,6 +146,9 @@ const InputText = React.memo(({
             setSuggestions(res)
             setOpen(true)
           })
+          .catch((error) => {
+            console.log(error)
+          })
           .finally(() => setLoading(false))
       } else if (autocomplete === 'aggregations') {
       }

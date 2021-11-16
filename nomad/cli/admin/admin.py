@@ -264,6 +264,7 @@ window.nomadEnv = {{
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
     'oasis': {'true' if config.keycloak.oasis else 'false'},
     'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()}
+    'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'}
 }};''')
 
     # replace base path in all GUI files

@@ -23,8 +23,8 @@ import {
   useRecoilState
 } from 'recoil'
 import PropTypes from 'prop-types'
-import { apiBase } from '../config'
-import { makeStyles, Typography } from '@material-ui/core'
+import { apiBase, globalLoginRequired } from '../config'
+import { Box, makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { useKeycloak } from 'react-keycloak'
 import axios from 'axios'
@@ -463,6 +463,58 @@ export function useLoadingState() {
 }
 export function useSetLoading() {
   return useSetRecoilState(apiLoading)
+}
+
+function VerifyGlobalLogin({children}) {
+  const {api} = useApi()
+  const [verified, setVerified] = useState(null)
+
+  useEffect(() => {
+    api.get('users/me').then(() => setVerified(true)).catch(() => setVerified(false))
+  }, [api, setVerified])
+
+  if (verified === null) {
+    return ''
+  }
+
+  if (!verified) {
+    return <Box margin={2}>
+      <LoginLogout color="primary" />
+      <Typography color="error">
+        You are not allowed to access this NOMAD installation. Please logout and try again.
+      </Typography>
+    </Box>
+  }
+
+  return <React.Fragment>
+    {children}
+  </React.Fragment>
+}
+VerifyGlobalLogin.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
+}
+
+export function GlobalLoginRequired({children}) {
+  if (!globalLoginRequired) {
+    return <React.Fragment>
+      {children}
+    </React.Fragment>
+  }
+
+  return <LoginRequired message="You have to be logged in to use this NOMAD installation.">
+    <VerifyGlobalLogin>
+      {children}
+    </VerifyGlobalLogin>
+  </LoginRequired>
+}
+GlobalLoginRequired.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
 }
 
 const useLoginRequiredStyles = makeStyles(theme => ({

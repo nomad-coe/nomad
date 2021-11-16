@@ -306,6 +306,9 @@ const SearchBar = React.memo(({
         }
         setSuggestions(res)
       })
+      .catch((error) => {
+        console.log(error)
+      })
       .finally(() => setLoading(false))
   }, [api])
   const suggestionDebounced = useCallback(debounce(suggestionCall, suggestionDebounceTime), [])
