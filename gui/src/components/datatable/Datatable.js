@@ -342,7 +342,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
       if (selected === 'all') {
         return [row]
       }
-      const index = selected.indexOf(row)
+      const index = selected.map(selectedRow => selectedRow.entry_id).indexOf(row.entry_id)
       if (index > -1) {
         return [...selected.slice(0, index), ...selected.slice(index + 1)]
       } else {
@@ -452,7 +452,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           actions={actions}
           details={details}
           key={index}
-          selected={selected === 'all' || selected?.includes(row)}
+          selected={selected === 'all' || selected?.map(selectedRow => selectedRow.entry_id).includes(row.entry_id)}
           uncollapsed={row === uncollapsedRow}
           data={row}
           onRowUncollapsed={setUncollapsedRow}
