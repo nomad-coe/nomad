@@ -180,7 +180,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
             'datasets': [{'value': dataset}]}
 
         response = api.post(
-            'entries/edit',
+            'entries/edit_old',
             data=json.dumps(dict(actions=actions, **query_request_params)),
             auth=auth)
         assert response.status_code == 200, response.text

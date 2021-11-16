@@ -1161,7 +1161,7 @@ _editable_quantities = {
 
 
 @router.post(
-    '/edit',
+    '/edit_old',
     tags=[metadata_tag],
     summary='Edit the user metadata of a set of entries',
     response_model=EntryMetadataEditResponse,

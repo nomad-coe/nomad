@@ -82,7 +82,7 @@ class TestEditRepo():
         if verify:
             data.update(verify=verify)
 
-        return self.api.post('entries/edit', headers=self.test_user_auth, json=data)
+        return self.api.post('entries/edit_old', headers=self.test_user_auth, json=data)
 
     def assert_edit(self, rv, quantity: str, success: bool, message: bool, status_code: int = 200):
         data = rv.json()
