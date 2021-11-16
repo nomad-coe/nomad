@@ -297,7 +297,7 @@ def chown(ctx, username, uploads):
     user = datamodel.User.get(username=username)
     for upload in uploads:
         upload.edit_upload_metadata(
-            edit_request=dict(metadata={'main_author': user.user_id}),
+            edit_request_json=dict(metadata={'main_author': user.user_id}),
             user_id=config.services.admin_user_id)
 
 

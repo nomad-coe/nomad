@@ -32,7 +32,6 @@ from tests.test_search import assert_search_upload
 from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
 from tests.app.v1.routers.common import assert_response
-from nomad.app.v1.models import MetadataEditRequest
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -1109,7 +1108,27 @@ def test_put_upload_metadata(
     pytest.param(
         'test_user', 'id_empty_w', dict(
             metadata=dict(upload_name='test_name')),
-        id='empty-upload-ok')])
+        id='empty-upload-ok'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', dict(
+            query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
+            owner='user',
+            metadata=dict(comment='a test comment')),
+        id='query-ok'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', dict(
+            query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
+            owner='user',
+            metadata=dict(upload_name='a test name'),
+            expected_status_code=400),
+        id='query-cannot-edit-upload-data'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', dict(
+            query={'upload_create_time:lt': '2021-01-01'},
+            owner='user',
+            metadata=dict(comment='a test comment'),
+            expected_status_code=404),
+        id='query-no-results')])
 def test_post_upload_edit(
         client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
         user, upload_id, kwargs):
@@ -1121,6 +1140,7 @@ def test_post_upload_edit(
     user_auth, _token = test_auth_dict[user]
     user = test_users_dict.get(user)
     query = kwargs.get('query')
+    owner = kwargs.get('owner')
     metadata = kwargs.get('metadata')
     entries = kwargs.get('entries')
     entries_key = kwargs.get('entries_key')
@@ -1136,11 +1156,12 @@ def test_post_upload_edit(
         upload.coauthors = [user.user_id]
         upload.save()
 
-    mer = MetadataEditRequest(
-        query=query, metadata=metadata, entries=entries, entries_key=entries_key, verify_only=verify_only)
+    edit_request_json = dict(
+        query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
+        verify_only=verify_only)
     url = f'uploads/{upload_id}/edit'
     edit_start = datetime.utcnow().isoformat()[0:22]
-    response = client.post(url, headers=user_auth, json=mer.dict())
+    response = client.post(url, headers=user_auth, json=edit_request_json)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_metadata_edited(

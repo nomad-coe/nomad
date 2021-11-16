@@ -34,6 +34,7 @@ from mongoengine import (
 from pymongo import UpdateOne
 from structlog import wrap_logger
 from contextlib import contextmanager
+import copy
 import os.path
 from datetime import datetime, timedelta
 import hashlib
@@ -56,7 +57,9 @@ from nomad.datamodel import (
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-from nomad.app.v1.models import MetadataEditRequest, MetadataEditRequestResponse
+from nomad.app.v1.models import (
+    MetadataEditRequest, MetadataEditRequestResponse, And,
+    Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
@@ -137,24 +140,26 @@ def generate_entry_id(upload_id: str, mainfile: str) -> str:
 
 class MetadataEditRequestHandler:
     '''
-    Class for handling a request to edit metadata. The request may originate
-    either from metadata files in the raw directory or from a :class:`MetadataEditRequest`.
-    If the edit request is limited to a specific upload, `upload_id` should be specified
-    (only when this is the case can upload level metadata be edited).
+    Class for handling a request to edit metadata. The request may originate either from
+    metadata files in the raw directory or from a json dictionary complying with the
+    :class:`MetadataEditRequest` format. If the edit request is limited to a specific upload,
+    `upload_id` should be specified (only when this is the case can upload level metadata be edited).
     '''
     @classmethod
     def edit_metadata(
-            cls, edit_request: MetadataEditRequest, upload_id: str,
+            cls, edit_request_json: Dict[str, Any], upload_id: str,
             user: datamodel.User) -> Tuple[MetadataEditRequestResponse, int]:
         '''
-        Method to verify and execute a request to edit metadata from a certain user. Optionally,
-        the request could be restricted to a single upload by specifying `upload_id`.
-        If `edit_request.verify_only` is True, only verification is carried out (i.e. nothing
-        is actually updated). To just run the verification should be quick in comparison to
-        actually executing the request (which may take some time and requires one or more
-        @process to finish). If `edit_request.verify_only` is False and the request passes
-        the verification step, we will send it for execution, by initiating the
-        @process :func:`edit_upload_metadata` for each affected upload.
+        Method to verify and execute a generic request to edit metadata from a certain user.
+        The request is specified as a json dictionary. Optionally, the request could be restricted
+        to a single upload by specifying `upload_id` (this is necessary when editing upload
+        level attributes). If `edit_request_json` has `verify_only` set to True, only
+        verification is carried out (i.e. nothing is actually updated). To just run the
+        verification should be quick in comparison to actually executing the request (which
+        may take some time and requires one or more @process to finish). If the request passes
+        the verification step and `verify_only` is not set to True, we will send the request
+        for execution, by initiating the @process :func:`edit_upload_metadata` for each affected
+        upload.
 
         The method returns a :class:`MetadataEditRequestResponse` with feedback about how it
         went, and a html style status code (int, 200 if successful, otherwise an error code).
@@ -163,14 +168,12 @@ class MetadataEditRequestHandler:
         '''
         logger = utils.get_logger('nomad.processing.edit_metadata')
         handler = MetadataEditRequestHandler(
-            logger, user, edit_request=edit_request, upload_id=upload_id)
+            logger, user, edit_request_json=edit_request_json, upload_id=upload_id)
         # Validate the request
         handler.validate_request()
-        # Create response
-        if not handler.error and not edit_request.verify_only:
-            # Try to execute for all affected uploads
-            request_dict = edit_request.dict()
-            # First check if any of the affected uploads are processing
+
+        if not handler.error and not edit_request_json.get('verify_only'):
+            # Check if any of the affected uploads are processing
             for upload in handler.affected_uploads:
                 upload.reload()
                 if upload.process_running:
@@ -179,7 +182,7 @@ class MetadataEditRequestHandler:
             # Looks good, try to trigger processing
             for upload in handler.affected_uploads:
                 try:
-                    upload.edit_upload_metadata(request_dict, user.user_id)  # Trigger the process
+                    upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
                 except Exception as e:
                     handler._fatal_error(f'Failed to start process for upload {upload.upload_id}: {e}')
                     return handler.create_request_response(), 400
@@ -187,16 +190,16 @@ class MetadataEditRequestHandler:
 
     def __init__(
             self, logger, user: datamodel.User,
-            edit_request: MetadataEditRequest = None,
+            edit_request_json: Dict[str, Any] = None,
             upload_files: StagingUploadFiles = None,
             upload_id: str = None):
         # Initialization
         assert user, 'Must specify `user`'
-        assert (edit_request is None) != (upload_files is None), (
+        assert (edit_request_json is None) != (upload_files is None), (
             'Must specify either `edit_request` or `upload_files`')
         self.logger = logger
         self.user = user
-        self.edit_request = edit_request
+        self.edit_request_json = edit_request_json
         self.upload_files = upload_files
         self.upload_id = upload_id
 
@@ -211,6 +214,7 @@ class MetadataEditRequestHandler:
         self.root_metadata: Dict[str, Any] = None  # The metadata specified at the top/root level
 
         # Specific to the MetadataEditRequest case
+        self.edit_request: MetadataEditRequest = None
         self.affected_uploads: List['Upload'] = None  # A MetadataEditRequest may involve multiple uploads
         self.entries_metadata: Dict[str, Dict[str, Any]] = {}  # Metadata specified for individual entries
 
@@ -220,8 +224,10 @@ class MetadataEditRequestHandler:
     def validate_request(self):
         ''' Validates the provided :class:`MetadataEditRequest` '''
         try:
-            if not self.edit_request:
-                return self._fatal_error('No `edit_request`')
+            self.edit_request = MetadataEditRequest(**self.edit_request_json)
+        except Exception as e:
+            return self._fatal_error(f'Failed to parse request json: {e}')
+        try:
             if not self.upload_id and not self.edit_request.query:
                 return self._fatal_error('Must specify `query`')
             if self.edit_request.entries and not self.edit_request.entries_key:
@@ -246,7 +252,10 @@ class MetadataEditRequestHandler:
             if can_edit_upload_fields and self.edit_request.metadata:
                 embargo_length = self.edit_request.metadata.embargo_length  # type: ignore
 
-            self.affected_uploads = self._find_request_uploads()
+            try:
+                self.affected_uploads = self._find_request_uploads()
+            except Exception as e:
+                return self._fatal_error('Could not evaluate query: ' + str(e))
             if not self.affected_uploads:
                 return self._fatal_error('No matching uploads/entries found', 404)
             for upload in self.affected_uploads:
@@ -541,17 +550,22 @@ class MetadataEditRequestHandler:
         query = self.edit_request.query
         if upload_id and query:
             # Restrict query to the specified upload
-            assert False, 'query not yet supported'  # TODO
-            return 'todo'
+            return And(**{'and': [{'upload_id': upload_id}, query]})
         return query
 
     def _find_request_uploads(self) -> List['Upload']:
-        '''
-        Returns a list of :class:`Upload`s matching the edit request
-        '''
+        ''' Returns a list of :class:`Upload`s matching the edit request. '''
         query = self._restricted_request_query(self.upload_id)
         if query:
-            assert False, 'query not supported yet'
+            # Perform the search, aggregating by upload_id
+            search_response = search.search(
+                user_id=self.user.user_id,
+                owner=self.edit_request.owner,
+                query=query,
+                aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity='upload_id'))),
+                pagination=MetadataPagination(page_size=0))
+            terms = search_response.aggregations['agg'].terms  # pylint: disable=no-member
+            return [Upload.get(bucket.value) for bucket in terms.data]  # type: ignore
         elif self.upload_id:
             # Request just specifies an upload_id, no query
             try:
@@ -565,22 +579,29 @@ class MetadataEditRequestHandler:
         query = self._restricted_request_query(upload.upload_id)
         if query:
             # We have a query. Execute it to get the entries.
-            assert False, 'query not yet supported'  # TODO
+            search_result = search.search_iterator(
+                user_id=self.user.user_id,
+                owner=self.edit_request.owner,
+                query=query,
+                required=MetadataRequired(include=['calc_id']))
+            for result in search_result:
+                yield Calc.get(result['calc_id'])
         else:
             # We have no query. Return all entries for the upload
-            return Calc.objects(upload_id=upload.upload_id)
+            for entry in Calc.objects(upload_id=upload.upload_id):
+                yield entry
 
     def create_request_response(self) -> MetadataEditRequestResponse:
         ''' Creates a :class:`MetadataEditRequestResponse` with the validation results. '''
-        verified_dict = self.edit_request.dict()
-        # Overwrite input values with verified values when possible
+        # Create response by updating the request json with the verified values when possible
+        verified_json = copy.deepcopy(self.edit_request_json)
         if self.root_metadata:
-            verified_dict['metadata'].update(self.root_metadata)
+            verified_json['metadata'].update(self.root_metadata)
         if self.entries_metadata:
-            for key, entry_metadata in verified_dict['entries'].items():
+            for key, entry_metadata in verified_json['entries'].items():
                 entry_metadata.update(self.entries_metadata.get(key, {}))
         # Create response
-        response = MetadataEditRequestResponse(**verified_dict)
+        response = MetadataEditRequestResponse(**verified_json)
         response.error = self.error
         response.feedback = self.feedback
         return response
@@ -1995,21 +2016,21 @@ class Upload(Proc):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
     @process
-    def edit_upload_metadata(self, edit_request: Dict[str, Any], user_id: str):
+    def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
         '''
         A @process that executes a metadata edit request, restricted to a specific upload,
-        on behalf of the provided user. The `edit_request` should be a dictionary of the same
-        format as specified by the pydantic model :class:`MetadataEditRequest`, but using
-        primitive data types (i.e. dict, list, str, etc) so it can be sent via rabbitmq.
+        on behalf of the provided user. The `edit_request_json` should be a json dict of the
+        format specified by the pydantic model :class:`MetadataEditRequest` (we need to use
+        primitive data types, i.e. the json format, to be able to pass the request to a
+        rabbitmq task).
         '''
         logger = self.get_logger()
         user = datamodel.User.get(user_id=user_id)
-        assert not edit_request.get('verify_only'), 'Request has verify_only'
-        edit_request_obj = MetadataEditRequest(**edit_request)
+        assert not edit_request_json.get('verify_only'), 'Request has verify_only'
 
         # Validate the request (the @process could have been invoked directly, without previous validation)
         handler = MetadataEditRequestHandler(
-            logger, user, edit_request=edit_request_obj, upload_id=self.upload_id)
+            logger, user, edit_request_json=edit_request_json, upload_id=self.upload_id)
         handler.validate_request()
         assert not handler.error, handler.error
 

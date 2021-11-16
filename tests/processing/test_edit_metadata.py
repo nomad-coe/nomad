@@ -20,9 +20,8 @@ from datetime import datetime
 
 from nomad import datamodel, metainfo
 from nomad.processing import Upload, MetadataEditRequestHandler
-from nomad.processing.data import _editable_metadata
+from nomad.processing.data import _editable_metadata, _mongo_upload_metadata
 from nomad.search import search
-from nomad.app.v1.models import MetadataEditRequest
 
 
 all_coauthor_metadata = dict(
@@ -37,6 +36,12 @@ all_coauthor_metadata = dict(
     reviewers=['lhofstadter'],
     datasets=['a dataset'])
 
+all_coauthor_upload_metadata = {
+    k: v for k, v in all_coauthor_metadata.items() if k in _mongo_upload_metadata}
+
+all_coauthor_entry_metadata = {
+    k: v for k, v in all_coauthor_metadata.items() if k not in _mongo_upload_metadata}
+
 all_admin_metadata = dict(
     # Every attribute which only admins can set
     upload_create_time='2021-05-04T11:00:00',
@@ -50,6 +55,7 @@ def assert_edit_request(user, **kwargs):
     # Extract test parameters (lots of defaults)
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query = kwargs.get('query')
+    owner = kwargs.get('owner')
     metadata = kwargs.get('metadata')
     entries = kwargs.get('entries')
     entries_key = kwargs.get('entries_key', 'calc_id')
@@ -59,9 +65,11 @@ def assert_edit_request(user, **kwargs):
         affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
         expected_metadata = kwargs.get('expected_metadata', metadata)
     # Perform edit request
-    mer = MetadataEditRequest(query=query, metadata=metadata, entries=entries, verify=verify_only)
+    edit_request_json = dict(
+        query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
+        verify=verify_only)
     edit_start = datetime.utcnow().isoformat()[0:22]
-    _response, status_code = MetadataEditRequestHandler.edit_metadata(mer, upload_id, user)
+    _response, status_code = MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
     # Validate result
     assert status_code == expected_status_code, 'Wrong status code returned'
     if status_code == 200 and not verify_only:
@@ -198,8 +206,31 @@ def convert_to_comparable_value_single(quantity, value, format, user):
             upload_id='id_published_w',
             metadata=dict(embargo_length=0)),
         id='lift-embargo'),
-])
-def test_edit_metadata(proc_infra, example_data_writeable, a_dataset, test_users_dict, kwargs):
+    pytest.param(
+        dict(
+            query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
+            owner='user',
+            upload_id=None,
+            metadata=dict(comment='new comment'),
+            affected_upload_ids=['id_unpublished_w']),
+        id='query-ok'),
+    pytest.param(
+        dict(
+            query={'upload_create_time:lt': '2021-01-01'},
+            owner='user',
+            upload_id=None,
+            metadata=dict(comment='new comment'),
+            expected_status_code=404),
+        id='query-no-results'),
+    pytest.param(
+        dict(
+            query={'upload_create_time:gt': '2021-01-01'},
+            owner='user',
+            upload_id=None,
+            metadata=dict(comment='new comment'),
+            expected_status_code=401),
+        id='query-contains-published')])
+def test_edit_metadata(proc_infra, purged_app, example_data_writeable, a_dataset, test_users_dict, kwargs):
     kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
     assert_edit_request(**kwargs)
 
@@ -230,3 +261,20 @@ def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_t
     for k, v in all_admin_metadata.items():
         assert_edit_request(
             user=test_user, upload_id='id_unpublished_w', metadata={k: v}, expected_status_code=401)
+
+
+def test_query_cannot_set_upload_attributes(proc_infra, example_data_writeable, a_dataset, test_user):
+    query = {'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]}
+    for k, v in all_coauthor_upload_metadata.items():
+        # Attempting to edit an upload level attribute with query should always fail,
+        # regardless of if upload_id is specified
+        for upload_id in (None, 'id_unpublished_w'):
+            assert_edit_request(
+                user=test_user, query=query, owner='user', upload_id=upload_id,
+                metadata={k: v},
+                expected_status_code=400)
+    # Attempting to edit an entry level attribute with query should always succeed
+    assert_edit_request(
+        user=test_user, query=query, owner='user', upload_id=None,
+        metadata=all_coauthor_entry_metadata,
+        affected_upload_ids=['id_unpublished_w'])

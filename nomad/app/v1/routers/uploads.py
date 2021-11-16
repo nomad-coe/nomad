@@ -962,6 +962,7 @@ async def put_upload_metadata(
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload_edit(
+        request: Request,
         data: MetadataEditRequest,
         upload_id: str = Path(..., description='The unique id of the upload.'),
         user: User = Depends(create_user_dependency(required=True))):
@@ -982,8 +983,9 @@ async def post_upload_edit(
         subset of the upload entries to edit, but changing upload level metadata would affect
         all entries of the upload.
     '''
+    edit_request_json = await request.json()
     response, status_code = MetadataEditRequestHandler.edit_metadata(
-        edit_request=data, upload_id=upload_id, user=user)
+        edit_request_json=edit_request_json, upload_id=upload_id, user=user)
     if status_code != status.HTTP_200_OK and not data.verify_only:
         raise HTTPException(status_code=status_code, detail=response.error)
     return response
