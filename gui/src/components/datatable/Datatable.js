@@ -636,7 +636,7 @@ export const Datatable = React.memo(function Datatable(props) {
   )
   const withSelectionFeature = !!contextProps.selected
   const shownColumnsObjects = useMemo(() => (
-    columns.filter(column => shownColumns.includes(column))
+    columns.filter(column => shownColumns.map(shownColumn => shownColumn.key).includes(column.key))
   ), [columns, shownColumns])
 
   const context = {
