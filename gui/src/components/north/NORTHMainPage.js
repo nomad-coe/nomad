@@ -39,7 +39,7 @@ import {
   DatatableLoadMorePagination,
   DatatableTable
 } from '../datatable/Datatable'
-import * as _tools from '../../northTools.json';
+import * as _tools from '../../northTools.json'
 
 export const help = `
 The NOMAD Remote Tools Hub (NORTH) provides access to tools which you can use to
@@ -162,7 +162,6 @@ const NORTHMainPage = React.memo(() => {
 })
 
 export default withLoginRequired(NORTHMainPage)
-
 
 /**
  * Hook for loading the list of running instances from the NORTH API.

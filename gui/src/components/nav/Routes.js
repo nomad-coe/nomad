@@ -298,8 +298,7 @@ export const routes = [
           content: NORTHHelp
         },
         component: NORTHMainPage
-      },
-      toolkitRoute
+      }
     ]
   },
   {
