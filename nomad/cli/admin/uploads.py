@@ -52,8 +52,12 @@ def _run_parallel(uploads, parallel: int, callable, label: str):
         logger.info('%s started' % label, upload_id=upload.upload_id)
 
         completed = False
-        if callable(upload, logger):
+        try:
+            if callable(upload, logger):
+                completed = True
+        except Exception as e:
             completed = True
+            logger.error('%s failed' % label, upload_id=upload.upload_id, exc_info=e)
 
         with cv:
             state['completed_count'] += 1 if completed else 0

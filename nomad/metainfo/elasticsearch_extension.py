@@ -894,8 +894,11 @@ def index_entries(entries: List, refresh: bool = False):
         actions_and_docs = []
         for entry in entries:
             actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
-            entry_index_doc = entry_type.create_index_doc(entry)
-            actions_and_docs.append(entry_index_doc)
+            try:
+                entry_index_doc = entry_type.create_index_doc(entry)
+                actions_and_docs.append(entry_index_doc)
+            except Exception as e:
+                logger.error('could not create entry index doc', calc_id=entry['entry_id'], exc_info=e)
 
         timer_kwargs = {}
         try:
@@ -1032,7 +1035,10 @@ def update_materials(entries: List, refresh: bool = False):
                 # Update the material, there might be slight changes even if it is made
                 # from entry properties that are "material defining", e.g. changed external
                 # material quantities like new AFLOW prototypes
-                material_doc.update(**material_type.create_index_doc(entry.results.material))
+                try:
+                    material_doc.update(**material_type.create_index_doc(entry.results.material))
+                except Exception as e:
+                    logger.error('could not create material index doc', exc_info=e)
 
             new_material_id = get_material_id(entry)
             if new_material_id != material_id:
@@ -1041,7 +1047,10 @@ def update_materials(entries: List, refresh: bool = False):
                 material_entries_to_remove.append(index)
             else:
                 # Update the entry.
-                material_entries[index] = material_entry_type.create_index_doc(entry)
+                try:
+                    material_entries[index] = material_entry_type.create_index_doc(entry)
+                except Exception as e:
+                    logger.error('could not create material index doc', exc_info=e)
                 remaining_entry_ids.remove(entry_id)
         for index in reversed(material_entries_to_remove):
             del(material_entries[index])
@@ -1057,13 +1066,19 @@ def update_materials(entries: List, refresh: bool = False):
             material_doc = material_docs_dict.get(material_id)
             if material_doc is None:
                 # The material does not yet exist. Create it.
-                material_doc = material_type.create_index_doc(entry.results.material)
+                try:
+                    material_doc = material_type.create_index_doc(entry.results.material)
+                except Exception as e:
+                    logger.error('could not create material index doc', exc_info=e)
                 material_docs_dict[material_id] = material_doc
                 add_action_or_doc(dict(create=dict(_id=material_id)))
                 add_action_or_doc(material_doc)
                 material_docs.append(material_doc)
             # The material does exist (now), but the entry is new.
-            material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
+            try:
+                material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
+            except Exception as e:
+                logger.error('could not create material entry index doc', exc_info=e)
 
     # Second, we go through the old materials. The following cases need to be covered:
     # - the old materials are empty (standard case)
