@@ -24,14 +24,16 @@ import { northBase } from '../../config'
 const NORTHLaunchButton = React.memo(({
   name,
   path,
+  onClick,
   disabled,
   children
 }) => {
   return <Button
     component="a"
-    href={`${northBase}/user-redirect/${name}/${path || ''}`}
+    onClick={onClick}
     target="_blank"
     color="primary"
+    style={{width: "6rem"}}
     variant="contained"
     disabled={disabled}
   >{children}</Button>

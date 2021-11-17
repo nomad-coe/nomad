@@ -94,7 +94,8 @@ class NomadAuthenticator(GenericOAuthenticator):
         # confiugure base path
         if not spawner.environment:
             spawner.environment = {}
-        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/'
+        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/pyarpes/'  # The toolname has to be added to the baseURL. TODO: set username here to be used in the tool config
+        spawner.environment['CUSTOM_PORT'] = '8888'  # Sets the port for gclient
 
         if user.name == 'anonymous':
             return
@@ -148,6 +149,12 @@ c = get_config()  # type: ignore  # pylint: disable=undefined-variable
 nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
 
 c.JupyterHub.allow_named_servers = True
+c.JupyterHub.tornado_settings = {
+    'headers': {
+        'Access-Control-Allow-Origin': 'http://localhost:3000',  # This is temporary. TODO: Place everything behind a single origin aka nginx proxy
+        'Access-Control-Allow-Methods': 'PUT, DELETE, OPTIONS'
+    },
+}
 
 c.JupyterHub.port = config.north.hub_port
 c.JupyterHub.base_url = config.north.hub_base_path
@@ -195,9 +202,10 @@ def configure_default(spawner: DockerSpawner):
     spawner.image = 'jupyter/base-notebook'
 
 
-def create_configure_from_tool_json(tool_json):
+def create_configure_from_tool_json(tool_json, tool_name):
     def configure(spawner: DockerSpawner):
         spawner.image = tool_json['image']
+        spawner.tool_name = tool_name
 
     return configure
 
@@ -210,6 +218,6 @@ with open(tools_json_path, 'rt') as f:
     tools_json = json.load(f)
 
 tools = {
-    key: create_configure_from_tool_json(value)
+    key: create_configure_from_tool_json(value, tool_name=key)
     for key, value in tools_json.items()
 }
