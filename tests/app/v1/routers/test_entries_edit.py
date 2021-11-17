@@ -17,6 +17,7 @@
 #
 
 import pytest
+from datetime import datetime
 
 from nomad import utils
 from nomad.search import search
@@ -24,6 +25,9 @@ from nomad.datamodel import Dataset
 from nomad import processing as proc
 
 from tests.utils import ExampleData
+from tests.app.v1.routers.common import assert_response
+from tests.processing.test_edit_metadata import (
+    assert_metadata_edited, all_coauthor_entry_metadata, all_admin_entry_metadata)
 
 
 logger = utils.get_logger(__name__)
@@ -301,3 +305,122 @@ class TestEditRepo():
     def test_admin_only(self, other_test_user):
         rv = self.perform_edit(main_author=other_test_user.user_id)
         assert rv.status_code != 200
+
+
+@pytest.mark.parametrize('user, kwargs', [
+    pytest.param(
+        'test_user', dict(
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=all_coauthor_entry_metadata,
+            affected_upload_ids=['id_unpublished_w']),
+        id='edit-all'),
+    pytest.param(
+        'admin_user', dict(
+            query={'upload_id': 'id_published_w'},
+            owner='all',
+            metadata=all_admin_entry_metadata,
+            affected_upload_ids=['id_published_w']),
+        id='protected-admin'),
+    pytest.param(
+        'test_user', dict(
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=all_admin_entry_metadata,
+            expected_status_code=401),
+        id='protected-not-admin'),
+    pytest.param(
+        'admin_user', dict(
+            query={'upload_id': 'id_published_w'},
+            owner='all',
+            metadata=dict(comment='test comment'),
+            affected_upload_ids=['id_published_w']),
+        id='published-admin'),
+    pytest.param(
+        'test_user', dict(
+            query={'upload_id': 'id_published_w'},
+            metadata=dict(comment='test comment'),
+            expected_status_code=401),
+        id='published-not-admin'),
+    pytest.param(
+        None, dict(
+            owner='all',
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=dict(comment='test comment'),
+            expected_status_code=401),
+        id='no-credentials'),
+    pytest.param(
+        'invalid', dict(
+            owner='all',
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=dict(comment='test comment'),
+            expected_status_code=401),
+        id='invalid-credentials'),
+    pytest.param(
+        'other_test_user', dict(
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=dict(comment='test comment'),
+            expected_status_code=404),
+        id='no-access'),
+    pytest.param(
+        'other_test_user', dict(
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=dict(comment='test comment'),
+            affected_upload_ids=['id_unpublished_w'],
+            add_coauthor=True),
+        id='coauthor-access'),
+    pytest.param(
+        'test_user', dict(
+            query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
+            metadata=dict(comment='a test comment'),
+            affected_upload_ids=['id_unpublished_w']),
+        id='compound-query-ok'),
+    pytest.param(
+        'test_user', dict(
+            query={'upload_id': 'id_unpublished_w'},
+            metadata=dict(upload_name='a test name'),
+            expected_status_code=400),
+        id='query-cannot-edit-upload-data'),
+    pytest.param(
+        'test_user', dict(
+            query={'upload_create_time:lt': '2021-01-01'},
+            metadata=dict(comment='a test comment'),
+            expected_status_code=404),
+        id='query-no-results')])
+def test_post_entries_edit(
+        client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
+        user, kwargs):
+    '''
+    Note, since the endpoint basically just forwards the request to
+    `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
+    the more extensive testnig is done in `tests.processing.test_edit_metadata`.
+    '''
+    user_auth, _token = test_auth_dict[user]
+    user = test_users_dict.get(user)
+    query = kwargs.get('query')
+    owner = kwargs.get('owner', 'visible')
+    metadata = kwargs.get('metadata')
+    entries = kwargs.get('entries')
+    entries_key = kwargs.get('entries_key')
+    verify_only = kwargs.get('verify_only', False)
+    expected_status_code = kwargs.get('expected_status_code', 200)
+    if expected_status_code == 200 and not verify_only:
+        affected_upload_ids = kwargs.get('affected_upload_ids')
+        expected_metadata = kwargs.get('expected_metadata', metadata)
+
+    add_coauthor = kwargs.get('add_coauthor', False)
+    if add_coauthor:
+        upload = proc.Upload.get(affected_upload_ids[0])
+        upload.edit_upload_metadata(
+            edit_request_json={'metadata': {'coauthors': user.user_id}}, user_id=upload.main_author)
+        upload.block_until_complete()
+
+    edit_request_json = dict(
+        query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
+        verify_only=verify_only)
+    url = 'entries/edit'
+    edit_start = datetime.utcnow().isoformat()[0:22]
+    response = client.post(url, headers=user_auth, json=edit_request_json)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_metadata_edited(
+            user, None, query, metadata, entries, entries_key, verify_only,
+            expected_status_code, expected_metadata, affected_upload_ids, edit_start)

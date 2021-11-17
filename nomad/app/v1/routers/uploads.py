@@ -975,13 +975,13 @@ async def post_upload_edit(
       - Only admins can edit some of the fields.
       - The embargo of a published upload is lifted by setting the `embargo_length` attribute
         to 0.
-      - If the upload is published, the only operation permitted for non-admin users is to
-        lift the embargo, i.e. set `embargo_length` to 0, and add/remove entries from the
-        user's datasets.
+      - If the upload is published, the only operations permitted using this endpoint is to
+        lift the embargo, i.e. set `embargo_length` to 0, and to edit the members of datasets
+        you own.
       - If a query is specified, it is not possible to edit upload level metadata (like
         `upload_name`, `coauthors`, etc.), as the purpose of queries is to select only a
         subset of the upload entries to edit, but changing upload level metadata would affect
-        all entries of the upload.
+        **all** entries of the upload.
     '''
     edit_request_json = await request.json()
     response, status_code = MetadataEditRequestHandler.edit_metadata(

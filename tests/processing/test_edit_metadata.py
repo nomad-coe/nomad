@@ -50,6 +50,9 @@ all_admin_metadata = dict(
     license='a license',
     main_author='lhofstadter')
 
+all_admin_entry_metadata = {
+    k: v for k, v in all_admin_metadata.items() if k not in _mongo_upload_metadata}
+
 
 def assert_edit_request(user, **kwargs):
     # Extract test parameters (lots of defaults)
@@ -136,6 +139,8 @@ def convert_to_comparable_value(quantity, value, from_format, user):
     '''
     if quantity.is_scalar:
         return convert_to_comparable_value_single(quantity, value, from_format, user)
+    if value is None and from_format == 'es':
+        return []
     if type(value) != list:
         value = [value]
     return [convert_to_comparable_value_single(quantity, v, from_format, user) for v in value]
