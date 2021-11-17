@@ -88,15 +88,6 @@ class NomadAuthenticator(GenericOAuthenticator):
         Uses the user credentials to request all staging uploads and pass the
         respective path as volume host mounts to the spawner.
         '''
-
-        # This is guacamole specific
-        # linuxserver/webtop guacamole-lite based guacamole client use SUBFOLDER to
-        # confiugure base path
-        if not spawner.environment:
-            spawner.environment = {}
-        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/pyarpes/'  # The toolname has to be added to the baseURL. TODO: set username here to be used in the tool config
-        spawner.environment['CUSTOM_PORT'] = '8888'  # Sets the port for gclient
-
         if user.name == 'anonymous':
             return
 
@@ -142,6 +133,7 @@ class NomadAuthenticator(GenericOAuthenticator):
         self.log.debug('Configure spawner with nomad volumes: %s', volumes)
 
         spawner.volumes = volumes
+        spawner.nomad_username = user.name
 
 
 c = get_config()  # type: ignore  # pylint: disable=undefined-variable
@@ -206,6 +198,16 @@ def create_configure_from_tool_json(tool_json, tool_name):
     def configure(spawner: DockerSpawner):
         spawner.image = tool_json['image']
         spawner.tool_name = tool_name
+
+        if not spawner.environment:
+            spawner.environment = {}
+
+        if tool_json['image'][-(len('webtop:latest')):] == 'webtop:latest':  # Resolves to true if it is a webtop based container
+            # This is guacamole specific
+            # linuxserver/webtop guacamole-lite based guacamole client use SUBFOLDER to
+            # confiugure base path
+            spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{spawner.nomad_username}/{tool_name}/'
+            spawner.environment['CUSTOM_PORT'] = '8888'  # Sets the port for gclient
 
     return configure
 
