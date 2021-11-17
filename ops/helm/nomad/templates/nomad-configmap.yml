@@ -61,8 +61,8 @@ data:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
       timeout: {{ .Values.elastic.timeout }}
-      bulk_timeout: "{{ .Values.elastic.bulkTimeout }}"
-      bulk_size=1000: {{ .Values.elastic.bulkSize }}
+      bulk_timeout: {{ .Values.elastic.bulkTimeout }}
+      bulk_size: {{ .Values.elastic.bulkSize }}
       entries_per_material_cap: {{ .Values.elastic.entriesPerMaterialCap }}
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
