@@ -1098,19 +1098,6 @@ class MetadataEditRequest(WithQuery):
             encountered errors etc.'''))
 
 
-class MetadataEditRequestResponse(MetadataEditRequest):
-    error: Optional[str] = Field(
-        description=strip('''
-            An error description, if the validation failed, otherwise None.'''))
-    feedback: Dict[str, str] = Field(
-        default={},
-        description=strip('''
-            A dictionary specifying strings with feedback for specific actuins.
-            The quantity name is used as key. The feedback may describe an error or just be
-            an informative message. If multiple errors occur for the same quantity, only
-            one error message is shown.'''))
-
-
 class Files(BaseModel):
     ''' Configures the download of files. '''
     compress: Optional[bool] = Field(

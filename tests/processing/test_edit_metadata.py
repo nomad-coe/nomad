@@ -18,6 +18,8 @@
 import pytest
 from datetime import datetime
 
+from fastapi.exceptions import RequestValidationError
+
 from nomad import datamodel, metainfo
 from nomad.processing import Upload, MetadataEditRequestHandler
 from nomad.processing.data import _editable_metadata, _mongo_upload_metadata
@@ -63,34 +65,37 @@ def assert_edit_request(user, **kwargs):
     entries = kwargs.get('entries')
     entries_key = kwargs.get('entries_key', 'calc_id')
     verify_only = kwargs.get('verify_only', False)
-    expected_status_code = kwargs.get('expected_status_code', 200)
-    if expected_status_code == 200 and not verify_only:
-        affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
-        expected_metadata = kwargs.get('expected_metadata', metadata)
+    expected_error_loc = kwargs.get('expected_error_loc')
+    affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
+    expected_metadata = kwargs.get('expected_metadata', metadata)
     # Perform edit request
     edit_request_json = dict(
         query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
         verify=verify_only)
     edit_start = datetime.utcnow().isoformat()[0:22]
-    _response, status_code = MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
+    try:
+        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
+    except RequestValidationError as e:
+        error_locs = [error_dict['loc'] for error_dict in e.errors()]
     # Validate result
-    assert status_code == expected_status_code, 'Wrong status code returned'
-    if status_code == 200 and not verify_only:
+    if expected_error_loc:
+        assert expected_error_loc in error_locs
+    if not expected_error_loc and not verify_only:
         assert_metadata_edited(
             user, upload_id, query, metadata, entries, entries_key, verify_only,
-            expected_status_code, expected_metadata, affected_upload_ids, edit_start)
+            expected_metadata, affected_upload_ids, edit_start)
 
 
 def assert_metadata_edited(
         user, upload_id, query, metadata, entries, entries_key, verify_only,
-        expected_status_code, expected_metadata, affected_upload_ids, edit_start):
+        expected_metadata, affected_upload_ids, edit_start):
 
     for upload_id in affected_upload_ids:
         upload = Upload.get(upload_id)
         upload.block_until_complete()
         for entry in upload.calcs:
             assert entry.last_edit_time
-            assert entry.last_edit_time.isoformat()[0:22] >= edit_start
+            assert edit_start is None or entry.last_edit_time.isoformat()[0:22] >= edit_start
             entry_metadata_mongo = entry.mongo_metadata(upload).m_to_dict()
             entry_metadata_es = search(owner=None, query={'calc_id': entry.calc_id}).data[0]
             values_to_check = expected_metadata
@@ -189,22 +194,22 @@ def convert_to_comparable_value_single(quantity, value, format, user):
     pytest.param(
         dict(
             metadata=dict(external_db='bad value'),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'external_db')),
         id='bad-external_db'),
     pytest.param(
         dict(
             metadata=dict(coauthors='silly value'),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'coauthors')),
         id='bad-coauthor-ref'),
     pytest.param(
         dict(
             metadata=dict(reviewers='silly value'),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'reviewers')),
         id='bad-reviewer-ref'),
     pytest.param(
         dict(
             metadata=dict(datasets=['silly value']),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'datasets')),
         id='bad-dataset-ref'),
     pytest.param(
         dict(
@@ -225,7 +230,7 @@ def convert_to_comparable_value_single(quantity, value, format, user):
             owner='user',
             upload_id=None,
             metadata=dict(comment='new comment'),
-            expected_status_code=404),
+            expected_error_loc=('query',)),
         id='query-no-results'),
     pytest.param(
         dict(
@@ -233,7 +238,7 @@ def convert_to_comparable_value_single(quantity, value, format, user):
             owner='user',
             upload_id=None,
             metadata=dict(comment='new comment'),
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'comment')),
         id='query-contains-published')])
 def test_edit_metadata(proc_infra, purged_app, example_data_writeable, a_dataset, test_users_dict, kwargs):
     kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
@@ -265,7 +270,7 @@ def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_t
     # try to do the same as a non-admin
     for k, v in all_admin_metadata.items():
         assert_edit_request(
-            user=test_user, upload_id='id_unpublished_w', metadata={k: v}, expected_status_code=401)
+            user=test_user, upload_id='id_unpublished_w', metadata={k: v}, expected_error_loc=('metadata', k))
 
 
 def test_query_cannot_set_upload_attributes(proc_infra, example_data_writeable, a_dataset, test_user):
@@ -277,7 +282,7 @@ def test_query_cannot_set_upload_attributes(proc_infra, example_data_writeable, 
             assert_edit_request(
                 user=test_user, query=query, owner='user', upload_id=upload_id,
                 metadata={k: v},
-                expected_status_code=400)
+                expected_error_loc=('metadata', k))
     # Attempting to edit an entry level attribute with query should always succeed
     assert_edit_request(
         user=test_user, query=query, owner='user', upload_id=None,

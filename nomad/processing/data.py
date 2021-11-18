@@ -43,11 +43,13 @@ import yaml
 import json
 from functools import lru_cache
 import requests
+from fastapi.exceptions import RequestValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
-from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
+from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -58,8 +60,7 @@ from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.app.v1.models import (
-    MetadataEditRequest, MetadataEditRequestResponse, And,
-    Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
+    MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
@@ -148,7 +149,7 @@ class MetadataEditRequestHandler:
     @classmethod
     def edit_metadata(
             cls, edit_request_json: Dict[str, Any], upload_id: str,
-            user: datamodel.User) -> Tuple[MetadataEditRequestResponse, int]:
+            user: datamodel.User) -> Dict[str, Any]:
         '''
         Method to verify and execute a generic request to edit metadata from a certain user.
         The request is specified as a json dictionary. Optionally, the request could be restricted
@@ -161,32 +162,37 @@ class MetadataEditRequestHandler:
         for execution, by initiating the @process :func:`edit_upload_metadata` for each affected
         upload.
 
-        The method returns a :class:`MetadataEditRequestResponse` with feedback about how it
-        went, and a html style status code (int, 200 if successful, otherwise an error code).
-        This method is designed to not raise any exceptions (rather, errors are reported
-        by return values).
+        The method returns a json dictionary with verified data (references resolved to explicit
+        IDs, list actions always expressed as dicts with "op" and "values", etc), or raises
+        an exception, namely:
+         -  A :class:`ValidationError` if the request json can't be parsed by pydantic
+         -  A :class:`RequestValidationError` with information about validation failures and
+            their location (most errors should be of this type, provided that the json is valid)
+         -  A :class:`ProcessAlreadyRunning` exception if one of the affected uploads has
+            a running process
+         -  Some other type of exception, if something goes wrong unexpectedly (should hopefully
+            never happen)
         '''
         logger = utils.get_logger('nomad.processing.edit_metadata')
         handler = MetadataEditRequestHandler(
             logger, user, edit_request_json=edit_request_json, upload_id=upload_id)
         # Validate the request
-        handler.validate_request()
+        handler.validate_request()  # Should raise errors if something looks wrong
 
-        if not handler.error and not edit_request_json.get('verify_only'):
+        if not edit_request_json.get('verify_only'):
             # Check if any of the affected uploads are processing
             for upload in handler.affected_uploads:
                 upload.reload()
                 if upload.process_running:
-                    handler._fatal_error(f'Upload {upload.upload_id} is currently processing')
-                    return handler.create_request_response(), 400
+                    raise ProcessAlreadyRunning(f'Upload {upload.upload_id} is currently processing')
             # Looks good, try to trigger processing
             for upload in handler.affected_uploads:
-                try:
-                    upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
-                except Exception as e:
-                    handler._fatal_error(f'Failed to start process for upload {upload.upload_id}: {e}')
-                    return handler.create_request_response(), 400
-        return handler.create_request_response(), handler.status_code
+                upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
+        # All went well, return a verified json as response
+        verified_json = copy.deepcopy(handler.edit_request_json)
+        verified_json['metadata'] = handler.root_metadata
+        verified_json['entries'] = handler.entries_metadata
+        return verified_json
 
     def __init__(
             self, logger, user: datamodel.User,
@@ -203,12 +209,10 @@ class MetadataEditRequestHandler:
         self.upload_files = upload_files
         self.upload_id = upload_id
 
-        self.status_code = 200  # A html style status code
-        self.error: str = None  # A description of the last error, if any.
-        self.feedback: Dict[str, str] = {}  # { quantity_name: feedback_msg }
-        self.quantities_attempted_to_edit: Set[str] = set()  # Quantities user has attempted to edit
+        self.errors: List[ErrorWrapper] = []  # A list of all encountered errors, if any
+        self.edit_attempt_locs: List[Tuple[str, ...]] = []  # locs where user has attempted to edit something
         self.required_auth_level = AuthLevel.none  # Maximum required auth level for the edit
-        self.required_auth_level_quantity: str = None  # An example of an edited quantity which requires this auth level
+        self.required_auth_level_locs: List[Tuple[str, ...]] = []  # locs where maximal auth level is needed
         self.encountered_users: Dict[str, str] = {}  # { ref: user_id | None }, ref = user_id | username | email
         self.encountered_datasets: Dict[str, datamodel.Dataset] = {}  # { ref : dataset | None }, ref = dataset_id | dataset_name
         self.root_metadata: Dict[str, Any] = None  # The metadata specified at the top/root level
@@ -222,42 +226,41 @@ class MetadataEditRequestHandler:
         pass  # TODO
 
     def validate_request(self):
-        ''' Validates the provided :class:`MetadataEditRequest` '''
-        try:
-            self.edit_request = MetadataEditRequest(**self.edit_request_json)
-        except Exception as e:
-            return self._fatal_error(f'Failed to parse request json: {e}')
+        ''' Validates the provided edit_request_json. '''
+        # Validate the request json. Will raise ValidationError if json is malformed
+        self.edit_request = MetadataEditRequest(**self.edit_request_json)
         try:
             if not self.upload_id and not self.edit_request.query:
-                return self._fatal_error('Must specify `query`')
+                return self._loc_error('Must specify `query`', 'query')
             if self.edit_request.entries and not self.edit_request.entries_key:
-                return self._fatal_error('Must specify `entries_key` when specifying `entries`')
+                return self._loc_error('Must specify `entries_key` when specifying `entries`', 'entries_key')
 
             can_edit_upload_fields = bool(self.upload_id and not self.edit_request.query)
             if self.edit_request.metadata:
                 self.root_metadata = self._verify_metadata_edit_actions(
-                    self.edit_request.metadata.dict(), can_edit_upload_fields)
+                    self.edit_request_json['metadata'], ('metadata',), can_edit_upload_fields)
             if self.edit_request.entries:
-                for key, entry_metadata in self.edit_request.entries.items():
-                    verified_metadata = self._verify_metadata_edit_actions(entry_metadata.dict(), False)
+                for key, entry_metadata in self.edit_request_json['entries'].items():
+                    verified_metadata = self._verify_metadata_edit_actions(
+                        entry_metadata, ('entries', key), False)
                     self.entries_metadata[key] = verified_metadata
 
-            if not self.quantities_attempted_to_edit:
-                return self._fatal_error('No fields to update specified')
+            if not self.edit_attempt_locs:
+                return self._loc_error('No fields to update specified', 'metadata')
             if self.required_auth_level == AuthLevel.admin and not self.user.is_admin:
-                return self._quantity_error(
-                    self.required_auth_level_quantity, 'Admin rights required', 401)
+                for loc in self.required_auth_level_locs:
+                    self._loc_error('Admin rights required', loc)
+                return
 
-            embargo_length: int = None
-            if can_edit_upload_fields and self.edit_request.metadata:
-                embargo_length = self.edit_request.metadata.embargo_length  # type: ignore
-
+            embargo_length: int = self.root_metadata.get('embargo_length')
             try:
                 self.affected_uploads = self._find_request_uploads()
             except Exception as e:
-                return self._fatal_error('Could not evaluate query: ' + str(e))
+                return self._loc_error('Could not evaluate query: ' + str(e), 'query')
             if not self.affected_uploads:
-                return self._fatal_error('No matching uploads/entries found', 404)
+                if self.edit_request.query:
+                    return self._loc_error('No matching entries found', 'query')
+                return self._loc_error('No matching upload found', 'upload_id')
             for upload in self.affected_uploads:
                 # Check permissions
                 coauthor = upload.coauthors and self.user.user_id in upload.coauthors
@@ -272,24 +275,33 @@ class MetadataEditRequestHandler:
                 else:
                     assert False, 'Invalid required_auth_level'  # Should not happen
                 if not has_access:
-                    return self._quantity_error(
-                        self.required_auth_level_quantity,
-                        f'Editing quantity requires {self.required_auth_level} '
-                        f' access for upload {upload.upload_id}', 401)
+                    for loc in self.required_auth_level_locs:
+                        self._loc_error(
+                            f'{self.required_auth_level} access required for upload '
+                            f'{upload.upload_id}', loc)
+                    return
                 # Other checks
                 if embargo_length is not None:
                     if upload.published and not admin and embargo_length != 0:
-                        self._quantity_error(
-                            'embargo_length',
-                            f'Upload {upload.upload_id} is published, embargo can only be lifted')
+                        self._loc_error(
+                            f'Upload {upload.upload_id} is published, embargo can only be lifted',
+                            ('metadata', 'embargo_length'))
                 if upload.published and not admin:
-                    for quantity_name in self.quantities_attempted_to_edit:
-                        if quantity_name not in ('embargo_length', 'datasets'):
-                            self._quantity_error(
-                                quantity_name,
-                                f'Cannot update, upload {upload.upload_id} is published.', 401)
+                    has_invalid_edit = False
+                    for edit_loc in self.edit_attempt_locs:
+                        if edit_loc[-1] not in ('embargo_length', 'datasets'):
+                            has_invalid_edit = True
+                            self._loc_error(
+                                f'Cannot update, upload {upload.upload_id} is published.', edit_loc)
+                    if has_invalid_edit:
+                        return
         except Exception as e:
-            return self._fatal_error(f'Unexpected exception: {e}')
+            # Something unexpected has gone wrong
+            self.logger.error(e)
+            raise
+        finally:
+            if self.errors:
+                raise RequestValidationError(errors=self.errors)
 
     def get_upload_metadata_to_set(self, upload: 'Upload') -> Dict[str, Any]:
         '''
@@ -324,22 +336,14 @@ class MetadataEditRequestHandler:
             pass  # TODO
         return rv
 
-    def _quantity_error(self, quantity_name: str, msg: str, error_code: int = 400):
-        ''' Registers an error message for a specific quantity. '''
-        self.status_code = error_code
-        self.error = f'Error for quantity `{quantity_name}`: {msg}'
-        self.feedback[quantity_name] = msg
-        self.logger.error(self.error)
-
-    def _fatal_error(self, error: str, status_code: int = 400):
-        ''' Registers a general, unrecoverable error, not related to a specific quantity '''
-        self.error = error
-        self.status_code = status_code
-        self.logger.error(error)
+    def _loc_error(self, msg: str, loc: Union[str, Tuple[str, ...]]):
+        ''' Registers a located error. '''
+        self.errors.append(ErrorWrapper(Exception(msg), loc=loc))
+        self.logger.error(msg, loc=loc)
 
     def _verify_metadata_edit_actions(
-            self, metadata_edit_actions: Dict[str, Any], can_edit_upload_fields: bool,
-            auth_level: AuthLevel = None) -> Dict[str, Any]:
+            self, metadata_edit_actions: Dict[str, Any], loc: Tuple[str, ...],
+            can_edit_upload_fields: bool, auth_level: AuthLevel = None) -> Dict[str, Any]:
         '''
         Performs *basic* validation of a dictionary with metadata edit actions, and returns a
         dictionary with the same structure, but containing only the *verified* actions. Verified
@@ -357,36 +361,36 @@ class MetadataEditRequestHandler:
         for quantity_name, action in metadata_edit_actions.items():
             if action is not None:
                 success, verified_action = self._verify_metadata_edit_action(
-                    quantity_name, action, can_edit_upload_fields, auth_level)
+                    quantity_name, action, loc + (quantity_name,), can_edit_upload_fields, auth_level)
                 if success:
                     rv[quantity_name] = verified_action
         return rv
 
     def _verify_metadata_edit_action(
-            self, quantity_name: str, action: Any, can_edit_upload_fields: bool,
-            auth_level: AuthLevel) -> Tuple[bool, Any]:
+            self, quantity_name: str, action: Any, loc: Tuple[str, ...],
+            can_edit_upload_fields: bool, auth_level: AuthLevel) -> Tuple[bool, Any]:
         '''
         Performs basic validation of a single action. Returns (success, verified_action).
         '''
         definition = _editable_metadata.get(quantity_name)
         if not definition:
-            self._quantity_error(quantity_name, 'Unknown quantity')
+            self._loc_error('Unknown quantity', loc)
             return False, None
 
-        self.quantities_attempted_to_edit.add(quantity_name)
+        self.edit_attempt_locs.append(loc)
 
         field_auth_level = getattr(definition, 'a_auth_level', AuthLevel.coauthor)
 
         if auth_level is not None:
             # Our auth level is known, check it immediately
             if field_auth_level > auth_level:
-                self._quantity_error(quantity_name, f'Requires {field_auth_level} privileges')
+                self._loc_error(f'{field_auth_level} privileges required', loc)
                 return False, None
         if field_auth_level > self.required_auth_level:
             self.required_auth_level = field_auth_level
-            self.required_auth_level_quantity = quantity_name
+            self.required_auth_level_locs = [loc]
         if quantity_name in _mongo_upload_metadata and not can_edit_upload_fields:
-            self._quantity_error(quantity_name, 'Quantity can only be edited on the upload level')
+            self._loc_error('Quantity can only be edited on the upload level', loc)
             return False, None
 
         try:
@@ -401,9 +405,8 @@ class MetadataEditRequestHandler:
                     values = action['values']
                     assert op in ('set', 'add', 'remove'), 'op should be `set`, `add` or `remove`'
                     if quantity_name == 'datasets' and op == 'set':
-                        self._quantity_error(
-                            quantity_name,
-                            'Only `add` and `remove` operations permitted for datasets')
+                        self._loc_error(
+                            'Only `add` and `remove` operations permitted for datasets', loc)
                         return False, None
                 else:
                     op = 'set'
@@ -414,7 +417,7 @@ class MetadataEditRequestHandler:
                 verified_values = [self._verified_value(definition, v) for v in values]
                 return True, dict(op=op, values=verified_values)
         except Exception as e:
-            self._quantity_error(quantity_name, str(e))
+            self._loc_error(str(e), loc)
             return False, None
 
     def _verified_value(
@@ -590,21 +593,6 @@ class MetadataEditRequestHandler:
             # We have no query. Return all entries for the upload
             for entry in Calc.objects(upload_id=upload.upload_id):
                 yield entry
-
-    def create_request_response(self) -> MetadataEditRequestResponse:
-        ''' Creates a :class:`MetadataEditRequestResponse` with the validation results. '''
-        # Create response by updating the request json with the verified values when possible
-        verified_json = copy.deepcopy(self.edit_request_json)
-        if self.root_metadata:
-            verified_json['metadata'].update(self.root_metadata)
-        if self.entries_metadata:
-            for key, entry_metadata in verified_json['entries'].items():
-                entry_metadata.update(self.entries_metadata.get(key, {}))
-        # Create response
-        response = MetadataEditRequestResponse(**verified_json)
-        response.error = self.error
-        response.feedback = self.feedback
-        return response
 
 
 class Calc(Proc):
@@ -2031,8 +2019,7 @@ class Upload(Proc):
         # Validate the request (the @process could have been invoked directly, without previous validation)
         handler = MetadataEditRequestHandler(
             logger, user, edit_request_json=edit_request_json, upload_id=self.upload_id)
-        handler.validate_request()
-        assert not handler.error, handler.error
+        handler.validate_request()  # Should raise errors if something looks wrong
 
         # Upload level metadata
         old_with_embargo = self.with_embargo

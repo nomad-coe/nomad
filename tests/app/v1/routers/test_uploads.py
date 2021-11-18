@@ -1064,12 +1064,12 @@ def test_put_upload_metadata(
     pytest.param(
         'test_user', 'id_unpublished_w', dict(
             metadata=dict(main_author='lhofstadter'),
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'main_author')),
         id='protected-not-admin'),
     pytest.param(
         'test_user', 'silly_value', dict(
             metadata=dict(upload_name='test_name'),
-            expected_status_code=404),
+            expected_error_loc=('upload_id',)),
         id='bad-upload_id'),
     pytest.param(
         'admin_user', 'id_published_w', dict(
@@ -1078,7 +1078,7 @@ def test_put_upload_metadata(
     pytest.param(
         'test_user', 'id_published_w', dict(
             metadata=dict(upload_name='test_name'),
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'upload_name')),
         id='published-not-admin'),
     pytest.param(
         None, 'id_unpublished_w', dict(
@@ -1093,7 +1093,7 @@ def test_put_upload_metadata(
     pytest.param(
         'other_test_user', 'id_unpublished_w', dict(
             metadata=dict(upload_name='test_name'),
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'upload_name')),
         id='no-access'),
     pytest.param(
         'other_test_user', 'id_unpublished_w', dict(
@@ -1120,14 +1120,14 @@ def test_put_upload_metadata(
             query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
             owner='user',
             metadata=dict(upload_name='a test name'),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'upload_name')),
         id='query-cannot-edit-upload-data'),
     pytest.param(
         'test_user', 'id_unpublished_w', dict(
             query={'upload_create_time:lt': '2021-01-01'},
             owner='user',
             metadata=dict(comment='a test comment'),
-            expected_status_code=404),
+            expected_error_loc=('query',)),
         id='query-no-results')])
 def test_post_upload_edit(
         client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
@@ -1145,16 +1145,17 @@ def test_post_upload_edit(
     entries = kwargs.get('entries')
     entries_key = kwargs.get('entries_key')
     verify_only = kwargs.get('verify_only', False)
-    expected_status_code = kwargs.get('expected_status_code', 200)
-    if expected_status_code == 200 and not verify_only:
-        affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
-        expected_metadata = kwargs.get('expected_metadata', metadata)
+    expected_error_loc = kwargs.get('expected_error_loc')
+    expected_status_code = kwargs.get('expected_status_code')
+    affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
+    expected_metadata = kwargs.get('expected_metadata', metadata)
 
     add_coauthor = kwargs.get('add_coauthor', False)
     if add_coauthor:
         upload = Upload.get(upload_id)
-        upload.coauthors = [user.user_id]
-        upload.save()
+        upload.edit_upload_metadata(
+            edit_request_json={'metadata': {'coauthors': user.user_id}}, user_id=upload.main_author)
+        upload.block_until_complete()
 
     edit_request_json = dict(
         query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
@@ -1162,11 +1163,17 @@ def test_post_upload_edit(
     url = f'uploads/{upload_id}/edit'
     edit_start = datetime.utcnow().isoformat()[0:22]
     response = client.post(url, headers=user_auth, json=edit_request_json)
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
+    if expected_error_loc:
+        assert_response(response, 422)
+        error_locs = [tuple(d['loc']) for d in response.json()['detail']]
+        assert expected_error_loc in error_locs
+    elif expected_status_code not in (None, 200):
+        assert_response(response, expected_status_code)
+    else:
+        assert_response(response, 200)
         assert_metadata_edited(
             user, upload_id, query, metadata, entries, entries_key, verify_only,
-            expected_status_code, expected_metadata, affected_upload_ids, edit_start)
+            expected_metadata, affected_upload_ids, edit_start)
 
 
 @pytest.mark.parametrize('mode, source_path, query_args, user, use_upload_token, test_limit, accept_json, expected_status_code', [
@@ -1403,6 +1410,38 @@ def test_post_upload_action_process(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_processing(client, upload_id, test_auth_dict['test_user'][0], check_files=False, published=True)
+
+
+@pytest.mark.parametrize('upload_id, user, preprocess, expected_status_code', [
+    pytest.param('id_published_w', 'test_user', None, 200, id='ok'),
+    pytest.param('id_published_w', 'other_test_user', None, 401, id='no-access'),
+    pytest.param('id_published_w', 'other_test_user', 'make-coauthor', 200, id='ok-coauthor'),
+    pytest.param('id_published_w', None, None, 401, id='no-credentials'),
+    pytest.param('id_published_w', 'invalid', None, 401, id='invalid-credentials'),
+    pytest.param('id_unpublished_w', 'test_user', None, 400, id='not-published'),
+    pytest.param('id_published_w', 'test_user', 'lift', 400, id='already-lifted')])
+def test_post_upload_action_lift_embargo(
+        client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
+        upload_id, user, preprocess, expected_status_code):
+
+    user_auth, __token = test_auth_dict[user]
+    user = test_users_dict.get(user)
+
+    if preprocess:
+        if preprocess == 'lift':
+            metadata = {'embargo_length': 0}
+        elif preprocess == 'make-coauthor':
+            metadata = {'coauthors': user.user_id}
+        upload = Upload.get(upload_id)
+        upload.edit_upload_metadata(dict(metadata=metadata), config.services.admin_user_id)
+        upload.block_until_complete()
+
+    response = perform_post_upload_action(client, user_auth, upload_id, 'lift-embargo')
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        assert_metadata_edited(
+            user, upload_id, None, None, None, None, False,
+            {'embargo_length': 0}, [upload_id], None)
 
 
 @pytest.mark.parametrize('upload_id, user, expected_status_code', [

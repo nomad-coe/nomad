@@ -50,7 +50,7 @@ from ..utils import (
 from ..models import (
     Aggregation, Pagination, PaginationResponse, MetadataPagination, TermsAggregation,
     WithQuery, WithQueryAndPagination, MetadataRequired, MetadataResponse, Metadata,
-    MetadataEditRequest, MetadataEditRequestResponse, Files, Query, User, Owner,
+    MetadataEditRequest, Files, Query, User, Owner,
     QueryParameters, metadata_required_parameters, files_parameters, metadata_pagination_parameters,
     HTTPExceptionModel)
 
@@ -1174,7 +1174,7 @@ _editable_quantities = {
 
 
 @router.post(
-    '/edit_old',
+    '/edit_v0',
     tags=[metadata_tag],
     summary='Edit the user metadata of a set of entries',
     response_model=EntryMetadataEditResponse,
@@ -1347,7 +1347,7 @@ async def post_entry_metadata_edit(
     '/edit',
     tags=[metadata_tag],
     summary='Edit the user metadata of a set of entries',
-    response_model=MetadataEditRequestResponse,
+    response_model=MetadataEditRequest,
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
     responses=create_responses(
@@ -1365,11 +1365,15 @@ async def post_entries_edit(
         this endpoint; upload level attributes (like `upload_name`, `coauthors`, embargo
         settings, etc) need to be set through the endpoint **uploads/upload_id/edit**.
       - If the upload is published, the only operation permitted using this endpoint is to
-        edit the members of datasets you own.
+        edit the entries in datasets that where created by the current user.
     '''
     edit_request_json = await request.json()
-    response, status_code = proc.MetadataEditRequestHandler.edit_metadata(
-        edit_request_json=edit_request_json, upload_id=None, user=user)
-    if status_code != status.HTTP_200_OK and not data.verify_only:
-        raise HTTPException(status_code=status_code, detail=response.error)
-    return response
+    try:
+        verified_json = proc.MetadataEditRequestHandler.edit_metadata(
+            edit_request_json=edit_request_json, upload_id=None, user=user)
+        return verified_json
+    except RequestValidationError as e:
+        raise  # A problem which we have handled explicitly. Fastapi does json conversion.
+    except Exception as e:
+        # The upload is processing or some kind of unexpected error has occured
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

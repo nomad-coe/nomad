@@ -86,7 +86,7 @@ class TestEditRepo():
         if verify:
             data.update(verify=verify)
 
-        return self.api.post('entries/edit_old', headers=self.test_user_auth, json=data)
+        return self.api.post('entries/edit_v0', headers=self.test_user_auth, json=data)
 
     def assert_edit(self, rv, quantity: str, success: bool, message: bool, status_code: int = 200):
         data = rv.json()
@@ -325,7 +325,7 @@ class TestEditRepo():
         'test_user', dict(
             query={'upload_id': 'id_unpublished_w'},
             metadata=all_admin_entry_metadata,
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'entry_create_time')),
         id='protected-not-admin'),
     pytest.param(
         'admin_user', dict(
@@ -338,7 +338,7 @@ class TestEditRepo():
         'test_user', dict(
             query={'upload_id': 'id_published_w'},
             metadata=dict(comment='test comment'),
-            expected_status_code=401),
+            expected_error_loc=('metadata', 'comment')),
         id='published-not-admin'),
     pytest.param(
         None, dict(
@@ -358,7 +358,7 @@ class TestEditRepo():
         'other_test_user', dict(
             query={'upload_id': 'id_unpublished_w'},
             metadata=dict(comment='test comment'),
-            expected_status_code=404),
+            expected_error_loc=('query',)),
         id='no-access'),
     pytest.param(
         'other_test_user', dict(
@@ -377,13 +377,13 @@ class TestEditRepo():
         'test_user', dict(
             query={'upload_id': 'id_unpublished_w'},
             metadata=dict(upload_name='a test name'),
-            expected_status_code=400),
+            expected_error_loc=('metadata', 'upload_name')),
         id='query-cannot-edit-upload-data'),
     pytest.param(
         'test_user', dict(
             query={'upload_create_time:lt': '2021-01-01'},
             metadata=dict(comment='a test comment'),
-            expected_status_code=404),
+            expected_error_loc=('query',)),
         id='query-no-results')])
 def test_post_entries_edit(
         client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
@@ -401,10 +401,10 @@ def test_post_entries_edit(
     entries = kwargs.get('entries')
     entries_key = kwargs.get('entries_key')
     verify_only = kwargs.get('verify_only', False)
-    expected_status_code = kwargs.get('expected_status_code', 200)
-    if expected_status_code == 200 and not verify_only:
-        affected_upload_ids = kwargs.get('affected_upload_ids')
-        expected_metadata = kwargs.get('expected_metadata', metadata)
+    expected_error_loc = kwargs.get('expected_error_loc')
+    expected_status_code = kwargs.get('expected_status_code')
+    affected_upload_ids = kwargs.get('affected_upload_ids')
+    expected_metadata = kwargs.get('expected_metadata', metadata)
 
     add_coauthor = kwargs.get('add_coauthor', False)
     if add_coauthor:
@@ -419,8 +419,14 @@ def test_post_entries_edit(
     url = 'entries/edit'
     edit_start = datetime.utcnow().isoformat()[0:22]
     response = client.post(url, headers=user_auth, json=edit_request_json)
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
+    if expected_error_loc:
+        assert_response(response, 422)
+        error_locs = [tuple(d['loc']) for d in response.json()['detail']]
+        assert expected_error_loc in error_locs
+    elif expected_status_code not in (None, 200):
+        assert_response(response, expected_status_code)
+    else:
+        assert_response(response, 200)
         assert_metadata_edited(
             user, None, query, metadata, entries, entries_key, verify_only,
-            expected_status_code, expected_metadata, affected_upload_ids, edit_start)
+            expected_metadata, affected_upload_ids, edit_start)
