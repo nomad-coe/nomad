@@ -72,8 +72,8 @@ class NomadAuthenticator(GenericOAuthenticator):
             # The default authenticate has failed, e.g. due to missing credentials.
             # Check if there is bearer authorization and try to identify the user with
             # this. Otherwise, propagate the exception.
-            authorization = handler.request.headers.get('Authorization')
-            if authorization.startswith('bearer ') or authorization.startswith('Bearer '):
+            authorization = handler.request.headers.get('Authorization', None)
+            if authorization and authorization.lower().startswith('bearer '):
                 try:
                     user = infrastructure.keycloak.tokenauth(authorization[7:])
                     if user is not None:
@@ -88,6 +88,13 @@ class NomadAuthenticator(GenericOAuthenticator):
         Uses the user credentials to request all staging uploads and pass the
         respective path as volume host mounts to the spawner.
         '''
+        # This is guacamole specific
+        # linuxserver/webtop guacamole-lite based guacamole client use SUBFOLDER to
+        # confiugure base path
+        if not spawner.environment:
+            spawner.environment = {}
+        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/'
+
         if user.name == 'anonymous':
             return
 
@@ -143,8 +150,9 @@ nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycl
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.tornado_settings = {
     'headers': {
-        'Access-Control-Allow-Origin': 'http://localhost:3000',  # This is temporary. TODO: Place everything behind a single origin aka nginx proxy
-        'Access-Control-Allow-Methods': 'PUT, DELETE, OPTIONS'
+        'Access-Control-Allow-Origin': '*',  # This is temporary. TODO: Place everything behind a single origin aka nginx proxy
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': '*'
     },
 }
 
@@ -172,15 +180,16 @@ class NomadDockerSpawner(DockerSpawner):
         tool = self.container_name.split('-')[-1]
         if tool in tools:
             tools[tool](self)
+            self.log.debug(f'Configured spawner for {tool}')
         else:
             configure_default(self)
+            self.log.debug(f'{tool} is not a tool, use default spawner configuration')
 
         return await super().start(image, extra_create_kwargs, extra_host_config)
 
 
 # launch with docker
 c.JupyterHub.spawner_class = NomadDockerSpawner
-# c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
 c.DockerSpawner.image = 'jupyter/base-notebook'
 c.DockerSpawner.remove = True
 if config.north.docker_network:
@@ -194,20 +203,11 @@ def configure_default(spawner: DockerSpawner):
     spawner.image = 'jupyter/base-notebook'
 
 
-def create_configure_from_tool_json(tool_json, tool_name):
+def create_configure_from_tool_json(tool_json):
     def configure(spawner: DockerSpawner):
         spawner.image = tool_json['image']
-        spawner.tool_name = tool_name
-
-        if not spawner.environment:
-            spawner.environment = {}
-
-        if tool_json['image'][-(len('webtop:latest')):] == 'webtop:latest':  # Resolves to true if it is a webtop based container
-            # This is guacamole specific
-            # linuxserver/webtop guacamole-lite based guacamole client use SUBFOLDER to
-            # confiugure base path
-            spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{spawner.nomad_username}/{tool_name}/'
-            spawner.environment['CUSTOM_PORT'] = '8888'  # Sets the port for gclient
+        if 'cmd' in tools_json:
+            spawner.cmd = tools_json['cmd']
 
     return configure
 
@@ -220,6 +220,6 @@ with open(tools_json_path, 'rt') as f:
     tools_json = json.load(f)
 
 tools = {
-    key: create_configure_from_tool_json(value, tool_name=key)
+    key: create_configure_from_tool_json(value)
     for key, value in tools_json.items()
 }

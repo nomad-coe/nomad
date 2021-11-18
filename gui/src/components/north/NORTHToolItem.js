@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -24,11 +24,28 @@ import {
   Typography,
   Button
 } from '@material-ui/core'
-import Grid from '@material-ui/core/Grid';
+import Grid from '@material-ui/core/Grid'
 import AssessmentIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
-import NORTHLaunchButton from './NORTHLaunchButton'
-import { useApi } from '../api'
+import {useApi} from '../api.js'
+import { useErrors } from '../errors'
+import { northBase } from '../../config'
+
+const launchButtonLabels = {
+  'idle': 'Launch',
+  'launching': 'Launching...',
+  'running': 'Open',
+  'stopping': 'Launch'
+}
+
+const stoppButtonLabels = {
+  'stopping': 'Stopping...',
+  'running': 'Stop'
+}
+
+const LaunchButton = React.memo(function LaunchButton(props) {
+  return <Button color="primary" style={{width: '8rem'}} variant="contained" {...props} />
+})
 
 /**
  * Remote tool item. Can be shown within a list or as a standalone component.
@@ -47,14 +64,6 @@ const useStyles = makeStyles(theme => ({
   action: {
     marginTop: 0,
     marginRight: 0
-  },
-  stopButton: {
-    color: 'white',
-    backgroundColor: '#FF2D00',
-    '&:hover': {
-      backgroundColor: '#CC2400',
-    },
-    width: '100%'
   }
 }))
 
@@ -73,49 +82,56 @@ const NORTHToolItem = React.memo(({
 
   const path = path_prefix && uploadId ? `${path_prefix}/uploads/${uploadId}` : null
 
-  const {api, user} = useApi()
+  const {northApi} = useApi()
+  const {raiseError} = useErrors()
 
-  const [launching, setLaunching] = useState(false)
-  const [running, setRunning] = useState(false)
+  const [state, setState] = useState('idle')
 
   useEffect(() => {
-    api.axios.get(`http://localhost:9000/fairdi/nomad/latest/north/hub/api/users/${user.preferred_username}/servers/${name}/progress`, { headers:{'Authorization': 'token 51dc0e836aee4d51a10681b970943e3d'} })
-    .then((response) => {
-      console.log(JSON.parse(response.data.substr(response.data.indexOf('{'))).ready)
-      setRunning(JSON.parse(response.data.substr(response.data.indexOf('{'))).ready)
-    })
-    .catch((error) => {
-      console.log(error)
-    })
-  }, [user.preferred_username])
+    northApi.get(`servers/${name}/progress`)
+      .then((response) => {
+        const data = JSON.parse(response.data.substr(6))
+        if (data.ready) {
+          setState('running')
+        } else {
+          setState('launching')
+        }
+      })
+      .catch(error => {
+        if (error.response.status === 404) {
+          setState('idle')
+        } else {
+          raiseError(error)
+        }
+      })
+  }, [northApi, raiseError, setState, name])
 
-  const tryLaunch = async () => {
-    api.axios.get(`http://localhost:9000/fairdi/nomad/latest/north/hub/api/users/${user.preferred_username}/servers/${name}/progress`, { headers:{'Authorization': 'token 51dc0e836aee4d51a10681b970943e3d'} })
-    .then((response) => {
-      console.log(JSON.parse(response.data.substr(response.data.indexOf('{'))).url)
-      window.open('http://localhost:9000' + JSON.parse(response.data.substr(response.data.indexOf('{'))).url, '_blank').focus();
-      setLaunching(false)
-      setRunning(true)
-    })
-    .catch((error) => {
-      console.log(error)
-      if (error.response)
-        console.log(error.response.status)
-        setLaunching(true)
-        api.axios.post(`http://localhost:9000/fairdi/nomad/latest/north/hub/api/users/${user.preferred_username}/servers/${name}`, {}, { headers:{'Authorization': 'token 51dc0e836aee4d51a10681b970943e3d'} })
-        .then((response) => {
-          tryLaunch()
+  const launch = useCallback(() => {
+    if (state === 'running') {
+      window.open(`${northBase}/hub/user-redirect/${name}`, name)
+    } else {
+      setState('launching')
+      northApi.post(`servers/${name}`)
+        .then(() => {
+          window.open(`${northBase}/hub/user-redirect/${name}`, name)
+          setState('running')
         })
-    })
-  }
+        .catch(errors => {
+          raiseError(errors)
+          setState('idle')
+        })
+    }
+  }, [setState, northApi, raiseError, name, state])
 
-  const stop = () => {
-    api.axios.delete(`http://localhost:9000/fairdi/nomad/latest/north/hub/api/users/${user.preferred_username}/servers/${name}`, { headers:{'Authorization': 'token 51dc0e836aee4d51a10681b970943e3d'} })
-    .then((response) => {
-      console.log(response)
-      setRunning(false)
-    })
-  }
+  const stop = useCallback(() => {
+    setState('stopping')
+    northApi.delete(`servers/${name}`)
+      .then((response) => {
+        console.log(response)
+        setState('idle')
+      })
+      .catch(raiseError)
+  }, [northApi, raiseError, setState, name])
 
   return <div>
     <CardHeader
@@ -129,17 +145,17 @@ const NORTHToolItem = React.memo(({
       action={!disableActions &&
         <Grid container direction="column" spacing={1}>
           <Grid item xs={12}>
-            <NORTHLaunchButton
-              name={name}
-              path={path}
-              onClick={tryLaunch}
-            >{launching ? 'Launching...' : (running ? "Open" : "Launch")}</NORTHLaunchButton>
+            <LaunchButton name={name} path={path} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
+              {launchButtonLabels[state]}
+            </LaunchButton>
           </Grid>
           <Grid item xs={12}>
-            {running && <Button variant="contained" className={styles.stopButton} onClick={stop}>Stop</Button>}
+            {(state === 'running' || state === 'stopping') && <LaunchButton color="error" onClick={stop} disabled={state === 'stopping'}>
+              {stoppButtonLabels[state]}
+            </LaunchButton>}
           </Grid>
         </Grid>
-        }
+      }
       classes={{action: styles.action}}
     />
     {(!disableDescription && description) && <CardContent>
