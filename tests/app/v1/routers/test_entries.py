@@ -34,7 +34,7 @@ from .common import (
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
     perform_owner_test, owner_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
-from ..conftest import example_data as data  # pylint: disable=unused-import
+from tests.conftest import example_data as data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized

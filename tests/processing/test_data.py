@@ -36,7 +36,6 @@ from nomad.search import search
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.app.conftest import test_users_dict  # pylint: disable=unused-import
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -288,7 +287,7 @@ def test_publish_to_central_nomad(
             assert new_calc_metadata_dict[k] == (embargo_length > 0)
         elif k not in (
                 'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
-                'last_processing_time', 'publish_time',
+                'last_processing_time', 'publish_time', 'embargo_length',
                 'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
             assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
     assert new_calc.datasets == ['dataset_id']

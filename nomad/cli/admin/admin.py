@@ -95,7 +95,9 @@ def lift_embargo(dry, parallel):
                 upload.upload_id, upload.publish_time, embargo_length))
 
             if not dry:
-                upload.set_upload_metadata({'embargo_length': 0})
+                upload.edit_upload_metadata(
+                    edit_request_json=dict(metadata={'embargo_length': 0}),
+                    user_id=config.services.admin_user_id)
     return
 
 

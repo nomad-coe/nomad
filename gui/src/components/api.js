@@ -377,7 +377,7 @@ class Api {
         }
       }
     })
-    return this.post('entries/edit', edit)
+    return this.post('entries/edit_v0', edit)
   }
 }
 

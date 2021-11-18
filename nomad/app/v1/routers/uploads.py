@@ -25,23 +25,28 @@ from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
 from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files, datamodel
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
-from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus
+from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
-    BaseModel, MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
-    Files, files_parameters, WithQuery)
+    MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
+    Files, files_parameters, WithQuery, MetadataEditRequest)
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem,
     create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
 
 router = APIRouter()
 default_tag = 'uploads'
+metadata_tag = 'uploads/metadata'
+raw_tag = 'uploads/raw'
+action_tag = 'uploads/action'
+bundle_tag = 'uploads/bundle'
 
 logger = utils.get_logger(__name__)
 
@@ -369,7 +374,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
 
 
 @router.get(
-    '', tags=[default_tag],
+    '', tags=[metadata_tag],
     summary='List uploads of authenticated user.',
     response_model=UploadProcDataQueryResponse,
     responses=create_responses(_not_authorized, _bad_pagination),
@@ -430,7 +435,7 @@ async def get_uploads(
 
 
 @router.get(
-    '/{upload_id}', tags=[default_tag],
+    '/{upload_id}', tags=[metadata_tag],
     summary='Get a specific upload',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload),
@@ -453,7 +458,7 @@ async def get_upload(
 
 
 @router.get(
-    '/{upload_id}/entries', tags=[default_tag],
+    '/{upload_id}/entries', tags=[metadata_tag],
     summary='Get the entries of the specific upload as a list',
     response_model=EntryProcDataQueryResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_pagination),
@@ -515,7 +520,7 @@ async def get_upload_entries(
 
 
 @router.get(
-    '/{upload_id}/entries/{entry_id}', tags=[default_tag],
+    '/{upload_id}/entries/{entry_id}', tags=[metadata_tag],
     summary='Get a specific entry for a specific upload',
     response_model=EntryProcDataResponse,
     responses=create_responses(_entry_not_found, _not_authorized_to_entry),
@@ -552,7 +557,7 @@ async def get_upload_entry(
 
 
 @router.get(
-    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
     summary='Get the raw files and folders for a given upload and path.',
     response_class=StreamingResponse,
     responses=create_responses(
@@ -684,7 +689,7 @@ async def get_upload_raw_path(
 
 
 @router.put(
-    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
     summary='Put (add or replace) files to an upload at the specified path.',
     response_class=StreamingResponse,
     responses=create_responses(
@@ -764,7 +769,7 @@ async def put_upload_raw_path(
 
 
 @router.delete(
-    '/{upload_id}/raw/{path:path}', tags=[default_tag],
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
     summary='Delete file or folder located at the specified path in the specified upload.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -919,7 +924,7 @@ async def post_upload(
 
 
 @router.put(
-    '/{upload_id}/metadata', tags=[default_tag],
+    '/{upload_id}/metadata', tags=[metadata_tag],
     summary='Updates the metadata of the specified upload.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -948,6 +953,47 @@ async def put_upload_metadata(
     upload.set_upload_metadata(checked_upload_metadata.m_to_dict())
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/edit', tags=[metadata_tag],
+    summary='Updates the metadata of the specified upload.',
+    response_model=MetadataEditRequest,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_edit(
+        request: Request,
+        data: MetadataEditRequest,
+        upload_id: str = Path(..., description='The unique id of the upload.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    '''
+    Updates the metadata of the specified upload and entries. An optional `query` can be
+    specified to select only some of the entries of the upload (the query results are
+    automatically restricted to the specified upload).
+
+    **Note:**
+      - Only admins can edit some of the fields.
+      - The embargo of a published upload is lifted by setting the `embargo_length` attribute
+        to 0.
+      - If the upload is published, the only operations permitted using this endpoint is to
+        lift the embargo, i.e. set `embargo_length` to 0, and to edit the entries in datasets
+        that where created by the current user.
+      - If a query is specified, it is not possible to edit upload level metadata (like
+        `upload_name`, `coauthors`, etc.), as the purpose of queries is to select only a
+        subset of the upload entries to edit, but changing upload level metadata would affect
+        **all** entries of the upload.
+    '''
+    edit_request_json = await request.json()
+    try:
+        verified_json = MetadataEditRequestHandler.edit_metadata(
+            edit_request_json=edit_request_json, upload_id=upload_id, user=user)
+        return verified_json
+    except RequestValidationError as e:
+        raise  # A problem which we have handled explicitly. Fastapi does json conversion.
+    except Exception as e:
+        # The upload is processing or some kind of unexpected error has occured
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
@@ -988,7 +1034,7 @@ async def delete_upload(
 
 
 @router.post(
-    '/{upload_id}/action/publish', tags=[default_tag],
+    '/{upload_id}/action/publish', tags=[action_tag],
     summary='Publish an upload',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -1071,7 +1117,7 @@ async def post_upload_action_publish(
 
 
 @router.post(
-    '/{upload_id}/action/process', tags=[default_tag],
+    '/{upload_id}/action/process', tags=[action_tag],
     summary='Manually triggers processing of an upload.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -1098,8 +1144,43 @@ async def post_upload_action_process(
         data=_upload_to_pydantic(upload))
 
 
+@router.post(
+    '/{upload_id}/action/lift-embargo', tags=[action_tag],
+    summary='Lifts the embargo of an upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_action_lift_embargo(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload to lift the embargo for.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    ''' Lifts the embargo of an upload. '''
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=False)
+    _check_upload_not_processing(upload)
+    if not upload.published:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Upload is not published, no embargo to lift.'''))
+    if not upload.with_embargo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Upload has no embargo.'''))
+    # Lift the embargo using MetadataEditRequestHandler.edit_metadata
+    try:
+        MetadataEditRequestHandler.edit_metadata(
+            edit_request_json={'metadata': {'embargo_length': 0}}, upload_id=upload_id, user=user)
+        upload.reload()
+        return UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+    except Exception as e:
+        # Should only happen if the upload just started processing or something unexpected happens
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 @router.get(
-    '/bundle/{upload_id}', tags=[default_tag],
+    '/{upload_id}/bundle', tags=[bundle_tag],
     summary='Gets an *upload bundle* for the specified upload.',
     response_class=StreamingResponse,
     responses=create_responses(
@@ -1145,7 +1226,7 @@ async def get_upload_bundle(
 
 
 @router.post(
-    '/bundle', tags=[default_tag],
+    '/bundle', tags=[bundle_tag],
     summary='Posts an *upload bundle* to this NOMAD deployment.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_not_authorized, _bad_request),
@@ -1430,9 +1511,10 @@ def _get_upload_with_write_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if upload.main_author != str(user.user_id) and not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            You do not have write access to the specified upload.'''))
+    if not user.is_admin and upload.main_author != str(user.user_id):
+        if not upload.coauthors or str(user.user_id) not in upload.coauthors:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have write access to the specified upload.'''))
     if upload.published:
         if not include_published:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''

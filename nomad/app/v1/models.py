@@ -30,13 +30,14 @@ from pydantic import (  # pylint: disable=unused-import
     validator,
     root_validator,
 )
+from pydantic.main import create_model
 import datetime
 import numpy as np
 import re
 import fnmatch
 import json
 
-from nomad import datamodel  # pylint: disable=unused-import
+from nomad import datamodel, metainfo  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
 from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_type, material_type
@@ -49,6 +50,44 @@ User = datamodel.User.m_def.a_pydantic.model
 # are interpreted as epoch dates by pydantic
 Value = Union[StrictInt, StrictFloat, StrictBool, str, datetime.datetime]
 ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
+
+
+class Owner(str, enum.Enum):
+    '''
+    The `owner` allows to limit the scope of the searched based on entry ownership.
+    This is useful, if you only want to search among all publically downloadable
+    entries, or only among your own entries, etc.
+
+    These are the possible owner values and their meaning:
+    * `all`: Consider all entries.
+    * `public` (default): Consider all entries that can be publically downloaded,
+        i.e. only published entries without embargo
+    * `user`: Only consider entries that belong to you.
+    * `shared`: Only consider entries that belong to you or are shared with you.
+    * `visible`: Consider all entries that are visible to you. This includes
+        entries with embargo or unpublished entries that belong to you or are
+        shared with you.
+    * `staging`: Only search through unpublished entries.
+    '''
+
+    # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
+    # it will ignore any given default or example and simply take the first enum value.
+    # Therefore, we put public first, which is the most default and save in most contexts.
+    public = 'public'
+    all_ = 'all'
+    visible = 'visible'
+    shared = 'shared'
+    user = 'user'
+    staging = 'staging'
+    admin = 'admin'
+
+
+class Direction(str, enum.Enum):
+    '''
+    Order direction, either ascending (`asc`) or descending (`desc`)
+    '''
+    asc = 'asc'
+    desc = 'desc'
 
 
 class HTTPExceptionModel(BaseModel):
@@ -154,36 +193,6 @@ And.update_forward_refs()
 Or.update_forward_refs()
 Not.update_forward_refs()
 Nested.update_forward_refs()
-
-
-class Owner(str, enum.Enum):
-    '''
-    The `owner` allows to limit the scope of the searched based on entry ownership.
-    This is useful, if you only want to search among all publically downloadable
-    entries, or only among your own entries, etc.
-
-    These are the possible owner values and their meaning:
-    * `all`: Consider all entries.
-    * `public` (default): Consider all entries that can be publically downloaded,
-        i.e. only published entries without embargo
-    * `user`: Only consider entries that belong to you.
-    * `shared`: Only consider entries that belong to you or are shared with you.
-    * `visible`: Consider all entries that are visible to you. This includes
-        entries with embargo or unpublished entries that belong to you or are
-        shared with you.
-    * `staging`: Only search through unpublished entries.
-    '''
-
-    # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
-    # it will ignore any given default or example and simply take the first enum value.
-    # Therefore, we put public first, which is the most default and save in most contexts.
-    public = 'public'
-    all_ = 'all'
-    visible = 'visible'
-    shared = 'shared'
-    user = 'user'
-    staging = 'staging'
-    admin = 'admin'
 
 
 class WithQuery(BaseModel):
@@ -422,14 +431,6 @@ class QueryParameters:
                     422, detail=[{'loc': ['json_query'], 'msg': 'cannot parse json_query'}])
 
         return WithQuery(query=query, owner=owner)
-
-
-class Direction(str, enum.Enum):
-    '''
-    Order direction, either ascending (`asc`) or descending (`desc`)
-    '''
-    asc = 'asc'
-    desc = 'desc'
 
 
 class MetadataRequired(BaseModel):
@@ -1049,6 +1050,52 @@ class Metadata(WithQueryAndPagination):
             Defines additional aggregations to return. There are different types of
             aggregations: `terms`, `histogram`, `data_histogram`, `min_max`.
         '''))
+
+
+class MetadataEditListAction(BaseModel):
+    '''
+    Defines an action to perform on a list quantity. This enables users to add and remove values.
+    '''
+    op: str = Field(description=strip('''
+        Defines the type of operation (either `set`, `add` or `remove`)'''))
+    values: Union[str, List[str]] = Field(description=strip('''
+        The value or values to set/add/remove (string or list of strings)'''))
+
+
+# Generate model for MetadataEditActions
+_metadata_edit_actions_fields = {}
+for quantity in datamodel.EditableUserMetadata.m_def.definitions:
+    if quantity.is_scalar:
+        pydantic_type = quantity.type if quantity.type in (str, int, float, bool) else str
+    else:
+        pydantic_type = Union[str, List[str], MetadataEditListAction]
+    if getattr(quantity, 'a_auth_level', None) == datamodel.AuthLevel.admin:
+        description = '**NOTE:** Only editable by admin user'
+    else:
+        description = None
+    _metadata_edit_actions_fields[quantity.name] = (
+        Optional[pydantic_type], Field(description=description))
+
+MetadataEditActions = create_model('MetadataEditActions', **_metadata_edit_actions_fields)  # type: ignore
+
+
+class MetadataEditRequest(WithQuery):
+    ''' Defines a request to edit metadata. '''
+    metadata: Optional[MetadataEditActions] = Field(  # type: ignore
+        description=strip('''
+            Metadata to set, on the upload and/or selected entries.'''))
+    entries: Optional[Dict[str, MetadataEditActions]] = Field(  # type: ignore
+        description=strip('''
+            An optional dictionary, specifying metadata to set on individual entries. The field
+            `entries_metadata_key` defines which type of key is used in the dictionary to identify
+            the entries. Note, only quantities defined on the entry level can be set using this method.'''))
+    entries_key: Optional[str] = Field(
+        default='calc_id', description=strip('''
+            Defines which type of key is used in `entries_metadata`. Default is `calc_id`.'''))
+    verify_only: Optional[bool] = Field(
+        default=False, description=strip('''
+            Do not execute the request, just verifies it and provides detailed feedback on
+            encountered errors etc.'''))
 
 
 class Files(BaseModel):

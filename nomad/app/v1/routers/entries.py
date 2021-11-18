@@ -48,8 +48,9 @@ from ..utils import (
     create_download_stream_zipped, create_download_stream_raw_file,
     DownloadItem, create_responses)
 from ..models import (
-    Aggregation, Pagination, PaginationResponse, MetadataPagination, TermsAggregation, WithQuery, WithQueryAndPagination, MetadataRequired,
-    MetadataResponse, Metadata, Files, Query, User, Owner,
+    Aggregation, Pagination, PaginationResponse, MetadataPagination, TermsAggregation,
+    WithQuery, WithQueryAndPagination, MetadataRequired, MetadataResponse, Metadata,
+    MetadataEditRequest, Files, Query, User, Owner,
     QueryParameters, metadata_required_parameters, files_parameters, metadata_pagination_parameters,
     HTTPExceptionModel)
 
@@ -279,6 +280,18 @@ _bad_id_response = status.HTTP_404_NOT_FOUND, {
 _bad_path_response = status.HTTP_404_NOT_FOUND, {
     'model': HTTPExceptionModel,
     'description': strip('File or directory not found.')}
+
+_bad_edit_request = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('Edit request could not be executed.')}
+
+_bad_edit_request_authorization = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('Not enough permissions to execute edit request.')}
+
+_bad_edit_request_empty_query = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('No matching entries found.')}
 
 _raw_download_response = 200, {
     'content': {'application/zip': {}},
@@ -1161,7 +1174,7 @@ _editable_quantities = {
 
 
 @router.post(
-    '/edit',
+    '/edit_v0',
     tags=[metadata_tag],
     summary='Edit the user metadata of a set of entries',
     response_model=EntryMetadataEditResponse,
@@ -1328,3 +1341,39 @@ async def post_entry_metadata_edit(
                 datamodel.Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
     return data
+
+
+@router.post(
+    '/edit',
+    tags=[metadata_tag],
+    summary='Edit the user metadata of a set of entries',
+    response_model=MetadataEditRequest,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(
+        _bad_edit_request, _bad_edit_request_authorization, _bad_edit_request_empty_query))
+async def post_entries_edit(
+        request: Request,
+        data: MetadataEditRequest,
+        user: User = Depends(create_user_dependency(required=True))):
+    '''
+    Updates the metadata of the specified entries.
+
+    **Note:**
+      - Only admins can edit some of the fields.
+      - Only entry level attributes (like `comment`, `references` etc.) can be set using
+        this endpoint; upload level attributes (like `upload_name`, `coauthors`, embargo
+        settings, etc) need to be set through the endpoint **uploads/upload_id/edit**.
+      - If the upload is published, the only operation permitted using this endpoint is to
+        edit the entries in datasets that where created by the current user.
+    '''
+    edit_request_json = await request.json()
+    try:
+        verified_json = proc.MetadataEditRequestHandler.edit_metadata(
+            edit_request_json=edit_request_json, upload_id=None, user=user)
+        return verified_json
+    except RequestValidationError as e:
+        raise  # A problem which we have handled explicitly. Fastapi does json conversion.
+    except Exception as e:
+        # The upload is processing or some kind of unexpected error has occured
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

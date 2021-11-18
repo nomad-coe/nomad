@@ -17,6 +17,7 @@
 #
 
 from typing import Tuple, List
+import math
 import pytest
 import logging
 from collections import namedtuple
@@ -24,6 +25,7 @@ from smtpd import SMTPServer
 from threading import Lock, Thread
 import asyncore
 import time
+from datetime import datetime
 import shutil
 import os.path
 import elasticsearch.exceptions
@@ -35,9 +37,10 @@ import os.path
 from fastapi.testclient import TestClient
 
 from nomad import config, infrastructure, processing, utils, datamodel, files
-from nomad.datamodel import User, EntryArchive
+from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
-from nomad.archive import write_archive, read_archive
+from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo
+from nomad.processing import ProcessStatus
 from nomad.processing.data import generate_entry_id
 from nomad.app.main import app
 
@@ -45,7 +48,7 @@ from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
+from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url, ExampleData
 
 test_log_level = logging.CRITICAL
 
@@ -371,6 +374,14 @@ def other_test_user():
 @pytest.fixture(scope='module')
 def admin_user():
     return User(**test_users[test_user_uuid(0)])
+
+
+@pytest.fixture(scope='module')
+def test_users_dict(test_user, other_test_user, admin_user):
+    return {
+        'test_user': test_user,
+        'other_test_user': other_test_user,
+        'admin_user': admin_user}
 
 
 @pytest.fixture(scope='function')
@@ -734,6 +745,162 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
         pass
 
     return non_empty_processed
+
+
+@pytest.fixture(scope='module')
+def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+    '''
+    Provides a couple of uploads and entries including metadata, raw-data, and
+    archive files.
+
+    id_embargo:
+        1 entry, 1 material, published with embargo
+    id_embargo_w_coauthor:
+        1 entry, 1 material, published with embargo and coauthor
+    id_embargo_w_reviewer:
+        1 entry, 1 material, published with embargo and reviewer
+    id_unpublished:
+        1 entry, 1 material, unpublished
+    id_unpublished_w_coauthor:
+        1 entry, 1 material, unpublished with coauthor
+    id_unpublished_w_reviewer:
+        1 entry, 1 material, unpublished with reviewer
+    id_published:
+        23 entries, 6 materials published without embargo
+        partial archive exists only for id_01
+        raw files and archive file for id_02 are missing
+        id_10, id_11 reside in the same directory
+    id_processing:
+        unpublished upload without any entries, in status processing
+    id_empty:
+        unpublished upload without any entries
+    '''
+    data = ExampleData(main_author=test_user)
+
+    # 6 uploads with different combinations of main_type and sub_type
+    for main_type in ('embargo', 'unpublished'):
+        for sub_type in ('', 'w_coauthor', 'w_reviewer'):
+            upload_id = 'id_' + main_type + ('_' if sub_type else '') + sub_type
+            if main_type == 'embargo':
+                published = True
+                embargo_length = 12
+                upload_name = 'name_' + upload_id[3:]
+            else:
+                published = False
+                embargo_length = 0
+                upload_name = None
+            calc_id = upload_id + '_1'
+            coauthors = [other_test_user.user_id] if sub_type == 'w_coauthor' else None
+            reviewers = [other_test_user.user_id] if sub_type == 'w_reviewer' else None
+            data.create_upload(
+                upload_id=upload_id,
+                upload_name=upload_name,
+                coauthors=coauthors,
+                reviewers=reviewers,
+                published=published,
+                embargo_length=embargo_length)
+            data.create_entry(
+                upload_id=upload_id,
+                calc_id=calc_id,
+                material_id=upload_id,
+                mainfile=f'test_content/{calc_id}/mainfile.json')
+
+    # one upload with 23 calcs, published, no embargo
+    data.create_upload(
+        upload_id='id_published',
+        upload_name='name_published',
+        published=True)
+    for i in range(1, 24):
+        entry_id = 'id_%02d' % i
+        material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
+        mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
+        kwargs = dict(optimade=OptimadeEntry(nelements=2, elements=['H', 'O']))
+        if i == 11:
+            mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
+        if i == 1:
+            kwargs['pid'] = '123'
+        data.create_entry(
+            upload_id='id_published',
+            calc_id=entry_id,
+            material_id=material_id,
+            mainfile=mainfile,
+            **kwargs)
+
+        if i == 1:
+            archive = data.archives[entry_id]
+            write_partial_archive_to_mongo(archive)
+
+    # one upload, no calcs, still processing
+    data.create_upload(
+        upload_id='id_processing',
+        published=False,
+        process_status=ProcessStatus.RUNNING)
+
+    # one upload, no calcs, unpublished
+    data.create_upload(
+        upload_id='id_empty',
+        published=False)
+
+    data.save(with_files=False)
+    del(data.archives['id_02'])
+    data.save(with_files=True, with_es=False, with_mongo=False)
+
+
+@pytest.fixture(scope='function')
+def example_data_writeable(mongo, test_user, normalized):
+    data = ExampleData(main_author=test_user)
+
+    # one upload with one entry, published
+    data.create_upload(
+        upload_id='id_published_w',
+        published=True,
+        embargo_length=12)
+    data.create_entry(
+        upload_id='id_published_w',
+        calc_id='id_published_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    # one upload with one entry, unpublished
+    data.create_upload(
+        upload_id='id_unpublished_w',
+        published=False,
+        embargo_length=12)
+    data.create_entry(
+        upload_id='id_unpublished_w',
+        calc_id='id_unpublished_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    # one upload, no entries, still processing
+    data.create_upload(
+        upload_id='id_processing_w',
+        published=False,
+        process_status=ProcessStatus.RUNNING)
+
+    # one upload, no entries, unpublished
+    data.create_upload(
+        upload_id='id_empty_w',
+        published=False)
+
+    data.save()
+
+    yield
+
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def a_dataset(mongo, test_user):
+    now = datetime.utcnow()
+    dataset = datamodel.Dataset(
+        dataset_id=utils.create_uuid(),
+        dataset_name='a dataset',
+        user_id=test_user.user_id,
+        dataset_create_time=now,
+        dataset_modified_time=now,
+        dataset_type='owned')
+    dataset.a_mongo.create()
+    yield dataset
+    dataset.a_mongo.delete()
 
 
 @pytest.fixture

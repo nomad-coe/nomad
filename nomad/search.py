@@ -32,7 +32,7 @@ update the v1 materials index according to the performed changes. TODO this is o
 partially implemented.
 '''
 
-from typing import Union, List, Iterable, Any, cast, Dict, Generator
+from typing import Union, List, Iterable, Any, cast, Dict, Iterator, Generator
 import json
 import elasticsearch
 from elasticsearch.exceptions import TransportError, RequestError
@@ -1108,6 +1108,35 @@ def search(
         **more_response_data)
 
     return result
+
+
+def search_iterator(
+        owner: str = 'public',
+        query: Union[Query, EsQuery] = None,
+        order_by: str = 'calc_id',
+        required: MetadataRequired = None,
+        aggregations: Dict[str, Aggregation] = {},
+        user_id: str = None,
+        index: Index = entry_index) -> Iterator[Dict[str, Any]]:
+    '''
+    Works like :func:`search`, but returns an iterator for iterating over the results.
+    Consequently, you cannot specify `pagination`, only `order_buy`.
+    '''
+    page_after_value = None
+    while True:
+        response = search(
+            owner=owner, query=query,
+            pagination=MetadataPagination(
+                page_size=100, page_after_value=page_after_value, order_by=order_by),
+            required=required, aggregations=aggregations, user_id=user_id, index=index)
+
+        page_after_value = response.pagination.next_page_after_value
+
+        for result in response.data:
+            yield result
+
+        if page_after_value is None or len(response.data) == 0:
+            break
 
 
 def _index(entries, **kwargs):

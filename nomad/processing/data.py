@@ -28,11 +28,13 @@ calculations, and files
 
 '''
 
-from typing import cast, Any, List, Tuple, Set, Iterator, Dict, cast, Iterable, Sequence
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 from mongoengine import (
     StringField, DateTimeField, BooleanField, IntField, ListField)
+from pymongo import UpdateOne
 from structlog import wrap_logger
 from contextlib import contextmanager
+import copy
 import os.path
 from datetime import datetime, timedelta
 import hashlib
@@ -41,21 +43,25 @@ import yaml
 import json
 from functools import lru_cache
 import requests
+from fastapi.exceptions import RequestValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
-from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure
+from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
 from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EditableUserMetadata, UserProvidableMetadata, UploadMetadata)
+    EditableUserMetadata, UploadMetadata, AuthLevel)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-
+from nomad.app.v1.models import (
+    MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
+from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow.name
@@ -69,12 +75,11 @@ _mongo_entry_metadata = tuple(
 _mongo_system_metadata = tuple(
     quantity.name for quantity in MongoSystemMetadata.m_def.definitions)
 _mongo_entry_metadata_except_system_fields = tuple(
-    field for field in _mongo_entry_metadata if field not in _mongo_system_metadata)
-_editable_metadata: Dict[str, metainfo.Definition] = {}
-_editable_metadata.update(**{
-    quantity.name: quantity for quantity in UserProvidableMetadata.m_def.definitions})
-_editable_metadata.update(**{
-    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions})
+    quantity_name for quantity_name in _mongo_entry_metadata
+    if quantity_name not in _mongo_system_metadata)
+_editable_metadata: Dict[str, metainfo.Definition] = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions
+    if isinstance(quantity, metainfo.Quantity)}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -132,6 +137,462 @@ def generate_entry_id(upload_id: str, mainfile: str) -> str:
         The generated entry id
     '''
     return utils.hash(upload_id, mainfile)
+
+
+class MetadataEditRequestHandler:
+    '''
+    Class for handling a request to edit metadata. The request may originate either from
+    metadata files in the raw directory or from a json dictionary complying with the
+    :class:`MetadataEditRequest` format. If the edit request is limited to a specific upload,
+    `upload_id` should be specified (only when this is the case can upload level metadata be edited).
+    '''
+    @classmethod
+    def edit_metadata(
+            cls, edit_request_json: Dict[str, Any], upload_id: str,
+            user: datamodel.User) -> Dict[str, Any]:
+        '''
+        Method to verify and execute a generic request to edit metadata from a certain user.
+        The request is specified as a json dictionary. Optionally, the request could be restricted
+        to a single upload by specifying `upload_id` (this is necessary when editing upload
+        level attributes). If `edit_request_json` has `verify_only` set to True, only
+        verification is carried out (i.e. nothing is actually updated). To just run the
+        verification should be quick in comparison to actually executing the request (which
+        may take some time and requires one or more @process to finish). If the request passes
+        the verification step and `verify_only` is not set to True, we will send the request
+        for execution, by initiating the @process :func:`edit_upload_metadata` for each affected
+        upload.
+
+        The method returns a json dictionary with verified data (references resolved to explicit
+        IDs, list actions always expressed as dicts with "op" and "values", etc), or raises
+        an exception, namely:
+         -  A :class:`ValidationError` if the request json can't be parsed by pydantic
+         -  A :class:`RequestValidationError` with information about validation failures and
+            their location (most errors should be of this type, provided that the json is valid)
+         -  A :class:`ProcessAlreadyRunning` exception if one of the affected uploads has
+            a running process
+         -  Some other type of exception, if something goes wrong unexpectedly (should hopefully
+            never happen)
+        '''
+        logger = utils.get_logger('nomad.processing.edit_metadata')
+        handler = MetadataEditRequestHandler(
+            logger, user, edit_request_json=edit_request_json, upload_id=upload_id)
+        # Validate the request
+        handler.validate_request()  # Should raise errors if something looks wrong
+
+        if not edit_request_json.get('verify_only'):
+            # Check if any of the affected uploads are processing
+            for upload in handler.affected_uploads:
+                upload.reload()
+                if upload.process_running:
+                    raise ProcessAlreadyRunning(f'Upload {upload.upload_id} is currently processing')
+            # Looks good, try to trigger processing
+            for upload in handler.affected_uploads:
+                upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
+        # All went well, return a verified json as response
+        verified_json = copy.deepcopy(handler.edit_request_json)
+        verified_json['metadata'] = handler.root_metadata
+        verified_json['entries'] = handler.entries_metadata
+        return verified_json
+
+    def __init__(
+            self, logger, user: datamodel.User,
+            edit_request_json: Dict[str, Any] = None,
+            upload_files: StagingUploadFiles = None,
+            upload_id: str = None):
+        # Initialization
+        assert user, 'Must specify `user`'
+        assert (edit_request_json is None) != (upload_files is None), (
+            'Must specify either `edit_request` or `upload_files`')
+        self.logger = logger
+        self.user = user
+        self.edit_request_json = edit_request_json
+        self.upload_files = upload_files
+        self.upload_id = upload_id
+
+        self.errors: List[ErrorWrapper] = []  # A list of all encountered errors, if any
+        self.edit_attempt_locs: List[Tuple[str, ...]] = []  # locs where user has attempted to edit something
+        self.required_auth_level = AuthLevel.none  # Maximum required auth level for the edit
+        self.required_auth_level_locs: List[Tuple[str, ...]] = []  # locs where maximal auth level is needed
+        self.encountered_users: Dict[str, str] = {}  # { ref: user_id | None }, ref = user_id | username | email
+        self.encountered_datasets: Dict[str, datamodel.Dataset] = {}  # { ref : dataset | None }, ref = dataset_id | dataset_name
+        self.root_metadata: Dict[str, Any] = None  # The metadata specified at the top/root level
+
+        # Specific to the MetadataEditRequest case
+        self.edit_request: MetadataEditRequest = None
+        self.affected_uploads: List['Upload'] = None  # A MetadataEditRequest may involve multiple uploads
+        self.entries_metadata: Dict[str, Dict[str, Any]] = {}  # Metadata specified for individual entries
+
+    def validate_metadata_files(self):
+        pass  # TODO
+
+    def validate_request(self):
+        ''' Validates the provided edit_request_json. '''
+        # Validate the request json. Will raise ValidationError if json is malformed
+        self.edit_request = MetadataEditRequest(**self.edit_request_json)
+        try:
+            if not self.upload_id and not self.edit_request.query:
+                return self._loc_error('Must specify `query`', 'query')
+            if self.edit_request.entries and not self.edit_request.entries_key:
+                return self._loc_error('Must specify `entries_key` when specifying `entries`', 'entries_key')
+
+            can_edit_upload_fields = bool(self.upload_id and not self.edit_request.query)
+            if self.edit_request.metadata:
+                self.root_metadata = self._verify_metadata_edit_actions(
+                    self.edit_request_json['metadata'], ('metadata',), can_edit_upload_fields)
+            if self.edit_request.entries:
+                for key, entry_metadata in self.edit_request_json['entries'].items():
+                    verified_metadata = self._verify_metadata_edit_actions(
+                        entry_metadata, ('entries', key), False)
+                    self.entries_metadata[key] = verified_metadata
+
+            if not self.edit_attempt_locs:
+                return self._loc_error('No fields to update specified', 'metadata')
+            if self.required_auth_level == AuthLevel.admin and not self.user.is_admin:
+                for loc in self.required_auth_level_locs:
+                    self._loc_error('Admin rights required', loc)
+                return
+
+            embargo_length: int = self.root_metadata.get('embargo_length')
+            try:
+                self.affected_uploads = self._find_request_uploads()
+            except Exception as e:
+                return self._loc_error('Could not evaluate query: ' + str(e), 'query')
+            if not self.affected_uploads:
+                if self.edit_request.query:
+                    return self._loc_error('No matching entries found', 'query')
+                return self._loc_error('No matching upload found', 'upload_id')
+            for upload in self.affected_uploads:
+                # Check permissions
+                coauthor = upload.coauthors and self.user.user_id in upload.coauthors
+                main_author = self.user.user_id == upload.main_author
+                admin = self.user.is_admin
+                if self.required_auth_level == AuthLevel.coauthor:
+                    has_access = coauthor or main_author or admin
+                elif self.required_auth_level == AuthLevel.main_author:
+                    has_access = main_author or admin
+                elif self.required_auth_level == AuthLevel.admin:
+                    has_access = admin
+                else:
+                    assert False, 'Invalid required_auth_level'  # Should not happen
+                if not has_access:
+                    for loc in self.required_auth_level_locs:
+                        self._loc_error(
+                            f'{self.required_auth_level} access required for upload '
+                            f'{upload.upload_id}', loc)
+                    return
+                # Other checks
+                if embargo_length is not None:
+                    if upload.published and not admin and embargo_length != 0:
+                        self._loc_error(
+                            f'Upload {upload.upload_id} is published, embargo can only be lifted',
+                            ('metadata', 'embargo_length'))
+                if upload.published and not admin:
+                    has_invalid_edit = False
+                    for edit_loc in self.edit_attempt_locs:
+                        if edit_loc[-1] not in ('embargo_length', 'datasets'):
+                            has_invalid_edit = True
+                            self._loc_error(
+                                f'Cannot update, upload {upload.upload_id} is published.', edit_loc)
+                    if has_invalid_edit:
+                        return
+        except Exception as e:
+            # Something unexpected has gone wrong
+            self.logger.error(e)
+            raise
+        finally:
+            if self.errors:
+                raise RequestValidationError(errors=self.errors)
+
+    def get_upload_metadata_to_set(self, upload: 'Upload') -> Dict[str, Any]:
+        '''
+        Returns a dictionary with verified metadata to update on the Upload object. The
+        values have the correct type for mongo. Assumes that the corresponding validation method
+        (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
+        '''
+        rv: Dict[str, Any] = {}
+        if self.root_metadata:
+            self._applied_mongo_actions(upload, self.root_metadata, rv)
+        return rv
+
+    def get_entry_metadata_to_set(self, upload: 'Upload', entry: 'Calc') -> Dict[str, Any]:
+        '''
+        Returns a dictionary with verified metadata to update on the entry object. The
+        values have the correct type for mongo. Assumes that the corresponding validation method
+        (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
+        '''
+        rv: Dict[str, Any] = {}
+        if self.root_metadata:
+            self._applied_mongo_actions(entry, self.root_metadata, rv)
+        if self.edit_request:
+            # Source = edit_request
+            if self.entries_metadata:
+                entry_key = self._get_entry_key(entry, self.edit_request.entries_key)
+                entry_metadata = self.entries_metadata.get(entry_key)
+                if entry_metadata:
+                    # We also have actions for this particular entry specified
+                    self._applied_mongo_actions(entry, entry_metadata, rv)
+        else:
+            # Source = metadata files
+            pass  # TODO
+        return rv
+
+    def _loc_error(self, msg: str, loc: Union[str, Tuple[str, ...]]):
+        ''' Registers a located error. '''
+        self.errors.append(ErrorWrapper(Exception(msg), loc=loc))
+        self.logger.error(msg, loc=loc)
+
+    def _verify_metadata_edit_actions(
+            self, metadata_edit_actions: Dict[str, Any], loc: Tuple[str, ...],
+            can_edit_upload_fields: bool, auth_level: AuthLevel = None) -> Dict[str, Any]:
+        '''
+        Performs *basic* validation of a dictionary with metadata edit actions, and returns a
+        dictionary with the same structure, but containing only the *verified* actions. Verified
+        actions are actions that pass validation. Moreover:
+            1)  For actions on lists, the verified action value is always expressed as a
+                list operation (a dictionary with `op` and `values`)
+            2)  User references (which can be specified by a user_id, a username, or an email)
+                are always converted to user_id
+            3)  dataset references (which can be specified either by dataset_id or dataset_name)
+                are always replaced with dataset_ids, and it is verified that none of the
+                datasets has a doi.
+            4)  Only `add` and `remove` operations are allowed for datasets.
+        '''
+        rv = {}
+        for quantity_name, action in metadata_edit_actions.items():
+            if action is not None:
+                success, verified_action = self._verify_metadata_edit_action(
+                    quantity_name, action, loc + (quantity_name,), can_edit_upload_fields, auth_level)
+                if success:
+                    rv[quantity_name] = verified_action
+        return rv
+
+    def _verify_metadata_edit_action(
+            self, quantity_name: str, action: Any, loc: Tuple[str, ...],
+            can_edit_upload_fields: bool, auth_level: AuthLevel) -> Tuple[bool, Any]:
+        '''
+        Performs basic validation of a single action. Returns (success, verified_action).
+        '''
+        definition = _editable_metadata.get(quantity_name)
+        if not definition:
+            self._loc_error('Unknown quantity', loc)
+            return False, None
+
+        self.edit_attempt_locs.append(loc)
+
+        field_auth_level = getattr(definition, 'a_auth_level', AuthLevel.coauthor)
+
+        if auth_level is not None:
+            # Our auth level is known, check it immediately
+            if field_auth_level > auth_level:
+                self._loc_error(f'{field_auth_level} privileges required', loc)
+                return False, None
+        if field_auth_level > self.required_auth_level:
+            self.required_auth_level = field_auth_level
+            self.required_auth_level_locs = [loc]
+        if quantity_name in _mongo_upload_metadata and not can_edit_upload_fields:
+            self._loc_error('Quantity can only be edited on the upload level', loc)
+            return False, None
+
+        try:
+            if definition.is_scalar:
+                return True, self._verified_value(definition, action)
+            else:
+                # We have a non-scalar quantity
+                if type(action) == dict:
+                    # Action is a dict - expected to contain op and values
+                    assert action.keys() == {'op', 'values'}, 'Expected keys `op` and `values`'
+                    op = action['op']
+                    values = action['values']
+                    assert op in ('set', 'add', 'remove'), 'op should be `set`, `add` or `remove`'
+                    if quantity_name == 'datasets' and op == 'set':
+                        self._loc_error(
+                            'Only `add` and `remove` operations permitted for datasets', loc)
+                        return False, None
+                else:
+                    op = 'set'
+                    values = action
+                    if quantity_name == 'datasets':
+                        op = 'add'  # Just specifying a list will be interpreted as add, rather than fail.
+                values = values if type(values) == list else [values]
+                verified_values = [self._verified_value(definition, v) for v in values]
+                return True, dict(op=op, values=verified_values)
+        except Exception as e:
+            self._loc_error(str(e), loc)
+            return False, None
+
+    def _verified_value(
+            self, definition: metainfo.Definition, value: Any) -> Any:
+        '''
+        Verifies a *singular* action value (i.e. for list quantities we should run this method
+        for each value in the list, not with the list itself as input). Returns the verified
+        value, which may be different from the origial value. It:
+            1) ensures a return value of a primitive type (str, int, float, bool or None),
+            2) that user refs exist,
+            3) that datasets refs exist and do not have a doi.
+            4) Translates user refs to user_id and dataset refs to dataset_id, if needed.
+        Raises exception in case of failures.
+        '''
+        if definition.type in (str, int, float, bool):
+            assert value is None or type(value) == definition.type, f'Expected a {definition.type.__name__}'
+            if definition.name == 'embargo_length':
+                assert 0 <= value <= 36, 'Value should be between 0 and 36'
+            return None if value == '' else value
+        elif definition.type == metainfo.Datetime:
+            if value is not None:
+                datetime.fromisoformat(value)  # Throws exception if badly formatted timestamp
+            return None if value == '' else value
+        elif isinstance(definition.type, metainfo.MEnum):
+            assert type(value) == str, 'Expected a string value'
+            if value == '':
+                return None
+            assert value in definition.type._values, f'Bad enum value {value}'
+            return value
+        elif isinstance(definition.type, metainfo.Reference):
+            assert type(value) == str, 'Expected a string value'
+            reference_type = definition.type.target_section_def.section_cls
+            if reference_type in [datamodel.User, datamodel.Author]:
+                if value in self.encountered_users:
+                    user_id = self.encountered_users[value]
+                else:
+                    # New user reference encountered, try to fetch it
+                    user_id = None
+                    try:
+                        user_id = datamodel.User.get(user_id=value).user_id
+                    except KeyError:
+                        try:
+                            user_id = datamodel.User.get(username=value).user_id
+                        except KeyError:
+                            if '@' in value:
+                                try:
+                                    user_id = datamodel.User.get(email=value).user_id
+                                except KeyError:
+                                    pass
+                    self.encountered_users[value] = user_id
+                assert user_id is not None, f'User reference not found: `{value}`'
+                return user_id
+            elif reference_type == datamodel.Dataset:
+                dataset = self._get_dataset(value)
+                assert dataset is not None, f'Dataset reference not found: `{value}`'
+                assert self.user.is_admin or dataset.user_id == self.user.user_id, (
+                    f'Dataset `{value}` does not belong to you')
+                assert not dataset.doi, f'Dataset `{value}` has a doi and cannot be changed'
+                return dataset.dataset_id
+        else:
+            assert False, 'Unhandled value type'  # Should not happen
+
+    def _applied_mongo_actions(
+            self, mongo_doc: Union['Upload', 'Calc'],
+            verified_actions: Dict[str, Any], applied_actions: Dict[str, Any]):
+        '''
+        Calculates the upload or entry level *applied actions*, i.e. key-value pairs with
+        data to set on the provided `mongo_doc` in order to carry out the actions specified
+        by `verified_actions`. The result is added to `applied_actions`.
+        '''
+        for quantity_name, verified_action in verified_actions.items():
+            if isinstance(mongo_doc, Calc) and quantity_name not in _mongo_entry_metadata:
+                continue
+            elif isinstance(mongo_doc, Upload) and quantity_name not in _mongo_upload_metadata:
+                continue
+            applied_actions[quantity_name] = self._applied_mongo_action(
+                mongo_doc, quantity_name, verified_action)
+
+    def _applied_mongo_action(self, mongo_doc, quantity_name: str, verified_action: Any) -> Any:
+        definition = _editable_metadata[quantity_name]
+        if definition.is_scalar:
+            if definition.type == metainfo.Datetime and verified_action:
+                return datetime.fromisoformat(verified_action)
+            return verified_action
+        # Non-scalar property. The verified action should be a dict with op and values
+        op, values = verified_action['op'], verified_action['values']
+        old_list = getattr(mongo_doc, quantity_name, [])
+        new_list = [] if op == 'set' else old_list.copy()
+        for v in values:
+            if op == 'add' or op == 'set':
+                if v not in new_list:
+                    if quantity_name in ('coauthors', 'reviewers') and v == mongo_doc.main_author:
+                        continue  # Prevent adding the main author to coauthors or reviewers
+                    new_list.append(v)
+            elif op == 'remove':
+                if v in new_list:
+                    new_list.remove(v)
+        return new_list
+
+    def _get_entry_key(self, entry: 'Calc', entries_key: str) -> str:
+        if entries_key == 'calc_id' or entries_key == 'entry_id':
+            return entry.calc_id
+        elif entries_key == 'mainfile':
+            return entry.mainfile
+        assert False, f'Invalid entries_key: {entries_key}'
+
+    def _get_dataset(self, ref: str) -> datamodel.Dataset:
+        '''
+        Gets a dataset. They can be identified either using dataset_id or dataset_name, but
+        only datasets belonging to the user can be specified using names. If no matching
+        dataset can be found, None is returned.
+        '''
+        if ref in self.encountered_datasets:
+            return self.encountered_datasets[ref]
+        else:
+            # First time we encounter this ref
+            try:
+                dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=ref)
+            except KeyError:
+                try:
+                    dataset = datamodel.Dataset.m_def.a_mongo.get(
+                        user_id=self.user.user_id, dataset_name=ref)
+                except KeyError:
+                    dataset = None
+            self.encountered_datasets[ref] = dataset
+        return dataset
+
+    def _restricted_request_query(self, upload_id: str = None):
+        '''
+        Gets the query of the request, if it has any. If we have a query and if an `upload_id`
+        is specified, we return a modified query, by restricting the original query to this upload.
+        '''
+        query = self.edit_request.query
+        if upload_id and query:
+            # Restrict query to the specified upload
+            return And(**{'and': [{'upload_id': upload_id}, query]})
+        return query
+
+    def _find_request_uploads(self) -> List['Upload']:
+        ''' Returns a list of :class:`Upload`s matching the edit request. '''
+        query = self._restricted_request_query(self.upload_id)
+        if query:
+            # Perform the search, aggregating by upload_id
+            search_response = search.search(
+                user_id=self.user.user_id,
+                owner=self.edit_request.owner,
+                query=query,
+                aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity='upload_id'))),
+                pagination=MetadataPagination(page_size=0))
+            terms = search_response.aggregations['agg'].terms  # pylint: disable=no-member
+            return [Upload.get(bucket.value) for bucket in terms.data]  # type: ignore
+        elif self.upload_id:
+            # Request just specifies an upload_id, no query
+            try:
+                return [Upload.get(self.upload_id)]
+            except KeyError:
+                pass
+        return []
+
+    def find_request_entries(self, upload: 'Upload') -> Iterable['Calc']:
+        ''' Finds the entries of the specified upload which are effected by the request. '''
+        query = self._restricted_request_query(upload.upload_id)
+        if query:
+            # We have a query. Execute it to get the entries.
+            search_result = search.search_iterator(
+                user_id=self.user.user_id,
+                owner=self.edit_request.owner,
+                query=query,
+                required=MetadataRequired(include=['calc_id']))
+            for result in search_result:
+                yield Calc.get(result['calc_id'])
+        else:
+            # We have no query. Return all entries for the upload
+            for entry in Calc.objects(upload_id=upload.upload_id):
+                yield entry
 
 
 class Calc(Proc):
@@ -314,11 +775,11 @@ class Calc(Proc):
         '''
         assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
         # Upload metadata
-        for field in _mongo_upload_metadata:
-            setattr(entry_metadata, field, getattr(upload, field))
+        for quantity_name in _mongo_upload_metadata:
+            setattr(entry_metadata, quantity_name, getattr(upload, quantity_name))
         # Entry metadata
-        for field in _mongo_entry_metadata:
-            setattr(entry_metadata, field, getattr(self, field))
+        for quantity_name in _mongo_entry_metadata:
+            setattr(entry_metadata, quantity_name, getattr(self, quantity_name))
         # Special case: domain. May be derivable from mongo, or may have to be read from the archive
         if self.parser_name is not None:
             parser = parser_dict[self.parser_name]
@@ -332,8 +793,8 @@ class Calc(Proc):
         but excluding upload level metadata and system fields (like mainfile, parser_name etc.).
         '''
         entry_metadata_dict = entry_metadata.m_to_dict(include_defaults=True)
-        for field in _mongo_entry_metadata_except_system_fields:
-            setattr(self, field, entry_metadata_dict.get(field))
+        for quantity_name in _mongo_entry_metadata_except_system_fields:
+            setattr(self, quantity_name, entry_metadata_dict.get(quantity_name))
 
     def set_mongo_entry_metadata(self, *args, **kwargs):
         '''
@@ -350,7 +811,7 @@ class Calc(Proc):
                 if key in _mongo_entry_metadata_except_system_fields:
                     setattr(self, key, value)
                 else:
-                    assert False, f'Cannot set metadata field: {key}'
+                    assert False, f'Cannot set metadata quantity: {key}'
 
     def full_entry_metadata(self, upload: 'Upload') -> EntryMetadata:
         '''
@@ -1542,6 +2003,68 @@ class Upload(Proc):
                 with utils.timer(logger, 'index updated'):
                     search.update_metadata(entries_metadata, update_materials=True, refresh=True)
 
+    @process
+    def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
+        '''
+        A @process that executes a metadata edit request, restricted to a specific upload,
+        on behalf of the provided user. The `edit_request_json` should be a json dict of the
+        format specified by the pydantic model :class:`MetadataEditRequest` (we need to use
+        primitive data types, i.e. the json format, to be able to pass the request to a
+        rabbitmq task).
+        '''
+        logger = self.get_logger()
+        user = datamodel.User.get(user_id=user_id)
+        assert not edit_request_json.get('verify_only'), 'Request has verify_only'
+
+        # Validate the request (the @process could have been invoked directly, without previous validation)
+        handler = MetadataEditRequestHandler(
+            logger, user, edit_request_json=edit_request_json, upload_id=self.upload_id)
+        handler.validate_request()  # Should raise errors if something looks wrong
+
+        # Upload level metadata
+        old_with_embargo = self.with_embargo
+        upload_updates = handler.get_upload_metadata_to_set(self)
+        if upload_updates:
+            for quantity_name, mongo_value in upload_updates.items():
+                setattr(self, quantity_name, mongo_value)
+            self.save()
+
+        if self.published and old_with_embargo != self.with_embargo:
+            # Need to repack
+            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
+
+        # Entry level metadata
+        last_edit_time = datetime.utcnow()
+        entry_mongo_writes = []
+        updated_metadata: List[datamodel.EntryMetadata] = []
+        for entry in handler.find_request_entries(self):
+            entry_updates = handler.get_entry_metadata_to_set(self, entry)
+            entry_updates['last_edit_time'] = last_edit_time
+            # Add mongo entry update operation to bulk write list
+            entry_mongo_writes.append(UpdateOne({'_id': entry.calc_id}, {'$set': entry_updates}))
+            # Create updates for ES
+            entry_metadata = entry.mongo_metadata(self)
+            if upload_updates:
+                entry_metadata.m_update_from_dict(upload_updates)
+            entry_metadata.m_update_from_dict(entry_updates)
+            updated_metadata.append(entry_metadata)
+
+        # Update mongo
+        if entry_mongo_writes:
+            with utils.timer(logger, 'Mongo bulk write completed', nupdates=len(entry_mongo_writes)):
+                mongo_result = Calc._get_collection().bulk_write(entry_mongo_writes)
+            mongo_errors = mongo_result.bulk_api_result.get('writeErrors')
+            if mongo_errors:
+                return self.fail(
+                    f'Failed to update mongo! {len(mongo_errors)} failures, first is {mongo_errors[0]}')
+        # Update ES
+        if updated_metadata:
+            with utils.timer(logger, 'ES updated', nupdates=len(updated_metadata)):
+                failed_es = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
+
+            if failed_es > 0:
+                return self.fail(f'Failed to update ES, there were {failed_es} fails')
+
     def entry_ids(self) -> List[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
 
@@ -1733,7 +2256,7 @@ class Upload(Proc):
                 if not self.oasis_deployment_id:
                     self.oasis_deployment_id = source_deployment_id
                     # Note, if oasis_deployment_id is set in the bundle_info, we keep this
-                    # field as it is, since it indicates that the upload has been importet from
+                    # value as it is, since it indicates that the upload has been imported from
                     # somewhere else originally (i.e. source_deployment_id would not be the
                     # original source)
 
@@ -1747,17 +2270,19 @@ class Upload(Proc):
                     check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {id}')
                     dataset_id = dataset_dict['dataset_id']
                     try:
-                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_name=dataset_dict['dataset_name'])
-                        # Dataset by the given dataset_name already exists
-                        assert existing_dataset.user_id == dataset_dict['user_id'], (
-                            'A dataset with the same dataset_name but different creator exists')
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
+                            user_id=dataset_dict['user_id'],
+                            dataset_name=dataset_dict['dataset_name'])
+                        # Dataset by the given dataset_name and user_id already exists
                         dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
                         # Note, it may be that a dataset with the same dataset_name and creator
                         # is created in both environments. In that case, we consider them
                         # to be the "same" dataset, even if they do not have the same dataset_id.
                         # Thus, in that case the dataset id needs to be translated.
+                        assert not existing_dataset.doi, (
+                            f'Matched dataset {existing_dataset.dataset_id} has a DOI, cannot be updated')
                     except KeyError:
-                        # Create a new dataset
+                        # Completely new dataset, create it
                         new_dataset = datamodel.Dataset(**dataset_dict)
                         new_dataset.a_mongo.save()
                         new_datasets.append(new_dataset)
@@ -1807,8 +2332,9 @@ class Upload(Proc):
 
             # Validate embargo settings
             if embargo_length is not None:
-                assert 0 <= embargo_length <= 36, 'Invalid embargo_length, must be between 0 and 36 months'
-                self.embargo_length = embargo_length  # Set the flag also on the Upload level
+                self.embargo_length = embargo_length  # Importing with different embargo
+            assert type(self.embargo_length) == int and 0 <= self.embargo_length <= 36, (
+                'Invalid embargo_length, must be between 0 and 36 months')
 
             # Import the files
             bundle.import_upload_files(

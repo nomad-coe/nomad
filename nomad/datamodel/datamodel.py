@@ -19,6 +19,7 @@
 ''' All generic entry metadata and related classes. '''
 
 from typing import List, Any
+from enum import Enum
 from cachetools import cached, TTLCache
 from elasticsearch_dsl import analyzer, tokenizer
 
@@ -38,6 +39,20 @@ from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.common_experimental import Measurement  # noqa
+
+
+class AuthLevel(int, Enum):
+    '''
+    Used to decorate fields with the authorization level required to edit them (using `a_auth_level`).
+    * `none`: No authorization required
+    * `coauthor`: You must be at least a coauthor of the upload to edit the field.
+    * `main_author`: You must be the main author of the upload to edit the field.
+    * `admin`: You must be admin to edit the field.
+    '''
+    none = 0
+    coauthor = 1
+    main_author = 2
+    admin = 3
 
 
 path_analyzer = analyzer(
@@ -404,13 +419,14 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_uploads='cardinality')))
 
     upload_name = metainfo.Quantity(
-        type=str, categories=[MongoUploadMetadata],
+        type=str, categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The user provided upload name',
         a_elasticsearch=Elasticsearch())
 
     upload_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata],
+        type=metainfo.Datetime, categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was created in nomad',
+        a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     calc_id = metainfo.Quantity(
@@ -421,17 +437,19 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
     calc_hash = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
         type=str,
         description='A raw file content based checksum/hash',
         categories=[MongoEntryMetadata])
 
     entry_create_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        type=metainfo.Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata, EditableUserMetadata],
         description='The date and time when the entry was created in nomad',
-        a_flask=dict(admin_only=True),
+        a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     last_edit_time = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
         type=metainfo.Datetime, categories=[MongoEntryMetadata],
         description='The date and time the user metadata was last edited.')
 
@@ -473,7 +491,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(entry_type))
 
     external_id = metainfo.Quantity(
-        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata],
+        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata, EditableUserMetadata],
         description='''
             A user provided external id. Usually the id for an entry in an external database
             where the data was imported from.
@@ -487,9 +505,9 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     publish_time = metainfo.Quantity(
-        type=metainfo.Datetime, categories=[MongoUploadMetadata],
+        type=metainfo.Datetime, categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was published in nomad',
-        a_flask=dict(admin_only=True),
+        a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     with_embargo = metainfo.Quantity(
@@ -498,14 +516,21 @@ class EntryMetadata(metainfo.MSection):
         description='Indicated if this entry is under an embargo',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
+    embargo_length = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
+        type=int, categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='The length of the requested embargo period, in months')
+
     license = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
         type=str,
         description='''
             A short license description (e.g. CC BY 4.0), that refers to the
             license of this entry.
         ''',
         default='CC BY 4.0',
-        categories=[MongoUploadMetadata, EditableUserMetadata])
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        a_auth_level=AuthLevel.admin)
 
     processed = metainfo.Quantity(
         type=bool, default=False, categories=[MongoEntryMetadata, MongoSystemMetadata],
@@ -546,7 +571,7 @@ class EntryMetadata(metainfo.MSection):
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'),
-        categories=[MongoUploadMetadata, UserProvidableMetadata],
+        categories=[MongoUploadMetadata, UserProvidableMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -560,11 +585,13 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     main_author = metainfo.Quantity(
-        type=user_reference, categories=[MongoUploadMetadata],
+        type=user_reference, categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The main author of the entry',
+        a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     coauthors = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
         type=author_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
         description='''
             A user provided list of co-authors for the whole upload. These can view and edit the
@@ -572,13 +599,15 @@ class EntryMetadata(metainfo.MSection):
         ''')
 
     entry_coauthors = metainfo.Quantity(
-        type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata, EditableUserMetadata],
+        # Note: This attribute is not stored in ES
+        type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata],
         description='''
-            A user provided list of co-authors specific for this entry. Note that normally,
-            coauthors should be set on the upload level.
+            A user provided list of co-authors specific for this entry. This is a legacy field,
+            for new uploads, coauthors should be specified on the upload level only.
         ''')
 
     reviewers = metainfo.Quantity(
+        # Note: This attribute is not stored in ES
         type=user_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
         description='''
             A user provided list of reviewers. Reviewers can see the whole upload, also if
