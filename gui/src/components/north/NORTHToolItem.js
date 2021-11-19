@@ -87,41 +87,53 @@ const NORTHToolItem = React.memo(({
 
   const [state, setState] = useState('idle')
 
-  useEffect(() => {
-    northApi.get(`servers/${name}/progress`)
+  const isToolRunning = useCallback(() => {
+    setState('idle') // I set this to prevent the user seeing an empty button while this function is being called. Only happens when previously not cached
+    if (northApi === null) {
+      return
+    }
+    return northApi.get(`servers/${name}/progress`)
       .then((response) => {
         const data = JSON.parse(response.data.substr(6))
         if (data.ready) {
-          setState('running')
+          return 'running'
         } else {
-          setState('launching')
+          return 'launching'
         }
       })
       .catch(error => {
-        if (error.response.status === 404) {
-          setState('idle')
+        if (error?.response?.status === 404) {
+          return 'idle'
         } else {
           raiseError(error)
         }
       })
-  }, [northApi, raiseError, setState, name])
+  }, [northApi, raiseError, name])
+
+  useEffect(() => {
+    isToolRunning().then((toolStatus) => {
+      setState(toolStatus)
+    })
+  }, [setState, isToolRunning])
 
   const launch = useCallback(() => {
-    if (state === 'running') {
-      window.open(`${northBase}/hub/user-redirect/${name}`, name)
-    } else {
-      setState('launching')
-      northApi.post(`servers/${name}`)
-        .then(() => {
-          window.open(`${northBase}/hub/user-redirect/${name}`, name)
-          setState('running')
-        })
-        .catch(errors => {
-          raiseError(errors)
-          setState('idle')
-        })
-    }
-  }, [setState, northApi, raiseError, name, state])
+    isToolRunning().then((toolStatus) => {
+      if (state === 'running' && toolStatus === 'running') { // This checks the UI state as well as the JupyterHub state from the network call response.
+        window.open(`${northBase}/hub/user-redirect/${name}`, name)
+      } else {
+        setState('launching')
+        northApi.post(`servers/${name}`)
+          .then(() => {
+            window.open(`${northBase}/hub/user-redirect/${name}`, name)
+            setState('running')
+          })
+          .catch(errors => {
+            raiseError(errors)
+            setState('idle')
+          })
+      }
+    })
+  }, [setState, northApi, raiseError, name, state, isToolRunning])
 
   const stop = useCallback(() => {
     setState('stopping')
