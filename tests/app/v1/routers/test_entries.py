@@ -386,7 +386,7 @@ def test_entries_aggregations_exclude_from_search(client, data, query, aggs, agg
     assert response_json['pagination']['total'] == total
     for i, length in enumerate(agg_lengths):
         response_agg = response_json['aggregations'][f'agg_{i}']['terms']
-    assert len(response_agg['data']) == length
+        assert len(response_agg['data']) == length
 
 
 @pytest.mark.parametrize('required, status_code', [
