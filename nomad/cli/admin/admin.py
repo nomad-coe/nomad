@@ -331,12 +331,15 @@ def upgrade():
     '--dst-db-name', type=str, default=config.mongo.db_name,
     help='The name of the destination database. By default same as the configured db.')
 @click.option(
-    '--query', type=str,
-    help='An mongo query, for selecting only some of the uploads in the source database for import.')
+    '--upload-query', type=str,
+    help='An mongo upload query. All uploads matching the query will be included in the migration.')
+@click.option(
+    '--entry-query', type=str,
+    help='An mongo entry query. All uploads with an entry matching the query will be included in the migration.')
 @click.option(
     '--ids-from-file', type=str,
-    help='''Reads upload IDs from the specified file. Cannot be used together with the --query
-            option.
+    help='''Reads upload IDs from the specified file. Cannot be used together with the
+            --upload-query or --entry-query options.
             This can for example be used to retry just the uploads that has previously failed
             (as these ids can be exported to file using --failed-ids-to-file). You can specify both
             --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
@@ -347,14 +350,28 @@ def upgrade():
             (as these ids can be loaded from file using --ids-from-file). You can specify both
             --ids-from-file and --failed-ids-to-file at the same time with the same file name.''')
 @click.option(
+    '--upload-update', type=str,
+    help='json with updates to apply to all converted uploads')
+@click.option(
+    '--entry-update', type=str,
+    help='json with updates to apply to all converted entries')
+@click.option(
+    '--overwrite', type=click.Choice(['always', 'if-newer', 'never'], case_sensitive=False), default='never',
+    help='''If an upload already exists in the destination db, this option determines whether
+            it and its child records should be overwritten with the data from the source db.
+            Possible values are "always", "if-newer", "never". Selecting "always" always overwrites,
+            "never" never overwrites, and "if-newer" overwrites if the upload either doesn't exist
+            in the destination, or it exists but its complete_time (i.e. last time it was
+            processed) is older than in the source db.''')
+@click.option(
     '--fix-problems', is_flag=True,
     help='''If a minor, fixable problem is encountered, fixes it automaticall; otherwise fail.''')
 @click.option(
     '--dry', is_flag=True,
     help='Dry run (not writing anything to the destination database).')
 def migrate_mongo(
-        host, port, src_db_name, dst_db_name, query, ids_from_file, failed_ids_to_file,
-        fix_problems, dry):
+        host, port, src_db_name, dst_db_name, upload_query, entry_query,
+        ids_from_file, failed_ids_to_file, upload_update, entry_update, overwrite, fix_problems, dry):
     import json
     from pymongo.database import Database
     from nomad import utils, infrastructure
@@ -372,8 +389,12 @@ def migrate_mongo(
     if not dry:
         create_collections_if_needed(db_dst)
 
+    upload_ids = None
+    if upload_query and entry_query:
+        print('Cannot specify both upload-query and entry-query')
+        return -1
     if ids_from_file:
-        if query is not None:
+        if upload_query or entry_query:
             print('Cannot specify a query when using --ids-from-file.')
             return -1
         try:
@@ -382,12 +403,24 @@ def migrate_mongo(
         except FileNotFoundError:
             logger.error(f'Could not open file {ids_from_file}')
             return -1
-        query = {'_id': {'$in': upload_ids}}
-    elif query:
-        query = json.loads(query)
+    elif upload_query:
+        upload_query = json.loads(upload_query)
+    elif entry_query:
+        entry_query = json.loads(entry_query)
 
+    if upload_update:
+        upload_update = json.loads(upload_update)
+    if entry_update:
+        entry_update = json.loads(entry_update)
+
+    if entry_query:
+        logger.info('Quering entries...')
+        upload_ids = list(db_src.calc.distinct('upload_id', entry_query))
+    if upload_ids:
+        upload_query = {'_id': {'$in': upload_ids}}
     logger.info('Quering uploads...')
-    uploads = db_src.upload.find(query)
+    uploads = db_src.upload.find(upload_query)
 
     migrate_mongo_uploads(
-        db_src, db_dst, uploads, failed_ids_to_file, fix_problems, dry, logger)
+        db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, overwrite,
+        fix_problems, dry, logger)
