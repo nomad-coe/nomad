@@ -308,6 +308,9 @@ class DocumentType():
         '''
         mappings: Dict[str, Any] = {}
 
+        if self == material_type and prefix is None:
+            mappings['n_entries'] = {'type': 'integer'}
+
         for quantity_def in section_def.all_quantities.values():
             elasticsearch_annotations = quantity_def.m_get_annotations(Elasticsearch, as_list=True)
             for elasticsearch_annotation in elasticsearch_annotations:
@@ -858,42 +861,69 @@ def delete_indices():
     material_index.delete()
 
 
-def index_entry(entry: MSection, update_material: bool = False):
+def index_entry(entry: MSection, **kwargs):
     '''
     Upserts the given entry in the entry index. Optionally updates the materials index
     as well.
     '''
-    index_entries([entry], update_materials=update_material)
+    index_entries([entry], **kwargs)
 
 
-_max_entries_index_size = 1000
+def index_entries_with_materials(entries: List, refresh: bool = False):
+    index_entries(entries, refresh=refresh)
+    update_materials(entries, refresh=refresh)
 
 
-def index_entries(entries: List, update_materials: bool = True, refresh: bool = False):
+def index_entries(entries: List, refresh: bool = False):
     '''
     Upserts the given entries in the entry index. Optionally updates the materials index
     as well.
     '''
     # split into reasonably sized problems
-    if len(entries) > _max_entries_index_size:
-        for entries_part in [entries[i:i + _max_entries_index_size] for i in range(0, len(entries), _max_entries_index_size)]:
-            index_entries(entries_part, update_materials=update_materials)
+    if len(entries) > config.elastic.bulk_size:
+        for entries_part in [entries[i:i + config.elastic.bulk_size] for i in range(0, len(entries), config.elastic.bulk_size)]:
+            index_entries(entries_part, refresh=refresh)
         return
 
     if len(entries) == 0:
         return
 
-    # Index the entries themselves.
-    actions_and_docs = []
-    for entry in entries:
-        actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
-        entry_index_doc = entry_type.create_index_doc(entry)
-        actions_and_docs.append(entry_index_doc)
+    logger = utils.get_logger('nomad.search', n_entries=len(entries))
 
-    elasticsearch_results = entry_index.bulk(body=actions_and_docs, refresh=True)
+    with utils.timer(logger, 'prepare bulk index of entries actions and docs'):
+        actions_and_docs = []
+        for entry in entries:
+            actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
+            entry_index_doc = entry_type.create_index_doc(entry)
+            actions_and_docs.append(entry_index_doc)
 
-    if not update_materials:
+        timer_kwargs = {}
+        try:
+            import json
+            timer_kwargs['size'] = len(json.dumps(actions_and_docs))
+            timer_kwargs['n_actions'] = len(actions_and_docs)
+        except Exception:
+            pass
+
+    with utils.timer(
+        logger, 'perform bulk index of entries',
+        lnr_event='failed to bulk index entries',
+        **timer_kwargs
+    ):
+        entry_index.bulk(body=actions_and_docs, refresh=refresh, timeout=config.elastic.bulk_timeout)
+
+
+def update_materials(entries: List, refresh: bool = False):
+    # split into reasonably sized problems
+    if len(entries) > config.elastic.bulk_size:
+        for entries_part in [entries[i:i + config.elastic.bulk_size] for i in range(0, len(entries), config.elastic.bulk_size)]:
+            update_materials(entries_part, refresh=refresh)
         return
+
+    if len(entries) == 0:
+        return
+
+    logger = utils.get_logger('nomad.search', n_entries=len(entries))
 
     def get_material_id(entry):
         material_id = None
@@ -913,43 +943,47 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
         if material_id is not None:
             material_ids.add(material_id)
 
+    logger = logger.bind(n_materials=len(material_ids))
+
     # Get existing materials for entries' material ids (i.e. the entry needs to be added
     # or updated).
-    if material_ids:
-        elasticsearch_results = material_index.mget(body={
-            'docs': [dict(_id=material_id) for material_id in material_ids]
-        })
-        existing_material_docs = [
-            doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
-    else:
-        existing_material_docs = []
+    with utils.timer(logger, 'get existing materials', lnr_event='failed to get existing materials'):
+        if material_ids:
+            elasticsearch_results = material_index.mget(body={
+                'docs': [dict(_id=material_id) for material_id in material_ids]
+            })
+            existing_material_docs = [
+                doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+        else:
+            existing_material_docs = []
 
     # Get old materials that still have one of the entries, but the material id has changed
     # (i.e. the materials where entries need to be removed due entries having different
     # materials now).
-    elasticsearch_results = material_index.search(body={
-        'size': len(entry_ids),
-        'query': {
-            'bool': {
-                'must': {
-                    'nested': {
-                        'path': 'entries',
-                        'query': {
-                            'terms': {
-                                'entries.entry_id': list(entry_ids)
+    with utils.timer(logger, 'get old materials', lnr_event='failed to get old materials'):
+        elasticsearch_results = material_index.search(body={
+            'size': len(entry_ids),
+            'query': {
+                'bool': {
+                    'must': {
+                        'nested': {
+                            'path': 'entries',
+                            'query': {
+                                'terms': {
+                                    'entries.entry_id': list(entry_ids)
+                                }
                             }
                         }
-                    }
-                },
-                'must_not': {
-                    'terms': {
-                        'material_id': list(material_ids)
+                    },
+                    'must_not': {
+                        'terms': {
+                            'material_id': list(material_ids)
+                        }
                     }
                 }
             }
-        }
-    })
-    old_material_docs = [hit['_source'] for hit in elasticsearch_results['hits']['hits']]
+        })
+        old_material_docs = [hit['_source'] for hit in elasticsearch_results['hits']['hits']]
 
     # Compare and create the appropriate materials index actions
     # First, we go through the existing materials. The following cases need to be covered:
@@ -960,6 +994,7 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
     #   case where an entry's material id changed within the set of other entries' material ids)
     # This n + m complexity with n=number of materials and m=number of entries
     actions_and_docs = []
+    material_docs = []
     material_docs_dict = {}
     remaining_entry_ids = set(entry_ids)
     for material_doc in existing_material_docs:
@@ -993,6 +1028,7 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
 
         actions_and_docs.append(dict(index=dict(_id=material_id)))
         actions_and_docs.append(material_doc)
+        material_docs.append(material_doc)
 
     for entry_id in remaining_entry_ids:
         entry = entries_dict.get(entry_id)
@@ -1005,6 +1041,7 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
                 material_docs_dict[material_id] = material_doc
                 actions_and_docs.append(dict(create=dict(_id=material_id)))
                 actions_and_docs.append(material_doc)
+                material_docs.append(material_doc)
             # The material does exist (now), but the entry is new.
             material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
 
@@ -1030,12 +1067,41 @@ def index_entries(entries: List, update_materials: bool = True, refresh: bool = 
             # The material needs to be updated
             actions_and_docs.append(dict(index=dict(_id=material_id)))
             actions_and_docs.append(material_doc)
+            material_docs.append(material_doc)
+
+    # Third, we potentially cap the number of entries in a material. We ensure that only
+    # a certain amounts of entries are stored with all metadata. The rest will only
+    # have their entry id.
+    all_n_entries_capped = 0
+    all_n_entries = 0
+    for material_doc in material_docs:
+        material_entries = material_doc.get('entries', [])
+        material_doc['n_entries'] = len(material_entries)
+        if len(material_entries) > config.elastic.entries_per_material_cap:
+            material_doc['entries'] = material_entries[0:config.elastic.entries_per_material_cap]
+
+        all_n_entries_capped += len(material_entries)
+        all_n_entries += material_doc['n_entries']
 
     # Execute the created actions in bulk.
-    if len(actions_and_docs) > 0:
-        material_index.bulk(body=actions_and_docs, refresh=True)
+    timer_kwargs = {}
+    try:
+        import json
+        timer_kwargs['size'] = len(json.dumps(actions_and_docs))
+        timer_kwargs['n_actions'] = len(actions_and_docs)
+        timer_kwargs['n_entries'] = all_n_entries
+        timer_kwargs['n_entries_capped'] = all_n_entries_capped
+    except Exception:
+        pass
+
+    with utils.timer(
+        logger, 'perform bulk index of materials',
+        lnr_event='failed to bulk index materials',
+        **timer_kwargs
+    ):
+        if len(actions_and_docs) > 0:
+            material_index.bulk(body=actions_and_docs, refresh=False, timeout=config.elastic.bulk_timeout)
 
     if refresh:
         entry_index.refresh()
-        if update_materials:
-            material_index.refresh()
+        material_index.refresh()

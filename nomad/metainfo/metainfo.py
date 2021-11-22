@@ -1392,7 +1392,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if is_set:
                 value = self.__dict__[quantity.name]
             elif is_derived:
-                value = quantity.derived(self)
+                try:
+                    value = quantity.derived(self)
+                except Exception:
+                    value = quantity.default
             else:
                 value = quantity.default
 

@@ -55,7 +55,7 @@ from nomad.app.v1.models import (
 from nomad.metainfo.elasticsearch_extension import (
     index_entries, entry_type, entry_index, DocumentType,
     material_type, entry_type, material_entry_type,
-    entry_index, Index, index_entries, DocumentType, SearchQuantity)
+    entry_index, Index, index_entries, DocumentType, SearchQuantity, update_materials)
 
 
 def update_by_query(
@@ -162,9 +162,8 @@ _refresh = refresh
 
 
 def index(
-        entries: Union[EntryArchive, List[EntryArchive]],
-        update_materials: bool = False,
-        refresh: bool = True):
+        entries: Union[EntryArchive, List[EntryArchive]], update_materials: bool = False,
+        refresh: bool = False):
     '''
     Index the given entries based on their archive. Either creates or updates the underlying
     elasticsearch documents. If an underlying elasticsearch document already exists it
@@ -173,10 +172,21 @@ def index(
     if not isinstance(entries, list):
         entries = [entries]
 
-    index_entries(entries=entries, update_materials=update_materials)
+    index_entries(entries, refresh=refresh or update_materials)
+    if update_materials:
+        index_materials(entries, refresh=refresh)
 
-    if refresh:
-        _refresh()
+
+def index_materials(entries: Union[EntryArchive, List[EntryArchive]], **kwargs):
+    '''
+    Index the materials within the given entries based on their archive. The entries
+    have to be indexed first.
+    '''
+
+    if not isinstance(entries, list):
+        entries = [entries]
+
+    update_materials(entries=entries, **kwargs)
 
 
 # TODO this depends on how we merge section metadata

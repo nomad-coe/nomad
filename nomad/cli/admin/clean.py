@@ -111,9 +111,9 @@ def clean(dry, skip_calcs, skip_fs, skip_es, staging_too, force):
         es_upload_buckets = quantity_values('upload_id', owner='all', return_buckets=True)
 
         to_delete = list(
-            (bucket['value'], bucket['count'])
+            (bucket.value, bucket.count)
             for bucket in es_upload_buckets
-            if processing.Upload.objects(upload_id=bucket['value']).first() is None)
+            if processing.Upload.objects(upload_id=bucket.value).first() is None)
 
         calcs = 0
         for _, upload_calcs in to_delete:

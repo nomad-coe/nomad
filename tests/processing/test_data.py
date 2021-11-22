@@ -322,7 +322,7 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
 def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure):
     if with_failure == 'not-matched':
-        monkeypatch.setattr('nomad.config.reprocess.delete_unmatched_published_entries', False)
+        monkeypatch.setattr('nomad.config.reprocess.use_original_parser', True)
 
     if with_failure == 'before':
         calc = published.all_calcs(0, 1)[0]
@@ -410,10 +410,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
 
     # assert changed calc data
-    if with_failure not in ['after', 'not-matched']:
+    if with_failure not in ['after']:
         assert archive.results.material.elements[0] == 'H'
-    elif with_failure == 'not-matched':
-        assert archive.results.material.elements[0] == 'Si'
     else:
         assert archive.results is None
 

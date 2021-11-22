@@ -1126,7 +1126,7 @@ async def post_upload_action_publish(
 async def post_upload_action_process(
         upload_id: str = Path(
             ...,
-            description='The unique id of the upload to re-process.'),
+            description='The unique id of the upload to process.'),
         user: User = Depends(create_user_dependency(required=True))):
     '''
     Processes an upload, i.e. parses the files and updates the NOMAD archive. Only admins

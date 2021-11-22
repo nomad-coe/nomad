@@ -263,6 +263,7 @@ parser_dict: Dict[str, Parser] = {parser.name: parser for parser in parsers + em
 ''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
 
 # renamed parsers
+parser_dict['parsers/vaspoutcar'] = parser_dict['parsers/vasp']
 parser_dict['parser/broken'] = parser_dict['parsers/broken']
 parser_dict['parser/fleur'] = parser_dict['parsers/fleur']
 parser_dict['parser/molcas'] = parser_dict['parsers/molcas']

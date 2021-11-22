@@ -127,6 +127,10 @@ mongo:
 elastic:
   host: nomad-flink-01.esc
   port: 9200
+  timeout: 60
+  bulkTimeout: '10m'
+  bulk_size: 1000
+  entries_per_material_cap: 1000
 
 logstash:
   enabled: true
@@ -166,12 +170,16 @@ volumes:
 springerDbPath: /nomad/fairdi/db/data/springer.msg
 
 reprocess:
-    reparse_published_if_parser_unchanged: true
-    reparse_published_if_parser_changed: true
-    add_newfound_entries_to_published: true
-    delete_unmatched_published_entries: false
+  rematchPublished: true
+  reprocessExistingEntries: true
+  useOriginalParser: false
+  addMatchedEntriesToPublished: false
+  deleteUnmatchedPublishedEntries: false
+  indexIndividualEntries: false
 
-process_reuse_parser: true
+process:
+  reuseParser: true
+  indexMaterials: true
 
 datacite:
   enabled: false

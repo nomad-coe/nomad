@@ -18,20 +18,24 @@ data:
       {{ if .Values.meta.deployment }}
       deployment: "{{ .Values.meta.deployment }}"
       {{ end }}
+    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
+    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
+    process:
+      reuse_parser: {{ .Values.process.reuseParser }}
+      index_materials: {{ .Values.process.indexMaterials }}
     reprocess:
-      reparse_published_if_parser_unchanged: "{{ .Values.reprocess.reparse_published_if_parser_unchanged }}"
-      reparse_published_if_parser_changed: "{{ .Values.reprocess.reparse_published_if_parser_changed }}"
-      add_newfound_entries_to_published: "{{ .Values.reprocess.add_newfound_entries_to_published }}"
-      delete_unmatched_published_entries:  "{{ .Values.reprocess.delete_unmatched_published_entries }}"
+      rematch_published: {{ .Values.reprocess.rematchPublished }}
+      reprocess_existing_entries: {{ .Values.reprocess.reprocessExistingEntries }}
+      use_original_parser: {{ .Values.reprocess.useOriginalParser }}
+      add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
+      delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
+      index_invidiual_entries: {{ .Values.reprocess.indexIndividualEntries }}
     beta:
       label: "{{ .Values.version.label }}"
       isBeta: {{ .Values.version.isBeta }}
       isTest: {{ .Values.version.isTest }}
       usesBetaData: {{ .Values.version.usesBetaData }}
       officialUrl: "{{ .Values.version.officialUrl }}"
-    process_reuse_parser: {{ .Values.process_reuse_parser }}
-    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
-    aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
@@ -56,6 +60,10 @@ data:
     elastic:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
+      timeout: {{ .Values.elastic.timeout }}
+      bulk_timeout: "{{ .Values.elastic.bulkTimeout }}"
+      bulk_size=1000: {{ .Values.elastic.bulkSize }}
+      entries_per_material_cap: {{ .Values.elastic.entriesPerMaterialCap }}
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:

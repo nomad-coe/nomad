@@ -135,6 +135,10 @@ fs = NomadConfig(
 elastic = NomadConfig(
     host='localhost',
     port=9200,
+    timeout=60,
+    bulk_timeout='10m',
+    bulk_size=1000,
+    entries_per_material_cap=1000,
     entries_index='nomad_entries_v1',
     materials_index='nomad_materials_v1',
 )
@@ -326,10 +330,19 @@ reprocess = NomadConfig(
     # Configures standard behaviour when reprocessing.
     # Note, the settings only matter for published uploads and entries. For uploads in
     # staging, we always reparse, add newfound entries, and delete unmatched entries.
-    reparse_published_if_parser_unchanged=True,
-    reparse_published_if_parser_changed=True,
-    add_newfound_entries_to_published=True,
-    delete_unmatched_published_entries=False
+    rematch_published=True,
+    reprocess_existing_entries=True,
+    use_original_parser=False,
+    add_matched_entries_to_published=True,
+    delete_unmatched_published_entries=False,
+    index_invidiual_entries=False
+)
+
+process = NomadConfig(
+    index_materials=True,
+    reuse_parser=True,
+    metadata_file_name='nomad',
+    metadata_file_extensions=('json', 'yaml', 'yml')
 )
 
 bundle_import = NomadConfig(
@@ -356,10 +369,11 @@ bundle_import = NomadConfig(
 
         # When importing with trigger_processing=True, the settings below control the
         # initial processing behaviour (see the config for `reprocess` for more info).
-        reparse_published_if_parser_unchanged=True,
-        reparse_published_if_parser_changed=True,
-        add_newfound_entries_to_published=True,
-        delete_unmatched_published_entries=True
+        rematch_published=True,
+        reprocess_existing_entries=True,
+        use_original_parser=False,
+        add_matched_entries_to_published=True,
+        delete_unmatched_published_entries=False
     )
 )
 
@@ -369,13 +383,9 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
-use_empty_parsers = False
-process_reuse_parser = True
-metadata_file_name = 'nomad'
-metadata_file_extensions = ('json', 'yaml', 'yml')
-enable_lazy_import = True
 encyclopedia_enabled = True
 aitoolkit_enabled = False
+use_empty_parsers = False
 
 
 def normalize_loglevel(value, default_level=logging.INFO):

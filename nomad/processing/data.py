@@ -668,6 +668,7 @@ class Calc(Proc):
         self._calc_proc_logs: List[Any] = None
 
         self._entry_metadata: EntryMetadata = None
+        self._perform_index = True
 
     @classmethod
     def get(cls, id) -> 'Calc':
@@ -710,7 +711,7 @@ class Calc(Proc):
         # metadata file name defined in nomad.config nomad_metadata.yaml/json
         # which can be placed in the directory containing the mainfile or somewhere up
         # highest priority is directory with mainfile
-        metadata_file = config.metadata_file_name
+        metadata_file = config.process.metadata_file_name
         metadata_dir = os.path.dirname(self.mainfile_file.os_path)
         upload_raw_dir = self.upload_files._raw_dir.os_path
 
@@ -871,7 +872,8 @@ class Calc(Proc):
         '''
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
+            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id,
+            parser=self.parser_name, **kwargs)
 
         if self._calc_proc_logs is None:
             self._calc_proc_logs = []
@@ -910,45 +912,39 @@ class Calc(Proc):
         if self.upload is None:
             logger.error('calculation upload does not exist')
 
+        settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+
         # 1. Determine if we should parse or not
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
         self._is_initial_processing = self.nomad_version is None
+        self._perform_index = self._is_initial_processing or settings.get('index_invidiual_entries', True)
         if not self.upload.published or self._is_initial_processing:
             should_parse = True
-        else:
-            # This entry has already been published and has metadata.
-            # Determine if we should reparse or keep it.
+        elif not settings.reprocess_existing_entries:
             should_parse = False
-            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
-            reparse_if_parser_unchanged = settings.reparse_published_if_parser_unchanged
-            reparse_if_parser_changed = settings.reparse_published_if_parser_changed
-            if reparse_if_parser_unchanged or reparse_if_parser_changed:
+        else:
+            if settings.rematch_published and not settings.use_original_parser:
                 with utils.timer(logger, 'parser matching executed'):
                     parser = match_parser(
                         self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
-                if parser is None:
-                    # Should only be possible if the upload is published and we have
-                    # settings.delete_unmatched_published_entries == False
-                    logger.warn('no parser matches during re-process, not updating the entry')
-                    self.warnings = ['no matching parser found during processing']
-                else:
-                    parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
-                    if reparse_if_parser_unchanged and not parser_changed:
-                        should_parse = True
-                    elif reparse_if_parser_changed and parser_changed:
-                        should_parse = True
-                    if should_parse and self.parser_name != parser.name:
-                        if parser_dict[self.parser_name].name == parser.name:
-                            logger.info(
-                                'parser renamed, using new parser name',
-                                parser=parser.name)
-                        else:
-                            logger.info(
-                                'different parser matches during re-process, use new parser',
-                                parser=parser.name)
-                        self.parser_name = parser.name  # Parser changed or renamed
+            else:
+                parser = parser_dict[self.parser_name]
+
+            if parser is None:
+                # Should only be possible if the upload is published and we have
+                logger.warn('no parser matches during process, not updating the entry')
+                self.warnings = ['no matching parser found during processing']
+            else:
+                should_parse = True
+                parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
+                if parser_changed:
+                    if not settings.use_original_parser:
+                        logger.info(
+                            'different parser matches during process, use new parser',
+                            parser=parser.name)
+                        self.parser_name = parser.name  # Parser renamed
 
         # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
@@ -973,7 +969,7 @@ class Calc(Proc):
                         self._parser_results.m_resource.unload()
                 except Exception as e:
                     logger.error('could not unload processing results', exc_info=e)
-        else:
+        elif self.upload.published:
             # 2b. Keep published entry as it is
             self.set_last_status_message('Preserving entry data')
             try:
@@ -984,10 +980,12 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
-        return
+        else:
+            # 2b. Keep staging entry as it is
+            pass
 
     def on_fail(self):
-        # in case of failure, index a minimum set of metadata and mark
+        # in case of failure, create a minimum set of metadata and mark
         # processing failure
         try:
             if self._entry_metadata is None:
@@ -1005,10 +1003,23 @@ class Calc(Proc):
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
-            search.index(self._parser_results, update_materials=True)
         except Exception as e:
+            self._parser_results = EntryArchive(
+                entry_id=self._parser_results.entry_id,
+                metadata=self._parser_results.metadata,
+                processing_logs=self._parser_results.processing_logs)
+
             self.get_logger().error(
-                'could not index after processing failure', exc_info=e)
+                'could not create minimal metadata after processing failure', exc_info=e)
+
+        if self._perform_index:
+            try:
+                search.index(self._parser_results)
+            except Exception as e:
+
+                search.index(self._parser_results)
+                self.get_logger().error(
+                    'could not index archive after processing failure', exc_info=e)
 
         try:
             self.write_archive(self._parser_results)
@@ -1031,13 +1042,13 @@ class Calc(Proc):
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
         self.set_last_status_message('Parsing mainfile')
-        context = dict(parser=self.parser_name, step=self.parser_name)
+        context = dict(step=self.parser_name)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser_name]
         self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            if not config.process_reuse_parser:
+            if not config.process.reuse_parser:
                 if isinstance(parser, parsing.FairdiParser):
                     try:
                         parser = parser.__class__()
@@ -1065,7 +1076,7 @@ class Calc(Proc):
         information in section_encyclopedia as well as the DFT domain metadata.
         """
         try:
-            logger = self.get_logger(parser=self.parser_name, step=self.parser_name)
+            logger = self.get_logger()
 
             # Open the archive of the phonon calculation.
             upload_files = StagingUploadFiles(self.upload_id)
@@ -1128,7 +1139,7 @@ class Calc(Proc):
             # index in search
             with utils.timer(logger, 'calc metadata indexed'):
                 assert self._parser_results.metadata == self._entry_metadata
-                search.index(self._parser_results, update_materials=True)
+                search.index(self._parser_results)
 
             # persist the archive
             with utils.timer(
@@ -1183,9 +1194,10 @@ class Calc(Proc):
             self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
         # index in search
-        with utils.timer(logger, 'calc metadata indexed'):
-            assert self._parser_results.metadata == self._entry_metadata
-            search.index(self._parser_results, update_materials=True)
+        if self._perform_index:
+            with utils.timer(logger, 'calc metadata indexed'):
+                assert self._parser_results.metadata == self._entry_metadata
+                search.index(self._parser_results)
 
         # persist the archive
         with utils.timer(
@@ -1306,7 +1318,7 @@ class Upload(Proc):
 
     @lru_cache()
     def metadata_file_cached(self, path):
-        for ext in config.metadata_file_extensions:
+        for ext in config.process.metadata_file_extensions:
             full_path = '%s.%s' % (path, ext)
             if os.path.isfile(full_path):
                 try:
@@ -1642,7 +1654,7 @@ class Upload(Proc):
         staging_upload_files = self.staging_upload_files
 
         metadata = self.metadata_file_cached(
-            os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+            os.path.join(self.upload_files.os_path, 'raw', config.process.metadata_file_name))
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
@@ -1674,84 +1686,64 @@ class Upload(Proc):
         self.set_last_status_message('Parsing all files')
         logger = self.get_logger()
 
-        with utils.timer(logger, 'calcs processing called'):
-            try:
-                settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        try:
+            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
 
-                old_entries = Calc.objects(upload_id=self.upload_id)
-                has_old_entries = old_entries.count() > 0
-                matched_entries: Set[str] = set()
-                entries_to_delete: List[str] = []
-                count_already_processing = 0
-                for filename, parser in self.match_mainfiles():
-                    calc_id = generate_entry_id(self.upload_id, filename)
+            if not self.published or settings.rematch_published:
+                with utils.timer(logger, 'matching completed'):
+                    old_entries = set([entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)])
+                    for filename, parser in self.match_mainfiles():
+                        calc_id = generate_entry_id(self.upload_id, filename)
 
-                    try:
-                        entry = Calc.get(calc_id)
-                        # Matching entry already exists.
-                        if entry.process_running:
-                            count_already_processing += 1
-                        # Ensure that we update the parser if in staging
-                        if not self.published and parser.name != entry.parser_name:
-                            entry.parser_name = parser.name
-                            entry.save()
-                        matched_entries.add(calc_id)
-                    except KeyError:
-                        # No existing entry found
-                        if not self.published or settings.add_newfound_entries_to_published:
-                            entry = Calc.create(
-                                calc_id=calc_id,
-                                mainfile=filename,
-                                parser_name=parser.name,
-                                worker_hostname=self.worker_hostname,
-                                upload_id=self.upload_id)
-                            entry.save()
-                            matched_entries.add(calc_id)
-                # Done matching. Examine old unmatched entries.
-                for entry in old_entries:
-                    if entry.calc_id not in matched_entries:
-                        if entry.process_running:
-                            count_already_processing += 1
+                        try:
+                            entry = Calc.get(calc_id)
+                            # Matching entry already exists.
+                            # Ensure that we update the parser if in staging
+                            if not self.published and parser.name != entry.parser_name:
+                                entry.parser_name = parser.name
+                                entry.save()
+
+                            old_entries.remove(calc_id)
+                        except KeyError:
+                            # No existing entry found
+                            if not self.published or settings.add_matched_entries_to_published:
+                                entry = Calc.create(
+                                    calc_id=calc_id,
+                                    mainfile=filename,
+                                    parser_name=parser.name,
+                                    worker_hostname=self.worker_hostname,
+                                    upload_id=self.upload_id)
+                                entry.save()
+
+                    # Delete old entries
+                    if len(old_entries) > 0:
+                        entries_to_delete: List[str] = list(old_entries)
+                        logger.warn('Some entries did not match', count=len(entries_to_delete))
                         if not self.published or settings.delete_unmatched_published_entries:
-                            entries_to_delete.append(entry.calc_id)
+                            delete_partial_archives_from_mongo(entries_to_delete)
+                            for calc_id in entries_to_delete:
+                                search.delete_entry(entry_id=calc_id, update_materials=True)
+                                entry = Calc.get(calc_id)
+                            entry.delete()
 
-                # Delete entries
-                if entries_to_delete:
-                    logger.warn(
-                        'Some entries are disappearing',
-                        count=len(entries_to_delete))
-                    delete_partial_archives_from_mongo(entries_to_delete)
-                    for calc_id in entries_to_delete:
-                        search.delete_entry(entry_id=calc_id, refresh=True, update_materials=True)
-                        entry = Calc.get(calc_id)
-                        entry.delete()
+            # reset all calcs
+            with utils.timer(logger, 'calcs processing resetted'):
+                Calc._get_collection().update_many(
+                    dict(upload_id=self.upload_id),
+                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-                if has_old_entries:
-                    # Reset all entries on upload
-                    with utils.timer(logger, 'calcs resetted'):
-                        if count_already_processing > 0:
-                            logger.warn(
-                                'processes are still/already running some entries, they have been resetted',
-                                count=count_already_processing)
+            # process call calcs
+            with utils.timer(logger, 'calcs processing called'):
+                Calc.process_all(
+                    Calc.process_calc, dict(upload_id=self.upload_id),
+                    process_kwargs=dict(reprocess_settings=settings))
 
-                        # reset all calcs
-                        Calc._get_collection().update_many(
-                            dict(upload_id=self.upload_id),
-                            {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
-                with utils.timer(logger, 'calcs processing called'):
-                    # process call calcs
-                    Calc.process_all(
-                        Calc.process_calc, dict(upload_id=self.upload_id),
-                        process_kwargs=dict(reprocess_settings=settings))
-                    logger.info('completed to trigger process of all calcs')
-
-            except Exception as e:
-                # try to remove the staging copy in failure case
-                logger.error('failed to trigger processing of all entries', exc_info=e)
-                if self.published:
-                    self._cleanup_staging_files()
-                raise
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            logger.error('failed to trigger processing of all entries', exc_info=e)
+            if self.published:
+                self._cleanup_staging_files()
+            raise
 
     def check_join(self):
         '''
@@ -1800,30 +1792,13 @@ class Upload(Proc):
         update.update(joined=False)
         return update
 
-    def _cleanup_after_processing(self):
+    def cleanup(self):
+        '''
+        The process step that "cleans" the processing, i.e. removed obsolete files and performs
+        pending archival operations. Depends on the type of processing.
+        '''
+        self.set_last_status_message('Cleanup')
         logger = self.get_logger()
-        # send email about process finish
-        if not self.publish_directly:
-            user = self.main_author_user
-            name = '%s %s' % (user.first_name, user.last_name)
-            message = '\n'.join([
-                'Dear %s,' % name,
-                '',
-                'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
-                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
-                '',
-                'If you encounter any issues with your upload, please let us know and reply to this email.',
-                '',
-                'The nomad team'
-            ])
-            try:
-                infrastructure.send_mail(
-                    name=name, email=user.email, message=message, subject='Processing completed')
-            except Exception as e:
-                # probably due to email configuration problems
-                # don't fail or present this error to clients
-                self.logger.error('could not send after processing email', exc_info=e)
 
         if self.published:
             # We have reprocessed an already published upload
@@ -1855,21 +1830,42 @@ class Upload(Proc):
                 self.last_update = datetime.utcnow()
                 self.save()
 
+        with self.entries_metadata() as entries:
+            with utils.timer(logger, 'upload entries and materials indexed'):
+                archives = [entry.m_parent for entry in entries]
+                search.index(
+                    archives, update_materials=config.process.index_materials,
+                    refresh=True)
+
+        # send email about process finish
+        if not self.publish_directly:
+            user = self.main_author_user
+            name = '%s %s' % (user.first_name, user.last_name)
+            message = '\n'.join([
+                'Dear %s,' % name,
+                '',
+                'your data %suploaded at %s has completed processing.' % (
+                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
+                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
+                '',
+                'If you encounter any issues with your upload, please let us know and reply to this email.',
+                '',
+                'The nomad team'
+            ])
+            try:
+                infrastructure.send_mail(
+                    name=name, email=user.email, message=message, subject='Processing completed')
+            except Exception as e:
+                # probably due to email configuration problems
+                # don't fail or present this error to clients
+                self.logger.error('could not send after processing email', exc_info=e)
+
     def _cleanup_staging_files(self):
         if self.published and PublicUploadFiles.exists_for(self.upload_id):
             if StagingUploadFiles.exists_for(self.upload_id):
                 staging_upload_files = StagingUploadFiles(self.upload_id)
                 with utils.timer(self.get_logger(), 'upload staging files deleted'):
                     staging_upload_files.delete()
-
-    def cleanup(self):
-        '''
-        The process step that "cleans" the processing, i.e. removed obsolete files and performs
-        pending archival operations. Depends on the type of processing.
-        '''
-        self.set_last_status_message('Cleanup')
-        search.refresh()
-        self._cleanup_after_processing()
 
     def get_calc(self, calc_id) -> Calc:
         ''' Returns the upload calc with the given id or ``None``. '''
@@ -2001,7 +1997,9 @@ class Upload(Proc):
             # Update entries and elastic search
             with self.entries_metadata() as entries_metadata:
                 with utils.timer(logger, 'index updated'):
-                    search.update_metadata(entries_metadata, update_materials=True, refresh=True)
+                    search.update_metadata(
+                        entries_metadata, update_materials=config.process.index_materials,
+                        refresh=True)
 
     @process
     def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
@@ -2364,7 +2362,9 @@ class Upload(Proc):
 
             # Index in elastic search
             if entry_data_to_index:
-                search.index(entry_data_to_index, update_materials=True, refresh=True)
+                search.index(
+                    entry_data_to_index, update_materials=config.process.index_materials,
+                    refresh=True)
 
             if settings.trigger_processing:
                 reprocess_settings = {
