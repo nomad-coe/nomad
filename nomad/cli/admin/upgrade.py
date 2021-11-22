@@ -71,6 +71,7 @@ def create_collections_if_needed(db_dst: Database):
 
 def migrate_mongo_uploads(
         db_src: Database, db_dst: Database, uploads: Cursor, failed_ids_to_file: bool,
+        upload_update: Dict[str, Any], entry_update: Dict[str, Any],
         fix_problems: bool, dry: bool, logger):
     ''' Converts and/or migrates an upload and all related entries and datasets. '''
     number_of_uploads = uploads.count()
@@ -92,7 +93,8 @@ def migrate_mongo_uploads(
                 failed_and_skipped.append(upload_id)
             else:
                 entry_dicts, dataset_dicts, doi_dicts = _convert_mongo_upload(
-                    db_src, upload_dict, fix_problems, dataset_cache, stats, logger)
+                    db_src, upload_dict, upload_update, entry_update, fix_problems,
+                    dataset_cache, stats, logger)
                 if not dry:
                     _commit_upload(upload_dict, entry_dicts, dataset_dicts, doi_dicts, db_dst, stats)
                 del entry_dicts, dataset_dicts  # To free up memory immediately
@@ -138,7 +140,8 @@ def migrate_mongo_uploads(
 
 
 def _convert_mongo_upload(
-        db_src: Database, upload_dict: Dict[str, Any], fix_problems: bool,
+        db_src: Database, upload_dict: Dict[str, Any],
+        upload_update: Dict[str, Any], entry_update: Dict[str, Any], fix_problems: bool,
         dataset_cache: Dict[str, _DatasetCacheItem], stats: _UpgradeStatistics, logger):
     '''
     Converts (upgrades) an upload_dict and all related records. If successful,
@@ -230,6 +233,9 @@ def _convert_mongo_upload(
     for field in ('_id', 'upload_create_time', 'main_author', 'embargo_length', 'license'):
         assert upload_dict.get(field) is not None, f'Missing required upload field: {field}'
 
+    if upload_update:
+        upload_dict.update(upload_update)
+
     # migrate entries
     newly_encountered_dataset_ids: Set[str] = set()
     for entry_dict in entry_dicts:
@@ -267,6 +273,9 @@ def _convert_mongo_upload(
                     # Dataset record exists and has been converted suuccessfully
                     converted_datasets.append(dataset_id)
             entry_dict['datasets'] = converted_datasets
+
+        if entry_update:
+            entry_dict.update(entry_update)
 
     # All conversion successful! Ready to migrate
     dataset_dicts: List[Dict[str, Any]] = []
