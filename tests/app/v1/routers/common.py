@@ -63,9 +63,9 @@ def post_query_test_parameters(
         pytest.param({'and': [{f'{entity_id}:any': ['id_01', 'id_02']}, {f'{entity_id}:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
         pytest.param({'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]}, 200, total - 2, id='not-nested-not'),
         pytest.param({method: {'simulation.program_name': 'VASP'}}, 200, total, id='inner-object'),
-        pytest.param({f'{properties}.electronic.dos_electronic.spin_polarized': True}, 200, 1, id='nested-implicit'),
-        pytest.param({f'{properties}.electronic.dos_electronic': {'spin_polarized': True}}, 200, 1, id='nested-explicit'),
-        pytest.param({properties: {'electronic.dos_electronic': {'spin_polarized': True}}}, 200, 1, id='nested-explicit-explicit'),
+        pytest.param({f'{properties}.electronic.dos_electronic.band_gap.type': 'direct'}, 200, 1, id='nested-implicit'),
+        pytest.param({f'{properties}.electronic.dos_electronic.band_gap': {'type': 'direct'}}, 200, 1, id='nested-explicit'),
+        pytest.param({properties: {'electronic.dos_electronic.band_gap': {'type': 'direct'}}}, 200, 1, id='nested-explicit-explicit'),
         pytest.param({f'{upload_create_time}:gt': '1970-01-01'}, 200, total, id='date-1'),
         pytest.param({f'{upload_create_time}:lt': '2099-01-01'}, 200, total, id='date-2'),
         pytest.param({f'{upload_create_time}:gt': '2099-01-01'}, 200, 0, id='date-3')
@@ -341,6 +341,15 @@ def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per
     return [
         pytest.param(
             {
+                f'{entry_id}:any': ['id_01'],
+                upload_id: 'id_published',
+                program_name: 'VASP'
+            },
+            [], [], 1, 200,
+            id='empty'
+        ),
+        pytest.param(
+            {
                 f'{entry_id}:any': ['id_01']
             },
             [
@@ -423,40 +432,33 @@ def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per
                     }
                 }
             ],
-            [20], total, 200,
+            [0], total, 422,
             id='with-pagination'
         ),
         pytest.param(
-            {
-                'or': [{entry_id: 'id_01'}]
-            },
+            {},
             [
                 {
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'quantity': entry_id,
+                    'size': 20
                 }
             ],
-            [0], 0, 422,
-            id='non-dict-query'
+            [20], total, 200,
+            id='with-size'
         ),
         pytest.param(
             {
-                f'{entry_id}:any': ['id_01']
+                'or': [{entry_id: 'id_01'}, {entry_id: 'id_05'}]
             },
             [
                 {
                     'exclude_from_search': True,
                     'quantity': entry_id
-                },
-                {
-                    'quantity': entry_id,
-                    'pagination': {
-                        'page_after_value': 'id_published'
-                    }
                 }
             ],
-            [0], 0, 422,
-            id='with-page-after-value'
+            [10], 2, 200,
+            id='non-dict-query'
         )
     ]
 

@@ -298,7 +298,12 @@ class ExampleData:
                         'n_calculations': 1,
                         'electronic': {
                             'dos_electronic': {
-                                'spin_polarized': entry_id.endswith('04')
+                                'spin_polarized': entry_id.endswith('04'),
+                                'band_gap': [
+                                    {
+                                        'type': 'direct' if entry_id.endswith('04') else 'indirect'
+                                    }
+                                ]
                             }
                         }
                     }

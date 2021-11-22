@@ -114,9 +114,10 @@ class Any_(NoneEmptyBaseModel, extra=Extra.forbid):
 
 
 class Range(BaseModel, extra=Extra.forbid):
-    """Represents a finite range which can have open or closed ends. Supports
+    '''
+    Represents a finite range which can have open or closed ends. Supports
     several datatypes that have a well-defined comparison operator.
-    """
+    '''
     @root_validator
     def check_range_is_valid(cls, values):  # pylint: disable=no-self-argument
         lt = values.get('lt')
@@ -145,6 +146,19 @@ class Range(BaseModel, extra=Extra.forbid):
     gte: Optional[ComparableValue] = Field(None)
 
 
+ops = {
+    'lte': Range,
+    'lt': Range,
+    'gte': Range,
+    'gt': Range,
+    'all': All,
+    'none': None_,
+    'any': Any_
+}
+
+CriteriaValue = Union[Value, List[Value], Range, Any_, All, None_, Dict[str, Any]]
+
+
 class LogicalOperator(NoneEmptyBaseModel):
     @validator('op', check_fields=False)
     def validate_query(cls, query):  # pylint: disable=no-self-argument
@@ -167,6 +181,7 @@ class Not(LogicalOperator):
 
 
 class Nested(BaseModel):
+    prefix: str
     query: 'Query'
 
     @validator('query')
@@ -174,19 +189,22 @@ class Nested(BaseModel):
         return _validate_query(query)
 
 
-ops = {
-    'lte': Range,
-    'lt': Range,
-    'gte': Range,
-    'gt': Range,
-    'all': All,
-    'none': None_,
-    'any': Any_
-}
+class Criteria(BaseModel, extra=Extra.forbid):
+    name: str
+    value: CriteriaValue
 
-QueryParameterValue = Union[Value, List[Value], Range, Any_, All, None_, Nested, Dict[str, Any]]
+    @validator('value')
+    def validate_query(cls, value, values):  # pylint: disable=no-self-argument
+        name, value = _validate_criteria_value(values['name'], value)
+        values['name'] = name
+        return value
 
-Query = Union[And, Or, Not, Mapping[str, QueryParameterValue]]
+
+class Empty(BaseModel, extra=Extra.forbid):
+    pass
+
+
+Query = Union[And, Or, Not, Nested, Criteria, Empty, Mapping[str, CriteriaValue]]
 
 
 And.update_forward_refs()
@@ -297,28 +315,29 @@ class WithQuery(BaseModel):
         return _validate_query(query)
 
 
+def _validate_criteria_value(name: str, value: CriteriaValue):
+    if ':' in name:
+        quantity, qualifier = name.split(':')
+    else:
+        quantity, qualifier = name, None
+
+    if qualifier is not None:
+        assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
+        return quantity, ops[qualifier](**{qualifier: value})  # type: ignore
+    elif isinstance(value, list):
+        return quantity, All(all=value)
+    else:
+        return quantity, value
+
+
 def _validate_query(query: Query):
     if isinstance(query, dict):
         for key, value in list(query.items()):
-            # Note, we loop over a list of items, not query.items(). This is because we
-            # may modify the query in the loop.
-            if isinstance(value, dict):
-                value = Nested(query=value)
-
-            if ':' in key:
-                quantity, qualifier = key.split(':')
-            else:
-                quantity, qualifier = key, None
-
-            if qualifier is not None:
+            quantity, value = _validate_criteria_value(key, value)
+            if quantity != key:
                 assert quantity not in query, 'a quantity can only appear once in a query'
-                assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
                 del(query[key])
-                query[quantity] = ops[qualifier](**{qualifier: value})  # type: ignore
-            elif isinstance(value, list):
-                query[quantity] = All(all=value)
-            else:
-                query[quantity] = value
+            query[quantity] = value
 
     return query
 
@@ -827,8 +846,9 @@ class TermsAggregation(BucketAggregation):
         '''))
     size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
         None, description=strip('''
-        Only the data few values are returned for each API call. Pagination allows to
-        get the next set of values based on the last value in the last call.
+        The ammount of aggregation values is limited. This allows you to configure the
+        maximum number of aggregated values to return. If you need to exaust all
+        possible value, use `pagination`.
         '''))
     value_filter: Optional[pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')] = Field(  # type: ignore
         None, description=strip('''
