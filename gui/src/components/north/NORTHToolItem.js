@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -82,13 +82,16 @@ const NORTHToolItem = React.memo(({
 
   const path = path_prefix && uploadId ? `${path_prefix}/uploads/${uploadId}` : null
 
-  const {northApi} = useApi()
+  const {northApi, user} = useApi()
   const {raiseError} = useErrors()
 
   const [state, setState] = useState('idle')
 
-  const isToolRunning = useCallback(() => {
-    setState('idle') // I set this to prevent the user seeing an empty button while this function is being called. Only happens when previously not cached
+  const toolUrl = useMemo(() => {
+    return `${northBase}/user/${user.preferred_username}/${name}`
+  }, [user, name])
+
+  const getToolStatus = useCallback(() => {
     if (northApi === null) {
       return
     }
@@ -102,29 +105,32 @@ const NORTHToolItem = React.memo(({
         }
       })
       .catch(error => {
-        if (error?.response?.status === 404) {
+        if (error?.response?.status === 404 || error?.response?.status === 400) {
           return 'idle'
         } else {
+          setState('idle')
           raiseError(error)
         }
       })
   }, [northApi, raiseError, name])
 
   useEffect(() => {
-    isToolRunning().then((toolStatus) => {
+    getToolStatus().then((toolStatus) => {
       setState(toolStatus)
     })
-  }, [setState, isToolRunning])
+  }, [setState, getToolStatus])
 
   const launch = useCallback(() => {
-    isToolRunning().then((toolStatus) => {
-      if (state === 'running' && toolStatus === 'running') { // This checks the UI state as well as the JupyterHub state from the network call response.
-        window.open(`${northBase}/hub/user-redirect/${name}`, name)
+    // We get the current actual tools status and do not use the one used to display the status!
+    getToolStatus().then((toolStatus) => {
+      if (toolStatus === 'running') {
+        window.open(toolUrl, name)
+        setState(toolStatus)
       } else {
         setState('launching')
         northApi.post(`servers/${name}`)
-          .then(() => {
-            window.open(`${northBase}/hub/user-redirect/${name}`, name)
+          .then((response) => {
+            window.open(toolUrl, name)
             setState('running')
           })
           .catch(errors => {
@@ -133,7 +139,7 @@ const NORTHToolItem = React.memo(({
           })
       }
     })
-  }, [setState, northApi, raiseError, name, state, isToolRunning])
+  }, [setState, northApi, raiseError, name, toolUrl, getToolStatus])
 
   const stop = useCallback(() => {
     setState('stopping')

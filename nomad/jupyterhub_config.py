@@ -77,6 +77,7 @@ class NomadAuthenticator(GenericOAuthenticator):
                 try:
                     user = infrastructure.keycloak.tokenauth(authorization[7:])
                     if user is not None:
+
                         return dict(name=user.username)
                 except Exception:
                     pass
@@ -94,6 +95,7 @@ class NomadAuthenticator(GenericOAuthenticator):
         if not spawner.environment:
             spawner.environment = {}
         spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/'
+        spawner.environment['JUPYTERHUB_CLIENT_API_URL'] = f'{config.north_url()}/hub/api'
 
         if user.name == 'anonymous':
             return
@@ -127,15 +129,15 @@ class NomadAuthenticator(GenericOAuthenticator):
             pathlib.Path(user_dir).mkdir(parents=True, exist_ok=True)
 
         volumes = {
-            user_dir: f'/home/jovyan/work',
-            shared_dir: f'/home/jovyan/shared'
+            user_dir: f'/prefix/work',
+            shared_dir: f'/prefix/shared'
         }
 
         for upload in uploads_response.json()['data']:
             if 'upload_files_server_path' in upload:
                 upload_id = upload['upload_id']
                 upload_server_path = upload['upload_files_server_path']
-                volumes[f'{upload_server_path}/raw'] = f'/home/jovyan/uploads/{upload_id}'
+                volumes[f'{upload_server_path}/raw'] = f'/prefix/uploads/{upload_id}'
 
         self.log.debug('Configure spawner with nomad volumes: %s', volumes)
 
@@ -177,13 +179,14 @@ c.Authenticator.auto_login = True
 class NomadDockerSpawner(DockerSpawner):
 
     async def start(self, image=None, extra_create_kwargs=None, extra_host_config=None):
+        self.log.debug(f'Configuring spawner for container {self.container_name}')
         tool = self.container_name.split('-')[-1]
         if tool in tools:
             tools[tool](self)
             self.log.debug(f'Configured spawner for {tool}')
         else:
-            configure_default(self)
-            self.log.debug(f'{tool} is not a tool, use default spawner configuration')
+            self.log.error(f'{tool} is not a tool, raise an error')
+            raise NotImplementedError('You cannot launch non tool containers.')
 
         return await super().start(image, extra_create_kwargs, extra_host_config)
 
@@ -208,6 +211,10 @@ def create_configure_from_tool_json(tool_json):
         spawner.image = tool_json['image']
         if 'cmd' in tools_json:
             spawner.cmd = tools_json['cmd']
+
+        for key, value in spawner.volumes.items():
+            if value.startswith('/prefix') and 'mount_path' in tool_json:
+                spawner.volumes[key] = value.replace('/prefix', tool_json['mount_path'])
 
     return configure
 

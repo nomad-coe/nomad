@@ -397,6 +397,16 @@ north = NomadConfig(
     jupyterhub_crypt_key=None
 )
 
+
+def north_url(ssl: bool = True):
+    protocol = 'https' if services.https and ssl else 'http'
+    host_and_port = services.api_host.strip('/')
+    if north.hub_port not in [80, 443]:
+        host_and_port += ':' + str(north.hub_port)
+    base_path = north.hub_base_path.strip('/')
+    return f'{protocol}://{host_and_port}/{base_path}'
+
+
 auxfile_cutoff = 100
 parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
 console_log_level = logging.WARNING
