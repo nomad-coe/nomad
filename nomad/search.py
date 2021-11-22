@@ -1010,6 +1010,15 @@ def _specific_agg(agg: Aggregation) -> Union[TermsAggregation, DateHistogramAggr
     raise NotImplementedError()
 
 
+def _and_clauses(query: Query) -> Generator[Query, None, None]:
+    if isinstance(query, models.And):
+        for clause in query.op:
+            for query in _and_clauses(clause):
+                yield query
+
+    yield query
+
+
 def search(
         owner: str = 'public',
         query: Union[Query, EsQuery] = None,
@@ -1106,10 +1115,18 @@ def search(
         if isinstance(agg, QuantityAggregation) and agg.exclude_from_search}
 
     if len(excluded_agg_quantities) > 0:
-        # TODO optimize and try to put a few criteria into pre_agg_query
-        pre_agg_es_query = Q()
-        post_agg_es_query = es_query
-        post_agg_query = query
+        and_clauses = list(_and_clauses(query))
+        pre_clauses = [
+            and_clause for and_clause in and_clauses
+            if isinstance(and_clause, models.Criteria) and and_clause.name not in excluded_agg_quantities]
+
+        pre_agg_es_query = validate_api_query(
+            models.And(**{'and': list(pre_clauses)}), doc_type=doc_type,
+            owner_query=owner_query)
+        post_agg_query = models.And(**{'and': [
+            and_clause for and_clause in and_clauses if and_clause not in pre_clauses]})
+        post_agg_es_query = validate_api_query(
+            post_agg_query, doc_type=doc_type, owner_query=owner_query)
 
         search = search.post_filter(post_agg_es_query)
         search = search.query(pre_agg_es_query & nested_owner_query)
