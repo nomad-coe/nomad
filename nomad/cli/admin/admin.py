@@ -353,6 +353,14 @@ def upgrade():
     '--entry-update', type=str,
     help='json with updates to apply to all converted entries')
 @click.option(
+    '--overwrite', type=click.Choice(['always', 'if-newer', 'never'], case_sensitive=False), default='never',
+    help='''If an upload already exists in the destination db, this option determines whether
+            it and its child records should be overwritten with the data from the source db.
+            Possible values are "always", "if-newer", "never". Selecting "always" always overwrites,
+            "never" never overwrites, and "if-newer" overwrites if the upload either doesn't exist
+            in the destination, or it exists but its complete_time (i.e. last time it was
+            processed) is older than in the source db.''')
+@click.option(
     '--fix-problems', is_flag=True,
     help='''If a minor, fixable problem is encountered, fixes it automaticall; otherwise fail.''')
 @click.option(
@@ -360,7 +368,7 @@ def upgrade():
     help='Dry run (not writing anything to the destination database).')
 def migrate_mongo(
         host, port, src_db_name, dst_db_name, query, ids_from_file, failed_ids_to_file,
-        upload_update, entry_update, fix_problems, dry):
+        upload_update, entry_update, overwrite, fix_problems, dry):
     import json
     from pymongo.database import Database
     from nomad import utils, infrastructure
@@ -401,4 +409,5 @@ def migrate_mongo(
     uploads = db_src.upload.find(query)
 
     migrate_mongo_uploads(
-        db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, fix_problems, dry, logger)
+        db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, overwrite,
+        fix_problems, dry, logger)
