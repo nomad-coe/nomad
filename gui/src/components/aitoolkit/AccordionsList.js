@@ -39,13 +39,11 @@ import AccessIcon from '../../images/AIT_ico_bd_link_external_big.svg'
 import WatchIcon from '../../images/AIT_ico_bd_youtube.svg'
 import PdfIcon from '../../images/AIT_ico_bd_link_pdf.svg'
 import DoiIcon from '../../images/AIT_ico_bd_link_doi.svg'
-import NorthButton from './NorthButton'
 
-const NotebookButton = React.memo(function NotebookButton({metadata, ...props}) {
-  const {link} = metadata
-  const prefix = 'user-redirect/'
-  const path = link.slice(link.indexOf(prefix) + prefix.length)
-  return <NorthButton component={Button} path={path} {...props} />
+const NotebookButton = React.memo(function NotebookButton({...props}) {
+  // TODO this button has to be implemented and send users to the respective AItoolkit
+  // notebook on north.
+  return <Button {...props} />
 })
 NotebookButton.propTypes = {
   metadata: PropTypes.Object,

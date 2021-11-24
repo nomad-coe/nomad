@@ -113,7 +113,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -124,25 +124,48 @@ services:
             - mongo
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - nomad_oasis_files:/app/.volumes/fs
+            - ./.volumes/fs:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
 
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
             NOMAD_SERVICE: nomad_oasis_app
+            NOMAD_SERVICES_API_PORT: 80
         links:
             - rabbitmq
             - elastic
             - mongo
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - nomad_oasis_files:/app/.volumes/fs
+            - ./.volumes/fs:/app/.volumes/fs
         command: ./run.sh
+
+    # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
+    north:
+        restart: always
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
+        container_name: nomad_oasis_north
+        environment:
+            <<: *nomad_backend_env
+            NOMAD_SERVICE: nomad_oasis_north
+            NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_network
+            NOMAD_NORTH_HUB_IP_CONNECT: north
+            NOMAD_NORTH_HUB_IP: '0.0.0.0'
+            NOMAD_NORTH_HUB_HOST: 'north'
+            NOMAD_SERVICES_API_HOST: app
+        links:
+            - app
+        volumes:
+            - ./nomad.yaml:/app/nomad.yaml
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./.volumes/fs:/app/.volumes/fs
+        command: python -m nomad.cli admin run hub
+        user: root
 
     # nomad gui (a reverse proxy for nomad)
     gui:
@@ -154,14 +177,19 @@ services:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
         links:
             - app
+            - north
         ports:
             - 80:80
+
 
 volumes:
     nomad_oasis_mongo:
     nomad_oasis_elastic:
     nomad_oasis_rabbitmq:
-    nomad_oasis_files:
+
+networks:
+    default:
+        name: nomad_oasis_network
 ```
 
 There are no mandatory changes necessary.
@@ -181,13 +209,19 @@ indefinite restarts.
 NOMAD app and worker read a `nomad.yaml` for configuration.
 
 ```yaml
-client:
-  url: 'http://<your-host>/nomad-oasis/api'
-
 services:
   api_host: '<your-host>'
-  api_prefix: '/nomad-oasis'
+  api_base_path: '/nomad-oasis'
   admin_user_id: '<your admin user id>'
+
+fs:
+  staging_external: <abs path to nomad>/.volumes/fs/staging
+
+north:
+  jupyterhub_crypt_key: '<generated crypt key>'
+  users_fs: <abs path to nomad>/.volumes/fs/north/users
+  shared_fs: <abs path to nomad>/.volumes/fs/north/shared
+  hub_ip_connect: '172.17.0.1'
 
 keycloak:
   realm_name: fairdi_nomad_prod
@@ -201,16 +235,23 @@ meta:
   maintainer_email: '<oasis admin email>'
 
 mongo:
-    db_name: nomad_v0_8
+    db_name: nomad_oasis_v1
 
 elastic:
-    index_name: nomad_v0_8
+    entries_index: nomad_oasis_entries_v1
+    materials_index: nomad_oasis_materials_v1
 ```
 
 You need to change:
+- Replace `abs path to nomad` with the absolute path to the directory where you are
+running the NOMAD Oasis docker-compose, i.e. the current directory. You should also create
+a `.volumes` directory. This is where NOMAD will keep all files.
 - Replace `your-host` and admin credentials respectively.
 - `api_base_path` defines the path under with the app is run. It needs to be changed, if you use a different base path.
 - The admin user credentials (id, username, password, email).
+- `generated crypt key` needs to be replaced with an actual key. You can generate one
+with `openssl rand -hex 32`.
+- On Windows or MacOS, you have to change `172.17.0.1` with `host.docker.internal`.
 
 A few things to notice:
 - Be secretive about your admin credentials; make sure this file is not publicly readable.
@@ -224,6 +265,11 @@ The GUI container serves as a proxy that forwards request to the app container. 
 proxy is an nginx server and needs a configuration similar to this:
 
 ```none
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 server {
     listen        80;
     server_name   www.example.com;
@@ -257,27 +303,34 @@ server {
         proxy_pass http://app:8000;
     }
 
-    location ~ \/api\/uploads\/?$ {
+    location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$)  {
         client_max_body_size 35g;
         proxy_request_buffering off;
         proxy_pass http://app:8000;
     }
 
-    location ~ \/api\/(raw|archive) {
+    location ~ /api/v1/.*/download {
         proxy_buffering off;
         proxy_pass http://app:8000;
     }
 
-    location ~ \/api\/mirror {
+    location ~ /north/ {
+        proxy_pass http://north:9000;
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # websocket headers
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header X-Scheme $scheme;
+
         proxy_buffering off;
-        proxy_read_timeout 600;
-        proxy_pass http://app:8000;
     }
 }
 ```
-
-You need to change:
-- Replace `<your-host>`
 
 A few things to notice:
 - It configures the base path (`nomad-oasis`) at multiple places. It needs to be changed, if you use a different base path.

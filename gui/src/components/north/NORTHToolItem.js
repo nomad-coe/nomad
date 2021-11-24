@@ -79,17 +79,15 @@ const NORTHToolItem = React.memo(({
   uploadId
 }) => {
   const styles = useStyles()
-
-  const path = path_prefix && uploadId ? `${path_prefix}/uploads/${uploadId}` : null
-
   const {northApi, user} = useApi()
   const {raiseError} = useErrors()
 
   const [state, setState] = useState('idle')
 
   const toolUrl = useMemo(() => {
-    return `${northBase}/user/${user.preferred_username}/${name}`
-  }, [user, name])
+    const path = path_prefix && uploadId ? `/${path_prefix}/uploads/${uploadId}` : ''
+    return `${northBase}/user/${user.preferred_username}/${name}${path}`
+  }, [user, name, path_prefix, uploadId])
 
   const getToolStatus = useCallback(() => {
     if (northApi === null) {
@@ -163,7 +161,7 @@ const NORTHToolItem = React.memo(({
       action={!disableActions &&
         <Grid container direction="column" spacing={1}>
           <Grid item xs={12}>
-            <LaunchButton name={name} path={path} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
+            <LaunchButton name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
               {launchButtonLabels[state]}
             </LaunchButton>
           </Grid>

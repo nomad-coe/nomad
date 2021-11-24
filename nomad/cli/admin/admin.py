@@ -246,8 +246,8 @@ def gui_config():
         with open(env_js_file, 'wt') as f:
             f.write(f'''
 window.nomadEnv = {{
-    'appBase': '{config.services.api_base_path}',
-    'northBase': '{config.north.hub_base_path}/north',
+    'appBase': '{config.services.api_base_path.rstrip("/")}',
+    'northBase': '{config.services.api_base_path.rstrip("/")}/north',
     'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',
@@ -255,7 +255,7 @@ window.nomadEnv = {{
     'encyclopediaBase': {config.encyclopedia_base if config.encyclopedia_base else 'undefined'},
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
     'oasis': {'true' if config.keycloak.oasis else 'false'},
-    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()}
+    'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()},
     'globalLoginRequired': {'false' if config.oasis.allowed_users is None else 'true'}
 }};''')
 

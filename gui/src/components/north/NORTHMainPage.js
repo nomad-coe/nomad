@@ -146,7 +146,6 @@ const NORTHMainPage = React.memo(() => {
                 <div key={tool.name}>
                   <NORTHToolItem
                     {...tool}
-                    // running={instances ? tool.name in instances : false}
                     disabled={!canLaunch}
                     uploadId={selected[0] && selected[0].upload_id}
                   />

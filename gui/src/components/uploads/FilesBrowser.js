@@ -24,8 +24,6 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import FilePreview from './FilePreview'
-import { useUpload } from './UploadPage'
-import NorthButton from '../aitoolkit/NorthButton'
 
 const useFolderStyles = makeStyles(theme => ({
   root: {},
@@ -67,7 +65,6 @@ const useFolderStyles = makeStyles(theme => ({
 
 function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, path}) {
   const classes = useFolderStyles()
-  const upload = useUpload()
   const handleToggle = event => {
     event.stopPropagation()
     if (onToggle) {
@@ -94,9 +91,6 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
       </div>}
       <div className={classes.tags}>
         {parser && <Chip size="small" label={parser} color="primary" />}
-      </div>
-      <div className={classes.actions}>
-        {name?.endsWith('.ipynb') && upload && <NorthButton path={`tree/uploads/${upload.upload_id}/${path}`} />}
       </div>
     </div>
     <Collapse in={open} className={classes.children}>

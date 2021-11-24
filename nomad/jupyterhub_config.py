@@ -24,7 +24,6 @@ NOMAD servers.
 from dockerspawner.dockerspawner import DockerSpawner
 from jupyterhub.handlers.base import BaseHandler
 from oauthenticator.generic import GenericOAuthenticator
-from traitlets import Unicode
 import os
 import os.path
 import requests
@@ -50,12 +49,6 @@ class NomadAuthenticator(GenericOAuthenticator):
     A custom OAuth authenticator. It can be used with NOMAD's keycloak. It imeplement
     a `pre_spawn_start` hook that passes user upload mounts to the spawner.
     '''
-
-    nomad_api_url = Unicode(
-        os.environ.get('NOMAD_CLIENT_URL', 'https://nomad-lab.eu/prod/rae/api'),
-        config=True,
-        help='Nomad Api Url. This is used to get all staging upload ids for the loggedin user.',
-    )
 
     def get_handlers(self, app):
         ''' Add an additional handler for anonymous logins. '''
@@ -94,7 +87,7 @@ class NomadAuthenticator(GenericOAuthenticator):
         # confiugure base path
         if not spawner.environment:
             spawner.environment = {}
-        spawner.environment['SUBFOLDER'] = f'{config.north.hub_base_path}/user/{user.name}/'
+        spawner.environment['SUBFOLDER'] = f'{config.services.api_base_path.rstrip("/")}/north/user/{user.name}/'
         spawner.environment['JUPYTERHUB_CLIENT_API_URL'] = f'{config.north_url()}/hub/api'
 
         if user.name == 'anonymous':
@@ -110,7 +103,7 @@ class NomadAuthenticator(GenericOAuthenticator):
 
         try:
             uploads_response = requests.get(
-                f'{self.nomad_api_url}/v1/uploads?is_published=false&per_page=100',
+                f'{config.api_url().rstrip("/")}/v1/uploads?is_published=false&per_page=100',
                 headers=api_headers)
         except Exception as e:
             self.log.error('Cannot access Nomad API: %s', e)
@@ -120,24 +113,22 @@ class NomadAuthenticator(GenericOAuthenticator):
             self.log.error('Cannot get user uploads: %s', uploads_response.text)
             return
 
-        user_dir = os.path.abspath(f'{config.north.users_fs}/{user.name}')
-        if not os.path.exists(user_dir):
-            pathlib.Path(user_dir).mkdir(parents=True, exist_ok=True)
+        volumes = {}
 
-        shared_dir = os.path.abspath(config.north.shared_fs)
-        if not os.path.exists(shared_dir):
-            pathlib.Path(user_dir).mkdir(parents=True, exist_ok=True)
+        def add_volume(host_path, mount_path, create: bool = False):
+            host_path = os.path.abspath(host_path)
+            if not os.path.exists(host_path) and create:
+                pathlib.Path(host_path).mkdir(parents=True, exist_ok=True)
+            volumes[host_path] = mount_path
 
-        volumes = {
-            user_dir: f'/prefix/work',
-            shared_dir: f'/prefix/shared'
-        }
+        add_volume(os.path.join(config.north.users_fs, user.name), f'/prefix/work')
+        add_volume(os.path.join(config.north.shared_fs), f'/prefix/shared')
 
         for upload in uploads_response.json()['data']:
             if 'upload_files_server_path' in upload:
                 upload_id = upload['upload_id']
                 upload_server_path = upload['upload_files_server_path']
-                volumes[f'{upload_server_path}/raw'] = f'/prefix/uploads/{upload_id}'
+                add_volume(f'{upload_server_path}/raw', f'/prefix/uploads/{upload_id}')
 
         self.log.debug('Configure spawner with nomad volumes: %s', volumes)
 
@@ -158,8 +149,8 @@ c.JupyterHub.tornado_settings = {
     },
 }
 
-c.JupyterHub.port = config.north.hub_port
-c.JupyterHub.base_url = config.north.hub_base_path
+c.JupyterHub.port = 9000
+c.JupyterHub.base_url = f'{config.services.api_base_path.rstrip("/")}/north'
 c.JupyterHub.authenticator_class = NomadAuthenticator
 c.Authenticator.enable_auth_state = True
 c.GenericOAuthenticator.login_service = 'keycloak'
@@ -171,7 +162,6 @@ c.GenericOAuthenticator.userdata_params = {'state': 'state'}
 c.GenericOAuthenticator.username_key = 'preferred_username'
 c.GenericOAuthenticator.userdata_method = 'GET'
 c.GenericOAuthenticator.scope = ['openid', 'profile']
-c.NomadAuthenticator.nomad_api_url = config.north.nomad_api_url
 
 c.Authenticator.auto_login = True
 

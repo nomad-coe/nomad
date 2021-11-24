@@ -201,15 +201,19 @@ tests = NomadConfig(
 )
 
 
-def api_url(ssl: bool = True, api: str = 'api'):
+def api_url(ssl: bool = True, api: str = 'api', api_host: str = None, api_port: int = None):
     '''
     Returns the url of the current running nomad API. This is for server-side use.
     This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
     '''
+    if api_port is None:
+        api_port = services.api_port
+    if api_host is None:
+        api_host = services.api_host
     protocol = 'https' if services.https and ssl else 'http'
-    host_and_port = services.api_host.strip('/')
-    if services.api_port not in [80, 443]:
-        host_and_port += ':' + str(services.api_port)
+    host_and_port = api_host
+    if api_port not in [80, 443]:
+        host_and_port += ':' + str(api_port)
     base_path = services.api_base_path.strip('/')
     return f'{protocol}://{host_and_port}/{base_path}/{api}'
 
@@ -389,22 +393,16 @@ north = NomadConfig(
     hub_ip_connect='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
     hub_ip='0.0.0.0',
     docker_network=None,
+    hub_host='localhost',
     hub_port=9000,
-    hub_base_path='/fairdi/nomad/latest/north',
-    shared_fs='.volumes/north/shared',
-    users_fs='.volumes/north/users',
-    nomad_api_url=api_url(ssl=False),
+    shared_fs='.volumes/fs/north/shared',
+    users_fs='.volumes/fs/north/users',
     jupyterhub_crypt_key=None
 )
 
 
 def north_url(ssl: bool = True):
-    protocol = 'https' if services.https and ssl else 'http'
-    host_and_port = services.api_host.strip('/')
-    if north.hub_port not in [80, 443]:
-        host_and_port += ':' + str(north.hub_port)
-    base_path = north.hub_base_path.strip('/')
-    return f'{protocol}://{host_and_port}/{base_path}'
+    return api_url(ssl=ssl, api='north', api_host=north.hub_host, api_port=north.hub_port)
 
 
 auxfile_cutoff = 100
