@@ -17,7 +17,7 @@ global.nomadEnv = {
     'usesBetaData': true,
     'officialUrl': 'https://nomad-lab.eu/prod/rae/gui'
   },
-  'encyclopediaEnabled': true,
+  'encyclopediaBase': 'https://nomad-lab.eu/prod/rae/encyclopedia/#',
   'aitoolkitEnabled': true,
   'oasis': false
 }

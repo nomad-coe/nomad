@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import pytest
 import ase.build
 
 from nomad import datamodel, config
@@ -224,45 +225,47 @@ def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
     assert bulk.run[0].system[-1].type == "bulk"
 
 
-def test_representative_systems(single_point, molecular_dynamics, geometry_optimization, phonon):
-    '''Checks that the representative systems are correctly identified and
+@pytest.mark.parametrize('entry', [
+    ('single_point'),
+    ('molecular_dynamics'),
+    ('geometry_optimization'),
+    ('phonon'),
+])
+def test_representative_systems(entry, request):
+    """Checks that the representative systems are correctly identified and
     processed by SystemNormalizer.
-    '''
-    def check_representative_frames(archive):
-        # For systems with multiple frames the first and two last should be processed.
-        try:
-            frames = archive.workflow[0].calculations_ref
-        except Exception:
-            scc = archive.run[0].calculation[-1]
-            repr_system = scc.system_ref
+    """
+    entry = request.getfixturevalue(entry)
+
+    # For systems with multiple frames the first and two last should be processed.
+    try:
+        frames = entry.workflow[0].calculations_ref
+    except Exception:
+        scc = entry.run[0].calculation[-1]
+        repr_system = scc.system_ref
+    else:
+        if entry.workflow[0].type == "molecular_dynamics":
+            scc = frames[0]
         else:
-            if archive.workflow[0].type == "molecular_dynamics":
-                scc = frames[0]
-            else:
-                scc = frames[-1]
-            repr_system = scc.system_ref
+            scc = frames[-1]
+        repr_system = scc.system_ref
 
-        # If the selected system refers to a subsystem, choose it instead.
-        try:
-            system = repr_system.sub_system_ref
-            if system is None:
-                system = repr_system.systems_ref[0]
-            repr_system = system
-        except Exception:
-            pass
+    # If the selected system refers to a subsystem, choose it instead.
+    try:
+        system = repr_system.sub_system_ref
+        if system is None:
+            system = repr_system.systems_ref[0]
+        repr_system = system
+    except Exception:
+        pass
 
-        # Check that only the representative system has been labels with
-        # "is_representative"
-        for system in archive.run[0].system:
-            if system.m_parent_index == repr_system.m_parent_index:
-                assert system.is_representative is True
-            else:
-                assert system.is_representative is None
-
-    check_representative_frames(single_point)
-    check_representative_frames(molecular_dynamics)
-    check_representative_frames(geometry_optimization)
-    check_representative_frames(phonon)
+    # Check that only the representative system has been labels with
+    # "is_representative"
+    for system in entry.run[0].system:
+        if system.m_parent_index == repr_system.m_parent_index:
+            assert system.is_representative is True
+        else:
+            assert system.is_representative is None
 
 
 def test_reduced_chemical_formula():

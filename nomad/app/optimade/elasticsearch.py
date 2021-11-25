@@ -14,6 +14,7 @@ from optimade.models import StructureResource, StructureResourceAttributes
 from optimade.models.utils import OptimadeField, SupportLevel
 from optimade.server.schemas import ENTRY_INFO_SCHEMAS
 
+from nomad.units import ureg
 from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
 from nomad import datamodel, files, utils, metainfo, config
@@ -258,11 +259,16 @@ class StructureCollection(EntryCollection):
                         value = getattr(section, segment)
                         section = value
 
-                    attrs[request_field] = value
+                    # Empty values are not stored and only the magnitude of
+                    # Quantities is stored.
+                    if value is not None:
+                        if isinstance(value, ureg.Quantity):
+                            value = value.magnitude
+                        attrs[request_field] = value
                 except Exception:
                     # TODO there a few things that can go wrong. Most notable the search
                     # quantity might have a path with repeated sections. This won't be
-                    # handles right now.
+                    # handled right now.
                     pass
 
         return self.resource_cls(

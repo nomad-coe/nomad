@@ -187,6 +187,16 @@ export const unitMap = {
     label: 'Henry',
     abbreviation: 'H'
   },
+  radian: {
+    dimension: 'angle',
+    label: 'Radian',
+    abbreviation: 'rad'
+  },
+  degree: {
+    dimension: 'angle',
+    label: 'Degree',
+    abbreviation: '\u00b0'
+  },
   dimensionless: {
     dimension: 'dimensionless',
     label: 'Dimensionless',
@@ -507,6 +517,23 @@ export const conversionMap = {
       }
     }
   },
+  angle: {
+    dimension: 'angle',
+    units: [
+      'radian',
+      'degree'
+    ],
+    multipliers: {
+      radian: {
+        radian: 1,
+        degree: 57.29577951308232
+      },
+      degree: {
+        radian: 0.017453292519943295,
+        degree: 1
+      }
+    }
+  },
   dimensionless: {
     dimension: 'dimensionless',
     units: [
@@ -537,7 +564,8 @@ export const unitSystems = {
       power: 'watt',
       frequency: 'hertz',
       electric_potential: 'volt',
-      charge: 'coulomb'
+      charge: 'coulomb',
+      angle: 'radian'
     }
   },
   AU: {
@@ -551,7 +579,8 @@ export const unitSystems = {
       temperature: 'atomic_unit_of_temperature',
       force: 'atomic_unit_of_force',
       energy: 'hartree',
-      pressure: 'atomic_unit_of_pressure'
+      pressure: 'atomic_unit_of_pressure',
+      angle: 'radian'
     }
   }
 }

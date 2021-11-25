@@ -26,6 +26,7 @@ from nptyping import NDArray
 from ase.utils import pbc2pbc
 import ase.geometry
 import ase.data
+from ase import Atoms
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -293,6 +294,11 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d:
     """Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.
+
+    The symmetry analysis of 2D structures is run by artificially extending the
+    system in the non-periodic direction. Due to this the symmetry information
+    may overlap with real 3D structures unless we include a distinguishing
+    label for 2D structures.
 
     Args:
         space_group: 3D space group number
@@ -594,3 +600,44 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
         "faces": faces,
     }
     return brillouin_zone
+
+
+def get_minimized_structure(atoms: Atoms):
+    """Reduce cell size to just fit the system in the non-periodic dimensions.
+
+    Args:
+        atoms: The structure to minimize
+
+    Returns:
+        A new structure where the non-periodic dimension have been minimized.
+    """
+    min_atoms = atoms.copy()
+    pos = atoms.get_scaled_positions(wrap=False)
+    cell = atoms.get_cell()
+    new_cell = np.array(cell)
+    translation = np.zeros(3)
+    pbc = atoms.get_pbc()
+    for index, periodic in enumerate(pbc):
+        if not periodic:
+            imin = np.min(pos[:, index])
+            imax = np.max(pos[:, index])
+            translation -= cell[index, :] * imin
+            new_cell[index] = cell[index, :] * (imax - imin)
+
+    min_atoms.translate(translation)
+    min_atoms.set_cell(new_cell)
+
+    return min_atoms
+
+
+def swap_basis(atoms, a, b):
+    cell_old = atoms.get_cell()
+    pbc_old = atoms.get_pbc()
+    cell_new = np.array(cell_old)
+    cell_new[a] = cell_old[b]
+    cell_new[b] = cell_old[a]
+    pbc_new = np.array(pbc_old)
+    pbc_new[a] = pbc_old[b]
+    pbc_new[b] = pbc_old[a]
+    atoms.set_cell(cell_new)
+    atoms.set_pbc(pbc_new)

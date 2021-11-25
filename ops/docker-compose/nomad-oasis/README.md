@@ -273,17 +273,6 @@ server {
         proxy_read_timeout 600;
         proxy_pass http://app:8000;
     }
-
-    location ~ \/encyclopedia\/ {
-        proxy_intercept_errors on;
-        error_page 404 = @redirect_to_encyclopedia_index;
-        proxy_pass http://app:8000;
-    }
-
-    location @redirect_to_encyclopedia_index {
-        rewrite ^ /nomad-oasis/encyclopedia/index.html break;
-        proxy_pass http://app:8000;
-    }
 }
 ```
 

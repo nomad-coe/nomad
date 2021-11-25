@@ -34,7 +34,6 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
-from .encyclopedia import EncyclopediaMetadata  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
@@ -657,8 +656,6 @@ class EntryMetadata(metainfo.MSection):
         type=str, shape=['0..*'],
         description='All quantities that are used by this entry.',
         a_elasticsearch=QuantitySearch())
-
-    encyclopedia = metainfo.SubSection(sub_section=EncyclopediaMetadata, categories=[FastAccess])
 
     def apply_archvie_metadata(self, archive):
         quantities = set()

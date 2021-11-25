@@ -26,7 +26,7 @@ import Structure from '../../visualization/Structure'
 import NoData from '../../visualization/NoData'
 import searchQuantities from '../../../searchQuantities'
 import { toMateriaStructure } from '../../../utils'
-import { encyclopediaEnabled } from '../../../config'
+import { encyclopediaBase } from '../../../config'
 
 /**
  * For displaying the most descriptive chemical formula that is present in an
@@ -105,7 +105,8 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
   const materialId = index.results?.material?.material_id
   const structurePath = `results.properties.structures.${structureType}`
   const structureSection = archive?.results?.properties?.structures?.[structureType]
-  let structure = structureSection && toMateriaStructure(structureSection, structureType, `${urlPrefix}/${structureType}`)
+  const m_path = `${urlPrefix}/${structureType}`
+  let structure = structureSection && toMateriaStructure(structureSection)
 
   const handleStructureChange = useCallback((event) => {
     setStructureType(event.target.value)
@@ -158,6 +159,8 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
           ? <Structure
             data={structure}
             materialType={index.results?.material?.structural_type}
+            structureType={structureType.split('_').pop()}
+            m_path={m_path}
             data-testid="viewer-material"
           />
           : <NoData/>}
@@ -201,7 +204,7 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
           : <NoData/>}
       </PropertyItem>
     </PropertyGrid>
-    {encyclopediaEnabled && materialId &&
+    {encyclopediaBase && materialId &&
       <PropertyCardActions>
         <MaterialButton materialId={materialId}>
           View in Encyclopedia

@@ -68,9 +68,6 @@ section. We currently have the following domain specific metadata classes/sectio
 
 .. autoclass:: nomad.datamodel.OptimadeEntry
     :members:
-
-.. automodule:: nomad.datamodel.encyclopedia
-    :members:
 '''
 import sys
 
@@ -85,5 +82,4 @@ from .metainfo import m_env
 from .results import Results
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.encyclopedia'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore

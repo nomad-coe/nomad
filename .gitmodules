@@ -182,9 +182,6 @@
     path = dependencies/parsers/tinker
 	url = https://github.com/nomad-coe/nomad-parser-tinker.git
 	branch = master
-[submodule "dependencies/encyclopedia-gui"]
-	path = dependencies/encyclopedia-gui
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-gui.git
 [submodule "dependencies/materia"]
 	path = gui/materia
 	url = https://github.com/nomad-coe/materia

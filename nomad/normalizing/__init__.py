@@ -25,7 +25,6 @@ Currently the normalizers are:
 - optimade.py
 - fhiaims.py
 - dos.py
-- encyclopedia.py (used to create the data in NOMAD-coe Encyclopedia)
 
 The normalizers are available via
 
@@ -44,7 +43,6 @@ from .optimade import OptimadeNormalizer
 from .dos import DosNormalizer
 from .normalizer import Normalizer
 from .band_structure import BandStructureNormalizer
-from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 from .workflow import WorkflowNormalizer
 from .results import ResultsNormalizer
 
@@ -54,6 +52,5 @@ normalizers: Iterable[Type[Normalizer]] = [
     DosNormalizer,
     BandStructureNormalizer,
     WorkflowNormalizer,
-    EncyclopediaNormalizer,
     ResultsNormalizer
 ]

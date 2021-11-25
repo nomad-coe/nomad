@@ -55,9 +55,9 @@ export function testLatticeParameters(index) {
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.a', '5 Å')
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.b', '5 Å')
   expectQuantity('results.properties.structures.structure_original.lattice_parameters.c', '5 Å')
-  expectQuantity('results.properties.structures.structure_original.lattice_parameters.alpha', '0.9', 'α')
-  expectQuantity('results.properties.structures.structure_original.lattice_parameters.beta', '0.9', 'β')
-  expectQuantity('results.properties.structures.structure_original.lattice_parameters.gamma', '0.9', 'γ')
+  expectQuantity('results.properties.structures.structure_original.lattice_parameters.alpha', '90 °', 'α')
+  expectQuantity('results.properties.structures.structure_original.lattice_parameters.beta', '90 °', 'β')
+  expectQuantity('results.properties.structures.structure_original.lattice_parameters.gamma', '90 °', 'γ')
   expectQuantity('results.properties.structures.structure_original.cell_volume', '125 Å ^ 3')
 }
 

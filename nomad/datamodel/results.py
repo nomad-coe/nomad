@@ -225,7 +225,7 @@ class LatticeParameters(MSection):
         """,
     )
     a = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit="m",
         description="""
         Length of the first basis vector.
@@ -233,7 +233,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     b = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit="m",
         description="""
         Length of the second basis vector.
@@ -241,7 +241,7 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     c = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
         unit="m",
         description="""
         Length of the third basis vector.
@@ -249,21 +249,24 @@ class LatticeParameters(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     alpha = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
+        unit="radian",
         description="""
         Angle between second and third basis vector.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     beta = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
+        unit="radian",
         description="""
         Angle between first and third basis vector.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     gamma = Quantity(
-        type=float,
+        type=np.dtype(np.float64),
+        unit="radian",
         description="""
         Angle between first and second basis vector.
         """,
@@ -343,6 +346,20 @@ class Structure(MSection):
         Volume of the cell.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    atomic_density = Quantity(
+        type=np.dtype(np.float64),
+        unit="1 / m ** 3",
+        description="""
+        Atomic density of the material (atoms/volume)."
+        """
+    )
+    mass_density = Quantity(
+        type=np.dtype(np.float64),
+        unit="kg / m ** 3",
+        description="""
+        Mass density of the material.
+        """
     )
     species = SubSection(sub_section=Species.m_def, repeats=True)
     lattice_parameters = SubSection(sub_section=LatticeParameters.m_def)
@@ -920,10 +937,27 @@ class Method(MSection):
     method_id = Quantity(
         type=str,
         description="""
-        Identifier for the used method. Only available if the method could be
-        identified precisely.
+        Identifier for the used method. Only available for a subset of entries
+        for which the methodology has been identified with precision.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    equation_of_state_id = Quantity(
+        type=str,
+        description="""
+        Identifier that can be used to group entries within an equation of
+        state calculation. Only available for a subset of entries for which the
+        structure and methodology have been identified with precision.
+        """,
+    )
+    parameter_variation_id = Quantity(
+        type=str,
+        description="""
+        Identifier that can be used to group entries that target the same
+        structure but with varying parameter settings. Only available for a
+        subset of entries for which the structure and methodology have been
+        identified with precision.
+        """,
     )
     method_name = Quantity(
         type=MEnum(["DFT", "GW", "EELS", "XPS", config.services.unavailable_value]),

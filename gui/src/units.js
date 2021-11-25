@@ -31,6 +31,7 @@ const override = {
   'length': 'angstrom',
   'energy': 'electron_volt',
   'pressure': 'gigapascal',
+  'angle': 'degree',
   'system': 'custom'
 }
 defaults = {...defaults, ...override}

@@ -19,7 +19,7 @@
 '''
 Processing comprises everything that is necessary to take an uploaded user file,
 processes it, and store all necessary data for *repository*, *archive*, and potential
-future services (e.g. *encyclopedia*).
+future services.
 
 Processing is build on top of *celery* (http://www.celeryproject.org/) and
 *mongodb* (http://www.mongodb.org).

@@ -184,17 +184,6 @@ def nginx_conf(prefix, host, port, server):
         proxy_buffering off;
         proxy_pass http://{1}:{2};
     }}
-
-    location ~ \\/encyclopedia\\/ {{
-        proxy_intercept_errors on;
-        error_page 404 = @redirect_to_encyclopedia_index;
-        proxy_pass http://{1}:{2};
-    }}
-
-    location @redirect_to_encyclopedia_index {{
-        rewrite ^ {0}/encyclopedia/index.html break;
-        proxy_pass http://{1}:{2};
-    }}
 '''.format(prefix, host, port))
     if server:
         print('}')
@@ -262,7 +251,7 @@ window.nomadEnv = {{
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',
     'debug': false,
-    'encyclopediaEnabled': {'true' if config.encyclopedia_enabled else 'false'},
+    'encyclopediaBase': {config.encyclopedia_base if config.encyclopedia_base else 'undefined'},
     'aitoolkitEnabled': {'true' if config.aitoolkit_enabled else 'false'},
     'oasis': {'true' if config.keycloak.oasis else 'false'},
     'version': {json.dumps(config.meta.beta) if config.meta.beta else dict()}
@@ -284,26 +273,6 @@ window.nomadEnv = {{
             file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
             with open(source_file, 'wt') as f:
                 f.write(file_data)
-
-    gui_folder = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../../app/flask/static/encyclopedia'))
-
-    # setup the env
-    conf_js_file = os.path.join(gui_folder, 'conf.js')
-    if not os.path.exists(conf_js_file):
-        with open(conf_js_file, 'wt') as f:
-            f.write(('''
-window.nomadEnv = {
-    apiRoot: "%s/api/encyclopedia/",
-    keycloakBase: "%s",
-    keycloakRealm: "%s",
-    keycloakClientId: "%s"
-};''' % (
-                config.services.api_base_path,
-                config.keycloak.server_url,
-                config.keycloak.realm_name,
-                config.keycloak.client_id
-            )))
 
 
 @admin.group(help='Commands for upgrading to a newer NOMAD version')
