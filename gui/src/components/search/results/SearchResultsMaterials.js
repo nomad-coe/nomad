@@ -19,7 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { IconButton } from '@material-ui/core'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
-import { encyclopediaEnabled } from '../../../config'
+import { encyclopediaBase } from '../../../config'
 import { MaterialButton } from '../../nav/Routes'
 import {
   addColumnDefaults,
@@ -68,7 +68,7 @@ const SearchResultsMaterials = React.memo(function SearchResultsMaterials(props)
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
   >
     <DatatableToolbar title={`${pagination.total} search results`} />
-    <DatatableTable actions={encyclopediaEnabled && VisitMaterialAction}>
+    <DatatableTable actions={encyclopediaBase && VisitMaterialAction}>
       <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
     </DatatableTable>
   </Datatable>

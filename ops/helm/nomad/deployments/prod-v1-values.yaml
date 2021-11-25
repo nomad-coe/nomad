@@ -19,7 +19,7 @@ gui:
   debug: true
   matomoEnabled: false
   matomoSiteId: 2
-  encyclopediaEnabled: false
+  encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
   aitoolkitEnabled: false
 
 app:

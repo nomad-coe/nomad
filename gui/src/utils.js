@@ -302,7 +302,7 @@ export function getHighestOccupiedEnergy(section_k_band, scc) {
  * @return {undefined|object} If the given structure cannot be converted,
  * returns an empty object.
  */
-export function toMateriaStructure(structure, name, m_path) {
+export function toMateriaStructure(structure) {
   if (!structure) {
     return undefined
   }
@@ -317,9 +317,7 @@ export function toMateriaStructure(structure, name, m_path) {
       cell: structure.lattice_vectors ? toUnitSystem(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
       positions: toUnitSystem(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
       fractional: false,
-      pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined,
-      name: name,
-      m_path: m_path
+      pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined
     }
     return structMateria
   } catch (error) {
@@ -429,6 +427,9 @@ export function getSerializer(dtype, pretty = true) {
         return value
       }
       if (value instanceof Quantity) {
+        if (isNil(value.value)) {
+          return value.value
+        }
         let label
         let valueConv
         if (units) {
@@ -460,7 +461,7 @@ export function getSerializer(dtype, pretty = true) {
 export function serializeMetainfo(quantity, value, units) {
   const dtype = getDatatype(quantity)
   if (dtype === DType.Number) {
-    if (!(value instanceof Quantity)) {
+    if (!(value instanceof Quantity) && !isNil(value)) {
       const unit = getUnit(quantity) || 'dimensionless'
       value = new Quantity(value, unit)
     }

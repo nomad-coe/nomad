@@ -16,19 +16,22 @@
 # limitations under the License.
 #
 
-import json
 import re
 import numpy as np
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Union, Any, Set
 import ase.data
+from ase import Atoms
+from matid import SymmetryAnalyzer
+import matid.geometry
 
 from nomad import config
+from nomad.units import ureg
 from nomad import atomutils
 from nomad.normalizing.normalizer import Normalizer
-from nomad.datamodel.encyclopedia import EncyclopediaMetadata
-from nomad.datamodel.optimade import OptimadeEntry, Species
+from nomad.normalizing.method import MethodNormalizer
+from nomad.normalizing.material import MaterialNormalizer
+from nomad.datamodel.optimade import Species
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
-from nomad.datamodel.metainfo.simulation.method import Electronic
 from nomad.datamodel.results import (
     BandGap,
     Results,
@@ -38,7 +41,6 @@ from nomad.datamodel.results import (
     GeometryOptimizationMethod,
     Properties,
     SpectroscopyProperties,
-    Symmetry,
     Structures,
     Structure,
     StructureOriginal,
@@ -47,14 +49,10 @@ from nomad.datamodel.results import (
     StructureOptimized,
     LatticeParameters,
     WyckoffSet,
-    Simulation,
-    DFT,
-    GW,
     EnergyVolumeCurve,
     BulkModulus,
     ShearModulus,
     MechanicalProperties,
-    xc_treatments,
     ElectronicProperties,
     VibrationalProperties,
     BandStructureElectronic,
@@ -69,25 +67,6 @@ from nomad.datamodel.results import (
 
 re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
 elements = set(ase.data.chemical_symbols)
-
-
-def label_to_chemical_symbol(label: str) -> Union[str, None]:
-    """Tries to extract a valid chemical symbol from a label. Currently can
-    only handle labels that correspond to chemical names (no matter what case)
-    and that possbily have a non-alphabetic postfix. Raises an error if no
-    match can be made.
-    """
-    match = re_label.match(label)
-    symbol = None
-    if match:
-        test = match.group(1).capitalize()
-        if test in elements:
-            symbol = test
-    if symbol is None:
-        raise ValueError(
-            "Could not identify a chemical element from the given label: {}".format(label)
-        )
-    return symbol
 
 
 def valid_array(array: Any) -> bool:
@@ -216,279 +195,56 @@ class ResultsNormalizer(Normalizer):
 
     def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered
-        repr_sys = None
+        repr_system = None
         for section in self.section_run.system:
             if section.is_representative:
-                repr_sys = section
+                repr_system = section
                 break
-        try:
-            encyclopedia = self.entry_archive.metadata.encyclopedia
-        except Exception:
-            encyclopedia = None
         try:
             optimade = self.entry_archive.metadata.optimade
         except Exception:
             optimade = None
 
-        symmetry = None
-        if repr_sys and repr_sys.symmetry:
-            symmetry = repr_sys.symmetry[0]
+        repr_symmetry = None
+        if repr_system and repr_system.symmetry:
+            repr_symmetry = repr_system.symmetry[0]
 
         # Create the section and populate the subsections
         results = self.entry_archive.results
-        results.material = self.material(repr_sys, symmetry, encyclopedia, optimade)
-        results.method = self.method(encyclopedia)
-        results.properties = self.properties(repr_sys, symmetry, encyclopedia)
+        properties, conv_atoms, wyckoff_sets, spg_number = self.properties(repr_system, repr_symmetry)
+        results.properties = properties
+        results.material = MaterialNormalizer(
+            self.entry_archive,
+            repr_system,
+            repr_symmetry,
+            spg_number,
+            conv_atoms,
+            wyckoff_sets,
+            optimade,
+            logger
+        ).material()
+        results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
         self.geometry_optimization(results.method, results.properties)
 
-    def material(
-            self,
-            repr_sys: System,
-            symmetry: SystemSymmetry,
-            encyclopedia: EncyclopediaMetadata,
-            optimade: OptimadeEntry) -> Material:
-        """Returns a populated Material subsection."""
-        material = Material()
-
-        if repr_sys:
-            material.structural_type = repr_sys.type
-            names, counts = atomutils.get_hill_decomposition(repr_sys.atoms.labels, reduced=True)
-            material.chemical_formula_reduced_fragments = [
-                "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(names, counts)
-            ]
-        if encyclopedia:
-            material.material_id = encyclopedia.material.material_id
-            classes = encyclopedia.material.material_classification
-            if classes:
-                classifications = json.loads(classes)
-                material.functional_type = classifications.get("material_class_springer")
-                material.compound_type = classifications.get("compound_class_springer")
-            material.material_name = encyclopedia.material.material_name
-        if optimade:
-            material.elements = optimade.elements
-            material.chemical_formula_descriptive = optimade.chemical_formula_descriptive
-            material.chemical_formula_reduced = optimade.chemical_formula_reduced
-            material.chemical_formula_hill = optimade.chemical_formula_hill
-            material.chemical_formula_anonymous = optimade.chemical_formula_anonymous
-
-        if symmetry:
-            symm = self.symmetry(repr_sys, symmetry, encyclopedia)
-            if symm:
-                material.symmetry = symm
-
-        return material
-
-    def symmetry(
-            self,
-            repr_sys: System,
-            symmetry: SystemSymmetry,
-            encyclopedia: EncyclopediaMetadata) -> Symmetry:
-        """Returns a populated Symmetry subsection."""
-        result = Symmetry()
-        filled = False
-
-        if symmetry:
-            result.hall_number = symmetry.hall_number
-            result.hall_symbol = symmetry.hall_symbol
-            result.bravais_lattice = symmetry.bravais_lattice
-            result.crystal_system = symmetry.crystal_system
-            result.space_group_number = symmetry.space_group_number
-            result.space_group_symbol = symmetry.international_short_symbol
-            result.point_group = symmetry.point_group
-            filled = True
-
-        if encyclopedia and encyclopedia.material.bulk:
-            result.strukturbericht_designation = encyclopedia.material.bulk.strukturbericht_designation
-            result.structure_name = encyclopedia.material.bulk.structure_type
-            result.prototype_formula = encyclopedia.material.bulk.structure_prototype
-            filled = True
-
-        proto = repr_sys.prototype if repr_sys else None
-        proto = proto[0] if proto else None
-        if proto:
-            result.prototype_aflow_id = proto.aflow_id
-            filled = True
-
-        if filled:
-            return result
-        return None
-
-    def wyckoff_sets(self, struct: StructureConventional, wyckoff_sets: Dict) -> None:
-        """Populates the Wyckoff sets in the given structure.
-        """
-        for group in wyckoff_sets:
-            wset = struct.m_create(WyckoffSet)
-            if group.x is not None or group.y is not None or group.z is not None:
-                if group.x is not None:
-                    wset.x = float(group.x)
-                if group.y is not None:
-                    wset.y = float(group.y)
-                if group.z is not None:
-                    wset.z = float(group.z)
-            wset.indices = group.indices
-            wset.element = group.element
-            wset.wyckoff_letter = group.wyckoff_letter
-
-    def species(self, labels: List[str], struct: Structure) -> None:
+    def species(self, labels: List[str], atomic_numbers: List[int], struct: Structure) -> None:
         """Given a list of species labels, creates the corresponding Species
         sections in the given structure.
         """
-        if labels is None:
+        if labels is None or atomic_numbers is None:
             return
-        unique_labels = sorted(list(set(labels)))
-        for label in unique_labels:
-            i_species = struct.m_create(Species)
-            i_species.name = label
-            try:
-                symbol = label_to_chemical_symbol(label)
-            except ValueError:
-                self.logger.info("could not identify chemical symbol from the label: {}".format(label))
-            else:
-                i_species.chemical_symbols = [symbol]
-            i_species.concentration = [1.0]
-
-    def basis_set_type(self, repr_method) -> Union[str, None]:
-        try:
-            name = repr_method.basis_set[0].type
-        except Exception:
-            name = None
-        if name:
-            key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
-            name_mapping = {
-                'gaussians': 'gaussians',
-                'realspacegrid': 'real-space grid',
-                'planewaves': 'plane waves'
-            }
-            name = name_mapping.get(key, name)
-        return name
-
-    def basis_set_name(self, repr_method) -> Union[str, None]:
-        try:
-            name = repr_method.basis_set[0].name
-        except Exception:
-            name = None
-        return name
-
-    def core_electron_treatment(self) -> str:
-        treatment = config.services.unavailable_value
-        code_name = self.section_run.program.name
-        if code_name is not None:
-            core_electron_treatments = {
-                'VASP': 'pseudopotential',
-                'FHI-aims': 'full all electron',
-                'exciting': 'full all electron',
-                'quantum espresso': 'pseudopotential'
-            }
-            treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
-        return treatment
-
-    def xc_functional_names(self, repr_method) -> Union[List[str], None]:
-        if repr_method:
-            functionals = set()
-            try:
-                for functional_type in ['exchange', 'correlation', 'hybrid', 'contributions']:
-                    functionals.update([f.name for f in repr_method.dft.xc_functional[functional_type]])
-            except Exception:
-                pass
-            if functionals:
-                return sorted(functionals)
-        return None
-
-    def xc_functional_type(self, xc_functionals) -> str:
-        if xc_functionals:
-            name = xc_functionals[0]
-            return xc_treatments.get(name[:3].lower(), config.services.unavailable_value)
-        else:
-            return config.services.unavailable_value
-
-    def method(
-            self,
-            encyclopedia: EncyclopediaMetadata) -> Method:
-        """Returns a populated Method subsection."""
-        method = Method()
-        simulation = Simulation()
-        repr_method = None
-        method_name = config.services.unavailable_value
-        methods = self.section_run.method
-        n_methods = len(methods)
-
-        def get_method_name(section_method):
-            method_name = config.services.unavailable_value
-            if section_method.electronic and section_method.electronic.method:
-                method_name = section_method.electronic.method
-            else:
-                if section_method.gw is not None:
-                    method_name = "GW"
-            return method_name
-
-        # If only one method is speficied use it directly
-        if n_methods == 1:
-            repr_method = methods[0]
-            method_name = get_method_name(repr_method)
-        # If several methods have been declared, we need to find the "topmost"
-        # method and report it.
-        elif n_methods > 1:
-            # Method referencing another as "core_method". If core method was
-            # given, create new merged method containing all the information.
-            for sec_method in methods:
-                core_method = sec_method.core_method_ref
-                if core_method is not None:
-                    if sec_method.electronic:
-                        electronic = core_method.electronic
-                        electronic = electronic if electronic else core_method.m_create(Electronic)
-                        core_method.electronic.method = sec_method.electronic.method
-                    repr_method = core_method
-                    method_name = get_method_name(repr_method)
-
-            # Perturbative methods: we report the "topmost" method (=method
-            # that is referencing something but is not itself being
-            # referenced).
-            referenced_methods = set()
-            for sec_method in methods:
-                starting_method_ref = sec_method.starting_method_ref
-                if starting_method_ref is not None:
-                    referenced_methods.add(starting_method_ref.m_path())
-            if len(referenced_methods) == n_methods - 1:
-                for sec_method in methods:
-                    if sec_method.m_path() not in referenced_methods:
-                        method_name = get_method_name(sec_method)
-                        if method_name != config.services.unavailable_value:
-                            repr_method = sec_method
-                            break
-
-        if method_name == "GW":
-            method.method_name = "GW"
-            gw = GW()
-            gw.type = repr_method.gw.type
-            gw.starting_point = repr_method.gw.starting_point.split()
-            simulation.gw = gw
-        elif method_name in {"DFT", "DFT+U"}:
-            method.method_name = "DFT"
-            dft = DFT()
-            dft.basis_set_type = self.basis_set_type(repr_method)
-            dft.basis_set_name = self.basis_set_name(repr_method)
-            dft.core_electron_treatment = self.core_electron_treatment()
-            if repr_method.electronic is not None:
-                if repr_method.electronic.smearing is not None:
-                    dft.smearing_kind = repr_method.electronic.smearing.kind
-                    dft.smearing_width = repr_method.electronic.smearing.width
-                if repr_method.electronic.n_spin_channels:
-                    dft.spin_polarized = repr_method.electronic.n_spin_channels > 1
-                dft.van_der_Waals_method = repr_method.electronic.van_der_waals_method
-                dft.relativity_method = repr_method.electronic.relativity_method
-            dft.xc_functional_names = self.xc_functional_names(repr_method)
-            dft.xc_functional_type = self.xc_functional_type(dft.xc_functional_names)
-            if repr_method.scf is not None:
-                dft.scf_threshold_energy_change = repr_method.scf.threshold_energy_change
-            simulation.dft = dft
-
-        if encyclopedia and encyclopedia.method:
-            method.method_id = encyclopedia.method.method_id
-        simulation.program_name = self.section_run.program.name
-        simulation.program_version = self.section_run.program.version
-        method.simulation = simulation
-
-        return method
+        species: Set[str] = set()
+        for label, atomic_number in zip(labels, atomic_numbers):
+            if label not in species:
+                species.add(label)
+                i_species = struct.m_create(Species)
+                i_species.name = label
+                try:
+                    symbol = atomutils.chemical_symbols([atomic_number])[0]
+                except ValueError:
+                    self.logger.info("could not identify chemical symbol for atomic number {}".format(atomic_number))
+                else:
+                    i_species.chemical_symbols = [symbol]
+                i_species.concentration = [1.0]
 
     def band_structure_electronic(self) -> Union[BandStructureElectronic, None]:
         """Returns a new section containing an electronic band structure. In
@@ -666,7 +422,7 @@ class ResultsNormalizer(Normalizer):
                 geo_opt_prop = GeometryOptimizationProperties()
                 geo_opt_prop.trajectory = workflow.calculations_ref
                 system_ref = workflow.calculation_result_ref.system_ref
-                structure_optimized = self.structure_optimized(system_ref)
+                structure_optimized = self.nomad_system_to_structure(StructureOptimized, system_ref)
                 if structure_optimized:
                     geo_opt_prop.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:
@@ -680,16 +436,35 @@ class ResultsNormalizer(Normalizer):
 
     def properties(
             self,
-            repr_sys: System,
-            symmetry: SystemSymmetry,
-            encyclopedia: EncyclopediaMetadata) -> Properties:
+            repr_system: System,
+            repr_symmetry: SystemSymmetry) -> tuple:
         """Returns a populated Properties subsection."""
         properties = Properties()
 
         # Structures
-        struct_orig = self.structure_original(repr_sys)
-        struct_prim = self.structure_primitive(symmetry)
-        struct_conv = self.structure_conventional(symmetry)
+        struct_orig = None
+        struct_prim = None
+        struct_conv = None
+        conv_atoms = None
+        wyckoff_sets = None
+        spg_number = None
+        if repr_system:
+            original_atoms = repr_system.m_cache.get("representative_atoms")
+            if original_atoms:
+                prim_atoms = None
+                structural_type = repr_system.type
+                if structural_type == "bulk":
+                    conv_atoms, prim_atoms, wyckoff_sets, spg_number = self.structures_bulk(repr_symmetry)
+                elif structural_type == "2D":
+                    conv_atoms, prim_atoms, wyckoff_sets, spg_number = self.structures_2d(original_atoms)
+                elif structural_type == "1D":
+                    conv_atoms, prim_atoms = self.structures_1d(original_atoms)
+
+                struct_orig = self.ase_atoms_to_structure(StructureOriginal, original_atoms)
+                struct_prim = self.ase_atoms_to_structure(StructurePrimitive, prim_atoms)
+                wyckoff_sets_serialized = wyckoff_sets if structural_type == "bulk" else None
+                struct_conv = self.ase_atoms_to_structure(StructureConventional, conv_atoms, wyckoff_sets_serialized)
+
         if struct_orig or struct_prim or struct_conv:
             structures = Structures()
             if struct_conv:
@@ -748,99 +523,238 @@ class ResultsNormalizer(Normalizer):
             n_calc = 0
         properties.n_calculations = n_calc
 
-        return properties
+        return properties, conv_atoms, wyckoff_sets, spg_number
 
-    def structure_original(self, repr_sys: System) -> StructureOriginal:
-        """Returns a populated Structure subsection for the original
-        structure.
+    def wyckoff_sets(self, struct: StructureConventional, wyckoff_sets: Dict) -> None:
+        """Populates the Wyckoff sets in the given structure.
         """
-        if repr_sys and repr_sys.atoms:
-            struct = StructureOriginal()
-            struct.cartesian_site_positions = repr_sys.atoms.positions
-            struct.species_at_sites = repr_sys.atoms.labels
-            self.species(struct.species_at_sites, struct)
-            lattice_vectors = repr_sys.atoms.lattice_vectors
-            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
-                struct.dimension_types = np.array(repr_sys.atoms.periodic).astype(int)
-                struct.lattice_vectors = lattice_vectors
-                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
-            return struct
+        for group in wyckoff_sets:
+            wset = struct.m_create(WyckoffSet)
+            if group.x is not None or group.y is not None or group.z is not None:
+                if group.x is not None:
+                    wset.x = float(group.x)
+                if group.y is not None:
+                    wset.y = float(group.y)
+                if group.z is not None:
+                    wset.z = float(group.z)
+            wset.indices = group.indices
+            wset.element = group.element
+            wset.wyckoff_letter = group.wyckoff_letter
 
-        return None
-
-    def structure_primitive(self, symmetry: SystemSymmetry) -> StructurePrimitive:
-        """Returns a populated Structure subsection for the primitive
-        structure.
+    def structures_bulk(self, repr_symmetry):
+        """The symmetry of bulk structures has already been analyzed. Here we
+        use the cached results.
         """
-        if symmetry:
-            struct = StructurePrimitive()
-            prim_sys = symmetry.system_primitive[0]
-            struct.species_at_sites = atomutils.chemical_symbols(prim_sys.atomic_numbers)
-            self.species(struct.species_at_sites, struct)
-            lattice_vectors = prim_sys.lattice_vectors
-            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
-                struct.cartesian_site_positions = atomutils.to_cartesian(prim_sys.positions.magnitude, lattice_vectors.magnitude)
-                struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = lattice_vectors
-                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
-            return struct
+        conv_atoms = None
+        prim_atoms = None
+        wyckoff_sets = None
+        spg_number = None
+        if repr_symmetry:
+            symmetry_analyzer = repr_symmetry.m_cache.get("symmetry_analyzer")
+            if symmetry_analyzer:
+                spg_number = symmetry_analyzer.get_space_group_number()
+                conv_atoms = symmetry_analyzer.get_conventional_system()
+                prim_atoms = symmetry_analyzer.get_primitive_system()
 
-        return None
+                # For some reason MatID seems to drop the periodicity, reintroduce it here.
+                conv_atoms.set_pbc(True)
+                prim_atoms.set_pbc(True)
+                try:
+                    wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+                except Exception:
+                    self.logger.error('Error resolving Wyckoff sets.')
+                    wyckoff_sets = []
 
-    def structure_conventional(self, symmetry: SystemSymmetry) -> StructureConventional:
-        """Returns a populated Structure subsection for the conventional
-        structure.
+        return conv_atoms, prim_atoms, wyckoff_sets, spg_number
+
+    def structures_2d(self, original_atoms):
+        try:
+            # Get dimension of system by also taking into account the covalent radii
+            dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
+            basis_dimensions = np.linalg.norm(original_atoms.get_cell(), axis=1)
+            gaps = basis_dimensions - dimensions
+            periodicity = gaps <= config.normalize.cluster_threshold
+
+            # If two axis are not periodic, return. This only happens if the vacuum
+            # gap is not aligned with a cell vector or if the linear gap search is
+            # unsufficient (the structure is "wavy" making also the gap highly
+            # nonlinear).
+            if sum(periodicity) != 2:
+                raise ValueError("could not detect the periodic dimensions in a 2D system")
+
+            # Center the system in the non-periodic direction, also taking
+            # periodicity into account. The get_center_of_mass()-function in MatID
+            # takes into account periodicity and can produce the correct CM unlike
+            # the similar function in ASE.
+            pbc_cm = matid.geometry.get_center_of_mass(original_atoms)
+            cell_center = 0.5 * np.sum(original_atoms.get_cell(), axis=0)
+            translation = cell_center - pbc_cm
+            symm_system = original_atoms.copy()
+            symm_system.translate(translation)
+            symm_system.wrap()
+
+            # Set the periodicity according to detected periodicity in order
+            # for SymmetryAnalyzer to use the symmetry analysis designed for 2D
+            # systems.
+            symm_system.set_pbc(periodicity)
+            symmetry_analyzer = SymmetryAnalyzer(
+                symm_system,
+                config.normalize.symmetry_tolerance,
+                config.normalize.flat_dim_threshold
+            )
+
+            spg_number = symmetry_analyzer.get_space_group_number()
+            wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
+            conv_atoms = symmetry_analyzer.get_conventional_system()
+            prim_atoms = symmetry_analyzer.get_primitive_system()
+
+            # Reduce cell size to just fit the system in the non-periodic
+            # dimensions.
+            conv_atoms = atomutils.get_minimized_structure(conv_atoms)
+            prim_atoms = atomutils.get_minimized_structure(prim_atoms)
+
+            # Swap the cell axes so that the non-periodic one is always the
+            # last basis (=c)
+            swap_dim = 2
+            for i, periodic in enumerate(conv_atoms.get_pbc()):
+                if not periodic:
+                    non_periodic_dim = i
+                    break
+            if non_periodic_dim != swap_dim:
+                atomutils.swap_basis(conv_atoms, non_periodic_dim, swap_dim)
+                atomutils.swap_basis(prim_atoms, non_periodic_dim, swap_dim)
+        except Exception as e:
+            self.logger.error(
+                'could not construct a conventional system for a 2D material',
+                exc_info=e
+            )
+
+        return conv_atoms, prim_atoms, wyckoff_sets, spg_number
+
+    def structures_1d(self, original_atoms):
+        conv_atoms = None
+        prim_atoms = None
+        try:
+            # First get a symmetry analyzer and the primitive system
+            symm_system = original_atoms.copy()
+            symm_system.set_pbc(True)
+            symmetry_analyzer = SymmetryAnalyzer(
+                symm_system,
+                config.normalize.symmetry_tolerance,
+                config.normalize.flat_dim_threshold
+            )
+            prim_atoms = symmetry_analyzer.get_primitive_system()
+            prim_atoms.set_pbc(True)
+
+            # Get dimension of system by also taking into account the covalent radii
+            dimensions = matid.geometry.get_dimensions(prim_atoms, [True, True, True])
+            basis_dimensions = np.linalg.norm(prim_atoms.get_cell(), axis=1)
+            gaps = basis_dimensions - dimensions
+            periodicity = gaps <= config.normalize.cluster_threshold
+
+            # If one axis is not periodic, return. This only happens if the vacuum
+            # gap is not aligned with a cell vector.
+            if sum(periodicity) != 1:
+                raise ValueError("could not detect the periodic dimensions in a 1D system")
+
+            # Translate to center of mass
+            conv_atoms = prim_atoms.copy()
+            pbc_cm = matid.geometry.get_center_of_mass(prim_atoms)
+            cell_center = 0.5 * np.sum(conv_atoms.get_cell(), axis=0)
+            translation = cell_center - pbc_cm
+            translation[periodicity] = 0
+            conv_atoms.translate(translation)
+            conv_atoms.wrap()
+            conv_atoms.set_pbc(periodicity)
+
+            # Reduce cell size to just fit the system in the non-periodic dimensions.
+            conv_atoms = atomutils.get_minimized_structure(conv_atoms)
+
+            # Swap the cell axes so that the periodic one is always the first
+            # basis (=a)
+            swap_dim = 0
+            for i, periodic in enumerate(periodicity):
+                if periodic:
+                    periodic_dim = i
+                    break
+            if periodic_dim != swap_dim:
+                atomutils.swap_basis(conv_atoms, periodic_dim, swap_dim)
+
+            prim_atoms = conv_atoms
+        except Exception as e:
+            self.logger.error(
+                'could not construct a conventional system for a 1D material',
+                exc_info=e
+            )
+        return conv_atoms, prim_atoms
+
+    def ase_atoms_to_structure(self, structure_class, atoms: Atoms, wyckoff_sets: dict = None):
+        """Returns a populated instance of the given structure class from an
+        ase.Atoms-object.
         """
-        if symmetry:
-            struct = StructureConventional()
-            conv_sys = symmetry.system_std[0]
-            struct.species_at_sites = atomutils.chemical_symbols(conv_sys.atomic_numbers)
-            self.species(struct.species_at_sites, struct)
-            lattice_vectors = conv_sys.lattice_vectors
-            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
-                struct.cartesian_site_positions = atomutils.to_cartesian(conv_sys.positions.magnitude, lattice_vectors.magnitude)
-                struct.dimension_types = [1, 1, 1]
-                struct.lattice_vectors = lattice_vectors
-                struct.cell_volume = atomutils.get_volume(lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
-                analyzer = symmetry.m_cache["symmetry_analyzer"]
-                sets = analyzer.get_wyckoff_sets_conventional(return_parameters=True)
-                self.wyckoff_sets(struct, sets)
-            return struct
+        if not atoms or not structure_class:
+            return None
+        struct = structure_class()
+        struct.species_at_sites = atoms.get_chemical_symbols()
+        self.species(atoms.get_chemical_symbols(), atoms.get_atomic_numbers(), struct)
+        struct.cartesian_site_positions = atoms.get_positions() * ureg.angstrom
+        lattice_vectors = atoms.get_cell()
+        if lattice_vectors is not None:
+            lattice_vectors = (lattice_vectors * ureg.angstrom).to(ureg.meter).magnitude
+            struct.dimension_types = [1 if x else 0 for x in atoms.get_pbc()]
+            struct.lattice_vectors = lattice_vectors
+            cell_volume = atomutils.get_volume(lattice_vectors)
+            struct.cell_volume = cell_volume
+            if atoms.get_pbc().all() and cell_volume:
+                mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers())
+                struct.mass_density = mass / cell_volume
+                struct.atomic_density = len(atoms) / cell_volume
+            if wyckoff_sets:
+                self.wyckoff_sets(struct, wyckoff_sets)
+            struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
+        return struct
 
-        return None
-
-    def structure_optimized(self, system: System) -> Structure:
-        """Returns a populated Structure subsection for the optimized
-        structure.
+    def nomad_system_to_structure(self, structure_class, system: System) -> Structure:
+        """Returns a populated instance of the given structure class from a
+        NOMAD System-section.
         """
-        if system:
-            struct = StructureOptimized()
-            struct.cartesian_site_positions = system.atoms.positions
-            struct.species_at_sites = system.atoms.labels
-            self.species(struct.species_at_sites, struct)
-            lattice_vectors = system.atoms.lattice_vectors
-            if lattice_vectors is not None and atomutils.is_valid_basis(lattice_vectors.magnitude):
-                struct.dimension_types = np.array(system.atoms.periodic).astype(int)
-                struct.lattice_vectors = system.atoms.lattice_vectors
-                struct.cell_volume = atomutils.get_volume(system.atoms.lattice_vectors.magnitude)
-                struct.lattice_parameters = self.lattice_parameters(system.atoms.lattice_vectors)
-            return struct
+        if not system or not structure_class:
+            return None
 
-        return None
+        struct = structure_class()
+        struct.cartesian_site_positions = system.atoms.positions
+        struct.species_at_sites = system.atoms.labels
+        self.species(system.atoms.labels, system.atoms.species, struct)
+        lattice_vectors = system.atoms.lattice_vectors
+        if lattice_vectors is not None:
+            lattice_vectors = lattice_vectors.magnitude
+            struct.dimension_types = np.array(system.atoms.periodic).astype(int)
+            struct.lattice_vectors = lattice_vectors
+            cell_volume = atomutils.get_volume(lattice_vectors)
+            struct.cell_volume = cell_volume
+            if all(system.atoms.periodic) and cell_volume:
+                if system.atoms.species is not None:
+                    mass = atomutils.get_summed_atomic_mass(system.atoms.species)
+                    struct.mass_density = mass / cell_volume
+                struct.atomic_density = len(system.atoms.labels) / cell_volume
+            struct.lattice_parameters = self.lattice_parameters(lattice_vectors)
+        return struct
 
     def lattice_parameters(self, lattice_vectors) -> LatticeParameters:
-        """Converts the given cell into LatticeParameters"""
-        param_values = atomutils.cell_to_cellpar(lattice_vectors.magnitude)
+        """Converts the given cell into LatticeParameters. Undefined angle
+        values are not stored.
+        """
+        param_values = atomutils.cell_to_cellpar(lattice_vectors)
         params = LatticeParameters()
         params.a = float(param_values[0])
         params.b = float(param_values[1])
         params.c = float(param_values[2])
-        params.alpha = float(param_values[3])
-        params.beta = float(param_values[4])
-        params.gamma = float(param_values[5])
+        alpha = float(param_values[3])
+        params.alpha = None if np.isnan(alpha) else alpha
+        beta = float(param_values[4])
+        params.beta = None if np.isnan(beta) else beta
+        gamma = float(param_values[5])
+        params.gamma = None if np.isnan(gamma) else gamma
         return params
 
     def energy_volume_curves(self) -> List[EnergyVolumeCurve]:

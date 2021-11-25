@@ -383,7 +383,7 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
-encyclopedia_enabled = True
+encyclopedia_base = "https://nomad-lab.eu/prod/rae/encyclopedia/#"
 aitoolkit_enabled = False
 use_empty_parsers = False
 

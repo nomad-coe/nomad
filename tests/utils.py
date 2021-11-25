@@ -354,7 +354,7 @@ class ExampleData:
             o: The amount of O atoms
             extra: A list of further atoms
             periodicity: The number of dimensions to repeat the structure in
-            optimade: A boolean. Iff true the entry will have optimade metadata. Default is True.
+            optimade: A boolean. If true the entry will have optimade metadata. Default is True.
             metadata: Additional (user) metadata.
         '''
         test_vector = [0, 0, 0]

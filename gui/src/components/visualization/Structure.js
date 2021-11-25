@@ -105,6 +105,8 @@ const Structure = React.memo(({
   data,
   options,
   materialType,
+  structureType,
+  m_path,
   viewer,
   captureName,
   positionsOnly,
@@ -228,38 +230,60 @@ const Structure = React.memo(({
           system.cell = undefined
         }
       }
-      // Systems with non-empty cell are centered on the cell center and
-      // orientation is defined by the cell vectors.
-      const opts = {}
-      if (system.cell !== undefined) {
-        opts.layout = {
-          viewRotation: {
-            alignments: [
+      // Determine the orientation and view centering based on material type and
+      // the structure type.
+      let layout = {
+        viewCenter: 'COP',
+        viewRotation: {
+          alignments: system.cell === undefined
+            ? undefined
+            : [
               ['up', 'c'],
               ['right', 'b']
             ],
-            rotations: [
-              [0, 1, 0, 60],
-              [1, 0, 0, 30]
-            ]
-          }
+          rotations: [
+            [0, 1, 0, 60],
+            [1, 0, 0, 30]
+          ]
         }
-      } else {
-        opts.layout = {
-          viewRotation: {
-            rotations: [
-              [0, 1, 0, 60],
-              [1, 0, 0, 30]
-            ]
+      }
+      if (structureType === 'conventional' || structureType === 'primitive') {
+        if (materialType === 'bulk') {
+          layout.viewCenter = 'COC'
+          layout.viewRotation.alignments = [
+            ['up', 'c'],
+            ['right', 'b']
+          ]
+        } else if (materialType === '2D') {
+          layout = {
+            viewCenter: 'COC',
+            viewRotation: {
+              alignments: [
+                ['right', 'a'],
+                ['up', 'b']
+              ],
+              rotations: [
+                [1, 0, 0, -60]
+              ]
+            }
+          }
+        } else if (materialType === '1D') {
+          layout = {
+            viewCenter: 'COC',
+            viewRotation: {
+              alignments: [
+                ['right', 'a']
+              ],
+              rotations: [
+                [1, 0, 0, -60],
+                [0, 1, 0, 30],
+                [1, 0, 0, 30]
+              ]
+            }
           }
         }
       }
-      if (system.cell !== undefined && materialType === 'bulk') {
-        opts.layout.viewCenter = 'COC'
-      // Systems without cell are centered on the center of positions
-      } else {
-        opts.layout.viewCenter = 'COP'
-      }
+      const opts = {layout}
       refViewer.current.setOptions(opts, false, false)
       refViewer.current.load(system)
       refViewer.current.fitToCanvas()
@@ -267,7 +291,7 @@ const Structure = React.memo(({
       refViewer.current.reset()
       setLoading(false)
     }, 0)
-  }, [materialType])
+  }, [materialType, structureType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
@@ -449,8 +473,8 @@ const Structure = React.memo(({
           <Action tooltip='Capture image' onClick={takeScreencapture}>
             <CameraAlt/>
           </Action>
-          {data?.m_path &&
-            <Action tooltip='View data in the archive' onClick={() => { history.push(data.m_path) }}>
+          {m_path &&
+            <Action tooltip='View data in the archive' onClick={() => { history.push(m_path) }}>
               <ViewList/>
             </Action>
           }
@@ -484,7 +508,9 @@ Structure.propTypes = {
     PropTypes.object
   ]),
   options: PropTypes.object, // Viewer options
-  materialType: PropTypes.string, // The material type, affects the visualization layout.
+  materialType: PropTypes.oneOf(['bulk', '2D', '1D', 'molecule / cluster', 'unknown']),
+  structureType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
+  m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown

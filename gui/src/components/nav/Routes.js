@@ -33,7 +33,7 @@ import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
 import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
 import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
-import { aitoolkitEnabled, appBase, oasis } from '../../config'
+import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
@@ -470,7 +470,7 @@ UploadButton.propTypes = {
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
 export const MaterialButton = ({materialId, component, tooltip, ...rest}) => {
-  const href = `${appBase}/encyclopedia/#/material/${materialId}`
+  const href = `${encyclopediaBase}/material/${materialId}`
   const props = component
     ? {href: href, ...rest}
     : {href: href, color: 'primary', ...rest}

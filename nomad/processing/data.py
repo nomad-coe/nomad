@@ -58,7 +58,6 @@ from nomad.datamodel import (
     EditableUserMetadata, UploadMetadata, AuthLevel)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
-from nomad.datamodel.encyclopedia import EncyclopediaMetadata
 from nomad.app.v1.models import (
     MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
@@ -1073,7 +1072,7 @@ class Calc(Proc):
 
         This function re-opens the Archive for this calculation to add method
         information from another referenced archive. Updates the method
-        information in section_encyclopedia as well as the DFT domain metadata.
+        information as well as the DFT domain metadata.
         """
         try:
             logger = self.get_logger()
@@ -1105,32 +1104,24 @@ class Calc(Proc):
                 arch = archive[ref_id]
                 ref_archive = EntryArchive.m_from_dict(arch.to_dict())
 
-            # Get encyclopedia method information directly from the referenced calculation.
-            ref_enc_method = ref_archive.metadata.encyclopedia.method
-            if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
+            # Get method information directly from the referenced calculation.
+            ref_method = ref_archive.results.method
+            if not ref_method:
                 logger.error("No method information available in referenced calculation.")
                 return
 
-            self._parser_results.metadata.encyclopedia.method = ref_enc_method
-
             # Overwrite old entry with new data. The metadata is updated with
             # new timestamp and method details taken from the referenced
-            # archive.
+            # archive. The program name and version are kept.
+            ref_method.simulation.program_name = self._parser_results.results.method.simulation.program_name
+            ref_method.simulation.program_version = self._parser_results.results.method.simulation.program_version
+            self._parser_results.results.method = ref_method
             self._entry_metadata.last_processing_time = datetime.utcnow()
-            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
         except Exception as e:
             logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
             if self._entry_metadata is None:
                 self._initialize_metadata_for_processing()
             self._entry_metadata.processed = False
-
-            try:
-                if self._entry_metadata.encyclopedia is None:
-                    self._entry_metadata.encyclopedia = EncyclopediaMetadata()
-                self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
-            except Exception as e:
-                logger.error("Could set encyclopedia status.", exc_info=e)
-
         finally:
             # persist the calc metadata
             with utils.timer(logger, 'calc metadata saved'):

@@ -19,7 +19,7 @@ import React, { useLayoutEffect, useRef, useCallback, useEffect, useState } from
 import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
-import { appBase, debug, aitoolkitEnabled, encyclopediaEnabled } from '../config'
+import { appBase, debug, aitoolkitEnabled, encyclopediaBase } from '../config'
 import packageJson from '../../package.json'
 import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
@@ -187,13 +187,11 @@ export default function About() {
     makeClickable('upload', () => {
       history.push('/upload')
     })
-    makeClickable('encyclopedia', () => {
-      if (encyclopediaEnabled) {
-        window.location.href = `${appBase}/encyclopedia`
-      } else {
-        window.location.href = 'https://encyclopedia.nomad-coe.eu/gui/#/search'
-      }
-    })
+    if (encyclopediaBase) {
+      makeClickable('encyclopedia', () => {
+        window.location.href = encyclopediaBase
+      })
+    }
     makeClickable('toolkit', () => {
       if (aitoolkitEnabled) {
         history.push('/aitoolkit/main')

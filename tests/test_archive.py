@@ -290,12 +290,7 @@ def archive():
     archive = EntryArchive.m_from_dict(json.loads('''
         {
             "metadata": {
-                "calc_id": "test_id",
-                "encyclopedia": {
-                    "properties": {
-                        "electronic_dos": "/run/0/calculation/1/dos_electronic/0"
-                    }
-                }
+                "calc_id": "test_id"
             },
             "results": {
                 "properties": {
@@ -550,7 +545,6 @@ def assert_required_results(
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
     assert archive.workflow[0].calculation_result_ref is not None
-    assert archive.metadata.encyclopedia is not None
     # test refs
     assert archive.workflow[0].calculation_result_ref.energy.total is not None
     assert len(archive.workflow[0].calculation_result_ref.eigenvalues) == 0

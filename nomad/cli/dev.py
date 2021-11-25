@@ -491,6 +491,17 @@ def units(ctx):
             "label": "Henry",
             "abbreviation": "H",
         },
+        # angle
+        "radian": {
+            "dimension": "angle",
+            "label": "Radian",
+            "abbreviation": "rad",
+        },
+        "degree": {
+            "dimension": "angle",
+            "label": "Degree",
+            "abbreviation": "°",
+        },
         # dimensionless
         "dimensionless": {
             "dimension": "dimensionless",
@@ -634,6 +645,14 @@ def units(ctx):
             ],
             "multipliers": {},
         },
+        "angle": {
+            "dimension": "angle",
+            "units": [
+                "radian",
+                "degree",
+            ],
+            "multipliers": {},
+        },
         "dimensionless": {
             "dimension": "dimensionless",
             "units": [
@@ -663,6 +682,7 @@ def units(ctx):
                 "frequency": "hertz",
                 "electric_potential": "volt",
                 "charge": "coulomb",
+                "angle": "radian",
             },
         },
         "AU": {
@@ -677,6 +697,7 @@ def units(ctx):
                 "force": "atomic_unit_of_force",
                 "energy": "hartree",
                 "pressure": "atomic_unit_of_pressure",
+                "angle": "radian",
             }
         }
     }

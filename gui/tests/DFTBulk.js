@@ -160,9 +160,9 @@ const resultsDftBulk = {
           a: 5e-10,
           b: 5e-10,
           c: 5e-10,
-          alpha: 0.9,
-          beta: 0.9,
-          gamma: 0.9
+          alpha: Math.PI / 2,
+          beta: Math.PI / 2,
+          gamma: Math.PI / 2
         },
         cell_volume: 125e-30
       },
@@ -171,9 +171,9 @@ const resultsDftBulk = {
           a: 5e-10,
           b: 5e-10,
           c: 5e-10,
-          alpha: 0.9,
-          beta: 0.9,
-          gamma: 0.9
+          alpha: Math.PI / 2,
+          beta: Math.PI / 2,
+          gamma: Math.PI / 2
         },
         cell_volume: 125e-37
       },
@@ -182,9 +182,9 @@ const resultsDftBulk = {
           a: 5e-10,
           b: 5e-10,
           c: 5e-10,
-          alpha: 0.9,
-          beta: 0.9,
-          gamma: 0.9
+          alpha: Math.PI / 2,
+          beta: Math.PI / 2,
+          gamma: Math.PI / 2
         },
         cell_volume: 125e-30
       }
