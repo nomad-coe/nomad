@@ -38,6 +38,7 @@ import PublishedIcon from '@material-ui/icons/Public'
 import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
 import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
+import EditMembersDialog from '../entry/EditMembersDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
@@ -388,9 +389,11 @@ function UploadPage() {
 
   const contextValue = useMemo(() => ({
     upload: upload,
+    setUpload: setUpload,
+    data: data,
     isViewer: isViewer,
     isWriter: isWriter
-  }), [upload, isViewer, isWriter])
+  }), [upload, setUpload, data, isViewer, isWriter])
 
   if (!upload) {
     return <Page limitedWidth>
@@ -438,6 +441,7 @@ function UploadPage() {
           </WithButton>
         </Grid>
         <Grid>
+          <EditMembersDialog/>
           <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
           <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
             <Tooltip title="Reprocess">

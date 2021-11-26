@@ -17,6 +17,9 @@
 # limitations under the License.
 #
 
+import pytest
+
+
 def test_me(client, test_user_auth):
     response = client.get('users/me', headers=test_user_auth)
     assert response.status_code == 200
@@ -62,3 +65,22 @@ def test_users(client):
         assert value is not None
 
     assert 'email' not in user
+
+
+@pytest.mark.parametrize('args, expected_status_code, expected_content', [
+    pytest.param(dict(
+        user_id='00000000-0000-0000-0000-000000000001'), 200,
+        {'name': 'Sheldon Cooper', 'is_admin': False, 'is_oasis_admin': True, 'email': None},
+        id='valid-user')])
+def test_users_id(
+        client, example_data, test_auth_dict,
+        args, expected_status_code, expected_content):
+    user_id = args['user_id']
+    rv = client.get(f'users/{user_id}')
+    assert rv.status_code == expected_status_code
+    if rv.status_code == 200:
+        user = rv.json()
+        assert user['name'] == expected_content['name']
+        assert user['is_admin'] == expected_content['is_admin']
+        assert user['is_oasis_admin'] == expected_content['is_oasis_admin']
+        assert 'email' not in user

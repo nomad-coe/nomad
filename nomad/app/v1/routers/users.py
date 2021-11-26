@@ -62,7 +62,7 @@ async def read_users_me(current_user: User = Depends(create_user_dependency(requ
     '',
     tags=[default_tag],
     summary='Get existing users',
-    description='Get existing users witht the given prefix',
+    description='Get existing users with the given prefix',
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
     response_model=Users)
@@ -75,6 +75,20 @@ async def get_users(prefix: str):
     return dict(data=users)
 
 
+@router.get(
+    '/{user_id}',
+    tags=[default_tag],
+    summary='Get existing users',
+    description='Get the user using the given user_id',
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    response_model=User)
+async def get_user(user_id: str):
+    user = infrastructure.keycloak.get_user(user_id=user_id)
+    user.email = None
+    return user
+
+
 @router.put(
     '/invite',
     tags=[default_tag],
@@ -85,7 +99,7 @@ async def invite_user(user: User, current_user: User = Depends(create_user_depen
     if config.keycloak.oasis:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='User invide does not work this NOMAD OASIS.')
+            detail='User invite does not work this NOMAD OASIS.')
 
     json_data = user.dict()
     try:

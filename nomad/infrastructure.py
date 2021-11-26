@@ -326,7 +326,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, username: str = None, user=None) -> object:
+    def get_user(self, user_id: str = None, username: str = None, user=None):
         '''
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
