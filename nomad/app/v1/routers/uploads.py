@@ -958,7 +958,7 @@ async def put_upload_metadata(
 @router.post(
     '/{upload_id}/edit', tags=[metadata_tag],
     summary='Updates the metadata of the specified upload.',
-    response_model=MetadataEditRequest,
+    response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
@@ -986,9 +986,9 @@ async def post_upload_edit(
     '''
     edit_request_json = await request.json()
     try:
-        verified_json = MetadataEditRequestHandler.edit_metadata(
+        MetadataEditRequestHandler.edit_metadata(
             edit_request_json=edit_request_json, upload_id=upload_id, user=user)
-        return verified_json
+        return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
     except Exception as e:
