@@ -313,6 +313,28 @@ class TestM2:
         assert len(TestSection.list_test_quantity.m_get_annotations(TestDefinitionAnnotation)) == 2
         assert TestSection.test_sub_section.a_test is not None
 
+    def test_more_property(self):
+        class TestSection(MSection):
+            m_def = Section(this_does_not_exist_in_metainfo='value')
+            test_quantity = Quantity(type=str, also_no_metainfo_quantity=1, one_more=False)
+            another_test_quantity = Quantity(type=str)
+
+        assert TestSection.m_def.more['this_does_not_exist_in_metainfo'] == 'value'
+        assert TestSection.test_quantity.more['also_no_metainfo_quantity'] == 1
+        assert not TestSection.test_quantity.more['one_more']
+        assert len(TestSection.another_test_quantity.more) == 0
+
+        assert TestSection.m_def.this_does_not_exist_in_metainfo == 'value'
+        assert TestSection.test_quantity.also_no_metainfo_quantity == 1
+        assert not TestSection.test_quantity.one_more
+        with pytest.raises(AttributeError):
+            assert TestSection.not_even_in_more is None
+
+        serialized = TestSection.m_def.m_to_dict()
+        assert 'more' in serialized
+        assert 'this_does_not_exist_in_metainfo' in serialized['more']
+        assert 'this_does_not_exist_in_metainfo' not in serialized
+
 
 class TestM1:
     ''' Test for meta-info instances. '''
@@ -509,7 +531,7 @@ class TestM1:
             def derived(self):
                 return self.value + self.list[0]
 
-        assert TestSection.derived.cached
+        assert TestSection.derived.cached  # pylint: disable=no-member
         test_section = TestSection(value='test', list=['1'])
         assert test_section.derived == 'test1'
         test_section.value = '2'

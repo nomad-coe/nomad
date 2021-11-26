@@ -401,7 +401,7 @@ class Reference(DataType):
 class QuantityReference(Reference):
     ''' Datatype used for reference quantities that reference other quantities. '''
 
-    def __init__(self, quantity_def: Union['Quantity']):
+    def __init__(self, quantity_def: 'Quantity'):
         super().__init__(cast(Section, quantity_def.m_parent))
         self.target_quantity_def = quantity_def
 
@@ -2063,6 +2063,10 @@ class Definition(MSection):
             sections, which organize the data (e.g. quantity values) and not the definitions
             of data (e.g. quantities definitions). See :ref:`metainfo-categories` for more
             details.
+
+        more: A dictionary that contains additional definition properties that are not
+            part of the metainfo. Those can be passed as additional kwargs to definition
+            constructors. The values must be JSON serializable.
     '''
 
     name: 'Quantity' = _placeholder_quantity
@@ -2071,6 +2075,27 @@ class Definition(MSection):
     categories: 'Quantity' = _placeholder_quantity
     deprecated: 'Quantity' = _placeholder_quantity
     aliases: 'Quantity' = _placeholder_quantity
+    more: 'Quantity' = _placeholder_quantity
+
+    def __init__(self, *args, **kwargs):
+        if is_bootstrapping:
+            super().__init__(*args, **kwargs)
+            return
+
+        # We add all kwargs that are not meta props, annotations, or metainfo properties
+        # to the more property.
+        more = {}
+        new_kwargs = {}
+        for key, value in kwargs.items():
+            if key.startswith('m_') or key.startswith('a_') or key in m_package.all_properties:
+                new_kwargs[key] = value
+            else:
+                more[key] = value
+
+        if len(more) > 0:
+            new_kwargs['more'] = more
+
+        super().__init__(*args, **new_kwargs)
 
     def __init_metainfo__(self):
         '''
@@ -2092,6 +2117,12 @@ class Definition(MSection):
         '''
         for content in self.m_all_contents(depth_first=True):
             content.__init_metainfo__()
+
+    def __getattr__(self, name):
+        if name in self.more:
+            return self.more[name]
+
+        raise super().__getattr__(name)
 
     def qualified_name(self):
         names = []
@@ -2768,12 +2799,17 @@ class Package(Definition):
 
         all_definitions: A helper attribute that provides all section definitions
             by name.
+
+        all_properties: A helper attribute that provides all properties in all sections
+            of this package by name. The values are lists of properties as property names
+            do not necesseraly need to be unique for different containing sections.
     '''
 
     section_definitions: 'SubSection' = None
     category_definitions: 'SubSection' = None
 
     all_definitions: 'Quantity' = _placeholder_quantity
+    all_properties: 'Quantity' = _placeholder_quantity
     dependencies: 'Quantity' = _placeholder_quantity
 
     registry: Dict[str, 'Package'] = {}
@@ -2893,6 +2929,7 @@ Definition.categories = Quantity(
     type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories')
 Definition.deprecated = Quantity(type=str, name='deprecated')
 Definition.aliases = Quantity(type=str, shape=['0..*'], default=[], name='aliases')
+Definition.more = Quantity(type=JSON, name='more', default={})
 
 Section.quantities = SubSection(
     sub_section=Quantity.m_def, name='quantities', repeats=True)
@@ -3024,6 +3061,17 @@ def all_definitions(self):
 
 
 @derived(cached=True)
+def package_all_properties(self):
+    all_properties: Dict[str, List[Property]] = dict()
+    for section_def in self.section_definitions:
+        for sub_section_def in [Section.quantities, Section.sub_sections]:
+            for property in section_def.m_get_sub_sections(sub_section_def):
+                properties = all_properties.setdefault(property.name, [])
+                properties.append(property)
+    return all_properties
+
+
+@derived(cached=True)
 def dependencies(self):
     '''
     All packages which have definitions that definitions from this package need. Being
@@ -3060,6 +3108,7 @@ def dependencies(self):
 
 
 Package.all_definitions = all_definitions
+Package.all_properties = package_all_properties
 Package.dependencies = dependencies
 
 is_bootstrapping = False
@@ -3107,7 +3156,7 @@ class Environment(MSection):
 
         return [
             definition
-            for definition in self.all_definitions_by_name.get(name, [])
+            for definition in self.all_definitions_by_name.get(name, [])  # pylint: disable=no-member
             if isinstance(definition, section_cls)
             if not (isinstance(definition, Section) and definition.extends_base_section)
             if filter is None or filter(definition)]
