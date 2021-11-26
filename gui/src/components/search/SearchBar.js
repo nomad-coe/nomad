@@ -35,15 +35,11 @@ import IconButton from '@material-ui/core/IconButton'
 import { useApi } from '../api'
 import { useUnits } from '../../units'
 import { DType, getDatatype } from '../../utils'
+import { useSearchContext, toGUIFilterSingle } from './SearchContext'
 import {
-  useSetFilters,
-  useFiltersLocked,
   filterFullnames,
-  filterAbbreviations,
-  toGUIFilterSingle,
-  filterData,
-  filters
-} from './SearchContext'
+  filterAbbreviations
+} from './FilterRegistry'
 import searchQuantities from '../../searchQuantities'
 import { suggestionDebounceTime } from '../../config'
 
@@ -119,6 +115,12 @@ const SearchBar = React.memo(({
 }) => {
   const styles = useStyles()
   const units = useUnits()
+  const {
+    filters,
+    filterData,
+    useSetFilters,
+    useFiltersLocked
+  } = useSearchContext()
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
@@ -139,7 +141,7 @@ const SearchBar = React.memo(({
       })
     }
     return suggestions
-  }, [])
+  }, [filters])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -359,7 +361,7 @@ const SearchBar = React.memo(({
     // use terms aggregation.
     } else {
     }
-  }, [quantitySet, suggestionDebounced])
+  }, [filters, quantitySet, suggestionDebounced])
 
   // This determines the order: notice that items should be sorted by group
   // first in order for the grouping to work correctly.

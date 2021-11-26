@@ -20,8 +20,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { filterData } from '../SearchContext'
 import searchQuantities from '../../../searchQuantities'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * Title for a search filter. The stylized name and description are
@@ -44,6 +44,7 @@ const InputTitle = React.memo(({
   classes
 }) => {
   const styles = useStaticStyles({classes: classes})
+  const { filterData } = useSearchContext()
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
@@ -53,7 +54,7 @@ const InputTitle = React.memo(({
       label = !underscores ? label.replace(/_/g, ' ') : label
     }
     return label
-  }, [quantity, underscores])
+  }, [filterData, quantity, underscores])
 
   const finalDescription = description || searchQuantities[quantity]?.description
 

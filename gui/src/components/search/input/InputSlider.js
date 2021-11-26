@@ -31,7 +31,7 @@ import InputTooltip from './InputTooltip'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked, useAgg, filterData } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 function format(value) {
   return formatNumber(value, 'float', 6, true)
@@ -87,6 +87,7 @@ const InputSlider = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const endChanged = useRef(false)
   const startChanged = useRef(false)

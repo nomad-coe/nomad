@@ -34,7 +34,7 @@ import { useApi } from '../../api'
 import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
-import { useSetFilter, useFilterLocked, filterData } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import { suggestionDebounceTime } from '../../../config'
 
 const useStyles = makeStyles(theme => ({
@@ -63,6 +63,7 @@ const InputText = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const { filterData, useSetFilter, useFilterLocked } = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)

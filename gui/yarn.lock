@@ -10109,7 +10109,7 @@ min-indent@^1.0.0:
   resolved "https://registry.yarnpkg.com/min-indent/-/min-indent-1.0.1.tgz#a63f681673b30571fbe8bc25686ae746eefa9869"
   integrity sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==
 
-mini-create-react-context@^0.4.0:
+mini-create-react-context@^0.4.0, mini-create-react-context@^0.4.1:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/mini-create-react-context/-/mini-create-react-context-0.4.1.tgz#072171561bfdc922da08a60c2197a497cc2d1d5e"
   integrity sha512-YWCYEmd5CQeHGSAKrYvXgmzzkrvssZcuuQDDeqkT+PziKGMgE+0MCCtcKbROzocGBG1meBLl2FotlRwf4gAzbQ==
@@ -10454,7 +10454,7 @@ node-releases@^1.1.52, node-releases@^1.1.71:
     mathjs "^7.1.0"
     muuri "^0.9.5"
     muuri-react "^3.1.6"
-    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-1.0.0-22a4514e-7031-472a-a797-5c355597ed77-1637567148290/node_modules/nomad-fair-gui"
+    nomad-fair-gui "file:../../../.cache/yarn/v6/npm-nomad-fair-gui-1.0.0-4668ceef-946c-415b-80a0-b68c989a2c24-1636711303278/node_modules/nomad-fair-gui"
     object-hash "^2.0.3"
     pace "^0.0.4"
     pace-js "^1.0.2"
@@ -12588,6 +12588,13 @@ react-resize-detector@^6.7.1:
     lodash.debounce "^4.0.8"
     lodash.throttle "^4.1.1"
     resize-observer-polyfill "^1.5.1"
+
+react-router-cache-route@^1.11.1:
+  version "1.11.1"
+  resolved "https://registry.yarnpkg.com/react-router-cache-route/-/react-router-cache-route-1.11.1.tgz#c5f51d708e85aaa94fd25c8fce58ef00536e01d3"
+  integrity sha512-+/h2ryPm6TNlEulZm/ucmZfllFwguOBSFl5j8Pkf4byR5ckHhXiKF55XdNxyz/BmidvRJtW725I8h+8VKTCo5Q==
+  dependencies:
+    mini-create-react-context "^0.4.1"
 
 react-router-dom@^5.1.2:
   version "5.2.0"

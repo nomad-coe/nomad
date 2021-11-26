@@ -58,9 +58,9 @@ import {
   labelDataset,
   labelIDs,
   labelAccess,
-  useSearchContext,
   labelSpectroscopy
-} from '../SearchContext'
+} from '../FilterRegistry'
+import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
 
 /**
@@ -68,7 +68,7 @@ import InputCheckbox from '../input/InputCheckbox'
  * screen.
  */
 const useStyles = makeStyles(theme => ({
-  restricted: {
+  combine: {
     paddingLeft: theme.spacing(2)
   }
 }))
@@ -120,11 +120,12 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelIDs} depth={0}/>
       {resource === 'materials' &&
         <InputCheckbox
-          quantity="restricted"
-          label="Restricted"
-          description="If selected, the query will return materials that have individual calculations simultaneously matching your methodology and properties criteria."
-          initialValue={true}
-          className={styles.restricted}
+          quantity="combine"
+          label="Combine results from several entries"
+          description="If selected, your filters may be matched from several
+          entries that contain the same material. When unchecked, the material
+          has to have a single entry that matches all your filters."
+          className={styles.combine}
         ></InputCheckbox>
       }
     </FilterMenuItems>

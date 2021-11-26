@@ -25,7 +25,7 @@ import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
-import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * Displays a list of options with fixed maximum size. Only options that are
@@ -87,6 +87,7 @@ const InputList = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [aggSize, setAggSize] = useState(0)
   const agg = useAgg(quantity, visible, false)

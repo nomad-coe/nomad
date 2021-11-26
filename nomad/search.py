@@ -39,6 +39,7 @@ from elasticsearch.exceptions import TransportError, RequestError
 from elasticsearch_dsl import Q, A, Search
 from elasticsearch_dsl.query import Query as EsQuery
 from pydantic.error_wrappers import ErrorWrapper
+from pydantic import ValidationError
 
 from nomad import config, infrastructure, utils
 from nomad import datamodel
@@ -454,9 +455,9 @@ def normalize_api_query(query: Query, doc_type: DocumentType, prefix: str = None
     '''
     Normalizes the given query. Should be applied before validate_api_query, which
     expects a normalized query. Normalization will
-    - replace nested dicts with`models.And` or `models.Nested` instances
+    - replace nested dicts with`models.And`, `models.Nested` instances
     - introduce `models.Nested` if necessary
-    - replace dicts with `models.And` queries.
+    - replace dicts with `models.And` or 'models.Range' queries.
 
     After normalization there should be no dicts or `*:(any|all|none)` values in the query.
     '''
@@ -484,10 +485,16 @@ def normalize_api_query(query: Query, doc_type: DocumentType, prefix: str = None
         name = name_wo_prefix
 
         query: Query = None
+
+        # Dictionaries that are not at the root level can either be range
+        # queries, or else they are interpreted as a list of AND queries.
         if isinstance(value, dict):
-            query = models.And(**{'and': [
-                normalize_criteria(k if name == '' else f'{name}.{k}', v, nested_prefix)
-                for k, v in value.items()]})
+            try:
+                query = Criteria(name=name, value=models.Range(**value))
+            except ValidationError:
+                query = models.And(**{'and': [
+                    normalize_criteria(k if name == '' else f'{name}.{k}', v, nested_prefix)
+                    for k, v in value.items()]})
 
         else:
             query = Criteria(name=name, value=value)
@@ -627,6 +634,8 @@ def validate_api_query(
             return Q('bool', must_not=[match(name, item) for item in value.op])
 
         elif isinstance(value, models.Range):
+            if prefix is not None:
+                name = f'{prefix}.{name}'
             quantity = validate_quantity(name, None, doc_type=doc_type)
             return Q('range', **{quantity.search_field: value.dict(
                 exclude_unset=True,
