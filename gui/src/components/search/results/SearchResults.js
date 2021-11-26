@@ -21,21 +21,14 @@ import {
 } from '@material-ui/core'
 import SearchResultsMaterials from './SearchResultsMaterials'
 import SearchResultsEntries from './SearchResultsEntries'
-import { useScrollResults, useSearchContext } from '../SearchContext'
-
-const orderByMap = {
-  'entries': 'upload_create_time',
-  'materials': 'chemical_formula_hill'
-}
+import { useSearchContext } from '../SearchContext'
 
 /**
  * Displays the list of search results
  */
 const SearchResults = React.memo(function SearchResults() {
-  const {resource} = useSearchContext()
-  const {data, pagination, setPagination} = useScrollResults({
-    page_size: 20, order_by: orderByMap[resource]
-  })
+  const {resource, useResults} = useSearchContext()
+  const {data, pagination, setPagination} = useResults()
 
   if (pagination.total === 0) {
     return <Typography>no results</Typography>

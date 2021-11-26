@@ -24,11 +24,31 @@ import clsx from 'clsx'
 import { useResizeDetector } from 'react-resize-detector'
 import { isEmpty } from 'lodash'
 import { MuuriComponent, getResponsiveStyle } from 'muuri-react'
-import { filterData, useStatisticsValue, widthMapping } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * Displays a summary of the anchored filter statistics in a grid.
  */
+const widthMapping = {
+  large: {
+    'sm': 12,
+    'md': 9,
+    'lg': 8,
+    'xl': 6
+  },
+  medium: {
+    'sm': 6,
+    'md': 6,
+    'lg': 4,
+    'xl': 3
+  },
+  small: {
+    'sm': 6,
+    'md': 3,
+    'lg': 4,
+    'xl': 3
+  }
+}
 const useStyles = makeStyles(theme => {
   return {
     root: {},
@@ -53,6 +73,7 @@ const StatisticsGrid = React.memo(({
   classes
 }) => {
   const styles = useStyles(classes)
+  const { useStatisticsValue, filterData } = useSearchContext()
   const { width, ref } = useResizeDetector()
   const statistics = useStatisticsValue()
   const gridRef = useRef()
@@ -92,8 +113,8 @@ const StatisticsGrid = React.memo(({
             const config = filterData[filter].stats
             const layout = config.layout
             const muuriOuterItem = getResponsiveStyle({
-              columns: widthMapping[layout.widthDefault][size] / 12,
-              ratio: layout.ratioDefault
+              columns: widthMapping[layout.width][size] / 12,
+              ratio: layout.ratio
             })
             return <div key={filter} style={muuriOuterItem}>
               <Paper className={styles.muuriInnerItem}>
@@ -108,7 +129,7 @@ const StatisticsGrid = React.memo(({
         </MuuriComponent>
       </div>
       : null
-  }, [statistics, styles, size])
+  }, [statistics, filterData, styles, size])
 
   return <div ref={ref} className={clsx(className, styles.root)}>
     {content}

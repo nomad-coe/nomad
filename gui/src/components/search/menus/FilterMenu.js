@@ -37,7 +37,8 @@ import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
 import { Actions, Action } from '../../Actions'
-import { filterGroups, useResetFilters } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
+import { filterGroups } from '../FilterRegistry'
 import { MoreVert } from '@material-ui/icons'
 
 // The menu animations use a transition on the 'transform' property. Notice that
@@ -191,6 +192,7 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
+  const { useResetFilters } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)

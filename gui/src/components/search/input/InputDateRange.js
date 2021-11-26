@@ -27,7 +27,7 @@ import { isNil } from 'lodash'
 import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
-import { useAgg, useFilterState, useFilterLocked } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import { getTime } from 'date-fns'
 import { dateFormat } from '../../../config'
 
@@ -69,6 +69,7 @@ const InputDateRange = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())

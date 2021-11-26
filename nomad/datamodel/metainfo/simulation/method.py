@@ -1017,7 +1017,7 @@ class Electronic(MSection):
         ''')
 
     relativity_method = Quantity(
-        type=str,
+        type=MEnum(['scalar_relativistic', 'pseudo_scalar_relativistic', 'scalar_relativistic_atomic_ZORA']),
         shape=[],
         description='''
         Describes the relativistic treatment used for the calculation of the final energy

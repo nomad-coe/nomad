@@ -24,13 +24,7 @@ import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
-import {
-  useFilterState,
-  useAgg,
-  useInitialAgg,
-  useFilterLocked,
-  filterData
-} from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import { isArray } from 'lodash'
 
 const useStyles = makeStyles(theme => ({
@@ -58,11 +52,11 @@ const InputCheckboxes = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
   const [scale, setScale] = useState(initialScale)
   const agg = useAgg(quantity, visible)
-  const initialAgg = useInitialAgg(quantity)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
   const finalOptions = useMemo(() => {
@@ -80,19 +74,8 @@ const InputCheckboxes = React.memo(({
       }
       return opt
     }
-    // As a last resort, use the initial aggregation results as options. We
-    // cannot use the agg results because the page may be loaded with additional
-    // filters e.g. from the query string which will alter the available
-    // options.
-    if (initialAgg?.data) {
-      const opt = {}
-      for (const value of initialAgg.data) {
-        opt[value.value] = {label: value.value}
-      }
-      return opt
-    }
-    return {}
-  }, [quantity, initialAgg])
+    throw new Error('No options specifed for a checkbox.')
+  }, [filterData, quantity])
 
   // Modify the checkboxes according to changing filters, changing aggregation
   // results or change in the available options.

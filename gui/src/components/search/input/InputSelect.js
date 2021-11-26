@@ -30,7 +30,7 @@ import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem from './InputItem'
-import { useFilterState, useFilterLocked, useAgg } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 // This forces the menu to have a fixed anchor instead of jumping around
 const MenuProps = {
@@ -96,6 +96,7 @@ const InputSelect = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const agg = useAgg(quantity, visible)
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)

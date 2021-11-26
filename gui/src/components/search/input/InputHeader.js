@@ -32,7 +32,7 @@ import RemoveIcon from '@material-ui/icons/Remove'
 import DragHandleIcon from '@material-ui/icons/DragHandle'
 import MoreVertIcon from '@material-ui/icons/MoreVert'
 import InputTitle from './InputTitle'
-import { useStatisticState } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import { Actions, Action } from '../../Actions'
 
 /**
@@ -69,6 +69,7 @@ const InputHeader = React.memo(({
   className,
   classes
 }) => {
+  const { useStatisticState } = useSearchContext()
   const styles = useStaticStyles({classes: classes})
   const [statistic, setStatistic] = useStatisticState(quantity)
   const [anchorEl, setAnchorEl] = React.useState(null)

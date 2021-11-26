@@ -333,10 +333,37 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
     ]
 
 
-def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per_entity: int, total: int):
+def aggregation_exclude_from_search_test_parameters(resource: str, total_per_entity: int, total: int):
+    if resource == "materials":
+        entry_prefix = "entries."
+        material_prefix = ""
+    elif resource == "entries":
+        entry_prefix = ""
+        material_prefix = "results.material."
+    else:
+        raise ValueError("invalid resource")
+
     entry_id = f'{entry_prefix}entry_id'
     upload_id = f'{entry_prefix}upload_id'
     program_name = f'{entry_prefix}results.method.simulation.program_name'
+    n_elements = f'{material_prefix}n_elements'
+    band_gap = f'{entry_prefix}results.properties.electronic.band_structure_electronic.band_gap.value'
+
+    def make_aggs(aggs):
+        """Given a list of aggregation definitions, returns the API-compatible
+        aggregations together with their types and expected result sizes.
+        """
+        aggs_api = {}
+        types = []
+        lengths = []
+        for i, agg in enumerate(aggs):
+            outer_agg = {f'{agg["type"]}': agg}
+            aggs_api[f'agg_{i}'] = outer_agg
+            types.append(agg["type"])
+            lengths.append(agg["n_results"])
+            del agg["n_results"]
+            del agg["type"]
+        return [aggs_api, types, lengths]
 
     return [
         pytest.param(
@@ -345,33 +372,37 @@ def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per
                 upload_id: 'id_published',
                 program_name: 'VASP'
             },
-            [], [], 1, 200,
+            make_aggs([]), 1, 200,
             id='empty'
         ),
         pytest.param(
             {
                 f'{entry_id}:any': ['id_01']
             },
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'n_results': 10,
                 }
-            ],
-            [10], 1, 200,
+            ]),
+            1, 200,
             id='exclude'
         ),
         pytest.param(
             {
                 f'{entry_id}:any': ['id_01']
             },
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': False,
-                    'quantity': entry_id
+                    'n_results': total_per_entity,
                 }
-            ],
-            [total_per_entity], 1, 200,
+            ]),
+            1, 200,
             id='dont-exclude'
         ),
         pytest.param(
@@ -380,85 +411,131 @@ def aggregation_exclude_from_search_test_parameters(entry_prefix: str, total_per
                 upload_id: 'id_published',
                 program_name: 'VASP'
             },
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'n_results': 10,
                 },
                 {
+                    'type': 'terms',
+                    'quantity': upload_id,
                     'exclude_from_search': True,
-                    'quantity': upload_id
+                    'n_results': 1,
                 }
-            ],
-            [10, 1], 1, 200,
+            ]),
+            1, 200,
             id='two-aggs'
         ),
         pytest.param(
             {
                 f'{entry_id}:any': ['id_01']
             },
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'n_results': 10,
                 },
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': False,
-                    'quantity': entry_id
+                    'n_results': total_per_entity,
                 }
-            ],
-            [10, total_per_entity], 1, 200,
+            ]),
+            1, 200,
             id='two-aggs-same-quantity'
         ),
         pytest.param(
             {},
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'n_results': 10,
                 }
-            ],
-            [10], total, 200,
+            ]),
+            total, 200,
             id='not-in-query'
         ),
         pytest.param(
             {},
-            [
+            make_aggs([
                 {
-                    'exclude_from_search': True,
+                    'type': 'terms',
                     'quantity': entry_id,
+                    'exclude_from_search': True,
                     'pagination': {
                         'page_size': 20
-                    }
+                    },
+                    'n_results': 20,
                 }
-            ],
-            [0], total, 422,
+            ]),
+            total, 422,
             id='with-pagination'
         ),
         pytest.param(
             {},
-            [
+            make_aggs([
                 {
-                    'exclude_from_search': True,
+                    'type': 'terms',
                     'quantity': entry_id,
-                    'size': 20
+                    'size': 20,
+                    'exclude_from_search': True,
+                    'n_results': 20,
                 }
-            ],
-            [20], total, 200,
+            ]),
+            total, 200,
             id='with-size'
         ),
         pytest.param(
             {
                 'or': [{entry_id: 'id_01'}, {entry_id: 'id_05'}]
             },
-            [
+            make_aggs([
                 {
+                    'type': 'terms',
+                    'quantity': entry_id,
                     'exclude_from_search': True,
-                    'quantity': entry_id
+                    'n_results': 10,
                 }
-            ],
-            [10], 2, 200,
+            ]),
+            2, 200,
             id='non-dict-query'
+        ),
+        pytest.param(
+            {
+                f'{n_elements}': {'gte': 0, 'lte': 10}
+            },
+            make_aggs([
+                {
+                    'type': 'min_max',
+                    'quantity': n_elements,
+                    'exclude_from_search': True,
+                    'n_results': 2,
+                }
+            ]),
+            total, 200,
+            id='range_min_max'
+        ),
+        pytest.param(
+            {
+                f'{band_gap}': {'gte': 0, 'lte': 10}
+            },
+            make_aggs([
+                {
+                    'type': 'min_max',
+                    'quantity': band_gap,
+                    'exclude_from_search': True,
+                    'n_results': 2,
+                }
+            ]),
+            0, 200,
+            id='nested_range_min_max'
         )
     ]
 
