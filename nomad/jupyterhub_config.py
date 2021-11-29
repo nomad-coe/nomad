@@ -66,16 +66,33 @@ class NomadAuthenticator(GenericOAuthenticator):
             # Check if there is bearer authorization and try to identify the user with
             # this. Otherwise, propagate the exception.
             authorization = handler.request.headers.get('Authorization', None)
-            if authorization and authorization.lower().startswith('bearer '):
-                try:
-                    user = infrastructure.keycloak.tokenauth(authorization[7:])
-                    if user is not None:
+            if not (authorization and authorization.lower().startswith('bearer ')):
+                raise e
 
-                        return dict(name=user.username)
-                except Exception:
-                    pass
+        # Use the access token to authenticate the user
+        access_token = authorization[7:]
+        payload = infrastructure.keycloak.decode_access_token(access_token)
 
-            raise e
+        authenticated = {
+            'name': payload['preferred_username'],
+            'auth_state': {
+                'access_token': access_token,
+                'refresh_token': None,  # It is unclear how we can get the refresh
+                                        # token. The only way is through a proper oauth
+                                        # flow. But we can't do that if the hub is only
+                                        # used via API and not the hub pages.
+                                        # For now the assumption is that
+                                        # - we implicitly "refresh" the access token with
+                                        #   each API call that causes this to run
+                                        # - we assume that jhub we automatically go through
+                                        #   a oauth flow, once the access token is expired
+                                        #   and it does not find a stored refresh token.
+                'oauth_user': payload,
+                'scope': []}}
+        # This will save the users authstate
+        await handler.auth_to_user(authenticated)
+
+        return authenticated
 
     async def pre_spawn_start(self, user, spawner):
         '''
@@ -93,15 +110,14 @@ class NomadAuthenticator(GenericOAuthenticator):
         if user.name == 'anonymous':
             return
 
-        auth_state = await user.get_auth_state()
-        if not auth_state:
-            self.log.warn('Authentication state is not configured!')
-            return
-
-        access_token = auth_state['access_token']
-        api_headers = {'Authorization': f'Bearer {access_token}'}
-
         try:
+            auth_state = await user.get_auth_state()
+            if not auth_state:
+                self.log.warn('Authentication state is not configured!')
+                return
+            access_token = auth_state['access_token']
+            api_headers = {'Authorization': f'Bearer {access_token}'}
+
             uploads_response = requests.get(
                 f'{config.api_url().rstrip("/")}/v1/uploads?is_published=false&per_page=100',
                 headers=api_headers)
