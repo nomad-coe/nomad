@@ -79,7 +79,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
+const OverviewView = React.memo(({entryId, ...moreProps}) => {
   const { raiseError } = useErrors()
   const [index, setIndex] = useState(null)
   const [exists, setExists] = useState(true)

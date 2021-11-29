@@ -62,6 +62,7 @@ import {
 } from '../FilterRegistry'
 import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
+import { delay } from '../../../utils'
 
 /**
  * Swipable menu that shows the available filters on the left side of the
@@ -84,11 +85,9 @@ const FilterMainMenu = React.memo(({
   const [loaded, setLoaded] = useState(false)
 
   // Rendering the submenus is delayed: this makes loading the search page more
-  // responsive. SetTimeout is required in order to force the submenu render to
-  // the next render cycle. In the future, React Concurrency Mode could help in
-  // prioritizing the rendering order.
+  // responsive by first loading everything else.
   useEffect(() => {
-    setTimeout(() => { setLoaded(true) }, 0)
+    delay(() => { setLoaded(true) })
   }, [])
 
   return <FilterMenu

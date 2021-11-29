@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -40,16 +41,6 @@ const archive = getArchive()
 archives.set(archive.metadata.entry_id, archive)
 
 /**
- * Utility function for emulating delayed execution.
- *
- * @param {*} value value to return after delay
- * @param {number} ms delay in milliseconds
- */
-export function wait(value, ms = 100) {
-  return new Promise(resolve => setTimeout(() => resolve(value), ms))
-}
-
-/**
  * Provides mocked App infrastructure for testing
  */
 const AllTheProviders = ({children}) => {
@@ -70,6 +61,16 @@ const customRender = (ui, options) =>
 
 // Re-export everything
 export * from '@testing-library/react'
+
+/**
+ * Utility function for emulating delayed execution.
+ *
+ * @param {*} value value to return after delay
+ * @param {number} ms delay in milliseconds
+ */
+export function wait(value, ms = 100) {
+  return new Promise(resolve => setTimeout(() => resolve(value), ms))
+}
 
 // Override render method
 export { customRender as render }

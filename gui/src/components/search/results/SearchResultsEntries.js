@@ -88,7 +88,7 @@ const defaultSelectedColumns = [
   'results.material.structural_type',
   'results.material.symmetry.crystal_system']
 
-const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
+const SearchResultsEntries = React.memo((props) => {
   const { useQuery } = useSearchContext()
   const [selected, setSelected] = useState([])
   const searchQuery = useQuery()

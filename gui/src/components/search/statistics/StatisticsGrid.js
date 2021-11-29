@@ -82,7 +82,7 @@ const StatisticsGrid = React.memo(({
     size = 'xl'
   } else if (width > 1250) {
     size = 'lg'
-  } else if (width > 1150) {
+  } else if (width > 950) {
     size = 'md'
   } else {
     size = 'sm'

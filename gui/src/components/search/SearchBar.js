@@ -357,9 +357,10 @@ const SearchBar = React.memo(({
     // input suggester to suggest values
     if (value.length > 0) {
       suggestionDebounced(quantityList, value)
-    // If no input is given, we suggest Enum values, or for non-enum quantities
+    // TODO: If no input is given, we suggest Enum values, or for non-enum quantities
     // use terms aggregation.
     } else {
+      setLoading(false)
     }
   }, [filters, quantitySet, suggestionDebounced])
 

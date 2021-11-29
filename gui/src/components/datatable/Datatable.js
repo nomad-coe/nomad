@@ -120,7 +120,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     count={pagination.total}
     rowsPerPage={pagination.page_size}
     page={pagination.page - 1}
-    onChangePage={handleChangePage}
+    onPageChange={handleChangePage}
     onChangeRowsPerPage={handleChangeRowsPerPage}
   />
 })

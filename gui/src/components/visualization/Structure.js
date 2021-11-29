@@ -17,7 +17,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, fade } from '@material-ui/core/styles'
+import { makeStyles, alpha } from '@material-ui/core/styles'
 import {
   Checkbox,
   Button,
@@ -40,7 +40,7 @@ import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
 import { Actions, Action } from '../Actions'
-import { mergeObjects } from '../../utils'
+import { mergeObjects, delay } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
@@ -69,11 +69,11 @@ const useStyles = makeStyles((theme) => {
       height: '2rem'
     },
     toggle: {
-      color: fade(theme.palette.action.active, 0.87)
+      color: alpha(theme.palette.action.active, 0.87)
     },
     selected: {
       '&$selected': {
-        color: fade(theme.palette.action.active, 0.87)
+        color: alpha(theme.palette.action.active, 0.87)
       }
     },
     title: {
@@ -220,10 +220,10 @@ const Structure = React.memo(({
   }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
-    // This function calls is wrapped inside a setTimeout in order to not block
-    // the first render of the component. setTimeout hoists the heavy function
-    // call outside so that the react rendering can finish before it.
-    setTimeout(() => {
+    // This function calls is delayed in order to not block the first render of
+    // the component. delay hoists the heavy function call outside so that the
+    // react rendering can finish before it.
+    delay(() => {
       // If the cell is all zeroes, positions are assumed to be cartesian.
       if (system.cell !== undefined) {
         if (_.flattenDeep(system.cell).every(v => v === 0)) {
@@ -290,7 +290,7 @@ const Structure = React.memo(({
       refViewer.current.saveReset()
       refViewer.current.reset()
       setLoading(false)
-    }, 0)
+    })
   }, [materialType, structureType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
