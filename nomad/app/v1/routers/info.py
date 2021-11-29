@@ -77,7 +77,7 @@ class InfoModel(BaseModel):
     statistics: StatisticsModel = Field(None, description='General NOMAD statistics')
     search_quantities: dict
     version: str
-    release: str
+    deployment: str
     git: GitInfoModel
     oasis: bool
 
@@ -134,7 +134,7 @@ async def get_info():
             if 'optimade' not in s.qualified_name
         },
         'version': config.meta.version,
-        'release': config.meta.release,
+        'deployment': config.meta.deployment,
         'git': {
             'ref': gitinfo.ref,
             'version': gitinfo.version,

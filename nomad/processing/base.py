@@ -756,12 +756,15 @@ def proc_task(task, cls_name, self_id):
     '''
     # Obtain the Proc object. Raises exception to make celery retry if object has not propagated.
     proc: Proc = unwarp_task(task, cls_name, self_id)
-
     logger = proc.get_logger()
     logger.debug('Executing celery task')
 
     try:
         func_name, args, kwargs = proc._sync_start_process(worker_hostname, task.request.id)
+        if '_meta_label' in kwargs:
+            config.meta.label = kwargs['_meta_label']
+            del(kwargs['_meta_label'])
+
     except ProcessSyncFailure as e:
         # Failed to start. Could basically only have one explanation, namely a propagation delay.
         # -> Try again
@@ -792,7 +795,7 @@ def proc_task(task, cls_name, self_id):
     # call the process function
     try:
         os.chdir(config.fs.working_directory)
-        with utils.timer(logger, 'process executed on worker'):
+        with utils.timer(logger, 'process executed on worker', log_memory=True):
             # Actually call the process function
             rv = unwrapped_func(proc, *args, **kwargs)
             if proc.errors:
@@ -921,6 +924,7 @@ def process(is_blocking: bool = False, is_child: bool = False):
 
         @functools.wraps(func)
         def wrapper(self: Proc, *args, **kwargs):
+            kwargs['_meta_label'] = config.meta.label
             was_processing = self._sync_schedule_process(func_name, *args, **kwargs)
             if not was_processing:
                 # Was not processing anything previously. Trigger celery to start working.

@@ -51,9 +51,11 @@ class POPO(dict):
     'It uses a sub-command structure similar to the git command.'))
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
+@click.option('--log-label', type=str, help='Label applied to logg entries.')
 @click.pass_context
-def cli(ctx, verbose: bool, debug: bool):
+def cli(ctx, verbose: bool, debug: bool, log_label: str):
     config.meta.service = os.environ.get('NOMAD_SERVICE', 'cli')
+    config.meta.label = log_label
 
     if debug:
         config.console_log_level = logging.DEBUG

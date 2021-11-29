@@ -52,6 +52,8 @@ import collections
 import logging
 import inspect
 import orjson
+import resource
+import os
 
 from nomad import config
 
@@ -214,7 +216,7 @@ def lnr(logger, event, **kwargs):
 
 
 @contextmanager
-def timer(logger, event, method='info', lnr_event: str = None, **kwargs):
+def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool = False, **kwargs):
     '''
     A context manager that takes execution time and produces a log entry with said time.
 
@@ -223,22 +225,36 @@ def timer(logger, event, method='info', lnr_event: str = None, **kwargs):
         event: The log message/event.
         method: The log method that should be used. Must be a valid logger method name.
             Default is 'info'.
+        log_memory: Log process memory usage before and after.
         **kwargs: Additional logger data that is passed to the log entry.
 
     Returns:
         The method yields a dictionary that can be used to add further log data.
     '''
+    kwargs = dict(kwargs)
     start = time.time()
+    if log_memory:
+        rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        kwargs['pid'] = os.getpid()
+        kwargs['exec_rss_before'] = rss_before
 
     try:
         yield kwargs
     except Exception as e:
         if lnr_event is not None:
             stop = time.time()
+            if log_memory:
+                rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                kwargs['exec_rss_after'] = rss_after
+                kwargs['exec_rss_delta'] = rss_before - rss_after
             logger.error(lnr_event, exc_info=e, exec_time=stop - start, **kwargs)
         raise e
     finally:
         stop = time.time()
+        if log_memory:
+            rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            kwargs['exec_rss_after'] = rss_after
+            kwargs['exec_rss_delta'] = rss_before - rss_after
 
     if logger is None:
         print(event, stop - start)

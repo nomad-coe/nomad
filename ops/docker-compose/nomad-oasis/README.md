@@ -196,7 +196,7 @@ keycloak:
   oasis: true
 
 meta:
-  release: 'oasis'
+  deployment: 'oasis'
   deployment_id: '<your-host>'
   maintainer_email: '<oasis admin email>'
 

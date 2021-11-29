@@ -900,7 +900,7 @@ def index_entries(entries: List, refresh: bool = False):
             except Exception as e:
                 logger.error('could not create entry index doc', calc_id=entry['entry_id'], exc_info=e)
 
-        timer_kwargs = {}
+        timer_kwargs: Dict[str, Any] = {}
         try:
             import json
             timer_kwargs['size'] = len(json.dumps(actions_and_docs))
@@ -1119,7 +1119,7 @@ def update_materials(entries: List, refresh: bool = False):
         all_n_entries += material_doc['n_entries']
 
     # Execute the created actions in bulk.
-    timer_kwargs = {}
+    timer_kwargs: Dict[str, Any] = {}
     try:
         import json
         timer_kwargs['size'] = len(json.dumps(_actions_and_docs_bulks))
