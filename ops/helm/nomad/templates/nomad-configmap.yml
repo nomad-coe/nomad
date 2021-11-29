@@ -10,15 +10,17 @@ metadata:
 data:
   nomad.yaml: |
     meta:
-      release: "{{ .Release.Name }}"
+      deployment: "{{ .Release.Name }}"
       service: "{{ .Values.meta.service }}"
       homepage: "{{ .Values.meta.homepage }}"
       source_url: "{{ .Values.meta.source_url }}"
       maintainer_email: "{{ .Values.meta.maintainer_email }}"
-      {{ if .Values.meta.deployment }}
-      deployment: "{{ .Values.meta.deployment }}"
-      {{ end }}
-    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
+      beta:
+        label: "{{ .Values.version.label }}"
+        isBeta: {{ .Values.version.isBeta }}
+        isTest: {{ .Values.version.isTest }}
+        usesBetaData: {{ .Values.version.usesBetaData }}
+        officialUrl: "{{ .Values.version.officialUrl }}"
     aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
     process:
       reuse_parser: {{ .Values.process.reuseParser }}
@@ -30,12 +32,6 @@ data:
       add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
       delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
       index_invidiual_entries: {{ .Values.reprocess.indexIndividualEntries }}
-    beta:
-      label: "{{ .Values.version.label }}"
-      isBeta: {{ .Values.version.isBeta }}
-      isTest: {{ .Values.version.isTest }}
-      usesBetaData: {{ .Values.version.usesBetaData }}
-      officialUrl: "{{ .Values.version.officialUrl }}"
     fs:
       tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
