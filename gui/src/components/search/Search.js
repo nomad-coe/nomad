@@ -37,8 +37,7 @@ const useStyles = makeStyles(theme => {
       display: 'flex',
       flexDirection: 'row',
       height: '100%',
-      width: '100%',
-      overflow: 'auto'
+      width: '100%'
     },
     leftColumn: {
       flexShrink: 0,
@@ -52,9 +51,7 @@ const useStyles = makeStyles(theme => {
     center: {
       flexGrow: 1,
       height: '100%',
-      overflow: 'auto',
-      position: 'sticky',
-      top: '0px'
+      overflow: 'auto'
     },
     searchBar: {
       display: 'flex',

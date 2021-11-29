@@ -33,6 +33,7 @@ import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
+import RefreshIcon from '@material-ui/icons/Refresh'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
@@ -192,12 +193,13 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const { useResetFilters } = useSearchContext()
+  const { useResetFilters, useRefresh } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
   const resetFilters = useResetFilters()
+  const refresh = useRefresh()
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -215,53 +217,61 @@ export const FilterMenuItems = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <div
       className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}
-      classes={{containerInner: styles.overflow}} style={{position: 'sticky', top: '0px'}}>
-      <div className={styles.padding}>
-        <Actions
-          header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
-          className={styles.header}
-        >
-          <Action
-            tooltip="Clear filters"
-            onClick={() => resetFilters()}
+      classes={{containerInner: styles.overflow}}>
+      <Scrollable>
+        <div className={styles.padding}>
+          <Actions
+            header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
+            className={styles.header}
           >
-            <ClearIcon/>
-          </Action>
-          <Action
-            tooltip="Options"
-            onClick={openMenu}
-          >
-            <MoreVert/>
-          </Action>
-          <Menu
-            anchorEl={anchorEl}
-            open={isSettingsOpen}
-            onClose={closeMenu}
-            getContentAnchorEl={null}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            keepMounted
-          >
-            <div>
-              <FilterSettings/>
-            </div>
-          </Menu>
-          {!collapsed && <Action
-            tooltip={'Hide filter menu'}
-            onClick={() => {
-              onCollapsedChange(old => !old)
-              onOpenChange(false)
-            }}
-            className={styles.button}
-          >
-            <ArrowBackIcon/>
-          </Action>}
-        </Actions>
-        <List dense>
-          <Divider/>
-          {children}
-        </List>
-      </div>
+            <Action
+              tooltip="Refresh results"
+              onClick={() => refresh()}
+            >
+              <RefreshIcon/>
+            </Action>
+            <Action
+              tooltip="Clear filters"
+              onClick={() => resetFilters()}
+            >
+              <ClearIcon/>
+            </Action>
+            <Action
+              tooltip="Options"
+              onClick={openMenu}
+            >
+              <MoreVert/>
+            </Action>
+            <Menu
+              anchorEl={anchorEl}
+              open={isSettingsOpen}
+              onClose={closeMenu}
+              getContentAnchorEl={null}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              keepMounted
+            >
+              <div>
+                <FilterSettings/>
+              </div>
+            </Menu>
+            {!collapsed && <Action
+              tooltip={'Hide filter menu'}
+              onClick={() => {
+                onCollapsedChange(old => !old)
+                onOpenChange(false)
+              }}
+              className={styles.button}
+            >
+              <ArrowBackIcon/>
+            </Action>}
+          </Actions>
+          <List dense>
+            <Divider/>
+            {children}
+          </List>
+        </div>
+      </Scrollable>
     </div>
     <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
       <Actions className={styles.header}>

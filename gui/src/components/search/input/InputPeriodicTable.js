@@ -286,12 +286,11 @@ const InputPeriodicTable = React.memo(({
   draggable
 }) => {
   const styles = useTableStyles()
-  const { useFilterState } = useSearchContext()
+  const { useFilterState, useAgg } = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
   const [scale, setScale] = useState(initialScale)
-  const {useAgg} = useSearchContext()
   const agg = useAgg(quantity, visible)
   const availableValues = useMemo(() => {
     const elementCountMap = {}

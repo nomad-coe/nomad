@@ -582,3 +582,12 @@ export function approxInteger(number) {
   // Format number and add suffix
   return scaled.toFixed(Math.min(3 - nUsed, nDecimals)) + suffix
 }
+
+/**
+ * Delays the execution of the given function to the next react render cycle.
+ *
+ * @param {func} func Function to delay
+ */
+export function delay(func) {
+  setTimeout(func, 0)
+}

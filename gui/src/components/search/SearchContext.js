@@ -87,23 +87,20 @@ export const SearchContext = React.memo(({
   const {raiseErrors} = useErrors()
   const oldQuery = useRef(undefined)
   const oldPagination = useRef(undefined)
+  const paginationResponse = useRef(undefined)
   const latestTimeStamp = useRef(undefined)
   const updatedAggs = useRef(new Set())
   const updatedFilters = useRef(new Set())
-  const [pagination, setPagination] = useState(initialPagination || {
-    order_by: orderByMap[resource],
-    page_size: 20
-  })
-  const paginationResponse = useRef({})
+  const refreshFilters = useRef(new Set())
   const firstLoad = useRef(true)
 
   // Initialize the set of available filters. This may depend on the resource.
   const [filtersLocal, filterDataLocal] = useMemo(() => {
-    const filtersLocal = []
+    const filtersLocal = new Set()
     const filterDataLocal = []
     for (const [key, value] of Object.entries(filterDataGlobal)) {
       if (value.resources.has(resource)) {
-        filtersLocal.push(key)
+        filtersLocal.add(key)
         filterDataLocal[key] = value
       }
     }
@@ -160,6 +157,7 @@ export const SearchContext = React.memo(({
     useUpdateQueryString,
     queryState,
     aggsState,
+    paginationState,
     resultsState,
     aggsResponseState,
     isMenuOpenState,
@@ -251,6 +249,14 @@ export const SearchContext = React.memo(({
     const isCollapsedState = atom({
       key: `isCollapsed_${indexContext}`,
       default: false
+    })
+
+    const paginationState = atom({
+      key: `pagination_${indexContext}`,
+      default: initialPagination || {
+        order_by: orderByMap[resource],
+        page_size: 20
+      }
     })
 
     const statisticFamily = atomFamily({
@@ -615,6 +621,7 @@ export const SearchContext = React.memo(({
       useUpdateQueryString,
       queryState,
       aggsState,
+      paginationState,
       resultsState,
       aggsResponseState,
       isMenuOpenState,
@@ -628,26 +635,21 @@ export const SearchContext = React.memo(({
       useAgg,
       useSetFilters
     ]
-  }, [initialQuery, filters, filtersLocked, initialStatistics, initialAggs])
+  }, [initialQuery, filters, filtersLocked, initialStatistics, initialAggs, initialPagination, resource])
 
   const setResults = useSetRecoilState(resultsState)
   const updateAggsResponse = useSetRecoilState(aggsResponseState)
   const aggs = useRecoilValue(aggsState)
   const query = useRecoilValue(queryState)
+  const [pagination, setPagination] = useRecoilState(paginationState)
   const updateQueryString = useUpdateQueryString()
   const isStatisticsEnabled = useRecoilValue(isStatisticsEnabledState)
 
   // All of the heavier pre-processing, checking, etc. should be done in this
   // function, as it is the final one that gets called after the debounce
   // interval.
-  const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames) => {
-    if (pagination.page_after_value && pagination.page_after_value === paginationResponse.current.page_after_value) {
-      pagination.page_after_value = undefined
-      pagination.next_page_after_value = undefined
-    }
-
-    // Create the final search object. When aggregations have changed but the
-    // query has not, we request the aggregation data only without any hits.
+  const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames, refresh = false) => {
+    // Create the final search object. W
     let apiQuery = {...query}
     if (filterDefaults) {
       for (const [key, value] of Object.entries(filterDefaults)) {
@@ -659,12 +661,27 @@ export const SearchContext = React.memo(({
     const search = {
       owner: apiQuery.visibility,
       query: toAPIFilter(apiQuery, resource, filterDefaults),
-      aggregations: toAPIAgg(aggs, aggNames, updatedFilters.current, resource),
-      pagination: pagination
+      aggregations: toAPIAgg(
+        aggs,
+        aggNames,
+        refresh ? refreshFilters.current : updatedFilters.current,
+        resource
+      ),
+      pagination: {...pagination}
     }
+    // When aggregations have changed but the query has not, we request only the
+    // aggregation data without any hits.
     if (updateAggs && !queryChanged && !paginationChanged) {
       search.pagination = {page_size: 0}
       search.required = { include: [] }
+    }
+
+    // If query changes or the pagination changes without page_after_value
+    // changing, we request the first page. This is a simple way ensure that
+    // results are consistent.
+    if (queryChanged || (paginationChanged && (pagination.page_after_value && pagination.page_after_value === paginationResponse.current.page_after_value))) {
+      search.pagination.page_after_value = undefined
+      search.pagination.next_page_after_value = undefined
     }
 
     // These references are used to tell if there has been a change since the
@@ -675,7 +692,7 @@ export const SearchContext = React.memo(({
     const newTimeStamp = Date.now()
     latestTimeStamp.current = newTimeStamp
 
-    api.query(resource, search, false)
+    api.query(resource, search, true)
       // Each query gets timestamped and only information from the latest query
       // will be used. This ensures that only the latest query will get updated
       // to the screen irrespective of the API response order.
@@ -699,20 +716,21 @@ export const SearchContext = React.memo(({
         }
         // Update the query results if new data is received.
         if (queryChanged || paginationChanged) {
-          const isExtend = pagination.page_after_value
+          const isExtend = search.pagination.page_after_value
           paginationResponse.current = response.pagination
           setResults(old => {
             const newResults = old ? {...old} : {}
             isExtend ? newResults.data = [...newResults.data, ...response.data] : newResults.data = response.data
-            newResults.pagination = combinePagination(pagination, response.pagination)
+            newResults.pagination = combinePagination(search.pagination, response.pagination)
             newResults.setPagination = setPagination
             return newResults
           })
         }
+        refreshFilters.current = updatedFilters.current
         updatedFilters.current = new Set()
       })
       .catch(raiseErrors)
-  }, [resource, api, raiseErrors, filterDefaults, updateAggsResponse, setResults])
+  }, [filterDefaults, resource, api, raiseErrors, updateAggsResponse, setResults, setPagination])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
@@ -721,12 +739,6 @@ export const SearchContext = React.memo(({
   // call is made immediately on first render. On subsequent renders it will be
   // debounced.
   useEffect(() => {
-    // If query or aggs is undefined, it means that the search has not been
-    // initialized. In this case the API call is not made.
-    if (isNil(aggs)) {
-      return
-    }
-
     // If the query and pagination has not changed AND aggregations do not need
     // to be updated, no update is necessary.
     const queryChanged = query !== oldQuery.current
@@ -754,6 +766,22 @@ export const SearchContext = React.memo(({
     }
   }, [query, aggs, pagination, apiCall, apiCallDebounced, isStatisticsEnabled])
 
+  // Hook for refreshing the results
+  const useRefresh = useCallback(() => {
+    const query = useRecoilValue(queryState)
+    const aggs = useRecoilValue(aggsState)
+    const pagination = useRecoilValue(paginationState)
+    const queryChanged = true
+    const paginationChanged = false
+    const updateAggs = true
+    const aggNames = Object.keys(aggs)
+
+    const refresh = useCallback(() => {
+      apiCallDebounced(query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames, true)
+    }, [aggNames, aggs, pagination, paginationChanged, query, queryChanged, updateAggs])
+    return refresh
+  }, [aggsState, apiCallDebounced, paginationState, queryState])
+
   // This updated the query string to represent the latest value within the
   // search context.
   useEffect(() => {
@@ -776,6 +804,7 @@ export const SearchContext = React.memo(({
     useFilterState: useFilterState,
     useFiltersState: useFiltersState,
     useResetFilters: useResetFilters,
+    useRefresh: useRefresh,
     useFilterLocked: useFilterLocked,
     useFiltersLocked: useFiltersLocked,
     useFiltersLockedState: useFiltersLockedState,
@@ -804,6 +833,7 @@ export const SearchContext = React.memo(({
     useStatisticState,
     useStatisticsValue,
     useUpdateQueryString,
+    useRefresh,
     useResults,
     useAgg,
     useSetFilters,

@@ -422,18 +422,20 @@ export function getUrl(path, location) {
   return `${url}/${path}`
 }
 
-export const RouteButton = React.forwardRef(function RouteButton(props, ref) {
-  const {component, path, ...moreProps} = props
+export const RouteButton = React.forwardRef((props, ref) => {
+  const {component, onClick, path, ...moreProps} = props
   const location = useLocation()
   const history = useHistory()
   const handleClick = (event) => {
     event.stopPropagation()
+    onClick && onClick(event)
     history.push(getUrl(path, location))
   }
   return React.createElement(component || Button, {onClick: handleClick, ...moreProps, ref: ref})
 })
 RouteButton.propTypes = {
   path: PropTypes.string.isRequired,
+  onClick: PropTypes.func,
   component: PropTypes.elementType
 }
 
@@ -443,7 +445,7 @@ RouteButton.propTypes = {
  * @param {string} entryId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const EntryButton = React.forwardRef(function EntryButton(props, ref) {
+export const EntryButton = React.forwardRef((props, ref) => {
   const {uploadId, entryId, ...moreProps} = props
   const path = `entry/id/${uploadId}/${entryId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
@@ -458,7 +460,7 @@ EntryButton.propTypes = {
  * @param {string} datasetId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const DatasetButton = React.forwardRef(function DatasetButton(props, ref) {
+export const DatasetButton = React.forwardRef((props, ref) => {
   const {datasetId, ...moreProps} = props
   const path = `dataset/id/${datasetId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
@@ -472,7 +474,7 @@ DatasetButton.propTypes = {
  * @param {string} uploadId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const UploadButton = React.forwardRef(function DatasetButton(props, ref) {
+export const UploadButton = React.forwardRef((props, ref) => {
   const {uploadId, ...moreProps} = props
   const path = `upload/id/${uploadId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />

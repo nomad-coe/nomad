@@ -116,6 +116,9 @@ function UploadStatus({upload, ...props}) {
     </Tooltip>
   }
 }
+UploadStatus.propTypes = {
+  upload: PropTypes.object
+}
 
 const useUploadNameStyles = makeStyles(theme => ({
   edit: {

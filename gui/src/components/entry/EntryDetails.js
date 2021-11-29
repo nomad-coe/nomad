@@ -193,8 +193,16 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
     return ''
   }
 
-  return <Tooltip title="Show raw files and archive">
-    <EntryButton {...props} entryId={data.entry_id} uploadId={data.upload_id} />
+  // The portal is disabled for this tooltip because this button causes a
+  // navigation that otherwise leaves the popup opened (the Tooltip state does
+  // not get updated since the page is cached and a new page is shown
+  // immediately).
+  return <Tooltip PopperProps={{disablePortal: true}} title="Show raw files and archive">
+    <EntryButton
+      {...props}
+      entryId={data.entry_id}
+      uploadId={data.upload_id}
+    />
   </Tooltip>
 })
 VisitEntryAction.propTypes = {
