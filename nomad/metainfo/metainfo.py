@@ -823,6 +823,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 else:
                     raise NotImplementedError('Unknown property kind.')
 
+            if inspect.isclass(attr):
+                inner_section_def = getattr(attr, 'm_def', None)
+                if isinstance(inner_section_def, Section):
+                    m_def.m_add_sub_section(Section.inner_section_defs, inner_section_def)
+
             if inspect.isfunction(attr):
                 method_name = attr.__name__
 
@@ -2679,6 +2684,7 @@ class Section(Definition):
 
     quantities: 'SubSection' = None
     sub_sections: 'SubSection' = None
+    inner_section_defs: 'SubSection' = None
 
     base_sections: 'Quantity' = _placeholder_quantity
     extending_sections: 'Quantity' = _placeholder_quantity
@@ -2948,9 +2954,11 @@ Definition.more = Quantity(type=JSON, name='more', default={})
 
 Section.quantities = SubSection(
     sub_section=Quantity.m_def, name='quantities', repeats=True)
-
 Section.sub_sections = SubSection(
     sub_section=SubSection.m_def, name='sub_sections', repeats=True)
+Section.inner_section_defs = SubSection(
+    sub_section=Section.m_def, name='inner_section_defs', repeats=True)
+
 Section.base_sections = Quantity(
     type=Reference(Section.m_def), shape=['0..*'], default=[], name='base_sections')
 Section.extending_sections = Quantity(

@@ -158,3 +158,38 @@ def test_overwrite_programmatic():
 
     assert section_cls.test_quantity.description == 'test_description'
     assert section_cls.test_quantity.type == str
+
+
+def test_inner_sections():
+    class OuterSection(MSection):
+        class InnerSection(MSection):
+            pass
+
+    assert OuterSection.m_def.qualified_name() + '.InnerSection' == OuterSection.InnerSection.m_def.qualified_name()
+    assert OuterSection.m_def.inner_section_defs == [OuterSection.InnerSection.m_def]
+    assert OuterSection.InnerSection.m_def.m_parent == OuterSection.m_def
+    assert OuterSection.InnerSection.m_def.m_parent_sub_section == Section.inner_section_defs
+
+
+def test_inner_sections_inheritance():
+    class BaseSection(MSection):
+        class InnerSection(MSection):
+            test_quantity = Quantity(type=int, description='test_description')
+
+        test_sub_section = SubSection(sub_section=InnerSection, description='test_description')
+
+    class OuterSection(BaseSection):
+        class InnerSection(BaseSection.InnerSection):
+            test_quantity = Quantity(type=str, description='overwritten_description')
+
+        test_sub_section = SubSection(sub_section=InnerSection)
+
+    assert OuterSection.test_sub_section.description == 'test_description'
+    assert OuterSection.InnerSection.test_quantity.type == str
+    assert OuterSection.InnerSection.test_quantity.description == 'overwritten_description'
+    assert OuterSection.m_def.qualified_name() + '.InnerSection' == OuterSection.InnerSection.m_def.qualified_name()  # pylint: disable=no-member
+    assert BaseSection.m_def.qualified_name() + '.InnerSection' == BaseSection.InnerSection.m_def.qualified_name()
+
+    section = OuterSection(
+        test_sub_section=OuterSection.InnerSection(test_quantity='test_value'))
+    assert section.test_sub_section.test_quantity == 'test_value'
