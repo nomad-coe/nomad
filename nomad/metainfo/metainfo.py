@@ -2718,6 +2718,7 @@ class Section(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
+        # Init extending_sections
         if self.extends_base_section:
             base_sections_count = len(self.base_sections)
             if base_sections_count == 0:
@@ -2734,6 +2735,21 @@ class Section(Definition):
                     setattr(base_section.section_cls, name, attr)
 
             base_section.extending_sections = base_section.extending_sections + [self]
+
+        # Transfer properties of inherited and overwriten property definitions that
+        # have not been overwritten
+        inherited_properties: Dict[str, Property] = dict()
+        for base_section in self.all_base_sections:
+            inherited_properties.update(**base_section.all_properties)
+
+        for property in self.quantities + self.sub_sections:
+            inherited_property = inherited_properties.get(property.name)
+            if inherited_property is None:
+                continue
+
+            for m_quantity in property.m_def.all_quantities.values():
+                if not property.m_is_set(m_quantity) and inherited_property.m_is_set(m_quantity):
+                    property.m_set(m_quantity, inherited_property.m_get(m_quantity))
 
         # validate
         def validate(definition):
@@ -2756,9 +2772,8 @@ class Section(Definition):
 
     @constraint
     def unique_names(self):
-        # start with the names of all base_sections
         names: Set[str] = set()
-        for base in list(self.all_base_sections) + self.extending_sections:
+        for base in self.extending_sections:
             for quantity in base.quantities + base.sub_sections:
                 for alias in quantity.aliases:
                     names.add(alias)
@@ -2947,25 +2962,23 @@ Section.event_handlers = Quantity(
 
 
 @derived(cached=True)
-def inherited_sections(self) -> Set[Section]:
-    result: Set[Section] = set()
-    result.add(self)
-    for base_section in self.base_sections:
-        result.add(base_section)
-        for base_base_section in base_section.all_base_sections:
-            result.add(base_base_section)
+def inherited_sections(self) -> List[Section]:
+    result: List[Section] = []
+    for base_section in self.all_base_sections:
+        result.append(base_section)
     for extending_section in self.extending_sections:
-        result.add(extending_section)
+        result.append(extending_section)
+    result.append(self)
     return result
 
 
 @derived(cached=True)
-def all_base_sections(self) -> Set[Section]:
-    result: Set[Section] = set()
+def all_base_sections(self) -> List[Section]:
+    result: List[Section] = []
     for base_section in self.base_sections:
-        result.add(base_section)
         for base_base_section in base_section.all_base_sections:
-            result.add(base_base_section)
+            result.append(base_base_section)
+        result.append(base_section)
     return result
 
 

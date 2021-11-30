@@ -191,14 +191,15 @@ class TestM2:
         class TestBase(MSection):
             name = Quantity(type=str)
 
-        with pytest.raises(MetainfoError):
-            class TestSection(TestBase):  # pylint: disable=unused-variable
-                name = Quantity(type=int)
+        # this is possible, can overwrite existing quantity
+        class TestSection(TestBase):  # pylint: disable=unused-variable
+            name = Quantity(type=int)
 
     def test_unique_names_extends(self):
         class TestBase(MSection):
             name = Quantity(type=str)
 
+        # this is not possible, cant replace existing quantity
         with pytest.raises(MetainfoError):
             class TestSection(TestBase):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
