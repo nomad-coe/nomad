@@ -20,7 +20,7 @@ import pytest
 import json
 import datetime
 
-from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized
+from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized, Bytes
 
 
 @pytest.mark.parametrize('def_type, value', [
@@ -34,7 +34,8 @@ from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Dat
     pytest.param(Dimension, 1, id='Dimension-1'),
     pytest.param(Dimension, 'quantity', id='Dimension-quantity'),
     pytest.param(Datetime, datetime.datetime.now(), id='Datetime'),
-    pytest.param(Capitalized, 'Hello', id='Capitalize')
+    pytest.param(Capitalized, 'Hello', id='Capitalize'),
+    pytest.param(Bytes, b'hello', id='Bytes')
 ])
 def test_basic_types(def_type, value):
     class TestSectionA(MSection):
