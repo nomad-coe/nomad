@@ -24,7 +24,6 @@ import inspect
 import re
 import json
 import itertools
-
 import numpy as np
 import pint
 import pint.unit
@@ -34,6 +33,7 @@ from datetime import datetime
 import pytz
 import docstring_parser
 import jmespath
+import base64
 
 from nomad.units import ureg as units
 
@@ -583,6 +583,14 @@ class _Capitalized(DataType):
         return value
 
 
+class _Bytes(DataType):
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return base64.b64encode(value).decode('ascii')
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return base64.b64decode(value)
+
+
 Dimension = _Dimension()
 Unit = _Unit()
 QuantityType = _QuantityType()
@@ -590,10 +598,11 @@ Callable = _Callable()
 Datetime = _Datetime()
 JSON = _JSON()
 Capitalized = _Capitalized()
+Bytes = _Bytes()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes}
 
 
 # Metainfo data storage and reflection interface
