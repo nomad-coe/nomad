@@ -166,9 +166,9 @@ def test_inner_sections():
             pass
 
     assert OuterSection.m_def.qualified_name() + '.InnerSection' == OuterSection.InnerSection.m_def.qualified_name()
-    assert OuterSection.m_def.inner_section_defs == [OuterSection.InnerSection.m_def]
+    assert OuterSection.m_def.inner_section_definitions == [OuterSection.InnerSection.m_def]
     assert OuterSection.InnerSection.m_def.m_parent == OuterSection.m_def
-    assert OuterSection.InnerSection.m_def.m_parent_sub_section == Section.inner_section_defs
+    assert OuterSection.InnerSection.m_def.m_parent_sub_section == Section.inner_section_definitions
 
 
 def test_inner_sections_inheritance():
