@@ -61,6 +61,7 @@ worker:
   # request and limit in GB, good prod sizes are 64, 420
   memrequest: 8
   memlimit: 32
+  maxTasksPerChild: 128
   console_loglevel: ERROR
   logstash_loglevel: INFO
   ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
