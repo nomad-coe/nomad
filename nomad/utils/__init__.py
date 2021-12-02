@@ -231,10 +231,13 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
     Returns:
         The method yields a dictionary that can be used to add further log data.
     '''
+    def get_rss():
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
     kwargs = dict(kwargs)
     start = time.time()
     if log_memory:
-        rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_before = get_rss()
         kwargs['pid'] = os.getpid()
         kwargs['exec_rss_before'] = rss_before
 
@@ -244,7 +247,7 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
         if lnr_event is not None:
             stop = time.time()
             if log_memory:
-                rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                rss_after = get_rss()
                 kwargs['exec_rss_after'] = rss_after
                 kwargs['exec_rss_delta'] = rss_before - rss_after
             logger.error(lnr_event, exc_info=e, exec_time=stop - start, **kwargs)
@@ -252,7 +255,7 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
     finally:
         stop = time.time()
         if log_memory:
-            rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            rss_after = get_rss()
             kwargs['exec_rss_after'] = rss_after
             kwargs['exec_rss_delta'] = rss_before - rss_after
 
