@@ -363,8 +363,9 @@ def reset(ctx, uploads, with_calcs, success, failure):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
 @click.option('--skip-materials', is_flag=True, help='Only update the entries index.')
+@click.option('--print-progress', default=0, type=int, help='Prints a dot every given seconds. Can be used to keep terminal open that have an i/o-based timeout.')
 @click.pass_context
-def index(ctx, uploads, parallel, transformer, skip_materials):
+def index(ctx, uploads, parallel, transformer, skip_materials, print_progress):
     from nomad import search
 
     transformer_func = None
@@ -395,7 +396,7 @@ def index(ctx, uploads, parallel, transformer, skip_materials):
 
         return True
 
-    _run_parallel(uploads, parallel, index_upload, 'index')
+    _run_parallel(uploads, parallel, index_upload, 'index', print_progress=print_progress)
 
 
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
