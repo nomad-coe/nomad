@@ -186,7 +186,12 @@ export function path(nameOrDef) {
 
   const path = []
   while (def) {
-    const parentSubSection = def._parentSubSections && def._parentSubSections[0]
+    const parentSection = def
+    const parentSubSection = def._parentSubSections && def._parentSubSections.filter(
+      // Filter for direct recursions in the possible section containment.
+      // This only catches direct connections where a sub section uses its parent
+      // section as the sub section definition
+      subSection => parentSection !== subSection._section)[0]
     if (parentSubSection) {
       def = parentSubSection
     }
