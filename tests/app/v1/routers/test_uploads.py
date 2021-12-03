@@ -341,7 +341,9 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     pytest.param(
         dict(
             user='other_test_user',
-            expected_upload_ids=[],
+            expected_upload_ids=[
+                'id_embargo_w_coauthor', 'id_embargo_w_reviewer', 'id_unpublished_w_coauthor',
+                'id_unpublished_w_reviewer']
         ), id='other_test_user'),
     pytest.param(
         dict(
