@@ -557,3 +557,57 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))
+
+
+@uploads.group(help='Check certain integrity criteria')
+@click.pass_context
+def integrity(ctx):
+    pass
+
+
+@integrity.command(help='Uploads that have datasets with DOIs that do not exist.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def dois(ctx, uploads):
+    import sys
+
+    from nomad.processing import Calc
+    from nomad.datamodel import Dataset
+    from nomad.doi import DOI
+    from nomad.search import SearchRequest
+
+    _, uploads = query_uploads(ctx, uploads)
+
+    for upload in uploads:
+        dataset_ids = Calc._get_collection().distinct(
+            'metadata.datasets',
+            dict(upload_id=upload.upload_id))
+
+        for dataset_id in dataset_ids:
+            dataset: Dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
+            if dataset is None:
+                print(f'ERROR: dataset does not exist {dataset_id}, seein in upload {upload.upload_id}', file=sys.stderr)
+                print(upload.upload_id)
+                continue
+
+            if dataset.doi is not None:
+                doi = DOI.objects(doi=dataset.doi).first()
+                if doi is None:
+                    continue
+
+                results = SearchRequest() \
+                    .search_parameters(upload_id=upload.upload_id, dataset_id=dataset_id) \
+                    .include('datasets') \
+                    .execute_paginated(per_page=1)
+
+                if results['total'] == 0:
+                    print(f'WARNING: dataset {dataset_id} not in index for upload {upload.upload_id}', file=sys.stderr)
+                    print(upload.upload_id)
+                    continue
+
+                if not any([
+                        dataset.get('doi') == doi.doi
+                        for dataset in results['results'][0]['datasets']]):
+
+                    print(f'WARNING: DOI of dataset {dataset_id} not in index for upload {upload.upload_id}', file=sys.stderr)
+                    print(upload.upload_id)
