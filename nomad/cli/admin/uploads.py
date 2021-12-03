@@ -517,3 +517,31 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))
+
+
+@uploads.group(help='Check certain integrity criteria')
+@click.pass_context
+def integrity(ctx):
+    pass
+
+
+@integrity.command(help='Uploads that have more entries in mongo than in ES.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def entry_index(ctx, uploads):
+    from nomad.search import search
+    from nomad.processing import Upload
+    from nomad.app.v1.models import Pagination
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    upload: Upload = None
+    for upload in uploads:
+        search_results = search(
+            owner='admin',
+            query=dict(upload_id=upload.upload_id),
+            pagination=Pagination(page_size=0),
+            user_id=config.services.admin_user_id)
+
+        if search_results.pagination.total != upload.total_calcs:
+            print(upload.upload_id)

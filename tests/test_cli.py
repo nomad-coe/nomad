@@ -29,6 +29,7 @@ from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Calc, ProcessStatus
 
+from tests.utils import ExampleData
 # TODO there is much more to test
 
 
@@ -301,6 +302,18 @@ class TestAdminUploads:
             assert calc.process_status == ProcessStatus.SUCCESS
         else:
             assert calc.process_status == expected_state
+
+    @pytest.mark.parametrize('indexed', [True, False])
+    def test_integrity_entry_index(self, test_user, mongo, elastic, indexed):
+        data = ExampleData(main_author=test_user)
+        data.create_upload(upload_id='test_upload')
+        data.create_entry(upload_id='test_upload')
+        data.save(with_es=indexed, with_files=False)
+
+        result = invoke_cli(cli, 'admin uploads integrity entry-index', catch_exceptions=True)
+
+        assert result.exit_code == 0
+        assert ('test_upload' in result.output) != indexed
 
 
 @pytest.mark.usefixtures('reset_config')
