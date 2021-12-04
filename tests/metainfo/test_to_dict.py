@@ -200,7 +200,7 @@ section_definitions:
         type: np.float64
     '''
 
-    schema_dict = yaml.load(schema_yaml)
+    schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
     pkg = Package.m_from_dict(schema_dict)
     pkg.init_metainfo()
 

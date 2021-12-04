@@ -2214,6 +2214,7 @@ class Definition(MSection):
         package, section was created without corresponding python classes
         packages, etc.
         '''
+        self.__init_metainfo__()
         for content in self.m_all_contents(depth_first=True):
             content.__init_metainfo__()
 
