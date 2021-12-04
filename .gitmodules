@@ -213,3 +213,6 @@
 [submodule "dependencies/parsers/asr"]
 	path = dependencies/parsers/asr
 	url = https://github.com/nomad-coe/nomad-parser-asr.git
+[submodule "dependencies/nexus_definitions"]
+	path = dependencies/nexus_definitions
+	url = https://github.com/nexusformat/definitions
