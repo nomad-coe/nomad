@@ -21,6 +21,7 @@ import shutil
 from datetime import datetime
 from typing import Tuple, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
+from mongoengine.queryset.visitor import Q
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
@@ -389,27 +390,28 @@ async def get_uploads(
     Retrieves metadata about all uploads that match the given query criteria.
     '''
     # Build query
-    query_kwargs: Dict[str, Any] = {}
-    query_kwargs.update(main_author=str(user.user_id))
+    mongo_query = Q()
+    user_id = str(user.user_id)
+    mongo_query &= Q(main_author=user_id) | Q(reviewers=user_id) | Q(coauthors=user_id)
 
     if query.upload_id:
-        query_kwargs.update(upload_id__in=query.upload_id)
+        mongo_query &= Q(upload_id__in=query.upload_id)
 
     if query.upload_name:
-        query_kwargs.update(upload_name__in=query.upload_name)
+        mongo_query &= Q(upload_name__in=query.upload_name)
 
     if query.is_processing is True:
-        query_kwargs.update(process_status__in=ProcessStatus.STATUSES_PROCESSING)
+        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
     elif query.is_processing is False:
-        query_kwargs.update(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
+        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
 
     if query.is_published is True:
-        query_kwargs.update(publish_time__ne=None)
+        mongo_query &= Q(publish_time__ne=None)
     elif query.is_published is False:
-        query_kwargs.update(publish_time=None)
+        mongo_query &= Q(publish_time=None)
 
     # Fetch data from DB
-    mongodb_query = _query_mongodb(**query_kwargs)
+    mongodb_query = Upload.objects.filter(mongo_query)
     # Create response
     start = pagination.get_simple_index()
     end = start + pagination.page_size
@@ -1479,8 +1481,8 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if user and (user.is_admin or upload.main_author == str(user.user_id)):
-        # Ok, it exists and belongs to user, or we have an admin user
+    if user and (user.is_admin or (str(user.user_id) in upload.viewers)):
+        # Ok, the user a viewer, or we have an admin user
         return upload
     elif include_others:
         if not upload.published:
