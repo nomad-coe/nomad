@@ -1,7 +1,7 @@
 # install
 pip
 wheel
-pyyaml
+pyyaml==6.0
 numpy==1.21.2
 fastentrypoints==0.12
 cython>=0.19
@@ -53,14 +53,14 @@ celery[redis]==4.4.7
 mongoengine==0.19.1
 pymongo==3.10.1
 Werkzeug==0.16.1
-flask
+flask==1.1.4
 flask-restplus==0.13.0
-flask-cors
-flask_httpauth
+flask-cors==3.0.10
+flask_httpauth==4.5.0
 itsdangerous==1.1.0
 passlib==1.7.4
 python-logstash==0.4.6
-gitpython
+gitpython==3.1.24
 gunicorn[eventlet]==20.1.0
 m2r==0.2.1
 zipstream-new==1.1.5
@@ -71,17 +71,17 @@ cryptography==3.3.2
 pyjwt[crypto]==1.7.1
 cryptography==3.3.2
 runstats==2.0.0
-pyyaml
+pyyaml==6.0
 tabulate==0.8.9
 bs4==0.0.1
 html5lib==1.1
 zipfile37==0.1.3
 basicauth==0.4.1
 inflection==0.5.1
-unidecode
+unidecode==1.3.2
 python-json-logger==2.0.2
 recommonmark==0.7.1
-jinja2
+jinja2==2.11.3
 rdflib==5.0.0
 fastapi==0.63.0
 uvicorn[standard]==0.13.4
@@ -91,10 +91,11 @@ python-multipart==0.0.5
 # [dev]
 setuptools==57.5.0
 sphinx==2.4.4
-sphinxcontrib.httpdomain
+sphinxcontrib.httpdomain==1.8.0
 sphinx-click==3.0.1
-sphinx_rtd_theme
-gitpython
+sphinx_rtd_theme==1.0.0
+mistune==0.8.4
+gitpython==3.1.24
 mypy==0.730
 typed-ast==1.4.2
 astroid==2.5.1
@@ -108,7 +109,7 @@ pytest-cov==2.7.1
 rope==0.21.0
 mongomock==3.17.0
 names==0.3.0
-essential_generators
+essential_generators==1.0
 twine==3.4.2
 python-gitlab==2.10.1
 devtools==0.8.0
