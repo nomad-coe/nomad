@@ -33,11 +33,11 @@ def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, err
 
 
 class SimpleProc(Proc):
-    @process
+    @process()
     def a_process(self):
         pass
 
-    @process
+    @process()
     def a_process_with_arguments(self, a_string, a_int, a_float, a_bool, a_list, a_tuple, a_dict, **kwargs):
         assert a_string == 'a string'
         assert a_int == 7
@@ -66,28 +66,17 @@ def test_simple_process(worker, mongo, no_warn, with_args):
 
 
 class FailingProc(Proc):
-    @process
-    def will_fail(self):
-        self.fail('fail fail fail!')
-
-    @process
+    @process()
     def will_fail_with_exception(self):
-        _x = 1 / 0
+        _ = 1 / 0
 
 
-@pytest.mark.parametrize('with_exception', [
-    pytest.param(False, id='no-exception'),
-    pytest.param(True, id='with-exception')])
-def test_failing_process(worker, mongo, with_error, with_exception):
+def test_failing_process(worker, mongo, with_error):
     p = FailingProc.create()
-    if with_exception:
-        event = 'process failed with exception'
-        process = 'will_fail_with_exception'
-        p.will_fail_with_exception()
-    else:
-        event = 'process failed'
-        process = 'will_fail'
-        p.will_fail()
+
+    event = 'process failed with exception'
+    process = 'will_fail_with_exception'
+    p.will_fail_with_exception()
     p.block_until_complete()
     assert_proc(p, process, ProcessStatus.FAILURE, errors=1)
 
@@ -100,7 +89,7 @@ def test_failing_process(worker, mongo, with_error, with_exception):
 
 
 class ProcTwice(Proc):
-    @process
+    @process()
     def process(self):
         pass
 

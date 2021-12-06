@@ -114,6 +114,7 @@ class ProcessStatus:
 
     STATUSES_PROCESSING = (PENDING, RUNNING, WAITING_FOR_RESULT)
     STATUSES_NOT_PROCESSING = (READY, SUCCESS, FAILURE)
+    STATUSES_COMPLETED = (SUCCESS, FAILURE)
     STATUSES_VALID_IN_DB = tuple(list(STATUSES_NOT_PROCESSING) + list(STATUSES_PROCESSING))
 
 
@@ -157,28 +158,35 @@ class Proc(Document):
     WAITING_FOR_RESULT, or result in the deletion of the process object itself (for example
     the process for deleting an upload).
 
-    WAITING_FOR_RESULT means the process needs to wait for the result from other processes.
+    WAITING_FOR_RESULT means the process needs to wait for the result from spawned child
+    processes. When a child process finishes, it will call `try_to_join` on the parent, and
+    if it is the parent's last running child process, we will switch to the parent Proc,
+    put its status to RUNNING and execute the `join` method on the parent.
+
     To send the process to status WAITING_FOR_RESULT, the process function must return
     normally, without errors and exceptions, and return the value `ProcessStatus.WAITING_FOR_RESULT`.
-    The process should then be made to transition to either SUCCESS or FAILURE, by invoking
-    either :func:`succeed` or :func:`fail`, when appropriate.
 
     If the process deletes the object itself, the process function should instead return
-    `ProcessStatus.DELETED`. If the process function returns normally and without a return
-    value, the process status will be set to SUCCESS.
+    `ProcessStatus.DELETED`. If the process function returns normally, without exception
+    and without a return value, the process status will be set to SUCCESS.
+
 
     Attributes:
-        errors: a list of errors that happened during processing. Error fail a processing
-            run
+        errors: a list of errors that happened during processing.
+            NOTE: This value is managed by the framework, do not tamper with this value.
+            To fail a process, an exception should be raised.
         warnings: a list of warnings that happened during processing. Warnings do not
             fail a processing run
         last_status_message: A short, human readable message from the current process, with
             information about what the current process is doing, or information about the
             completion (successful or not) of the last process, if no process is currently
             running.
-        complete_time: the time that processing completed (successfully or not)
+        complete_time: the time that processing completed (successfully or not).
+            NOTE: This value is managed by the framework, do not tamper with this value.
         current_process: the currently or last run asyncronous process
+            NOTE: This value is managed by the framework, do not tamper with this value.
         process_status: one of the values defined by :class:`ProcessStatus`.
+            NOTE: This value is managed by the framework, do not tamper with this value.
     '''
 
     meta: Any = {
@@ -275,26 +283,21 @@ class Proc(Document):
         else:
             logger.critical(msg, **kwargs)
 
-    def succeed(self):
-        ''' Call this to transition a process from WAITING_FOR_RESULT to SUCCESS. '''
-        assert self.process_status == ProcessStatus.WAITING_FOR_RESULT, f'Wrong status {self.process_status}.'
-        self.process_status = ProcessStatus.SUCCESS
-        self.on_success()
-        self.complete_time = datetime.utcnow()
-        self.save()
-        self.get_logger().info('completed process')
-
-    def fail(self, *errors, log_level=logging.ERROR, **kwargs):
+    def fail(self, *errors, save=True, log_level=logging.ERROR, **kwargs):
         '''
-        Allows to fail the process. Takes strings or exceptions as args. The method
-        logs the error(s), updates `self.errors`, `self.last_status_message`,
-        `self.process_status`, calls :func:`on_fail`, and saves.
+        Used to handle when a process fails. Takes strings or exceptions as args.
+        The method logs the error(s), updates `self.errors`, `self.last_status_message`,
+        `self.process_status`, and calls :func:`on_fail`, and if `save` == True (default)
+        it also saves the object to mongodb. The positional args define the errors. An
+        error should normally be an instance of Exception, if not it will be converted to
+        a string.
+
+        NOTE, processes should NOT call this method directly, or tamper with self.errors etc.
+        Rather, if something goes wrong in a process, it should raise an exception!
         '''
         assert self.process_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
-
-        self.process_status = ProcessStatus.FAILURE
 
         logger = self.get_logger(**kwargs)
         self.errors = []
@@ -314,13 +317,19 @@ class Proc(Document):
             errors_str = "; ".join([str(error) for error in errors])
             Proc.log(logger, log_level, 'process failed', errors=errors_str)
 
-        self.on_fail()
+        try:
+            self.on_fail()
+        except Exception as e:
+            # Oh my, nothing is going our way today
+            Proc.log(logger, logging.ERROR, 'on_fail failed', exc_info=e, error=str(e))
 
         logger.info('process failed')
         if len(self.errors) > 0:
             self.last_status_message = f'Process {self.current_process} failed: {self.errors[-1]}'
 
-        self.save()
+        self.process_status = ProcessStatus.FAILURE
+        if save:
+            self.save()
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         ''' Allows to save warnings. Takes strings or exceptions as args. '''
@@ -340,15 +349,15 @@ class Proc(Document):
         self.save()
 
     def on_success(self):
-        ''' To be called whenever a process transitions to status SUCCESS. '''
+        ''' To be called whenever a process is about to transition to status SUCCESS. '''
         pass
 
     def on_fail(self):
-        ''' To be called whenever a process transitions to status FAILURE. '''
+        ''' To be called whenever a process is about to transition to status FAILURE. '''
         pass
 
     def on_waiting_for_result(self):
-        ''' To be called whenever a process transitions to status WAITING_FOR_RESULT. '''
+        ''' To be called whenever a process is about to transition to status WAITING_FOR_RESULT. '''
         pass
 
     def block_until_complete(self, interval=0.01):
@@ -417,6 +426,70 @@ class Proc(Document):
 
     def __str__(self):
         return 'proc celery_task_id=%s worker_hostname=%s' % (self.celery_task_id, self.worker_hostname)
+
+    def parent(self) -> 'Proc':
+        '''
+        When running a process marked with `is_child`, and the process completes (i.e. succeeds or
+        fails), this method will be invoked by the framework to determine the object's parent Proc.
+        '''
+        raise NotImplementedError('`parent` not implemented')
+
+    def child_cls(self) -> 'Proc':
+        '''
+        When running a process which spawns child processes and transitions to WAITING_FOR_RESULT,
+        this method will be invoked to determine the "child" class when it is time to try to
+        join.
+        '''
+        raise NotImplementedError('`child_cls` not implemented')
+
+    def _try_to_join(self) -> bool:
+        '''
+        Called on the parent Proc object to join (resume) the current process.
+        For the join to succeed, the following must be fullfilled:
+            *   This Proc must have status `WAITING_FOR_RESULT`
+            *   Every instance of the child class (defined by calling :func:`child_cls`)
+                linked to this Proc (if any) must be in status FAILURE or SUCCESS.
+        If the join succeeds, the `process_status` will be set to `RUNNING` and True
+        will be returned. Otherwise, the method just returns False. The method is written so
+        that the join should succeed once and only once.
+        '''
+        self.reload()
+        if self.process_status != ProcessStatus.WAITING_FOR_RESULT:
+            self.get_logger().debug('trying to join: not waiting for result')
+            return False
+        children_pending_completion = self.child_cls().objects(**{
+            self.id_field: self.id,
+            'process_status__nin': (ProcessStatus.SUCCESS, ProcessStatus.FAILURE)}).count()
+        self.get_logger().debug('trying to join', children_pending_completion=children_pending_completion)
+
+        if not children_pending_completion:
+            # We may easily get here multiple times if multiple children finish at the same time
+            # To join, we need to read and update the mongo record as a single atomic operation
+            old_record = self._get_collection().find_one_and_update(
+                {'_id': self.id, 'process_status': ProcessStatus.WAITING_FOR_RESULT},
+                {'$set': {'process_status': ProcessStatus.RUNNING}})
+            if old_record and old_record['process_status'] == ProcessStatus.WAITING_FOR_RESULT:
+                # We managed to update the process_status from WAITING_FOR_RESULT to RUNNING
+                # I.e. we've joined!
+                self.reload()
+                return True
+        return False
+
+    def join(self):
+        '''
+        Override, if applicable, to define what to do when joined, i.e. when the process is
+        resumed after all child processes are done. Should return either None (if successful)
+        or `ProcessStatus.WAITING_FOR_RESULT` if it again wants to wait for child processes.
+        '''
+        raise NotImplementedError('`join` not implemented')
+
+
+class Queueable:
+    '''
+    Derive from this mark a Proc class as "queuable", meaing it can have processes marked
+    with `is_queueable` = True, that will be queued if the Proc is running some other process.
+    '''
+    pass
 
 
 def all_subclasses(cls):
@@ -515,31 +588,37 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
 def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
     '''
     The celery task that is used to execute async process functions.
-    It ignores results, since all results are handled via the self document.
-    It retries for 3 times with a countdown of 3 on missing 'selfs', since this
+    It retries for 3 times with a countdown of 3 on missing 'proc', since this
     might happen in sharded, distributed mongo setups where the object might not
     have yet been propagated and therefore appear missing.
     '''
-    self = unwarp_task(task, cls_name, self_id)
+    proc: Proc = unwarp_task(task, cls_name, self_id)  # The current Proc object
+    try_to_join = False
+    deleting = False
 
-    logger = self.get_logger()
+    logger = proc.get_logger()
     logger.debug('received process function call')
 
-    self.worker_hostname = worker_hostname
-    self.celery_task_id = task.request.id
+    proc.worker_hostname = worker_hostname
+    proc.celery_task_id = task.request.id
 
     # get the process function
-    func = getattr(self, func_attr, None)
+    func = getattr(proc, func_attr, None)
     if func is None:
         logger.error('called function not a function of proc class')
-        self.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
+        proc.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
         return
 
     # unwrap the process decorator
-    func = getattr(func, '__process_unwrapped', None)
-    if func is None:
+    call_func = getattr(func, '__process_unwrapped', None)
+    is_child = getattr(func, '__is_child', False)
+    is_queueable = getattr(func, '__is_queueable', False)
+    if call_func is None:
         logger.error('called function was not decorated with @process')
-        self.fail('called function %s was not decorated with @process' % func_attr)
+        proc.fail('called function %s was not decorated with @process' % func_attr)
+        return
+    if is_queueable and not isinstance(proc, Queueable):
+        proc.fail('process marked as queuable but class is not a Queueable')
         return
 
     # call the process function
@@ -547,52 +626,111 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
         os.chdir(config.fs.working_directory)
         with utils.timer(logger, 'process executed on worker'):
             # Actually call the process function
-            self.process_status = ProcessStatus.RUNNING
-            self.last_status_message = 'Started process: ' + func_attr
-            self.save()
-            rv = func(self, *process_args, **process_kwargs)
-            if self.errors:
-                # Should not happen, but handle just in case
-                # Must have called self.fail, but continued execution and returned normally
-                # Set complete_time and process_status, just in case...
-                self.complete_time = datetime.utcnow()
-                self.process_status = ProcessStatus.FAILURE
-                self.save()
-                self.get_logger().info('completed process with errors')
+            proc.process_status = ProcessStatus.RUNNING
+            proc.last_status_message = 'Started process: ' + func_attr
+            proc.save()
+            rv = call_func(proc, *process_args, **process_kwargs)
+            if proc.errors:
+                # Should be impossible unless the process has called self.fail or tampered
+                # with self.errors somehow, which it should not do. We will treat it essentially
+                # as if it had raised an exception
+                proc.fail('completed with errors but no exception, should not happen', save=False)
             elif rv is None:
                 # All looks good
-                self.process_status = ProcessStatus.SUCCESS
-                self.on_success()
-                self.complete_time = datetime.utcnow()
-                if self.warnings:
-                    self.last_status_message = f'Process {func_attr} completed with warnings'
+                proc.on_success()
+                proc.process_status = ProcessStatus.SUCCESS
+                proc.complete_time = datetime.utcnow()
+                if proc.warnings:
+                    proc.last_status_message = f'Process {func_attr} completed with warnings'
                 else:
-                    self.last_status_message = f'Process {func_attr} completed successfully'
-                self.save()
-                self.get_logger().info('completed process')
+                    proc.last_status_message = f'Process {func_attr} completed successfully'
+                logger.info('completed process')
             elif rv == ProcessStatus.WAITING_FOR_RESULT:
                 # No errors, and the process requests to wait for other processes
-                self.process_status = ProcessStatus.WAITING_FOR_RESULT
-                self.save()
-                self.on_waiting_for_result()
+                proc.on_waiting_for_result()
+                proc.process_status = ProcessStatus.WAITING_FOR_RESULT
+                proc.save()
+                # The process could be ready to resume immediately, for example if no child
+                # processes were spawned or if they all finished before the parent process.
+                try_to_join = True
+                logger.info('waiting for results')
             elif rv == ProcessStatus.DELETED:
                 # The Proc object itself to be deleted from the database
-                pass
+                deleting = True
             else:
                 raise ValueError('Invalid return value from process function')
+    except SystemExit as e:
+        proc.fail(e)
+        return
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
-        self.fail(e)
+        proc.fail(e, save=False)
     except ProcessFailure as e:
         # Exception with details about how to call self.fail
-        self.fail(*e._errors, log_level=e._log_level, **e._kwargs)
+        proc.fail(*e._errors, save=False, log_level=e._log_level, **e._kwargs)
     except Exception as e:
-        self.fail(e)
-    except SystemExit as e:
-        self.fail(e)
+        proc.fail(e, save=False)
+
+    # The proc is done running
+    if is_child and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
+        # Save and "switch" to the parent to try to join.
+        try:
+            proc.save()
+            proc = proc.parent()
+            logger = proc.get_logger()
+            try_to_join = True
+        except Exception as e:
+            proc.fail(e)  # "Should not happen"
+            return
+
+    while try_to_join:
+        try_to_join = False
+        try:
+            joined = proc._try_to_join()
+            if joined:
+                logger.info('joined')
+                rv = proc.join()
+                if rv is None:
+                    # Succeeded and process is done
+                    proc.on_success()
+                    proc.process_status = ProcessStatus.SUCCESS
+                    proc.complete_time = datetime.utcnow()
+                    if proc.warnings:
+                        proc.last_status_message = f'Process {proc.current_process} completed with warnings'
+                    else:
+                        proc.last_status_message = f'Process {proc.current_process} completed successfully'
+                    logger.info('completed process')
+                elif rv == ProcessStatus.WAITING_FOR_RESULT:
+                    # Waiting for result again
+                    proc.on_waiting_for_result()
+                    proc.process_status = ProcessStatus.WAITING_FOR_RESULT
+                    proc.save()
+                    # Need to try to join again because, as before, it could be ready to resume immediately
+                    logger.info('waiting for results')
+                    try_to_join = True
+        except SystemExit as e:
+            proc.fail(e)
+            return
+        except SoftTimeLimitExceeded as e:
+            logger.error('exceeded the celery task soft time limit')
+            proc.fail(e, save=False)
+        except ProcessFailure as e:
+            # Exception with details about how to call self.fail
+            proc.fail(*e._errors, save=False, log_level=e._log_level, **e._kwargs)
+        except Exception as e:
+            proc.fail(e, save=False)
+
+    if isinstance(proc, Queueable) and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
+        # Check if something has been queued up while we were working on this process.
+        # Note that the new, completed status has not yet been saved to mongo
+        pass  # TODO: call the next @process
+    # Finally, save, unless we are deleting, or status is WAITING_FOR_RESULT (in which case
+    # it should already have been saved)
+    if not deleting and proc.process_status != ProcessStatus.WAITING_FOR_RESULT:
+        proc.save()
 
 
-def process(func):
+def process(is_child: bool = False, is_queueable: bool = False):
     '''
     The decorator for process functions that will be called async via celery.
     All calls to the decorated method will result in celery task requests.
@@ -600,18 +738,32 @@ def process(func):
     the celery task worker. Process methods can call other (process) functions/methods on
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one process
     at a time.
+
+    Arguments:
+        is_child:
+            If this is a child process, which should try to join with the parent process when done.
+        is_queueable:
+            If invokations of this process should be queued up if a process is already running on
+            the object. Default is False, which means if a process of some kind is already
+            running, invoking this process will result in a :class:`ProcessAlreadyRunning`
+            exception.
     '''
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.process_running:
-            raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
+    def process_decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self.process_running:
+                if is_queueable:
+                    raise NotImplementedError('TODO')
+                raise ProcessAlreadyRunning('Another process is already running.')
 
-        self.current_process = func.__name__
-        self.process_status = ProcessStatus.PENDING
-        self.save()
+            self.current_process = func.__name__
+            self.process_status = ProcessStatus.PENDING
+            self.save()
 
-        self._run_process(func, args, kwargs)
+            self._run_process(func, args, kwargs)
 
-    setattr(wrapper, '__process_unwrapped', func)
-
-    return wrapper
+        setattr(wrapper, '__process_unwrapped', func)
+        setattr(wrapper, '__is_child', is_child)
+        setattr(wrapper, '__is_queueable', is_queueable)
+        return wrapper
+    return process_decorator

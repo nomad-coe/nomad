@@ -637,7 +637,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test'], ['http://ttest'], ['http://ttest'], None]
+    references = [['http://test'], ['http://ttest'], ['http://ttest'], []]
     expected_entry_coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):
