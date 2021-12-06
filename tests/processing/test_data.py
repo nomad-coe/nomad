@@ -189,7 +189,7 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
-    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True, process='publish_upload')
+    assert_processing(Upload.get(processed.upload_id), published=True, process='publish_upload')
 
 
 def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
@@ -199,7 +199,7 @@ def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, mo
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, [], published=True)
 
-    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
+    assert_processing(Upload.get(processed.upload_id), published=True)
 
 
 def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
@@ -407,7 +407,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
     assert_search_upload(entries, published=True)
     if with_failure not in ['after', 'not-matched']:
-        assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
+        assert_processing(Upload.get(published.upload_id), published=True)
 
     # assert changed calc data
     if with_failure not in ['after']:

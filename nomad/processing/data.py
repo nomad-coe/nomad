@@ -1321,7 +1321,7 @@ class Upload(Proc, Queueable):
         return {}
 
     @classmethod
-    def get(cls, id: str, include_published: bool = True) -> 'Upload':
+    def get(cls, id: str) -> 'Upload':
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod

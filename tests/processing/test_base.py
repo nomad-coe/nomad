@@ -18,10 +18,17 @@
 import pytest
 import json
 import random
+from typing import List, Any
+
+from mongoengine import StringField, IntField, ListField
 
 from nomad.processing.base import Proc, process, ProcessStatus
 
 random.seed(0)
+
+
+_fail = 'FAIL'
+_join_count = 0
 
 
 def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, errors=0, warnings=0):
@@ -101,3 +108,109 @@ def test_process_twice(worker, mongo, no_warn):
     p.process()
     p.block_until_complete()
     assert_proc(p, 'process', ProcessStatus.SUCCESS)
+
+
+class ChildProc(Proc):
+    child_id = StringField(primary_key=True)
+    parent_id = StringField(required=True)
+
+    @classmethod
+    def get(cls, id: str) -> 'ChildProc':
+        return cls.get_by_id(id, 'child_id')
+
+    @process(is_child=True)
+    def child_proc(self, succeed: bool):
+        assert succeed, 'failing child'
+
+    def parent(self):
+        return ParentProc.get(self.parent_id)
+
+
+class ParentProc(Proc):
+    id_field = 'parent_id'
+    parent_id = StringField(primary_key=True)
+    # State variables
+    current_slot = IntField()
+    join_args = ListField()
+
+    @classmethod
+    def get(cls, id: str) -> 'ParentProc':
+        return cls.get_by_id(id, 'parent_id')
+
+    @process()
+    def spawn(self, fail_spawn: bool = False, child_args: List[bool] = [], join_args: List[Any] = []):
+        self.join_args = join_args
+        self.current_slot = 0
+        child_count = 0
+        for succeed in child_args:
+            child = ChildProc.create(child_id=str(child_count), parent_id=self.parent_id)
+            child.child_proc(succeed)
+            child_count += 1
+        assert not fail_spawn, 'failing in spawn'
+        return ProcessStatus.WAITING_FOR_RESULT
+
+    def child_cls(self):
+        return ChildProc
+
+    def join(self):
+        global _join_count
+        _join_count += 1
+        if self.join_args:
+            if self.current_slot < len(self.join_args):
+                # One more join arg to process
+                join_arg = self.join_args[self.current_slot]
+                self.current_slot += 1
+                if join_arg == _fail:
+                    assert False, 'failing in join'
+                else:
+                    if join_arg is not None:
+                        # Start up another child
+                        child = ChildProc.create(
+                            child_id=f'rejoin{self.current_slot}', parent_id=self.parent_id)
+                        child.child_proc(join_arg)
+                    return ProcessStatus.WAITING_FOR_RESULT
+
+
+@pytest.mark.parametrize('spawn_kwargs', [
+    pytest.param(dict(), id='no-children'),
+    pytest.param(dict(child_args=[True] * 20), id='20-successful'),
+    pytest.param(dict(child_args=[True, False]), id='one-succ-one-fail'),
+    pytest.param(dict(fail_spawn=True, child_args=[True, False]), id='fail-spawn'),
+    pytest.param(dict(child_args=[True, False], join_args=[_fail]), id='join-fail'),
+    pytest.param(dict(child_args=[True, False], join_args=[True, False, False]), id='join-multiple'),
+    pytest.param(dict(child_args=[True, False], join_args=[True, None, None]), id='join-multiple-no-children'),
+    pytest.param(dict(child_args=[True, False], join_args=[True, False, _fail]), id='join-multiple-then-fail')])
+def test_parent_child(worker, mongo, spawn_kwargs):
+    global _join_count
+    _join_count = 0
+    child_args = spawn_kwargs.get('child_args', [])
+    join_args = spawn_kwargs.get('join_args', [])
+    fail_spawn = spawn_kwargs.get('fail_spawn', False)
+    fail_join = _fail in join_args
+    parent = ParentProc.create(parent_id='the_parent')
+    parent.spawn(**spawn_kwargs)
+    parent.block_until_complete()
+    for i, succeed in enumerate(child_args):
+        child = ChildProc.get(str(i))
+        if child.process_running:
+            assert fail_spawn  # Otherwise they should all be done
+            child.block_until_complete()
+        expected_child_status = ProcessStatus.SUCCESS if succeed else ProcessStatus.FAILURE
+        assert child.process_status == expected_child_status
+    for i, join_arg in enumerate(join_args):
+        if join_arg in (True, False):
+            child = ChildProc.get(f'rejoin{i + 1}')
+            expected_child_status = ProcessStatus.SUCCESS if join_arg else ProcessStatus.FAILURE
+            assert child.process_status == expected_child_status
+        else:
+            try:
+                ChildProc.get(f'rejoin{i + 1}')
+                assert False, 'Child should not exist'
+            except KeyError:
+                pass
+    expected_join_count = 0 if fail_spawn else 1 + len(join_args)
+    if fail_join:
+        expected_join_count -= 1
+    assert _join_count == expected_join_count
+    expected_parent_status = ProcessStatus.FAILURE if fail_spawn or fail_join else ProcessStatus.SUCCESS
+    assert parent.process_status == expected_parent_status
