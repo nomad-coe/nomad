@@ -27,6 +27,7 @@ from celery.signals import after_setup_task_logger, after_setup_logger, worker_p
     celeryd_after_setup, worker_process_shutdown
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
+import billiard
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, ValidationError
 from mongoengine.connection import ConnectionFailure
@@ -231,9 +232,16 @@ class Proc(Document):
         return dict(process_status__in=ProcessStatus.STATUSES_PROCESSING)
 
     def get_logger(self):
+        process = billiard.current_process()  # pylint: disable=no-member
+        worker_id = getattr(process, '_nomad_id', None)
+        if worker_id is None:
+            worker_id = utils.create_uuid()
+            setattr(process, '_nomad_id', worker_id)
+
         return utils.get_logger(
             'nomad.processing', proc=self.__class__.__name__,
-            process=self.current_process, process_status=self.process_status)
+            process=self.current_process, process_status=self.process_status,
+            process_worker_id=worker_id)
 
     @classmethod
     def create(cls, **kwargs):
