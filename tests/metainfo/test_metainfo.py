@@ -318,11 +318,15 @@ class TestM2:
         class TestSection(MSection):
             m_def = Section(this_does_not_exist_in_metainfo='value')
             test_quantity = Quantity(type=str, also_no_metainfo_quantity=1, one_more=False)
+            test_delayed_more_quantity = Quantity(type=str)
             another_test_quantity = Quantity(type=str)
+
+        TestSection.test_delayed_more_quantity.more = dict(one_more='test')
 
         assert TestSection.m_def.more['this_does_not_exist_in_metainfo'] == 'value'
         assert TestSection.test_quantity.more['also_no_metainfo_quantity'] == 1
         assert not TestSection.test_quantity.more['one_more']
+        assert TestSection.test_delayed_more_quantity.more['one_more'] == 'test'
         assert len(TestSection.another_test_quantity.more) == 0
 
         assert TestSection.m_def.this_does_not_exist_in_metainfo == 'value'

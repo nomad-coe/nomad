@@ -68,6 +68,8 @@ If you bookmark this page, you can save the definition represented by the highli
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 
+const showInnerSectionDefinitions = false
+
 function defCompare(a, b) {
   return a.name.localeCompare(b.name)
 }
@@ -328,7 +330,7 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
   }
 }
 
-function SectionDef({def}) {
+function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
@@ -347,8 +349,7 @@ function SectionDef({def}) {
     return false
   }
 
-  return <Content style={{backgroundColor: 'grey'}}>
-    <Definition def={def} kindLabel="section definition" />
+  return <React.Fragment>
     <DefinitionProperties def={def} />
     {def.base_sections.length > 0 &&
       <Compartment title="base section">
@@ -394,7 +395,7 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
-    <Compartment title="inner section definitions">
+    {showInnerSectionDefinitions && <Compartment title="inner section definitions">
       {def.inner_section_definitions.filter(filter)
         .map(innerSectionDef => {
           const key = `innerSectionDef@${innerSectionDef.name}`
@@ -411,8 +412,18 @@ function SectionDef({def}) {
           </Item>
         })
       }
-    </Compartment>
+    </Compartment>}
     <DefinitionDetails def={def} />
+  </React.Fragment>
+}
+SectionDefContent.propTypes = ({
+  def: PropTypes.object
+})
+
+function SectionDef({def}) {
+  return <Content style={{backgroundColor: 'grey'}}>
+    <Definition def={def} kindLabel="section definition" />
+    <SectionDefContent def={def} />
   </Content>
 }
 SectionDef.propTypes = ({
@@ -420,14 +431,13 @@ SectionDef.propTypes = ({
 })
 
 function SubSectionDef({def}) {
+  const sectionDef = resolveRef(def.sub_section)
   return <React.Fragment>
     <Content>
-      <Definition def={def} kindLabel="sub section definition"/>
-      <DefinitionProperties def={def}>
-        {def.repeats && <Typography><b>repeats</b>:&nbsp;true</Typography>}
-      </DefinitionProperties>
+      <Title def={def} isDefinition kindLabel="sub section definition" />
+      <DefinitionDocs def={sectionDef} />
+      <SectionDefContent def={sectionDef} />
     </Content>
-    <SectionDef def={resolveRef(def.sub_section)} />
   </React.Fragment>
 }
 SubSectionDef.propTypes = ({
@@ -482,9 +492,8 @@ QuantityDef.propTypes = ({
   def: PropTypes.object
 })
 
-function Definition({def, ...props}) {
+function DefinitionDocs({def}) {
   return <React.Fragment>
-    <Title def={def} isDefinition {...props} />
     {def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
@@ -501,6 +510,16 @@ function Definition({def, ...props}) {
         </div>)}
       </Compartment>
     }
+  </React.Fragment>
+}
+DefinitionDocs.propTypes = {
+  def: PropTypes.object.isRequired
+}
+
+function Definition({def, ...props}) {
+  return <React.Fragment>
+    <Title def={def} isDefinition {...props} />
+    <DefinitionDocs def={def} />
   </React.Fragment>
 }
 Definition.propTypes = {
