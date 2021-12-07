@@ -213,3 +213,6 @@
 [submodule "dependencies/parsers/asr"]
 	path = dependencies/parsers/asr
 	url = https://github.com/nomad-coe/nomad-parser-asr.git
+[submodule "dependencies/parsers/psi4"]
+	path = dependencies/parsers/psi4
+	url = https://github.com/nomad-coe/nomad-parser-psi4.git

@@ -75,6 +75,7 @@ parser_examples = [
     ('parsers/aflow', 'tests/data/parsers/aflow/Ag1Co1O2_ICSD_246157/aflowlib.json'),
     ('parsers/mp', 'tests/data/parsers/mp/mp-149_materials.json'),
     ('parsers/asr', 'tests/data/parsers/asr/archive_ccdc26c4f32546c5a00ad03a093b73dc.json'),
+    ('parsers/psi4', 'tests/data/parsers/psi4/adc1/output.ref'),
     # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
     # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
