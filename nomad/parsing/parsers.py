@@ -77,6 +77,7 @@ from aflowparser import AFLOWParser
 from mpparser import MPParser
 from asrparser import ASRParser
 from psi4parser import Psi4Parser
+from yamboparser import YamboParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -225,6 +226,7 @@ parsers = [
     MPParser(),
     ASRParser(),
     Psi4Parser(),
+    YamboParser(),
     ArchiveParser()
 ]
 
