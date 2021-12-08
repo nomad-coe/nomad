@@ -2191,10 +2191,8 @@ class Definition(MSection):
             else:
                 more[key] = value
 
-        if len(more) > 0:
-            new_kwargs['more'] = more
-
         super().__init__(*args, **new_kwargs)
+        self.more = more
 
     def __init_metainfo__(self):
         '''
@@ -2219,10 +2217,16 @@ class Definition(MSection):
             content.__init_metainfo__()
 
     def __getattr__(self, name):
-        if name in self.more:
+        if self.more and name in self.more:
             return self.more[name]
 
         return super().__getattr__(name)
+
+    def m_is_set(self, quantity_def: 'Quantity') -> bool:
+        if quantity_def == Definition.more:
+            return len(self.more) > 0
+
+        return super().m_is_set(quantity_def)
 
     def qualified_name(self):
         names = []
