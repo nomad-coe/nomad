@@ -2244,8 +2244,23 @@ class Definition(MSection):
 
 
 class Property(Definition):
-    ''' A common base-class for section properties: sub sections and quantities. '''
-    pass
+    '''
+    A common base-class for section properties: sub sections and quantities.
+
+    Attributes:
+        type:
+            A boolean that indicates this property as a *template* property. Template properties
+            can be accessed under a custom, instance-level name. To assign values
+            use `obj.my_template = (<name>, <value>)` tuples. To read values simply
+            use the choosen `<name>`: `obj.name`. If you use the schema-level name, you'll
+            get a dictionary witht the names values: `obj.my_template == {<name>: <value}`.
+            Choosen names must not collide with names defined in the metainfo, e.g.
+            `obj.my_template = ('my_template', <value>)` is not allowed.
+
+            This is not functional in this version of the metainfo.
+    '''
+
+    template: 'Quantity' = _placeholder_quantity
 
 
 class Quantity(Property):
@@ -3163,6 +3178,7 @@ Section.all_sub_sections_by_section = all_sub_sections_by_section
 Section.all_aliases = all_aliases
 Section.all_inner_section_definitions = all_inner_section_definitions
 
+Property.template = Quantity(type=bool, name='template', default=False)
 
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
