@@ -893,9 +893,10 @@ def index_entries(entries: List, refresh: bool = False):
     with utils.timer(logger, 'prepare bulk index of entries actions and docs'):
         actions_and_docs = []
         for entry in entries:
-            actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
             try:
                 entry_index_doc = entry_type.create_index_doc(entry)
+
+                actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
                 actions_and_docs.append(entry_index_doc)
             except Exception as e:
                 logger.error('could not create entry index doc', calc_id=entry['entry_id'], exc_info=e)
