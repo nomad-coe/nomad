@@ -182,11 +182,18 @@ __all_parent_sections: Dict[Section, Tuple[str, Section]] = {}
 
 def _all_parent_sections():
     if len(__all_parent_sections) == 0:
+        added_sections = set()
+
         def add(section):
+            added_sections.add(section)
             for sub_section in section.all_sub_sections.values():
                 sub_section_section = sub_section.sub_section.m_resolved()
-                __all_parent_sections.setdefault(sub_section_section, []).append((sub_section.qualified_name(), section, ))
-                add(sub_section_section)
+
+                __all_parent_sections.setdefault(sub_section_section, []).append(
+                    (sub_section.qualified_name(), section, ))
+
+                if sub_section_section not in added_sections:
+                    add(sub_section_section)
 
         add(EntryArchive.m_def)
 
