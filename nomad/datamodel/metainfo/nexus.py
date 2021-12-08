@@ -26,7 +26,7 @@ import re
 
 from nomad.utils import strip
 from nomad.metainfo import (
-    Section, Package, SubSection, Definition, Datetime, Bytes, MEnum, Quantity)
+    Section, Package, SubSection, Definition, Datetime, Bytes, Unit, MEnum, Quantity)
 from nomad.datamodel import EntryArchive
 
 
@@ -170,12 +170,12 @@ def add_attributes(xml_node: ET.Element, section: Section):
     section.
     '''
     for attribute in xml_node.findall('nx:attribute', xml_namespaces):
-        type: Any = get_enum(xml_node)
-        if type is None:
-            type = str
-        quantity = Quantity(type=type, nx_kind='attribute', name=attribute.attrib['name'])
-        add_common_properties(attribute, quantity)
-        section.quantities.append(quantity)
+        attribute_section = create_attribute_section(attribute)
+        section.inner_section_definitions.append(attribute_section)
+
+        section.sub_sections.append(SubSection(
+            section_def=attribute_section, nx_kind='attribute',
+            name=f'nx_attribute_{attribute.attrib["name"]}'))
 
 
 def add_group_properties(xml_node: ET.Element, section: Section):
@@ -213,12 +213,35 @@ def add_template_properties(xml_node: ET.Element, section: Section):
     Adds potential abilities of a group or field section to act as a TEMPLATE or
     nameType="any" definition.
     '''
-    is_template = section.name.lower() != section.name or xml_node.attrib.get('nameType', '') == 'any'
+    is_template = section.name.lower() != section.name or 'name' not in xml_node.attrib
     if is_template:
         section.quantities.append(Quantity(
-            name='nx_name', type=str, description='''
+            name='nx_name', type=str, default=xml_node.attrib.get('name'), description='''
                 This is a nexus template property. This quantity holds the actual name used
                 in the nexus data.'''))
+
+
+def create_attribute_section(xml_node: ET.Element) -> Section:
+    '''
+    Creates a metainfo section from the nexus attribute given as xml node.
+    '''
+    xml_attrs = xml_node.attrib
+    assert 'name' in xml_attrs, 'attribute has not name'
+
+    attribute_section = Section(
+        validate=validate, nx_kind='attribute',
+        name=to_camel_case(xml_attrs['name'], True) + 'Attribute')
+
+    type: Any = get_enum(xml_node)
+    if type is None:
+        type = str
+    attribute_section.quantities.append(Quantity(
+        type=type, name='nx_value', description='The value for this nexus attribute'))
+
+    add_common_properties(xml_node, attribute_section)
+    add_template_properties(xml_node, attribute_section)
+
+    return attribute_section
 
 
 def create_field_section(xml_node: ET.Element):
@@ -250,7 +273,11 @@ def create_field_section(xml_node: ET.Element):
 
     if 'units' in xml_attrs:
         field_section.more['nx_units'] = xml_attrs['units']
-        # TODO map unit to value
+        if xml_attrs['units'] != 'NX_UNITLESS':
+            # TODO a default could be created from the nx_units value
+            field_section.quantities.append(Quantity(
+                name='nx_unit', type=Unit,
+                description='The specific unit for that this fields data has.'))
 
     dimensions = xml_node.find('nx:dimensions', xml_namespaces)
     if dimensions is not None:
