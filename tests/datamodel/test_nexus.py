@@ -27,21 +27,27 @@ from nomad.datamodel.metainfo import nexus
     pytest.param('base_classes.name', 'nexus_base_classes'),
     pytest.param('base_classes.NXobject.name', 'NXobject'),
     pytest.param('base_classes.NXentry.nx_kind', 'group'),
-    pytest.param('base_classes.NXentry.default.type', str),
+    pytest.param('base_classes.NXentry.DefaultAttribute.nx_value.type', str),
+    pytest.param('base_classes.NXentry.nx_attribute_default', '*'),
     pytest.param('base_classes.NXentry.NXdataGroup', '*'),
     pytest.param('base_classes.NXentry.NXdataGroup.nx_optional', True),
     pytest.param('base_classes.NXentry.nx_group_data.section_def.nx_kind', 'group'),
     pytest.param('base_classes.NXentry.nx_group_data.section_def.nx_optional', True),
     pytest.param('base_classes.NXentry.nx_group_data.section_def.nx_name.type', str),
-    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False)
+    pytest.param('base_classes.NXdetector.RealTimeField.name', 'RealTimeField'),
+    pytest.param('base_classes.NXdetector.RealTimeField.nx_type', 'NX_NUMBER'),
+    pytest.param('base_classes.NXdetector.RealTimeField.nx_units', 'NX_TIME'),
+    pytest.param('base_classes.NXdetector.RealTimeField.nx_unit', '*'),
+    pytest.param('base_classes.NXdetector.RealTimeField.nx_value', '*'),
+    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False),
+    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False),
 ])
 def test_assert_nexus_metainfo(path: str, value: Any):
     segments = path.split('.')
-    package, definition_names, property = segments[0], segments[1:-1], segments[-1]
+    package, definition_names = segments[0], segments[1:]
 
     current: Definition = getattr(nexus, package)
     for name in definition_names:
-        assert current or name == definition_names[-1], f'{path} has to exist in nexus_{package}'
         for content in current.m_contents():
             if getattr(content, 'name', None) == name:
                 current = cast(Definition, content)
@@ -50,9 +56,12 @@ def test_assert_nexus_metainfo(path: str, value: Any):
         else:
             current = getattr(current, name, None)
 
+        if current is None:
+            assert False, f'{path} does not exist'
+
     if value is '*':
         assert current is not None, f'{path} does not exist'
     elif value is None:
         assert current is None, f'{path} does exist'
     else:
-        assert getattr(current, property) == value, f'{path} has wrong value'
+        assert current == value, f'{path} has wrong value'

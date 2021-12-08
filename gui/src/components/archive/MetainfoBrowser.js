@@ -68,7 +68,7 @@ If you bookmark this page, you can save the definition represented by the highli
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 
-const showInnerSectionDefinitions = true
+const showInnerSectionDefinitions = false
 
 function defCompare(a, b) {
   return a.name.localeCompare(b.name)
@@ -484,6 +484,8 @@ function QuantityDef({def}) {
       </Typography>
       {def.unit &&
         <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
+      {def.default &&
+        <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
       {def.derived && <Typography><b>derived</b></Typography>}
     </DefinitionProperties>
   </Content>
