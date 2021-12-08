@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 import xml.etree.ElementTree as ET
 import os.path
 import os
@@ -312,13 +312,13 @@ def create_class_section(xml_node: ET.Element) -> Section:
     return class_section
 
 
-def create_package_from_nxdl_directory(path: str, package_name: str) -> Package:
+def create_package_from_nxdl_directory(path: str) -> Package:
     '''
     Creates a metainfo package from the given nexus directory. Will generate the respective
     metainfo definitions from all the nxdl files in that directory.
     '''
     global current_package
-    current_package = Package(name=package_name)
+    current_package = Package(name=f'nexus_{os.path.basename(path)}')
 
     for nxdl_file in sorted(os.listdir(path)):
         if not nxdl_file.endswith('.nxdl.xml'):
@@ -352,26 +352,22 @@ nx_definitions_path = os.path.join(
 
 # We generate separated metainfo package for the nexus base classes and application
 # definitions.
-packages: List[Package] = []
-for nx_package in ['base_classes', 'applications']:
-    path = os.path.join(nx_definitions_path, nx_package)
-    packages.append(create_package_from_nxdl_directory(path, f'nexus_{nx_package}'))
+base_classes = create_package_from_nxdl_directory(os.path.join(nx_definitions_path, 'base_classes'))
+applications = create_package_from_nxdl_directory(os.path.join(nx_definitions_path, 'applications'))
 # TODO there are problems generating with nx_package='contributed_definitions'
-
+packages = (base_classes, applications)
 
 # We take the application definitions and create a common parent section that allows to
 # include nexus in an EntryArchive.
-application_package = packages[1]
-
 nexus_section = Section(validate=validate, name='nexus')
 
-for application_section in application_package.section_definitions:  # pylint: disable=not-an-iterable
+for application_section in applications.section_definitions:  # pylint: disable=not-an-iterable
     sub_section = SubSection(
         section_def=application_section,
         name=application_section.name.replace('NX', 'nx_application_'))
     nexus_section.sub_sections.append(sub_section)
 
-application_package.section_definitions.append(nexus_section)
+applications.section_definitions.append(nexus_section)
 
 entry_archive_nexus_sub_section = SubSection(name='nexus', section_def=nexus_section)
 EntryArchive.nexus = entry_archive_nexus_sub_section  # type: ignore
