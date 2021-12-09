@@ -21,6 +21,7 @@ import pytest
 
 from nomad.metainfo import Definition
 from nomad.datamodel.metainfo import nexus
+from nomad.datamodel import EntryArchive
 
 
 @pytest.mark.parametrize('path,value', [
@@ -65,3 +66,28 @@ def test_assert_nexus_metainfo(path: str, value: Any):
         assert current is None, f'{path} does exist'
     else:
         assert current == value, f'{path} has wrong value'
+
+
+def test_use_nexus_metainfo():
+    # pylint: disable=no-member
+    archive = EntryArchive()
+    archive.nexus = nexus.Nexus()
+    archive.nexus.nx_application_arpes = nexus.NXarpes()
+    archive.nexus.nx_application_arpes.nx_group_entry = nexus.NXarpes.NXentryGroup()
+    archive.nexus.nx_application_arpes.nx_group_entry.nx_field_title = nexus.NXarpes.NXentryGroup.TitleField()
+    archive.nexus.nx_application_arpes.nx_group_entry.nx_field_title.nx_value = 'my title'
+
+    # Entry/default is not overwritten in NXarpes. Therefore technically, there is no attribute section
+    # nexus.NXarpes.NXentryGroup.DefaultAttribute. We artifically extented inheritence to
+    # include inner section/classes. So both options work:
+    # archive.nexus.nx_application_arpes.nx_group_entry.nx_attribute_default = nexus.NXentry.DefaultAttribute()
+    archive.nexus.nx_application_arpes.nx_group_entry.nx_attribute_default = nexus.NXarpes.NXentryGroup.DefaultAttribute()
+    archive.nexus.nx_application_arpes.nx_group_entry.nx_attribute_default.nx_value = 'my default'
+    # pylint: enable=no-member
+
+    archive = EntryArchive.m_from_dict(archive.m_to_dict())
+    assert archive.nexus.nx_application_arpes.nx_group_entry.nx_attribute_default.nx_value == 'my default'
+    assert archive.nexus.nx_application_arpes.nx_group_entry.nx_field_title.nx_value == 'my title'
+
+    # TODO remove
+    # print(json.dumps(archive.m_to_dict(), indent=2))

@@ -386,7 +386,7 @@ packages = (base_classes, applications)
 
 # We take the application definitions and create a common parent section that allows to
 # include nexus in an EntryArchive.
-nexus_section = Section(validate=validate, name='nexus')
+nexus_section = Section(validate=validate, name='Nexus')
 
 for application_section in applications.section_definitions:  # pylint: disable=not-an-iterable
     sub_section = SubSection(
@@ -409,7 +409,7 @@ for package in packages:
 
 # We skip the Python code generation for now and offer Python classes as variables
 # TODO not necessary right now, could also be done case-by-case by the nexus parser
-# python_module = sys.modules[__name__]
-# for package in packages:
-#     for section in package.section_definitions:
-#         setattr(python_module, section.name, section.section_cls)
+python_module = sys.modules[__name__]
+for package in packages:
+    for section in package.section_definitions:
+        setattr(python_module, section.name, section.section_cls)

@@ -2831,11 +2831,18 @@ class Section(Definition):
     @property
     def section_cls(self) -> Type[MSection]:
         if self._section_cls is None:
+            # set a temporary to avoid endless recursion
+            self._section_cls = type(self.name, (MSection,), {})
+
             # Create a section class if this does not exist. This happens if the section
             # is not created through a class definition.
             attrs = {
                 prop.name: prop
                 for prop in self.quantities + self.sub_sections}
+            for base_section_or_self in self.all_base_sections + [self]:  # pylint: disable=not-an-iterable
+                for inner_section_definition in base_section_or_self.inner_section_definitions:  # pylint: disable=not-an-iterable
+                    if inner_section_definition.name not in attrs:
+                        attrs[inner_section_definition.name] = inner_section_definition.section_cls
             attrs.update(m_def=self, do_init=False)
             self._section_cls = type(self.name, (MSection,), attrs)
 
