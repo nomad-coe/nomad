@@ -405,8 +405,9 @@ def re_pack(ctx, uploads, parallel: int):
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--dry', is_flag=True, help='Just check, do nothing.')
 @click.option('-f', '--force', is_flag=True, help='Ignore warnings and perform the operation regardless.')
+@click.option('--label', type=str, help='A label to label log entries with.')
 @click.pass_context
-def prepare_migration(ctx, uploads, dry, force):
+def prepare_migration(ctx, uploads, dry, force, label):
     '''
     Removes one of the raw files, either public or restricted depending on the embargo.
     Files that need to be removed are saved as `quarantined` in the upload folder.
@@ -415,12 +416,21 @@ def prepare_migration(ctx, uploads, dry, force):
     import os.path
     import os
 
+    logger = utils.get_logger(__name__)
+    if label:
+        logger = logger.bind(label=label)
+
+    def log_event(event: str, error: bool = False, **kwargs):
+        print(f'    {"!!! " if error else ""}{event}', *[value for value in kwargs.values()])
+        method = getattr(logger, 'error' if error else 'info')
+        method(event, **kwargs)
+
     _, uploads = query_uploads(ctx, uploads)
     for upload in uploads:
         print(f'Preparing {upload.upload_id} for migration ...')
 
         if not upload.published:
-            print('   upload is not published, nothing to do')
+            log_event('upload is not published, nothing to do')
             break
 
         with_embargo_values: typing.List[bool] = []
@@ -431,7 +441,11 @@ def prepare_migration(ctx, uploads, dry, force):
                 with_embargo_values.append(with_embargo_value)
 
         if len(with_embargo_values) > 1:
-            print('   !!! inconsistent upload !!!')
+            log_event('inconsistent upload', error=True)
+            break
+
+        if len(with_embargo_values) == 0:
+            log_event('upload with no indexed entries', error=True)
             break
 
         with_embargo = with_embargo_values[0]
@@ -445,25 +459,25 @@ def prepare_migration(ctx, uploads, dry, force):
         to_stay = upload_files._raw_file_object(access)
 
         if not to_move.exists():
-            print('   obsolute raw.zip was already removed', upload.upload_id, to_move.os_path)
+            log_event('obsolute raw.zip was already removed', upload_id=upload.upload_id, path=to_move.os_path)
 
         elif to_stay.size < to_move.size and not force:
-            print('   !!! likely inconsistent pack !!!')
+            log_event('likely inconsistent pack', error=True)
 
         elif to_move.size == 22:
             if not dry:
                 to_move.delete()
-            print('   removed empty zip', upload.upload_id, to_move.os_path)
+            log_event('removed empty zip', upload_id=upload.upload_id, path=to_move.os_path)
 
         elif with_embargo and not force:
-            print('   !!! embargo upload with non empty public file !!!')
+            log_event('embargo upload with non empty public file', error=True)
 
         else:
             if not dry:
                 target = upload_files._raw_file_object('quarantined')
                 assert not target.exists()
                 os.rename(to_move.os_path, target.os_path)
-            print('   quarantined', upload.upload_id, to_move.os_path)
+            log_event('quarantined file', upload_id=upload.upload_id, path=to_move.os_path)
 
 
 @uploads.command(help='Moves certain files from public or restricted to quarantine in published uploads.')
