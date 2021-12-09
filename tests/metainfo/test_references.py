@@ -18,7 +18,9 @@
 
 import pytest
 
-from nomad.metainfo import MSection, Quantity, SubSection, MProxy, Reference, QuantityReference
+from nomad.metainfo import (
+    MSection, Quantity, SubSection, MProxy, Reference, QuantityReference, File)
+from nomad.metainfo.metainfo import MResource
 
 
 class Referenced(MSection):
@@ -30,6 +32,7 @@ class Referencing(MSection):
     section_reference_list = Quantity(type=Referenced, shape=['*'])
 
     quantity_reference = Quantity(type=Referenced.str_quantity)
+    file_reference = Quantity(type=File)
 
 
 class Root(MSection):
@@ -69,8 +72,8 @@ def example_data(definitions):
 
     root = Root()
     root.referenced = referenced
-    root.m_add_sub_section(Root.referenceds, referenced_1)
-    root.m_add_sub_section(Root.referenceds, referenced_2)
+    root.referenceds.append(referenced_1)
+    root.referenceds.append(referenced_2)
 
     referencing = Referencing()
     referencing.section_reference = referenced
@@ -179,3 +182,44 @@ def test_quantity_references_serialize():
     }
     root = Root.m_from_dict(source)
     assert source == root.m_to_dict()
+
+
+@pytest.mark.parametrize('url,value', [
+    pytest.param('/referenced', '/referenced', id='archive-plain'),
+    pytest.param('#/referenced', '/referenced', id='archive-anchor'),
+    pytest.param('/api#/referenced', None, id='api-no-support'),
+    pytest.param('../upload/archive/my_entry_id#/referenced', '/referenced', id='upload-entry-id'),
+    pytest.param('../upload/archive/mainfile/my/main/file#/referenced', '/referenced', id='upload-mainfile'),
+    pytest.param('../uploads/my_upload_id/archive/my_entry_id#/referenced', '/referenced', id='api'),
+])
+def test_reference_urls(example_data, url, value):
+    class MyResource(MResource):
+        def resolve_archive(self, url):
+            if url == '../upload/archive/my_entry_id':
+                return example_data
+            if url == '../upload/archive/mainfile/my/main/file':
+                return example_data
+            if url == '../uploads/my_upload_id/archive/my_entry_id':
+                return example_data
+
+            raise ReferenceError()
+
+    if value:
+        resource = MyResource()
+        resource.add(example_data)
+
+    example_data.referencing.section_reference = url
+
+    if value:
+        value = example_data.m_resolve(value).m_resolved()
+        assert example_data.referencing.section_reference.m_resolved() == value
+
+    else:
+        with pytest.raises(ReferenceError):
+            example_data.referencing.section_reference.m_resolved()
+
+
+def test_file_references(example_data):
+    example_data.referencing.file_reference = '../upload/raw/a_file.txt'
+
+    assert example_data.referencing.file_reference == '../upload/raw/a_file.txt'

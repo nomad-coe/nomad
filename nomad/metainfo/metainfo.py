@@ -113,10 +113,49 @@ class MEnum(Sequence):
 
 
 class MProxy():
-    ''' A placeholder object that acts as reference to a value that is not yet resolved.
+    '''
+    A placeholder object that acts as reference to a value that is not yet resolved.
+
+    A proxy is a replacement for an actual section (or quantity) that the proxy represents.
+    The replaced section (or quantity) is identified by a reference. References
+    are URL strings that identify a section (or quantity).
+
+    If a proxy is accessed (i.e. like its proxies counterpart would be accessed), it
+    tries to resolve its reference and access the proxied element. If the reference
+    cannot be resolved an exception is raised.
+
+    There are different kinds of reference urls. Here are a few examples:
+
+    .. code-block::
+        /run/0/calculation/1  # same archive (legacy version)
+        #/run/0/calculation/1  # same archive
+        ../upload/archive/mainfile/{mainfile}#/run/0  # same upload
+        /entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
+        /uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
+        https://my-oasis.de/api/v1/uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # global
+
+    A URL can have 3 relevant path. The archive path as anchor string (after the `#`).
+    The API part (more or less the URL's path). The oasis part (more or less the domain).
+
+    The archive path starts at the `EntryArchive` root and uses property names and indices
+    to navigate. The API and oasis parts correspond to NOMAD's v1 api. A path starting
+    with `../upload` replaces `.../api/v1/uploads/{upload_id}` and allows to access the
+    upload of the archive that contains the reference.
+
+    The actual algorithm for resolving proxies is in `MSection.m_resolve()`.
 
     Attributes:
-        url: The reference represented as an URL string.
+        m_proxy_value: The reference represented as an URL string.
+        m_proxy_section:
+            The section context, i.e. the section that this proxy is contained in. This
+            section will provide the context for resolving the reference. For example,
+            if the reference only has an archive part, this archive part is resolved
+            starting with the root of `m_proxy_section`.
+        m_proxy_value:
+            The quantity difintion. Typically MProxy is used for proxy-ing sections. With
+            this set, the proxy will still act as a normal section proxy, but it will
+            be used by quantities of type `QuantityReference` to resolve and return
+            a quantity value.
     '''
 
     def __init__(
@@ -500,6 +539,18 @@ class QuantityReference(Reference):
         return MProxy(section_path, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
 
+class _File(DataType):
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if not isinstance(value, str):
+            raise TypeError('Files need to be given as URL strings')
+
+        resource = cast(MSection, section.m_root()).m_resource
+        if resource:
+            return resource.normalize_reference(value)
+
+        return value
+
+
 class _Datetime(DataType):
 
     def _parse(self, datetime_str: str) -> datetime:
@@ -599,10 +650,11 @@ Datetime = _Datetime()
 JSON = _JSON()
 Capitalized = _Capitalized()
 Bytes = _Bytes()
+File = _File()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File}
 
 
 # Metainfo data storage and reflection interface
@@ -657,6 +709,9 @@ def constraint(warning):
 class MResource():
     '''
     Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+
+    It also allows to customize the resolution of references based on how and in what context
+    an metainfo-based archive (or otherwise top-lebvel section is used).
     '''
 
     def __init__(self, logger=None):
@@ -734,6 +789,20 @@ class MResource():
     def warning(self, *args, **kwargs):
         if self.logger is not None:
             self.logger.warn(*args, **kwargs)
+
+    def normalize_reference(self, url: str) -> str:
+        '''
+        Rewrites the url into a normlaized form. E.g., it replaces `..` with absolute paths,
+        or replaces mainfiles with ids, etc.
+        '''
+        return url
+
+    def resolve_archive(self, url: str) -> 'MSection':
+        '''
+        Resolves the archive part of the given URL and returns the root section of the
+        referenced archive.
+        '''
+        raise NotImplementedError()
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -1754,15 +1823,39 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         return getattr(self, 'm_proxy_resolved', self)
 
-    def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
+    def m_resolve(self, url: str, cls: Type[MSectionBound] = None) -> MSectionBound:
         '''
         Resolves the given path or dotted quantity name using this section as context and
         returns the sub_section or value.
+
+        Arguments:
+            path: The reference URL. See `MProxy` for details on reference URLs.
         '''
-        if path.startswith('/'):
-            context: 'MSection' = self.m_root()
+        context: 'MSection' = self
+
+        parts = url.split('#', maxsplit=1)
+        if len(parts) == 1:
+            path = parts[0]
         else:
-            context = self
+            api, path = parts
+            if not path.startswith('/'):
+                raise ReferenceError(
+                    f'Invalid reference {url}. Cross archive references need to start with /')
+
+            if api != '':
+                resource = cast(MSection, context.m_root()).m_resource
+                if resource is None:
+                    raise ReferenceError(
+                        f'There is no resource to resolve references with api part')
+
+                try:
+                    context = resource.resolve_archive(api)
+                except NotImplementedError:
+                    raise ReferenceError(
+                        f'The attached resource does not support references with api part')
+
+        if path.startswith('/'):
+            context = context.m_root()
 
         path_stack = path.strip('/').split('/')
         path_stack.reverse()
