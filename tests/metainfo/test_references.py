@@ -19,8 +19,9 @@
 import pytest
 
 from nomad.metainfo import (
-    MSection, Quantity, SubSection, MProxy, Reference, QuantityReference, File)
-from nomad.metainfo.metainfo import MResource
+    MSection, Quantity, SubSection, MProxy, Reference, QuantityReference, File,
+    MetainfoReferenceError)
+from nomad.metainfo.metainfo import Context
 
 
 class Referenced(MSection):
@@ -113,7 +114,7 @@ def test_section_proxy(example_data):
         'doesnotexist',
         m_proxy_section=example_data.referencing,
         m_proxy_quantity=Referencing.section_reference)
-    with pytest.raises(ReferenceError):
+    with pytest.raises(MetainfoReferenceError):
         example_data.referencing.section_reference.str_quantity
 
     example_data.referencing.section_reference = MProxy(
@@ -129,7 +130,7 @@ def test_quantity_proxy(example_data):
         'doesnotexist',
         m_proxy_section=example_data.referencing,
         m_proxy_quantity=Referencing.section_reference)
-    with pytest.raises(ReferenceError):
+    with pytest.raises(MetainfoReferenceError):
         example_data.referencing.quantity_reference
 
     example_data.referencing.quantity_reference = MProxy(
@@ -193,7 +194,7 @@ def test_quantity_references_serialize():
     pytest.param('../uploads/my_upload_id/archive/my_entry_id#/referenced', '/referenced', id='api'),
 ])
 def test_reference_urls(example_data, url, value):
-    class MyResource(MResource):
+    class MyContext(Context):
         def resolve_archive(self, url):
             if url == '../upload/archive/my_entry_id':
                 return example_data
@@ -202,11 +203,11 @@ def test_reference_urls(example_data, url, value):
             if url == '../uploads/my_upload_id/archive/my_entry_id':
                 return example_data
 
-            raise ReferenceError()
+            raise MetainfoReferenceError()
 
     if value:
-        resource = MyResource()
-        resource.add(example_data)
+        context = MyContext()
+        example_data.m_context = context
 
     example_data.referencing.section_reference = url
 
@@ -215,7 +216,7 @@ def test_reference_urls(example_data, url, value):
         assert example_data.referencing.section_reference.m_resolved() == value
 
     else:
-        with pytest.raises(ReferenceError):
+        with pytest.raises(MetainfoReferenceError):
             example_data.referencing.section_reference.m_resolved()
 
 

@@ -54,6 +54,7 @@ from nomad.processing.base import (
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
+from nomad.metainfo import Context, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
     EditableUserMetadata, UploadMetadata, AuthLevel)
@@ -704,7 +705,7 @@ class Calc(Proc):
         self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
         self._apply_metadata_from_process(self._entry_metadata)
 
-        self._parser_results = EntryArchive()
+        self._parser_results = EntryArchive(m_context=self.upload.archive_context)
         self._parser_results.metadata = self._entry_metadata
 
     def _apply_metadata_from_file(self, logger):
@@ -914,7 +915,6 @@ class Calc(Proc):
 
         settings = config.reprocess.customize(reprocess_settings)  # Add default settings
 
-        # 1. Determine if we should parse or not
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
         # should be set. If not, this is the initial processing.
@@ -946,31 +946,19 @@ class Calc(Proc):
                             parser=parser.name)
                         self.parser_name = parser.name  # Parser renamed
 
-        # 2. Either parse the entry, or preserve it as it is.
         if should_parse:
-            # 2a. Parse (or reparse) it
-            try:
-                self.set_last_status_message('Initializing metadata')
-                self._initialize_metadata_for_processing()
+            self.set_last_status_message('Initializing metadata')
+            self._initialize_metadata_for_processing()
 
-                if len(self._entry_metadata.files) >= config.auxfile_cutoff:
-                    self.warning(
-                        'This calc has many aux files in its directory. '
-                        'Have you placed many calculations in the same directory?')
+            if len(self._entry_metadata.files) >= config.auxfile_cutoff:
+                self.warning(
+                    'This calc has many aux files in its directory. '
+                    'Have you placed many calculations in the same directory?')
 
-                self.parsing()
-                self.normalizing()
-                self.archiving()
-            finally:
-                # close loghandler that was not closed due to failures
-                try:
-                    if self._parser_results and self._parser_results.m_resource:
-                        self._parser_results.metadata = None
-                        self._parser_results.m_resource.unload()
-                except Exception as e:
-                    logger.error('could not unload processing results', exc_info=e)
+            self.parsing()
+            self.normalizing()
+            self.archiving()
         elif self.upload.published:
-            # 2b. Keep published entry as it is
             self.set_last_status_message('Preserving entry data')
             try:
                 upload_files = PublicUploadFiles(self.upload_id)
@@ -980,6 +968,7 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
+
         else:
             # 2b. Keep staging entry as it is
             pass
@@ -1005,6 +994,7 @@ class Calc(Proc):
                     'could not apply domain metadata to entry', exc_info=e)
         except Exception as e:
             self._parser_results = EntryArchive(
+                m_context=self.upload.archive_context,
                 entry_id=self._parser_results.entry_id,
                 metadata=self._parser_results.metadata,
                 processing_logs=self._parser_results.processing_logs)
@@ -1212,7 +1202,7 @@ class Calc(Proc):
         if archive is not None:
             archive = archive.m_copy()
         else:
-            archive = datamodel.EntryArchive()
+            archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
 
         if archive.metadata is None:
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
@@ -1224,7 +1214,7 @@ class Calc(Proc):
             return self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
         except Exception as e:
             # most likely failed due to domain data, try to write metadata and processing logs
-            archive = datamodel.EntryArchive()
+            archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
             archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
             archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
             self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
@@ -1300,6 +1290,7 @@ class Upload(Proc):
         kwargs.setdefault('upload_create_time', datetime.utcnow())
         super().__init__(**kwargs)
         self._upload_files: UploadFiles = None
+        self.archive_context = UploadContext(self)
 
     @lru_cache()
     def metadata_file_cached(self, path):
@@ -2344,3 +2335,58 @@ class Upload(Proc):
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)
+
+
+class UploadContext(Context):
+    def __init__(self, upload: Upload):
+        self.upload = upload
+
+    def get_reference(self, section: MSection, quantity_def: Quantity, value: Any) -> str:
+        if not isinstance(value, MSection):
+            return super().get_reference(section, quantity_def, value)
+
+        section_root: MSection = section.m_root()
+        value_root: MSection = value.m_root()
+        if section_root == value_root or section_root.m_context != value_root.m_context:
+            return super().get_reference(section, quantity_def, value)
+
+        entry_id = cast(EntryArchive, value_root).metadata.entry_id
+        if entry_id is None:
+            raise MetainfoReferenceError()
+
+        return f'../upload/archive/{entry_id}#{super().get_reference(section, quantity_def, value)}'
+
+    def _resolve_mainfile(self, mainfile: str) -> str:
+        return generate_entry_id(self.upload.upload_id, mainfile)
+
+    def _get_archive(self, entry_id: str) -> EntryArchive:
+        try:
+            archive_dict = self.upload.upload_files.read_archive(entry_id)[entry_id].to_dict()
+        except KeyError:
+            raise MetainfoReferenceError(f'archive does not exist {entry_id}')
+
+        return EntryArchive.m_from_dict(archive_dict)
+
+    def normalize_reference(self, url: str) -> str:
+        api_url, archive_ref = self.split_url(url)
+
+        if url.startswith('../upload/archive/mainfile/'):
+            entry_id = self._resolve_mainfile(api_url.replace('../upload/archive/mainfile/', ''))
+            return f'../upload/archive/{entry_id}#{archive_ref}'
+
+        return super().normalize_reference(url)
+
+    def resolve_archive(self, url: str) -> MSection:
+        archive_url, _ = self.split_url(url)
+
+        if not url.startswith('../upload/archive/'):
+            return super().resolve_archive(url)
+
+        id_part = archive_url.replace('../upload/archive/', '')
+
+        if id_part.startswith('mainfile/'):
+            entry_id = self._resolve_mainfile(id_part.replace('mainfile/', ''))
+        else:
+            entry_id = id_part
+
+        return self._get_archive(entry_id)
