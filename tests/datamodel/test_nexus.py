@@ -19,7 +19,7 @@
 from typing import cast, Any
 import pytest
 
-from nomad.metainfo import Definition
+from nomad.metainfo import Definition, MSection, Section
 from nomad.datamodel.metainfo import nexus
 from nomad.datamodel import EntryArchive
 
@@ -91,3 +91,46 @@ def test_use_nexus_metainfo():
 
     # TODO remove
     # print(json.dumps(archive.m_to_dict(), indent=2))
+
+
+@pytest.mark.parametrize('path', [
+    pytest.param('NXarpes:app/NXentry:group/title:field/my title:value', id='field'),
+    pytest.param('NXarpes:app/NXentry:group/default:attribute/my default:value', id='attribute')
+])
+def test_use_nexus_metainfo_reflectivly(path):
+    archive = EntryArchive()
+    archive.nexus = nexus.Nexus()  # pylint: disable=no-member
+    parent_object: MSection = archive.nexus
+    parent_definition: Section = nexus.Nexus.m_def  # pylint: disable=no-member
+
+    segments = path.split('/')
+    for segment in segments:
+        name_or_value, kind = segment.split(':')
+        if kind in ['app', 'group', 'field', 'attribute']:
+            if kind == 'app':
+                section_definition = nexus.applications.all_definitions[name_or_value]
+                sub_section_definition = parent_definition.all_sub_sections[name_or_value.replace('NX', 'nx_application_')]
+
+            if kind == 'group':
+                section_definition = parent_definition.all_inner_section_definitions[f'{name_or_value}Group']
+                sub_section_definition = parent_definition.all_sub_sections[f'nx_group_{name_or_value.replace("NX", "")}']
+
+            if kind == 'field':
+                section_definition = parent_definition.all_inner_section_definitions[f'{name_or_value.title()}Field']
+                sub_section_definition = parent_definition.all_sub_sections[f'nx_field_{name_or_value}']
+
+            if kind == 'attribute':
+                section_definition = parent_definition.all_inner_section_definitions[f'{name_or_value.title()}Attribute']
+                sub_section_definition = parent_definition.all_sub_sections[f'nx_attribute_{name_or_value}']
+
+            new_object = section_definition.section_cls()
+            parent_object.m_add_sub_section(sub_section_definition, new_object)
+
+        elif kind == 'value':
+            parent_object.m_set(parent_definition.all_quantities['nx_value'], name_or_value)
+
+        else:
+            assert False, 'kind does not exist'
+
+        parent_object = new_object
+        parent_definition = section_definition

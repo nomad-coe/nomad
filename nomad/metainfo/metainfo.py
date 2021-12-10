@@ -2839,10 +2839,10 @@ class Section(Definition):
             attrs = {
                 prop.name: prop
                 for prop in self.quantities + self.sub_sections}
-            for base_section_or_self in self.all_base_sections + [self]:  # pylint: disable=not-an-iterable
-                for inner_section_definition in base_section_or_self.inner_section_definitions:  # pylint: disable=not-an-iterable
-                    if inner_section_definition.name not in attrs:
-                        attrs[inner_section_definition.name] = inner_section_definition.section_cls
+
+            for name, inner_section_def in self.all_inner_section_definitions.items():
+                attrs[name] = inner_section_def.section_cls
+
             attrs.update(m_def=self, do_init=False)
             self._section_cls = type(self.name, (MSection,), attrs)
 
@@ -3173,10 +3173,13 @@ def all_aliases(self) -> Dict[str, Union[SubSection, Quantity]]:
 @derived(cached=True)
 def all_inner_section_definitions(self) -> Dict[str, Section]:
     result: Dict[str, Section] = dict()
-    for section in self.inner_section_definitions:
-        result[section.name] = section
-        for alias in section.aliases:
-            result[alias] = section
+    for base_section_or_self in self.all_base_sections + [self]:  # pylint: disable=not-an-iterable
+        for section in base_section_or_self.inner_section_definitions:  # pylint: disable=not-an-iterable
+            if section.name:
+                result[section.name] = section
+            for alias in section.aliases:
+                result[alias] = section
+
     return result
 
 
