@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputCheckboxes from '../input/InputCheckboxes'
+import InputField from '../input/InputField'
 
 const FilterSubMenuMethod = React.memo(({
   value,
@@ -31,10 +31,11 @@ const FilterSubMenuMethod = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.method.method_name"
           visible={visible}
           xs={12}
+          disableSearch
         />
       </InputGridItem>
     </InputGrid>

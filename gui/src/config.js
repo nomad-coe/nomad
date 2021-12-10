@@ -108,10 +108,6 @@ export const electronicRange = [-5, 10]
  */
 export const dateFormat = 'dd/MM/yyyy'
 /**
- * The debounce time for suggestions.
- */
-export const suggestionDebounceTime = 200
-/**
  * Warning shown when energy values could not be normalized.
  */
 export const msgNormalizationWarning = `

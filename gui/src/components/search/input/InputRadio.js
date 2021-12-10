@@ -65,6 +65,7 @@ const InputRadio = React.memo(({
       label={title}
       description={desc}
       disableStatistics
+      disableScale
     />
     {options && Object.entries(options).map(([key, value]) =>
       <InputItem
@@ -76,6 +77,7 @@ const InputRadio = React.memo(({
         onChange={handleChange}
         tooltip={value.tooltip}
         variant="radio"
+        disableStatistics
       />
     )}
   </div>

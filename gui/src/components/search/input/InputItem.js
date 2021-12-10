@@ -68,6 +68,7 @@ const InputItem = React.memo(({
   total,
   count,
   scale,
+  disableStatistics,
   className,
   classes,
   'data-testid': testID
@@ -88,7 +89,7 @@ const InputItem = React.memo(({
   }
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    {(isStatisticsEnabled) && <StatisticsBar
+    {(isStatisticsEnabled && !disableStatistics) && <StatisticsBar
       className={styles.bar}
       max={total}
       value={count}
@@ -131,6 +132,7 @@ InputItem.propTypes = {
   total: PropTypes.number, // Total number for statistics
   count: PropTypes.number, // Count of these values for statistics
   scale: PropTypes.number, // Scaling of the statistics
+  disableStatistics: PropTypes.bool, // Use to disable statistics for this item
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

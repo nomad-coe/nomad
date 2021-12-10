@@ -21,7 +21,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputPeriodicTable from '../input/InputPeriodicTable'
-import InputText from '../input/InputText'
+import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
 import { useUnits } from '../../../units'
 
@@ -49,21 +49,25 @@ const FilterSubMenuElements = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={6}>
-        <InputText
+        <InputField
           quantity="results.material.chemical_formula_hill"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={6}>
-        <InputText
+        <InputField
           quantity="results.material.chemical_formula_anonymous"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputSlider
           quantity="results.material.n_elements"
+          visible={visible}
           step={1}
           units={units}
-          visible={visible}
         />
       </InputGridItem>
     </InputGrid>
