@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from pymongo import ReplaceOne
 from pymongo.database import Database
 from pymongo.cursor import Cursor
+from nomad import utils
 from nomad.processing import ProcessStatus, Upload, Calc
 from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
@@ -74,10 +75,12 @@ def create_collections_if_needed(db_dst: Database):
 def migrate_mongo_uploads(
         db_src: Database, db_dst: Database, uploads: Cursor, failed_ids_to_file: bool,
         upload_update: Dict[str, Any], entry_update: Dict[str, Any], overwrite: str,
-        fix_problems: bool, dry: bool, logger):
+        fix_problems: bool, dry: bool):
     ''' Converts and/or migrates an upload and all related entries and datasets. '''
+    logger = utils.get_logger(__name__)
+
     number_of_uploads = uploads.count()
-    logger.info(f'Found {number_of_uploads} uploads to import.')
+    print(f'Found {number_of_uploads} uploads to import.')
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads
@@ -116,7 +119,7 @@ def migrate_mongo_uploads(
                     _commit_upload(upload_dict, entry_dicts, dataset_dicts, doi_dicts, db_dst, stats)
                 del entry_dicts, dataset_dicts  # To free up memory immediately
         except Exception as e:
-            logger.error(f'Failed to migrate upload: {str(e)}', upload_id=upload_id)
+            logger.error(f'Failed to migrate upload: {str(e)}', upload_id=upload_id, exc_info=e)
             count_failures += 1
             failed_and_skipped.append(upload_id)
         count_treated += 1
@@ -126,7 +129,7 @@ def migrate_mongo_uploads(
             elapsed = t - start_time
             progress = count_treated / number_of_uploads
             est_remain = elapsed * number_of_uploads / count_treated - elapsed
-            logger.info(
+            print(
                 f'Elapsed: {_seconds_to_h_m(elapsed)}, progress: {progress * 100.0:6.2f} %, '
                 f'est. remain: {_seconds_to_h_m(est_remain)}')
             next_report_time += 60
@@ -135,7 +138,7 @@ def migrate_mongo_uploads(
         with open(failed_ids_to_file, 'w') as f:
             for upload_id in failed_and_skipped:
                 f.write(upload_id + '\n')
-    # Log a summary
+    # Print a summary
     summary = f'Summary:\n\nElapsed time: {_seconds_to_h_m(time.time() - start_time)}\n\n'
     summary += f'{"Doc type":<10}{"found":>20}{"converted":>20}{"migrated":>20}\n'
     summary += '-' * 70 + '\n'
@@ -157,7 +160,7 @@ def migrate_mongo_uploads(
             summary += 'they already exist in the destination db.\n\n'
     if dry:
         summary += 'Dry run - nothing written to the destination db\n\n'
-    logger.info(summary)
+    print(summary)
     if count_failures:
         return -1
 
@@ -288,7 +291,7 @@ def _convert_mongo_upload(
                         'use --fix-problems to fix')
                     logger.warn(
                         'Fixing (removing) missing dataset reference for entry',
-                        entry_id=entry_dict['_id'], dataset_id=dataset_id)
+                        entry_id=entry_dict['_id'], dataset_id=dataset_id, upload_id=upload_id)
                 elif not ds_cache.converted_dataset_dict:
                     # The value must be the empty dict, which represents a conversion failure
                     assert False, f'Reference to unconvertable dataset {dataset_id}'
@@ -325,7 +328,7 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
     if entry_dict['_id'] != generated_entry_id:
         if not fix_problems:
             assert False, f'Entry id {entry_dict["_id"]} does not match generated value - use --fix-problems to fix'
-        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], new_id=generated_entry_id)
+        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], entry_id=generated_entry_id)
         entry_dict['_id'] = generated_entry_id
     # Convert old v0 metadata
     if 'metadata' in entry_dict:
@@ -418,7 +421,7 @@ def _get_dataset_cache_data(dataset_id: str, db_src: Database, logger) -> _Datas
                     _convert_mongo_doi(doi_dict)
         except Exception as e:
             # Conversion failed
-            logger.error(str(e), dataset_id=dataset_id)
+            logger.error(str(e), dataset_id=dataset_id, exc_info=e)
             dataset_dict = {}
             doi_dict = {}
     return _DatasetCacheItem(converted_dataset_dict=dataset_dict, converted_doi_dict=doi_dict)
