@@ -19,13 +19,17 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import { useRecoilValue } from 'recoil'
+import { isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
+import InputUnavailable from './InputUnavailable'
 import { useSearchContext } from '../SearchContext'
+import { guiState } from '../../GUIMenu'
 
 /**
  * Displays a list of options with fixed maximum size. Only options that are
@@ -87,15 +91,22 @@ const InputList = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
+  const {useAgg, useFilterState, useFilterLocked, useResults} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
-  const [aggSize, setAggSize] = useState(0)
-  const agg = useAgg(quantity, visible, false)
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const disabled = locked || (!(agg?.data && agg.data.length > 0))
   const { height, ref } = useResizeDetector()
+  const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
+  const agg = useAgg(quantity, !isNil(height) && visible, aggSize, 'statistics')
+  const aggNormalization = useRecoilValue(guiState('aggNormalization'))
+  const nResults = useResults()?.pagination?.total || 0
+  let total
+  if (aggNormalization === 'results') {
+    total = nResults
+  } else if (aggNormalization === 'agg_max') {
+    total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
+  }
 
   // Determine the description and units
   const def = searchQuantities[quantity]
@@ -111,35 +122,38 @@ const InputList = React.memo(({
     })
   }, [setFilter])
 
-  // Create a memoized list of options
-  const [items, nItems, nTotal] = useMemo(() => {
-    const items = []
+  // Create a memoized list of options. The API may return also items with a
+  // zero count, so only values with a non-zero count are shown.
+  const [component, nShown] = useMemo(() => {
+    let component
     let index = 0
-    let nItems = Math.floor(height / inputItemHeight)
-    if (agg?.data) {
-      for (let option of agg.data) {
-        const value = option.value
-        if (option.count > 0) {
-          if (index < nItems) {
-            items.push(<InputItem
-              key={value}
-              value={value}
-              selected={filter ? filter.has(value) : false}
-              total={agg.total}
-              onChange={handleChange}
-              variant="checkbox"
-              count={option.count}
-              scale={scale}
-            />)
-          }
+    if (agg?.data && agg.data.length > 0) {
+      component = []
+      const maxSize = Math.min(aggSize, agg.data.length)
+      for (let i = 0; i < maxSize; ++i) {
+        const option = agg.data[i]
+        if (option.count > 0 && index < maxSize) {
+          component.push(<InputItem
+            key={option.value}
+            value={option.value}
+            selected={filter ? filter.has(option.value) : false}
+            total={total}
+            onChange={handleChange}
+            variant="checkbox"
+            count={option.count}
+            scale={scale}
+            disabled={locked}
+          />)
           ++index
         }
       }
+    } else {
+      component = <InputUnavailable/>
     }
-    return [items, nItems, index]
-  }, [agg, filter, scale, handleChange, height])
+    return [component, index]
+  }, [agg, aggSize, filter, handleChange, scale, locked, total])
 
-  return <InputTooltip locked={locked} disabled={disabled}>
+  return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <InputHeader
         quantity={quantity}
@@ -147,16 +161,17 @@ const InputList = React.memo(({
         description={desc}
         scale={scale}
         onChangeScale={setScale}
-        aggSize={aggSize}
-        onChangeAggSize={setAggSize}
         draggable={draggable}
+        locked={locked}
       />
       <div ref={ref} className={styles.spacer}>
-        {items}
+        {component}
       </div>
-      <div className={styles.count}>
-        <Typography variant="overline">{`${Math.min(nItems, nTotal)}/${nTotal}`}</Typography>
-      </div>
+      {nShown !== 0 && <div className={styles.count}>
+        <Typography variant="overline">
+          {agg.data.length <= aggSize ? `Showing all ${nShown} items` : `Showing top ${nShown} items`}
+        </Typography>
+      </div>}
     </div>
   </InputTooltip>
 })

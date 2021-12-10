@@ -84,9 +84,9 @@ addColumnDefaults(columns)
 const defaultSelectedColumns = [
   'results.material.chemical_formula_hill',
   'results.method.method_name',
-  'results.method.simulation.program_name',
-  'results.material.structural_type',
-  'results.material.symmetry.crystal_system']
+  'upload_create_time',
+  'authors'
+]
 
 const SearchResultsEntries = React.memo((props) => {
   const { useQuery } = useSearchContext()
