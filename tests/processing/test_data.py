@@ -372,7 +372,6 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    published.reset()
     published.process_upload()
     try:
         published.block_until_complete(interval=.01)
@@ -431,7 +430,6 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
         if old_staging:
             StagingUploadFiles(upload.upload_id, create=True)
 
-    upload.reset()
     upload.process_upload()
     try:
         upload.block_until_complete(interval=.01)
@@ -454,7 +452,6 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         upload.publish_upload(embargo_length=0)
         upload.block_until_complete(interval=.01)
 
-    upload.reset()
     assert upload.total_calcs == 1, upload.total_calcs
 
     if published:

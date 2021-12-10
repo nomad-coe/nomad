@@ -50,7 +50,7 @@ from nomad import utils, config, infrastructure, search, datamodel, metainfo, pa
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
 from nomad.processing.base import (
-    Proc, Queueable, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
+    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -1234,7 +1234,7 @@ class Calc(Proc):
         return 'calc %s calc_id=%s upload_id%s' % (super().__str__(), self.calc_id, self.upload_id)
 
 
-class Upload(Proc, Queueable):
+class Upload(Proc):
     '''
     Represents uploads in the databases. Provides persistence access to the files storage,
     and processing state.
@@ -1417,7 +1417,7 @@ class Upload(Proc, Queueable):
 
             self.delete()
 
-    @process()
+    @process(is_blocking=True)
     def delete_upload(self):
         '''
         Deletes the upload, including its processing state and
@@ -1427,7 +1427,7 @@ class Upload(Proc, Queueable):
 
         return ProcessStatus.DELETED  # Signal deletion to the process framework
 
-    @process()
+    @process(is_blocking=True)
     def publish_upload(self, embargo_length: int = None):
         '''
         Moves the upload out of staging to the public area. It will
@@ -1461,7 +1461,7 @@ class Upload(Proc, Queueable):
                     self.last_update = datetime.utcnow()
                     self.save()
 
-    @process()
+    @process(is_blocking=True)
     def publish_externally(self, embargo_length: int = None):
         '''
         Uploads the already published upload to a different NOMAD deployment. This is used
@@ -1708,6 +1708,8 @@ class Upload(Proc, Queueable):
                             entry.delete()
 
             # reset all calcs
+            # (No Calc processes *should* be running, unless something has gone wrong, and if
+            # there are such processes, we can quite safely just reset them to minimize problems)
             with utils.timer(logger, 'calcs processing resetted'):
                 Calc._get_collection().update_many(
                     dict(upload_id=self.upload_id),
@@ -1715,9 +1717,8 @@ class Upload(Proc, Queueable):
 
             # process call calcs
             with utils.timer(logger, 'calcs processing called'):
-                Calc.process_all(
-                    Calc.process_calc, dict(upload_id=self.upload_id),
-                    process_kwargs=dict(reprocess_settings=settings))
+                for entry in Calc.objects(upload_id=self.upload_id):
+                    entry.process_calc(reprocess_settings=settings)
 
         except Exception as e:
             # try to remove the staging copy in failure case
@@ -1903,6 +1904,7 @@ class Upload(Proc, Queueable):
     @process()
     def set_upload_metadata(self, metadata: Dict[str, Any]):
         '''
+        TODO: DEPRECATED - REMOVE ASAP
         A @process which sets upload level metadata (metadata that is editable and set
         on the upload level, rather than the entry level. Some of these fields are mirrored
         from the upload to the entry metadata, however).

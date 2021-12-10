@@ -16,10 +16,11 @@
 # limitations under the License.
 #
 
-from typing import List, Any, Dict
+from typing import Any, Tuple, List, Dict
 import logging
 import time
 import os
+from collections import defaultdict
 from celery import Celery, Task
 from celery.worker.request import Request
 from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
@@ -27,8 +28,9 @@ from celery.signals import after_setup_task_logger, after_setup_logger, worker_p
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import WorkerLostError
-from mongoengine import Document, StringField, ListField, DateTimeField, ValidationError
+from mongoengine import Document, StringField, ListField, DateTimeField, IntField, ValidationError
 from mongoengine.connection import ConnectionFailure
+from mongoengine.base.datastructures import BaseDict, BaseList
 from datetime import datetime
 import functools
 
@@ -127,6 +129,9 @@ class ProcNotRegistered(Exception): pass
 class ProcessAlreadyRunning(Exception): pass
 
 
+class ProcessSyncFailure(Exception): pass
+
+
 class ProcObjectDoesNotExist(Exception): pass
 
 
@@ -187,6 +192,13 @@ class Proc(Document):
             NOTE: This value is managed by the framework, do not tamper with this value.
         process_status: one of the values defined by :class:`ProcessStatus`.
             NOTE: This value is managed by the framework, do not tamper with this value.
+        queue: A list defining queued up calls, waiting to be run. Each item is a triple
+            of [func_name, args, kwargs].
+            NOTE: This value is managed by the framework, do not tamper with this value.
+        sync_counter: An integeger, incremented every time a "sync" operation is executed,
+            to ensure state consistency and atomicity. There are three types of sync operations:
+            when scheduling a process, starting a process, and completing a process.
+            NOTE: This value is managed by the framework, do not tamper with this value.
     '''
 
     meta: Any = {
@@ -204,6 +216,9 @@ class Proc(Document):
 
     worker_hostname = StringField(default=None)
     celery_task_id = StringField(default=None)
+
+    queue = ListField()
+    sync_counter = IntField(default=0)
 
     @property
     def process_running(self) -> bool:
@@ -234,8 +249,12 @@ class Proc(Document):
 
     def reset(
             self, worker_hostname: str = None, force: bool = False,
-            process_status: str = ProcessStatus.READY):
-        ''' Resets the process status. If force is not set, there must be no currently running process. '''
+            process_status: str = ProcessStatus.READY, clear_queue: bool = True):
+        '''
+        Resets the process status. If force is not set, there must be no currently running process.
+        NOTE, use this with care! This should normally only be used manually, to fix processes
+        that are "stuck" in status processing, for example if the worker has died etc.
+        '''
         assert not self.process_running or force
 
         self.current_process = None
@@ -243,13 +262,18 @@ class Proc(Document):
         self.errors = []
         self.warnings = []
         self.worker_hostname = worker_hostname
+        if clear_queue:
+            self.queue = []
 
     @classmethod
     def reset_pymongo_update(cls, worker_hostname: str = None):
-        ''' Returns a pymongo update dict part to reset calculations. '''
+        '''
+        Returns a pymongo update dict part to reset a Proc.
+        NOTE, use this with care! This should normally only be used manually, to fix processes
+        that are "stuck" in status processing, for example if the worker has died etc.        '''
         return dict(
             current_process=None, process_status=ProcessStatus.READY,
-            errors=[], warnings=[], worker_hostname=worker_hostname)
+            errors=[], warnings=[], queue=[], worker_hostname=worker_hostname)
 
     @classmethod
     def get_by_id(cls, id: str, id_field: str):
@@ -283,11 +307,11 @@ class Proc(Document):
         else:
             logger.critical(msg, **kwargs)
 
-    def fail(self, *errors, save=True, log_level=logging.ERROR, **kwargs):
+    def fail(self, *errors, log_level=logging.ERROR, complete=True, **kwargs):
         '''
         Used to handle when a process fails. Takes strings or exceptions as args.
         The method logs the error(s), updates `self.errors`, `self.last_status_message`,
-        `self.process_status`, and calls :func:`on_fail`, and if `save` == True (default)
+        `self.process_status`, and calls :func:`on_fail`, and if `complete` == True (default)
         it also saves the object to mongodb. The positional args define the errors. An
         error should normally be an instance of Exception, if not it will be converted to
         a string.
@@ -328,8 +352,8 @@ class Proc(Document):
             self.last_status_message = f'Process {self.current_process} failed: {self.errors[-1]}'
 
         self.process_status = ProcessStatus.FAILURE
-        if save:
-            self.save()
+        if complete:
+            self._sync_complete_process()
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
         ''' Allows to save warnings. Takes strings or exceptions as args. '''
@@ -381,33 +405,8 @@ class Proc(Document):
             time.sleep(interval)
             self.reload()
 
-    @classmethod
-    def process_all(
-            cls, func, query: Dict[str, Any], exclude: List[str] = [],
-            process_args: List[Any] = [], process_kwargs: Dict[str, Any] = {}):
-        '''
-        Allows to run process functions for all objects on the given query. Calling
-        process functions though the func:`process` wrapper might be slow, because
-        it causes a save on each call. This function will use a query based update to
-        do the same for all objects at once.
-        '''
-
-        running_query = dict(cls.process_running_mongoengine_query())
-        running_query.update(query)
-        if cls.objects(**running_query).first() is not None:
-            raise ProcessAlreadyRunning('Tried to call a processing function on an already processing process.')
-
-        cls._get_collection().update_many(query, {'$set': dict(
-            current_process=func.__name__,
-            process_status=ProcessStatus.PENDING)})
-
-        for obj in cls.objects(**query).exclude(*exclude):
-            obj._run_process(func, process_args, process_kwargs)
-
-    def _run_process(self, func, process_args, process_kwargs):
-        if hasattr(func, '__process_unwrapped'):
-            func = getattr(func, '__process_unwrapped')
-
+    def _trigger_worker(self, func_name):
+        ''' Invokes a celery task, which will prompt a worker to pick up this Proc object. '''
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
@@ -415,13 +414,13 @@ class Proc(Document):
         if config.celery.routing == config.CELERY_WORKER_ROUTING and self.worker_hostname is not None:
             queue = worker_direct(self.worker_hostname).name
 
-        priority = config.celery.priorities.get('%s.%s' % (cls_name, func.__name__), 1)
+        priority = config.celery.priorities.get('%s.%s' % (cls_name, func_name), 1)
 
-        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func.__name__)
+        logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_name)
         logger.debug('calling process function', queue=queue, priority=priority)
 
         return proc_task.apply_async(
-            args=[cls_name, self_id, func.__name__, process_args, process_kwargs],
+            args=[cls_name, self_id],
             queue=queue, priority=priority)
 
     def __str__(self):
@@ -483,13 +482,159 @@ class Proc(Document):
         '''
         raise NotImplementedError('`join` not implemented')
 
+    def _sync_schedule_process(self, func_name: str, *args, **kwargs) -> bool:
+        '''
+        Used to schedule a call to the @process function named `func_name` with the provided
+        `args` and `kwargs`. The `args` and `kwargs` need to be json serializable. If this
+        object was previously not processing, we return True and set the state to PENDING;
+        otherwise we return False.
 
-class Queueable:
-    '''
-    Derive from this mark a Proc class as "queuable", meaing it can have processes marked
-    with `is_queueable` = True, that will be queued if the Proc is running some other process.
-    '''
-    pass
+        The call will fail and raise a :class:`ProcessAlreadyRunning` if a "blocking"
+        process is running or has been added to the queue ("blocking" processes prevent
+        further requests to be queued until they have been completed).
+
+        This is the first of three *sync operations*. These should be atomic and occur in
+        sequence, each call fully seeing the effects of the previous operation. Because of
+        propagation delays and possible race conditions, this is a bit tricky. We use `sync_counter`
+        to detect update collisions. It should be very unusual, but if they occur we reload
+        self and try again, up to 3 times (which *should* be enough to guarantee success with
+        virtually absolute certainty). Because we may need to reload, an object calling a
+        sync operations should have no unsaved changes.
+        '''
+        blocking_processes = all_blocking_processes[self.__class__.__name__]
+        try_counter = 0
+        while True:
+            if self.process_status in ProcessStatus.STATUSES_PROCESSING:
+                if self.current_process in blocking_processes:
+                    raise ProcessAlreadyRunning('A blocking process is running')
+            for item in self.queue:
+                if item[0] in blocking_processes:
+                    raise ProcessAlreadyRunning('A blocking process has been queued')
+            prev_process_running = self.process_running
+            mongo_update = {
+                '$push': {'queue': [func_name, args, kwargs]},
+                '$set': {'sync_counter': self.sync_counter + 1}}
+            if not prev_process_running:
+                mongo_update['$set'].update(
+                    process_status=ProcessStatus.PENDING,
+                    current_process=func_name,
+                    last_status_message='Pending: ' + func_name)
+            # Try to update self atomically. Will fail if someone else has managed to write
+            # a sync op in between.
+            old_record = self._get_collection().find_one_and_update(
+                {'_id': self.id, 'sync_counter': self.sync_counter}, mongo_update)
+            try_counter += 1
+            if old_record and old_record['sync_counter'] == self.sync_counter:
+                # We have successfully scheduled the process!
+                self.reload()
+                return prev_process_running
+            # Someone else must have written a sync op (ticked up the sync_counter) in between
+            if try_counter >= 3:
+                # Three failed attempts - should be virtually impossible!
+                raise ProcessSyncFailure('Failed to schedule process too many times - should not happen')
+            # Otherwise, sleep, reload, and try again
+            time.sleep(0.1)
+            self.reload()
+
+    def _sync_start_process(self, worker_hostname, celery_task_id) -> Tuple[str, List[Any], Dict[str, Any]]:
+        '''
+        Used to start a process, by "popping" the first process from the queue, and setting status
+        to RUNNING and update `last_status_message` etc. Should only be invoked by a celery worker.
+        Returns a tuple consisting of func_name, args and kwargs, defining the queued up call.
+        The self.queue must not be empty and self.process_status should be PENDING.
+
+        This is one of three *sync operations*. See :func:`_sync_schedule_process`
+        for more info.
+        '''
+        try_counter = 0
+        while True:
+            if not self.queue:
+                raise ProcessSyncFailure('Queue is empty')
+            if self.process_status != ProcessStatus.PENDING:
+                raise ProcessSyncFailure('Process_status is not PENDING')
+            func_name, args, kwargs = self.queue[0]
+            # Try to update self atomically. Will fail if someone else has managed to write
+            # a sync op in between.
+            old_record = self._get_collection().find_one_and_update(
+                {'_id': self.id, 'sync_counter': self.sync_counter},
+                {
+                    '$pop': {'queue': -1},  # pops the first element
+                    '$set': {
+                        'sync_counter': self.sync_counter + 1,
+                        'process_status': ProcessStatus.RUNNING,
+                        'last_status_message': 'Started: ' + func_name,
+                        'worker_hostname': worker_hostname,
+                        'celery_task_id': celery_task_id
+                    }
+                })
+            try_counter += 1
+            if old_record and old_record['sync_counter'] == self.sync_counter:
+                # We have successfully started the process!
+                self.reload()
+                return func_name, mongo_to_primitive_types(args), mongo_to_primitive_types(kwargs)
+            # Someone else must have written a sync op (ticked up the sync_counter) in between
+            if try_counter >= 3:
+                # Three failed attempts - should be virtually impossible!
+                raise ProcessSyncFailure('Failed to start process too many times - should not happen')
+            # Make another attempt
+            time.sleep(0.1)
+            self.reload()
+
+    def _sync_complete_process(self) -> bool:
+        '''
+        Used to complete a process (when done, successful or not). Should only be invoked
+        by a celery worker. Returns the name of the next process func queued up to run, if any.
+
+        There are 3 possibilities:
+            1)  There is something in the queue, and the current process was successful
+                -> We set status to PENDING and return the next process func name.
+            2)  There is something in the queue, and the current process FAILED:
+                -> We clear the queue, set status to FAILURE and return None.
+            3)  There is nothing in the queue:
+                -> We set the status to the provided value and return None
+
+        This is one of three *sync operations*. See :func:`_sync_schedule_process`
+        for more info.
+        '''
+        assert self.process_status in ProcessStatus.STATUSES_COMPLETED
+        # As a safety precausion, save all updates made to the object except the status
+        # (We want it to have status RUNNING until the atomic read/write finishes)
+        process_status = self.process_status
+        self.process_status = ProcessStatus.RUNNING
+        self.save()
+        self.process_status = process_status
+
+        try_counter = 0
+        while True:
+            next_func_name = None
+            mongo_update = {'$set': {'sync_counter': self.sync_counter + 1}}
+            if self.queue:
+                if process_status == ProcessStatus.SUCCESS:
+                    next_func_name = self.queue[0][0]
+                    mongo_update['$set'].update(
+                        process_status=ProcessStatus.PENDING,
+                        last_status_message='Pending: ' + next_func_name,
+                        current_process=next_func_name)
+                else:
+                    # Failed - clear the queue
+                    mongo_update['$set'].update(process_status=process_status, queue=[])
+            else:
+                mongo_update['$set'].update(process_status=process_status)
+            # Try to update self atomically. Will fail if someone else has managed to write
+            # a sync op in between.
+            old_record = self._get_collection().find_one_and_update(
+                {'_id': self.id, 'sync_counter': self.sync_counter}, mongo_update)
+            try_counter += 1
+            if old_record and old_record['sync_counter'] == self.sync_counter:
+                # We have successfully completed the process
+                return next_func_name
+            # Someone else must have written a sync op (ticked up the sync_counter) in between
+            if try_counter >= 3:
+                # Three failed attempts - should be virtually impossible!
+                raise ProcessSyncFailure('Failed to complete process too many times - should not happen')
+            # Make another attempt
+            time.sleep(0.1)
+            self.reload()
 
 
 def all_subclasses(cls):
@@ -500,6 +645,9 @@ def all_subclasses(cls):
 
 all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
 ''' Name dictionary for all Proc classes. '''
+
+all_blocking_processes: Dict[str, List[str]] = defaultdict(list)
+''' { <proc class name>: <list of all blocking processes defined for this class> } '''
 
 
 class NomadCeleryRequest(Request):
@@ -581,44 +729,64 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
     return self
 
 
+def mongo_to_primitive_types(json_obj):
+    '''
+    Returns a "copy" of the json(like) object json_obj, but with mongo types recursively
+    converted to the python primitive types (to be more precise: BaseList and BaseDict converted
+    to list and dict). This is needed because for example pydantic don't know how to treat
+    the mongo types.
+    '''
+    if isinstance(json_obj, BaseList):
+        return [mongo_to_primitive_types(element) for element in json_obj]
+    elif isinstance(json_obj, BaseDict):
+        return {k: mongo_to_primitive_types(v) for k, v in json_obj.items()}
+    return json_obj
+
+
 @app.task(
     bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
     acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
     time_limit=config.celery.timeout * 2)
-def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
+def proc_task(task, cls_name, self_id):
     '''
     The celery task that is used to execute async process functions.
-    It retries for 3 times with a countdown of 3 on missing 'proc', since this
-    might happen in sharded, distributed mongo setups where the object might not
-    have yet been propagated and therefore appear missing.
+    It retries for 3 times with a countdown of 3 in case of propagation problems, since this
+    might happen in sharded, distributed mongo setups where the updates might not
+    have yet propagated to everyone.
     '''
-    proc: Proc = unwarp_task(task, cls_name, self_id)  # The current Proc object
+    # Obtain the Proc object. Raises exception to make celery retry if object has not propagated.
+    proc: Proc = unwarp_task(task, cls_name, self_id)
+
+    logger = proc.get_logger()
+    logger.debug('Executing celery task')
+
+    try:
+        func_name, args, kwargs = proc._sync_start_process(worker_hostname, task.request.id)
+    except ProcessSyncFailure as e:
+        # Failed to start. Could basically only have one explanation, namely a propagation delay.
+        # -> Try again
+        logger.warning('could not start process, retry')
+        raise task.retry(exc=e, countdown=3)  # Will fail if we have retried too many times
+    except Exception as e:  # "Should not happen"
+        proc.fail(e)
+        return
+
     try_to_join = False
     deleting = False
 
-    logger = proc.get_logger()
-    logger.debug('received process function call')
-
-    proc.worker_hostname = worker_hostname
-    proc.celery_task_id = task.request.id
-
     # get the process function
-    func = getattr(proc, func_attr, None)
-    if func is None:
+    func = getattr(proc, func_name, None)
+    if func is None:  # "Should not happen"
         logger.error('called function not a function of proc class')
-        proc.fail('called function %s is not a function of proc class %s' % (func_attr, cls_name))
+        proc.fail('called function %s is not a function of proc class %s' % (func_name, cls_name))
         return
 
     # unwrap the process decorator
-    call_func = getattr(func, '__process_unwrapped', None)
+    unwrapped_func = getattr(func, '__process_unwrapped', None)
     is_child = getattr(func, '__is_child', False)
-    is_queueable = getattr(func, '__is_queueable', False)
-    if call_func is None:
+    if unwrapped_func is None:  # "Should not happen"
         logger.error('called function was not decorated with @process')
-        proc.fail('called function %s was not decorated with @process' % func_attr)
-        return
-    if is_queueable and not isinstance(proc, Queueable):
-        proc.fail('process marked as queuable but class is not a Queueable')
+        proc.fail('called function %s was not decorated with @process' % func_name)
         return
 
     # call the process function
@@ -626,24 +794,20 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
         os.chdir(config.fs.working_directory)
         with utils.timer(logger, 'process executed on worker'):
             # Actually call the process function
-            proc.process_status = ProcessStatus.RUNNING
-            proc.last_status_message = 'Started process: ' + func_attr
-            proc.save()
-            rv = call_func(proc, *process_args, **process_kwargs)
+            rv = unwrapped_func(proc, *args, **kwargs)
             if proc.errors:
-                # Should be impossible unless the process has called self.fail or tampered
-                # with self.errors somehow, which it should not do. We will treat it essentially
-                # as if it had raised an exception
-                proc.fail('completed with errors but no exception, should not happen', save=False)
+                # Should be impossible unless the process has tampered with self.errors, which
+                # it should not do. We will treat it essentially as if it had raised an exception
+                proc.fail('completed with errors but no exception, should not happen', complete=False)
             elif rv is None:
                 # All looks good
                 proc.on_success()
                 proc.process_status = ProcessStatus.SUCCESS
                 proc.complete_time = datetime.utcnow()
                 if proc.warnings:
-                    proc.last_status_message = f'Process {func_attr} completed with warnings'
+                    proc.last_status_message = f'Process {func_name} completed with warnings'
                 else:
-                    proc.last_status_message = f'Process {func_attr} completed successfully'
+                    proc.last_status_message = f'Process {func_name} completed successfully'
                 logger.info('completed process')
             elif rv == ProcessStatus.WAITING_FOR_RESULT:
                 # No errors, and the process requests to wait for other processes
@@ -664,23 +828,23 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
         return
     except SoftTimeLimitExceeded as e:
         logger.error('exceeded the celery task soft time limit')
-        proc.fail(e, save=False)
+        proc.fail(e, complete=False)
     except ProcessFailure as e:
         # Exception with details about how to call self.fail
-        proc.fail(*e._errors, save=False, log_level=e._log_level, **e._kwargs)
+        proc.fail(*e._errors, log_level=e._log_level, complete=False, **e._kwargs)
     except Exception as e:
-        proc.fail(e, save=False)
+        proc.fail(e, complete=False)
 
     # The proc is done running
     if is_child and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
         # Save and "switch" to the parent to try to join.
         try:
-            proc.save()
+            proc._sync_complete_process()  # Child processes are blocking, so their queues should be empty
             proc = proc.parent()
             logger = proc.get_logger()
             try_to_join = True
-        except Exception as e:
-            proc.fail(e)  # "Should not happen"
+        except Exception as e:  # "Should not happen"
+            proc.fail(e)
             return
 
     while try_to_join:
@@ -713,57 +877,56 @@ def proc_task(task, cls_name, self_id, func_attr, process_args, process_kwargs):
             return
         except SoftTimeLimitExceeded as e:
             logger.error('exceeded the celery task soft time limit')
-            proc.fail(e, save=False)
+            proc.fail(e, complete=False)
         except ProcessFailure as e:
             # Exception with details about how to call self.fail
-            proc.fail(*e._errors, save=False, log_level=e._log_level, **e._kwargs)
+            proc.fail(*e._errors, complete=False, log_level=e._log_level, **e._kwargs)
         except Exception as e:
-            proc.fail(e, save=False)
+            proc.fail(e, complete=False)
 
-    if isinstance(proc, Queueable) and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
-        # Check if something has been queued up while we were working on this process.
-        # Note that the new, completed status has not yet been saved to mongo
-        pass  # TODO: call the next @process
-    # Finally, save, unless we are deleting, or status is WAITING_FOR_RESULT (in which case
-    # it should already have been saved)
-    if not deleting and proc.process_status != ProcessStatus.WAITING_FOR_RESULT:
-        proc.save()
+    if not deleting and proc.process_status in ProcessStatus.STATUSES_COMPLETED:
+        # We are about to transition from RUNNING to completed (FAILURE or SUCCESS)
+        # But, if something is queued up we should actually go to PENDING instead, and
+        # trigger celery again
+        next_func_name = proc._sync_complete_process()
+        if next_func_name:
+            proc._trigger_worker(next_func_name)
 
 
-def process(is_child: bool = False, is_queueable: bool = False):
+def process(is_blocking: bool = False, is_child: bool = False):
     '''
-    The decorator for process functions that will be called async via celery.
-    All calls to the decorated method will result in celery task requests.
+    The decorator for process functions that will be queued up and executed async via celery.
     To transfer state, the instance will be saved to the database and loading on
     the celery task worker. Process methods can call other (process) functions/methods on
     other :class:`Proc` instances. Each :class:`Proc` instance can only run one process
-    at a time.
+    at a time. The Proc object should not have any unsaved changes when a process is invoked.
 
     Arguments:
+        is_blocking:
+            If True, this is a *blocking process*. After a blocking process has been scheduled,
+            no other processes can be scheduled, until this process has finished. Attempts to
+            invoke another process will in this case result in an exception.
         is_child:
             If this is a child process, which should try to join with the parent process when done.
-        is_queueable:
-            If invokations of this process should be queued up if a process is already running on
-            the object. Default is False, which means if a process of some kind is already
-            running, invoking this process will result in a :class:`ProcessAlreadyRunning`
-            exception.
+            Child processes are implicitly blocking.
     '''
+    if is_child:
+        is_blocking = True
+
     def process_decorator(func):
+        # Determine canonical class name
+        cls_name, func_name = func.__qualname__.split('.')
+        if is_blocking:
+            all_blocking_processes[cls_name].append(func_name)
+
         @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self.process_running:
-                if is_queueable:
-                    raise NotImplementedError('TODO')
-                raise ProcessAlreadyRunning('Another process is already running.')
-
-            self.current_process = func.__name__
-            self.process_status = ProcessStatus.PENDING
-            self.save()
-
-            self._run_process(func, args, kwargs)
+        def wrapper(self: Proc, *args, **kwargs):
+            was_processing = self._sync_schedule_process(func_name, *args, **kwargs)
+            if not was_processing:
+                # Was not processing anything previously. Trigger celery to start working.
+                self._trigger_worker(func_name)
 
         setattr(wrapper, '__process_unwrapped', func)
         setattr(wrapper, '__is_child', is_child)
-        setattr(wrapper, '__is_queueable', is_queueable)
         return wrapper
     return process_decorator
