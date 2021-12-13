@@ -78,7 +78,7 @@ def metainfo_undecorated():
     parsers.parsers
 
     # TODO this is otherwise not imported and will add nexus to the Package.registry
-    from nomad.datamodel.metainfo import nexus  # pylint: disable=unused-import
+    from nexusparser.metainfo import nexus  # pylint: disable=unused-import
 
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the

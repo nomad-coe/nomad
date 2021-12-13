@@ -76,6 +76,7 @@ from eelsdbparser import EELSDBParser
 from aflowparser import AFLOWParser
 from mpparser import MPParser
 from asrparser import ASRParser
+from nexusparser import NexusParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -223,7 +224,8 @@ parsers = [
     AFLOWParser(),
     MPParser(),
     ASRParser(),
-    ArchiveParser()
+    ArchiveParser(),
+    NexusParser()
 ]
 
 empty_parsers = [
