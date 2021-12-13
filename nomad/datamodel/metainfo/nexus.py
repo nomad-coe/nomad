@@ -170,8 +170,7 @@ def add_attributes(xml_node: ET.Element, section: Section):
     section.
     '''
     for attribute in xml_node.findall('nx:attribute', xml_namespaces):
-        attribute_section = create_attribute_section(attribute)
-        section.inner_section_definitions.append(attribute_section)
+        attribute_section = create_attribute_section(attribute, section)
 
         section.sub_sections.append(SubSection(
             section_def=attribute_section, nx_kind='attribute',
@@ -184,7 +183,7 @@ def add_group_properties(xml_node: ET.Element, section: Section):
     the given (empty) metainfo section definition.
     '''
     for group in xml_node.findall('nx:group', xml_namespaces):
-        group_section = create_group_section(group)
+        group_section = create_group_section(group, section)
         section.inner_section_definitions.append(group_section)
 
         if 'name' in group.attrib:
@@ -198,8 +197,7 @@ def add_group_properties(xml_node: ET.Element, section: Section):
             section_def=group_section, nx_kind='group', name=name, repeats=repeats))
 
     for field in xml_node.findall('nx:field', xml_namespaces):
-        field_section = create_field_section(field)
-        section.inner_section_definitions.append(field_section)
+        field_section = create_field_section(field, section)
 
         section.sub_sections.append(SubSection(
             section_def=field_section, nx_kind='field',
@@ -221,7 +219,22 @@ def add_template_properties(xml_node: ET.Element, section: Section):
                 in the nexus data.'''))
 
 
-def create_attribute_section(xml_node: ET.Element) -> Section:
+def add_base_section(section: Section, container: Section, default_base_section: Section = None):
+    '''
+    Potentially adds a base section to the given section, if the given container has
+    a base-section with a suitable base.
+    '''
+    base_section = container.all_inner_section_definitions.get(section.name, None)
+    if base_section:
+        assert base_section.nx_kind == section.nx_kind, 'base section has wrong nexus kind'
+    else:
+        base_section = default_base_section
+
+    if base_section:
+        section.base_sections = [base_section]
+
+
+def create_attribute_section(xml_node: ET.Element, container: Section) -> Section:
     '''
     Creates a metainfo section from the nexus attribute given as xml node.
     '''
@@ -231,12 +244,23 @@ def create_attribute_section(xml_node: ET.Element) -> Section:
     attribute_section = Section(
         validate=validate, nx_kind='attribute',
         name=to_camel_case(xml_attrs['name'], True) + 'Attribute')
+    add_base_section(attribute_section, container)
+    container.inner_section_definitions.append(attribute_section)
 
-    type: Any = get_enum(xml_node)
-    if type is None:
-        type = str
-    attribute_section.quantities.append(Quantity(
-        type=type, name='nx_value', description='The value for this nexus attribute'))
+    base_value_quantity = attribute_section.all_quantities.get('nx_value')
+    if base_value_quantity is None:
+        value_quantity = Quantity(
+            name='nx_value', description='The value for this nexus attribute')
+    else:
+        value_quantity = base_value_quantity.m_copy()
+    attribute_section.quantities.append(value_quantity)
+
+    enum_type = get_enum(xml_node)
+    if enum_type is not None:
+        value_quantity.tyoe = enum_type
+
+    if value_quantity.type is None:
+        value_quantity.type = str
 
     add_common_properties(xml_node, attribute_section)
     add_template_properties(xml_node, attribute_section)
@@ -244,32 +268,42 @@ def create_attribute_section(xml_node: ET.Element) -> Section:
     return attribute_section
 
 
-def create_field_section(xml_node: ET.Element):
+def create_field_section(xml_node: ET.Element, container: Section):
     '''
     Creates a metainfo section from the nexus field given as xml node.
     '''
     xml_attrs = xml_node.attrib
 
     assert 'name' in xml_attrs, 'field has not name'
-    field_section = Section(
-        validate=validate, nx_kind='field',
-        name=to_camel_case(xml_attrs['name'], True) + 'Field')
+    name = to_camel_case(xml_attrs['name'], True) + 'Field'
+    field_section = Section(validate=validate, nx_kind='field', name=name)
+    add_base_section(field_section, container)
+    container.inner_section_definitions.append(field_section)
 
     add_template_properties(xml_node, field_section)
 
-    value_quantity = Quantity(name='nx_value', description='The value for this nexus field')
+    base_value_quantity = field_section.all_quantities.get('nx_value')
+    if base_value_quantity:
+        value_quantity = base_value_quantity.m_copy()
+    else:
+        value_quantity = Quantity(name='nx_value', description='The value for this nexus field')
     field_section.quantities.append(value_quantity)
 
     if 'type' in xml_attrs:
         nx_type = xml_attrs['type']
         if nx_type not in _nx_types:
             raise NotImplementedError(f'type {nx_type} is not supported')
-        value_quantity.type = _nx_types[nx_type]
         field_section.more['nx_type'] = nx_type
-    else:
-        value_quantity.type = get_enum(xml_node)
-        if value_quantity.type is None:
-            value_quantity.type = Any
+
+        if value_quantity.type is None or value_quantity.type is Any or nx_type != 'NX_CHAR':
+            value_quantity.type = _nx_types[nx_type]
+
+    enum_type = get_enum(xml_node)
+    if enum_type:
+        value_quantity.type = enum_type
+
+    if value_quantity.type is None:
+        value_quantity.type = Any
 
     if 'units' in xml_attrs:
         field_section.more['nx_units'] = xml_attrs['units']
@@ -297,7 +331,7 @@ def create_field_section(xml_node: ET.Element):
     return field_section
 
 
-def create_group_section(xml_node: ET.Element) -> Section:
+def create_group_section(xml_node: ET.Element, container: Section) -> Section:
     '''
     Creates a metainfo section from the nexus group given as xml node.
     '''
@@ -309,9 +343,8 @@ def create_group_section(xml_node: ET.Element) -> Section:
     else:
         name = to_camel_case(type, True) + 'Group'
 
-    group_section = Section(
-        validate=validate, nx_kind='group', name=name,
-        base_sections=[get_or_create_section(type)])
+    group_section = Section(validate=validate, nx_kind='group', name=name)
+    add_base_section(group_section, container, get_or_create_section(type))
 
     add_common_properties(xml_node, group_section)
     add_template_properties(xml_node, group_section)
