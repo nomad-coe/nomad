@@ -31,6 +31,7 @@ from nomad.datamodel import EntryArchive
     pytest.param('base_classes.NXentry.DefaultAttribute.nx_value.type', str),
     pytest.param('base_classes.NXentry.nx_attribute_default', '*'),
     pytest.param('base_classes.NXentry.NXdataGroup', '*'),
+    pytest.param('base_classes.NXdetector.RealTimeField', '*'),
     pytest.param('base_classes.NXentry.NXdataGroup.nx_optional', True),
     pytest.param('base_classes.NXentry.nx_group_data.section_def.nx_kind', 'group'),
     pytest.param('base_classes.NXentry.nx_group_data.section_def.nx_optional', True),
@@ -40,8 +41,7 @@ from nomad.datamodel import EntryArchive
     pytest.param('base_classes.NXdetector.RealTimeField.nx_units', 'NX_TIME'),
     pytest.param('base_classes.NXdetector.RealTimeField.nx_unit', '*'),
     pytest.param('base_classes.NXdetector.RealTimeField.nx_value', '*'),
-    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False),
-    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False),
+    pytest.param('applications.NXarpes.NXentryGroup.NXdataGroup.nx_optional', False)
 ])
 def test_assert_nexus_metainfo(path: str, value: Any):
     segments = path.split('.')
@@ -66,6 +66,11 @@ def test_assert_nexus_metainfo(path: str, value: Any):
         assert current is None, f'{path} does exist'
     else:
         assert current == value, f'{path} has wrong value'
+
+    if isinstance(current, Section):
+        assert current.nx_kind is not None
+        for base_section in current.all_base_sections:
+            assert base_section.nx_kind == current.nx_kind
 
 
 def test_use_nexus_metainfo():
