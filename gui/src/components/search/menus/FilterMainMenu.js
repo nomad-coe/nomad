@@ -40,6 +40,7 @@ import FilterSubMenuAuthor from './FilterSubMenuAuthor'
 import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
 import FilterSubMenuIDs from './FilterSubMenuIDs'
+import FilterSubMenuArchive from './FilterSubMenuArchive'
 import {
   labelMaterial,
   labelElements,
@@ -58,7 +59,8 @@ import {
   labelDataset,
   labelIDs,
   labelAccess,
-  labelSpectroscopy
+  labelSpectroscopy,
+  labelArchive
 } from '../FilterRegistry'
 import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
@@ -117,6 +119,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
       <FilterMenuItem value={labelIDs} depth={0}/>
+      <FilterMenuItem value={labelArchive} depth={0}/>
       {resource === 'materials' &&
         <InputCheckbox
           quantity="combine"
@@ -146,6 +149,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>
         <FilterSubMenuIDs value={labelIDs}/>
+        <FilterSubMenuArchive value={labelArchive}/>
       </>}
     </FilterSubMenus>
   </FilterMenu>
