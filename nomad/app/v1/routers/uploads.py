@@ -753,7 +753,6 @@ async def put_upload_raw_path(
 
     _check_upload_not_processing(upload)  # Uploading the file could take long time
 
-    upload.reset()
     upload.process_upload(
         file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)))
 
@@ -806,7 +805,6 @@ async def delete_upload_raw_path(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='No file or folder with that path found.')
 
-    upload.reset()
     upload.process_upload(file_operation=dict(op='DELETE', path=path))
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
@@ -1139,7 +1137,6 @@ async def post_upload_action_process(
 
     _check_upload_not_processing(upload)
 
-    upload.reset()
     upload.process_upload()
     return UploadProcDataResponse(
         upload_id=upload_id,
