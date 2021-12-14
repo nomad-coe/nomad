@@ -25,7 +25,7 @@ import {
   addColumnDefaults,
   Datatable, DatatableLoadMorePagination, DatatableTable,
   DatatableToolbar, DatatableToolbarActions } from '../../datatable/Datatable'
-import { useQuery } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 const columns = [
   {key: 'results.material.chemical_formula_hill', label: 'Formula', align: 'left'},
@@ -84,11 +84,12 @@ addColumnDefaults(columns)
 const defaultSelectedColumns = [
   'results.material.chemical_formula_hill',
   'results.method.method_name',
-  'results.method.simulation.program_name',
-  'results.material.structural_type',
-  'results.material.symmetry.crystal_system']
+  'upload_create_time',
+  'authors'
+]
 
-const SearchResultsEntries = React.memo(function SearchResultsEntries(props) {
+const SearchResultsEntries = React.memo((props) => {
+  const { useQuery } = useSearchContext()
   const [selected, setSelected] = useState([])
   const searchQuery = useQuery()
   const {pagination, data} = props

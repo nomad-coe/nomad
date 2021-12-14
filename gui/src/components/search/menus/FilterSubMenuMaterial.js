@@ -19,9 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputText from '../input/InputText'
-import InputCheckboxes from '../input/InputCheckboxes'
-import InputSelect from '../input/InputSelect'
+import InputField from '../input/InputField'
 import { useUnits } from '../../../units'
 
 const FilterSubMenuMaterial = React.memo(({
@@ -35,27 +33,29 @@ const FilterSubMenuMaterial = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.material.structural_type"
           visible={visible}
           xs={12}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.material.functional_type"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.material.compound_type"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.material_name"
+          visible={visible}
           units={units}
         />
       </InputGridItem>

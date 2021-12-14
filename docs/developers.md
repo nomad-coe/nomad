@@ -332,97 +332,27 @@ nomad dev qa
 This mimiques the tests and checks that the GitLab CI/CD will perform.
 
 
-## Setup your (I)DE
+## Use an (I)DE
 
-The documentation section on development guidelines details how the code is organized,
-tested, formatted, and documented. To help you meet these guidelines, we recomment to
+The documentation section on development guidelines details (see below) how the code is organized,
+tested, formatted, and documented. To help you meet these guidelines, we recommend to
 use a proper IDE for development and ditch any VIM/Emacs (mal-)practices.
 
-### Visual Studio Code
+We strongly recommend that all developers use *visual studio code*, or *vscode* for short,
+(this is a copletely different producs than *visual studio*). It is available for free
+for all major platforms (here)[https://code.visualstudio.com/download].
 
-Here are some VSCode settings that will enable features for linting, some auto formating,
-line size ruler, etc.
-```json
-{
-    "python.venvPath": "${workspaceFolder}/.pyenv",
-    "python.pythonPath": "${workspaceFolder}/.pyenv/bin/python",
-    "editor.rulers": [90],
-    "editor.renderWhitespace": "all",
-    "editor.tabSize": 4,
-    "[javascript]": {
-        "editor.tabSize": 2
-    },
-    "files.trimTrailingWhitespace": true,
-    "editor.codeActionsOnSave": ["source.fixAll.eslint"],
-    "python.linting.pylintEnabled": true,
-    "python.linting.pylintArgs": [
-        "--load-plugins=pylint_mongoengine,nomad/metainfo/pylint_plugin",
-    ],
-    "python.linting.pycodestylePath": "pycodestyle",
-    "python.linting.pycodestyleEnabled": true,
-    "python.linting.pycodestyleArgs": ["--ignore=E501,E701,E731"],
-    "python.linting.mypyEnabled": true,
-    "python.linting.mypyArgs": [
-        "--ignore-missing-imports",
-        "--follow-imports=silent",
-        "--no-strict-optional"
-    ],
-    "files.watcherExclude": {
-        "**/.git/objects/**": true,
-        "**/.git/subtree-cache/**": true,
-        "**/node_modules/*/**": true,
-        "**/.pyenv/*/**": true,
-        "**/__pycache__/*/**": true,
-        "**/.mypy_cache/*/**": true,
-        "**/.volumes/*/**": true,
-        "**/docs/.build/*/**": true
-    }
-}
-```
+You should launch and run vscode directly from the projects root directory. The source
+code already contains settings for vscode in the `.vscode` directory. The settings
+contain the same setup for stylechecks, linter, etc. that is also used in our CI/CD
+pipelines. If you want to augment this with your own settings, you can have a
+`.vscode/settings.local.json`. This file is in .gitignore and only belongs to you.
 
-Here are some example launch configs for VSCode:
+The settings also include a few launch configuration for vscode's debugger. You can create
+your own launch configs in `.vscode/launch.json` (also in .gitignore).
 
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "chrome",
-      "request": "launch",
-      "name": "Launch Chrome against localhost",
-      "url": "http://localhost:3000",
-      "webRoot": "${workspaceFolder}/gui"
-    },
-    {
-      "name": "Python: some test",
-      "type": "python",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/.pyenv/bin/pytest",
-      "args": [
-        "-sv",
-        "tests/test_cli.py::TestClient::test_mirror"
-      ]
-    },
-    {
-      "name": "Python: Current File",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}"
-    },
-    {
-      "name": "Python: Attach",
-      "type": "python",
-      "request": "attach",
-      "localRoot": "${workspaceFolder}",
-      "remoteRoot": "${workspaceFolder}",
-      "port": 3000,
-      "secret": "my_secret",
-      "host": "localhost"
-    }
-  ]
-}
-```
+The settings exprect that you have installed a python environment at `.pyenv` as
+described in this tutorial (see above).
 
 ## Code guidelines
 

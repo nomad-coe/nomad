@@ -21,7 +21,7 @@ import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName } from './Browser'
 import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
@@ -29,7 +29,7 @@ import lime from '@material-ui/core/colors/lime'
 import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
-import { JsonCodeDialogButton } from '../CodeDialogButton'
+import { JsonCodeDialogButton } from '../buttons/CodeDialogButton'
 import Histogram from '../Histogram'
 import { appBase } from '../../config'
 import { useHistory, useRouteMatch } from 'react-router-dom'
@@ -519,7 +519,7 @@ const definitionLabels = {
 export function Title({def, isDefinition, data, kindLabel}) {
   const color = isDefinition ? 'primary' : 'initial'
   return <Compartment>
-    <Grid container justify="space-between" wrap="nowrap" spacing={1}>
+    <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
       <Grid item>
         <Typography color={color} variant="h6">{def.name}</Typography>
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />

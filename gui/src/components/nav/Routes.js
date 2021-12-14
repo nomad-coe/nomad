@@ -18,9 +18,10 @@
 
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Route, Switch } from 'react-router'
+import { Route } from 'react-router'
+import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import { matchPath, useLocation, Redirect, useHistory } from 'react-router-dom'
-import { Button, Tooltip } from '@material-ui/core'
+import { Button, makeStyles, Tooltip } from '@material-ui/core'
 import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import TutorialsPage from '../aitoolkit/TutorialsPage'
@@ -210,6 +211,7 @@ export const routes = [
       {
         path: 'search',
         exact: true,
+        cache: 'always',
         menu: 'Search your data',
         breadcrumb: 'Search your data',
         tooltip: 'Search the data you have uploaded',
@@ -230,12 +232,13 @@ export const routes = [
       {
         path: 'entries',
         exact: true,
+        cache: 'always',
         component: SearchPageEntries,
         menu: 'Entries Repository',
         tooltip: 'Search individual database entries',
         breadcrumb: 'Entries search',
         help: {
-          title: 'How to find and download data',
+          title: 'Searching for entries',
           content: searchEntriesHelp
         },
         routes: entryRoutes
@@ -243,12 +246,13 @@ export const routes = [
       {
         path: 'materials',
         exact: true,
+        cache: 'always',
         component: SearchPageMaterials,
         menu: 'Material Encyclopedia',
         tooltip: 'Search materials',
         breadcrumb: 'Materials search',
         help: {
-          title: 'How to find and download data',
+          title: 'Searching for materials',
           content: searchMaterialsHelp
         }
       }
@@ -371,8 +375,16 @@ routes.forEach(route => addRoute(route, ''))
 /**
  * Renders all the apps routes according to `routes`.
  */
+const useStyles = makeStyles((theme) => (
+  {
+    wrapper: {
+      height: '100%'
+    }
+  }
+))
 export const Routes = React.memo(function Routes() {
-  return <Switch>
+  const styles = useStyles()
+  return <CacheSwitch>
     {allRoutes
       .filter(route => route.path && (route.component || route.render || route.redirect || route.children))
       .map((route, i) => {
@@ -383,16 +395,21 @@ export const Routes = React.memo(function Routes() {
             to={route.redirect}
           />
         }
-        return <Route
+        const Comp = route.cache ? CacheRoute : Route
+        return <Comp
           key={i}
-          path={route.path} exact={route.exact}
-          component={route.component} render={route.render}
+          path={route.path}
+          exact={route.exact}
+          component={route.component}
+          render={route.render}
+          when={route.cache}
+          className={route.cache && styles.wrapper}
         >
           {route.children || undefined}
-        </Route>
+        </Comp>
       })}
     <Redirect from="/" to="/about/information" />
-  </Switch>
+  </CacheSwitch>
 })
 
 /**
@@ -417,18 +434,20 @@ export function getUrl(path, location) {
   return `${url}/${path}`
 }
 
-export const RouteButton = React.forwardRef(function RouteButton(props, ref) {
-  const {component, path, ...moreProps} = props
+export const RouteButton = React.forwardRef((props, ref) => {
+  const {component, onClick, path, ...moreProps} = props
   const location = useLocation()
   const history = useHistory()
   const handleClick = (event) => {
     event.stopPropagation()
+    onClick && onClick(event)
     history.push(getUrl(path, location))
   }
   return React.createElement(component || Button, {onClick: handleClick, ...moreProps, ref: ref})
 })
 RouteButton.propTypes = {
   path: PropTypes.string.isRequired,
+  onClick: PropTypes.func,
   component: PropTypes.elementType
 }
 
@@ -438,7 +457,7 @@ RouteButton.propTypes = {
  * @param {string} entryId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const EntryButton = React.forwardRef(function EntryButton(props, ref) {
+export const EntryButton = React.forwardRef((props, ref) => {
   const {uploadId, entryId, ...moreProps} = props
   const path = `entry/id/${uploadId}/${entryId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
@@ -453,7 +472,7 @@ EntryButton.propTypes = {
  * @param {string} datasetId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const DatasetButton = React.forwardRef(function DatasetButton(props, ref) {
+export const DatasetButton = React.forwardRef((props, ref) => {
   const {datasetId, ...moreProps} = props
   const path = `dataset/id/${datasetId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
@@ -467,7 +486,7 @@ DatasetButton.propTypes = {
  * @param {string} uploadId
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
-export const UploadButton = React.forwardRef(function DatasetButton(props, ref) {
+export const UploadButton = React.forwardRef((props, ref) => {
   const {uploadId, ...moreProps} = props
   const path = `upload/id/${uploadId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />

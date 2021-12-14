@@ -42,6 +42,7 @@ const InputSection = React.memo(({
   label,
   section,
   description,
+  nested,
   className,
   classes,
   children,
@@ -56,7 +57,8 @@ const InputSection = React.memo(({
   const title = label || def?.name
 
   return <inputSectionContext.Provider value={{
-    section: section
+    section: section,
+    nested: nested
   }}>
     <InputTooltip>
       <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -66,8 +68,8 @@ const InputSection = React.memo(({
           description={desc}
           className={styles.label}
           variant="section"
-          disableAggSize
           disableStatistics
+          disableScale
         />
         {children}
       </div>
@@ -79,14 +81,11 @@ InputSection.propTypes = {
   label: PropTypes.string,
   section: PropTypes.string.isRequired,
   description: PropTypes.string,
+  nested: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node,
   'data-testid': PropTypes.string
-}
-
-InputSection.defaultProps = {
-  initialScale: 1
 }
 
 export default InputSection

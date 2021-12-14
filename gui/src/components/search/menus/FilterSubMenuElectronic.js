@@ -21,7 +21,7 @@ import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputSection from '../input/InputSection'
 import InputSlider from '../input/InputSlider'
-import InputCheckboxes from '../input/InputCheckboxes'
+import InputField from '../input/InputField'
 import { Quantity, useUnits } from '../../../units'
 
 const step = new Quantity(0.1, 'electron_volt')
@@ -40,10 +40,12 @@ const FilterSubMenuElectronic = React.memo(({
         <InputSection
           section="results.properties.electronic.band_structure_electronic.band_gap"
           visible={visible}
+          nested
         >
-          <InputCheckboxes
+          <InputField
             quantity="results.properties.electronic.band_structure_electronic.band_gap.type"
             visible={visible}
+            disableSearch
           />
           <InputSlider
             quantity="results.properties.electronic.band_structure_electronic.band_gap.value"
@@ -54,9 +56,10 @@ const FilterSubMenuElectronic = React.memo(({
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="electronic_properties"
           visible={visible}
+          disableSearch
         />
       </InputGridItem>
     </InputGrid>

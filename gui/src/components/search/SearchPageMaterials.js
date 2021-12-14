@@ -20,9 +20,10 @@ import Search from './Search'
 import { SearchContext } from './SearchContext'
 
 export const help = `
-This page allows you to **search** in NOMAD's data. NOMAD's *domain-aware*
-search allows you to screen data by filtering based on desired properties. This
-is different from basic *text-search* that traditional search engines offer.
+This page allows you to **search materials** within NOMAD. NOMAD can
+automatically detect the material from individual entries and can then group the
+data by using these detected materials. This allows you to search individual
+materials which have properties that are aggregated from several entries.
 
 The search page consists of three main elements: the filter panel, the search
 bar, and the result list.
@@ -35,20 +36,25 @@ the available search filters and their meaning.
 The search bar allows you to specify filters by typing them in and pressing
 enter. You can also start by simply typing keywords of interest, which will
 toggle a list of suggestions. For numerical data you can also use range queries,
-e.g. \`0.0 < band_gap <= 0.1\`. The units used in the queries can be changed in
-the settings.
+e.g. \`0.0 < band_gap <= 0.1\`.
 
-The result list is automatically updated according to the filters you have
-specified. You can browse through the results by simply scrolling through the
-available items. Here you can also change the sorting of the results, modify the
-displayed columns, access individual entries or even download selections of the
-data. The results tabs gives you a quick overview of all entries and datasets
-that fit your search and it is automatically updated based on your filters. You
-can browse through all of the results by scrolling down the list. Here you can
-also change the sorting of the results, modify the displayed columns, access
-individual entries or even download selections of the data. The arrow button
-shown for each entry will navigate you to that entry's page.  This entry page
-will show more metadata, raw files, the entry's archive, and processing logs.
+The units used in the filter panel and in the queries can be changed
+using the **units** button on the top right corner. When using the search bar,
+you can also specify a unit by typing the unit abbreviations, e.g. \`band_gap >=
+0.1 Ha\`.
+
+Notice that by default the properties that you search can be combined from
+several different entries. If instead you wish to search for a material with an
+individual entry fullfilling your search criteria, uncheck the **combine results
+from several entries**-checkbox.
+
+The result list on the right is automatically updated according to the filters
+you have specified. You can scroll through the available items and load more
+results as you go. Here you can also change the sorting of the results, modify
+the displayed columns and access individual materials. The ellipsis button shown
+for each material will navigate you into the material overview page within the
+NOMAD Encyclopedia. This page will show a more detailed overview for that
+specific material.
 `
 
 const SearchPageMaterials = React.memo(() => {

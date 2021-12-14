@@ -120,7 +120,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     count={pagination.total}
     rowsPerPage={pagination.page_size}
     page={pagination.page - 1}
-    onChangePage={handleChangePage}
+    onPageChange={handleChangePage}
     onChangeRowsPerPage={handleChangeRowsPerPage}
   />
 })
@@ -536,7 +536,7 @@ const useDatatableToolbarStyles = makeStyles(theme => ({
 
 /** A toolbar shown on top of tables. It shows a title, general table actions, and actions
  * on selected rows. Must be child of a Datatable */
-export const DatatableToolbar = React.memo(function DatatableToolbar({children, title}) {
+export const DatatableToolbar = React.memo(function DatatableToolbar({children, title, hideColumns}) {
   const classes = useDatatableToolbarStyles()
   const {selected} = useDatatableContext()
   return (
@@ -555,13 +555,14 @@ export const DatatableToolbar = React.memo(function DatatableToolbar({children, 
         </Typography>
       )}
       {children}
-      {!(selected?.length > 0) && <DatatableColumnSelector />}
+      {!hideColumns && !(selected?.length > 0) && <DatatableColumnSelector />}
     </Toolbar>
   )
 })
 DatatableToolbar.propTypes = {
   /** Optional table title */
   title: PropTypes.string,
+  hideColumns: PropTypes.bool,
   /** Children, e.g. DatatableToolbarActions for general and selection actions. */
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),

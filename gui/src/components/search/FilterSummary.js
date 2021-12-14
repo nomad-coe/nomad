@@ -22,12 +22,8 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import { FilterChip, FilterChipGroup } from './FilterChip'
-import {
-  useFiltersState,
-  useFiltersLockedState,
-  filterAbbreviations,
-  filterData
-} from './SearchContext'
+import { useSearchContext } from './SearchContext'
+import { filterAbbreviations } from './FilterRegistry'
 import { useUnits } from '../../units'
 
 /**
@@ -57,6 +53,7 @@ const FilterSummary = React.memo(({
   className,
   classes
 }) => {
+  const { filterData, useFiltersState, useFiltersLockedState } = useSearchContext()
   const [filters, setFilter] = useFiltersState(quantities)
   const filtersLocked = useFiltersLockedState(quantities)
   const theme = useTheme()
@@ -139,7 +136,7 @@ const FilterSummary = React.memo(({
       newChips.push(item)
     }
     return newChips
-  }, [filtersLocked, units])
+  }, [filterData, filtersLocked, units])
 
   if (quantities) {
     for (let quantity of quantities) {

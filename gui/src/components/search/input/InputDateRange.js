@@ -27,7 +27,7 @@ import { isNil } from 'lodash'
 import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
-import { useAgg, useFilterState, useFilterLocked } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import { getTime } from 'date-fns'
 import { dateFormat } from '../../../config'
 
@@ -69,6 +69,7 @@ const InputDateRange = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
@@ -78,7 +79,8 @@ const InputDateRange = React.memo(({
   const locked = useFilterLocked(quantity)
   const agg = useAgg(quantity, visible)
   const [startGlobal, endGlobal] = agg?.data || [undefined, undefined]
-  const disabled = locked || (startGlobal === null || endGlobal === null)
+  const unavailable = startGlobal === null || endGlobal === null
+  const disabled = locked || unavailable
 
   // If no filter has been specified by the user, the range is automatically
   // adjusted according to global min/max of the field. If filter is set, the
@@ -156,54 +158,57 @@ const InputDateRange = React.memo(({
     handleAccept(startDate, endDate)
   }, [startDate, endDate, handleAccept])
 
-  return <InputTooltip locked={locked} disabled={disabled}>
-    <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputHeader
-        quantity={quantity}
-        label={title}
-        description={desc}
-        disableStatistics
-      />
-      <div className={styles.row}>
-        <KeyboardDatePicker
-          error={!!error}
-          className={styles.date}
-          disabled={disabled}
-          variant="inline"
-          inputVariant="outlined"
-          label="Start date"
-          format={dateFormat}
-          value={startDate}
-          invalidDateMessage=""
-          InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleStartAccept}
-          onChange={handleStartChange}
-          onBlur={handleBlurAccept}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
-        />
-        <div className={styles.dash}>-</div>
-        <KeyboardDatePicker
-          error={!!error}
-          className={styles.date}
-          disabled={disabled}
-          variant="inline"
-          inputVariant="outlined"
-          label="End date"
-          format={dateFormat}
-          value={endDate}
-          invalidDateMessage=""
-          InputAdornmentProps={{ position: 'start' }}
-          onAccept={handleEndAccept}
-          onChange={handleEndChange}
-          onBlur={handleBlurAccept}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
-        />
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <InputHeader
+      quantity={quantity}
+      label={title}
+      description={desc}
+      disableStatistics
+      disableScale
+    />
+    <InputTooltip locked={locked} unavailable={unavailable}>
+      <div>
+        <div className={styles.row}>
+          <KeyboardDatePicker
+            error={!!error}
+            className={styles.date}
+            disabled={disabled}
+            variant="inline"
+            inputVariant="outlined"
+            label="Start date"
+            format={dateFormat}
+            value={startDate}
+            invalidDateMessage=""
+            InputAdornmentProps={{ position: 'start' }}
+            onAccept={handleStartAccept}
+            onChange={handleStartChange}
+            onBlur={handleBlurAccept}
+            onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
+          />
+          <div className={styles.dash}>-</div>
+          <KeyboardDatePicker
+            error={!!error}
+            className={styles.date}
+            disabled={disabled}
+            variant="inline"
+            inputVariant="outlined"
+            label="End date"
+            format={dateFormat}
+            value={endDate}
+            invalidDateMessage=""
+            InputAdornmentProps={{ position: 'start' }}
+            onAccept={handleEndAccept}
+            onChange={handleEndChange}
+            onBlur={handleBlurAccept}
+            onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
+          />
+        </div>
+        {error && <FormHelperText error>
+          {error}
+        </FormHelperText>}
       </div>
-      {error && <FormHelperText error>
-        {error}
-      </FormHelperText>}
-    </div>
-  </InputTooltip>
+    </InputTooltip>
+  </div>
 })
 
 InputDateRange.propTypes = {

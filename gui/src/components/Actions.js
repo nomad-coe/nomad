@@ -27,13 +27,9 @@ const useActionsStyles = makeStyles((theme) => ({
     width: '100%',
     boxSizing: 'border-box',
     alignItems: 'center'
-  },
-  spacer: {
-    flexGrow: 1
   }
 }))
 export const Actions = React.memo(({
-  header,
   justifyContent,
   className,
   classes,
@@ -48,14 +44,11 @@ export const Actions = React.memo(({
   const dynamicStyles = useDynamicStyles()
 
   return <div className={clsx(className, styles.root, dynamicStyles.root)}>
-    {header}
-    {header && <div className={styles.spacer}></div>}
     {children}
   </div>
 })
 
 Actions.propTypes = {
-  header: PropTypes.any, // A text message or component to display at the left side of the actions
   justifyContent: PropTypes.string, // The flexbox justification of buttons
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -64,6 +57,35 @@ Actions.propTypes = {
 
 Actions.defaultProps = {
   justifyContent: 'flex-end'
+}
+
+const useActionHeaderStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+    height: '100%'
+  },
+  spacer: {
+    flexGrow: 1
+  }
+}))
+export const ActionHeader = React.memo(({
+  disableSpacer,
+  className,
+  classes,
+  children
+}) => {
+  const styles = useActionHeaderStyles({classes: classes})
+  return <div className={clsx(className, styles.root)}>
+    {children}
+    {!disableSpacer && <div className={styles.spacer}></div>}
+  </div>
+})
+
+ActionHeader.propTypes = {
+  disableSpacer: PropTypes.bool, // Used to disable flexbox spacer
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.node
 }
 
 const useActionStyles = makeStyles((theme) => ({

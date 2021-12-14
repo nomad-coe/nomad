@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 import React, { useEffect, useRef, useState } from 'react'
-import { makeStyles, fade } from '@material-ui/core/styles'
+import { makeStyles, alpha } from '@material-ui/core/styles'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { useResizeDetector } from 'react-resize-detector'
+import { useWindowSize } from '../../hooks'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 
@@ -47,7 +48,7 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     width: '100%',
     height: '2rem',
-    backgroundColor: fade(theme.palette.background.default, 0.8),
+    backgroundColor: alpha(theme.palette.background.default, 0.8),
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -82,14 +83,15 @@ const Scrollable = React.memo(({
 }) => {
   const refRoot = useRef()
   const { height, ref } = useResizeDetector()
+  const { windowHeight } = useWindowSize()
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [isTop, setIsTop] = useState(true)
   const [isBottom, setIsBottom] = useState(false)
   const styles = useStyles({classes: classes})
   const scrollStyles = useScrollStyles({classes: {scrollBar: classes?.scrollBar}})
 
-  // When the height of children changes, redetermine whether to show
-  // scrollhints
+  // When the height of children changes or the window size changes, redetermine
+  // whether to show scrollhints
   useEffect(() => {
     const element = refRoot?.current
     if (element) {
@@ -97,7 +99,7 @@ const Scrollable = React.memo(({
       const overflowing = scrollHeight > 0
       setIsOverflowing(overflowing)
     }
-  }, [height])
+  }, [height, windowHeight])
 
   // Attach event listener for checking if scrolled to top or bottom
   useEffect(() => {

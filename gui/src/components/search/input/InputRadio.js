@@ -22,7 +22,7 @@ import clsx from 'clsx'
 import InputHeader from './InputHeader'
 import InputItem from './InputItem'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -45,6 +45,7 @@ const InputRadio = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const { useFilterState, useFilterLocked } = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -64,6 +65,7 @@ const InputRadio = React.memo(({
       label={title}
       description={desc}
       disableStatistics
+      disableScale
     />
     {options && Object.entries(options).map(([key, value]) =>
       <InputItem
@@ -75,6 +77,7 @@ const InputRadio = React.memo(({
         onChange={handleChange}
         tooltip={value.tooltip}
         variant="radio"
+        disableStatistics
       />
     )}
   </div>

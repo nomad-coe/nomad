@@ -28,6 +28,7 @@ import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
+import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired } from './api'
 
 const keycloak = Keycloak({
@@ -49,6 +50,7 @@ export default function App() {
                     <ErrorBoundary>
                       <GlobalLoginRequired>
                         <Navigation />
+                        <GUIMenu/>
                       </GlobalLoginRequired>
                     </ErrorBoundary>
                   </ErrorSnacks>

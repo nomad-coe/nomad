@@ -216,3 +216,9 @@
 [submodule "dependencies/nomad-remote-tools-hub"]
 	path = dependencies/nomad-remote-tools-hub
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git
+[submodule "dependencies/parsers/psi4"]
+	path = dependencies/parsers/psi4
+	url = https://github.com/nomad-coe/nomad-parser-psi4.git
+[submodule "dependencies/parsers/yambo"]
+	path = dependencies/parsers/yambo
+	url = https://github.com/nomad-coe/nomad-parser-yambo.git

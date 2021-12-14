@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { createMuiTheme } from '@material-ui/core'
+import { createTheme } from '@material-ui/core'
 
 window.nomadEnv = window.nomadEnv || {}
 export const version = window.nomadEnv.version
@@ -55,7 +55,7 @@ export const nomadFontFamily = [
   'sans-serif'
 ].join(',')
 
-export const nomadTheme = createMuiTheme({
+export const nomadTheme = createTheme({
   typography: {
     useNextVariants: true,
     fontFamily: nomadFontFamily,
@@ -108,10 +108,6 @@ export const electronicRange = [-5, 10]
  * The default date format.
  */
 export const dateFormat = 'dd/MM/yyyy'
-/**
- * The debounce time for suggestions.
- */
-export const suggestionDebounceTime = 200
 /**
  * Warning shown when energy values could not be normalized.
  */

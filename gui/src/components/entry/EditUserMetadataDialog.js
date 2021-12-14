@@ -254,75 +254,6 @@ class MyAutosuggestUnstyled extends React.PureComponent {
 
 const MyAutosuggest = withStyles(MyAutosuggestUnstyled.styles)(MyAutosuggestUnstyled)
 
-class UserInputUnstyled extends React.Component {
-  static propTypes = {
-    value: PropTypes.string, // user_id
-    label: PropTypes.string,
-    error: PropTypes.bool,
-    api: PropTypes.object.isRequired,
-    onChange: PropTypes.func,
-    margin: PropTypes.any
-  }
-
-  suggestions(query) {
-    const {api} = this.props
-    query = query.toLowerCase()
-    return api.getUsers(query)
-      .then(users => {
-        users.forEach(user => update_local_user(user))
-        const withQueryInName = users.filter(
-          user => user.name.toLowerCase().indexOf(query) !== -1)
-        withQueryInName.sort((a, b) => {
-          const aValue = a.name.toLowerCase()
-          const bValue = b.name.toLowerCase()
-          if (aValue.startsWith(query)) {
-            return -1
-          } else if (bValue.startsWith(query)) {
-            return 1
-          } else {
-            return 0 // aValue.localeCompare(bValue)
-          }
-        })
-        return withQueryInName.slice(0, 5)
-      })
-      .catch(err => {
-        console.error(err)
-        return []
-      })
-  }
-
-  getSuggestionRenderValue(suggestion) {
-    const affiliation = suggestion.affiliation && suggestion.affiliation.trim()
-    return suggestion.name + (affiliation && ' (' + affiliation + ')')
-  }
-
-  getSuggestionValue(suggestion) {
-    return (suggestion && suggestion.name) || ''
-  }
-
-  handleChange(event) {
-    const value = event.target.value
-    this.props.onChange({target: {value: value ? value.user_id : value}})
-  }
-
-  render() {
-    const {label, error, value, margin} = this.props
-    const errorLabel = (value === undefined) && 'This user does not exist, you can invite new users'
-    return <MyAutosuggest onChange={this.handleChange.bind(this)} value={value ? local_users[value] : value}
-      suggestions={this.suggestions.bind(this)}
-      getSuggestionValue={this.getSuggestionValue.bind(this)}
-      getSuggestionRenderValue={this.getSuggestionRenderValue.bind(this)}
-      shouldRenderSuggestions={value => value.trim().length > 2}
-      margin={margin}
-      label={errorLabel || label}
-      error={!!(error || errorLabel)}
-      placeholder={`Type ${label}'s name and select a user from the list`}
-    />
-  }
-}
-
-const UserInput = withApi(UserInputUnstyled)
-
 class DatasetInputUnstyled extends React.Component {
   static propTypes = {
     value: PropTypes.string, // name
@@ -480,21 +411,6 @@ class ListTextInputUnstyled extends React.Component {
     onChange: PropTypes.func,
     component: PropTypes.any
   }
-
-  static styles = theme => ({
-    root: {},
-    row: {
-      display: 'flex'
-    },
-    buttonContainer: {
-      position: 'relative',
-      width: 52
-    },
-    button: {
-      position: 'absolute',
-      bottom: 0
-    }
-  })
 
   render() {
     const { classes, values, onChange, label, component, ...fieldProps } = this.props
@@ -1050,20 +966,6 @@ class EditUserMetadataDialogUnstyled extends React.Component {
                   component={ReferenceInput}
                   {...listTextInputProps('references', true)}
                   label="References"
-                />
-              </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('entry_coauthors', true)}>
-                <ListTextInput
-                  component={UserInput}
-                  {...listTextInputProps('entry_coauthors', true)}
-                  label="Co-author"
-                />
-              </UserMetadataField>
-              <UserMetadataField {...metadataFieldProps('reviewers', true)}>
-                <ListTextInput
-                  component={UserInput}
-                  {...listTextInputProps('reviewers', true)}
-                  label="Reviewers"
                 />
               </UserMetadataField>
               <UserMetadataField {...metadataFieldProps('datasets', true)}>

@@ -24,9 +24,10 @@ import {
   Typography
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import { isNil } from 'lodash'
 import clsx from 'clsx'
 import searchQuantities from '../../../searchQuantities'
-import { useFilterState, useFilterLocked } from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -49,6 +50,7 @@ const InputCheckbox = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
+  const { filterData, useFilterState, useFilterLocked } = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
 
@@ -65,7 +67,11 @@ const InputCheckbox = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <Tooltip title={desc}>
       <FormControlLabel
-        control={<Checkbox disabled={disabled} checked={filter === undefined ? initialValue : filter} onChange={handleChange}/>}
+        control={<Checkbox
+          disabled={disabled}
+          checked={isNil(filter) ? (isNil(initialValue) ? filterData[quantity].default : initialValue) : filter}
+          onChange={handleChange}
+        />}
         label={<Typography>{title}</Typography>}
       />
     </Tooltip>

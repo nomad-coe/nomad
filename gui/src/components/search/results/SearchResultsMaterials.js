@@ -68,7 +68,7 @@ const SearchResultsMaterials = React.memo(function SearchResultsMaterials(props)
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
   >
     <DatatableToolbar title={`${pagination.total} search results`} />
-    <DatatableTable actions={encyclopediaBase && VisitMaterialAction}>
+    <DatatableTable actions={encyclopediaBase ? VisitMaterialAction : undefined}>
       <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
     </DatatableTable>
   </Datatable>

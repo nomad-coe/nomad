@@ -24,13 +24,13 @@ import PropTypes from 'prop-types'
  */
 const InputTooltip = React.memo(({
   locked,
-  disabled,
+  unavailable,
   children
 }) => {
   return <Tooltip
     title={locked
       ? 'This filter is locked.'
-      : disabled ? 'No values available with current query.' : ''
+      : unavailable ? 'No options available with current query.' : ''
     }
     placement="bottom"
   >
@@ -40,12 +40,8 @@ const InputTooltip = React.memo(({
 
 InputTooltip.propTypes = {
   locked: PropTypes.bool,
-  disabled: PropTypes.bool,
+  unavailable: PropTypes.bool,
   children: PropTypes.node
-}
-
-InputTooltip.defaultProps = {
-  underscores: false
 }
 
 export default InputTooltip

@@ -20,8 +20,8 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { filterData } from '../SearchContext'
 import searchQuantities from '../../../searchQuantities'
+import { useSearchContext } from '../SearchContext'
 
 /**
  * Title for a search filter. The stylized name and description are
@@ -40,10 +40,15 @@ const InputTitle = React.memo(({
   variant,
   underscores,
   capitalize,
+  TooltipProps,
+  onMouseDown,
+  onMouseUp,
   className,
-  classes
+  classes,
+  style
 }) => {
   const styles = useStaticStyles({classes: classes})
+  const { filterData } = useSearchContext()
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
@@ -53,15 +58,18 @@ const InputTitle = React.memo(({
       label = !underscores ? label.replace(/_/g, ' ') : label
     }
     return label
-  }, [quantity, underscores])
+  }, [filterData, quantity, underscores])
 
   const finalDescription = description || searchQuantities[quantity]?.description
 
-  return <Tooltip title={finalDescription || ''} placement="bottom">
+  return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
     <Typography
       noWrap
       className={clsx(className, styles.root, capitalize && styles.capitalize)}
       variant={variant}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      style={style}
     >
       {finalLabel}
     </Typography>
@@ -75,7 +83,11 @@ InputTitle.propTypes = {
   underscores: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
-  capitalize: PropTypes.bool
+  style: PropTypes.object,
+  capitalize: PropTypes.bool,
+  TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
+  onMouseDown: PropTypes.func,
+  onMouseUp: PropTypes.func
 }
 
 InputTitle.defaultProps = {

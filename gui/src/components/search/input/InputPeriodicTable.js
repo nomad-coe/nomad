@@ -30,11 +30,7 @@ import InputCheckbox from './InputCheckbox'
 import InputHeader from './InputHeader'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
-import {
-  useFilterState,
-  useAgg,
-  useSearchContext
-} from '../SearchContext'
+import { useSearchContext } from '../SearchContext'
 import searchQuantities from '../../../searchQuantities'
 import { approxInteger } from '../../../utils'
 
@@ -290,6 +286,7 @@ const InputPeriodicTable = React.memo(({
   draggable
 }) => {
   const styles = useTableStyles()
+  const { useFilterState, useAgg } = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
@@ -376,7 +373,6 @@ const InputPeriodicTable = React.memo(({
           quantity="exclusive"
           label="only composition that exclusively contain these atoms"
           description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
-          initialValue={false}
         ></InputCheckbox>
       </div>
     </div>

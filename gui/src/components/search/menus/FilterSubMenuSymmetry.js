@@ -19,9 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputText from '../input/InputText'
-import InputCheckboxes from '../input/InputCheckboxes'
-import InputSelect from '../input/InputSelect'
+import InputField from '../input/InputField'
 
 const FilterSubMenuSymmetry = React.memo(({
   value,
@@ -33,49 +31,59 @@ const FilterSubMenuSymmetry = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.material.symmetry.bravais_lattice"
           visible={visible}
           xs={6}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.material.symmetry.crystal_system"
           visible={visible}
           xs={12}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.material.symmetry.structure_name"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.material.symmetry.strukturbericht_designation"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.symmetry.space_group_symbol"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.symmetry.point_group"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.symmetry.hall_symbol"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.symmetry.prototype_aflow_id"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>

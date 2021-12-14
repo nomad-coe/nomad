@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { Typography, makeStyles, Box, Grid, Link, Divider } from '@material-ui/core'
-import { ApiDialog } from '../ApiDialogButton'
+import { ApiDialog } from '../buttons/ApiDialogButton'
 import { Actions } from '../Actions'
 import Quantity from '../Quantity'
 import { Link as RouterLink } from 'react-router-dom'
@@ -79,7 +79,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-const OverviewView = React.memo(function OverviewView({entryId, ...moreProps}) {
+const OverviewView = React.memo(({entryId, ...moreProps}) => {
   const { raiseError } = useErrors()
   const [index, setIndex] = useState(null)
   const [exists, setExists] = useState(true)

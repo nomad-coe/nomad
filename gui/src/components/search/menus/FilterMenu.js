@@ -33,11 +33,13 @@ import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
 import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
+import RefreshIcon from '@material-ui/icons/Refresh'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
-import { Actions, Action } from '../../Actions'
-import { filterGroups, useResetFilters } from '../SearchContext'
+import { Actions, ActionHeader, Action } from '../../Actions'
+import { useSearchContext } from '../SearchContext'
+import { filterGroups } from '../FilterRegistry'
 import { MoreVert } from '@material-ui/icons'
 
 // The menu animations use a transition on the 'transform' property. Notice that
@@ -191,11 +193,13 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
+  const { useResetFilters, useRefresh } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
   const resetFilters = useResetFilters()
+  const refresh = useRefresh()
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -213,53 +217,61 @@ export const FilterMenuItems = React.memo(({
   return <div className={clsx(className, styles.root)}>
     <div
       className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}
-      classes={{containerInner: styles.overflow}} style={{position: 'sticky', top: '0px'}}>
-      <div className={styles.padding}>
-        <Actions
-          header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
-          className={styles.header}
-        >
-          <Action
-            tooltip="Clear filters"
-            onClick={() => resetFilters()}
-          >
-            <ClearIcon/>
-          </Action>
-          <Action
-            tooltip="Options"
-            onClick={openMenu}
-          >
-            <MoreVert/>
-          </Action>
-          <Menu
-            anchorEl={anchorEl}
-            open={isSettingsOpen}
-            onClose={closeMenu}
-            getContentAnchorEl={null}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            keepMounted
-          >
-            <div>
-              <FilterSettings/>
-            </div>
-          </Menu>
-          {!collapsed && <Action
-            tooltip={'Hide filter menu'}
-            onClick={() => {
-              onCollapsedChange(old => !old)
-              onOpenChange(false)
-            }}
-            className={styles.button}
-          >
-            <ArrowBackIcon/>
-          </Action>}
-        </Actions>
-        <List dense>
-          <Divider/>
-          {children}
-        </List>
-      </div>
+      classes={{containerInner: styles.overflow}}>
+      <Scrollable>
+        <div className={styles.padding}>
+          <Actions className={styles.header}>
+            <ActionHeader>
+              <Typography className={styles.headerText} variant="button">Filters</Typography>
+            </ActionHeader>
+            <Action
+              tooltip="Refresh results"
+              onClick={() => refresh()}
+            >
+              <RefreshIcon/>
+            </Action>
+            <Action
+              tooltip="Clear filters"
+              onClick={() => resetFilters()}
+            >
+              <ClearIcon/>
+            </Action>
+            <Action
+              tooltip="Options"
+              onClick={openMenu}
+            >
+              <MoreVert/>
+            </Action>
+            <Menu
+              anchorEl={anchorEl}
+              open={isSettingsOpen}
+              onClose={closeMenu}
+              getContentAnchorEl={null}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              keepMounted
+            >
+              <div>
+                <FilterSettings/>
+              </div>
+            </Menu>
+            {!collapsed && <Action
+              tooltip={'Hide filter menu'}
+              onClick={() => {
+                onCollapsedChange(old => !old)
+                onOpenChange(false)
+              }}
+              className={styles.button}
+            >
+              <ArrowBackIcon/>
+            </Action>}
+          </Actions>
+          <List dense>
+            <Divider/>
+            {children}
+          </List>
+        </div>
+      </Scrollable>
     </div>
     <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
       <Actions className={styles.header}>
@@ -454,10 +466,10 @@ export const FilterSubMenus = React.memo(({
     <div className={clsx(styles.menu, menuStyle, collapsed && styles.collapsed)}>
       <Scrollable>
         <div className={styles.padding}>
-          <Actions
-            header={<Typography className={styles.headerText} variant="button">{selected}</Typography>}
-            className={styles.header}
-          >
+          <Actions className={styles.header}>
+            <ActionHeader>
+              <Typography className={styles.headerText} variant="button">{selected}</Typography>
+            </ActionHeader>
             <Action
               tooltip="Close submenu"
               onClick={() => { onOpenChange(false) }}

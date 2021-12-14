@@ -369,11 +369,10 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
 
 
 @pytest.mark.parametrize(
-    'query,aggs,agg_lengths,total,status_code',
-    aggregation_exclude_from_search_test_parameters(entry_prefix='', total_per_entity=1, total=23))
-def test_entries_aggregations_exclude_from_search(client, data, query, aggs, agg_lengths, total, status_code):
-    aggs = {f'agg_{i}': {'terms': agg} for i, agg in enumerate(aggs)}
-
+    'query,agg_data,total,status_code',
+    aggregation_exclude_from_search_test_parameters(resource='entries', total_per_entity=1, total=23))
+def test_entries_aggregations_exclude_from_search(client, data, query, agg_data, total, status_code):
+    aggs, types, lengths = agg_data
     response_json = perform_entries_metadata_test(
         client, owner='visible',
         query=query, aggregations=aggs,
@@ -384,8 +383,8 @@ def test_entries_aggregations_exclude_from_search(client, data, query, aggs, agg
         return
 
     assert response_json['pagination']['total'] == total
-    for i, length in enumerate(agg_lengths):
-        response_agg = response_json['aggregations'][f'agg_{i}']['terms']
+    for i, (type, length) in enumerate(zip(types, lengths)):
+        response_agg = response_json['aggregations'][f'agg_{i}'][type]
         assert len(response_agg['data']) == length
 
 
