@@ -219,6 +219,3 @@
 [submodule "dependencies/parsers/yambo"]
 	path = dependencies/parsers/yambo
 	url = https://github.com/nomad-coe/nomad-parser-yambo.git
-[submodule "dependencies/nexus_definitions"]
-	path = dependencies/nexus_definitions
-	url = https://github.com/nexusformat/definitions
