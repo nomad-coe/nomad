@@ -33,6 +33,11 @@ class Parser(metaclass=ABCMeta):
     and extracted files. Further, allows to run the parser on those 'main files'.
     '''
     name = "parsers/parser"
+    level = 0
+    '''
+    Level 0 parsers are run first, then level 1, and so on. Normally the value should be 0,
+    use higher values only when a parser depends on other parsers.
+    '''
 
     def __init__(self):
         self.domain = 'dft'

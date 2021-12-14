@@ -507,7 +507,7 @@ def mock_failure(cls, function_name, monkeypatch):
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
 
 
-@pytest.mark.parametrize('function', ['update_files', 'parse_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize('function', ['update_files', 'match_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
     upload_id, _ = uploaded

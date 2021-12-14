@@ -30,7 +30,7 @@ calculations, and files
 
 from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 from mongoengine import (
-    StringField, DateTimeField, BooleanField, IntField, ListField)
+    StringField, DateTimeField, BooleanField, IntField, ListField, DictField)
 from pymongo import UpdateOne
 from structlog import wrap_logger
 from contextlib import contextmanager
@@ -900,20 +900,14 @@ class Calc(Proc):
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
     @process(is_child=True)
-    def process_calc(self, reprocess_settings: Dict[str, Any] = None):
-        '''
-        Processes (or reprocesses) a calculation.
-
-        Arguments:
-            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
-                Settings that are not specified are defaulted. See `config.reprocess` for
-                available options and the configured default values.
-        '''
+    def process_calc(self):
+        ''' Processes or reprocesses a calculation. '''
         logger = self.get_logger()
         if self.upload is None:
             logger.error('calculation upload does not exist')
 
-        settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        # Load the reprocess settings from the upload, and apply defaults
+        settings = config.reprocess.customize(self.upload.reprocess_settings)
 
         self.set_last_status_message('Determining action')
         # If this entry has been processed before, or imported from a bundle, nomad_version
@@ -968,10 +962,6 @@ class Calc(Proc):
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
-
-        else:
-            # 2b. Keep staging entry as it is
-            pass
 
     def on_fail(self):
         # in case of failure, create a minimum set of metadata and mark
@@ -1046,81 +1036,6 @@ class Calc(Proc):
                 raise ProcessFailure('parser failed with exception', exc_info=e, error=str(e), **context)
             except SystemExit:
                 raise ProcessFailure('parser raised system exit', error='system exit', **context)
-
-    def process_phonon(self):
-        """Function that is run for phonon calculation before cleanup.
-        This task is run by the celery process that is calling the join for the
-        upload.
-
-        This function re-opens the Archive for this calculation to add method
-        information from another referenced archive. Updates the method
-        information as well as the DFT domain metadata.
-        """
-        try:
-            logger = self.get_logger()
-
-            # Open the archive of the phonon calculation.
-            upload_files = StagingUploadFiles(self.upload_id)
-            with upload_files.read_archive(self.calc_id) as archive:
-                arch = archive[self.calc_id]
-                phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
-            self._entry_metadata = phonon_archive.metadata
-            self._calc_proc_logs = phonon_archive.processing_logs
-
-            # Re-create the parse results
-            self._parser_results = phonon_archive
-
-            # Read in the first referenced calculation. The reference is given as
-            # an absolute path which needs to be converted into a path that is
-            # relative to upload root.
-            scc = self._parser_results.run[0].calculation[0]
-            calculation_refs = scc.calculations_path
-            if calculation_refs is None:
-                logger.error("No calculation_to_calculation references found")
-                return
-
-            relative_ref = scc.calculations_path[0]
-            ref_id = generate_entry_id(self.upload_id, relative_ref)
-
-            with upload_files.read_archive(ref_id) as archive:
-                arch = archive[ref_id]
-                ref_archive = EntryArchive.m_from_dict(arch.to_dict())
-
-            # Get method information directly from the referenced calculation.
-            ref_method = ref_archive.results.method
-            if not ref_method:
-                logger.error("No method information available in referenced calculation.")
-                return
-
-            # Overwrite old entry with new data. The metadata is updated with
-            # new timestamp and method details taken from the referenced
-            # archive. The program name and version are kept.
-            ref_method.simulation.program_name = self._parser_results.results.method.simulation.program_name
-            ref_method.simulation.program_version = self._parser_results.results.method.simulation.program_version
-            self._parser_results.results.method = ref_method
-            self._entry_metadata.last_processing_time = datetime.utcnow()
-        except Exception as e:
-            logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
-            if self._entry_metadata is None:
-                self._initialize_metadata_for_processing()
-            self._entry_metadata.processed = False
-        finally:
-            # persist the calc metadata
-            with utils.timer(logger, 'calc metadata saved'):
-                self._apply_metadata_to_mongo_entry(self._entry_metadata)
-
-            # index in search
-            with utils.timer(logger, 'calc metadata indexed'):
-                assert self._parser_results.metadata == self._entry_metadata
-                search.index(self._parser_results)
-
-            # persist the archive
-            with utils.timer(
-                    logger, 'calc archived',
-                    input_size=self.mainfile_file.size) as log_data:
-
-                archive_size = self.write_archive(self._parser_results)
-                log_data.update(archive_size=archive_size)
 
     def normalizing(self):
         ''' The process step that encapsulates all normalizing related actions. '''
@@ -1264,7 +1179,10 @@ class Upload(Proc):
     oasis_deployment_id = StringField(default=None)
     published_to = ListField(StringField())
 
+    # Process parameters and state vars that need to be persisted during the process
     publish_directly = BooleanField(default=False)
+    reprocess_settings = DictField(default=None)
+    parser_level = IntField(default=None)
 
     meta: Any = {
         'strict': False,
@@ -1530,11 +1448,20 @@ class Upload(Proc):
         '''
         logger = self.get_logger()
         logger.info('starting to (re)process')
-
+        reprocess_settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        self.reprocess_settings = reprocess_settings
+        if self.published:
+            assert not file_operation, 'Upload is published, cannot update files'
+            assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
+                'Settings do no allow reprocessing of a published upload')
         self.update_files(file_operation)
-        self.parse_all(reprocess_settings)
-        self.set_last_status_message('Waiting for entry results')
-        return ProcessStatus.WAITING_FOR_RESULT
+        self.match_all(reprocess_settings)
+        self.parser_level = None
+        if self.parse_next_level(0):
+            self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
+            return ProcessStatus.WAITING_FOR_RESULT
+        else:
+            self.cleanup()
 
     @property
     def upload_files(self) -> UploadFiles:
@@ -1551,8 +1478,10 @@ class Upload(Proc):
 
     def update_files(self, file_operation: Dict[str, Any]):
         '''
-        The process step performed before the actual parsing/normalizing: executes the pending
-        file operations.
+        Performed before the actual parsing/normalizing. It first ensures that there is a
+        folder for the upload in the staging area (if the upload is published, the files
+        will be temporarily extracted to the staging area for processing). It will then
+        execute the file operation specified (if `file_operation` is set).
         '''
         logger = self.get_logger()
 
@@ -1645,23 +1574,21 @@ class Upload(Proc):
                     'exception while matching pot. mainfile',
                     mainfile=path_info.path, exc_info=e)
 
-    def parse_all(self, reprocess_settings: Dict[str, Any] = None):
+    def match_all(self, reprocess_settings):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
-        creates respective :class:`Calc` instances, and triggers their processing.
+        creates respective :class:`Calc` instances (if needed), and reset all entries states.
 
         Arguments:
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        self.set_last_status_message('Parsing all files')
+        self.set_last_status_message('Matching')
         logger = self.get_logger()
 
         try:
-            settings = config.reprocess.customize(reprocess_settings)  # Add default settings
-
-            if not self.published or settings.rematch_published:
+            if not self.published or reprocess_settings.rematch_published:
                 with utils.timer(logger, 'matching completed'):
                     old_entries = set([entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)])
                     for filename, parser in self.match_mainfiles():
@@ -1678,7 +1605,7 @@ class Upload(Proc):
                             old_entries.remove(calc_id)
                         except KeyError:
                             # No existing entry found
-                            if not self.published or settings.add_matched_entries_to_published:
+                            if not self.published or reprocess_settings.add_matched_entries_to_published:
                                 entry = Calc.create(
                                     calc_id=calc_id,
                                     mainfile=filename,
@@ -1689,9 +1616,9 @@ class Upload(Proc):
 
                     # Delete old entries
                     if len(old_entries) > 0:
-                        entries_to_delete: List[str] = list(old_entries)
-                        logger.warn('Some entries did not match', count=len(entries_to_delete))
-                        if not self.published or settings.delete_unmatched_published_entries:
+                        logger.warn('Some entries did not match', count=len(old_entries))
+                        if not self.published or reprocess_settings.delete_unmatched_published_entries:
+                            entries_to_delete: List[str] = list(old_entries)
                             delete_partial_archives_from_mongo(entries_to_delete)
                             for calc_id in entries_to_delete:
                                 search.delete_entry(entry_id=calc_id, update_materials=True)
@@ -1706,11 +1633,42 @@ class Upload(Proc):
                     dict(upload_id=self.upload_id),
                     {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
 
-            # process call calcs
-            with utils.timer(logger, 'calcs processing called'):
-                for entry in Calc.objects(upload_id=self.upload_id):
-                    entry.process_calc(reprocess_settings=settings)
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            logger.error('failed to trigger processing of all entries', exc_info=e)
+            if self.published:
+                self._cleanup_staging_files()
+            raise
 
+    def parse_next_level(self, min_level: int) -> bool:
+        '''
+        Triggers processing on the next level of parsers (parsers with level >= min_level).
+        Returns True if there is a next level of parsers that require processing.
+        '''
+        try:
+            logger = self.get_logger()
+            next_level: int = None
+            next_entries: List[Calc] = None
+            with utils.timer(logger, 'calcs processing called'):
+                # Determine what the next level is and which entries belongs to this level
+                for entry in Calc.objects(upload_id=self.upload_id):
+                    parser = parser_dict.get(entry.parser_name)
+                    if parser:
+                        level = parser.level
+                        if level >= min_level:
+                            if next_level is None or level < next_level:
+                                next_level = level
+                                next_entries = [entry]
+                            elif level == next_level:
+                                next_entries.append(entry)
+                if next_entries:
+                    self.parser_level = next_level
+                    logger.info('Triggering next level', next_level=next_level, n_entries=len(next_entries))
+                    self.set_last_status_message(f'Parsing level {next_level}')
+                    for entry in next_entries:
+                        entry.process_calc()
+                    return True
+            return False
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to trigger processing of all entries', exc_info=e)
@@ -1723,17 +1681,12 @@ class Upload(Proc):
 
     def join(self):
         '''
-        Called when all child processes (if any) on Calc are done. Performs phonon calculations
-        and cleanup.
+        Called when all child processes (if any) on Calc are done. Process the next level
+        of parsers (if any), otherwise cleanup and finalize the process.
         '''
-        # Before cleaning up, run an additional normalizer on phonon
-        # calculations. TODO: This should be replaced by a more
-        # extensive mechanism that supports more complex dependencies
-        # between calculations.
-        phonon_calculations = Calc.objects(upload_id=self.upload_id, parser_name="parsers/phonopy")
-        for calc in phonon_calculations:
-            calc.process_phonon()
-
+        if self.parse_next_level(self.parser_level + 1):
+            self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
+            return ProcessStatus.WAITING_FOR_RESULT
         self.cleanup()
 
     def cleanup(self):
@@ -1743,6 +1696,8 @@ class Upload(Proc):
         '''
         self.set_last_status_message('Cleanup')
         logger = self.get_logger()
+
+        self.reprocess_settings = None  # Don't need this anymore
 
         if self.published:
             # We have reprocessed an already published upload
