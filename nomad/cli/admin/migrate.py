@@ -359,6 +359,9 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
 
     # Check if the parser exists
     parser_name = entry_dict.get('parser_name')
+    if parser_name == 'parsers/gpaw2':
+        parser_name = 'parsers/gpaw'
+    entry_dict['parser_name'] = parser_name
     assert parser_name in parser_dict, f'Parser does not exist: {parser_name}'
 
 
