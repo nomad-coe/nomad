@@ -4,11 +4,11 @@ set -e
 
 pip install --upgrade pip
 
-git submodule sync
+git submodule sync --recursive
 sleep 5
 
 # Install sub-modules
-git submodule update --init --jobs=4
+git submodule update --init --recursive --jobs=4
 ./dependencies.sh -e
 
 # Install nomad
