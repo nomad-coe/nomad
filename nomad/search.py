@@ -128,10 +128,17 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
     '''
     def elastic_updates():
         for calc in calcs:
-            entry = calc.a_elastic.create_index_entry()
-            entry = entry.to_dict(include_meta=True)
-            entry['_op_type'] = 'index'
-            yield entry
+            try:
+                entry = calc.a_elastic.create_index_entry()
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+
+                yield entry
+
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'could not create index doc', exc_info=e,
+                    upload_id=calc.upload_id, calc_id=calc.calc_id)
 
     _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
 
