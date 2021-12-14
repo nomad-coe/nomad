@@ -92,7 +92,8 @@ const InputItem = React.memo(({
   disableSelect,
   className,
   classes,
-  'data-testid': testID
+  'data-testid': testID,
+  ...moreProps
 }) => {
   const styles = useStyles(classes)
   const { useIsStatisticsEnabled } = useSearchContext()
@@ -154,6 +155,7 @@ const InputItem = React.memo(({
             marginRight: (labelPlacement === 'start' ? -8 : undefined),
             marginLeft: (labelPlacement === 'end' ? -8 : undefined)
           }}
+          {...moreProps}
         />}
         label={labelComponent}
       />

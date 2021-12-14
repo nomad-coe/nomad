@@ -357,7 +357,7 @@ function Section({section, def, parent, units}) {
   }
 
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
-  let sub_sections = def.sub_sections
+  let sub_sections = def._allProperties.filter(prop => prop.m_def === 'SubSection')
   if (def.name === 'EntryArchive') {
     // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
     sub_sections = [...def.sub_sections]
