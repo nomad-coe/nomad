@@ -461,6 +461,8 @@ class RestrictedDict(OrderedDict):
 
 def strip(docstring):
     ''' Removes any unnecessary whitespaces from a multiline doc string or description. '''
+    if docstring is None:
+        return None
     return inspect.cleandoc(docstring)
 
 

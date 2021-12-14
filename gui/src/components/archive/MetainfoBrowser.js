@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName } from './Browser'
-import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
+import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button, Tooltip, Link } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
@@ -67,6 +67,8 @@ If you bookmark this page, you can save the definition represented by the highli
 
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
+
+const showInnerSectionDefinitions = false
 
 function defCompare(a, b) {
   return a.name.localeCompare(b.name)
@@ -154,7 +156,7 @@ export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
     return new SectionDefAdaptor(obj)
   } else if (obj.m_def === 'SubSection') {
-    return new Error('SubSections are not represented in the browser')
+    return new SubSectionDefAdaptor(obj)
   } else if (obj.m_def === 'Quantity') {
     return new QuantityDefAdaptor(obj)
   } else if (obj.m_def === 'Category') {
@@ -277,18 +279,39 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
     if (key === '_baseSection') {
       return metainfoAdaptorFactory(resolveRef(this.e.base_sections[0]))
     }
-    const property = this.e._properties[key]
-    if (!property) {
-      return super.itemAdaptor(key)
-    } else {
-      if (property.m_def === 'SubSection') {
-        return metainfoAdaptorFactory(resolveRef(property.sub_section))
+
+    if (key.includes('@')) {
+      const [type, name] = key.split('@')
+      if (type === 'innerSectionDef') {
+        const innerSectionDef = this.e.inner_section_definitions.find(def => def.name === name)
+        if (innerSectionDef) {
+          return metainfoAdaptorFactory(innerSectionDef)
+        }
       }
+    }
+
+    const property = this.e._properties[key]
+    if (property) {
       return metainfoAdaptorFactory(property)
     }
+
+    return super.itemAdaptor(key)
   }
   render() {
     return <SectionDef def={this.e} />
+  }
+}
+
+class SubSectionDefAdaptor extends MetainfoAdaptor {
+  constructor(e) {
+    super(e)
+    this.sectionDefAdaptor = new SectionDefAdaptor(resolveRef(e.sub_section))
+  }
+  itemAdaptor(key) {
+    return this.sectionDefAdaptor.itemAdaptor(key)
+  }
+  render() {
+    return <SubSectionDef def={this.e} />
   }
 }
 
@@ -307,11 +330,14 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
   }
 }
 
-function SectionDef({def}) {
+function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
     if (def._package.name.startsWith('nomad')) {
+      return true
+    }
+    if (def._package.name.startsWith('nexus')) {
       return true
     }
     if (metainfoConfig.packagePrefix) {
@@ -322,9 +348,10 @@ function SectionDef({def}) {
     }
     return false
   }
-  return <Content style={{backgroundColor: 'grey'}}>
-    <Definition def={def} kindLabel="section definition" />
-    {def.extends_base_section &&
+
+  return <React.Fragment>
+    <DefinitionProperties def={def} />
+    {def.base_sections.length > 0 &&
       <Compartment title="base section">
         {def.base_sections.map(baseSectionRef => {
           const baseSection = resolveRef(baseSectionRef)
@@ -334,13 +361,6 @@ function SectionDef({def}) {
         })}
       </Compartment>
     }
-    <Compartment title="squalified name">
-      <Typography>
-        <Box fontWeight="bold" component="span">
-          {def._qualifiedName}
-        </Box>
-      </Typography>
-    </Compartment>
     <Compartment title="sub section definitions">
       {def.sub_sections.filter(filter)
         .map(subSectionDef => {
@@ -375,21 +395,82 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
+    {showInnerSectionDefinitions && <Compartment title="inner section definitions">
+      {def.inner_section_definitions.filter(filter)
+        .map(innerSectionDef => {
+          const key = `innerSectionDef@${innerSectionDef.name}`
+          const categories = innerSectionDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
+          return <Item key={key} itemKey={key}>
+            <Box component="span" whiteSpace="nowrap">
+              <Typography component="span" color={unused && 'error'}>
+                <Box fontWeight="bold" component="span">
+                  {innerSectionDef.name}
+                </Box>
+              </Typography>
+            </Box>
+          </Item>
+        })
+      }
+    </Compartment>}
     <DefinitionDetails def={def} />
+  </React.Fragment>
+}
+SectionDefContent.propTypes = ({
+  def: PropTypes.object
+})
+
+function SectionDef({def}) {
+  return <Content style={{backgroundColor: 'grey'}}>
+    <Definition def={def} kindLabel="section definition" />
+    <SectionDefContent def={def} />
   </Content>
 }
 SectionDef.propTypes = ({
   def: PropTypes.object
 })
 
+function SubSectionDef({def}) {
+  const sectionDef = resolveRef(def.sub_section)
+  return <React.Fragment>
+    <Content>
+      <Title def={def} isDefinition kindLabel="sub section definition" />
+      <DefinitionDocs def={sectionDef} />
+      <SectionDefContent def={sectionDef} />
+    </Content>
+  </React.Fragment>
+}
+SubSectionDef.propTypes = ({
+  def: PropTypes.object
+})
+
+function DefinitionProperties({def, children}) {
+  if (!(children || def.aliases?.length || def.deprecated || Object.keys(def.more).length)) {
+    return ''
+  }
+
+  return <Compartment title="properties">
+    {children}
+    {def.aliases?.length && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
+    {def.deprecated && <Typography><b>deprecated</b>: {def.deprecated}</Typography>}
+    {Object.keys(def.more).map((moreKey, i) => (
+      <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
+    ))}
+  </Compartment>
+}
+DefinitionProperties.propTypes = ({
+  def: PropTypes.object,
+  children: PropTypes.any
+})
+
 function QuantityDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="quantity definition"/>
-    <Compartment title="properties">
+    <DefinitionProperties def={def}>
       {def.type.type_kind !== 'reference'
         ? <Typography>
           <b>type</b>:&nbsp;
-          {def.type.type_data}&nbsp;
+          {Array.isArray(def.type.type_data) ? def.type.type_data.join(', ') : def.type.type_data}&nbsp;
           {def.type.type_kind !== 'data' && `(${def.type.type_kind})`}
         </Typography>
         : <Item itemKey="_reference">
@@ -403,26 +484,44 @@ function QuantityDef({def}) {
       </Typography>
       {def.unit &&
         <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
-      {def.aliases && def.aliases !== [] && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
+      {def.default &&
+        <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
       {def.derived && <Typography><b>derived</b></Typography>}
-    </Compartment>
-    <DefinitionDetails def={def} />
+    </DefinitionProperties>
   </Content>
 }
 QuantityDef.propTypes = ({
   def: PropTypes.object
 })
 
-function Definition({def, ...props}) {
+function DefinitionDocs({def}) {
   return <React.Fragment>
-    <Title def={def} isDefinition {...props} />
     {def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
-          <Markdown>{def.description}</Markdown>
+          {def._qualifiedName.startsWith('nexus')
+            ? <Typography>{def.description}</Typography>
+            : <Markdown>{def.description}</Markdown>}
         </Box>
       </Compartment>
     }
+    {def.links?.length &&
+      <Compartment title="links">
+        {def.links.map((link, i) => <div key={i}>
+          <Link href={link} key={i}>{link.includes('manual.nexusformat.org') ? 'nexus manual' : link}</Link>
+        </div>)}
+      </Compartment>
+    }
+  </React.Fragment>
+}
+DefinitionDocs.propTypes = {
+  def: PropTypes.object.isRequired
+}
+
+function Definition({def, ...props}) {
+  return <React.Fragment>
+    <Title def={def} isDefinition {...props} />
+    <DefinitionDocs def={def} />
   </React.Fragment>
 }
 Definition.propTypes = {
@@ -521,7 +620,9 @@ export function Title({def, isDefinition, data, kindLabel}) {
   return <Compartment>
     <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
       <Grid item>
-        <Typography color={color} variant="h6">{def.name}</Typography>
+        <Tooltip title={def._qualifiedName || def.name}>
+          <Typography color={color} variant="h6">{def.name}</Typography>
+        </Tooltip>
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
       </Grid>
       <Grid item>

@@ -29,6 +29,7 @@ const addDef = def => {
     defsForName.push(def)
   }
   defs.push(def)
+  def.more = def.more || {}
 }
 
 function sortDefs(defs) {
@@ -45,19 +46,24 @@ metainfo.packages.forEach(pkg => {
   pkg.category_definitions = pkg.category_definitions || []
   pkg.section_definitions = pkg.section_definitions || []
   pkg.category_definitions.forEach(categoryDef => {
-    categoryDef._qualifiedName = `${pkg.name}:${categoryDef.name}`
+    categoryDef._qualifiedName = `${pkg.name}.${categoryDef.name}`
     categoryDef._package = pkg
     addDef(categoryDef)
   })
-  pkg.section_definitions.forEach(sectionDef => {
+
+  const addSectionDef = (sectionDef, parentDef) => {
     pkg._sections[sectionDef.name] = sectionDef
+    sectionDef.base_sections = sectionDef.base_sections || []
     sectionDef.quantities = sectionDef.quantities || []
     sectionDef.sub_sections = sectionDef.sub_sections || []
+    sectionDef.inner_section_definitions = sectionDef.inner_section_definitions || []
     sectionDef._incomingRefs = sectionDef._incomingRefs || []
     sectionDef._parentSections = sectionDef._parentSections || []
     sectionDef._parentSubSections = sectionDef._parentSubSections || []
-    sectionDef._qualifiedName = `${pkg.name}:${sectionDef.name}`
+    sectionDef._qualifiedName = parentDef ? `${parentDef._qualifiedName || parentDef.name}.${sectionDef.name}` : sectionDef.name
     sectionDef._package = pkg
+
+    sectionDef.inner_section_definitions.forEach(innerSectionDef => addSectionDef(innerSectionDef, sectionDef))
 
     const addPropertiesFromSections = sections => sections
       .map(ref => resolveRef(ref)).forEach(extendingSectionDef => {
@@ -71,8 +77,6 @@ metainfo.packages.forEach(pkg => {
     sectionDef.extending_sections = sectionDef.extending_sections || []
     addPropertiesFromSections(sectionDef.extending_sections)
     if (!sectionDef.extends_base_section) {
-      addPropertiesFromSections(sectionDef.base_sections)
-      sectionDef.base_sections = sectionDef.base_sections || []
       addDef(sectionDef)
     }
 
@@ -81,7 +85,7 @@ metainfo.packages.forEach(pkg => {
       sectionDef._properties[property.name] = property
       if (!sectionDef.extends_base_section) {
         property._section = sectionDef
-        property._qualifiedName = `${sectionDef._qualifiedName}:${property.name}`
+        property._qualifiedName = `${sectionDef._qualifiedName}.${property.name}`
       }
       property._parentSections = [sectionDef]
       property._package = pkg
@@ -105,7 +109,9 @@ metainfo.packages.forEach(pkg => {
       subSectionsSectionDef._parentSubSections.push(subSection)
       subSection._section = sectionDef
     })
-  })
+  }
+
+  pkg.section_definitions.forEach(sectionDef => addSectionDef(sectionDef, pkg))
 })
 
 export const rootSections = sortDefs(defs.filter(def => (
@@ -186,7 +192,12 @@ export function path(nameOrDef) {
 
   const path = []
   while (def) {
-    const parentSubSection = def._parentSubSections && def._parentSubSections[0]
+    const parentSection = def
+    const parentSubSection = def._parentSubSections && def._parentSubSections.filter(
+      // Filter for direct recursions in the possible section containment.
+      // This only catches direct connections where a sub section uses its parent
+      // section as the sub section definition
+      subSection => parentSection !== subSection._section)[0]
     if (parentSubSection) {
       def = parentSubSection
     }

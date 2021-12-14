@@ -143,6 +143,7 @@ const useLaneStyles = makeStyles(theme => ({
     display: 'inline-block'
   },
   container: {
+    minWidth: 300,
     display: 'inline-block',
     height: '100%',
     overflowY: 'scroll'
@@ -280,7 +281,7 @@ List.propTypes = ({
 })
 
 export function Content({children}) {
-  return <Box padding={1} paddingRight={2} maxWidth={1024}>
+  return <Box padding={1} maxWidth={1024}>
     {children}
   </Box>
 }
@@ -296,7 +297,7 @@ export function Compartment({title, children, color}) {
     return ''
   }
   return <React.Fragment>
-    <Box paddingTop={1}>
+    <Box paddingTop={1} whiteSpace="nowrap">
       {title && <Typography color={color} variant="overline">{title}</Typography>}
     </Box>
     {children}

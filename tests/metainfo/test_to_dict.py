@@ -18,9 +18,11 @@
 
 import pytest
 import numpy as np
+import yaml
 
 from nomad.metainfo import (
     MSection, MCategory, Quantity, SubSection)
+from nomad.metainfo.metainfo import Datetime, Package
 
 # resolve_references are tested in .test_references
 # type specific serialization is tested in .test_quantities
@@ -133,3 +135,84 @@ def test_transform(example):
     root = dict(**expected_root)
     root.update(scalar='other_value')
     assert example.m_to_dict(transform=transform) == root
+
+
+def test_schema_deserialization():
+    schema_yaml = '''
+name: advanced_metainfo_example
+section_definitions:
+  - name: BaseSection
+    quantities:
+      - name: notes
+        type: str
+        description: |
+          Additinoal notes about this section in Markdown
+        links:
+          - http://markdown.org
+        format: Markdown
+
+    inner_section_definitions:
+      - name: 'User'
+        quantities:
+          - name: first_name
+            type: str
+          - name: last_name
+            type: str
+          - name: email
+            type: str
+            format: email
+            optional: true
+
+    sub_sections:
+      - name: authors
+        section_def: User
+        description: The user that authored this section
+        repeats: true
+
+  - name: ApplicationSection
+    inner_section_definitions:
+      - name: User
+        base_sections:
+          - BaseSection.User
+        quantities:
+          - name: user_id
+            type: int
+          - name: email
+            deprecated: 'Use user_id as repacement'
+    sub_sections:
+      - name: authors
+        sub_section: User
+      - name: data
+        section_def: ApplicationData
+        repeats: true
+
+  - name: ApplicationData
+    quantities:
+      - name: name
+        type: str
+      - name: value
+        type: str
+      - name: related
+        type: ApplicationData
+      - name: time
+        type: Datetime
+      - name: floaty
+        type: np.float64
+    '''
+
+    schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
+    pkg = Package.m_from_dict(schema_dict)
+    pkg.init_metainfo()
+
+    inner_section = pkg.section_definitions[1].inner_section_definitions[0]  # pylint: disable=all
+    inner_section_base = inner_section.base_sections[0].m_resolved()
+    base_inner_section = pkg.section_definitions[0].inner_section_definitions[0]
+    application_data = pkg.all_definitions['ApplicationData']
+
+    assert inner_section_base == base_inner_section
+    assert pkg.all_definitions['ApplicationSection'].all_properties['authors'].section_def.m_resolved() == inner_section
+    assert pkg.all_definitions['ApplicationSection'].all_properties['data'].section_def.m_resolved() == pkg.all_definitions['ApplicationData']
+    assert application_data.all_properties['name'].type == str
+    assert application_data.all_properties['related'].type.target_section_def.m_resolved() == application_data
+    assert application_data.all_properties['time'].type == Datetime
+    assert application_data.all_properties['floaty'].type == np.float64
