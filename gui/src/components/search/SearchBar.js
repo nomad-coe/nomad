@@ -18,7 +18,7 @@
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { debounce, isNil } from 'lodash'
+import { isNil } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
@@ -27,21 +27,18 @@ import {
   TextField,
   CircularProgress,
   Paper,
-  Divider,
-  Tooltip,
-  Typography
+  Tooltip
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
-import { useApi } from '../api'
 import { useUnits } from '../../units'
 import { DType, getDatatype } from '../../utils'
+import { useSuggestions } from '../../hooks'
 import { useSearchContext, toGUIFilterSingle } from './SearchContext'
+import searchQuantities from '../../searchQuantities'
 import {
   filterFullnames,
   filterAbbreviations
 } from './FilterRegistry'
-import searchQuantities from '../../searchQuantities'
-import { suggestionDebounceTime } from '../../config'
 
 const opMap = {
   '<=': 'lte',
@@ -121,27 +118,31 @@ const SearchBar = React.memo(({
     useSetFilters,
     useFiltersLocked
   } = useSearchContext()
-  const [suggestions, setSuggestions] = useState([])
-  const [loading, setLoading] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [suggestionInput, setSuggestionInput] = useState('')
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  const [showExamples, setShowExamples] = useState(false)
-  const {api} = useApi()
   const filtersLocked = useFiltersLocked()
   const setFilter = useSetFilters()
-  const quantitySet = filters
+  const quantitySetSuggestable = useMemo(
+    () => new Set([...filters].filter(q => searchQuantities[q]?.suggestion)),
+    [filters]
+  )
+  const [quantityList, setQuantityList] = useState([...quantitySetSuggestable])
+  const [suggestions, loading] = useSuggestions(quantityList, suggestionInput)
   const quantitySuggestions = useMemo(() => {
     const suggestions = []
     for (let q of filters) {
-      suggestions.push({
-        value: filterAbbreviations[q] || q,
-        category: 'quantity name'
-      })
+      if (!filterData[q].nested) {
+        suggestions.push({
+          value: filterAbbreviations[q] || q,
+          category: 'quantity name'
+        })
+      }
     }
     return suggestions
-  }, [filters])
+  }, [filterData, filters])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -160,7 +161,7 @@ const SearchBar = React.memo(({
     if (equals) {
       const quantityName = equals[1]
       quantityFullname = filterFullnames[quantityName] || quantityName
-      if (!quantitySet.has(quantityFullname)) {
+      if (!filters.has(quantityFullname)) {
         setError(`Unknown quantity name`)
         return
       }
@@ -182,8 +183,8 @@ const SearchBar = React.memo(({
         const b = ltegte[3]
         const aFullname = filterFullnames[a]
         const bFullname = filterFullnames[b]
-        const isAQuantity = quantitySet.has(aFullname)
-        const isBQuantity = quantitySet.has(bFullname)
+        const isAQuantity = filters.has(aFullname)
+        const isBQuantity = filters.has(bFullname)
         if (!isAQuantity && !isBQuantity) {
           setError(`Unknown quantity name`)
           return
@@ -223,7 +224,7 @@ const SearchBar = React.memo(({
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
-        const isBQuantity = quantitySet.has(quantityFullname)
+        const isBQuantity = filters.has(quantityFullname)
         if (!isBQuantity) {
           setError(`Unknown quantity name`)
           return
@@ -258,15 +259,12 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue, quantitySet])
+  }, [inputValue, filtersLocked, filters, units, setFilter, filterData])
 
   // Handle clear button
   const handleClose = useCallback(() => {
     setInputValue('')
-    setSuggestions([])
     setOpen(false)
-    setShowExamples(true)
   }, [])
 
   const handleHighlight = useCallback((event, value, reason) => {
@@ -288,33 +286,6 @@ const SearchBar = React.memo(({
     }
   }, [open, highlighted, handleSubmit])
 
-  const suggestionCall = useCallback((quantityList, value) => {
-    setLoading(true)
-    // If some input is given, and the quantity supports suggestions, we use
-    // input suggester to suggest values
-    const filteredList = quantityList.filter(q => searchQuantities[q]?.suggestion)
-    api.suggestions(filteredList, value)
-      .then(data => {
-        let res = []
-        for (let q of filteredList) {
-          const name = filterAbbreviations[q] || q
-          const esSuggestions = data[q]
-          if (esSuggestions) {
-            res = res.concat(esSuggestions.map(suggestion => ({
-              value: `${name}=${suggestion.value}`,
-              category: name
-            })))
-          }
-        }
-        setSuggestions(res)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-      .finally(() => setLoading(false))
-  }, [api])
-  const suggestionDebounced = useCallback(debounce(suggestionCall, suggestionDebounceTime), [])
-
   // Handle typing events. After a debounce time has expired, a list of
   // suggestion will be retrieved if they are available for this metainfo and
   // the input is deemed meaningful.
@@ -322,51 +293,45 @@ const SearchBar = React.memo(({
     setError(error => error ? undefined : null)
     setInputValue(value)
     value = value?.trim()
-    setShowExamples(!value)
     if (!value) {
-      setSuggestions([])
+      setSuggestionInput('')
       setOpen(false)
-      setShowExamples(true)
       return
     } else {
       setOpen(true)
-      setShowExamples(false)
     }
     if (reason !== 'input') {
-      setSuggestions([])
+      setSuggestionInput('')
       setOpen(false)
     }
-    // If the input is prefixed with a proper quantity name and an equals-sign,
-    // we extract the quantity name and the typed input
+
+    // If some input is given, and the quantity supports suggestions, we use
+    // input suggester to suggest values. If the input is prefixed with a proper
+    // quantity name and an equals-sign, we extract the quantity name and the
+    // typed input
     const split = value.split('=', 2)
-    let quantityList = [...filters]
+    let quantityList = [...quantitySetSuggestable]
     if (split.length === 2) {
       const quantityName = split[0].trim()
       const quantityFullname = filterFullnames[quantityName]
-      if (quantitySet.has(quantityName)) {
+      if (quantitySetSuggestable.has(quantityName)) {
         quantityList = [quantityName]
         value = split[1].trim()
-      } else if (quantitySet.has(quantityFullname)) {
+      } else if (quantitySetSuggestable.has(quantityFullname)) {
         quantityList = [quantityFullname]
         value = split[1].trim()
       }
     }
-
-    setLoading(true)
-    // If some input is given, and the quantity supports suggestions, we use
-    // input suggester to suggest values
-    if (value.length > 0) {
-      suggestionDebounced(quantityList, value)
-    // TODO: If no input is given, we suggest Enum values, or for non-enum quantities
-    // use terms aggregation.
-    } else {
-      setLoading(false)
-    }
-  }, [filters, quantitySet, suggestionDebounced])
+    setQuantityList(quantityList)
+    setSuggestionInput(value)
+  }, [quantitySetSuggestable])
 
   // This determines the order: notice that items should be sorted by group
   // first in order for the grouping to work correctly.
   const options = useMemo(() => {
+    for (let suggestion of suggestions) {
+      suggestion.value = `${suggestion.category}=${suggestion.value}`
+    }
     return suggestions.concat(quantitySuggestions)
   }, [quantitySuggestions, suggestions])
 
@@ -378,8 +343,6 @@ const SearchBar = React.memo(({
       inputValue={inputValue}
       value={null}
       open={open}
-      onFocus={() => setShowExamples(true)}
-      onBlur={() => setShowExamples(false)}
       onOpen={() => { if (inputValue.trim() !== '') { setOpen(true) } }}
       onClose={() => setOpen(false)}
       fullWidth
@@ -398,7 +361,7 @@ const SearchBar = React.memo(({
           {...params}
           className={styles.textField}
           variant="outlined"
-          placeholder=""
+          placeholder="Start typing a query or a keyword to get relevant suggestions."
           label={error || undefined}
           error={!!error}
           onKeyDown={handleEnter}
@@ -408,6 +371,11 @@ const SearchBar = React.memo(({
             classes: {
               notchedOutline: styles.notchedOutline
             },
+            startAdornment: <Tooltip title="Add filter">
+              <IconButton onClick={handleSubmit} className={styles.iconButton} aria-label="search">
+                <SearchIcon />
+              </IconButton>
+            </Tooltip>,
             endAdornment: (<>
               {loading ? <CircularProgress color="inherit" size={20} /> : null}
               {(inputValue?.length || null) && <>
@@ -416,21 +384,12 @@ const SearchBar = React.memo(({
                     <CloseIcon />
                   </IconButton>
                 </Tooltip>
-                <Divider className={styles.divider} orientation="vertical"/>
               </>}
-              <Tooltip title="Add filter">
-                <IconButton onClick={handleSubmit} className={styles.iconButton} aria-label="search">
-                  <SearchIcon />
-                </IconButton>
-              </Tooltip>
             </>)
           }}
         />
       )}
     />
-    {showExamples && <CustomPaper className={styles.examples}>
-      <Typography>{'Start typing a query or a keyword to get relevant suggestions.'}</Typography>
-    </CustomPaper>}
   </Paper>
 })
 

@@ -18,16 +18,13 @@
  */
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Slider,
-  TextField,
-  FormHelperText
-} from '@material-ui/core'
+import { Slider, FormHelperText } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
+import { InputTextField } from './InputText'
 import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
@@ -47,7 +44,8 @@ const useStyles = makeStyles(theme => ({
     boxSizing: 'border-box'
   },
   textField: {
-    marginTop: theme.spacing(1),
+    marginTop: 0,
+    marginBotton: 0,
     flexGrow: 1,
     width: '10rem'
   },
@@ -69,10 +67,6 @@ const useStyles = makeStyles(theme => ({
     '&:focusVisible': {
       boxShadow: '0px 0px 0px 6px rgb(0, 141, 195, 16%)'
     }
-  },
-  input: {
-    padding: '16px 12px',
-    textOverflow: 'ellipsis'
   }
 }))
 const InputSlider = React.memo(({
@@ -93,7 +87,7 @@ const InputSlider = React.memo(({
   const startChanged = useRef(false)
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
-  const agg = useAgg(quantity, visible, true)
+  const agg = useAgg(quantity, visible)
   const [minGlobalSI, maxGlobalSI] = agg?.data || [undefined, undefined]
   const [minText, setMinText] = useState('')
   const [maxText, setMaxText] = useState('')
@@ -113,7 +107,8 @@ const InputSlider = React.memo(({
   const unitLabel = unit && unit.label()
   const title = unitLabel ? `${name} (${unitLabel})` : name
   const stepSI = step instanceof Quantity ? step.toSI() : step
-  const disabled = locked || (minGlobalSI === null || maxGlobalSI === null || range === undefined)
+  const unavailable = (minGlobalSI === null || maxGlobalSI === null || range === undefined)
+  const disabled = locked || unavailable
 
   // The slider minimum and maximum are set according to global min/max of the
   // field.
@@ -262,59 +257,58 @@ const InputSlider = React.memo(({
     setError()
   }, [])
 
-  return <InputTooltip locked={locked} disabled={disabled}>
-    <div className={clsx(className, styles.root)} data-testid={testID}>
-      <InputHeader
-        quantity={quantity}
-        label={title}
-        description={desc}
-        disableStatistics
-      />
-      <div className={styles.inputRow}>
-        <TextField
-          disabled={disabled}
-          variant="outlined"
-          label="min"
-          className={styles.textField}
-          value={minText}
-          margin="normal"
-          onChange={handleChange(startChanged, setMinText)}
-          onBlur={handleMinSubmit}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleMinSubmit() } }}
-          InputProps={{classes: {input: styles.input}}}
-        />
-        <div className={styles.spacer}>
-          <Slider
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <InputHeader
+      quantity={quantity}
+      label={title}
+      description={desc}
+      disableStatistics
+      disableScale
+    />
+    <InputTooltip locked={locked} unavailable={unavailable}>
+      <div>
+        <div className={styles.inputRow}>
+          <InputTextField
             disabled={disabled}
-            color="secondary"
-            min={minLocal}
-            max={maxLocal}
-            step={stepSI}
-            value={[range.gte, range.lte]}
-            onChange={handleRangeChange}
-            onChangeCommitted={handleRangeCommit}
-            valueLabelDisplay="off"
-            classes={{thumb: styles.thumb, active: styles.active}}
+            label="min"
+            className={styles.textField}
+            value={minText}
+            margin="normal"
+            onChange={handleChange(startChanged, setMinText)}
+            onBlur={handleMinSubmit}
+            onKeyDown={(event) => { if (event.key === 'Enter') { handleMinSubmit() } }}
+          />
+          <div className={styles.spacer}>
+            <Slider
+              disabled={disabled}
+              color="secondary"
+              min={minLocal}
+              max={maxLocal}
+              step={stepSI}
+              value={[range.gte, range.lte]}
+              onChange={handleRangeChange}
+              onChangeCommitted={handleRangeCommit}
+              valueLabelDisplay="off"
+              classes={{thumb: styles.thumb, active: styles.active}}
+            />
+          </div>
+          <InputTextField
+            disabled={disabled}
+            label="max"
+            className={styles.textField}
+            value={maxText}
+            margin="normal"
+            onChange={handleChange(endChanged, setMaxText)}
+            onBlur={handleMaxSubmit}
+            onKeyDown={(event) => { if (event.key === 'Enter') { handleMaxSubmit() } }}
           />
         </div>
-        <TextField
-          disabled={disabled}
-          variant="outlined"
-          label="max"
-          className={styles.textField}
-          value={maxText}
-          margin="normal"
-          onChange={handleChange(endChanged, setMaxText)}
-          onBlur={handleMaxSubmit}
-          onKeyDown={(event) => { if (event.key === 'Enter') { handleMaxSubmit() } }}
-          InputProps={{classes: {input: styles.input}}}
-        />
+        {error && <FormHelperText error>
+          {error}
+        </FormHelperText>}
       </div>
-      {error && <FormHelperText error>
-        {error}
-      </FormHelperText>}
-    </div>
-  </InputTooltip>
+    </InputTooltip>
+  </div>
 })
 
 InputSlider.propTypes = {

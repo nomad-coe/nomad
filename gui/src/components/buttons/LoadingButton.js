@@ -16,32 +16,19 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import { Button } from '@material-ui/core'
 
 /**
- * The quantity label shown by all filter components.
+ * Button that has a loading status and cannot be used while loading.
  */
-const InputTooltip = React.memo(({
-  locked,
-  unavailable,
-  children
-}) => {
-  return <Tooltip
-    title={locked
-      ? 'This filter is locked.'
-      : unavailable ? 'No options available with current query.' : ''
-    }
-    placement="bottom"
-  >
+export default function LoadingButton({loading, children, ...buttonProps}) {
+  return <Button disabled={loading} {...buttonProps}>
     {children}
-  </Tooltip>
-})
-
-InputTooltip.propTypes = {
-  locked: PropTypes.bool,
-  unavailable: PropTypes.bool,
-  children: PropTypes.node
+  </Button>
 }
 
-export default InputTooltip
+LoadingButton.propTypes = {
+  loading: PropTypes.bool,
+  children: PropTypes.node
+}

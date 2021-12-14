@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputSelect from '../input/InputSelect'
+import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
 import { Quantity, useUnits } from '../../../units'
 
@@ -53,7 +53,7 @@ const FilterSubMenuEELS = React.memo(({
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.method.experiment.eels.detector_type"
           visible={visible}
           xs={12}

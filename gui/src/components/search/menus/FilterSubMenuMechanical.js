@@ -18,9 +18,8 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import InputSelect from '../input/InputSelect'
 import InputSlider from '../input/InputSlider'
-import InputCheckboxes from '../input/InputCheckboxes'
+import InputField from '../input/InputField'
 import InputSection from '../input/InputSection'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { Quantity, useUnits } from '../../../units'
@@ -40,10 +39,12 @@ const FilterSubMenuElectronic = React.memo(({
         <InputSection
           section="results.properties.mechanical.bulk_modulus"
           visible={visible}
+          nested
         >
-          <InputSelect
+          <InputField
             quantity="results.properties.mechanical.bulk_modulus.type"
             visible={visible}
+            initialSize={5}
           />
           <InputSlider
             quantity="results.properties.mechanical.bulk_modulus.value"
@@ -57,10 +58,12 @@ const FilterSubMenuElectronic = React.memo(({
         <InputSection
           section="results.properties.mechanical.shear_modulus"
           visible={visible}
+          nested
         >
-          <InputSelect
+          <InputField
             quantity="results.properties.mechanical.shear_modulus.type"
             visible={visible}
+            initialSize={3}
           />
           <InputSlider
             quantity="results.properties.mechanical.shear_modulus.value"
@@ -71,9 +74,10 @@ const FilterSubMenuElectronic = React.memo(({
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="mechanical_properties"
           visible={visible}
+          disableSearch
         />
       </InputGridItem>
     </InputGrid>

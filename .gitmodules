@@ -217,3 +217,9 @@
 	path = dependencies/parsers/nexus
 	url = https://github.com/nomad-coe/nomad-parser-nexus.git
 	branch = master
+[submodule "dependencies/parsers/psi4"]
+	path = dependencies/parsers/psi4
+	url = https://github.com/nomad-coe/nomad-parser-psi4.git
+[submodule "dependencies/parsers/yambo"]
+	path = dependencies/parsers/yambo
+	url = https://github.com/nomad-coe/nomad-parser-yambo.git

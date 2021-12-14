@@ -611,6 +611,13 @@ class Charges(Atomic):
         Value of the atomic charges calculated through analysis_method.
         ''')
 
+    spins = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_atoms'],
+        description='''
+        Value of the atomic spins.
+        ''')
+
     total = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -618,6 +625,8 @@ class Charges(Atomic):
         description='''
         Value of the total charge of the system.
         ''')
+
+    spin_projected = SubSection(sub_section=ChargesValue.m_def, repeats=True)
 
     orbital_projected = SubSection(sub_section=ChargesValue.m_def, repeats=True)
 
@@ -729,6 +738,13 @@ class BandEnergies(MSection):
         description='''
         Labels of the points along a one-dimensional path sampled in the $k$-space or
         $q$-space, using the conventional symbols, e.g., Gamma, K, L.
+        ''')
+
+    orbital_labels = Quantity(
+        type=str,
+        shape=['n_bands'],
+        description='''
+        Labels corresponding to each band/orbital
         ''')
 
     occupations = Quantity(
@@ -944,7 +960,8 @@ class MultipolesValues(AtomicValues):
 
 class MultipolesEntry(Atomic):
     '''
-    Section describing a multipole term.
+    Section describing a multipole term. The unit of the values are given by C * m ^ n,
+    where n = 1 for dipole, 2 for quadrupole, etc.
     '''
 
     m_def = Section(validate=False)
@@ -980,6 +997,13 @@ class Multipoles(MSection):
     '''
 
     m_def = Section(validate=False)
+
+    kind = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Kind of the multipoles being described.
+        ''')
 
     dipole = SubSection(sub_section=MultipolesEntry.m_def, repeats=False)
 

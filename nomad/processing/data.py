@@ -49,7 +49,8 @@ from pydantic.error_wrappers import ErrorWrapper
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
-from nomad.processing.base import Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning
+from nomad.processing.base import (
+    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -637,9 +638,9 @@ class Calc(Proc):
     nomad_version = StringField()
     nomad_commit = StringField()
     comment = StringField()
-    references = ListField(StringField(), default=None)
-    entry_coauthors = ListField(default=None)
-    datasets = ListField(StringField(), default=None)
+    references = ListField(StringField())
+    entry_coauthors = ListField()
+    datasets = ListField(StringField())
 
     meta: Any = {
         'strict': False,
@@ -897,7 +898,7 @@ class Calc(Proc):
 
         return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
 
-    @process
+    @process(is_child=True)
     def process_calc(self, reprocess_settings: Dict[str, Any] = None):
         '''
         Processes (or reprocesses) a calculation.
@@ -1026,17 +1027,8 @@ class Calc(Proc):
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
 
-        self._check_join()
-
-    def on_success(self):
-        # the save might be necessary to correctly read the join condition from the db
-        self._check_join()
-
-    def _check_join(self):
-        ''' To be called when processing is done, regardless of success or failure. '''
-        self.save()
-        self.upload.reload()
-        self.upload.check_join()
+    def parent(self) -> 'Upload':
+        return self.upload
 
     def parsing(self):
         ''' The process step that encapsulates all parsing related actions. '''
@@ -1263,8 +1255,6 @@ class Upload(Proc):
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
         oasis_id: The deployment id of the NOMAD that uploaded the upload.
         published_to: A list of deployment ids where this upload has been successfully uploaded to.
-
-        joined: Boolean indicates if the running processing has joined (:func:`check_join`).
     '''
     id_field = 'upload_id'
 
@@ -1273,8 +1263,8 @@ class Upload(Proc):
     upload_create_time = DateTimeField(required=True)
     external_db = StringField()
     main_author = StringField(required=True)
-    coauthors = ListField(StringField(), default=[])
-    reviewers = ListField(StringField(), default=[])
+    coauthors = ListField(StringField())
+    reviewers = ListField(StringField())
     last_update = DateTimeField()
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)
@@ -1285,7 +1275,6 @@ class Upload(Proc):
     published_to = ListField(StringField())
 
     publish_directly = BooleanField(default=False)
-    joined = BooleanField(default=False)
 
     meta: Any = {
         'strict': False,
@@ -1296,7 +1285,12 @@ class Upload(Proc):
 
     @property
     def viewers(self):
-        return [self.main_author] + self.coauthors + self.reviewers
+        # It is possible to set a user as both coauthor and reviewer, need to ensure no duplicates
+        rv = [self.main_author] + self.coauthors
+        for user_id in self.reviewers:
+            if user_id not in rv:
+                rv.append(user_id)
+        return rv
 
     @property
     def writers(self):
@@ -1327,7 +1321,7 @@ class Upload(Proc):
         return {}
 
     @classmethod
-    def get(cls, id: str, include_published: bool = True) -> 'Upload':
+    def get(cls, id: str) -> 'Upload':
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
@@ -1423,7 +1417,7 @@ class Upload(Proc):
 
             self.delete()
 
-    @process
+    @process(is_blocking=True)
     def delete_upload(self):
         '''
         Deletes the upload, including its processing state and
@@ -1433,7 +1427,7 @@ class Upload(Proc):
 
         return ProcessStatus.DELETED  # Signal deletion to the process framework
 
-    @process
+    @process(is_blocking=True)
     def publish_upload(self, embargo_length: int = None):
         '''
         Moves the upload out of staging to the public area. It will
@@ -1467,7 +1461,7 @@ class Upload(Proc):
                     self.last_update = datetime.utcnow()
                     self.save()
 
-    @process
+    @process(is_blocking=True)
     def publish_externally(self, embargo_length: int = None):
         '''
         Uploads the already published upload to a different NOMAD deployment. This is used
@@ -1513,11 +1507,11 @@ class Upload(Proc):
         finally:
             PathObject(tmp_dir).delete()
 
-    @process
+    @process()
     def process_upload(
             self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
-        A *process* that executes pending operations (if any), matches, parses and normalizes
+        A @process that executes a file operation (if provided), and matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
         after an upload has been published (published uploads are extracted back to the
         staging area first, and re-packed to the public area when done). Reprocessing may
@@ -1536,9 +1530,9 @@ class Upload(Proc):
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
         '''
-        return self.process_upload_local(file_operation, reprocess_settings)
+        return self._process_upload_local(file_operation, reprocess_settings)
 
-    def process_upload_local(self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
+    def _process_upload_local(self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
         '''
         The function doing the actual processing, but locally, not as a @process.
         See :func:`process_upload`
@@ -1550,10 +1544,6 @@ class Upload(Proc):
         self.parse_all(reprocess_settings)
         self.set_last_status_message('Waiting for entry results')
         return ProcessStatus.WAITING_FOR_RESULT
-
-    def on_waiting_for_result(self):
-        # Called when the upload has transitioned to status waiting
-        self.check_join()
 
     @property
     def upload_files(self) -> UploadFiles:
@@ -1718,6 +1708,8 @@ class Upload(Proc):
                             entry.delete()
 
             # reset all calcs
+            # (No Calc processes *should* be running, unless something has gone wrong, and if
+            # there are such processes, we can quite safely just reset them to minimize problems)
             with utils.timer(logger, 'calcs processing resetted'):
                 Calc._get_collection().update_many(
                     dict(upload_id=self.upload_id),
@@ -1725,9 +1717,8 @@ class Upload(Proc):
 
             # process call calcs
             with utils.timer(logger, 'calcs processing called'):
-                Calc.process_all(
-                    Calc.process_calc, dict(upload_id=self.upload_id),
-                    process_kwargs=dict(reprocess_settings=settings))
+                for entry in Calc.objects(upload_id=self.upload_id):
+                    entry.process_calc(reprocess_settings=settings)
 
         except Exception as e:
             # try to remove the staging copy in failure case
@@ -1736,52 +1727,23 @@ class Upload(Proc):
                 self._cleanup_staging_files()
             raise
 
-    def check_join(self):
+    def child_cls(self):
+        return Calc
+
+    def join(self):
         '''
-        Performs an evaluation of the join condition and triggers the :func:`cleanup`
-        if necessary. The join condition allows to run the ``cleanup`` after
-        all calculations have been processed. The cleanup is then run within the last
-        calculation process (the one that triggered the join by calling this method).
+        Called when all child processes (if any) on Calc are done. Performs phonon calculations
+        and cleanup.
         '''
-        try:
-            total_calcs = self.total_calcs
-            processed_calcs = self.processed_calcs
+        # Before cleaning up, run an additional normalizer on phonon
+        # calculations. TODO: This should be replaced by a more
+        # extensive mechanism that supports more complex dependencies
+        # between calculations.
+        phonon_calculations = Calc.objects(upload_id=self.upload_id, parser_name="parsers/phonopy")
+        for calc in phonon_calculations:
+            calc.process_phonon()
 
-            self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
-            # check the join condition, i.e. all calcs have been processed
-            if self.process_status == ProcessStatus.WAITING_FOR_RESULT and processed_calcs >= total_calcs:
-                # this can easily be called multiple times, e.g. upload finished after all calcs finished
-                modified_upload = self._get_collection().find_one_and_update(
-                    {'_id': self.upload_id, 'joined': {'$ne': True}},
-                    {'$set': {'joined': True}})
-                if modified_upload is None or modified_upload['joined'] is False:
-                    self.get_logger().info('join')
-
-                    # Before cleaning up, run an additional normalizer on phonon
-                    # calculations. TODO: This should be replaced by a more
-                    # extensive mechanism that supports more complex dependencies
-                    # between calculations.
-                    phonon_calculations = Calc.objects(upload_id=self.upload_id, parser_name="parsers/phonopy")
-                    for calc in phonon_calculations:
-                        calc.process_phonon()
-
-                    self.cleanup()
-                    self.succeed()
-                else:
-                    # the join was already done due to a prior call
-                    pass
-        except Exception as e:
-            self.fail('Failed to join: ' + str(e), exc_info=e, error=str(e))
-
-    def reset(self, force=False):
-        self.joined = False
-        super().reset(force=force)
-
-    @classmethod
-    def reset_pymongo_update(cls, worker_hostname: str = None):
-        update = super().reset_pymongo_update()
-        update.update(joined=False)
-        return update
+        self.cleanup()
 
     def cleanup(self):
         '''
@@ -1939,9 +1901,10 @@ class Upload(Proc):
         '''
         return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
 
-    @process
+    @process()
     def set_upload_metadata(self, metadata: Dict[str, Any]):
         '''
+        TODO: DEPRECATED - REMOVE ASAP
         A @process which sets upload level metadata (metadata that is editable and set
         on the upload level, rather than the entry level. Some of these fields are mirrored
         from the upload to the entry metadata, however).
@@ -1992,7 +1955,7 @@ class Upload(Proc):
                         entries_metadata, update_materials=config.process.index_materials,
                         refresh=True)
 
-    @process
+    @process()
     def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
         '''
         A @process that executes a metadata edit request, restricted to a specific upload,
@@ -2043,16 +2006,13 @@ class Upload(Proc):
             with utils.timer(logger, 'Mongo bulk write completed', nupdates=len(entry_mongo_writes)):
                 mongo_result = Calc._get_collection().bulk_write(entry_mongo_writes)
             mongo_errors = mongo_result.bulk_api_result.get('writeErrors')
-            if mongo_errors:
-                return self.fail(
-                    f'Failed to update mongo! {len(mongo_errors)} failures, first is {mongo_errors[0]}')
+            assert not mongo_errors, (
+                f'Failed to update mongo! {len(mongo_errors)} failures, first is {mongo_errors[0]}')
         # Update ES
         if updated_metadata:
             with utils.timer(logger, 'ES updated', nupdates=len(updated_metadata)):
                 failed_es = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
-
-            if failed_es > 0:
-                return self.fail(f'Failed to update ES, there were {failed_es} fails')
+                assert not failed_es, f'Failed to update ES, there were {failed_es} fails'
 
     def entry_ids(self) -> List[str]:
         return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
@@ -2139,12 +2099,12 @@ class Upload(Proc):
             file_source.to_disk(export_path, move_files, overwrite)
         return None
 
-    @process
+    @process()
     def import_bundle(
             self, bundle_path: str, move_files: bool = False, embargo_length: int = None,
             settings: config.NomadConfig = config.bundle_import.default_settings):
         '''
-        A *process* that imports data from an upload bundle to the current upload (which should
+        A @process that imports data from an upload bundle to the current upload (which should
         normally have been created using the :func:`create_skeleton_from_bundle` method).
         Extensive checks are made to ensure referential consistency etc. Note, however,
         that no permission checks are done (the method does not check who is invoking the
@@ -2360,7 +2320,7 @@ class Upload(Proc):
             if settings.trigger_processing:
                 reprocess_settings = {
                     k: v for k, v in settings.items() if k in config.reprocess}
-                return self.process_upload_local(reprocess_settings=reprocess_settings)
+                return self._process_upload_local(reprocess_settings=reprocess_settings)
 
         except Exception as e:
             if settings.get('delete_upload_on_fail'):

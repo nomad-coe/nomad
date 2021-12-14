@@ -19,8 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputText from '../input/InputText'
-import InputCheckboxes from '../input/InputCheckboxes'
+import InputField from '../input/InputField'
 import InputDateRange from '../input/InputDateRange'
 
 const FilterSubMenuAuthor = React.memo(({
@@ -33,15 +32,16 @@ const FilterSubMenuAuthor = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="authors.name"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="external_db"
           visible={visible}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>

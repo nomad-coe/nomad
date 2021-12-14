@@ -41,16 +41,20 @@ InputGrid.propTypes = {
  * For displaying an individual input filter, typically within a InputGrid.
  */
 const useInputGridItemStyles = makeStyles(theme => ({
+  root: {
+    marginBottom: theme.spacing(inputGridSpacing / 2)
+  },
   divider: {
     marginLeft: theme.spacing(-inputGridSpacing),
     marginRight: theme.spacing(-inputGridSpacing),
-    marginBottom: theme.spacing(0.5),
+    marginTop: theme.spacing(-inputGridSpacing / 2),
+    marginBottom: theme.spacing(inputGridSpacing / 4),
     backgroundColor: theme.palette.grey[300]
   }
 }))
 export function InputGridItem({classes, children, ...other}) {
   const styles = useInputGridItemStyles({classes: classes})
-  return <Grid item {...other}>
+  return <Grid item {...other} className={styles.root}>
     <Divider className={styles.divider}/>
     {children}
   </Grid>

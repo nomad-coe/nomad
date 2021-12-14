@@ -189,7 +189,7 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, additional_keys, published=True)
 
-    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True, process='publish_upload')
+    assert_processing(Upload.get(processed.upload_id), published=True, process='publish_upload')
 
 
 def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
@@ -199,7 +199,7 @@ def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, mo
         assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
         assert_search_upload(entries, [], published=True)
 
-    assert_processing(Upload.get(processed.upload_id, include_published=True), published=True)
+    assert_processing(Upload.get(processed.upload_id), published=True)
 
 
 def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
@@ -372,7 +372,6 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    published.reset()
     published.process_upload()
     try:
         published.block_until_complete(interval=.01)
@@ -407,7 +406,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
     assert_search_upload(entries, published=True)
     if with_failure not in ['after', 'not-matched']:
-        assert_processing(Upload.get(published.upload_id, include_published=True), published=True)
+        assert_processing(Upload.get(published.upload_id), published=True)
 
     # assert changed calc data
     if with_failure not in ['after']:
@@ -431,7 +430,6 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
         if old_staging:
             StagingUploadFiles(upload.upload_id, create=True)
 
-    upload.reset()
     upload.process_upload()
     try:
         upload.block_until_complete(interval=.01)
@@ -454,7 +452,6 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         upload.publish_upload(embargo_length=0)
         upload.block_until_complete(interval=.01)
 
-    upload.reset()
     assert upload.total_calcs == 1, upload.total_calcs
 
     if published:
@@ -637,7 +634,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test'], ['http://ttest'], ['http://ttest'], None]
+    references = [['http://test'], ['http://ttest'], ['http://ttest'], []]
     expected_entry_coauthors = [[other_test_user], [], [], []]
 
     for i in range(len(calcs)):

@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputText from '../input/InputText'
+import InputField from '../input/InputField'
 
 const FilterSubMenuIDs = React.memo(({
   value,
@@ -31,35 +31,35 @@ const FilterSubMenuIDs = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid spacing={2}>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="entry_id"
           visible={visible}
-          autocomplete='off'
           disableStatistics
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="upload_id"
           visible={visible}
-          autocomplete='off'
           disableStatistics
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.material.material_id"
           visible={visible}
-          autocomplete='off'
           disableStatistics
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="datasets.dataset_id"
           visible={visible}
-          autocomplete='off'
           disableStatistics
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>

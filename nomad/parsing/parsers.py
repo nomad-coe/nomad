@@ -77,6 +77,8 @@ from aflowparser import AFLOWParser
 from mpparser import MPParser
 from asrparser import ASRParser
 from nexusparser import NexusParser
+from psi4parser import Psi4Parser
+from yamboparser import YamboParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -224,8 +226,10 @@ parsers = [
     AFLOWParser(),
     MPParser(),
     ASRParser(),
-    ArchiveParser(),
-    NexusParser()
+    NexusParser(),
+    Psi4Parser(),
+    YamboParser(),
+    ArchiveParser()
 ]
 
 empty_parsers = [

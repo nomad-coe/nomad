@@ -20,9 +20,9 @@ import PropTypes from 'prop-types'
 import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Tooltip, Typography, makeStyles } from '@material-ui/core'
 import CodeIcon from '@material-ui/icons/Code'
 import ReactJson from 'react-json-view'
-import Markdown from './Markdown'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import ClipboardIcon from '@material-ui/icons/Assignment'
+import Markdown from '../Markdown'
 
 const useApiDialogStyles = makeStyles(theme => ({
   content: {

@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputCheckboxes from '../input/InputCheckboxes'
+import InputField from '../input/InputField'
 
 const FilterSubMenuDFT = React.memo(({
   value,
@@ -31,29 +31,33 @@ const FilterSubMenuDFT = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.method.simulation.dft.xc_functional_type"
           visible={visible}
           xs={12}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.method.simulation.dft.basis_set_type"
           visible={visible}
           xs={12}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.method.simulation.dft.core_electron_treatment"
           visible={visible}
+          disableSearch
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputCheckboxes
+        <InputField
           quantity="results.method.simulation.dft.relativity_method"
           visible={visible}
+          disableSearch
         />
       </InputGridItem>
     </InputGrid>

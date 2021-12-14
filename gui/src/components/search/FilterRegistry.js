@@ -21,6 +21,7 @@ import searchQuantities from '../../searchQuantities'
 import { getDimension } from '../../units'
 import InputList from './input/InputList'
 import InputPeriodicTable from './input/InputPeriodicTable'
+import elementData from '../../elementData'
 
 // Containers for filter information
 export const filterGroups = [] // Mapping from a group name -> set of filter names
@@ -97,6 +98,7 @@ export const labelIDs = 'IDs'
   *  - default: A default value which is implicitly enforced in the API call.
   *    This value will not be serialized in the search bar.
   *  - resources: A list of resources for which this filter is enabled.
+  *  - aggSize: Aggregation size.
   */
 function registerFilter(name, group, quantity, subQuantities) {
   function save(name, group, quantity) {
@@ -135,6 +137,9 @@ function registerFilter(name, group, quantity, subQuantities) {
     data.deserializer = getDeserializer(data.dtype, data.dimension)
     data.label = quantity.label
     data.description = quantity.description
+    data.scale = quantity.scale || 1
+    data.aggSize = quantity.aggSize
+    data.aggSizeOverride = quantity.aggSizeOverride
     if (data.queryMode && !data.multiple) {
       throw Error('Only filters that accept multiple values may have a query mode.')
     }
@@ -176,8 +181,8 @@ const ptStatConfig = {
 }
 
 // Presets for different kind of quantities
-const termQuantity = {agg: 'terms', stats: listStatConfig}
-const termQuantityNonExclusive = {agg: 'terms', stats: listStatConfig, exclusive: false}
+const termQuantity = {agg: 'terms', stats: listStatConfig, aggSize: 5}
+const termQuantityNonExclusive = {agg: 'terms', stats: listStatConfig, exclusive: false, aggSize: 5}
 const noAggQuantity = {stats: listStatConfig}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
@@ -239,7 +244,7 @@ registerFilter(
 registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
 registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
-registerFilter('datasets.dataset_name', labelDataset, {...noAggQuantity, label: 'Dataset Name'})
+registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name'})
 registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', labelIDs, noAggQuantity)
 registerFilter('upload_id', labelIDs, noAggQuantity)
@@ -266,6 +271,7 @@ registerFilter(
   {
     stats: ptStatConfig,
     agg: 'terms',
+    aggSize: elementData.elements.length,
     value: {
       set: (newQuery, oldQuery, value) => {
         if (oldQuery.exclusive) {
@@ -298,6 +304,7 @@ registerFilter(
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => electronicProps.has(value.value)))
     },
+    aggSizeOverride: 200,
     value: {
       set: (newQuery, oldQuery, value) => {
         const data = newQuery['results.properties.available_properties'] || new Set()
@@ -330,6 +337,7 @@ registerFilter(
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => vibrationalProps.has(value.value)))
     },
+    aggSizeOverride: 200,
     value: {
       set: (newQuery, oldQuery, value) => {
         const data = newQuery['results.properties.available_properties'] || new Set()
@@ -361,6 +369,7 @@ registerFilter(
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => mechanicalProps.has(value.value)))
     },
+    aggSizeOverride: 200,
     value: {
       set: (newQuery, oldQuery, value) => {
         const data = newQuery['results.properties.available_properties'] || new Set()
@@ -390,6 +399,7 @@ registerFilter(
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => spectroscopicProps.has(value.value)))
     },
+    aggSizeOverride: 200,
     value: {
       set: (newQuery, oldQuery, value) => {
         const data = newQuery['results.properties.available_properties'] || new Set()

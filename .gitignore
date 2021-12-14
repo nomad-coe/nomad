@@ -21,10 +21,9 @@ test_*/
 local/
 target/
 *.swp
-*.vscode
-.vscode/
 .idea/
-vscode/
+.vscode/launch.json
+.vscode/settings.local.json
 nomad.yaml
 gunicorn.log.conf
 gunicorn.conf

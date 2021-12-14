@@ -333,8 +333,7 @@ def reset(ctx, uploads, with_calcs, success, failure):
             proc.Calc._get_collection().update_many(
                 dict(upload_id=upload.upload_id), {'$set': calc_update})
 
-        upload.process_status = None
-        upload.reset()
+        upload.reset(force=True)
         if success:
             upload.process_status = proc.ProcessStatus.SUCCESS
         if failure:

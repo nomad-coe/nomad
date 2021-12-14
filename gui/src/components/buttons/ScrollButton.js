@@ -18,7 +18,7 @@
 import React, { useCallback, useContext } from 'react'
 import PropTypes from 'prop-types'
 import { IconButton } from '@material-ui/core'
-import { ScrollContext } from './nav/Navigation'
+import { ScrollContext } from '../nav/Navigation'
 
 /**
  * Button used for manually scrolling the current page.

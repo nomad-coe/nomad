@@ -37,7 +37,7 @@ import RefreshIcon from '@material-ui/icons/Refresh'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
-import { Actions, Action } from '../../Actions'
+import { Actions, ActionHeader, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
 import { filterGroups } from '../FilterRegistry'
 import { MoreVert } from '@material-ui/icons'
@@ -220,10 +220,10 @@ export const FilterMenuItems = React.memo(({
       classes={{containerInner: styles.overflow}}>
       <Scrollable>
         <div className={styles.padding}>
-          <Actions
-            header={<Typography className={styles.headerText} variant="button">Filters</Typography>}
-            className={styles.header}
-          >
+          <Actions className={styles.header}>
+            <ActionHeader>
+              <Typography className={styles.headerText} variant="button">Filters</Typography>
+            </ActionHeader>
             <Action
               tooltip="Refresh results"
               onClick={() => refresh()}
@@ -466,10 +466,10 @@ export const FilterSubMenus = React.memo(({
     <div className={clsx(styles.menu, menuStyle, collapsed && styles.collapsed)}>
       <Scrollable>
         <div className={styles.padding}>
-          <Actions
-            header={<Typography className={styles.headerText} variant="button">{selected}</Typography>}
-            className={styles.header}
-          >
+          <Actions className={styles.header}>
+            <ActionHeader>
+              <Typography className={styles.headerText} variant="button">{selected}</Typography>
+            </ActionHeader>
             <Action
               tooltip="Close submenu"
               onClick={() => { onOpenChange(false) }}

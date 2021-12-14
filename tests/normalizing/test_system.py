@@ -105,7 +105,11 @@ parser_exceptions = {
         'results.material.structural_type'],
     'parsers/xps': ['results.material.chemical_formula_descriptive', 'results.material.elements'],
     'parsers/aflow': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names']
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+    'parses/yambo': [
+        'results.material.chemical_formula_descriptive', 'results.material.elements',
+        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type'],
 }
 '''
 Keys that the normalizer for certain parsers might not produce. In an ideal world this

@@ -19,10 +19,9 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputSelect from '../input/InputSelect'
-import InputText from '../input/InputText'
+import InputField from '../input/InputField'
 
-const FilterSubMenuDFT = React.memo(({
+const FilterSubMenuSimulation = React.memo(({
   value,
   ...rest
 }) => {
@@ -32,21 +31,23 @@ const FilterSubMenuDFT = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid spacing={2}>
       <InputGridItem xs={12}>
-        <InputSelect
+        <InputField
           quantity="results.method.simulation.program_name"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="results.method.simulation.program_version"
+          visible={visible}
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuDFT.propTypes = {
+FilterSubMenuSimulation.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuDFT
+export default FilterSubMenuSimulation

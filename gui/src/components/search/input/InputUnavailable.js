@@ -16,32 +16,27 @@
  * limitations under the License.
  */
 import React from 'react'
-import { Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
+import { Typography, makeStyles } from '@material-ui/core'
 
 /**
- * The quantity label shown by all filter components.
+ * Indicates that no input options are available with the current query
+ * settings.
  */
-const InputTooltip = React.memo(({
-  locked,
-  unavailable,
-  children
-}) => {
-  return <Tooltip
-    title={locked
-      ? 'This filter is locked.'
-      : unavailable ? 'No options available with current query.' : ''
-    }
-    placement="bottom"
-  >
-    {children}
-  </Tooltip>
-})
-
-InputTooltip.propTypes = {
-  locked: PropTypes.bool,
-  unavailable: PropTypes.bool,
-  children: PropTypes.node
+const useStyles = makeStyles(theme => ({
+  root: {
+    fontStyle: 'italic',
+    color: theme.palette.text.disabled
+  }
+}))
+export default function InputUnavailable({className}) {
+  const styles = useStyles()
+  return <Typography className={clsx(className, styles.root)}>
+    No options available with current query.
+  </Typography>
 }
 
-export default InputTooltip
+InputUnavailable.propTypes = {
+  className: PropTypes.string
+}

@@ -84,7 +84,7 @@ class Scf(MSection):
     m_def = Section(validate=False)
 
     n_max_iteration = Quantity(
-        type=np.dtype(np.float64),
+        type=np.dtype(np.int32),
         shape=[],
         description='''
         Specifies the maximum number of allowed self-consistent field (SCF) iterations in
@@ -102,8 +102,18 @@ class Scf(MSection):
         combination with other criteria).
         ''')
 
-    minimization_algorithm = Quantity(
+    threshold_density_change = Quantity(
         type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Specifies the threshold for the average  charge density change between two
+        subsequent self-consistent field (SCF) iterations. The SCF is considered converged
+        when the density change between two SCF cycles is below the threshold (possibly in
+        combination with other criteria).
+        ''')
+
+    minimization_algorithm = Quantity(
+        type=str,
         shape=[],
         description='''
         Specifies the algorithm used for self consistency minimization.
@@ -313,7 +323,7 @@ class BasisSetAtomCentered(MSection):
         ''')
 
     n_basis_functions = Quantity(
-        type=int,
+        type=np.dtype(np.int32),
         shape=[],
         description='''
         Gives the number of different basis functions in a basis_set_atom_centered

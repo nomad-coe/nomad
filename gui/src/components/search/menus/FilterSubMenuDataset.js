@@ -19,7 +19,7 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputText from '../input/InputText'
+import InputField from '../input/InputField'
 
 const FilterSubMenuDataset = React.memo(({
   value,
@@ -31,18 +31,18 @@ const FilterSubMenuDataset = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="datasets.dataset_name"
           visible={visible}
           disableStatistics
         />
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputText
+        <InputField
           quantity="datasets.doi"
           visible={visible}
-          autocomplete="off"
           disableStatistics
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>
