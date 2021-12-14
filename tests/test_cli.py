@@ -137,14 +137,14 @@ def transform_for_index_test(calc):
     return calc
 
 
-@pytest.mark.usefixtures('reset_config', 'no_warn')
+@pytest.mark.usefixtures('reset_config')
 class TestAdminUploads:
 
     @pytest.mark.parametrize('codes, count', [
         (['VASP'], 1),
         (['doesNotExist'], 0),
         (['VASP', 'doesNotExist'], 1)])
-    def test_uploads_code(self, published, codes, count):
+    def test_uploads_code(self, published, codes, count, no_warn):
         codes_args = []
         for code in codes:
             codes_args.append('--code')
@@ -155,7 +155,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '%d uploads selected' % count in result.stdout
 
-    def test_query_mongo(self, published):
+    def test_query_mongo(self, published, no_warn):
         upload_id = published.upload_id
 
         query = dict(upload_id=upload_id)
@@ -166,7 +166,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
-    def test_ls(self, published):
+    def test_ls(self, published, no_warn):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
@@ -175,7 +175,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
-    def test_ls_query(self, published):
+    def test_ls_query(self, published, no_warn):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
@@ -184,7 +184,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
-    def test_rm(self, published):
+    def test_rm(self, published, no_warn):
         upload_id = published.upload_id
 
         result = click.testing.CliRunner().invoke(
@@ -195,7 +195,7 @@ class TestAdminUploads:
         assert Upload.objects(upload_id=upload_id).first() is None
         assert Calc.objects(upload_id=upload_id).first() is None
 
-    def test_index(self, published):
+    def test_index(self, published, no_warn):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
         calc.metadata['comment'] = 'specific'
@@ -210,7 +210,7 @@ class TestAdminUploads:
 
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
 
-    def test_index_with_transform(self, published):
+    def test_index_with_transform(self, published, no_warn):
         upload_id = published.upload_id
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 0
 
@@ -225,7 +225,7 @@ class TestAdminUploads:
 
         assert search.SearchRequest().search_parameters(comment='specific').execute()['total'] == 1
 
-    def test_re_process(self, published, monkeypatch):
+    def test_re_process(self, published, monkeypatch, no_warn):
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
@@ -239,7 +239,7 @@ class TestAdminUploads:
         calc.reload()
         assert calc.metadata['nomad_version'] == 'test_version'
 
-    def test_re_pack(self, published, monkeypatch):
+    def test_re_pack(self, published, monkeypatch, no_warn):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['with_embargo']
@@ -263,7 +263,7 @@ class TestAdminUploads:
         published.reload()
         assert published.tasks_status == SUCCESS
 
-    def test_chown(self, published, test_user, other_test_user):
+    def test_chown(self, published, test_user, other_test_user, no_warn):
         upload_id = published.upload_id
         calc = Calc.objects(upload_id=upload_id).first()
         assert calc.metadata['uploader'] == other_test_user.user_id
@@ -280,7 +280,7 @@ class TestAdminUploads:
         assert upload.user_id == test_user.user_id
         assert calc.metadata['uploader'] == test_user.user_id
 
-    def test_edit(self, published):
+    def test_edit(self, published, no_warn):
         upload_id = published.upload_id
 
         def assert_calcs(publish, with_embargo):
@@ -318,7 +318,7 @@ class TestAdminUploads:
         (False, False, False),
         (True, True, False),
         (False, False, True)])
-    def test_reset(self, non_empty_processed, with_calcs, success, failure):
+    def test_reset(self, non_empty_processed, with_calcs, success, failure, no_warn):
         upload_id = non_empty_processed.upload_id
 
         upload = Upload.objects(upload_id=upload_id).first()
@@ -353,7 +353,7 @@ class TestAdminUploads:
         pytest.param(['0/POTCAR', 'POTCAR.xz'], ['public'], id='root'),
         pytest.param(['0/POTCAR'], ['embargo'], id='embargo')
     ])
-    def test_quarantine_raw_files(self, paths, entries, test_user, proc_infra):
+    def test_quarantine_raw_files(self, paths, entries, test_user, proc_infra, no_warn):
         upload_path = os.path.join(config.fs.tmp, 'upload.zip')
         nomad_json = {}
         for i, entry in enumerate(entries):
