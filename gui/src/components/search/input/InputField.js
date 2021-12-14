@@ -203,9 +203,9 @@ const InputField = React.memo(({
   }, [incr, minSize])
 
   // Handle changes in the selected values
-  const handleChange = useCallback((key, value) => {
+  const handleChange = useCallback((event, key, selected) => {
     const newOptions = {...visibleOptions}
-    newOptions[key].checked = value
+    newOptions[key].checked = selected
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)

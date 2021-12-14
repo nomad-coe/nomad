@@ -17,13 +17,15 @@
  */
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
 import { FilterSubMenu } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import { Checkbox, Collapse, makeStyles, Typography } from '@material-ui/core'
+import { Collapse, makeStyles } from '@material-ui/core'
 import { rootSections, resolveRef } from '../../archive/metainfo'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useSearchContext } from '../SearchContext'
+import InputItem from '../input/InputItem'
 
 const filterProperties = def => !(def.name.startsWith('x_') || def.virtual)
 
@@ -33,13 +35,14 @@ const useDefinitionStyles = makeStyles(theme => ({
     '&:hover': {
       backgroundColor: theme.palette.grey[100]
     },
+    cursor: 'pointer',
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'nowrap',
-    height: 32,
-    paddingRight: theme.spacing(1)
+    paddingRight: theme.spacing(1),
+    boxSizing: 'border-box'
   },
   icon: {
   },
@@ -54,11 +57,12 @@ const useDefinitionStyles = makeStyles(theme => ({
   }
 }))
 
-const Definition = React.memo(function Definition({def, name, path}) {
+const Definition = React.memo(function Definition({def, name, path, className}) {
   const classes = useDefinitionStyles()
-  const [open, setOpen] = useState(false)
-  const { useFilterState } = useSearchContext()
+  const [open, setOpen] = useState(!path)
+  const { useFilterState, useFilterLocked } = useSearchContext()
   const [filter, setFilter] = useFilterState('quantities')
+  const locked = useFilterLocked('quantities')
 
   name = name || def.name
 
@@ -95,13 +99,21 @@ const Definition = React.memo(function Definition({def, name, path}) {
 
   const childPathPrefix = path ? path + '.' : ''
 
-  return <div className={classes.root}>
+  return <div className={clsx(className, classes.root)}>
     <div onClick={hasChildren ? handleToggle : null} className={classes.item}>
       {icon}
-      <Typography className={classes.name}>{name}</Typography>
-      {path && <div className={classes.actions}>
-        <Checkbox onClick={handleSelect} checked={filter?.has(path) || false} />
-      </div>}
+      <InputItem
+        value={path}
+        label={name}
+        disabled={locked}
+        selected={filter?.has(path) || false}
+        onChange={handleSelect}
+        variant="checkbox"
+        labelPlacement="start"
+        disableStatistics
+        disableLabelClick
+        disableSelect={!path}
+      />
     </div>
     <Collapse in={open} className={classes.children}>
       {open && def.quantities.filter(filterProperties).map(def => (
@@ -116,17 +128,19 @@ const Definition = React.memo(function Definition({def, name, path}) {
 Definition.propTypes = {
   def: PropTypes.object.isRequired,
   name: PropTypes.string,
-  path: PropTypes.string
+  path: PropTypes.string,
+  className: PropTypes.string
 }
 
+const root = rootSections.find(def => def.name === 'EntryArchive')
 const FilterSubMenuArchive = React.memo(({
   value,
   ...rest
 }) => {
   return <FilterSubMenu value={value} {...rest}>
-    <InputGrid spacing={2}>
+    <InputGrid>
       <InputGridItem xs={12}>
-        <Definition def={rootSections.find(def => def.name === 'EntryArchive')} />
+        <Definition def={root}/>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>

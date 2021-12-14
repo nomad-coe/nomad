@@ -48,7 +48,7 @@ const useInputGridItemStyles = makeStyles(theme => ({
     marginLeft: theme.spacing(-inputGridSpacing),
     marginRight: theme.spacing(-inputGridSpacing),
     marginTop: theme.spacing(-inputGridSpacing / 2),
-    marginBottom: theme.spacing(inputGridSpacing / 4),
+    marginBottom: theme.spacing(inputGridSpacing / 2),
     backgroundColor: theme.palette.grey[300]
   }
 }))

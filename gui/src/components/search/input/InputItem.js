@@ -39,22 +39,40 @@ const useStyles = makeStyles(theme => ({
     height: inputItemHeight,
     position: 'relative'
   },
+  controlLabel: {
+    width: '100%',
+    height: '100%',
+    margin: 0
+  },
+  labelContainer: {
+    height: '100%',
+    width: '100%'
+  },
+  labelPlacementStart: {
+    margin: 0
+  },
+  container: {
+    position: 'relative',
+    height: '100%',
+    width: '100%'
+  },
+  label: {
+    position: 'absolute',
+    top: 0,
+    left: theme.spacing(0.5),
+    right: 0,
+    bottom: 0,
+    lineHeight: '100%',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center'
+  },
   bar: {
     position: 'absolute',
     top: theme.spacing(0.8),
-    left: theme.spacing(3.2),
+    left: 0,
     right: 0,
     bottom: theme.spacing(0.8)
-  },
-  controlLabel: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: '4rem'
-  },
-  label: {
-    width: '100%'
   }
 }))
 const InputItem = React.memo(({
@@ -69,6 +87,9 @@ const InputItem = React.memo(({
   count,
   scale,
   disableStatistics,
+  labelPlacement,
+  disableLabelClick,
+  disableSelect,
   className,
   classes,
   'data-testid': testID
@@ -77,9 +98,9 @@ const InputItem = React.memo(({
   const { useIsStatisticsEnabled } = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
 
-  const handleChange = useCallback((event, itemValue) => {
-    if (!disabled && onChange) onChange(value, itemValue)
-  }, [value, disabled, onChange])
+  const handleChange = useCallback((event) => {
+    if (!disabled && onChange) onChange(event, value, !selected)
+  }, [value, disabled, onChange, selected])
 
   let Control
   if (variant === 'radio') {
@@ -88,7 +109,8 @@ const InputItem = React.memo(({
     Control = Checkbox
   }
 
-  return <div className={clsx(className, styles.root)} data-testid={testID}>
+  // Component that contains the label and the statistics
+  const labelComponent = <div className={styles.container}>
     {(isStatisticsEnabled && !disableStatistics) && <StatisticsBar
       className={styles.bar}
       max={total}
@@ -97,27 +119,45 @@ const InputItem = React.memo(({
       selected={selected}
       disabled={disabled}
     />}
-    <FormControlLabel
-      className={styles.controlLabel}
-      classes={{label: styles.label}}
-      disabled={disabled}
-      control={<Control
-        checked={selected}
-        size="medium"
-        color="primary"
-        onChange={handleChange}
-        name={value}
-      />}
-      label={
-        <Tooltip
-          placement="right"
-          enterDelay={200}
-          title={tooltip || ''}
-        >
-          <Typography className={styles.label} noWrap>{label || value}</Typography>
-        </Tooltip>
-      }
-    />
+    <div className={styles.label} style={!disableStatistics ? {right: '4rem'} : undefined}>
+      <Tooltip
+        placement="right"
+        enterDelay={200}
+        title={tooltip || ''}
+      >
+        <Typography noWrap>{label || value}</Typography>
+      </Tooltip>
+    </div>
+  </div>
+
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    {disableSelect
+      ? labelComponent
+      : <FormControlLabel
+        style={{pointerEvents: disableLabelClick ? 'none' : undefined}}
+        className={styles.controlLabel}
+        classes={{
+          label: styles.labelContainer,
+          labelPlacementStart: styles.labelPlacementStart
+        }}
+        labelPlacement={labelPlacement}
+        disabled={disabled}
+        control={<Control
+          checked={selected}
+          size="medium"
+          color="primary"
+          onClick={handleChange}
+          name={value}
+          style={{
+            padding: 6,
+            pointerEvents: (disableLabelClick ? 'auto' : undefined),
+            marginRight: (labelPlacement === 'start' ? -8 : undefined),
+            marginLeft: (labelPlacement === 'end' ? -8 : undefined)
+          }}
+        />}
+        label={labelComponent}
+      />
+    }
   </div>
 })
 
@@ -133,9 +173,16 @@ InputItem.propTypes = {
   count: PropTypes.number, // Count of these values for statistics
   scale: PropTypes.number, // Scaling of the statistics
   disableStatistics: PropTypes.bool, // Use to disable statistics for this item
+  labelPlacement: PropTypes.oneOf(['start', 'end']), // Controls the label placement
+  disableLabelClick: PropTypes.bool, // Whether clicking the label is enabled
+  disableSelect: PropTypes.bool, // Whether the checkbox is shown
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string
+}
+
+InputItem.defaultProps = {
+  labelPlacement: 'end'
 }
 
 export default InputItem

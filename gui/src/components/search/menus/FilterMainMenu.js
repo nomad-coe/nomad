@@ -149,7 +149,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>
         <FilterSubMenuIDs value={labelIDs}/>
-        <FilterSubMenuArchive value={labelArchive}/>
+        <FilterSubMenuArchive value={labelArchive} size="medium"/>
       </>}
     </FilterSubMenus>
   </FilterMenu>

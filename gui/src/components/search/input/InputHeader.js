@@ -49,6 +49,7 @@ import { useBoolState } from '../../../hooks'
 const useStaticStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(0.5),
+    marginTop: theme.spacing(-0.5),
     height: '2.5rem',
     width: '100%'
   },
