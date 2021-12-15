@@ -75,7 +75,7 @@ RUN make html
 RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+    find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" | grep -v h5py && strip -s "{}"' \;
 
 # Built the GUI in the gui build image
 FROM node:14.8 as gui_build
