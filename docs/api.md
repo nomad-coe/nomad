@@ -130,4 +130,4 @@ print(json.dumps(data), indent=2)
 
 This library is part devevloped by NOMAD. It is supposed to provide more powerful
 access to common yet complex tasks. It currently only support access to the NOMAD
-Archive. It has its separate documentation [here](archive.html).
+Archive. It has its separate documentation [here](pythonlib).

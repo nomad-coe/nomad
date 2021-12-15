@@ -89,11 +89,6 @@ python-multipart==0.0.5
 
 # [dev]
 setuptools==57.5.0
-sphinx==2.4.4
-sphinxcontrib.httpdomain==1.8.0
-sphinx-click==3.0.1
-sphinx_rtd_theme==1.0.0
-mistune==0.8.4
 gitpython==3.1.24
 mypy==0.730
 typed-ast==1.4.2
@@ -111,3 +106,6 @@ essential_generators==1.0
 twine==3.4.2
 python-gitlab==2.10.1
 devtools==0.8.0
+mkdocs==1.2.3
+mkdocs-material==8.1.1
+mkdocs-material-extensions==1.0.3

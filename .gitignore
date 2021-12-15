@@ -44,3 +44,5 @@ jupyterhub_cookie_secret
 jupyterhub.sqlite
 jupyterhub-proxy.pid
 gui/src/parserMetadata.json
+site/
+docs/*.graffle

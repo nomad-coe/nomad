@@ -1,0 +1,3 @@
+# The NOMAD Python package -- nomad-lab
+
+comming soon ...

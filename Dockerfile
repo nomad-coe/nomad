@@ -70,8 +70,7 @@ COPY . /install
 RUN python setup.py compile
 RUN pip install .[all]
 RUN ./generate_gui_artifacts.sh
-WORKDIR /install/docs
-RUN make html
+RUN mkdocs build && mv site docs/build
 RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
@@ -104,7 +103,7 @@ WORKDIR /app
 # transfer installed packages from dependency stage
 COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
 # copy the documentation, its files will be served by the API
-COPY --from=build /install/docs/.build /app/docs/.build
+COPY --from=build /install/docs/build /app/docs/build
 # copy the nomad command
 COPY --from=build /usr/local/bin/nomad /usr/bin/nomad
 # copy the gui

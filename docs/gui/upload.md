@@ -1,4 +1,4 @@
-# How to upload data
+# Uploading and publishing data
 
 To contribute your data to the repository, please, login to our [upload page](https://nomad-lab.eu/prod/rae/gui/uploads)
 (you need to register first, if you do not have a NOMAD account yet).
