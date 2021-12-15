@@ -48,6 +48,7 @@ export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
+export const labelArchive = 'Archive'
 
 /**
  * This function is used to register a new filter within the SearchContext.
@@ -248,6 +249,7 @@ registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: '
 registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', labelIDs, noAggQuantity)
 registerFilter('upload_id', labelIDs, noAggQuantity)
+registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
 registerFilter('results.material.material_id', labelIDs, noAggQuantity)
 registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
 // Visibility: controls the 'owner'-parameter in the API query, not part of the

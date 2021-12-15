@@ -80,6 +80,7 @@ metainfo.packages.forEach(pkg => {
       addDef(sectionDef)
     }
 
+    sectionDef._allProperties = computeAllProperties(sectionDef)
     sectionDef._properties = {}
     const addProperty = property => {
       sectionDef._properties[property.name] = property
@@ -91,28 +92,48 @@ metainfo.packages.forEach(pkg => {
       property._package = pkg
       addDef(property)
     }
-    sectionDef.quantities.forEach(quantitiy => {
-      addProperty(quantitiy)
-      quantitiy.shape = quantitiy.shape || []
-      if (isReference(quantitiy)) {
-        const referencedSection = resolveRef(quantitiy.type.type_data)
-        referencedSection._incomingRefs = referencedSection._incomingRefs || []
-        referencedSection._incomingRefs.push(quantitiy)
+    sectionDef._allProperties.forEach(property => {
+      addProperty(property)
+      if (property.m_def === 'Quantity') {
+        property.shape = property.shape || []
+        if (isReference(property)) {
+          const referencedSection = resolveRef(property.type.type_data)
+          referencedSection._incomingRefs = referencedSection._incomingRefs || []
+          referencedSection._incomingRefs.push(property)
+        }
+      } else if (property.m_def === 'SubSection') {
+        const subSectionsSectionDef = resolveRef(property.sub_section)
+        subSectionsSectionDef._parentSections = subSectionsSectionDef._parentSections || []
+        subSectionsSectionDef._parentSections.push(sectionDef)
+        subSectionsSectionDef._parentSubSections = subSectionsSectionDef._parentSubSections || []
+        subSectionsSectionDef._parentSubSections.push(property)
+        property._section = sectionDef
       }
-    })
-    sectionDef.sub_sections.forEach(subSection => {
-      addProperty(subSection)
-      const subSectionsSectionDef = resolveRef(subSection.sub_section)
-      subSectionsSectionDef._parentSections = subSectionsSectionDef._parentSections || []
-      subSectionsSectionDef._parentSections.push(sectionDef)
-      subSectionsSectionDef._parentSubSections = subSectionsSectionDef._parentSubSections || []
-      subSectionsSectionDef._parentSubSections.push(subSection)
-      subSection._section = sectionDef
     })
   }
 
   pkg.section_definitions.forEach(sectionDef => addSectionDef(sectionDef, pkg))
 })
+
+function computeAllProperties(sectionDef) {
+  const results = {}
+  function addProperties(sectionDef) {
+    sectionDef.quantities.concat(sectionDef.sub_sections).forEach(
+      property => {
+        results[property.name] = property
+      })
+  }
+  const baseSections = []
+  function addBaseSection(sectionDef) {
+    if (!sectionDef.extends_base_section) {
+      sectionDef.base_sections.map(baseSectionRef => resolveRef(baseSectionRef)).forEach(addBaseSection)
+    }
+    baseSections.push(sectionDef)
+  }
+  addBaseSection(sectionDef)
+  baseSections.forEach(addProperties)
+  return Object.keys(results).sort().map(key => results[key])
+}
 
 export const rootSections = sortDefs(defs.filter(def => (
   def.m_def === 'Section' && !def.extends_base_section && def._parentSections.length === 0)
