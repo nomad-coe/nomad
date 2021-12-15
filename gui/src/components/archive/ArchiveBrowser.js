@@ -15,19 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useContext, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, List, Adaptor, formatSubSectionName } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
 import { toUnitSystem, useUnits } from '../../units'
+import ArrowRightIcon from '@material-ui/icons/ArrowRight'
+import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
+import grey from '@material-ui/core/colors/grey'
+import classNames from 'classnames'
 
 export const configState = atom({
   key: 'config',
@@ -375,10 +379,10 @@ function Section({section, def, parent, units}) {
           const key = subSectionDef.name
           const disabled = section[key] === undefined
           if (!disabled && subSectionDef.repeats && section[key].length > 1) {
-            return <List
+            return <SubSectionList
               key={subSectionDef.name}
-              itemKey={subSectionDef.name}
-              title={formatSubSectionName(subSectionDef.name)} disabled={disabled}
+              subSectionDef={subSectionDef}
+              disabled={disabled}
             />
           } else {
             return <Item key={key} itemKey={key} disabled={disabled}>
@@ -429,6 +433,72 @@ Section.propTypes = ({
   def: PropTypes.object.isRequired,
   parent: PropTypes.any,
   units: PropTypes.object
+})
+
+const useSubSectionListStyles = makeStyles(theme => ({
+  title: {
+    color: theme.palette.text.primary,
+    textDecoration: 'none',
+    margin: `0 -${theme.spacing(1)}px`,
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    fontWeight: 'bold'
+  },
+  selected: {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    whiteSpace: 'nowrap'
+  },
+  unSelected: {
+    '&:hover': {
+      backgroundColor: grey[300]
+    }
+  }
+}))
+export function SubSectionList({subSectionDef}) {
+  const classes = useSubSectionListStyles()
+  const [open, setOpen] = useState(false)
+  const lane = useContext(laneContext)
+  const selected = lane.next && lane.next.key
+  const values = lane.adaptor.e[subSectionDef.name]
+  const label = useMemo(() => {
+    let key = subSectionDef.more?.label_quantity
+    if (!key) {
+      const sectionDef = resolveRef(subSectionDef.sub_section)
+      key = sectionDef.more?.label_quantity
+      if (!key) {
+        key = ['name', 'type', 'id'].find(key => (
+          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
+        ))
+      }
+    }
+    return item => {
+      return key && item[key]
+    }
+  }, [subSectionDef])
+  return <div>
+    <Typography onClick={() => setOpen(!open)} className={classNames(
+      classes.title,
+      (!open && selected && selected.startsWith(subSectionDef.name + ':')) ? classes.selected : classes.unSelected
+    )}>
+      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+      <span>{formatSubSectionName(subSectionDef.name) || 'list'}</span>
+    </Typography>
+    {open &&
+      <div>
+        {values.map((item, index) => (
+          <Item key={index} itemKey={`${subSectionDef.name}:${index}`}>
+            <Box component="span" marginLeft={2}>
+              <Typography component="span">{label(item) || index}</Typography>
+            </Box>
+          </Item>
+        ))}
+      </div>
+    }
+  </div>
+}
+SubSectionList.propTypes = ({
+  subSectionDef: PropTypes.object.isRequired
 })
 
 function Quantity({value, def, units}) {

@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-import React, { useContext, useRef, useLayoutEffect, useMemo, useState } from 'react'
+import React, { useContext, useRef, useLayoutEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
-import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
@@ -226,58 +225,6 @@ Item.propTypes = ({
   ]).isRequired,
   itemKey: PropTypes.string.isRequired,
   disabled: PropTypes.bool
-})
-
-const useListStyles = makeStyles(theme => ({
-  title: {
-    color: theme.palette.text.primary,
-    textDecoration: 'none',
-    margin: `0 -${theme.spacing(1)}px`,
-    whiteSpace: 'nowrap',
-    display: 'flex',
-    fontWeight: 'bold'
-  },
-  selected: {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    whiteSpace: 'nowrap'
-  },
-  unSelected: {
-    '&:hover': {
-      backgroundColor: grey[300]
-    }
-  }
-}))
-export function List({title, itemKey}) {
-  const classes = useListStyles()
-  const [open, setOpen] = useState(false)
-  const lane = useContext(laneContext)
-  const selected = lane.next && lane.next.key
-  const values = lane.adaptor.e[itemKey]
-  return <div>
-    <Typography onClick={() => setOpen(!open)} className={classNames(
-      classes.title,
-      (!open && selected && selected.startsWith(itemKey + ':')) ? classes.selected : classes.unSelected
-    )}>
-      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-      <span>{title || 'list'}</span>
-    </Typography>
-    {open &&
-      <div>
-        {values.map((_, index) => (
-          <Item key={index} itemKey={`${itemKey}:${index}`}>
-            <Box component="span" marginLeft={2}>
-              <Typography component="span">{index}</Typography>
-            </Box>
-          </Item>
-        ))}
-      </div>
-    }
-  </div>
-}
-List.propTypes = ({
-  itemKey: PropTypes.string.isRequired,
-  title: PropTypes.string
 })
 
 export function Content({children}) {
