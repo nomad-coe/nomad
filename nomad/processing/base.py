@@ -446,8 +446,8 @@ class Proc(Document):
         Called on the parent Proc object to join (resume) the current process.
         For the join to succeed, the following must be fullfilled:
             *   This Proc must have status `WAITING_FOR_RESULT`
-            *   Every instance of the child class (defined by calling :func:`child_cls`)
-                linked to this Proc (if any) must be in status FAILURE or SUCCESS.
+            *   No instance of the child class (defined by calling :func:`child_cls`)
+                linked to this Proc (if any) must be processing.
         If the join succeeds, the `process_status` will be set to `RUNNING` and True
         will be returned. Otherwise, the method just returns False. The method is written so
         that the join should succeed once and only once.
@@ -456,12 +456,12 @@ class Proc(Document):
         if self.process_status != ProcessStatus.WAITING_FOR_RESULT:
             self.get_logger().debug('trying to join: not waiting for result')
             return False
-        children_pending_completion = self.child_cls().objects(**{
+        children_processing = self.child_cls().objects(**{
             self.id_field: self.id,
-            'process_status__nin': (ProcessStatus.SUCCESS, ProcessStatus.FAILURE)}).count()
-        self.get_logger().debug('trying to join', children_pending_completion=children_pending_completion)
+            'process_status__in': ProcessStatus.STATUSES_PROCESSING}).count()
+        self.get_logger().debug('trying to join', children_processing=children_processing)
 
-        if not children_pending_completion:
+        if not children_processing:
             # We may easily get here multiple times if multiple children finish at the same time
             # To join, we need to read and update the mongo record as a single atomic operation
             old_record = self._get_collection().find_one_and_update(

@@ -605,8 +605,8 @@ def test_phonopy_data(proc_infra, test_user, no_warn):
     upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
 
     additional_keys = ['results.method.simulation.program_name']
-    assert upload.total_calcs == 1
-    assert len(upload.calcs) == 1
+    assert upload.total_calcs == 2
+    assert len(upload.calcs) == 2
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
