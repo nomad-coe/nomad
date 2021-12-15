@@ -1060,6 +1060,14 @@ class Calc(Proc):
                 except Exception as e:
                     raise ProcessFailure('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
+        parser = parser_dict[self.parser_name]
+        try:
+            parser.after_normalization(self._parser_results, logger=logger)
+        except Exception as e:
+            raise ProcessFailure(
+                'parser after normalization step failed with exception',
+                exc_info=e, error=str(e), **context)
+
     def archiving(self):
         ''' The process step that encapsulates all archival related actions. '''
         self.set_last_status_message('Archiving')

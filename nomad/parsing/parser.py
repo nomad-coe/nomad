@@ -71,6 +71,18 @@ class Parser(metaclass=ABCMeta):
         '''
         pass
 
+    def after_normalization(self, archive: EntryArchive, logger=None) -> None:
+        '''
+        This is called after the archive produced by `parsed` has been normalized. This
+        allows to apply additional code-specific processing steps based on the normalized data.
+
+        Args:
+            archive: An instance of the section :class:`EntryArchive`. It might contain
+                a section ``metadata`` with information about the entry.
+            logger: A optional logger
+        '''
+        pass
+
     @classmethod
     def main(cls, mainfile):
         archive = EntryArchive()

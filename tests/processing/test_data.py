@@ -574,6 +574,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert len(calc.errors) == 1
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
@@ -586,10 +587,24 @@ def test_ems_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_qcms_data(proc_infra, test_user):
     upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
 
     additional_keys = ['results.method.simulation.program_name', 'results.material.elements']
+    assert upload.total_calcs == 1
+    assert len(upload.calcs) == 1
+
+    with upload.entries_metadata() as entries:
+        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_search_upload(entries, additional_keys, published=False)
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_phonopy_data(proc_infra, test_user, no_warn):
+    upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
+
+    additional_keys = ['results.method.simulation.program_name']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
 
