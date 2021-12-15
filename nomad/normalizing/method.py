@@ -404,6 +404,8 @@ class MethodNormalizer():
             except KeyError:
                 pass
             else:
+                if sec_xc_functionals is None:
+                    return xc_functional
                 components = {}
                 for functional in ['exchange', 'correlation', 'hybrid', 'contributions']:
                     for component in sec_xc_functionals[functional]:
