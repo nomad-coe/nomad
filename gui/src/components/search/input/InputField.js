@@ -221,7 +221,6 @@ const InputField = React.memo(({
           <InputTextQuantity
             className={styles.textField}
             quantity={quantity}
-            placeholder="Type here"
             disabled={disabled}
             disableSuggestions={disableSuggestions}
             fullWidth

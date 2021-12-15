@@ -26,8 +26,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useSearchContext } from '../SearchContext'
 import InputItem from '../input/InputItem'
-import { InputTextField } from '../input/InputText'
-import { Autocomplete } from '@material-ui/lab'
+import { InputTextQuantity } from '../input/InputText'
 
 const filterProperties = def => !(def.name.startsWith('x_') || def.virtual)
 
@@ -152,7 +151,7 @@ const FilterSubMenuArchive = React.memo(({
     const options = []
     function addDef(def, prefix) {
       const fullName = prefix ? `${prefix}.${def.name}` : def.name
-      options.push(fullName)
+      options.push({value: fullName})
       if (def.m_def === 'SubSection' && def.sub_section) {
         def = resolveRef(def.sub_section)
       }
@@ -163,36 +162,23 @@ const FilterSubMenuArchive = React.memo(({
     root.sub_sections.forEach(def => addDef(def))
     return options
   }, [root.sub_sections])
-  const { useFilterState } = useSearchContext()
-  const setFilter = useFilterState('quantities')[1]
-  const handleChange = useCallback((_, path) => {
-    if (!path || path === '') {
-      return
-    }
-    setFilter(old => {
-      let newValues
-      if (old) {
-        const isSelected = old?.has(path)
-        isSelected ? old.delete(path) : old.add(path)
-        newValues = new Set(old)
-      } else {
-        newValues = new Set([path])
-      }
-      return newValues
-    })
-  }, [setFilter])
+
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <Box marginTop={2} marginBottom={1}>
-          <Autocomplete
-            onChange={handleChange}
-            options={options}
-            renderInput={(params) => <InputTextField fullWidth {...params} label="Search quantities" variant="filled" />}
+          <InputTextQuantity
+            quantity="quantities"
+            suggestions={options}
           />
         </Box>
         {root.sub_sections.map(def => (
-          <Definition key={def.name} name={def.name} def={resolveRef(def.sub_section)} path={def.name} />
+          <Definition
+            key={def.name}
+            name={def.name}
+            def={resolveRef(def.sub_section)}
+            path={def.name}
+          />
         ))}
       </InputGridItem>
     </InputGrid>
