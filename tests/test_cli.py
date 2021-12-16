@@ -233,7 +233,7 @@ class TestAdminUploads:
         published.save()
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 're-pack', '--parallel', '2', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 're-pack', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 're-pack' in result.stdout
