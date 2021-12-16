@@ -357,7 +357,6 @@ def keycloak(monkeypatch):
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
     ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
-    processing.Upload.metadata_file_cached.cache_clear()
     return dict(elastic=elastic)
 
 

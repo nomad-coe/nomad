@@ -986,8 +986,7 @@ async def post_upload_edit(
     '''
     edit_request_json = await request.json()
     try:
-        MetadataEditRequestHandler.edit_metadata(
-            edit_request_json=edit_request_json, upload_id=upload_id, user=user)
+        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
         return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
@@ -1167,8 +1166,7 @@ async def post_upload_action_lift_embargo(
             Upload has no embargo.'''))
     # Lift the embargo using MetadataEditRequestHandler.edit_metadata
     try:
-        MetadataEditRequestHandler.edit_metadata(
-            edit_request_json={'metadata': {'embargo_length': 0}}, upload_id=upload_id, user=user)
+        MetadataEditRequestHandler.edit_metadata({'metadata': {'embargo_length': 0}}, upload_id, user)
         upload.reload()
         return UploadProcDataResponse(
             upload_id=upload_id,

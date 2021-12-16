@@ -39,9 +39,6 @@ import os.path
 from datetime import datetime, timedelta
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
-import yaml
-import json
-from functools import lru_cache
 import requests
 from fastapi.exceptions import RequestValidationError
 from pydantic.error_wrappers import ErrorWrapper
@@ -142,8 +139,8 @@ def generate_entry_id(upload_id: str, mainfile: str) -> str:
 
 class MetadataEditRequestHandler:
     '''
-    Class for handling a request to edit metadata. The request may originate either from
-    metadata files in the raw directory or from a json dictionary complying with the
+    Class for handling a request to edit metadata. The edit request can be defined either by
+    metadata files in the raw directory or a json dictionary complying with the
     :class:`MetadataEditRequest` format. If the edit request is limited to a specific upload,
     `upload_id` should be specified (only when this is the case can upload level metadata be edited).
     '''
@@ -153,7 +150,8 @@ class MetadataEditRequestHandler:
             user: datamodel.User) -> Dict[str, Any]:
         '''
         Method to verify and execute a generic request to edit metadata from a certain user.
-        The request is specified as a json dictionary. Optionally, the request could be restricted
+        The request is specified as a json dictionary (requests defined by metadata files
+        are not handled by this method). Optionally, the request could be restricted
         to a single upload by specifying `upload_id` (this is necessary when editing upload
         level attributes). If `edit_request_json` has `verify_only` set to True, only
         verification is carried out (i.e. nothing is actually updated). To just run the
@@ -163,7 +161,7 @@ class MetadataEditRequestHandler:
         for execution, by initiating the @process :func:`edit_upload_metadata` for each affected
         upload.
 
-        The method returns a json dictionary with verified data (references resolved to explicit
+        The method returns a json dictionary with verified metadata (references resolved to explicit
         IDs, list actions always expressed as dicts with "op" and "values", etc), or raises
         an exception, namely:
          -  A :class:`ValidationError` if the request json can't be parsed by pydantic
@@ -175,10 +173,9 @@ class MetadataEditRequestHandler:
             never happen)
         '''
         logger = utils.get_logger('nomad.processing.edit_metadata')
-        handler = MetadataEditRequestHandler(
-            logger, user, edit_request_json=edit_request_json, upload_id=upload_id)
+        handler = MetadataEditRequestHandler(logger, user, edit_request_json, upload_id)
         # Validate the request
-        handler.validate_request()  # Should raise errors if something looks wrong
+        handler.validate_json_request()  # Should raise an exception if something looks wrong
 
         if not edit_request_json.get('verify_only'):
             # Check if any of the affected uploads are processing
@@ -190,24 +187,22 @@ class MetadataEditRequestHandler:
             for upload in handler.affected_uploads:
                 upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
         # All went well, return a verified json as response
-        verified_json = copy.deepcopy(handler.edit_request_json)
-        verified_json['metadata'] = handler.root_metadata
-        verified_json['entries'] = handler.entries_metadata
+        verified_json = copy.deepcopy(edit_request_json)
+        verified_json['metadata'] = handler.verified_metadata
+        verified_json['entries'] = handler.verified_entries
         return verified_json
 
     def __init__(
             self, logger, user: datamodel.User,
-            edit_request_json: Dict[str, Any] = None,
-            upload_files: StagingUploadFiles = None,
+            edit_request: Union[StagingUploadFiles, Dict[str, Any]],
             upload_id: str = None):
         # Initialization
         assert user, 'Must specify `user`'
-        assert (edit_request_json is None) != (upload_files is None), (
-            'Must specify either `edit_request` or `upload_files`')
+        assert isinstance(edit_request, dict) or isinstance(edit_request, StagingUploadFiles), (
+            '`edit_request` must be either a json dictionary or a :class:`StagingUploadfiles` object')
         self.logger = logger
         self.user = user
-        self.edit_request_json = edit_request_json
-        self.upload_files = upload_files
+        self.edit_request = edit_request
         self.upload_id = upload_id
 
         self.errors: List[ErrorWrapper] = []  # A list of all encountered errors, if any
@@ -216,52 +211,54 @@ class MetadataEditRequestHandler:
         self.required_auth_level_locs: List[Tuple[str, ...]] = []  # locs where maximal auth level is needed
         self.encountered_users: Dict[str, str] = {}  # { ref: user_id | None }, ref = user_id | username | email
         self.encountered_datasets: Dict[str, datamodel.Dataset] = {}  # { ref : dataset | None }, ref = dataset_id | dataset_name
-        self.root_metadata: Dict[str, Any] = None  # The metadata specified at the top/root level
 
-        # Specific to the MetadataEditRequest case
-        self.edit_request: MetadataEditRequest = None
+        # Used when edit_request = json dict
+        self.edit_request_obj: MetadataEditRequest = None
+        self.verified_metadata: Dict[str, Any] = {}  # The metadata specified at the top/root level
+        self.verified_entries: Dict[str, Dict[str, Any]] = {}  # Metadata specified for individual entries
         self.affected_uploads: List['Upload'] = None  # A MetadataEditRequest may involve multiple uploads
-        self.entries_metadata: Dict[str, Dict[str, Any]] = {}  # Metadata specified for individual entries
 
-    def validate_metadata_files(self):
-        pass  # TODO
+        # Used when edit_request = files
+        self.verified_file_metadata_cache: Dict[str, Dict[str, Any]] = {}
+        self.root_file_entries: Dict[str, Dict[str, Any]] = None  # `entries` defined in the root metadata file
 
-    def validate_request(self):
+    def validate_json_request(self):
         ''' Validates the provided edit_request_json. '''
         # Validate the request json. Will raise ValidationError if json is malformed
-        self.edit_request = MetadataEditRequest(**self.edit_request_json)
+        assert isinstance(self.edit_request, dict), 'edit_request should be json dict'
+        self.edit_request_obj = MetadataEditRequest(**self.edit_request)
         try:
-            if not self.upload_id and not self.edit_request.query:
-                return self._loc_error('Must specify `query`', 'query')
-            if self.edit_request.entries and not self.edit_request.entries_key:
-                return self._loc_error('Must specify `entries_key` when specifying `entries`', 'entries_key')
+            if not self.upload_id and not self.edit_request_obj.query:
+                return self._error('Must specify `query` or `upload_id`', 'query')
+            if self.edit_request_obj.entries and not self.edit_request_obj.entries_key:
+                return self._error('Must specify `entries_key` when specifying `entries`', 'entries_key')
 
-            can_edit_upload_fields = bool(self.upload_id and not self.edit_request.query)
-            if self.edit_request.metadata:
-                self.root_metadata = self._verify_metadata_edit_actions(
-                    self.edit_request_json['metadata'], ('metadata',), can_edit_upload_fields)
-            if self.edit_request.entries:
-                for key, entry_metadata in self.edit_request_json['entries'].items():
-                    verified_metadata = self._verify_metadata_edit_actions(
+            can_edit_upload_quantities = bool(self.upload_id and not self.edit_request_obj.query)
+            if self.edit_request_obj.metadata:
+                self.verified_metadata = self._verify_metadata(
+                    self.edit_request['metadata'], ('metadata',), can_edit_upload_quantities)
+            if self.edit_request_obj.entries:
+                for key, entry_metadata in self.edit_request['entries'].items():
+                    verified_metadata = self._verify_metadata(
                         entry_metadata, ('entries', key), False)
-                    self.entries_metadata[key] = verified_metadata
+                    self.verified_entries[key] = verified_metadata
 
             if not self.edit_attempt_locs:
-                return self._loc_error('No fields to update specified', 'metadata')
+                return self._error('No fields to update specified', 'metadata')
             if self.required_auth_level == AuthLevel.admin and not self.user.is_admin:
                 for loc in self.required_auth_level_locs:
-                    self._loc_error('Admin rights required', loc)
+                    self._error('Admin rights required', loc)
                 return
 
-            embargo_length: int = self.root_metadata.get('embargo_length')
+            embargo_length: int = self.verified_metadata.get('embargo_length')
             try:
                 self.affected_uploads = self._find_request_uploads()
             except Exception as e:
-                return self._loc_error('Could not evaluate query: ' + str(e), 'query')
+                return self._error('Could not evaluate query: ' + str(e), 'query')
             if not self.affected_uploads:
-                if self.edit_request.query:
-                    return self._loc_error('No matching entries found', 'query')
-                return self._loc_error('No matching upload found', 'upload_id')
+                if self.edit_request_obj.query:
+                    return self._error('No matching entries found', 'query')
+                return self._error('No matching upload found', 'upload_id')
             for upload in self.affected_uploads:
                 # Check permissions
                 coauthor = upload.coauthors and self.user.user_id in upload.coauthors
@@ -277,14 +274,14 @@ class MetadataEditRequestHandler:
                     assert False, 'Invalid required_auth_level'  # Should not happen
                 if not has_access:
                     for loc in self.required_auth_level_locs:
-                        self._loc_error(
+                        self._error(
                             f'{self.required_auth_level} access required for upload '
                             f'{upload.upload_id}', loc)
                     return
                 # Other checks
                 if embargo_length is not None:
                     if upload.published and not admin and embargo_length != 0:
-                        self._loc_error(
+                        self._error(
                             f'Upload {upload.upload_id} is published, embargo can only be lifted',
                             ('metadata', 'embargo_length'))
                 if upload.published and not admin:
@@ -292,7 +289,7 @@ class MetadataEditRequestHandler:
                     for edit_loc in self.edit_attempt_locs:
                         if edit_loc[-1] not in ('embargo_length', 'datasets'):
                             has_invalid_edit = True
-                            self._loc_error(
+                            self._error(
                                 f'Cannot update, upload {upload.upload_id} is published.', edit_loc)
                     if has_invalid_edit:
                         return
@@ -304,53 +301,77 @@ class MetadataEditRequestHandler:
             if self.errors:
                 raise RequestValidationError(errors=self.errors)
 
-    def get_upload_metadata_to_set(self, upload: 'Upload') -> Dict[str, Any]:
+    def get_upload_mongo_metadata(self, upload: 'Upload') -> Dict[str, Any]:
         '''
-        Returns a dictionary with verified metadata to update on the Upload object. The
-        values have the correct type for mongo. Assumes that the corresponding validation method
-        (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
+        Returns a dictionary with metadata to set on the mongo Upload object. If the provided
+        `edit_request` is a json dictionary the :func: `validate_json_request`) is assumed
+        to have been run first.
         '''
-        rv: Dict[str, Any] = {}
-        if self.root_metadata:
-            self._applied_mongo_actions(upload, self.root_metadata, rv)
-        return rv
-
-    def get_entry_metadata_to_set(self, upload: 'Upload', entry: 'Calc') -> Dict[str, Any]:
-        '''
-        Returns a dictionary with verified metadata to update on the entry object. The
-        values have the correct type for mongo. Assumes that the corresponding validation method
-        (i.e. :func:`validate_metadata_files` or :func: `validate_request`) have been run.
-        '''
-        rv: Dict[str, Any] = {}
-        if self.root_metadata:
-            self._applied_mongo_actions(entry, self.root_metadata, rv)
-        if self.edit_request:
-            # Source = edit_request
-            if self.entries_metadata:
-                entry_key = self._get_entry_key(entry, self.edit_request.entries_key)
-                entry_metadata = self.entries_metadata.get(entry_key)
-                if entry_metadata:
-                    # We also have actions for this particular entry specified
-                    self._applied_mongo_actions(entry, entry_metadata, rv)
+        if isinstance(self.edit_request, dict):
+            # edit_request = json dict
+            if self.verified_metadata:
+                return self._mongo_metadata(upload, self.verified_metadata)
         else:
-            # Source = metadata files
-            pass  # TODO
-        return rv
+            # edit_request = files
+            return self._mongo_metadata(upload, self._verified_file_metadata(path_dir=''))
+        return {}
 
-    def _loc_error(self, msg: str, loc: Union[str, Tuple[str, ...]]):
-        ''' Registers a located error. '''
+    def get_entry_mongo_metadata(self, upload: 'Upload', entry: 'Calc') -> Dict[str, Any]:
+        '''
+        Returns a dictionary with metadata to set on the mongo entry object. If the provided
+        `edit_request` is a json dictionary the :func: `validate_json_request`) is assumed
+        to have been run first.
+        '''
+        verified_metadata: Dict[str, Any] = {}
+        if isinstance(self.edit_request, dict):
+            # edit_request = json dict
+            if self.verified_metadata:
+                verified_metadata.update(self.verified_metadata)
+            if self.verified_entries:
+                entry_key = self._get_entry_key(entry, self.edit_request_obj.entries_key)
+                entry_metadata = self.verified_entries.get(entry_key)
+                if entry_metadata:
+                    # We also have metadata specified for this particular entry
+                    verified_metadata.update(entry_metadata)
+        else:
+            # edit_request = files
+            path_dir = os.path.dirname(entry.mainfile)
+            while True:
+                for quantity, verified_value in self._verified_file_metadata(path_dir).items():
+                    verified_metadata.setdefault(quantity, verified_value)
+                if not path_dir:
+                    break  # We're done witht the root folder (the raw dir)
+                path_dir = os.path.dirname(path_dir)  # Move to the parent folder
+
+            if self.root_file_entries:
+                entry_metadata = self.root_file_entries.get(entry.mainfile)
+                if entry_metadata:
+                    # Metadata for this entry specified under 'entries' on the root level
+                    loc = ('entries', entry.mainfile)
+                    if not isinstance(entry_metadata, dict):
+                        self._error('Expected dictionary', loc)
+                    else:
+                        verified_entry_metadata = self._verify_metadata(
+                            entry_metadata, loc, can_edit_upload_quantities=False,
+                            auth_level=AuthLevel.admin if self.user.is_admin else AuthLevel.main_author)
+                        verified_metadata.update(verified_entry_metadata)
+        return self._mongo_metadata(entry, verified_metadata)
+
+    def _error(self, msg: str, loc: Union[str, Tuple[str, ...]]):
+        ''' Registers an error associated with a particular location. '''
         self.errors.append(ErrorWrapper(Exception(msg), loc=loc))
         self.logger.error(msg, loc=loc)
 
-    def _verify_metadata_edit_actions(
-            self, metadata_edit_actions: Dict[str, Any], loc: Tuple[str, ...],
-            can_edit_upload_fields: bool, auth_level: AuthLevel = None) -> Dict[str, Any]:
+    def _verify_metadata(
+            self, raw_metadata: Dict[str, Any], loc: Tuple[str, ...],
+            can_edit_upload_quantities: bool, auth_level: AuthLevel = None) -> Dict[str, Any]:
         '''
-        Performs *basic* validation of a dictionary with metadata edit actions, and returns a
-        dictionary with the same structure, but containing only the *verified* actions. Verified
-        actions are actions that pass validation. Moreover:
-            1)  For actions on lists, the verified action value is always expressed as a
-                list operation (a dictionary with `op` and `values`)
+        Performs basic validation of a dictionary with *raw* metadata (i.e. metadata with
+        key-value pairs as defined in the request json dictionary or metadata files), and
+        returns a dictionary with the same structure, but containing only the *verified* metadata.
+        The verified metadata contains only the key-value pairs that pass validation. Moreover:
+            1)  For lists, the verified value is always expressed as a list operation, i.e. a
+                dictionary with `op` and `values`.
             2)  User references (which can be specified by a user_id, a username, or an email)
                 are always converted to user_id
             3)  dataset references (which can be specified either by dataset_id or dataset_name)
@@ -359,72 +380,74 @@ class MetadataEditRequestHandler:
             4)  Only `add` and `remove` operations are allowed for datasets.
         '''
         rv = {}
-        for quantity_name, action in metadata_edit_actions.items():
-            if action is not None:
-                success, verified_action = self._verify_metadata_edit_action(
-                    quantity_name, action, loc + (quantity_name,), can_edit_upload_fields, auth_level)
+        for quantity_name, raw_value in raw_metadata.items():
+            if raw_value is not None:
+                success, verified_value = self._verify_metadata_single(
+                    quantity_name, raw_value, loc + (quantity_name,), can_edit_upload_quantities, auth_level)
                 if success:
-                    rv[quantity_name] = verified_action
+                    rv[quantity_name] = verified_value
         return rv
 
-    def _verify_metadata_edit_action(
-            self, quantity_name: str, action: Any, loc: Tuple[str, ...],
-            can_edit_upload_fields: bool, auth_level: AuthLevel) -> Tuple[bool, Any]:
+    def _verify_metadata_single(
+            self, quantity_name: str, raw_value: Any, loc: Tuple[str, ...],
+            can_edit_upload_quantities: bool, auth_level: AuthLevel) -> Tuple[bool, Any]:
         '''
-        Performs basic validation of a single action. Returns (success, verified_action).
+        Performs validation of a single value. Returns (success, verified_value).
         '''
         definition = _editable_metadata.get(quantity_name)
         if not definition:
-            self._loc_error('Unknown quantity', loc)
+            self._error('Unknown quantity', loc)
             return False, None
 
         self.edit_attempt_locs.append(loc)
 
-        field_auth_level = getattr(definition, 'a_auth_level', AuthLevel.coauthor)
+        quantity_auth_level = getattr(definition, 'a_auth_level', AuthLevel.coauthor)
 
         if auth_level is not None:
             # Our auth level is known, check it immediately
-            if field_auth_level > auth_level:
-                self._loc_error(f'{field_auth_level} privileges required', loc)
+            if quantity_auth_level > auth_level:
+                self._error(f'{quantity_auth_level} privileges required', loc)
                 return False, None
-        if field_auth_level > self.required_auth_level:
-            self.required_auth_level = field_auth_level
+        if quantity_auth_level > self.required_auth_level:
+            self.required_auth_level = quantity_auth_level
             self.required_auth_level_locs = [loc]
-        if quantity_name in _mongo_upload_metadata and not can_edit_upload_fields:
-            self._loc_error('Quantity can only be edited on the upload level', loc)
+        elif quantity_auth_level == self.required_auth_level:
+            self.required_auth_level_locs.append(loc)
+        if quantity_name in _mongo_upload_metadata and not can_edit_upload_quantities:
+            self._error('Quantity can only be edited on the upload level', loc)
             return False, None
 
         try:
             if definition.is_scalar:
-                return True, self._verified_value(definition, action)
+                return True, self._verified_value_single(definition, raw_value)
             else:
                 # We have a non-scalar quantity
-                if type(action) == dict:
-                    # Action is a dict - expected to contain op and values
-                    assert action.keys() == {'op', 'values'}, 'Expected keys `op` and `values`'
-                    op = action['op']
-                    values = action['values']
+                if type(raw_value) == dict:
+                    # The raw value is a dict - expected to contain op and values
+                    assert raw_value.keys() == {'op', 'values'}, 'Expected keys `op` and `values`'
+                    op = raw_value['op']
+                    values = raw_value['values']
                     assert op in ('set', 'add', 'remove'), 'op should be `set`, `add` or `remove`'
                     if quantity_name == 'datasets' and op == 'set':
-                        self._loc_error(
+                        self._error(
                             'Only `add` and `remove` operations permitted for datasets', loc)
                         return False, None
                 else:
                     op = 'set'
-                    values = action
+                    values = raw_value
                     if quantity_name == 'datasets':
                         op = 'add'  # Just specifying a list will be interpreted as add, rather than fail.
                 values = values if type(values) == list else [values]
-                verified_values = [self._verified_value(definition, v) for v in values]
+                verified_values = [self._verified_value_single(definition, v) for v in values]
                 return True, dict(op=op, values=verified_values)
         except Exception as e:
-            self._loc_error(str(e), loc)
+            self._error(str(e), loc)
             return False, None
 
-    def _verified_value(
+    def _verified_value_single(
             self, definition: metainfo.Definition, value: Any) -> Any:
         '''
-        Verifies a *singular* action value (i.e. for list quantities we should run this method
+        Verifies a *singular* raw value (i.e. for list quantities we should run this method
         for each value in the list, not with the list itself as input). Returns the verified
         value, which may be different from the origial value. It:
             1) ensures a return value of a primitive type (str, int, float, bool or None),
@@ -481,30 +504,30 @@ class MetadataEditRequestHandler:
         else:
             assert False, 'Unhandled value type'  # Should not happen
 
-    def _applied_mongo_actions(
-            self, mongo_doc: Union['Upload', 'Calc'],
-            verified_actions: Dict[str, Any], applied_actions: Dict[str, Any]):
+    def _mongo_metadata(
+            self, mongo_doc: Union['Upload', 'Calc'], verified_metadata: Dict[str, Any]) -> Dict[str, Any]:
         '''
-        Calculates the upload or entry level *applied actions*, i.e. key-value pairs with
-        data to set on the provided `mongo_doc` in order to carry out the actions specified
-        by `verified_actions`. The result is added to `applied_actions`.
+        Calculates the upload or entry level *mongo* metadata, given a `mongo_doc` and a
+        dictionary with *verified* metadata. The mongo metadata are the key-value pairs
+        to set on `mongo_doc` in order to carry out the edit request.
         '''
-        for quantity_name, verified_action in verified_actions.items():
+        rv: Dict[str, Any] = {}
+        for quantity_name, verified_value in verified_metadata.items():
             if isinstance(mongo_doc, Calc) and quantity_name not in _mongo_entry_metadata:
                 continue
             elif isinstance(mongo_doc, Upload) and quantity_name not in _mongo_upload_metadata:
                 continue
-            applied_actions[quantity_name] = self._applied_mongo_action(
-                mongo_doc, quantity_name, verified_action)
+            rv[quantity_name] = self._mongo_value(mongo_doc, quantity_name, verified_value)
+        return rv
 
-    def _applied_mongo_action(self, mongo_doc, quantity_name: str, verified_action: Any) -> Any:
+    def _mongo_value(self, mongo_doc, quantity_name: str, verified_value: Any) -> Any:
         definition = _editable_metadata[quantity_name]
         if definition.is_scalar:
-            if definition.type == metainfo.Datetime and verified_action:
-                return datetime.fromisoformat(verified_action)
-            return verified_action
-        # Non-scalar property. The verified action should be a dict with op and values
-        op, values = verified_action['op'], verified_action['values']
+            if definition.type == metainfo.Datetime and verified_value:
+                return datetime.fromisoformat(verified_value)
+            return verified_value
+        # Non-scalar property. The verified value should be a dict with op and values
+        op, values = verified_value['op'], verified_value['values']
         old_list = getattr(mongo_doc, quantity_name, [])
         new_list = [] if op == 'set' else old_list.copy()
         for v in values:
@@ -551,7 +574,7 @@ class MetadataEditRequestHandler:
         Gets the query of the request, if it has any. If we have a query and if an `upload_id`
         is specified, we return a modified query, by restricting the original query to this upload.
         '''
-        query = self.edit_request.query
+        query = self.edit_request_obj.query
         if upload_id and query:
             # Restrict query to the specified upload
             return And(**{'and': [{'upload_id': upload_id}, query]})
@@ -564,7 +587,7 @@ class MetadataEditRequestHandler:
             # Perform the search, aggregating by upload_id
             search_response = search.search(
                 user_id=self.user.user_id,
-                owner=self.edit_request.owner,
+                owner=self.edit_request_obj.owner,
                 query=query,
                 aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity='upload_id'))),
                 pagination=MetadataPagination(page_size=0))
@@ -585,7 +608,7 @@ class MetadataEditRequestHandler:
             # We have a query. Execute it to get the entries.
             search_result = search.search_iterator(
                 user_id=self.user.user_id,
-                owner=self.edit_request.owner,
+                owner=self.edit_request_obj.owner,
                 query=query,
                 required=MetadataRequired(include=['calc_id']))
             for result in search_result:
@@ -594,6 +617,35 @@ class MetadataEditRequestHandler:
             # We have no query. Return all entries for the upload
             for entry in Calc.objects(upload_id=upload.upload_id):
                 yield entry
+
+    def _verified_file_metadata(self, path_dir: str) -> Dict[str, Any]:
+        '''
+        Gets the verified metadata defined in a metadata file in the provided directory.
+        The `path_dir` should be relative to the `raw` folder. Empty string gives the "root"
+        level metadata (i.e. the metadata defined by a file located in the `raw` directory).
+        If no parseable metadata file is found in the directory, an empty dict is returned.
+        A cached value is used if possible, otherwise we read the file, verify the content,
+        and caches and return the results.
+        '''
+        if path_dir not in self.verified_file_metadata_cache:
+            # Not cached
+            file_metadata = cast(StagingUploadFiles, self.edit_request).metadata_file_cached(path_dir)
+            if path_dir == '':
+                can_edit_upload_quantities = True
+                loc: Tuple[str, ...] = ('/',)
+                if 'entries' in file_metadata:
+                    self.root_file_entries = file_metadata.pop('entries')
+                    if not isinstance(self.root_file_entries, dict):
+                        self._error('`entries` defined in the root metadata file is not a dictionary', 'entries')
+                        self.root_file_entries = None
+            else:
+                can_edit_upload_quantities = False
+                loc = (path_dir,)
+            verified_file_metadata = self._verify_metadata(
+                file_metadata, loc, can_edit_upload_quantities,
+                auth_level=AuthLevel.admin if self.user.is_admin else AuthLevel.main_author)
+            self.verified_file_metadata_cache[path_dir] = verified_file_metadata
+        return self.verified_file_metadata_cache[path_dir]
 
 
 class Calc(Proc):
@@ -707,57 +759,6 @@ class Calc(Proc):
 
         self._parser_results = EntryArchive(m_context=self.upload.archive_context)
         self._parser_results.metadata = self._entry_metadata
-
-    def _apply_metadata_from_file(self, logger):
-        # metadata file name defined in nomad.config nomad_metadata.yaml/json
-        # which can be placed in the directory containing the mainfile or somewhere up
-        # highest priority is directory with mainfile
-        metadata_file = config.process.metadata_file_name
-        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
-        upload_raw_dir = self.upload_files._raw_dir.os_path
-
-        metadata = {}
-        metadata_part = None
-        # apply the nomad files of the current directory and parent directories
-        while True:
-            metadata_part = self.upload.metadata_file_cached(
-                os.path.join(metadata_dir, metadata_file))
-            for key, val in metadata_part.items():
-                if key in ['entries', 'oasis_datasets']:
-                    continue
-                metadata.setdefault(key, val)
-
-            if metadata_dir == upload_raw_dir:
-                break
-
-            metadata_dir = os.path.dirname(metadata_dir)
-
-        # Top-level nomad file can also contain an entries dict with entry
-        # metadata per mainfile as key. This takes precedence of the other files.
-        entries = metadata_part.get('entries', {})
-        metadata_part = entries.get(self.mainfile, {})
-        for key, val in metadata_part.items():
-            metadata[key] = val
-
-        if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file(s)')
-
-        for key, val in metadata.items():
-            if key == 'entries':
-                continue
-
-            definition = _editable_metadata.get(key, None)
-
-            if definition is None:
-                logger.warn('Users cannot set metadata', quantity=key)
-                continue
-
-            try:
-                self._entry_metadata.m_set(definition, val)
-            except Exception as e:
-                logger.error(
-                    'Could not apply user metadata from nomad.yaml/json file',
-                    quantitiy=definition.name, exc_info=e)
 
     def _apply_metadata_from_process(self, entry_metadata: EntryMetadata):
         '''
@@ -1079,12 +1080,6 @@ class Calc(Proc):
         if self.upload.publish_directly:
             self._entry_metadata.published |= True
 
-        if self._is_initial_processing:
-            try:
-                self._apply_metadata_from_file(logger)
-            except Exception as e:
-                logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
-
         # persist the calc metadata
         with utils.timer(logger, 'calc metadata saved'):
             self._apply_metadata_to_mongo_entry(self._entry_metadata)
@@ -1217,25 +1212,6 @@ class Upload(Proc):
         super().__init__(**kwargs)
         self._upload_files: UploadFiles = None
         self.archive_context = UploadContext(self)
-
-    @lru_cache()
-    def metadata_file_cached(self, path):
-        for ext in config.process.metadata_file_extensions:
-            full_path = '%s.%s' % (path, ext)
-            if os.path.isfile(full_path):
-                try:
-                    with open(full_path) as f:
-                        if full_path.endswith('.json'):
-                            return json.load(f)
-                        elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
-                            return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
-                        else:
-                            return {}
-                except Exception as e:
-                    self.get_logger().warn('could not parse nomad.yaml/json', path=path, exc_info=e)
-                    # ignore the file contents if the file is not parsable
-                    pass
-        return {}
 
     @classmethod
     def get(cls, id: str) -> 'Upload':
@@ -1562,8 +1538,7 @@ class Upload(Proc):
         '''
         staging_upload_files = self.staging_upload_files
 
-        metadata = self.metadata_file_cached(
-            os.path.join(self.upload_files.os_path, 'raw', config.process.metadata_file_name))
+        metadata = staging_upload_files.metadata_file_cached(path_dir='')
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
@@ -1596,6 +1571,17 @@ class Upload(Proc):
         logger = self.get_logger()
 
         try:
+            metadata_handler = None
+            if not self.published and not self.total_calcs:
+                # In staging and no entries yet -> import upload level metadata from files if provided
+                metadata_handler = MetadataEditRequestHandler(
+                    logger, self.main_author_user, self.staging_upload_files, self.upload_id)
+                upload_metadata = metadata_handler.get_upload_mongo_metadata(self)
+                if upload_metadata:
+                    for quantity_name, mongo_value in upload_metadata.items():
+                        setattr(self, quantity_name, mongo_value)
+                    self.save()
+
             if not self.published or reprocess_settings.rematch_published:
                 with utils.timer(logger, 'matching completed'):
                     old_entries = set([entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)])
@@ -1614,12 +1600,20 @@ class Upload(Proc):
                         except KeyError:
                             # No existing entry found
                             if not self.published or reprocess_settings.add_matched_entries_to_published:
+                                # Create new entry
                                 entry = Calc.create(
                                     calc_id=calc_id,
                                     mainfile=filename,
                                     parser_name=parser.name,
                                     worker_hostname=self.worker_hostname,
                                     upload_id=self.upload_id)
+                                # Apply entry level metadata from files, if provided
+                                if not metadata_handler:
+                                    metadata_handler = MetadataEditRequestHandler(
+                                        logger, self.main_author_user, self.staging_upload_files, self.upload_id)
+                                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
+                                for quantity_name, mongo_value in entry_metadata.items():
+                                    setattr(entry, quantity_name, mongo_value)
                                 entry.save()
 
                     # Delete old entries
@@ -1923,13 +1917,12 @@ class Upload(Proc):
         assert not edit_request_json.get('verify_only'), 'Request has verify_only'
 
         # Validate the request (the @process could have been invoked directly, without previous validation)
-        handler = MetadataEditRequestHandler(
-            logger, user, edit_request_json=edit_request_json, upload_id=self.upload_id)
-        handler.validate_request()  # Should raise errors if something looks wrong
+        handler = MetadataEditRequestHandler(logger, user, edit_request_json, self.upload_id)
+        handler.validate_json_request()  # Should raise errors if something looks wrong
 
         # Upload level metadata
         old_with_embargo = self.with_embargo
-        upload_updates = handler.get_upload_metadata_to_set(self)
+        upload_updates = handler.get_upload_mongo_metadata(self)
         if upload_updates:
             for quantity_name, mongo_value in upload_updates.items():
                 setattr(self, quantity_name, mongo_value)
@@ -1944,7 +1937,7 @@ class Upload(Proc):
         entry_mongo_writes = []
         updated_metadata: List[datamodel.EntryMetadata] = []
         for entry in handler.find_request_entries(self):
-            entry_updates = handler.get_entry_metadata_to_set(self, entry)
+            entry_updates = handler.get_entry_mongo_metadata(self, entry)
             entry_updates['last_edit_time'] = last_edit_time
             # Add mongo entry update operation to bulk write list
             entry_mongo_writes.append(UpdateOne({'_id': entry.calc_id}, {'$set': entry_updates}))

@@ -616,27 +616,32 @@ def test_phonopy_data(proc_infra, test_user):
 def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     upload_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(upload_file, 'w') as zf:
-        calc_1 = dict(
-            comment='Calculation 1 of 3',
-            entry_coauthors=other_test_user.user_id,
-            references=['http://test'],
-            external_id='external_id_1')
-        with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_1/template.json')
-        calc_2 = dict(
-            comment='Calculation 2 of 3',
-            references=['http://ttest'],
-            external_id='external_id_2')
-        with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_2/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_3/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
+        calc_1 = dict(
+            comment='Calculation 1 of 3',
+            references='http://test1',
+            external_id='external_id_1')
+        with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
+        calc_2 = dict(
+            comment='Calculation 2 of 3',
+            references=['http://test2'],
+            external_id='external_id_2')
+        with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         metadata = {
+            'upload_name': 'my name',
+            'coauthors': other_test_user.user_id,
+            'references': ['http://test0'],
             'entries': {
                 'examples/calc_3/template.json': {
                     'comment': 'Calculation 3 of 3',
-                    'references': ['http://ttest'],
+                    'references': 'http://test3',
                     'external_id': 'external_id_3'
+                },
+                'examples/calc_1/template.json': {
+                    'comment': 'root entries comment 1'
                 }
             }
         }
@@ -647,23 +652,24 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     calcs = Calc.objects(upload_id=upload.upload_id)
     calcs = sorted(calcs, key=lambda calc: calc.mainfile)
 
-    comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
+    comment = ['root entries comment 1', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test'], ['http://ttest'], ['http://ttest'], []]
-    expected_entry_coauthors = [[other_test_user], [], [], []]
+    references = [['http://test1'], ['http://test2'], ['http://test3'], ['http://test0']]
+    expected_coauthors = [other_test_user]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].full_entry_metadata(upload)
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
-        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.entry_coauthors]
-        for j in range(len(entry_coauthors)):
-            assert entry_coauthors[j].user_id == expected_entry_coauthors[i][j].user_id
-            assert entry_coauthors[j].username == expected_entry_coauthors[i][j].username
-            assert entry_coauthors[j].email == expected_entry_coauthors[i][j].email
-            assert entry_coauthors[j].first_name == expected_entry_coauthors[i][j].first_name
-            assert entry_coauthors[j].last_name == expected_entry_coauthors[i][j].last_name
+        coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        assert len(coauthors) == len(expected_coauthors)
+        for j in range(len(coauthors)):
+            assert coauthors[j].user_id == expected_coauthors[j].user_id
+            assert coauthors[j].username == expected_coauthors[j].username
+            assert coauthors[j].email == expected_coauthors[j].email
+            assert coauthors[j].first_name == expected_coauthors[j].first_name
+            assert coauthors[j].last_name == expected_coauthors[j].last_name
 
 
 @pytest.mark.parametrize('user, metadata_to_set, should_succeed', [
