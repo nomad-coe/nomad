@@ -829,7 +829,7 @@ def _answer_entries_archive_download_request(
             manifest.append(entry_metadata)
 
         # add the manifest at the end
-        manifest_content = json.dumps(manifest).encode()
+        manifest_content = json.dumps(manifest, indent=2).encode()
         yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
 
     try:
@@ -966,7 +966,7 @@ async def get_entry_raw_download(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The entry with the given id does not exist or is not visible to you.')
 
-    return _answer_entries_raw_download_request(owner=Owner.public, query=query, files=files, user=user)
+    return _answer_entries_raw_download_request(owner=Owner.visible, query=query, files=files, user=user)
 
 
 @router.get(
