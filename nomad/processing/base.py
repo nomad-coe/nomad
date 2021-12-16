@@ -521,7 +521,6 @@ class Proc(Document):
         virtually absolute certainty). Because we may need to reload, an object calling a
         sync operations should have no unsaved changes.
         '''
-        blocking_processes = all_blocking_processes[self.__class__.__name__]
         try_counter = 0
         while True:
             if self.queue_blocked:
