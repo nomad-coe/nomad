@@ -601,7 +601,7 @@ def test_qcms_data(proc_infra, test_user):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_phonopy_data(proc_infra, test_user, no_warn):
+def test_phonopy_data(proc_infra, test_user):
     upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
 
     additional_keys = ['results.method.simulation.program_name']
