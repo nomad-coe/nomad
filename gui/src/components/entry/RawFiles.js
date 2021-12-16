@@ -144,8 +144,7 @@ export default function RawFiles({data, entryId}) {
       if (index === -1) {
         return [file, ...prevState]
       } else {
-        prevState.splice(index, 1)
-        return prevState
+        return [...prevState.slice(0, index), ...prevState.slice(index + 1)]
       }
     })
   }, [])
