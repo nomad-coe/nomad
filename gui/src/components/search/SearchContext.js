@@ -85,7 +85,7 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const {api} = useApi()
-  const {raiseErrors} = useErrors()
+  const {raiseError} = useErrors()
   const oldQuery = useRef(undefined)
   const oldPagination = useRef(undefined)
   const paginationResponse = useRef(undefined)
@@ -760,8 +760,8 @@ export const SearchContext = React.memo(({
       aggNames,
       search,
       resource
-    })).catch(raiseErrors)
-  }, [filterDefaults, resource, api, raiseErrors, updateAggsResponse, setResults, setPagination])
+    })).catch(raiseError)
+  }, [filterDefaults, resource, api, raiseError, updateAggsResponse, setResults, setPagination])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
