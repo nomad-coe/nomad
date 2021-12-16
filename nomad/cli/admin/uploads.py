@@ -24,8 +24,9 @@ from nomad import config
 from .admin import admin
 
 
-def _run_parallel(uploads, parallel: int, callable, label: str):
+def _run_parallel(uploads, parallel: int, callable, label: str, print_progress: int = 0):
     import threading
+    import time
 
     from nomad import utils, processing as proc
 
@@ -52,8 +53,12 @@ def _run_parallel(uploads, parallel: int, callable, label: str):
         logger.info('%s started' % label, upload_id=upload.upload_id)
 
         completed = False
-        if callable(upload, logger):
+        try:
+            if callable(upload, logger):
+                completed = True
+        except Exception as e:
             completed = True
+            logger.error('%s failed' % label, upload_id=upload.upload_id, exc_info=e)
 
         with cv:
             state['completed_count'] += 1 if completed else 0
@@ -78,13 +83,23 @@ def _run_parallel(uploads, parallel: int, callable, label: str):
             threads.append(thread)
             thread.start()
 
+    def print_progress_lines():
+        while True:
+            time.sleep(print_progress)
+            print('.', flush=True)
+
+    if print_progress > 0:
+        progress_thread = threading.Thread(target=print_progress_lines)
+        progress_thread.daemon = True
+        progress_thread.start()
+
     for thread in threads:
         thread.join()
 
 
 def _run_processing(
         uploads, parallel: int, process, label: str, process_running: bool = False,
-        wait_until_complete: bool = True, reset_first: bool = False):
+        wait_until_complete: bool = True, reset_first: bool = False, **kwargs):
 
     from nomad import processing as proc
 
@@ -117,7 +132,7 @@ def _run_processing(
         logger.info('%s complete' % label, upload_id=upload.upload_id)
         return True
 
-    _run_parallel(uploads, parallel=parallel, callable=run_process, label=label)
+    _run_parallel(uploads, parallel=parallel, callable=run_process, label=label, **kwargs)
 
 
 @admin.group(help='Upload related commands')
@@ -348,8 +363,9 @@ def reset(ctx, uploads, with_calcs, success, failure):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
 @click.option('--skip-materials', is_flag=True, help='Only update the entries index.')
+@click.option('--print-progress', default=0, type=int, help='Prints a dot every given seconds. Can be used to keep terminal open that have an i/o-based timeout.')
 @click.pass_context
-def index(ctx, uploads, parallel, transformer, skip_materials):
+def index(ctx, uploads, parallel, transformer, skip_materials, print_progress):
     from nomad import search
 
     transformer_func = None
@@ -380,7 +396,7 @@ def index(ctx, uploads, parallel, transformer, skip_materials):
 
         return True
 
-    _run_parallel(uploads, parallel, index_upload, 'index')
+    _run_parallel(uploads, parallel, index_upload, 'index', print_progress=print_progress)
 
 
 def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_mongo: bool = False):
@@ -430,8 +446,9 @@ def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--process-running', is_flag=True, help='Also reprocess already running processes.')
 @click.option('--setting', type=str, multiple=True, help='key=value to overwrite a default reprocess config setting.')
+@click.option('--print-progress', default=0, type=int, help='Prints a dot every given seconds. Can be used to keep terminal open that have an i/o-based timeout.')
 @click.pass_context
-def process(ctx, uploads, parallel: int, process_running: bool, setting=typing.List[str]):
+def process(ctx, uploads, parallel: int, process_running: bool, setting: typing.List[str], print_progress: int):
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
     settings: typing.Dict[str, bool] = {}
     for settings_str in setting:
@@ -439,18 +456,22 @@ def process(ctx, uploads, parallel: int, process_running: bool, setting=typing.L
         settings[key] = bool(value)
     _run_processing(
         uploads, parallel, lambda upload: upload.process_upload(reprocess_settings=settings),
-        'processing', process_running=process_running, reset_first=True)
+        'processing', process_running=process_running, reset_first=True, print_progress=print_progress)
 
 
 @uploads.command(help='Repack selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
-def re_pack(ctx, uploads, parallel: int):
+def re_pack(ctx, uploads):
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
-    _run_processing(
-        uploads, parallel, lambda upload: upload.re_pack(), 're-packing',
-        wait_until_complete=False)
+
+    for upload in uploads:
+        if not upload.published:
+            print(f'Cannot repack unpublished upload {upload.upload_id}')
+            continue
+
+        upload.upload_files.re_pack(upload.with_embargo)
+        print(f'successfully re-packed {upload.upload_id}')
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
@@ -500,3 +521,31 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))
+
+
+@uploads.group(help='Check certain integrity criteria')
+@click.pass_context
+def integrity(ctx):
+    pass
+
+
+@integrity.command(help='Uploads that have more entries in mongo than in ES.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def entry_index(ctx, uploads):
+    from nomad.search import search
+    from nomad.processing import Upload
+    from nomad.app.v1.models import Pagination
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    upload: Upload = None
+    for upload in uploads:
+        search_results = search(
+            owner='admin',
+            query=dict(upload_id=upload.upload_id),
+            pagination=Pagination(page_size=0),
+            user_id=config.services.admin_user_id)
+
+        if search_results.pagination.total != upload.total_calcs:
+            print(upload.upload_id)

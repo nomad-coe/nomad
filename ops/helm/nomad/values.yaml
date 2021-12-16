@@ -61,6 +61,7 @@ worker:
   # request and limit in GB, good prod sizes are 64, 420
   memrequest: 8
   memlimit: 32
+  maxTasksPerChild: 128
   console_loglevel: ERROR
   logstash_loglevel: INFO
   ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
@@ -128,9 +129,9 @@ elastic:
   host: nomad-flink-01.esc
   port: 9200
   timeout: 60
-  bulkTimeout: '10m'
-  bulk_size: 1000
-  entries_per_material_cap: 1000
+  bulkTimeout: 600
+  bulkSize: 1000
+  entriesPerMaterialCap: 1000
 
 logstash:
   enabled: true
