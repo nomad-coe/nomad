@@ -27,6 +27,7 @@ from celery.signals import after_setup_task_logger, after_setup_logger, worker_p
     celeryd_after_setup, worker_process_shutdown
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
+import billiard
 from billiard.exceptions import WorkerLostError
 from mongoengine import Document, StringField, ListField, DateTimeField, IntField, ValidationError
 from mongoengine.connection import ConnectionFailure
@@ -231,9 +232,16 @@ class Proc(Document):
         return dict(process_status__in=ProcessStatus.STATUSES_PROCESSING)
 
     def get_logger(self):
+        process = billiard.current_process()  # pylint: disable=no-member
+        worker_id = getattr(process, '_nomad_id', None)
+        if worker_id is None:
+            worker_id = utils.create_uuid()
+            setattr(process, '_nomad_id', worker_id)
+
         return utils.get_logger(
             'nomad.processing', proc=self.__class__.__name__,
-            process=self.current_process, process_status=self.process_status)
+            process=self.current_process, process_status=self.process_status,
+            process_worker_id=worker_id)
 
     @classmethod
     def create(cls, **kwargs):
@@ -756,12 +764,15 @@ def proc_task(task, cls_name, self_id):
     '''
     # Obtain the Proc object. Raises exception to make celery retry if object has not propagated.
     proc: Proc = unwarp_task(task, cls_name, self_id)
-
     logger = proc.get_logger()
     logger.debug('Executing celery task')
 
     try:
         func_name, args, kwargs = proc._sync_start_process(worker_hostname, task.request.id)
+        if '_meta_label' in kwargs:
+            config.meta.label = kwargs['_meta_label']
+            del(kwargs['_meta_label'])
+
     except ProcessSyncFailure as e:
         # Failed to start. Could basically only have one explanation, namely a propagation delay.
         # -> Try again
@@ -792,7 +803,7 @@ def proc_task(task, cls_name, self_id):
     # call the process function
     try:
         os.chdir(config.fs.working_directory)
-        with utils.timer(logger, 'process executed on worker'):
+        with utils.timer(logger, 'process executed on worker', log_memory=True):
             # Actually call the process function
             rv = unwrapped_func(proc, *args, **kwargs)
             if proc.errors:
@@ -921,6 +932,7 @@ def process(is_blocking: bool = False, is_child: bool = False):
 
         @functools.wraps(func)
         def wrapper(self: Proc, *args, **kwargs):
+            kwargs['_meta_label'] = config.meta.label
             was_processing = self._sync_schedule_process(func_name, *args, **kwargs)
             if not was_processing:
                 # Was not processing anything previously. Trigger celery to start working.

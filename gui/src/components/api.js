@@ -74,7 +74,7 @@ function handleApiError(e) {
     error.status = e.response.status
     error.apiMessage = message
   } else {
-    if (e.message === 'Failed to fetch') {
+    if (e.message === 'Failed to fetch' || e.message === 'Network Error') {
       error = new ApiError(e.message)
       error.status = 400
     } else {
