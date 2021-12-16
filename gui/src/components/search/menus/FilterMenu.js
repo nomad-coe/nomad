@@ -386,7 +386,8 @@ const useFilterSubMenuStyles = makeStyles(theme => ({
 
 const useFilterSubMenusStyles = makeStyles(theme => {
   const padding = theme.spacing(2)
-  const widthMedium = 25
+  const widthSmall = 25
+  const widthMedium = 32
   const widthLarge = 48
   return {
     root: {
@@ -419,6 +420,10 @@ const useFilterSubMenusStyles = makeStyles(theme => {
       display: 'flex',
       alignItems: 'center'
     },
+    containerSmall: {
+      '-webkit-transform': `translateX(${widthSmall}rem)`,
+      transform: `translateX(${widthSmall}rem)`
+    },
     containerMedium: {
       '-webkit-transform': `translateX(${widthMedium}rem)`,
       transform: `translateX(${widthMedium}rem)`
@@ -436,6 +441,9 @@ const useFilterSubMenusStyles = makeStyles(theme => {
     },
     padding: {
       padding: `${theme.spacing(1.5)}px ${padding}px`
+    },
+    menuSmall: {
+      width: `${widthSmall}rem`
     },
     menuMedium: {
       width: `${widthMedium}rem`
@@ -455,6 +463,7 @@ export const FilterSubMenus = React.memo(({
   const styles = useFilterSubMenusStyles()
   const { selected, open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
   const [menuStyle, containerStyle] = {
+    small: [styles.menuSmall, styles.containerSmall],
     medium: [styles.menuMedium, styles.containerMedium],
     large: [styles.menuLarge, styles.containerLarge]
   }[size]
@@ -509,11 +518,11 @@ export const FilterSubMenu = React.memo(({
 })
 FilterSubMenu.propTypes = {
   value: PropTypes.string,
-  size: PropTypes.oneOf(['medium', 'large']),
+  size: PropTypes.oneOf(['small', 'medium', 'large']),
   children: PropTypes.node
 }
 FilterSubMenu.defaultProps = {
-  size: 'medium'
+  size: 'small'
 }
 
 export default FilterSubMenu

@@ -25,7 +25,7 @@ import pint.quantity
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Annotation, SectionAnnotation,
+    MetainfoError, Environment, Annotation, SectionAnnotation, Context,
     DefinitionAnnotation, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
@@ -582,38 +582,6 @@ class TestM1:
 
         assert test_section.one is not None
 
-    def test_resource(self):
-        resource = MResource()
-        run = resource.create(Run)
-        run.m_create(System)
-        run.m_create(System)
-
-        assert len(resource.all(System)) == 2
-
-    def test_resource_add(self):
-        # adding
-        resource = MResource()
-        run = Run()
-        resource.add(run)
-        run.m_create(System)
-        run.m_create(System)
-        assert len(resource.all(Run)) == 1
-        assert len(resource.all(System)) == 2
-
-        # implicitly moving to another resource
-        resource = MResource()
-        resource.add(run)
-        assert len(resource.all(Run)) == 1
-        assert len(resource.all(System)) == 2
-
-    def test_resource_move(self):
-        resource = MResource()
-        run = resource.create(Run)
-        system = run.m_create(System)
-
-        run = Run()
-        run.m_add_sub_section(Run.systems, system)
-
     def test_mapping(self):
         run = Run()
         run.m_create(Parsing).parser_name = 'test'
@@ -663,8 +631,11 @@ class TestM1:
         section.f64 = -200
 
     def test_np_allow_wrong_shape(self, caplog):
-        resource = MResource(logger=utils.get_logger(__name__))
-        scc = resource.create(SCC)
+        class MyContext(Context):
+            def warning(self, event, **kwargs):
+                utils.get_logger(__name__).warn(event, **kwargs)
+
+        scc = SCC(m_context=MyContext())
         scc.energy_total_0 = np.array([1.0, 1.0, 1.0])
         scc.m_to_dict()
         test_utils.assert_log(caplog, 'WARN', 'wrong shape')

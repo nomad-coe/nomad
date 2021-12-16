@@ -31,12 +31,12 @@ from nomad import utils, infrastructure, config, datamodel
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
-from nomad.processing.data import generate_entry_id
+from nomad.processing.data import UploadContext, generate_entry_id
 from nomad.search import search
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.utils import create_template_upload_file, set_upload_entry_metadata
+from tests.utils import ExampleData, create_template_upload_file, set_upload_entry_metadata
 
 
 def test_generate_entry_id():
@@ -507,7 +507,7 @@ def mock_failure(cls, function_name, monkeypatch):
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
 
 
-@pytest.mark.parametrize('function', ['update_files', 'parse_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize('function', ['update_files', 'match_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
     upload_id, _ = uploaded
@@ -574,6 +574,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert len(calc.errors) == 1
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
@@ -586,12 +587,26 @@ def test_ems_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_qcms_data(proc_infra, test_user):
     upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
 
     additional_keys = ['results.method.simulation.program_name', 'results.material.elements']
     assert upload.total_calcs == 1
     assert len(upload.calcs) == 1
+
+    with upload.entries_metadata() as entries:
+        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_search_upload(entries, additional_keys, published=False)
+
+
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_phonopy_data(proc_infra, test_user):
+    upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
+
+    additional_keys = ['results.method.simulation.program_name']
+    assert upload.total_calcs == 2
+    assert len(upload.calcs) == 2
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
@@ -694,3 +709,42 @@ def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set,
 def test_skip_matching(proc_infra, test_user):
     upload = run_processing(('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user)
     assert upload.total_calcs == 1
+
+
+@pytest.mark.parametrize('url,normalized_url', [
+    pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
+    pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')
+])
+def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
+    monkeypatch.setattr(
+        'nomad.processing.data.UploadContext._resolve_mainfile',
+        lambda *args, **kwargs: 'test_id')
+
+    from nomad.datamodel.metainfo import simulation
+
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_id', published=True)
+
+    referenced_archive = EntryArchive()
+    referenced_archive.run.append(simulation.Run())
+    referenced_archive.run[0].method.append(simulation.method.Method())
+    data.create_entry(
+        upload_id='test_id', entry_id='test_id', mainfile='my/test/file',
+        entry_archive=referenced_archive)
+
+    data.save(with_es=False)
+
+    upload = Upload.objects(upload_id='test_id').first()
+    assert upload is not None
+
+    context = UploadContext(upload)
+    test_archive = EntryArchive(m_context=context)
+
+    test_archive.run.append(simulation.Run())
+    calculation = simulation.calculation.Calculation()
+    test_archive.run[0].calculation.append(calculation)
+
+    assert calculation.m_root().m_context is not None
+    calculation.method_ref = url
+    assert calculation.m_to_dict()['method_ref'] == normalized_url if normalized_url else url
+    assert calculation.method_ref.m_root().metadata.entry_id == 'test_id'

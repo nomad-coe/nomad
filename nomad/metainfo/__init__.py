@@ -312,10 +312,10 @@ quantity definitions are unknown when writing code.
 
 .. _metainfo-urls:
 
-Resources
----------
+Context
+-------
 
-.. autoclass:: MResource
+.. autoclass:: Context
 
 A more complex example
 ----------------------
@@ -354,12 +354,13 @@ from .metainfo import (
     Reference,
     SectionReference,
     QuantityReference,
+    File,
     Datetime,
     Unit,
     JSON,
     Dimension,
     Bytes,
-    MResource,
+    Context,
     m_package,
     Annotation,
     DefinitionAnnotation,

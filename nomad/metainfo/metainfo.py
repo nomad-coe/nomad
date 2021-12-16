@@ -113,10 +113,49 @@ class MEnum(Sequence):
 
 
 class MProxy():
-    ''' A placeholder object that acts as reference to a value that is not yet resolved.
+    '''
+    A placeholder object that acts as reference to a value that is not yet resolved.
+
+    A proxy is a replacement for an actual section (or quantity) that the proxy represents.
+    The replaced section (or quantity) is identified by a reference. References
+    are URL strings that identify a section (or quantity).
+
+    If a proxy is accessed (i.e. like its proxies counterpart would be accessed), it
+    tries to resolve its reference and access the proxied element. If the reference
+    cannot be resolved an exception is raised.
+
+    There are different kinds of reference urls. Here are a few examples:
+
+    .. code-block::
+        /run/0/calculation/1  # same archive (legacy version)
+        #/run/0/calculation/1  # same archive
+        ../upload/archive/mainfile/{mainfile}#/run/0  # same upload
+        /entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
+        /uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
+        https://my-oasis.de/api/v1/uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # global
+
+    A URL can have 3 relevant path. The archive path as anchor string (after the `#`).
+    The API part (more or less the URL's path). The oasis part (more or less the domain).
+
+    The archive path starts at the `EntryArchive` root and uses property names and indices
+    to navigate. The API and oasis parts correspond to NOMAD's v1 api. A path starting
+    with `../upload` replaces `.../api/v1/uploads/{upload_id}` and allows to access the
+    upload of the archive that contains the reference.
+
+    The actual algorithm for resolving proxies is in `MSection.m_resolve()`.
 
     Attributes:
-        url: The reference represented as an URL string.
+        m_proxy_value: The reference represented as an URL string.
+        m_proxy_section:
+            The section context, i.e. the section that this proxy is contained in. This
+            section will provide the context for resolving the reference. For example,
+            if the reference only has an archive part, this archive part is resolved
+            starting with the root of `m_proxy_section`.
+        m_proxy_value:
+            The quantity difintion. Typically MProxy is used for proxy-ing sections. With
+            this set, the proxy will still act as a normal section proxy, but it will
+            be used by quantities of type `QuantityReference` to resolve and return
+            a quantity value.
     '''
 
     def __init__(
@@ -143,7 +182,7 @@ class MProxy():
         if self.m_proxy_resolve() is not None:
             return getattr(self.m_proxy_resolved, key)
 
-        raise ReferenceError('could not resolve %s' % self.m_proxy_value)
+        raise MetainfoReferenceError('could not resolve %s' % self.m_proxy_value)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.m_proxy_value})'
@@ -188,7 +227,7 @@ class SectionProxy(MProxy):
             current = self._resolve_name(name, current)
 
         if current is None:
-            raise ReferenceError(
+            raise MetainfoReferenceError(
                 f'could not resolve {self.m_proxy_value} from scope {self.m_proxy_section}')
 
         self._set_resolved(current)
@@ -436,6 +475,9 @@ class Reference(DataType):
                     return definition
 
         if isinstance(value, (str, int, dict)):
+            context = cast(MSection, section.m_root()).m_context
+            if context and isinstance(value, str):
+                value = context.normalize_reference(value)
             return MProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
         if isinstance(value, MProxy):
@@ -455,6 +497,10 @@ class Reference(DataType):
         return value
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        context = cast(MSection, section.m_root()).m_context
+        if context is not None:
+            return context.get_reference(section, quantity_def, value)
+
         return value.m_path()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
@@ -498,6 +544,18 @@ class QuantityReference(Reference):
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section_path = value.rsplit('/', 1)[0]
         return MProxy(section_path, m_proxy_section=section, m_proxy_quantity=quantity_def)
+
+
+class _File(DataType):
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if not isinstance(value, str):
+            raise TypeError('Files need to be given as URL strings')
+
+        context = cast(MSection, section.m_root()).m_context
+        if context:
+            return context.normalize_reference(value)
+
+        return value
 
 
 class _Datetime(DataType):
@@ -599,10 +657,11 @@ Datetime = _Datetime()
 JSON = _JSON()
 Capitalized = _Capitalized()
 Bytes = _Bytes()
+File = _File()
 
 predefined_datatypes = {
     'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
-    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes}
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File}
 
 
 # Metainfo data storage and reflection interface
@@ -654,86 +713,55 @@ def constraint(warning):
         return decorator(f)
 
 
-class MResource():
+class Context():
     '''
-    Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+    The root of a metainfo section hiearchy can have a Context. Contexts allow to customize
+    the resolution of references based on how and in what context an metainfo-based
+    archive (or otherwise top-level section is used). This allows to logically combine
+    multiple hiearchies (e.g. archives) with references.
     '''
 
-    def __init__(self, logger=None):
-        self.__data: Dict['Section', List['MSection']] = dict()
-        self.contents: List['MSection'] = []
-        self.logger = logger
+    def split_url(self, url):
+        ''' Splits the given reference url into the archive url and the archive ref.'''
+        parts = url.split('#')
+        if len(parts) == 1:
+            return parts[0], None
 
-    def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
+        return parts
+
+    def warning(self, event, **kwargs):
         '''
-        Create an instance of the given section class and adds it to this resource as
-        a root section. The m_parent_index will be set sequentially among root sections of
-        the same section definition starting with 0.
+        Used to log (or otherwise handle) warning that are issued, e.g. while serializaton,
+        reference resolution, etc.
         '''
-        index = 0
-        for content in self.contents:
-            if content.m_follows(section_cls.m_def):
-                index = max(index, content.m_parent_index + 1)
+        pass
 
-        result = section_cls(*args, **kwargs)
-        result.m_parent_index = index
-
-        self.add(result)
-        return cast(MSectionBound, result)
-
-    def add(self, section):
+    def get_reference(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> str:
         '''
-        Add the given section to this resource. Will also add all its contents to the
-        resource and make all contest available for :func:`all`. Will also remove
-        all contents from possible other resources. A section can only be contained in
-        one resource at a time.
+        Returns a reference for the given value based on the given context. Allows
+        sub-classes to build references across resources, if necessary.
 
-        This is potentially expensive. Do not add a section that already has a deep tree
-        of sub-sections. Ideally, add the root section first. If you create sub sections
-        afterwards, they will be automatically added to this resource.
+        Raises: MetainfoReferenceError
         '''
-        if section.m_resource is not None:
-            section.m_resource.remove(section)
+        return value.m_path()
 
-        for content in section.m_all_contents(include_self=True):
-            content.m_resource = self
-            self.__data.setdefault(content.m_def, []).append(content)
+    def normalize_reference(self, url: str) -> str:
+        '''
+        Rewrites the url into a normlaized form. E.g., it replaces `..` with absolute paths,
+        or replaces mainfiles with ids, etc.
 
-        if section.m_parent is None:
-            self.contents.append(section)
+        Raises: MetainfoReferenceError
+        '''
+        return url
 
-    def remove(self, section):
-        assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
-        section.m_resource = None
-        self.__data.get(section.m_def).remove(section)
-        if section.m_parent is None:
-            self.contents.remove(section)
+    def resolve_archive(self, url: str) -> 'MSection':
+        '''
+        Resolves the archive part of the given URL and returns the root section of the
+        referenced archive.
 
-    def all(self, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
-        ''' Returns all instances of the given section class in this resource. '''
-        return cast(List[MSectionBound], self.__data.get(section_cls.m_def, []))
-
-    def unload(self):
-        ''' Breaks all references among the contain metainfo sections to allow GC. '''
-        for collections in self.__data.values():
-            for section in collections:
-                section.m_parent = None
-                section.__dict__.clear()
-            collections.clear()
-
-    def m_to_dict(self, filter: TypingCallable[['MSection'], bool] = None):
-        if filter is None:
-            def filter(_):  # pylint: disable=function-redefined
-                return True
-
-        return {
-            section.m_def.name: section.m_to_dict()
-            for section in self.contents
-            if filter(section)}
-
-    def warning(self, *args, **kwargs):
-        if self.logger is not None:
-            self.logger.warn(*args, **kwargs)
+        Raises: MetainfoReferenceError
+        '''
+        raise NotImplementedError()
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -788,7 +816,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             For repeatable sections, parent keep a list of sub-sections. This is the index
             of this section in the respective parent sub-section list.
 
-        m_resource: The :class:`MResource` that contains and manages this section.
+        m_context: The :class:`MContext` that manages this (root-)section.
 
     Often some general tasks have to be performed on a whole tree of sections without
     knowing about the definitions in advance. The following methods allow to access
@@ -813,13 +841,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     m_def: 'Section' = None
 
     def __init__(
-            self, m_def: 'Section' = None, m_resource: MResource = None, **kwargs):
+            self, m_def: 'Section' = None, m_context: Context = None, **kwargs):
 
         self.m_def: 'Section' = m_def
         self.m_parent: 'MSection' = None
         self.m_parent_sub_section: 'SubSection' = None
         self.m_parent_index = -1
-        self.m_resource = m_resource
+        self.m_context = m_context
         self.m_mod_count = 0
         self.m_cache: dict = {}  # Dictionary for caching temporary values that are not persisted to the Archive
 
@@ -1154,12 +1182,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         sub_section.m_parent_sub_section = sub_section_def
         sub_section.m_parent_index = parent_index
 
-        if sub_section.m_resource is not None:
-            sub_section.m_resource.remove(sub_section)
-
-        if self.m_resource is not None:
-            self.m_resource.add(sub_section)
-
         for handler in self.m_def.event_handlers:
             if handler.__name__.startswith('on_add_sub_section'):
                 handler(self, sub_section_def, sub_section)
@@ -1169,9 +1191,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         sub_section.m_parent = None
         sub_section.m_parent_index = -1
-
-        if sub_section.m_resource is not None:
-            sub_section.m_resource.remove(sub_section)
 
     def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection', index: int = -1) -> None:
         ''' Adds the given section instance as a sub section of the given sub section definition. '''
@@ -1754,68 +1773,89 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         return getattr(self, 'm_proxy_resolved', self)
 
-    def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
+    def m_resolve(self, url: str, cls: Type[MSectionBound] = None) -> MSectionBound:
         '''
         Resolves the given path or dotted quantity name using this section as context and
         returns the sub_section or value.
+
+        Arguments:
+            path: The reference URL. See `MProxy` for details on reference URLs.
         '''
-        if path.startswith('/'):
-            context: 'MSection' = self.m_root()
+        section: 'MSection' = self
+
+        parts = url.split('#', maxsplit=1)
+        if len(parts) == 1:
+            path = parts[0]
         else:
-            context = self
+            api, path = parts
+            if not path.startswith('/'):
+                path = f'/{path}'
+
+            if api != '':
+                context = cast(MSection, section.m_root()).m_context
+                if context is None:
+                    raise MetainfoReferenceError(
+                        f'There is no resource to resolve references with api part')
+
+                try:
+                    section = context.resolve_archive(api)
+                except NotImplementedError:
+                    raise MetainfoReferenceError(
+                        f'The attached resource does not support references with api part')
+
+        if path.startswith('/'):
+            section = section.m_root()
 
         path_stack = path.strip('/').split('/')
         path_stack.reverse()
         while len(path_stack) > 0:
             prop_name = path_stack.pop()
-            prop_def = context.m_def.all_properties.get(prop_name, None)
+            prop_def = section.m_def.all_properties.get(prop_name, None)
 
             if prop_def is None:
-                prop_def = context.m_def.all_aliases.get(prop_name, None)
+                prop_def = section.m_def.all_aliases.get(prop_name, None)
 
             if prop_def is None:
-                raise ReferenceError(
-                    'Could not resolve %s, property %s does not exist in %s' %
-                    (path, prop_name, context.m_def))
+                raise MetainfoReferenceError(
+                    f'Could not resolve {url}, property {prop_name} does not exist')
 
             if isinstance(prop_def, SubSection):
                 if prop_def.repeats:
                     if len(path_stack) == 0:
-                        return context.m_get_sub_sections(prop_def)  # type: ignore
+                        return section.m_get_sub_sections(prop_def)  # type: ignore
 
                     try:
                         index = int(path_stack.pop())
                     except ValueError:
-                        raise ReferenceError(
-                            'Could not resolve %s, %s repeats but there is no index in the path' %
-                            (path, prop_name))
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, {prop_name} repeats but there is no '
+                            'index in the path')
 
                     try:
-                        context = context.m_get_sub_section(prop_def, index)
+                        section = section.m_get_sub_section(prop_def, index)
                     except Exception:
-                        raise ReferenceError(
-                            'Could not resolve %s, there is no sub section for %s at %d' %
-                            (path, prop_name, index))
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, there is no sub section for '
+                            '{prop_name} at {index}')
 
                 else:
-                    context = context.m_get_sub_section(prop_def, -1)
-                    if context is None:
-                        raise ReferenceError(
-                            'Could not resolve %s, there is no sub section for %s' %
-                            (path, prop_name))
+                    section = section.m_get_sub_section(prop_def, -1)
+                    if section is None:
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, there is no sub section {prop_name}')
 
             elif isinstance(prop_def, Quantity):
                 if len(path_stack) > 0:
-                    raise ReferenceError(
-                        'Could not resolve %s, %s is not a property' % (path, prop_name))
+                    raise MetainfoReferenceError(
+                        f'Could not resolve {url}, no property {prop_name}')
 
-                if not context.m_is_set(prop_def):
-                    raise ReferenceError(
-                        'Could not resolve %s, %s is not set on %s' % (path, prop_name, context))
+                if not section.m_is_set(prop_def):
+                    raise MetainfoReferenceError(
+                        f'Could not resolve {url}, {prop_name} is not set in {section}')
 
-                return context.m_get(prop_def)
+                return section.m_get(prop_def)
 
-        return cast(MSectionBound, context)
+        return cast(MSectionBound, section)
 
     def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''
@@ -1924,7 +1964,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         copy.m_parent = parent
         copy.m_parent_index = -1 if parent is None else self.m_parent_index
         copy.m_parent_sub_section = None if parent is None else self.m_parent_sub_section
-        copy.m_resource = None
+        copy.m_context = self.m_context
 
         if deep:
             for sub_section_def in self.m_def.all_sub_sections.values():
@@ -1956,8 +1996,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return errors, warnings
 
     def m_warning(self, *args, **kwargs):
-        if self.m_resource is not None:
-            self.m_resource.warning(*args, **kwargs)
+        if self.m_context is not None:
+            self.m_context.warning(*args, **kwargs)
 
     def __repr__(self):
         m_section_name = self.m_def.name
@@ -1985,7 +2025,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         try:
             key = key.replace('.', '/')
             return self.m_resolve(key)
-        except ReferenceError:
+        except MetainfoReferenceError:
             raise KeyError(key)
 
     def __iter__(self):

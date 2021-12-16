@@ -1147,11 +1147,11 @@ class Method(MSection):
 
     scf = SubSection(sub_section=Scf.m_def)
 
-    atom_parameters = SubSection(sub_section=AtomParameters.m_def, repeats=True)
+    atom_parameters = SubSection(sub_section=AtomParameters.m_def, repeats=True, label_quantity='label')
 
-    molecule_parameters = SubSection(sub_section=MoleculeParameters.m_def, repeats=True)
+    molecule_parameters = SubSection(sub_section=MoleculeParameters.m_def, repeats=True, label_quantity='label')
 
-    basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True)
+    basis_set = SubSection(sub_section=BasisSet.m_def, repeats=True, label_quantity='type')
 
 
 m_package.__init_metainfo__()
