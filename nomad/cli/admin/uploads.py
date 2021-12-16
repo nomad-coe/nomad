@@ -461,13 +461,17 @@ def process(ctx, uploads, parallel: int, process_running: bool, setting: typing.
 
 @uploads.command(help='Repack selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.pass_context
-def re_pack(ctx, uploads, parallel: int):
+def re_pack(ctx, uploads):
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
-    _run_processing(
-        uploads, parallel, lambda upload: upload.re_pack(), 're-packing',
-        wait_until_complete=False)
+
+    for upload in uploads:
+        if not upload.published:
+            print(f'Cannot repack unpublished upload {upload.upload_id}')
+            continue
+
+        upload.upload_files.re_pack(upload.with_embargo)
+        print(f'successfully re-packed {upload.upload_id}')
 
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
