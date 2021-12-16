@@ -222,13 +222,33 @@ class Proc(Document):
 
     @property
     def process_running(self) -> bool:
-        ''' Returns True of an asynchrounous process is currently running (or waiting to run). '''
+        '''
+        Returns True of an asynchrounous process is currently running (or waiting to run).
+        NOTE, the return value will reflect the state when the object was last updated from
+        mongo, not neccesarily the current state.
+        '''
         return self.process_status in ProcessStatus.STATUSES_PROCESSING
 
     @classmethod
     def process_running_mongoengine_query(cls):
         ''' Returns a mongoengine query dict (to be used in objects) to find running processes. '''
         return dict(process_status__in=ProcessStatus.STATUSES_PROCESSING)
+
+    @property
+    def queue_blocked(self) -> bool:
+        '''
+        If the queue is blocked (i.e. no new @process can be invoked on this object).
+        NOTE, the return value will reflect the state when the object was last updated from
+        mongo, not neccesarily the current state.
+        '''
+        if self.process_status in ProcessStatus.STATUSES_PROCESSING:
+            blocking_processes = all_blocking_processes[self.__class__.__name__]
+            if self.current_process in blocking_processes:
+                return True
+            for item in self.queue:
+                if item[0] in blocking_processes:
+                    return True
+        return False
 
     def get_logger(self):
         return utils.get_logger(
@@ -504,12 +524,8 @@ class Proc(Document):
         blocking_processes = all_blocking_processes[self.__class__.__name__]
         try_counter = 0
         while True:
-            if self.process_status in ProcessStatus.STATUSES_PROCESSING:
-                if self.current_process in blocking_processes:
-                    raise ProcessAlreadyRunning('A blocking process is running')
-            for item in self.queue:
-                if item[0] in blocking_processes:
-                    raise ProcessAlreadyRunning('A blocking process has been queued')
+            if self.queue_blocked:
+                raise ProcessAlreadyRunning('A blocking process is running or waiting to run')
             prev_process_running = self.process_running
             mongo_update = {
                 '$push': {'queue': [func_name, args, kwargs]},

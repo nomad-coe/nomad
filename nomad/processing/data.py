@@ -167,8 +167,8 @@ class MetadataEditRequestHandler:
          -  A :class:`ValidationError` if the request json can't be parsed by pydantic
          -  A :class:`RequestValidationError` with information about validation failures and
             their location (most errors should be of this type, provided that the json is valid)
-         -  A :class:`ProcessAlreadyRunning` exception if one of the affected uploads has
-            a running process
+         -  A :class:`ProcessAlreadyRunning` exception if one of the affected uploads is blocked
+            by another process
          -  Some other type of exception, if something goes wrong unexpectedly (should hopefully
             never happen)
         '''
@@ -181,8 +181,8 @@ class MetadataEditRequestHandler:
             # Check if any of the affected uploads are processing
             for upload in handler.affected_uploads:
                 upload.reload()
-                if upload.process_running:
-                    raise ProcessAlreadyRunning(f'Upload {upload.upload_id} is currently processing')
+                if upload.queue_blocked:
+                    raise ProcessAlreadyRunning(f'Upload {upload.upload_id} is blocked by another process')
             # Looks good, try to trigger processing
             for upload in handler.affected_uploads:
                 upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
