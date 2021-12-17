@@ -15,7 +15,7 @@ and molecular-dynamics (force-field) codes. This ensures a complete coverage of 
 material and molecule properties, even though some properties might not be as important as
 others, or are missing in some input/output files of electronic-structure programs.
 
-![metainfo example](assets/metainfo_example.png)
+![archive example](assets/archive-example.png)
 
 NOMAD Metainfo is kept independent of the actual storage format and is not bound to any
 specific storage method. In our practical implementation, we use a binary form of JSON,

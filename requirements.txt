@@ -109,3 +109,4 @@ devtools==0.8.0
 mkdocs==1.2.3
 mkdocs-material==8.1.1
 mkdocs-material-extensions==1.0.3
+mkdocs-macros-plugin==0.6.3

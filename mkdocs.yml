@@ -4,11 +4,8 @@ site_description: |
 site_author: The NOMAD Authors
 nav:
   - Introduction: index.md
-  - Using the web interface:
-    - gui/upload.md
-    - gui/explore.md
-    - gui/archive.md
-  - Using the API: api.md
+  - web.md
+  - api.md
   - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Using the Python library: pythonlib.md
   - Extending and Developing NOMAD:
@@ -33,6 +30,13 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - toc:
+      permalink: True
+      toc_depth: 3
 extra:
   generator: false
 use_directory_urls: false
+plugins:
+    - search
+    - macros:
+        module_name: nomad/mkdocs
