@@ -24,7 +24,7 @@ import os.path
 from functools import lru_cache
 
 from nomad import config
-from nomad.datamodel import EntryArchive, UserProvidableMetadata, EntryMetadata
+from nomad.datamodel import EntryArchive, EntryMetadata
 
 
 class Parser(metaclass=ABCMeta):
@@ -242,12 +242,7 @@ class ArchiveParser(MatchingParser):
         metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
         if metadata_data is not None:
-            metadata = archive.metadata
-            for key, value in metadata_data.items():
-                if UserProvidableMetadata.m_def not in getattr(EntryMetadata, key).categories:
-                    continue
-
-                metadata.m_update_from_dict({key: value})
+            # Setting metadata in this way is not supported (any more)
             del(archive_data[EntryArchive.metadata.name])
 
         archive.m_update_from_dict(archive_data)

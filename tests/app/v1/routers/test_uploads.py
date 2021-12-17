@@ -1103,11 +1103,6 @@ def test_put_upload_metadata(
             add_coauthor=True),
         id='coauthor-access'),
     pytest.param(
-        'test_user', 'id_processing_w', dict(
-            metadata=dict(upload_name='test_name'),
-            expected_status_code=400),
-        id='processing'),
-    pytest.param(
         'test_user', 'id_empty_w', dict(
             metadata=dict(upload_name='test_name')),
         id='empty-upload-ok'),

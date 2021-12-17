@@ -1369,8 +1369,7 @@ async def post_entries_edit(
     '''
     edit_request_json = await request.json()
     try:
-        verified_json = proc.MetadataEditRequestHandler.edit_metadata(
-            edit_request_json=edit_request_json, upload_id=None, user=user)
+        verified_json = proc.MetadataEditRequestHandler.edit_metadata(edit_request_json, None, user)
         return verified_json
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.

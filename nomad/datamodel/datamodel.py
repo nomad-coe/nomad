@@ -290,16 +290,9 @@ class DatasetReference(metainfo.Reference):
 dataset_reference = DatasetReference()
 
 
-class UserProvidableMetadata(metainfo.MCategory):
-    '''
-    NOMAD entry metadata quantities that can be edited by the user before publish,
-    i.e. via metadata files or api/ui.
-    '''
-
-
 class EditableUserMetadata(metainfo.MCategory):
     ''' NOMAD entry metadata quantities that can be edited by the user before or after publish. '''
-    m_def = metainfo.Category(categories=[UserProvidableMetadata])
+    pass
 
 
 class MongoUploadMetadata(metainfo.MCategory):
@@ -486,11 +479,10 @@ class EntryMetadata(metainfo.MSection):
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
         ''',
-        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     external_id = metainfo.Quantity(
-        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata, EditableUserMetadata],
+        type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
         description='''
             A user provided external id. Usually the id for an entry in an external database
             where the data was imported from.
@@ -570,7 +562,7 @@ class EntryMetadata(metainfo.MSection):
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'),
-        categories=[MongoUploadMetadata, UserProvidableMetadata, EditableUserMetadata],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -645,7 +637,6 @@ class EntryMetadata(metainfo.MSection):
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
         description='The material science domain',
-        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_quantities = metainfo.Quantity(

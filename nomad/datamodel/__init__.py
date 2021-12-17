@@ -74,7 +74,7 @@ import sys
 from nomad.metainfo import Environment
 
 from .datamodel import (
-    Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, AuthLevel,
+    Dataset, User, Author, EditableUserMetadata, AuthLevel,
     UploadMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
     EntryMetadata, EntryArchive)
 from .optimade import OptimadeEntry, Species

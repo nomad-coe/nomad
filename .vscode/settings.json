@@ -24,6 +24,9 @@
         "--no-strict-optional"
     ],
     "python.linting.pylintEnabled": true,
+    "files.watcherExclude": {
+      "${workspaceFolder}/.pyenv/**": true,
+    },
     "launch": {
         "version": "0.2.0",
         "configurations": [
