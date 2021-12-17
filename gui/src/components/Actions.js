@@ -62,10 +62,14 @@ Actions.defaultProps = {
 const useActionHeaderStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
-    height: '100%'
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0
   },
   spacer: {
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   }
 }))
 export const ActionHeader = React.memo(({

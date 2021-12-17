@@ -28,15 +28,18 @@ import {
   TableHead,
   Table,
   TableRow,
-  TableCell
+  TableCell,
+  Link
 } from '@material-ui/core'
+import { Link as RouterLink } from 'react-router-dom'
+import { DOI } from './dataset/DOI'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import _ from 'lodash'
+import { get } from 'lodash'
 import searchQuantities from '../searchQuantities'
 import Placeholder from './visualization/Placeholder'
 import NoData from './visualization/NoData'
-import { formatNumber, serializeMetainfo } from '../utils'
+import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Unit, toUnitSystem, useUnits } from '../units'
 
 /**
@@ -45,7 +48,7 @@ import { Unit, toUnitSystem, useUnits } from '../units'
 */
 const useQuantityStyles = makeStyles(theme => ({
   root: {
-    maxWidth: 'fit-content'
+    maxWidth: theme.spacing(35)
   },
   valueContainer: {
     display: 'flex',
@@ -107,26 +110,28 @@ const useQuantityStyles = makeStyles(theme => ({
   }
 }))
 
-const Quantity = React.memo(({
-  quantity,
-  label,
-  description,
-  loading,
-  placeholder,
-  typography,
-  noWrap,
-  noLabel,
-  row,
-  column,
-  flex,
-  data,
-  withClipboard,
-  ellipsisFront,
-  hideIfUnavailable,
-  children,
-  format
-}) => {
+const Quantity = React.memo((props) => {
   const styles = useQuantityStyles()
+  const presets = quantityPresets[props.quantity] || {}
+  const {
+    quantity,
+    label,
+    description,
+    loading,
+    placeholder,
+    typography,
+    noWrap,
+    noLabel,
+    row,
+    column,
+    flex,
+    data,
+    withClipboard,
+    ellipsisFront,
+    hideIfUnavailable,
+    format
+  } = {...presets, ...props}
+  const children = props.children || (presets.render && presets.render(data))
   const units = useUnits()
   let content = null
   let clipboardContent = null
@@ -140,7 +145,7 @@ const Quantity = React.memo(({
   let value
   if (!loading) {
     if (typeof quantity === 'string') {
-      value = data && quantity && _.get(data, quantity)
+      value = data && quantity && get(data, quantity)
       if (format) {
         value = serializeMetainfo(quantity, value, units)
       }
@@ -171,7 +176,7 @@ const Quantity = React.memo(({
       if (Array.isArray(value)) {
         value = value.join(', ')
       }
-      clipboardContent = value
+      clipboardContent = clipboardContent || value
       content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
         {value}
       </Typography>
@@ -218,7 +223,11 @@ const Quantity = React.memo(({
             ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
               <i>loading ...</i>
             </Typography>
-            : <Tooltip title={tooltip}>
+            // The portal is disabled for this tooltip because the contents may
+            // contain links that cause a navigation that otherwise leaves the
+            // popup opened (the Tooltip state does not get updated since the
+            // page may be cached and a new page is shown immediately).
+            : <Tooltip title={tooltip} PopperProps={{disablePortal: true}}>
               {content}
             </Tooltip>
           }
@@ -272,6 +281,90 @@ Quantity.propTypes = {
 
 export default Quantity
 
+// Preset configuration for quantities
+const quantityPresets = {
+  datasets: {
+    label: 'datasets',
+    placeholder: 'no datasets',
+    render: (data) => (data.datasets && data.datasets.length !== 0) &&
+      <div>
+        {data.datasets.map(ds => (
+          <Typography key={ds.dataset_id}>
+            <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
+            {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
+          </Typography>))}
+      </div>
+  },
+  authors: {
+    label: 'authors',
+    placeholder: 'no authors',
+    render: (data) => <Typography>
+      {authorList(data || [])}
+    </Typography>
+  },
+  references: {
+    label: 'references',
+    placeholder: 'no references',
+    render: (data) => (data?.references && <div style={{display: 'inline-grid'}}>
+      {data.references.map(ref => <Typography key={ref} noWrap>
+        <Link href={ref}>{ref}</Link>
+      </Typography>)}
+    </div>)
+  },
+  comment: {
+    label: 'comment',
+    placeholder: 'no comment'
+  },
+  upload_id: {
+    noWrap: true,
+    withClipboard: true
+  },
+  last_processing_time: {
+    noWrap: true,
+    placeholder: 'not processed',
+    render: (data) => <Typography noWrap>
+      {formatTimestamp(data.last_processing_time)}
+    </Typography>
+  },
+  last_processing_version: {
+    description: 'Version used in the last processing',
+    label: 'processing version',
+    noWrap: true,
+    placeholder: 'not processed',
+    render: (data) => <Typography noWrap>
+      {data.nomad_version}/{data.nomad_commit}
+    </Typography>
+  },
+  upload_create_time: {
+    noWrap: true,
+    render: (data) => <Typography noWrap>
+      {formatTimestamp(data.upload_create_time)}
+    </Typography>
+  },
+  entry_id: {
+    noWrap: true,
+    withClipboard: true
+  },
+  'results.material.material_id': {
+    noWrap: true,
+    withClipboard: true
+  },
+  mainfile: {
+    noWrap: true,
+    ellipsisFront: true,
+    withClipboard: true
+  },
+  raw_id: {
+    noWrap: true,
+    withClipboard: true,
+    hideIfUnavailable: true
+  },
+  external_id: {
+    noWrap: true,
+    withClipboard: true,
+    hideIfUnavailable: true
+  }
+}
 /**
  * Representational component for tables containing metainfo data.
  */

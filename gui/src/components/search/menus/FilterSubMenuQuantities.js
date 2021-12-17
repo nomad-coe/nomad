@@ -20,61 +20,29 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
-import { InputCheckboxValue } from '../input/InputCheckbox'
 
-const FilterSubMenuDFT = React.memo(({
+const FilterSubMenuQuantities = React.memo(({
   value,
   ...rest
 }) => {
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
 
-  return <FilterSubMenu
-    value={value}
-    actions={<InputCheckboxValue
-      quantity="results.method.method_name"
-      value="DFT"
-      label=""
-      description="Search DFT entries"
-    />}
-    {...rest}
-  >
-    <InputGrid>
+  return <FilterSubMenu value={value} {...rest}>
+    <InputGrid spacing={2}>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.simulation.dft.xc_functional_type"
+          quantity="quantities"
           visible={visible}
-          xs={12}
-          disableSearch
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.method.simulation.dft.basis_set_type"
-          visible={visible}
-          xs={12}
-          disableSearch
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.method.simulation.dft.core_electron_treatment"
-          visible={visible}
-          disableSearch
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.method.simulation.dft.relativity_method"
-          visible={visible}
-          disableSearch
+          disableStatistics
+          disableOptions
         />
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuDFT.propTypes = {
+FilterSubMenuQuantities.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuDFT
+export default FilterSubMenuQuantities

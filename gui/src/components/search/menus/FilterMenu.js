@@ -34,13 +34,15 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import NavigateNextIcon from '@material-ui/icons/NavigateNext'
 import ClearIcon from '@material-ui/icons/Clear'
 import RefreshIcon from '@material-ui/icons/Refresh'
+import MoreVert from '@material-ui/icons/MoreVert'
 import Scrollable from '../../visualization/Scrollable'
 import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
 import { Actions, ActionHeader, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
 import { filterGroups } from '../FilterRegistry'
-import { MoreVert } from '@material-ui/icons'
+import { formatNumber } from '../../../utils'
+import { isNil } from 'lodash'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more
@@ -55,6 +57,91 @@ import { MoreVert } from '@material-ui/icons'
 // responsive compared to hardcoding the values.
 
 export const filterMenuContext = React.createContext()
+const paddingHorizontal = 1.5
+export const collapsedMenuWidth = 3.3
+
+// Topmost header for filter menus. Contains menu actions and an overline text
+const useFilterMenuTopHeaderStyles = makeStyles(theme => {
+  return {
+    root: {
+      paddingTop: theme.spacing(0.7),
+      paddingRight: theme.spacing(paddingHorizontal),
+      paddingLeft: theme.spacing(paddingHorizontal)
+    },
+    title: {
+      display: 'flex',
+      alignItems: 'center',
+      fontSize: '0.75rem',
+      marginBottom: -2
+    }
+  }
+})
+export const FilterMenuTopHeader = React.memo(({
+  title,
+  actions,
+  className
+}) => {
+  const styles = useFilterMenuTopHeaderStyles()
+  return <div className={clsx(className, styles.root)}>
+    <Actions>
+      <ActionHeader>
+        <Typography className={styles.title} variant="overline">{title}</Typography>
+      </ActionHeader>
+      {actions}
+    </Actions>
+  </div>
+})
+FilterMenuTopHeader.propTypes = {
+  overlineTitle: PropTypes.string,
+  title: PropTypes.string,
+  topAction: PropTypes.node,
+  actions: PropTypes.node,
+  className: PropTypes.string
+}
+
+// Header for filter menus. Contains panel actions and an overline text.
+const useFilterMenuHeaderStyles = makeStyles(theme => {
+  return {
+    root: {
+      height: theme.spacing(3),
+      paddingBottom: theme.spacing(0.8),
+      paddingTop: theme.spacing(0.30),
+      paddingLeft: theme.spacing(paddingHorizontal),
+      paddingRight: theme.spacing(paddingHorizontal),
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    },
+    title: {
+      display: 'flex',
+      alignItems: 'center',
+      fontSize: '0.90rem'
+    }
+  }
+})
+export const FilterMenuHeader = React.memo(({
+  title,
+  actions,
+  className
+}) => {
+  const styles = useFilterMenuHeaderStyles()
+  return <div className={clsx(className, styles.root)}>
+    <Actions>
+      <ActionHeader>
+        <Typography className={styles.title} variant="button">{title}</Typography>
+      </ActionHeader>
+      {actions}
+    </Actions>
+  </div>
+})
+
+FilterMenuHeader.propTypes = {
+  overlineTitle: PropTypes.string,
+  title: PropTypes.string,
+  topAction: PropTypes.node,
+  actions: PropTypes.node,
+  className: PropTypes.string
+}
 
 const useFilterMenuStyles = makeStyles(theme => {
   const width = 22
@@ -72,8 +159,8 @@ const useFilterMenuStyles = makeStyles(theme => {
       willChange: 'transform'
     },
     collapsed: {
-      '-webkit-transform': `translateX(-${width - 4}rem)`,
-      transform: `translateX(-${width - 4}rem)`
+      '-webkit-transform': `translateX(-${width - collapsedMenuWidth}rem)`,
+      transform: `translateX(-${width - collapsedMenuWidth}rem)`
     }
   }
 })
@@ -127,7 +214,6 @@ FilterMenu.propTypes = {
 }
 
 const useFilterMenuItemsStyles = makeStyles(theme => {
-  const padding = theme.spacing(2)
   return {
     root: {
       boxSizing: 'border-box',
@@ -135,26 +221,16 @@ const useFilterMenuItemsStyles = makeStyles(theme => {
       flexDirection: 'column',
       width: '100%',
       height: '100%',
+      backgroundColor: theme.palette.background.paper,
       zIndex: 3
-    },
-    header: {
-      paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(0.5),
-      paddingLeft: padding,
-      paddingRight: padding,
-      overflow: 'visible'
-    },
-    headerText: {
-      display: 'flex',
-      alignItems: 'center'
     },
     headerTextVertical: {
       display: 'flex',
       alignItems: 'center',
       position: 'absolute',
-      right: '0.5rem',
-      top: '3.5rem',
-      height: '4rem',
+      right: '0.07rem',
+      top: '2.5rem',
+      height: `${collapsedMenuWidth}rem`,
       transform: 'rotate(90deg)'
     },
     menu: {
@@ -163,14 +239,12 @@ const useFilterMenuItemsStyles = makeStyles(theme => {
       top: 0,
       bottom: 0,
       left: 0,
-      backgroundColor: theme.palette.background.paper,
       boxSizing: 'border-box'
     },
     menuBorder: {
       boxShadow: `1px 0px 0px 0px ${theme.palette.action.selected}`
     },
     padding: {
-      paddingTop: `${theme.spacing(1.5)}px`,
       paddingBottom: `${theme.spacing(1.5)}px`
     },
     button: {
@@ -185,15 +259,31 @@ const useFilterMenuItemsStyles = makeStyles(theme => {
     },
     overflow: {
       overflow: 'visible'
+    },
+    list: {
+      paddingTop: 0
+    },
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%'
+    },
+    content: {
+      flex: 1,
+      minHeight: 0
+    },
+    collapsedActions: {
+      paddingTop: theme.spacing(0.7),
+      paddingLeft: theme.spacing(paddingHorizontal),
+      paddingRight: theme.spacing(paddingHorizontal)
     }
   }
 })
-
 export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const { useResetFilters, useRefresh } = useSearchContext()
+  const { useResetFilters, useRefresh, resource } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -215,32 +305,41 @@ export const FilterMenuItems = React.memo(({
   // The clicks outside are thus detected by individual event listeners that
   // toggle the menu state.
   return <div className={clsx(className, styles.root)}>
-    <div
-      className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}
-      classes={{containerInner: styles.overflow}}>
-      <Scrollable>
-        <div className={styles.padding}>
-          <Actions className={styles.header}>
-            <ActionHeader>
-              <Typography className={styles.headerText} variant="button">Filters</Typography>
-            </ActionHeader>
+    <div className={clsx(styles.menu, open && styles.menuBorder, collapsed && styles.hidden)}>
+      <div className={styles.container}>
+        <FilterMenuTopHeader
+          title={`${resource} search`}
+          actions={!collapsed && <Action
+            tooltip={'Hide filter menu'}
+            onClick={() => {
+              onCollapsedChange(old => !old)
+              onOpenChange(false)
+            }}
+            className={styles.button}
+          >
+            <ArrowBackIcon fontSize="small"/>
+          </Action>}
+        />
+        <FilterMenuHeader
+          title="Filters"
+          actions={<>
             <Action
               tooltip="Refresh results"
               onClick={() => refresh()}
             >
-              <RefreshIcon/>
+              <RefreshIcon fontSize="small"/>
             </Action>
             <Action
               tooltip="Clear filters"
               onClick={() => resetFilters()}
             >
-              <ClearIcon/>
+              <ClearIcon fontSize="small"/>
             </Action>
             <Action
               tooltip="Options"
               onClick={openMenu}
             >
-              <MoreVert/>
+              <MoreVert fontSize="small"/>
             </Action>
             <Menu
               anchorEl={anchorEl}
@@ -255,26 +354,22 @@ export const FilterMenuItems = React.memo(({
                 <FilterSettings/>
               </div>
             </Menu>
-            {!collapsed && <Action
-              tooltip={'Hide filter menu'}
-              onClick={() => {
-                onCollapsedChange(old => !old)
-                onOpenChange(false)
-              }}
-              className={styles.button}
-            >
-              <ArrowBackIcon/>
-            </Action>}
-          </Actions>
-          <List dense>
-            <Divider/>
-            {children}
-          </List>
+          </>}
+        />
+        <div className={styles.content}>
+          <Scrollable>
+            <div className={styles.padding}>
+              <Divider/>
+              <List dense className={styles.list}>
+                {children}
+              </List>
+            </div>
+          </Scrollable>
         </div>
-      </Scrollable>
+      </div>
     </div>
-    <div className={clsx(styles.padding, !collapsed && styles.hidden)}>
-      <Actions className={styles.header}>
+    <div className={clsx(!collapsed && styles.hidden)}>
+      <Actions className={styles.collapsedActions}>
         {collapsed && <Action
           tooltip={'Show filter menu'}
           onClick={() => {
@@ -282,7 +377,7 @@ export const FilterMenuItems = React.memo(({
           }}
           className={styles.button}
         >
-          <ArrowForwardIcon/>
+          <ArrowForwardIcon fontSize="small"/>
         </Action>}
       </Actions>
       <Typography
@@ -375,17 +470,7 @@ FilterMenuItem.defaultProps = {
   depth: 0
 }
 
-const useFilterSubMenuStyles = makeStyles(theme => ({
-  root: {
-    width: '100%'
-  },
-  hidden: {
-    display: 'none'
-  }
-}))
-
 const useFilterSubMenusStyles = makeStyles(theme => {
-  const padding = theme.spacing(2)
   const widthSmall = 25
   const widthMedium = 32
   const widthLarge = 48
@@ -410,16 +495,6 @@ const useFilterSubMenusStyles = makeStyles(theme => {
     collapsed: {
       display: 'none'
     },
-    header: {
-      paddingTop: theme.spacing(0.5),
-      paddingBottom: theme.spacing(1.5),
-      paddingRight: theme.spacing(0),
-      paddingLeft: theme.spacing(0)
-    },
-    headerText: {
-      display: 'flex',
-      alignItems: 'center'
-    },
     containerSmall: {
       '-webkit-transform': `translateX(${widthSmall}rem)`,
       transform: `translateX(${widthSmall}rem)`
@@ -437,10 +512,13 @@ const useFilterSubMenusStyles = makeStyles(theme => {
       right: 0,
       top: 0,
       bottom: 0,
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column'
     },
-    padding: {
-      padding: `${theme.spacing(1.5)}px ${padding}px`
+    content: {
+      flex: 1,
+      minHeight: 0
     },
     menuSmall: {
       width: `${widthSmall}rem`
@@ -460,8 +538,10 @@ const useFilterSubMenusStyles = makeStyles(theme => {
 export const FilterSubMenus = React.memo(({
   children
 }) => {
+  const { useResults } = useSearchContext()
+  const nResults = formatNumber(useResults()?.pagination?.total, 'int', 0, false, true)
   const styles = useFilterSubMenusStyles()
-  const { selected, open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
+  const { open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
   const [menuStyle, containerStyle] = {
     small: [styles.menuSmall, styles.containerSmall],
     medium: [styles.menuMedium, styles.containerMedium],
@@ -473,23 +553,19 @@ export const FilterSubMenus = React.memo(({
     className={clsx(styles.root, open && containerStyle)}
   >
     <div className={clsx(styles.menu, menuStyle, collapsed && styles.collapsed)}>
-      <Scrollable>
-        <div className={styles.padding}>
-          <Actions className={styles.header}>
-            <ActionHeader>
-              <Typography className={styles.headerText} variant="button">{selected}</Typography>
-            </ActionHeader>
-            <Action
-              tooltip="Close submenu"
-              onClick={() => { onOpenChange(false) }}
-              className={styles.button}
-            >
-              <ArrowBackIcon/>
-            </Action>
-          </Actions>
-          {children}
-        </div>
-      </Scrollable>
+      <FilterMenuTopHeader
+        title={isNil(nResults) ? 'loading...' : `${nResults} result${nResults > 1 ? 's' : ''}`}
+        actions={<Action
+          tooltip="Close submenu"
+          onClick={() => { onOpenChange(false) }}
+          className={styles.button}
+        >
+          <ArrowBackIcon fontSize="small"/>
+        </Action>}
+      />
+      <div className={styles.content}>
+        {children}
+      </div>
     </div>
   </Paper>
 })
@@ -498,9 +574,31 @@ FilterSubMenus.propTypes = {
   children: PropTypes.node
 }
 
+const useFilterSubMenuStyles = makeStyles(theme => ({
+  root: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  hidden: {
+    display: 'none'
+  },
+  padding: {
+    paddingBottom: theme.spacing(1.5),
+    paddingLeft: theme.spacing(paddingHorizontal),
+    paddingRight: theme.spacing(paddingHorizontal)
+  },
+  content: {
+    flex: 1,
+    minHeight: 0
+  }
+}))
+
 export const FilterSubMenu = React.memo(({
   value,
   size,
+  actions,
   children
 }) => {
   const styles = useFilterSubMenuStyles()
@@ -513,12 +611,20 @@ export const FilterSubMenu = React.memo(({
   }, [size, visible, onSizeChange])
 
   return <div className={clsx(styles.root, !visible && styles.hidden)}>
-    {children}
+    <FilterMenuHeader title={selected} actions={actions}/>
+    <div className={styles.content}>
+      <Scrollable>
+        <div className={styles.padding}>
+          {children}
+        </div>
+      </Scrollable>
+    </div>
   </div>
 })
 FilterSubMenu.propTypes = {
   value: PropTypes.string,
   size: PropTypes.oneOf(['small', 'medium', 'large']),
+  actions: PropTypes.node,
   children: PropTypes.node
 }
 FilterSubMenu.defaultProps = {

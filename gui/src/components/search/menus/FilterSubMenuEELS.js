@@ -22,6 +22,7 @@ import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
 import { Quantity, useUnits } from '../../../units'
+import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const stepResolution = new Quantity(0.1, 'electron_volt')
 const stepEnergyWindow = new Quantity(100, 'electron_volt')
@@ -34,7 +35,15 @@ const FilterSubMenuEELS = React.memo(({
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu
+    value={value}
+    actions={<InputCheckboxValue
+      quantity="results.method.method_name"
+      value="EELS"
+      label=""
+      description="Search EELS entries"
+    />}
+    {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputSlider

@@ -74,8 +74,9 @@ quantity_analyzer = analyzer(
 
 def QuantitySearch():
     return [
-        Elasticsearch(_es_field='keyword'),
+        Elasticsearch(material_entry_type, _es_field='keyword'),
         Elasticsearch(
+            material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
             field='path', _es_field='')]
 

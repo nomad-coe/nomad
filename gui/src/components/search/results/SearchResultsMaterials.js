@@ -19,6 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { IconButton } from '@material-ui/core'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
+import { formatNumber } from '../../../utils'
 import { encyclopediaBase } from '../../../config'
 import { MaterialButton } from '../../nav/Routes'
 import {
@@ -62,19 +63,20 @@ VisitMaterialAction.propTypes = {
  * Displays the list of search results for materials.
  */
 const SearchResultsMaterials = React.memo(function SearchResultsMaterials(props) {
-  const {pagination} = props
+  const {data, pagination} = props
 
   return <Datatable
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
   >
-    <DatatableToolbar title={`${pagination.total} search results`} />
+    <DatatableToolbar title={`${formatNumber(data.length, 'int', 0, false, true)}/${formatNumber(pagination.total, 'int', 0, false, true)} search results`}></DatatableToolbar>
     <DatatableTable actions={encyclopediaBase ? VisitMaterialAction : undefined}>
       <DatatableLoadMorePagination color="primary">load more</DatatableLoadMorePagination>
     </DatatableTable>
   </Datatable>
 })
 SearchResultsMaterials.propTypes = {
-  pagination: PropTypes.object.isRequired
+  pagination: PropTypes.object.isRequired,
+  data: PropTypes.arrayOf(PropTypes.object)
 }
 
 export default SearchResultsMaterials

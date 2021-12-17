@@ -28,7 +28,7 @@ import {
  */
 const inputGridSpacing = 2
 export function InputGrid({children}) {
-  return <Grid container spacing={inputGridSpacing}>
+  return <Grid container spacing={inputGridSpacing} style={{marginTop: 0}}>
     {children}
   </Grid>
 }

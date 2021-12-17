@@ -55,8 +55,8 @@ const InputRadio = React.memo(({
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleChange = useCallback((value, selected) => {
-    setFilter(value)
+  const handleChange = useCallback((event, key, selected) => {
+    setFilter(key)
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
