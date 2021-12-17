@@ -71,7 +71,7 @@ const useBrowserStyles = makeStyles(theme => ({
     width: 'fit-content'
   }
 }))
-export default function Browser({adaptor, form}) {
+export const Browser = React.memo(function Browser({adaptor, form}) {
   const classes = useBrowserStyles()
   const rootRef = useRef()
   const outerRef = useRef()
@@ -100,17 +100,24 @@ export default function Browser({adaptor, form}) {
     next: null
   }), [adaptor, url])
 
-  const lanes = [root]
-  archivePath.filter(segment => segment).forEach((segment, i) => {
-    const prev = lanes[i]
-    const lane = {
-      key: segment,
-      path: `${prev.path}/${segment}`,
-      adaptor: prev.adaptor.itemAdaptor(segment)
-    }
-    lanes.push(lane)
-    prev.next = lane
-  })
+  const memoedAdapters = useRef({})
+  const lanes = useMemo(() => {
+    const lanes = [root]
+    archivePath.filter(segment => segment).forEach((segment, i) => {
+      const prev = lanes[i]
+      const path = `${prev.path}/${segment}`
+      const adaptor = memoedAdapters.current[path] || prev.adaptor.itemAdaptor(segment)
+      memoedAdapters.current[path] = adaptor
+      const lane = {
+        key: segment,
+        path: path,
+        adaptor: adaptor
+      }
+      lanes.push(lane)
+      prev.next = lane
+    })
+    return lanes
+  }, [root, archivePath, memoedAdapters])
 
   return <RecoilRoot>
     {form}
@@ -128,11 +135,12 @@ export default function Browser({adaptor, form}) {
       </CardContent>
     </Card>
   </RecoilRoot>
-}
+})
 Browser.propTypes = ({
   adaptor: PropTypes.object.isRequired,
   form: PropTypes.node
 })
+export default Browser
 
 export const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
@@ -151,20 +159,25 @@ const useLaneStyles = makeStyles(theme => ({
     margin: theme.spacing(1)
   }
 }))
-function Lane({lane}) {
+const Lane = React.memo(function Lane({lane}) {
   const classes = useLaneStyles()
-  const { adaptor } = lane
-
-  return <div className={classes.root}>
-    <div className={classes.container}>
-      <laneContext.Provider value={lane}>
-        <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
-          {adaptor.render()}
-        </ErrorHandler>
-      </laneContext.Provider>
+  const { key, selected, adaptor, next } = lane
+  const content = useMemo(() => {
+    return <div className={classes.root}>
+      <div className={classes.container}>
+        <laneContext.Provider value={lane}>
+          <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
+            {adaptor.render()}
+          </ErrorHandler>
+        </laneContext.Provider>
+      </div>
     </div>
-  </div>
-}
+    // We deliberetly break the React rules here. The goal is to only update if the
+    // lanes contents change and not the lane object.
+    // eslint-disable-next-line
+  }, [key, selected, adaptor, next?.key, classes])
+  return content
+})
 Lane.propTypes = ({
   lane: PropTypes.object.isRequired
 })
