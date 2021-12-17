@@ -79,13 +79,13 @@ async def get_users(
         if type(user_id) == list:
             for _user_id in user_id:
                 try:
-                    user = datamodel.User.get(user_id=str(_user_id))
+                    user = datamodel.User.get(user_id=str(_user_id)).m_copy()
                     user.email = None
                     users = users + [user]
                 except KeyError:
                     pass
         else:
-            user = datamodel.User.get(user_id=str(user_id))
+            user = datamodel.User.get(user_id=str(user_id)).m_copy()
             user.email = None
             users = [user]
     elif prefix:
