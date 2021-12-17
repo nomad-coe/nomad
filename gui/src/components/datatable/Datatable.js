@@ -351,7 +351,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
     })
   } : null
 
-  return <React.Fragment>
+  return <>
     <TableRow
       className={clsx({
         [classes.rowWithUncollapsedDetails]: uncollapsed,
@@ -389,7 +389,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
         </Collapse>
       </TableCell>
     </TableRow>}
-  </React.Fragment>
+  </>
 })
 DatatableRow.propTypes = {
   data: PropTypes.object.isRequired,

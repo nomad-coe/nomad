@@ -21,6 +21,7 @@ import PropTypes from 'prop-types'
 import { Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
+import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
 import StatisticsGrid from './statistics/StatisticsGrid'
 import SearchResults from './results/SearchResults'
@@ -46,7 +47,7 @@ const useStyles = makeStyles(theme => {
       zIndex: 2
     },
     leftColumnCollapsed: {
-      maxWidth: '4rem'
+      maxWidth: `${collapsedMenuWidth}rem`
     },
     center: {
       flexGrow: 1,

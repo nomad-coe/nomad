@@ -164,7 +164,7 @@ const Element = React.memo(({
         ? (isNil(count) || isNil(total))
           ? 0
           : finalScale
-        : 0.8 },
+        : 0.4 },
       disabled: { opacity: disabled ? 1 : 0 }
     }
   })

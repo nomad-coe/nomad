@@ -65,7 +65,8 @@ const useStyles = makeStyles(theme => ({
     right: theme.spacing(1)
   },
   spacer: {
-    flex: 1
+    flex: 1,
+    minHeight: 0
   },
   count: {
     marginTop: theme.spacing(0.5),

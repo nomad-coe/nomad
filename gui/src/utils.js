@@ -352,7 +352,7 @@ export function diffTotal(values) {
  *
  * @return {number} The number with new formatting
  */
-export function formatNumber(value, type = 'float64', decimals = 3, scientific = true) {
+export function formatNumberOld(value, type = 'float64', decimals = 3, scientific = true) {
   if (type?.startsWith('int')) {
     decimals = 0
   }
@@ -365,6 +365,53 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     }
   }
   return Number(value.toFixed(decimals))
+}
+
+/**
+ * Formats the given number.
+ *
+ * @param {number} value Number to format
+ * @param {decimals} decimals Number of decimals to use
+ * @param {bool} scientific Whether to convert large or small values to scientific
+ * form.
+ *
+ * @return {number} The number with new formatting
+ */
+export function formatNumber(value, type = 'float64', decimals = 3, scientific = true, separators = false) {
+  if (isNil(value)) {
+    return value
+  }
+  let formatted = value
+  if (type?.startsWith('int')) {
+    decimals = 0
+  }
+  if (value === 0) {
+    return formatted
+  }
+  if (scientific) {
+    if (value > 1e3 || value < 1e-3) {
+      formatted = Number(Number.parseFloat(value).toExponential(decimals))
+      if (separators) {
+        formatted = formatted.toLocaleString()
+      }
+      return formatted
+    }
+  }
+  formatted = Number(formatted.toFixed(decimals))
+  if (separators) {
+    formatted = formatted.toLocaleString()
+  }
+  return formatted
+}
+
+/**
+ * Formats the given timestamp.
+ *
+ * @param {number} value The timestamp to format
+ * @return {str} The timestamp with new formatting
+ */
+export function formatTimestamp(value) {
+  return value && new Date(value).toLocaleString()
 }
 
 /**

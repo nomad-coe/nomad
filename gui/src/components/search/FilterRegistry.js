@@ -190,7 +190,7 @@ const noQueryQuantity = {guiOnly: true, multiple: false}
 const rangeQuantity = {agg: 'min_max', multiple: false}
 
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, termQuantity)
+registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: 1 / 4})
 registerFilter('results.material.functional_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.compound_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.material_name', labelMaterial, termQuantity)
@@ -205,12 +205,12 @@ registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, te
 registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
-registerFilter('results.method.method_name', labelMethod, termQuantity)
-registerFilter('results.method.simulation.program_name', labelSimulation, termQuantity)
+registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: 1 / 4})
+registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, termQuantity)
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: 1 / 2, label: 'XC Functional Type'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
 registerFilter('results.method.experiment.eels.detector_type', labelEELS, termQuantity)

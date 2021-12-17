@@ -63,10 +63,12 @@ const useStaticStyles = makeStyles(theme => ({
     display: 'flex',
     height: '100%',
     alignItems: 'center',
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   },
   spacer: {
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   }
 }))
 const scales = {

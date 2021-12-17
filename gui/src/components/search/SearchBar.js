@@ -326,13 +326,47 @@ const SearchBar = React.memo(({
     setSuggestionInput(value)
   }, [quantitySetSuggestable])
 
-  // This determines the order: notice that items should be sorted by group
-  // first in order for the grouping to work correctly.
+  // This function determines the order of the suggestions. Certain categories
+  // are manually pulled to the top, other categories that come from the
+  // suggestions API are placed after these in alphabetic order (the suggestions
+  // API already orders them alphabetically) and finally the quantity names are
+  // placed last. Notice that items should be sorted by group first in order for
+  // the grouping for MUI Autocomplete to work correctly.
   const options = useMemo(() => {
+    const categoryMap = {}
+    const categoriesAuto = new Set()
+    const categoriesManual = new Set([
+      'results.material.elements',
+      'results.material.chemical_formula_hill',
+      'results.material.chemical_formula_anonymous',
+      'results.material.structural_type',
+      'results.material.symmetry.structure_name',
+      'results.method.simulation.program_name',
+      'authors.name'
+    ])
     for (let suggestion of suggestions) {
-      suggestion.value = `${suggestion.category}=${suggestion.value}`
+      const category = suggestion.category
+      suggestion.value = `${category}=${suggestion.value}`
+      if (!categoriesManual.has(category)) {
+        categoriesAuto.add(category)
+      }
+      const categoryList = categoryMap[category] || []
+      categoryList.push(suggestion)
+      categoryMap[category] = categoryList
     }
-    return suggestions.concat(quantitySuggestions)
+    let options = []
+    for (let category of categoriesManual) {
+      const manualOptions = categoryMap[category]
+      if (manualOptions) {
+        options = options.concat(manualOptions)
+      }
+    }
+    for (let category of categoriesAuto) {
+      options = options.concat(categoryMap[category])
+    }
+    options = options.concat(quantitySuggestions)
+
+    return options
   }, [quantitySuggestions, suggestions])
 
   return <Paper className={clsx(className, styles.root)}>
@@ -361,7 +395,7 @@ const SearchBar = React.memo(({
           {...params}
           className={styles.textField}
           variant="outlined"
-          placeholder="Start typing a query or a keyword to get relevant suggestions."
+          placeholder="Type your query or keyword here"
           label={error || undefined}
           error={!!error}
           onKeyDown={handleEnter}

@@ -122,6 +122,7 @@ const datasetRoutes = [
     routes: [
       {
         path: 'id/:datasetId',
+        cache: 'always',
         breadcrumb: 'Dataset',
         component: DatasetPage,
         routes: entryRoutes,

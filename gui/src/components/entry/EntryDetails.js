@@ -19,9 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
 import { Formula } from './properties/MaterialCard'
-import { Typography, Link, Tooltip, IconButton } from '@material-ui/core'
-import { Link as RouterLink } from 'react-router-dom'
-import { authorList } from '../../utils'
+import { Tooltip, IconButton } from '@material-ui/core'
 import { useApi } from '../api'
 import { EntryButton } from '../nav/Routes'
 import DetailsIcon from '@material-ui/icons/MoreHoriz'
@@ -86,28 +84,10 @@ DomainMetadata.propTypes = {
 export const UserMetadata = React.memo(({data}) => {
   return (
     <div>
-      <Quantity quantity='comment' placeholder='no comment' data={data} />
-      <Quantity quantity='references' placeholder='no references' data={data}>
-        {data.references && <div style={{display: 'inline-grid'}}>
-          {(data.references || []).map(ref => <Typography key={ref} noWrap>
-            <Link href={ref}>{ref}</Link>
-          </Typography>)}
-        </div>}
-      </Quantity>
-      <Quantity quantity='authors' data={data}>
-        <Typography>
-          {authorList(data)}
-        </Typography>
-      </Quantity>
-      <Quantity quantity='datasets' placeholder='no datasets' data={data}>
-        <div>
-          {(data.datasets || []).map(ds => (
-            <Typography key={ds.dataset_id}>
-              <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.name}</Link>
-              {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
-            </Typography>))}
-        </div>
-      </Quantity>
+      <Quantity quantity='comment' data={data} />
+      <Quantity quantity='references' data={data}/>
+      <Quantity quantity='authors' data={data}/>
+      <Quantity quantity='datasets' data={data}/>
     </div>
   )
 })
@@ -121,14 +101,10 @@ export const EntryIds = React.memo(({data}) => {
       <Quantity column >
         {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={data} withClipboard /> */}
         <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={data} />
-        <Quantity quantity="raw_id" label="raw id" noWrap withClipboard data={data} />
-        <Quantity quantity="external_id" label="external id" noWrap withClipboard data={data} />
+        <Quantity quantity="raw_id" noWrap withClipboard data={data} />
+        <Quantity quantity="external_id" noWrap withClipboard data={data} />
         <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
-        <Quantity quantity="upload_id" label="upload id" data={data} noWrap withClipboard>
-          <Typography style={{flexGrow: 1}}>
-            <Link component={RouterLink} to={`/uploads/${data.upload_id}`}>{data.upload_id}</Link>
-          </Typography>
-        </Quantity>
+        <Quantity quantity="upload_id" data={data}/>
       </Quantity>
     </div>
   )
@@ -250,43 +226,20 @@ export const EntryDetails = React.memo(({data}) => {
 
         <div className={classes.entryDetailsRow} style={{flexGrow: 1, minWidth: 'fit-content'}}>
           <Quantity className={classes.entryDetailsRow} column>
-            <Quantity quantity='comment' placeholder='no comment' data={data} />
-            <Quantity quantity='references' placeholder='no references' data={data}>
-              {data.references && <div style={{display: 'inline-grid'}}>
-                {(data.references || []).map(ref => <Typography key={ref} noWrap>
-                  <Link href={ref}>{ref}</Link>
-                </Typography>)}
-              </div>}
-            </Quantity>
-            <Quantity quantity='authors' data={data}>
-              <Typography>
-                {authorList(data)}
-              </Typography>
-            </Quantity>
-            <Quantity quantity='datasets' placeholder='no datasets' data={data}>
-              <div>
-                {(data.datasets || []).map(ds => (
-                  <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
-                    {ds.doi ? <span>&nbsp; (<Link href={`https://dx.doi.org/${ds.doi}`}>{ds.doi}</Link>)</span> : <React.Fragment/>}
-                  </Typography>))}
-              </div>
-            </Quantity>
+            <Quantity quantity='comment' data={data} />
+            <Quantity quantity='references' data={data} />
+            <Quantity quantity='authors' data={data} />
+            <Quantity quantity='datasets' data={data} />
           </Quantity>
         </div>
 
         <div className={classes.entryDetailsRow} style={{maxWidth: '33%', paddingRight: 0}}>
           <Quantity column >
-            {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={data} withClipboard /> */}
-            <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={data} />
-            <Quantity quantity="raw_id" label="raw id" noWrap withClipboard data={data} />
-            <Quantity quantity="external_id" label="external id" noWrap withClipboard data={data} />
-            <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />
-            <Quantity quantity="upload_id" label="upload id" data={data} noWrap withClipboard>
-              <Typography style={{flexGrow: 1}}>
-                <Link component={RouterLink} to={`/uploads/${data.upload_id}`}>{data.upload_id}</Link>
-              </Typography>
-            </Quantity>
+            <Quantity quantity="entry_id" data={data} />
+            <Quantity quantity="mainfile" data={data} />
+            <Quantity quantity="upload_id" data={data} />
+            <Quantity quantity="raw_id" data={data} />
+            <Quantity quantity="external_id" data={data} />
           </Quantity>
         </div>
       </div>
