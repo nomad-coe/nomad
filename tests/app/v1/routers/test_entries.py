@@ -227,6 +227,9 @@ def assert_entry_metadata(response_json):
         if 'required' not in response_json:
             assert 'license' in entry
 
+        if 'uploader' in entry:
+            assert 'email' not in entry['uploader']
+
 
 def assert_entries_metadata_response(response, status_code=None):
     response_json = assert_entries_raw_metadata_response(response, status_code=status_code)

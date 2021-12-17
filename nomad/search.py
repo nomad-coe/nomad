@@ -43,6 +43,11 @@ _entry_metadata_defaults = {
     if quantity.default not in [None, [], False, 0]
 }
 
+_all_author_quantities = [
+    quantity.name
+    for quantity in datamodel.EntryMetadata.m_def.all_quantities.values()
+    if quantity.type in [datamodel.user_reference, datamodel.author_reference]]
+
 
 def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
     '''
@@ -60,6 +65,16 @@ def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
                     continue
 
             entry_dict[key] = value
+
+    for author_quantity in _all_author_quantities:
+        authors = entry_dict.get(author_quantity)
+        if authors is None:
+            continue
+        if isinstance(authors, dict):
+            authors = [authors]
+        for author in authors:
+            if 'email' in author:
+                del(author['email'])
 
     return entry_dict
 
