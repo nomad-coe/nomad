@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useMemo, useState} from 'react'
+import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
   Box, Divider, TextField, MenuItem, Select, StepLabel, Typography
@@ -42,25 +42,27 @@ const useStyles = makeStyles(theme => ({
 
 function MembersTable() {
   const {members, setIsChanged} = useContext(editMembersDialogContext)
+  const forceUpdate = useReducer(bool => !bool)[1]
 
-  const columns = useMemo(() => ([
+  const columns = [
     {key: 'Name', align: 'left', render: member => member.name},
     {key: 'Affiliation', align: 'left', render: member => member.affiliation},
     {
       key: 'Role',
       align: 'left',
       render: member => (member.role === 'Main author' ? member.role
-        : <Select defaultValue={member.role}
+        : <Select value={member.role}
           onChange={(event) => {
             member.role = event.target.value
             setIsChanged(true)
+            forceUpdate()
           }}
         >
           <MenuItem value={'Co-author'}>Co-author</MenuItem>
           <MenuItem value={'Reviewer'}>Reviewer</MenuItem>
         </Select>)
     }
-  ]), [setIsChanged])
+  ]
 
   return <Datatable columns={columns} data={members} >
     <DatatableToolbar title={`Members (${members.length})`} hideColumns/>
@@ -195,25 +197,26 @@ function EditMembersDialog({...props}) {
   const [isChanged, setIsChanged] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
-  const getUser = useCallback((user_id, role) => {
+  const getUsers = useCallback((user_ids, roles) => {
     return new Promise(async (resolve, reject) => {
       try {
-        let member = await api.get(`users/${user_id}`)
-        member.role = role
-        resolve(member)
-      } catch {
-        reject(new Error('Unable to fetch the members'))
+        let response = await api.get(`users?user_id=${user_ids.join('&user_id=')}`)
+        let members = response['data'].map((member, index) => {
+          member.role = roles[index]
+          return member
+        })
+        resolve(members)
+      } catch (error) {
+        reject(new Error('Unable to fetch the members' + error))
       }
     })
   }, [api])
 
   const fetchMembers = useCallback(() => {
-    let promises = []
-    promises.push(getUser(upload.main_author, 'Main author'))
-    upload.coauthors.forEach(user_id => promises.push(getUser(user_id, 'Co-author')))
-    upload.reviewers.forEach(user_id => promises.push(getUser(user_id, 'Reviewer')))
-    return Promise.all(promises)
-  }, [getUser, upload])
+    let user_ids = [upload.main_author].concat(upload.coauthors, upload.reviewers)
+    let roles = ['Main author'].concat(upload.coauthors.map(_ => 'Co-author'), upload.reviewers.map(_ => 'Reviewer'))
+    return getUsers(user_ids, roles)
+  }, [getUsers, upload])
 
   const handleOpenDialog = () => {
     setMembers([])
