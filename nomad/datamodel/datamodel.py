@@ -94,9 +94,7 @@ class Author(metainfo.MSection):
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
     last_name = metainfo.Quantity(type=metainfo.Capitalized)
-    email = metainfo.Quantity(
-        type=str,
-        a_elasticsearch=Elasticsearch())
+    email = metainfo.Quantity(type=str)
 
     affiliation = metainfo.Quantity(type=str)
     affiliation_address = metainfo.Quantity(type=str)
