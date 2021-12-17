@@ -88,13 +88,14 @@ export function MetainfoPage() {
 }
 
 export default function MetainfoBrowser() {
+  const adaptor = useMemo(() => new MetainfoRootAdaptor(), [])
   return <Browser
-    adaptor={new MetainfoRootAdaptor()}
+    adaptor={adaptor}
     form={<MetainfoConfigForm />}
   />
 }
 
-function MetainfoConfigForm(props) {
+const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   const [config, setConfig] = useRecoilState(metainfoConfigState)
 
   const history = useHistory()
@@ -150,7 +151,7 @@ function MetainfoConfigForm(props) {
       </FormGroup>
     </Box>
   )
-}
+})
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
@@ -250,7 +251,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
   }
 }
 
-function Metainfo(props) {
+const Metainfo = React.memo(function Metainfo(props) {
   return <Content>
     <Compartment title="archive root section">
       <Item itemKey="EntryArchive">
@@ -258,8 +259,8 @@ function Metainfo(props) {
       </Item>
     </Compartment>
     <Compartment title="other root sections">
-      {rootSections.filter(def => def.name !== 'EntryArchive').map(def => (
-        <Item key={def.name} itemKey={def.name}>
+      {rootSections.filter(def => def.name !== 'EntryArchive').map((def, i) => (
+        <Item key={i} itemKey={def.name}>
           <Typography>
             {def.name}
           </Typography>
@@ -272,7 +273,7 @@ function Metainfo(props) {
       </Item>)}
     </Compartment>
   </Content>
-}
+})
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {

@@ -2872,7 +2872,7 @@ class Section(Definition):
     def section_cls(self) -> Type[MSection]:
         if self._section_cls is None:
             # set a temporary to avoid endless recursion
-            self._section_cls = type(self.name, (MSection,), {})
+            self._section_cls = type(self.name, (MSection,), dict(do_init=False))
 
             # Create a section class if this does not exist. This happens if the section
             # is not created through a class definition.
@@ -2884,7 +2884,11 @@ class Section(Definition):
                 attrs[name] = inner_section_def.section_cls
 
             attrs.update(m_def=self, do_init=False)
-            self._section_cls = type(self.name, (MSection,), attrs)
+            if len(self.base_sections) > 0:
+                bases = tuple(base_section.section_cls for base_section in self.base_sections)
+            else:
+                bases = (MSection,)
+            self._section_cls = type(self.name, bases, attrs)
 
         return self._section_cls
 
