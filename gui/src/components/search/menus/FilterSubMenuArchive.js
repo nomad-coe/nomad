@@ -149,8 +149,13 @@ const FilterSubMenuArchive = React.memo(({
   const root = useMemo(() => rootSections.find(def => def.name === 'EntryArchive'), [])
   const options = useMemo(() => {
     const options = []
+    const defsSet = new Set()
     function addDef(def, prefix) {
       const fullName = prefix ? `${prefix}.${def.name}` : def.name
+      if (defsSet.has(def)) {
+        return
+      }
+      defsSet.add(def)
       options.push({value: fullName})
       if (def.m_def === 'SubSection' && def.sub_section) {
         def = resolveRef(def.sub_section)

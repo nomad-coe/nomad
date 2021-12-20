@@ -412,6 +412,21 @@ class ListTextInputUnstyled extends React.Component {
     component: PropTypes.any
   }
 
+  static styles = theme => ({
+    root: {},
+    row: {
+      display: 'flex'
+    },
+    buttonContainer: {
+      position: 'relative',
+      width: 52
+    },
+    button: {
+      position: 'absolute',
+      bottom: 0
+    }
+  })
+
   render() {
     const { classes, values, onChange, label, component, ...fieldProps } = this.props
 
