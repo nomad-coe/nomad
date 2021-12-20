@@ -397,7 +397,7 @@ curl "{{ nomad_url() }}/v1/entries/raw/download?results.material.elements=Ti&res
 
 ## Access archives
 Above under [getting started](#getting started), you'll already learned how to access
-archive data. A speciality of archive API functions is that you can define is `required`
+archive data. A speciality of archive API functions is that you can define what is `required`
 from the archives.
 
 ```
@@ -420,3 +420,5 @@ response = requests.post(
 ```
 
 {{ doc_snippet('archive-required') }}
+
+{{ metainfo_data() }}

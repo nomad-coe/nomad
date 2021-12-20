@@ -6,8 +6,8 @@ nav:
   - Introduction: index.md
   - web.md
   - api.md
-  - Using the AI Toolkit and other remote tools: aitoolkit.md
-  - Using the Python library: pythonlib.md
+  - pythonlib.md
+  # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Extending and Developing NOMAD:
     - developers.md
     - metainfo.md

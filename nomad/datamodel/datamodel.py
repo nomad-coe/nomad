@@ -701,3 +701,6 @@ class EntryArchive(metainfo.MSection):
         sub_section=Results,
         categories=[FastAccess],
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
+
+
+m_package.__init_metainfo__()
