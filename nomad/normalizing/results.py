@@ -568,6 +568,10 @@ class ResultsNormalizer(Normalizer):
         return conv_atoms, prim_atoms, wyckoff_sets, spg_number
 
     def structures_2d(self, original_atoms):
+        conv_atoms = None
+        prim_atoms = None
+        wyckoff_sets = None
+        spg_number = None
         try:
             # Get dimension of system by also taking into account the covalent radii
             dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
@@ -580,7 +584,8 @@ class ResultsNormalizer(Normalizer):
             # unsufficient (the structure is "wavy" making also the gap highly
             # nonlinear).
             if sum(periodicity) != 2:
-                raise ValueError("could not detect the periodic dimensions in a 2D system")
+                self.logger.error("could not detect the periodic dimensions in a 2D system")
+                return conv_atoms, prim_atoms, wyckoff_sets, spg_number
 
             # Center the system in the non-periodic direction, also taking
             # periodicity into account. The get_center_of_mass()-function in MatID
@@ -655,7 +660,8 @@ class ResultsNormalizer(Normalizer):
             # If one axis is not periodic, return. This only happens if the vacuum
             # gap is not aligned with a cell vector.
             if sum(periodicity) != 1:
-                raise ValueError("could not detect the periodic dimensions in a 1D system")
+                self.logger.error("could not detect the periodic dimensions in a 1D system")
+                return conv_atoms, prim_atoms
 
             # Translate to center of mass
             conv_atoms = prim_atoms.copy()
