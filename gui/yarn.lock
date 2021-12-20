@@ -10054,7 +10054,7 @@ node-releases@^1.1.52, node-releases@^1.1.69:
   integrity sha512-DGIjo79VDEyAnRlfSqYTsy+yoHd2IOjJiKUozD2MV2D85Vso6Bug56mb9tT/fY5Urt0iqk01H7x+llAruDR2zA==
 
 "nomad-fair-gui@file:.":
-  version "0.10.11"
+  version "0.10.12"
   dependencies:
     "@fontsource/material-icons" "^4.2.1"
     "@fontsource/titillium-web" "^4.2.2"

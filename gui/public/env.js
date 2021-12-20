@@ -6,7 +6,7 @@ window.nomadEnv = {
   'appBase': 'http://localhost:8000/fairdi/nomad/latest',
   'debug': false,
   'version': {
-    'label': '0.10.11',
+    'label': '0.10.12',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,
