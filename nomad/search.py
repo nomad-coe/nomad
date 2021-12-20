@@ -43,6 +43,11 @@ _entry_metadata_defaults = {
     if quantity.default not in [None, [], False, 0]
 }
 
+_all_author_quantities = [
+    quantity.name
+    for quantity in datamodel.EntryMetadata.m_def.all_quantities.values()
+    if quantity.type in [datamodel.user_reference, datamodel.author_reference]]
+
 
 def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
     '''
@@ -60,6 +65,16 @@ def _es_to_entry_dict(hit, required: MetadataRequired) -> Dict[str, Any]:
                     continue
 
             entry_dict[key] = value
+
+    for author_quantity in _all_author_quantities:
+        authors = entry_dict.get(author_quantity)
+        if authors is None:
+            continue
+        if isinstance(authors, dict):
+            authors = [authors]
+        for author in authors:
+            if 'email' in author:
+                del(author['email'])
 
     return entry_dict
 
@@ -128,10 +143,17 @@ def index_all(calcs: Iterable[datamodel.EntryMetadata], do_refresh=True) -> None
     '''
     def elastic_updates():
         for calc in calcs:
-            entry = calc.a_elastic.create_index_entry()
-            entry = entry.to_dict(include_meta=True)
-            entry['_op_type'] = 'index'
-            yield entry
+            try:
+                entry = calc.a_elastic.create_index_entry()
+                entry = entry.to_dict(include_meta=True)
+                entry['_op_type'] = 'index'
+
+                yield entry
+
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'could not create index doc', exc_info=e,
+                    upload_id=calc.upload_id, calc_id=calc.calc_id)
 
     _, failed = elasticsearch.helpers.bulk(infrastructure.elastic_client, elastic_updates(), stats_only=True)
 

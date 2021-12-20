@@ -151,7 +151,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
         if record.name.startswith('nomad'):
             for key, value in structlog.items():
-                if key in ('event', 'stack_info', 'id', 'timestamp'):
+                if key in ('event', 'stack_info', 'id', 'timestamp', 'path'):
                     continue
                 elif key == 'exception':
                     exception_trace = value.strip('\n')

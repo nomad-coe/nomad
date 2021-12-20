@@ -508,11 +508,15 @@ def edit(parsed_query: Dict[str, Any], mongo_update: Dict[str, Any] = None, re_i
                         upload_files = files.UploadFiles.get(upload_id, is_authorized=lambda: True)
                         upload_files_cache[upload_id] = upload_files
 
-                    entry_metadata = calc.entry_metadata(upload_files)
-                    entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
-                    entry['_op_type'] = 'index'
+                    try:
+                        entry_metadata = calc.entry_metadata(upload_files)
+                        entry = entry_metadata.a_elastic.create_index_entry().to_dict(include_meta=True)
+                        entry['_op_type'] = 'index'
 
-                    yield entry
+                        yield entry
+
+                    except Exception as e:
+                        common.logger.error('edit repo could not create index doc', exc_info=e)
 
                 for upload_files in upload_files_cache.values():
                     upload_files.close()

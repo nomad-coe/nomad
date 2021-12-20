@@ -405,8 +405,11 @@ def re_pack(ctx, uploads, parallel: int):
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--dry', is_flag=True, help='Just check, do nothing.')
 @click.option('-f', '--force', is_flag=True, help='Ignore warnings and perform the operation regardless.')
+@click.option('-q', '--quiet', is_flag=True, help='No output (only logs).')
+@click.option('--upload-ids', is_flag=True, help='Print uploads with errors.')
+@click.option('--label', type=str, help='A label to label log entries with.')
 @click.pass_context
-def prepare_migration(ctx, uploads, dry, force):
+def prepare_migration(ctx, uploads, dry, force, label, quiet, upload_ids):
     '''
     Removes one of the raw files, either public or restricted depending on the embargo.
     Files that need to be removed are saved as `quarantined` in the upload folder.
@@ -415,12 +418,24 @@ def prepare_migration(ctx, uploads, dry, force):
     import os.path
     import os
 
+    logger = utils.get_logger(__name__)
+    if label:
+        logger = logger.bind(label=label)
+
     _, uploads = query_uploads(ctx, uploads)
     for upload in uploads:
-        print(f'Preparing {upload.upload_id} for migration ...')
+
+        def log_event(event: str, error: bool = False, **kwargs):
+            if not quiet:
+                print(f'    {"!!! " if error else ""}{event}', *[value for value in kwargs.values()])
+            method = getattr(logger, 'error' if error else 'info')
+            method(event, upload_id=upload.upload_id, **kwargs)
+
+        if not quiet:
+            print(f'Preparing {upload.upload_id} for migration ...')
 
         if not upload.published:
-            print('   upload is not published, nothing to do')
+            log_event('upload is not published, nothing to do')
             break
 
         with_embargo_values: typing.List[bool] = []
@@ -431,7 +446,15 @@ def prepare_migration(ctx, uploads, dry, force):
                 with_embargo_values.append(with_embargo_value)
 
         if len(with_embargo_values) > 1:
-            print('   !!! inconsistent upload !!!')
+            if upload_ids:
+                print(upload.upload_id)
+            log_event('inconsistent upload', error=True)
+            break
+
+        if len(with_embargo_values) == 0:
+            if upload_ids:
+                print(upload.upload_id)
+            log_event('upload with no indexed entries', error=True)
             break
 
         with_embargo = with_embargo_values[0]
@@ -445,25 +468,29 @@ def prepare_migration(ctx, uploads, dry, force):
         to_stay = upload_files._raw_file_object(access)
 
         if not to_move.exists():
-            print('   obsolute raw.zip was already removed', upload.upload_id, to_move.os_path)
+            log_event('obsolute raw.zip was already removed', path=to_move.os_path)
 
         elif to_stay.size < to_move.size and not force:
-            print('   !!! likely inconsistent pack !!!')
+            if upload_ids:
+                print(upload.upload_id)
+            log_event('likely inconsistent pack', error=True)
 
         elif to_move.size == 22:
             if not dry:
                 to_move.delete()
-            print('   removed empty zip', upload.upload_id, to_move.os_path)
+            log_event('removed empty zip', path=to_move.os_path)
 
         elif with_embargo and not force:
-            print('   !!! embargo upload with non empty public file !!!')
+            if upload_ids:
+                print(upload.upload_id)
+            log_event('embargo upload with non empty public file', error=True)
 
         else:
             if not dry:
                 target = upload_files._raw_file_object('quarantined')
                 assert not target.exists()
                 os.rename(to_move.os_path, target.os_path)
-            print('   quarantined', upload.upload_id, to_move.os_path)
+            log_event('quarantined file', path=to_move.os_path)
 
 
 @uploads.command(help='Moves certain files from public or restricted to quarantine in published uploads.')
@@ -557,3 +584,57 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     stop_all(proc.Calc.objects(running_query))
     if not calcs:
         stop_all(proc.Upload.objects(running_query))
+
+
+@uploads.group(help='Check certain integrity criteria')
+@click.pass_context
+def integrity(ctx):
+    pass
+
+
+@integrity.command(help='Uploads that have datasets with DOIs that do not exist.')
+@click.argument('UPLOADS', nargs=-1)
+@click.pass_context
+def dois(ctx, uploads):
+    import sys
+
+    from nomad.processing import Calc
+    from nomad.datamodel import Dataset
+    from nomad.doi import DOI
+    from nomad.search import SearchRequest
+
+    _, uploads = query_uploads(ctx, uploads)
+
+    for upload in uploads:
+        dataset_ids = Calc._get_collection().distinct(
+            'metadata.datasets',
+            dict(upload_id=upload.upload_id))
+
+        for dataset_id in dataset_ids:
+            dataset: Dataset = Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
+            if dataset is None:
+                print(f'ERROR: dataset does not exist {dataset_id}, seein in upload {upload.upload_id}', file=sys.stderr)
+                print(upload.upload_id)
+                continue
+
+            if dataset.doi is not None:
+                doi = DOI.objects(doi=dataset.doi).first()
+                if doi is None:
+                    continue
+
+                results = SearchRequest() \
+                    .search_parameters(upload_id=upload.upload_id, dataset_id=dataset_id) \
+                    .include('datasets') \
+                    .execute_paginated(per_page=1)
+
+                if results['total'] == 0:
+                    print(f'WARNING: dataset {dataset_id} not in index for upload {upload.upload_id}', file=sys.stderr)
+                    print(upload.upload_id)
+                    continue
+
+                if not any([
+                        dataset.get('doi') == doi.doi
+                        for dataset in results['results'][0]['datasets']]):
+
+                    print(f'WARNING: DOI of dataset {dataset_id} not in index for upload {upload.upload_id}', file=sys.stderr)
+                    print(upload.upload_id)
