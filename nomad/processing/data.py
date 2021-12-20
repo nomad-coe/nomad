@@ -45,7 +45,8 @@ from pydantic.error_wrappers import ErrorWrapper
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
-    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle, create_tmp_dir)
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
+    create_tmp_dir, is_safe_relative_path)
 from nomad.processing.base import (
     Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
 from nomad.parsing import Parser
@@ -1402,7 +1403,8 @@ class Upload(Proc):
 
     @process()
     def process_upload(
-            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None):
         '''
         A @process that executes a file operation (if provided), and matches, parses and normalizes
         the upload. Can be used for initial parsing or to re-parse, and can also be used
@@ -1422,10 +1424,18 @@ class Upload(Proc):
             reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
                 Settings that are not specified are defaulted. See `config.reprocess` for
                 available options and the configured default values.
+            path_filter: An optional path used to filter out what should be processed.
+                Use to speed up processing if we know that only certain files/folders have
+                been modified. If provided, only entries located either in the same directory as
+                `path_filter` or *under* `path_filter` (recursively) are scanned in the
+                search for new entries, disappearing entries and old entries that need to
+                be reprocessed. If `path_filter` is None (default), no filtering is done.
         '''
-        return self._process_upload_local(file_operation, reprocess_settings)
+        return self._process_upload_local(file_operation, reprocess_settings, path_filter)
 
-    def _process_upload_local(self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None):
+    def _process_upload_local(
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None):
         '''
         The function doing the actual processing, but locally, not as a @process.
         See :func:`process_upload`
@@ -1434,14 +1444,18 @@ class Upload(Proc):
         logger.info('starting to (re)process')
         reprocess_settings = config.reprocess.customize(reprocess_settings)  # Add default settings
         self.reprocess_settings = reprocess_settings
+        # Sanity checks
+        if path_filter:
+            assert is_safe_relative_path(path_filter), 'Invalid `path_filter`'
         if self.published:
             assert not file_operation, 'Upload is published, cannot update files'
             assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
                 'Settings do no allow reprocessing of a published upload')
+        # All looks ok, process
         self.update_files(file_operation)
-        self.match_all(reprocess_settings)
+        self.match_all(reprocess_settings, path_filter)
         self.parser_level = None
-        if self.parse_next_level(0):
+        if self.parse_next_level(0, path_filter, reset_all=not path_filter):
             self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
             return ProcessStatus.WAITING_FOR_RESULT
         else:
@@ -1459,6 +1473,16 @@ class Upload(Proc):
     @property
     def staging_upload_files(self) -> StagingUploadFiles:
         return self.upload_files.to_staging_upload_files()
+
+    @classmethod
+    def _passes_path_filter(cls, mainfile: str, path_filter: str) -> bool:
+        if not path_filter:
+            return True
+        if mainfile == path_filter or mainfile.startswith(path_filter + os.path.sep):
+            return True
+        if os.path.dirname(mainfile) == os.path.dirname(path_filter):
+            return True
+        return False
 
     def update_files(self, file_operation: Dict[str, Any]):
         '''
@@ -1528,7 +1552,7 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Iterator[Tuple[str, Parser]]:
+    def match_mainfiles(self, path_filter: str) -> Iterator[Tuple[str, Parser]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
@@ -1542,30 +1566,31 @@ class Upload(Proc):
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
-        for path_info in staging_upload_files.raw_directory_list(recursive=True, files_only=True):
-            self._preprocess_files(path_info.path)
+        if not path_filter:
+            scan: List[Tuple[str, bool]] = [('', True)]
+        else:
+            scan = [(path_filter, True), (os.path.dirname(path_filter), False)]
 
-            if skip_matching and path_info.path not in entries_metadata:
-                continue
+        for path, recursive in scan:
+            for path_info in staging_upload_files.raw_directory_list(path, recursive, files_only=True):
+                self._preprocess_files(path_info.path)
 
-            try:
-                parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
-                if parser is not None:
-                    yield path_info.path, parser
-            except Exception as e:
-                self.get_logger().error(
-                    'exception while matching pot. mainfile',
-                    mainfile=path_info.path, exc_info=e)
+                if skip_matching and path_info.path not in entries_metadata:
+                    continue
 
-    def match_all(self, reprocess_settings):
+                try:
+                    parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
+                    if parser is not None:
+                        yield path_info.path, parser
+                except Exception as e:
+                    self.get_logger().error(
+                        'exception while matching pot. mainfile',
+                        mainfile=path_info.path, exc_info=e)
+
+    def match_all(self, reprocess_settings, path_filter: str = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
-        creates respective :class:`Calc` instances (if needed), and reset all entries states.
-
-        Arguments:
-            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
-                Settings that are not specified are defaulted. See `config.reprocess` for
-                available options and the configured default values.
+        and create or delete respective :class:`Calc` instances (if needed).
         '''
         self.set_last_status_message('Matching')
         logger = self.get_logger()
@@ -1584,8 +1609,11 @@ class Upload(Proc):
 
             if not self.published or reprocess_settings.rematch_published:
                 with utils.timer(logger, 'matching completed'):
-                    old_entries = set([entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)])
-                    for filename, parser in self.match_mainfiles():
+                    old_entries = set(
+                        entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)
+                        if self._passes_path_filter(entry.mainfile, path_filter))
+
+                    for filename, parser in self.match_mainfiles(path_filter):
                         calc_id = generate_entry_id(self.upload_id, filename)
 
                         try:
@@ -1627,14 +1655,6 @@ class Upload(Proc):
                                 entry = Calc.get(calc_id)
                             entry.delete()
 
-            # reset all calcs
-            # (No Calc processes *should* be running, unless something has gone wrong, and if
-            # there are such processes, we can quite safely just reset them to minimize problems)
-            with utils.timer(logger, 'calcs processing resetted'):
-                Calc._get_collection().update_many(
-                    dict(upload_id=self.upload_id),
-                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to trigger processing of all entries', exc_info=e)
@@ -1642,9 +1662,9 @@ class Upload(Proc):
                 self._cleanup_staging_files()
             raise
 
-    def parse_next_level(self, min_level: int) -> bool:
+    def parse_next_level(self, min_level: int, path_filter: str = None, reset_all: bool = False) -> bool:
         '''
-        Triggers processing on the next level of parsers (parsers with level >= min_level).
+        Resets and triggers processing on the next level of parsers (parsers with level >= min_level).
         Returns True if there is a next level of parsers that require processing.
         '''
         try:
@@ -1657,6 +1677,8 @@ class Upload(Proc):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level
+                        if level == 0 and not self._passes_path_filter(entry.mainfile, path_filter):
+                            continue  # Ignore level 0 parsers if not matching path filter
                         if level >= min_level:
                             if next_level is None or level < next_level:
                                 next_level = level
@@ -1665,10 +1687,25 @@ class Upload(Proc):
                                 next_entries.append(entry)
                 if next_entries:
                     self.parser_level = next_level
+
+                    # reset either all entries, or only the entries that should be processed
+                    # (No Calc processes *should* be running unless something has gone wrong,
+                    # and if there are such processes, we reset them to minimize problems)
+                    with utils.timer(logger, 'calcs processing resetted'):
+                        if reset_all:
+                            query = dict(upload_id=self.upload_id)
+                        else:
+                            query = dict(calc_id__in=[e.calc_id for e in next_entries])
+                        Calc._get_collection().update_many(
+                            query,
+                            {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
+
+                    # Trigger calcs
                     logger.info('Triggering next level', next_level=next_level, n_entries=len(next_entries))
                     self.set_last_status_message(f'Parsing level {next_level}')
-                    for entry in next_entries:
-                        entry.process_calc()
+                    with utils.timer(logger, 'processes triggered'):
+                        for entry in next_entries:
+                            entry.process_calc()
                     return True
             return False
         except Exception as e:
@@ -2046,7 +2083,7 @@ class Upload(Proc):
             file_source.to_disk(export_path, move_files, overwrite)
         return None
 
-    @process()
+    @process(is_blocking=True)
     def import_bundle(
             self, bundle_path: str, move_files: bool = False, embargo_length: int = None,
             settings: config.NomadConfig = config.bundle_import.default_settings):
