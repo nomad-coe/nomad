@@ -31,7 +31,8 @@ import {
   isArray,
   isPlainObject,
   isNil,
-  isSet
+  isSet,
+  isFunction
 } from 'lodash'
 import qs from 'qs'
 import PropTypes from 'prop-types'
@@ -70,8 +71,8 @@ import {
  * it actually changes the state of that component or not.
  */
 const orderByMap = {
-  'entries': 'upload_create_time',
-  'materials': 'chemical_formula_hill'
+  'entries': {order_by: 'upload_create_time', order: 'desc'},
+  'materials': {order_by: 'chemical_formula_hill', order: 'asc'}
 }
 let indexContext = 0
 let indexFilters = 0
@@ -257,8 +258,8 @@ export const SearchContext = React.memo(({
     const paginationState = atom({
       key: `pagination_${indexContext}`,
       default: initialPagination || {
-        order_by: orderByMap[resource],
-        page_size: 20
+        page_size: 20,
+        ...orderByMap[resource]
       }
     })
 
@@ -393,11 +394,10 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const nested = sectionContext?.nested
       const subname = useMemo(() => name.split('.').pop(), [name])
 
       const value = useRecoilValue(queryFamily(section || name))
-      return (section && nested)
+      return section
         ? value?.[subname]
         : value
     }
@@ -414,21 +414,23 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const nested = sectionContext?.nested
       const subname = useMemo(() => name.split('.').pop(), [name])
 
       const setter = useSetRecoilState(queryFamily(section || name))
 
       const handleSet = useCallback((value) => {
         updatedFilters.current.add(name)
-        section && nested
+        section
           ? setter(old => {
             const newValue = isNil(old) ? {} : {...old}
+            if (isFunction(value)) {
+              value = value(newValue[subname])
+            }
             newValue[subname] = value
             return newValue
           })
           : setter(value)
-      }, [section, subname, setter, name, nested])
+      }, [section, subname, setter, name])
 
       return handleSet
     }
@@ -670,7 +672,7 @@ export const SearchContext = React.memo(({
     }
     const search = {
       owner: apiQuery.visibility,
-      query: toAPIFilter(apiQuery, resource, filterDefaults),
+      query: toAPIFilter(apiQuery, resource),
       aggregations: toAPIAgg(
         aggs,
         aggNames,
@@ -1070,26 +1072,35 @@ function searchToQs(query, locked, statistics) {
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIFilter(query, resource, filterDefaults) {
+export function toAPIFilter(query, resource) {
   let queryCustomized = {}
   if (!query) {
     return undefined
   }
 
   // Perform custom transformations
-  const combine = query.combine
-  for (let [k, v] of Object.entries(query)) {
-    const data = filterDataGlobal[k]
-    const guiOnly = data?.guiOnly
-    const setter = data?.valueSet
-    if (guiOnly) {
-      continue
-    }
-    if (setter) {
-      setter(queryCustomized, query, v)
+  function customize(key, value) {
+    const data = filterDataGlobal[key]
+    const section = data?.section
+    if (section) {
+      for (let [keyNested, valueNested] of Object.entries(value)) {
+        customize(`${key}.${keyNested}`, valueNested)
+      }
     } else {
-      queryCustomized[k] = v
+      const guiOnly = data?.guiOnly
+      const setter = data?.valueSet
+      if (guiOnly) {
+        return
+      }
+      if (setter) {
+        setter(queryCustomized, query, value)
+      } else {
+        queryCustomized[key] = value
+      }
     }
+  }
+  for (let [k, v] of Object.entries(query)) {
+    customize(k, v)
   }
 
   // Create the API-compatible keys and values.
@@ -1108,6 +1119,7 @@ export function toAPIFilter(query, resource, filterDefaults) {
     // When combining results, we split each filter and each filter value into
     // it's own separate entries query. These queries are then joined with
     // 'and'.
+    const combine = query.combine
     if (combine) {
       const entrySearch = []
       for (const [k, v] of Object.entries(queryNormalized)) {
@@ -1288,10 +1300,13 @@ function toAPIAgg(aggs, aggNames, updatedFilters, resource) {
     const agg = aggs[aggName]
     const aggSet = filterDataGlobal[aggName].aggSet
     if (aggSet) {
-      for (const [key, type] of Object.entries(aggSet)) {
+      for (const [key, data] of Object.entries(aggSet)) {
         // If filter has been updated and the filter values are exclusive, the
         // filter is excluded from the aggregation.
-        const exclude = updatedFilters.has(key) && filterDataGlobal[key].exclusive
+        const type = data.type
+        const exclude = data.exclude
+          ? data.exclude(updatedFilters)
+          : updatedFilters.has(key) && filterDataGlobal[key].exclusive
         const name = resource === 'materials' ? materialNames[key.split(':')[0]] : key
         const apiAgg = apiAggs[name] || {}
         apiAgg[type] = {

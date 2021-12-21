@@ -61,7 +61,6 @@ from nomad.datamodel.results import (
     DOSPhonon,
     EnergyFreeHelmholtz,
     HeatCapacityConstantVolume,
-    Experiment,
     EELS,
 )
 
@@ -132,8 +131,6 @@ class ResultsNormalizer(Normalizer):
         # Method
         if results.method is None:
             results.m_create(Method)
-        if results.method.experiment is None:
-            results.method.m_create(Experiment)
         method_name = experiment.method_name
         if method_name == 'electron energy loss spectroscopy':
             try:
@@ -146,11 +143,6 @@ class ResultsNormalizer(Normalizer):
                 logger.error('no unique device settings available', exc_info=e)
             else:
                 results.method.method_name = 'EELS'
-                eels = results.method.experiment.m_create(EELS)
-                eels.resolution = device_settings.resolution
-                eels.detector_type = device_settings.detector_type
-                eels.min_energy = device_settings.min_energy
-                eels.max_energy = device_settings.max_energy
         elif method_name == 'XPS':
             results.method.method_name = 'XPS'
         else:
@@ -189,7 +181,14 @@ class ResultsNormalizer(Normalizer):
                 if results.properties.spectroscopy is None:
                     results.properties.m_create(SpectroscopyProperties)
                 if results.method.method_name == 'EELS':
-                    results.properties.spectroscopy.eels = spectrum
+                    eels = EELS(
+                        resolution=device_settings.resolution,
+                        detector_type=device_settings.detector_type,
+                        min_energy=device_settings.min_energy,
+                        max_energy=device_settings.max_energy,
+                        spectrum=spectrum
+                    )
+                    results.properties.spectroscopy.m_add_sub_section(SpectroscopyProperties.eels, eels)
                 else:
                     results.properties.spectroscopy.other_spectrum = spectrum
 

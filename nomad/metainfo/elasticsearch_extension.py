@@ -808,7 +808,8 @@ class SearchQuantity():
         if isinstance(self.definition.type, Reference):
             return False
 
-        return self.annotation.mapping['type'] == 'keyword'
+        field_type = self.annotation.mapping['type']
+        return field_type == 'keyword' or field_type == 'boolean'
 
     def __repr__(self):
         if self.definition is None:

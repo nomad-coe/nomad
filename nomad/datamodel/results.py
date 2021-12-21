@@ -865,11 +865,12 @@ class QuantumCMS(MSection):
 class EELS(MSection):
     m_def = Section(
         description="""
-        Methodology for electron energy loss spectroscopy (EELS).
+        Electron energy loss spectroscopy (EELS) data.
         """
     )
     detector_type = DeviceSettings.detector_type.m_copy(es_annotation=[
         Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion="default")
     ])
     resolution = DeviceSettings.resolution.m_copy(es_annotation=[
         Elasticsearch(material_entry_type),
@@ -880,6 +881,7 @@ class EELS(MSection):
     min_energy = DeviceSettings.min_energy.m_copy(es_annotation=[
         Elasticsearch(material_entry_type),
     ])
+    spectrum = Quantity(type=Spectrum)
 
 
 class Simulation(MSection):
@@ -913,15 +915,6 @@ class Simulation(MSection):
     vibrational = SubSection(sub_section=VibrationalMethod.m_def, repeats=False)
     elastic = SubSection(sub_section=ElasticMethod.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
-
-
-class Experiment(MSection):
-    m_def = Section(
-        description="""
-        Contains method details for an experiment.
-        """
-    )
-    eels = SubSection(sub_section=EELS.m_def, repeats=False)
 
 
 class Method(MSection):
@@ -970,7 +963,6 @@ class Method(MSection):
         ],
     )
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
-    experiment = SubSection(sub_section=Experiment.m_def, repeats=False)
 
 
 class DOS(MSection):
@@ -1330,8 +1322,13 @@ class SpectroscopyProperties(MSection):
         Spectroscopic properties.
         """,
     )
-    eels = Quantity(type=Spectrum)
     other_spectrum = Quantity(type=Spectrum)
+
+    eels = SubSection(
+        sub_section=EELS.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
 
 
 class Properties(MSection):

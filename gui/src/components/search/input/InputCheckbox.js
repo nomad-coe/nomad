@@ -114,7 +114,6 @@ export const InputCheckboxValue = React.memo(({
   const styles = useInputCheckboxValueStyles({classes: classes, theme: theme})
   const { useFilterState, useFilterLocked } = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
-  console.log(filter)
   const locked = useFilterLocked(quantity)
 
   // Determine the description and units

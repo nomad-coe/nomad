@@ -25,19 +25,25 @@ import { FilterChip, FilterChipGroup } from './FilterChip'
 import { useSearchContext } from './SearchContext'
 import { filterAbbreviations } from './FilterRegistry'
 import { useUnits } from '../../units'
+import { DType } from '../../utils'
 
 /**
  * Displays a summary for the given subset of filters. Each filter value is
  * displayed as a chip.
  */
+const typesWithLabel = new Set([DType.Boolean, DType.Number])
 const useStyles = makeStyles(theme => {
-  const padding = theme.spacing(2)
+  const paddingVertical = theme.spacing(1)
+  const paddingHorizontal = theme.spacing(1.5)
   return {
     root: {
       boxShadow: 'inset 0 0 8px 1px rgba(0,0,0, 0.06)',
       backgroundColor: theme.palette.background.default,
       width: '100%',
-      padding: padding,
+      paddingRight: paddingHorizontal,
+      paddingLeft: paddingHorizontal,
+      paddingTop: paddingVertical,
+      paddingBottom: paddingVertical,
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'row',
@@ -82,7 +88,7 @@ const FilterSummary = React.memo(({
           key={`${name}${index}`}
           locked={locked}
           quantity={name}
-          label={metaType === 'number' ? `${label} = ${displayValue}` : displayValue}
+          label={typesWithLabel.has(metaType) ? `${label} = ${displayValue}` : displayValue}
           onDelete={() => {
             let newValue
             if (isSet) {
@@ -145,9 +151,10 @@ const FilterSummary = React.memo(({
         continue
       }
       // Nested filters
-      const nested = filterData[quantity].nested
-      if (nested) {
-        let nestedChips = []
+      const isSection = filterData[quantity].section
+      let newChips
+      if (isSection) {
+        newChips = []
         for (let [key, value] of Object.entries(filterValue)) {
           const onDelete = (newValue) => {
             let newSection = {...filterValue}
@@ -158,23 +165,21 @@ const FilterSummary = React.memo(({
             }
             setFilter([quantity, newSection])
           }
-          const newChips = createChips(`${quantity}.${key}`, key, value, onDelete)
-          nestedChips = nestedChips.concat(newChips)
-        }
-        if (nestedChips.length > 0) {
-          const group = <FilterChipGroup
-            key={quantity}
-            quantity={quantity}
-          >{nestedChips}
-          </FilterChipGroup>
-          chips.push(group)
+          newChips = newChips.concat(createChips(`${quantity}.${key}`, key, value, onDelete))
         }
       // Regular non-nested filters
       } else {
         const onDelete = (newValue) => setFilter([quantity, newValue])
         const label = filterAbbreviations[quantity]
-        const newChips = createChips(quantity, label, filterValue, onDelete)
-        chips = chips.concat(newChips)
+        newChips = createChips(quantity, label, filterValue, onDelete)
+      }
+      if (newChips.length > 0) {
+        const group = <FilterChipGroup
+          key={quantity}
+          quantity={quantity}
+        >{newChips}
+        </FilterChipGroup>
+        chips.push(group)
       }
     }
   }

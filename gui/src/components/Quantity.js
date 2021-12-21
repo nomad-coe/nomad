@@ -480,12 +480,16 @@ export const SectionTable = React.memo(({
   section,
   quantities,
   horizontal,
+  showIndex,
   classes,
   className,
   units,
   'data-testid': testID
 }) => {
   const styles = useStyles({classes: classes})
+  if (showIndex && !horizontal) {
+    throw Error('Showing index in a vertically displayed table is not currently supported.')
+  }
 
   // If data is set explicitly to False, we show the NoData component.
   let content
@@ -498,6 +502,11 @@ export const SectionTable = React.memo(({
       <TableHead>
         {horizontal
           ? <TableRow>
+            {showIndex && <TableCell align="left">
+              <Tooltip title="Item index">
+                <span>Index</span>
+              </Tooltip>
+            </TableCell>}
             {Object.keys(quantities).map((key, index) => {
               const defCustom = quantities[key]
               const def = searchQuantities[`${section}.${key}`]
@@ -523,6 +532,7 @@ export const SectionTable = React.memo(({
         {horizontal
           ? <>{data.data.map((row, i) => (
             <TableRow key={i}>
+              {showIndex && <TableCell align="left">{i}</TableCell>}
               {Object.keys(quantities).map((key, j) => {
                 const defCustom = quantities[key]
                 const def = searchQuantities[`${section}.${key}`]
@@ -599,6 +609,7 @@ SectionTable.propTypes = {
   section: PropTypes.string,
   quantities: PropTypes.any,
   horizontal: PropTypes.bool,
+  showIndex: PropTypes.bool, // Whether to display the item index
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
