@@ -1455,7 +1455,7 @@ class Upload(Proc):
         self.update_files(file_operation)
         self.match_all(reprocess_settings, path_filter)
         self.parser_level = None
-        if self.parse_next_level(0, path_filter, reset_all=not path_filter):
+        if self.parse_next_level(0, path_filter):
             self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
             return ProcessStatus.WAITING_FOR_RESULT
         else:
@@ -1608,11 +1608,16 @@ class Upload(Proc):
                     self.save()
 
             if not self.published or reprocess_settings.rematch_published:
-                with utils.timer(logger, 'matching completed'):
-                    old_entries = set(
-                        entry.calc_id for entry in Calc.objects(upload_id=self.upload_id)
-                        if self._passes_path_filter(entry.mainfile, path_filter))
+                old_entries = set()
+                processing_entries = []
+                with utils.timer(logger, 'existing entries scanned'):
+                    for entry in Calc.objects(upload_id=self.upload_id):
+                        if entry.process_running:
+                            processing_entries.append(entry.calc_id)
+                        if self._passes_path_filter(entry.mainfile, path_filter):
+                            old_entries.add(entry.calc_id)
 
+                with utils.timer(logger, 'matching completed'):
                     for filename, parser in self.match_mainfiles(path_filter):
                         calc_id = generate_entry_id(self.upload_id, filename)
 
@@ -1655,6 +1660,18 @@ class Upload(Proc):
                                 entry = Calc.get(calc_id)
                             entry.delete()
 
+                # No entries *should* be processing, but if there are, we reset them to
+                # to minimize problems (should be safe to do so).
+                if processing_entries:
+                    logger.warn('Some entries are processing', count=len(processing_entries))
+                    with utils.timer(logger, 'processing entries resetted'):
+                        Calc._get_collection().update_many(
+                            {'calc_id__in': processing_entries},
+                            {'$set': Calc.reset_pymongo_update(
+                                worker_hostname=self.worker_hostname,
+                                process_status=ProcessStatus.FAILURE,
+                                errors=['process aborted'])})
+
         except Exception as e:
             # try to remove the staging copy in failure case
             logger.error('failed to trigger processing of all entries', exc_info=e)
@@ -1662,9 +1679,9 @@ class Upload(Proc):
                 self._cleanup_staging_files()
             raise
 
-    def parse_next_level(self, min_level: int, path_filter: str = None, reset_all: bool = False) -> bool:
+    def parse_next_level(self, min_level: int, path_filter: str = None) -> bool:
         '''
-        Resets and triggers processing on the next level of parsers (parsers with level >= min_level).
+        Triggers processing on the next level of parsers (parsers with level >= min_level).
         Returns True if there is a next level of parsers that require processing.
         '''
         try:
@@ -1687,19 +1704,6 @@ class Upload(Proc):
                                 next_entries.append(entry)
                 if next_entries:
                     self.parser_level = next_level
-
-                    # reset either all entries, or only the entries that should be processed
-                    # (No Calc processes *should* be running unless something has gone wrong,
-                    # and if there are such processes, we reset them to minimize problems)
-                    with utils.timer(logger, 'calcs processing resetted'):
-                        if reset_all:
-                            query = dict(upload_id=self.upload_id)
-                        else:
-                            query = dict(calc_id__in=[e.calc_id for e in next_entries])
-                        Calc._get_collection().update_many(
-                            query,
-                            {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
                     # Trigger calcs
                     logger.info('Triggering next level', next_level=next_level, n_entries=len(next_entries))
                     self.set_last_status_message(f'Parsing level {next_level}')
