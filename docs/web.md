@@ -16,7 +16,7 @@ This will come in February 2022.
 ### Preparing files
 
 You can upload files one by one, but you can also provider larger `.zip` or `.tar.gz`
-archive files, if this is easier to you. Also the file upload form the command line with
+archive files, if this is easier to you. Also the file upload frp, the command line with
 curl or wget, is based an archive files. The specific layout of these files is up to you.
 NOMAD will simply extract them and consider the whole directory structure within.
 

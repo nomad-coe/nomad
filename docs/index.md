@@ -5,21 +5,15 @@ science data. Here, NOMAD is a [web-application and database](https://nomad-lab.
 that allows to centrally publish data. But you can also use the NOMAD software to build your
 own local [NOMAD Oasis](../oasis/).
 
-<div style="display: flex; flex-direct: row; align-items: start; gap: 16px;">
-  <div style="flex-grow: 1; min-width: 400px">
-    <p><i>More than 12 million of simulations from over 400 authors world-wide</i></p>
-    <ul>
-      <li>Free publication and sharing data of data</li>
-      <li>Manage research data though its whole life-cycle</li>
-      <li>Extracts <b>rich metadata</b> from data automatically</li>
-      <li>All data in <b>raw</b> and <b>machine processable</b> form</li>
-      <li>Use integrated tools to <b>explore</b>, <b>visualize</b>, and <b>analyze</b></li>
-    </ul>
-  </div>
-  <div>
-    <img src="../assets/nomad-hero-shot.png"/>
-  </div>
-</div>
+
+![NOMAD](assets/nomad-hero-shot.png){ align=right width=400 }
+*More than 12 million of simulations from over 400 authors world-wide*
+
+- Free publication and sharing data of data
+- Manage research data though its whole life-cycle
+- Extracts <b>rich metadata</b> from data automatically
+- All data in <b>raw</b> and <b>machine processable</b> form
+- Use integrated tools to <b>explore</b>, <b>visualize</b>, and <b>analyze</b>
 
 ## History of NOMAD
 NOMAD was founded 2014 as a repository for sharing electronic structure code files.
@@ -63,14 +57,18 @@ Each *sections* comprised a set of *quantities* on a common subject.
 All *sections* and *quantities* are backed by a formal schema that defines names, descriptions, types, shapes, and units.
 We sometimes call this data *archive* and the schema *metainfo*.
 
-### NOMAD datamodel: *uploads*, *entries*, *files*, *datasets*
-![datamodel](assets/datamodel.png)
+### Datamodel: *uploads*, *entries*, *files*, *datasets*
 
 Uploaded *raw* files are managed in *uploads*.
 Users can create *uploads* and use them like projects.
 You can share them with other users, incrementally add and modify data in them, publish (incl. embargo) them, or transfer them between NOMAD installations.
 As long as an *upload* is not published, you can continue to provide files, delete the upload again, or test how NOMAD is processing your files.
 Once an upload is published, it becomes immutable.
+
+<figure markdown>
+  ![datamodel](assets/datamodel.png){ width=600 }
+  <figcaption>NOMAD's main entities</figcaption>
+</figure>
 
 An *upload* can contain an arbitrary directory structure of *raw* files.
 For each recognized *mainfile*, NOMAD creates an entry.
@@ -80,11 +78,15 @@ Each *entry* is associated with its *mainfile*, an *archive*, and all other *aux
 *Entries* (of many uploads) can be manually curated into *datasets*. You can get a DOI for *datasets*.
 
 ### Using NOMAD software locally (the Oasis)
-![oasis use-cases](assets/oasis-use-cases.png)
 
 The software that runs NOMAD is Open-Source and can be used independently of the NOMAD
 *central installation* that is run at [http://nomad-lab.eu](http://nomad-lab.eu).
 We call any NOMAD installation that is not the *central* one a NOMAD Oasis.
+
+<figure markdown>
+  ![oasis use-cases](assets/oasis-use-cases.png){ width=700 }
+  <figcaption>NOMAD Oasis use-cases</figcaption>
+</figure>
 
 There are several use-cases how the NOMAD software could be used. Of course other
 uses and hybrids are imaginable:
@@ -101,12 +103,15 @@ This what we do in the [FAIRmat project](https://www.fair-di.eu/fairmat/consorti
 
 ### A containerized cloud enabled architecture
 
-![nomad architecture](assets/architecture.png)
-
 NOMAD is a modern web-application that requires a lot of services to run. Some are
 NOMAD specific, others are 3rd party products. While all services can be traditionally
 installed and run on a single sever, NOMAD advocates the use of containers and operating
 NOMAD in a cloud environment.
+
+<figure markdown>
+  ![nomad architecture](assets/architecture.png)
+  <figcaption>NOMAD architecture</figcaption>
+</figure>
 
 NOMAD comprises two main services, its *app* and the *worker*. The *app* services
 our API, graphical user interface, and documentation. It is the outward facing part of
@@ -130,13 +135,16 @@ to constantly produce a latest version of docker image and Python package.
 
 ### NOMAD uses a modern and rich stack frameworks, systems, and libraries
 
-![nomad stack](assets/stack.png)
-
 Besides various scientific computing, machine learning, and computational material
 science libraries (e.g. numpy, skikitlearn, tensorflow, ase, spglib, matid, and many more),
 Nomad uses a set of freely available technologies that already solve most
 of its processing, storage, availability, and scaling goals. The following is a non
 comprehensive overview of used languages, libraries, frameworks, and services.
+
+<figure markdown>
+  ![nomad stack](assets/stack.png)
+  <figcaption>NOMAD components and dependencies</figcaption>
+</figure>
 
 #### Python 3
 

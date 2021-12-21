@@ -7,6 +7,7 @@ nav:
   - web.md
   - api.md
   - pythonlib.md
+  - archive.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Extending and Developing NOMAD:
     - developers.md
@@ -25,6 +26,10 @@ theme:
   favicon: assets/favicon-hres.png
 # repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
 markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite

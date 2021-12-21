@@ -11,8 +11,9 @@ To install the latest stable pypi release, simply use pip:
 pip install nomad-lab
 ```
 
-Since NOMAD v1 is still in beta, this will still give you the Python library for
-the NOMAD v0.10.x version.
+!!! attention
+    Since NOMAD v1 is still in beta, there is no official pypi release. `pip install` will
+    still give you the Python library for the NOMAD v0.10.x version.
 
 To install the latest release developer release (e.g. v1) from our servers use:
 ```sh
@@ -46,7 +47,7 @@ The various extras have the following meaning:
 
 The `ArchiveQuery` allows you to search for entries and access their parsed *archive* data
 at the same time. Furthermore, all data is accessible through a convenient Python interface
-based on the [NOMAD metainfo](metainfo.html) rather than plain JSON.
+based on the [NOMAD metainfo](metainfo.md) rather than plain JSON.
 
 Here is an example:
 ```py
@@ -134,13 +135,13 @@ O8Ca2Ti4: -116.52240913000001 electron_volt
 
 Let's discuss the used `ArchiveQuery` parameters:
 
-- `query`, this is an arbitrary API query as discussed in the under [Queries in the API section](api.html#queries).
+- `query`, this is an arbitrary API query as discussed in the under [Queries in the API section](api.md#queries).
 - `required`, this optional parameter allows you to specify what parts of an archive you need. This is also
-described in under [Access archives in API section](api.html#access-archives).
+described in under [Access archives in API section](api.md#access-archives).
 - `per_page`, with this optional parameter you can determine, how many results are downloaded at a time. For bulk downloading many results, we recommend ~100. If you are just interested in the first results a lower number might increase performance.
 - `max`, with this optional parameter, we limit the maximum amount of entries that are downloaded, just to avoid accidentally iterating through a result set of unknown and potentially large size.
 - `owner` and `auth`, allows you to access private data or specify you only want to
-query your data. See also [owner](api.html#owner) and [auth](api.html#authentication) in the API section. Her is an example with authentication:
+query your data. See also [owner](api.md#owner) and [auth](api.md#authentication) in the API section. Her is an example with authentication:
 ```py
 from nomad.client import ArchiveQuery, Auth
 
