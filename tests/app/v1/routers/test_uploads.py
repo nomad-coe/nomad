@@ -965,6 +965,10 @@ def test_delete_upload_raw_path(
         user_auth_action = None
     else:
         token = None
+    if upload_id == 'id_processing_w':
+        # Ensure file exists (otherwise we get 404, which is not what we want to test)
+        upload_files = StagingUploadFiles(upload_id)
+        upload_files.add_rawfiles('tests/data/proc/examples_template/1.aux', 'examples_template')
     query_args = dict(token=token)
     response = client.delete(build_url(f'uploads/{upload_id}/raw/{path}', query_args), headers=user_auth_action)
     assert_response(response, expected_status_code)

@@ -736,8 +736,6 @@ async def put_upload_raw_path(
     '''
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
-    _check_upload_not_processing(upload)
-
     if not is_safe_relative_path(path):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -751,10 +749,21 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='No upload file provided.')
 
-    _check_upload_not_processing(upload)  # Uploading the file could take long time
+    if files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path):
+        # Uploading an compressed file -> reprocess the entire target directory
+        path_filter = path
+    else:
+        # Uploading a single file -> reprocess only the file
+        path_filter = os.path.join(path, os.path.basename(upload_path))
 
-    upload.process_upload(
-        file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)))
+    try:
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
+            path_filter=path_filter)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -791,8 +800,6 @@ async def delete_upload_raw_path(
     '''
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
-    _check_upload_not_processing(upload)
-
     if not is_safe_relative_path(path):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -805,7 +812,12 @@ async def delete_upload_raw_path(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='No file or folder with that path found.')
 
-    upload.process_upload(file_operation=dict(op='DELETE', path=path))
+    try:
+        upload.process_upload(file_operation=dict(op='DELETE', path=path), path_filter=path)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
@@ -937,6 +949,8 @@ async def put_upload_metadata(
         metadata: UploadMetadata = Depends(upload_metadata_parameters),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
+    DEPRECATED: TO BE REMOVED
+
     Updates the upload-level metadata of the specified upload. Note, if the upload is
     published, the only operation permitted for non-admin users is to reduce the `embargo_length`,
     i.e. to shorten the embargo or lift it entirely by setting the value to 0. Moreover,
@@ -1015,8 +1029,6 @@ async def delete_upload(
     '''
     upload = _get_upload_with_write_access(
         upload_id, user, include_published=True, published_requires_admin=True)
-
-    _check_upload_not_processing(upload)
 
     try:
         upload.delete_upload()

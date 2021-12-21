@@ -32,7 +32,7 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.processing.data import UploadContext, generate_entry_id
-from nomad.search import search
+from nomad.search import search, refresh as search_refresh
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
@@ -474,6 +474,83 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         assert not upload.with_embargo
 
 
+@pytest.mark.parametrize('args', [
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='new_folder/new_sub_folder/template.json',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='add-one-filter-file'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='new_folder/new_sub_folder',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='add-one-filter-folder'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder1', 'new_folder/new_sub_folder2'],
+            path_filter='new_folder',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder1/template.json': True,
+                'new_folder/new_sub_folder2/template.json': True}),
+        id='add-two'),
+    pytest.param(
+        dict(
+            add=['examples_template/new_sub_folder'],
+            path_filter='examples_template/new_sub_folder',
+            expected_result={
+                'examples_template/template.json': True,
+                'examples_template/new_sub_folder/template.json': True}),
+        id='add-to-existing-entry-folder'),
+    pytest.param(
+        dict(
+            add=['examples_template/new_sub_folder'],
+            remove=['examples_template/template.json'],
+            path_filter='examples_template',
+            expected_result={
+                'examples_template/new_sub_folder/template.json': True}),
+        id='add-and-remove'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='examples_template',
+            expected_result={
+                'examples_template/template.json': True}),
+        id='add-one-filter-other'),
+    pytest.param(
+        dict(
+            remove=['examples_template/template.json'],
+            path_filter='examples_template',
+            expected_result={}),
+        id='remove-everything')])
+def test_process_partial(proc_infra, non_empty_processed: Upload, args):
+    add = args.get('add', [])
+    remove = args.get('remove', [])
+    path_filter = args['path_filter']
+    expected_result = args['expected_result']
+    old_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.calcs}
+    upload_files: StagingUploadFiles = non_empty_processed.upload_files  # type: ignore
+    for path in add:
+        upload_files.add_rawfiles('tests/data/proc/templates/template.json', path)
+    for path in remove:
+        upload_files.delete_rawfiles(path)
+    non_empty_processed.process_upload(path_filter=path_filter)
+    non_empty_processed.block_until_complete()
+    search_refresh()  # Process does not wait for search index to be refreshed when deleting
+    assert_processing(non_empty_processed)
+    new_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.calcs}
+    assert new_timestamps.keys() == expected_result.keys()
+    for key, expect_updated in expected_result.items():
+        if expect_updated:
+            assert key not in old_timestamps or old_timestamps[key] < new_timestamps[key]
+
+
 def test_re_pack(published: Upload):
     upload_id = published.upload_id
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
@@ -719,8 +796,7 @@ def test_skip_matching(proc_infra, test_user):
 
 @pytest.mark.parametrize('url,normalized_url', [
     pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
-    pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')
-])
+    pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')])
 def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
     monkeypatch.setattr(
         'nomad.processing.data.UploadContext._resolve_mainfile',
