@@ -1192,7 +1192,7 @@ class Bucket(BaseModel):
             aggregations on non nested quantities.'''))
     metrics: Optional[Dict[str, int]]
 
-    value: Union[float, str]
+    value: Union[StrictBool, float, str]
 
 
 class BucketAggregationResponse(BaseModel):

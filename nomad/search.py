@@ -966,6 +966,15 @@ def _es_to_api_aggregation(
                 else:
                     entries = [item['_source'] for item in es_bucket.entries.hits.hits]
 
+            # By default ES returns values of 0 and 1 for terms aggregation
+            # targeting boolean values. Here we transform them into True/False
+            # to be more consistent.
+            if isinstance(agg, TermsAggregation) and quantity.annotation.mapping["type"] == "boolean":
+                if value == 0:
+                    value = False
+                elif value == 1:
+                    value = True
+
             values.add(value)
             if len(metrics) == 0:
                 metrics = None

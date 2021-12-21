@@ -15,13 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useMemo, useContext } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
+import { startCase } from 'lodash'
 import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
+import { inputSectionContext } from './InputSection'
+import { useUnits, Unit } from '../../../units'
 
 /**
  * Title for a search filter. The stylized name and description are
@@ -30,8 +33,9 @@ import { useSearchContext } from '../SearchContext'
 const useStaticStyles = makeStyles(theme => ({
   root: {
   },
-  capitalize: {
-    textTransform: 'capitalize'
+  title: {
+    fontWeight: 600,
+    color: theme.palette.grey[800]
   }
 }))
 const InputTitle = React.memo(({
@@ -49,6 +53,8 @@ const InputTitle = React.memo(({
 }) => {
   const styles = useStaticStyles({classes: classes})
   const { filterData } = useSearchContext()
+  const sectionContext = useContext(inputSectionContext)
+  const units = useUnits()
 
   // Remove underscores from name
   const finalLabel = useMemo(() => {
@@ -56,16 +62,24 @@ const InputTitle = React.memo(({
     if (!label) {
       label = searchQuantities[quantity]?.name || quantity
       label = !underscores ? label.replace(/_/g, ' ') : label
+      if (capitalize) {
+        label = startCase(label)
+      }
+    }
+    const unit = filterData[quantity]?.unit
+    if (unit) {
+      const unitDef = new Unit(unit)
+      label = `${label} (${unitDef.label(units)})`
     }
     return label
-  }, [filterData, quantity, underscores])
+  }, [capitalize, filterData, quantity, underscores, units])
 
-  const finalDescription = description || searchQuantities[quantity]?.description
+  const finalDescription = description || filterData[quantity].description || searchQuantities[quantity]?.description
 
   return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
     <Typography
       noWrap
-      className={clsx(className, styles.root, capitalize && styles.capitalize)}
+      className={clsx(className, styles.root, !sectionContext?.section && styles.title)}
       variant={variant}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}

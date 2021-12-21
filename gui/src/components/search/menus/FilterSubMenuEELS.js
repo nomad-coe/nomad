@@ -21,11 +21,12 @@ import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
+import InputSection from '../input/InputSection'
 import { Quantity, useUnits } from '../../../units'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const stepResolution = new Quantity(0.1, 'electron_volt')
-const stepEnergyWindow = new Quantity(100, 'electron_volt')
+const stepEnergyWindow = new Quantity(10, 'electron_volt')
 
 const FilterSubMenuEELS = React.memo(({
   value,
@@ -46,27 +47,28 @@ const FilterSubMenuEELS = React.memo(({
     {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputSlider
-          quantity="results.method.experiment.eels.resolution"
-          units={units}
-          step={stepResolution}
+        <InputSection
+          section="results.properties.spectroscopy.eels"
           visible={visible}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputSlider
-          quantity="results.method.experiment.eels.energy_window"
-          units={units}
-          step={stepEnergyWindow}
-          visible={visible}
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="results.method.experiment.eels.detector_type"
-          visible={visible}
-          xs={12}
-        />
+        >
+          <InputSlider
+            quantity="results.properties.spectroscopy.eels.resolution"
+            units={units}
+            step={stepResolution}
+            visible={visible}
+          />
+          <InputSlider
+            quantity="results.properties.spectroscopy.eels.energy_window"
+            units={units}
+            step={stepEnergyWindow}
+            visible={visible}
+          />
+          <InputField
+            quantity="results.properties.spectroscopy.eels.detector_type"
+            visible={visible}
+            xs={12}
+          />
+        </InputSection>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>

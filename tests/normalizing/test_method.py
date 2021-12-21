@@ -90,10 +90,6 @@ def test_method_gw(gw):
 def test_method_eels(eels):
     method = eels.results.method
     assert method.method_name == "EELS"
-    assert method.experiment.eels.resolution.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert method.experiment.eels.min_energy.to(ureg.electron_volt).magnitude == pytest.approx(100)
-    assert method.experiment.eels.max_energy.to(ureg.electron_volt).magnitude == pytest.approx(200)
-    assert method.experiment.eels.detector_type == "Quantum GIF"
 
 
 @pytest.mark.parametrize('entry, method_identified', [

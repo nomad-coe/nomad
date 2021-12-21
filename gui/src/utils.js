@@ -19,6 +19,7 @@ import { cloneDeep, merge, isSet, isNil, isString, isNumber } from 'lodash'
 import { toUnitSystem, Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
+import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
 
 export const isEquivalent = (a, b) => {
@@ -430,6 +431,7 @@ export const DType = {
   Number: 'number',
   Timestamp: 'timestamp',
   String: 'string',
+  Boolean: 'boolean',
   Unknown: 'unknown'
 }
 export function getDatatype(quantity) {
@@ -441,6 +443,8 @@ export function getDatatype(quantity) {
     return DType.Timestamp
   } else if (type === 'str') {
     return DType.String
+  } else if (type === 'bool') {
+    return DType.Boolean
   } else {
     return DType.Unknown
   }
@@ -637,4 +641,25 @@ export function approxInteger(number) {
  */
 export function delay(func) {
   setTimeout(func, 0)
+}
+
+/**
+ * Returns a list of linestyles.
+ *
+ * @param {number} nLines number of lines to plot
+ */
+export function getLineStyles(nLines, theme) {
+  const styles = []
+  const lineStyles = ['solid', 'dot', 'dashdot']
+  const colors = chromaScale([theme.palette.primary.dark, theme.palette.secondary.light])
+    .mode('lch').colors(nLines)
+  for (let i = 0; i < nLines; ++i) {
+    const line = {
+      dash: lineStyles[i % lineStyles.length],
+      color: colors[i],
+      width: 2
+    }
+    styles.push(line)
+  }
+  return styles
 }

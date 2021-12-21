@@ -87,6 +87,7 @@ const InputHeader = React.memo(({
   scale,
   onChangeScale,
   draggable,
+  actions,
   className,
   classes
 }) => {
@@ -211,6 +212,7 @@ const InputHeader = React.memo(({
     </ActionHeader>
     {!disableScale && menuComp}
     {align === 'right' && !disableStatistics && control}
+    {actions}
   </Actions>
 })
 
@@ -223,6 +225,7 @@ InputHeader.propTypes = {
   scale: PropTypes.oneOf(Object.values(scales)),
   onChangeScale: PropTypes.func,
   draggable: PropTypes.bool,
+  actions: PropTypes.node,
   className: PropTypes.string,
   classes: PropTypes.object
 }

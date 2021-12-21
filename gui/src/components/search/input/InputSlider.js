@@ -49,6 +49,9 @@ const useStyles = makeStyles(theme => ({
     flexGrow: 1,
     width: '10rem'
   },
+  container: {
+    width: '100%'
+  },
   spacer: {
     flex: '2 1 100%',
     paddingLeft: '18px',
@@ -210,18 +213,12 @@ const InputSlider = React.memo(({
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
       const numberSI = toSI(number, unit)
-      const outOfRange = numberSI < minGlobalSI
-      if (outOfRange) {
-        const min = toUnitSystem(minGlobalSI, unitSI, units)
-        setError(`Minimum value cannot be below ${min}.`)
-        return
-      }
       updateRange({...range, gte: numberSI})
     } else {
       setError(`Invalid minimum value.`)
     }
     startChanged.current = false
-  }, [range, minText, unitSI, unit, units, minGlobalSI, updateRange])
+  }, [range, minText, unit, updateRange])
 
   // Called when max values are submitted through the text field.
   const handleMaxSubmit = useCallback(() => {
@@ -232,18 +229,12 @@ const InputSlider = React.memo(({
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
       const numberSI = toSI(number, unit)
-      const outOfRange = numberSI > maxGlobalSI
-      if (outOfRange) {
-        const max = toUnitSystem(maxGlobalSI, unitSI, units)
-        setError(`Maximum value cannot be above ${max}.`)
-        return
-      }
       updateRange({...range, lte: numberSI})
     } else {
       setError(`Invalid maximum value.`)
     }
     endChanged.current = false
-  }, [range, maxText, unitSI, unit, units, maxGlobalSI, updateRange])
+  }, [range, maxText, unit, updateRange])
 
   // Handle range commit: Set the filter when mouse is released on a slider
   const handleRangeCommit = useCallback((event, value) => {
@@ -266,7 +257,7 @@ const InputSlider = React.memo(({
       disableScale
     />
     <InputTooltip locked={locked} unavailable={unavailable}>
-      <div>
+      <div className={styles.container}>
         <div className={styles.inputRow}>
           <InputTextField
             disabled={disabled}

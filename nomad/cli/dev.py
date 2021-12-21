@@ -98,16 +98,19 @@ def search_quantities():
     import json
 
     # Currently only quantities with "entry_type" are included.
-    from nomad.metainfo.elasticsearch_extension import entry_type
+    from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
     from nomad.datamodel import EntryArchive
     entry_section_def = EntryArchive.m_def
     entry_type.create_mapping(entry_section_def)
 
-    def to_dict(search_quantity, section):
+    def to_dict(search_quantity, section=False):
         if section:
-            keys = ["name", "description"]
-            metadict = search_quantity.definition.sub_section.m_to_dict(with_meta=True)
-            metadict["name"] = search_quantity.definition.m_to_dict(with_meta=True)["name"]
+            keys = ["name", "description", "nested"]
+            metadict = search_quantity.sub_section.m_to_dict(with_meta=True)
+            metadict["name"] = search_quantity.m_to_dict(with_meta=True)["name"]
+            es_annotations = search_quantity.m_get_annotations(Elasticsearch, as_list=True)
+            nested = any([x.nested for x in es_annotations])
+            metadict["nested"] = nested
         else:
             keys = ["name", "description", "type", "unit"]
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
@@ -124,15 +127,20 @@ def search_quantities():
     for search_quantity in entry_type.quantities.values():
         isSuggestion = search_quantity.annotation.suggestion
         if not isSuggestion:
-            export[search_quantity.qualified_name] = to_dict(search_quantity, False)
+            export[search_quantity.qualified_name] = to_dict(search_quantity)
 
     # Add suggestion flag
     for suggestion in entry_type.suggestions.keys():
         export[suggestion]["suggestion"] = True
 
-    # Add nested sections
-    for search_quantity in entry_type.nested_sections:
-        export[search_quantity.qualified_name] = to_dict(search_quantity, True)
+    # Add section definitions
+    def get_sections(m_def, prefix=None):
+        for sub_section_def in m_def.all_sub_sections.values():
+            name = sub_section_def.name
+            full_name = f"{prefix}.{name}" if prefix else name
+            export[full_name] = to_dict(sub_section_def, True)
+            get_sections(sub_section_def.sub_section, full_name)
+    get_sections(EntryArchive.results.sub_section, "results")
 
     print(json.dumps(export, indent=2))
 
