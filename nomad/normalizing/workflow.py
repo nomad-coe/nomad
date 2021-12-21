@@ -420,7 +420,11 @@ class WorkflowNormalizer(Normalizer):
     def _resolve_workflow_type(self, run):
         # resolve it from parser
         workflow_type = None
-        program_name = run.program.name
+        try:
+            program_name = run.program.name
+        except Exception:
+            return
+
         if program_name:
             program_name = program_name.lower()
 
