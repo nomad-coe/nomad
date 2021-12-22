@@ -87,7 +87,7 @@ export const InputTextQuantity = React.memo(({
   const disableSuggestionsFinal = suggestions
     ? true
     : isNil(disableSuggestions)
-      ? !searchQuantities[quantity].suggestion
+      ? !searchQuantities[quantity]?.suggestion
       : disableSuggestions
 
   // Attach the filter hook

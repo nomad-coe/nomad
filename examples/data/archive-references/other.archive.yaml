@@ -1,0 +1,4 @@
+run:
+  - calculation:
+    - calculation_converged: false
+    - calculation_converged: true

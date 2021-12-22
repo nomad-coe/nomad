@@ -67,20 +67,20 @@ const useDropButtonStyles = makeStyles(theme => ({
 function DropButton({onDrop, ...buttonProps}) {
   const classes = useDropButtonStyles()
   return <Dropzone
-    accept={[
-      'application/zip',
-      'application/gzip',
-      'application/bz2',
-      'application/x-gzip',
-      'application/x-bz2',
-      'application/x-gtar',
-      'application/x-tgz',
-      'application/tar+gzip',
-      'application/x-tar',
-      'application/tar+bz2',
-      'application/x-zip-compressed',
-      'application/x-compressed',
-      'application/x-zip']}
+    // accept={[
+    //   'application/zip',
+    //   'application/gzip',
+    //   'application/bz2',
+    //   'application/x-gzip',
+    //   'application/x-bz2',
+    //   'application/x-gtar',
+    //   'application/x-tgz',
+    //   'application/tar+gzip',
+    //   'application/x-tar',
+    //   'application/tar+bz2',
+    //   'application/x-zip-compressed',
+    //   'application/x-compressed',
+    //   'application/x-zip']}
     className={classes.dropzone}
     activeClassName={classes.dropzoneAccept}
     rejectClassName={classes.dropzoneReject}

@@ -216,7 +216,11 @@ class ArchiveAdaptor extends Adaptor {
     if (def.m_def === 'Section') {
       return new SectionAdaptor(obj, def, parent, context || this.context, this.units)
     } else if (def.m_def === 'Quantity') {
-      return new QuantityAdaptor(obj, def, parent, context || this.context, this.units)
+      if (def.type.type_kind === 'reference') {
+        return new ReferenceAdaptor(obj, def, parent, context || this.context, this.units)
+      } else {
+        return new QuantityAdaptor(obj, def, parent, context || this.context, this.units)
+      }
     }
   }
 
@@ -246,17 +250,25 @@ class SectionAdaptor extends ArchiveAdaptor {
     } else if (property.m_def === 'Quantity') {
       // References: sections and quantities
       if (property.type.type_kind === 'reference') {
+        let reference = null
         if (property.shape.length === 0) {
-          // some sections cannot be resolved, because they are not part of the archive
-          // user_id->user is one example
-          const resolved = resolveRef(value, this.context.archive) || {}
-          const resolvedDef = resolveRef(property.type.type_data)
-          if (resolvedDef.name === 'User' && !resolved.user_id) {
-            resolved.user_id = value
-          }
-          return this.adaptorFactory(resolved, resolvedDef, this.e)
-        } else {
+          reference = value
+        } else if (property.shape.length === 1) {
+          const indexStr = key.split(':')[1]
+          const index = parseInt(indexStr)
+          reference = value[index]
         }
+        if (!reference) {
+          return this.adaptorFactory(value, property, this.e)
+        }
+        const resolved = resolveRef(reference, this.context.archive)
+        // some sections cannot be resolved, because they are not part of the archive
+        // user_id->user is one example
+        if (!resolved) {
+          return this.adaptorFactory(reference, property, this.e)
+        }
+        const resolvedDef = resolveRef(property.type.type_data)
+        return this.adaptorFactory(resolved, resolvedDef, this.e)
       }
       // Regular quantities
       return this.adaptorFactory(value, property, this.e)
@@ -266,6 +278,12 @@ class SectionAdaptor extends ArchiveAdaptor {
   }
   render() {
     return <Section section={this.e} def={this.def} parent={this.parent} units={this.units}/>
+  }
+}
+
+class ReferenceAdaptor extends ArchiveAdaptor {
+  render() {
+    return <Reference value={this.e} def={this.def} units={this.units}/>
   }
 }
 
@@ -332,9 +350,7 @@ function QuantityValue({value, def, units}) {
     ? toUnitSystem(val, def.unit, units, true)
     : [val, def.unit]
 
-  return <Box
-    marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
-  >
+  return <Box textAlign="center" fontWeight="bold">
     {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} type={def.type.type_data} /> : <Number value={finalValue} exp={16} variant="body2" />}
     {def.shape.length > 0 &&
       <Typography noWrap variant="caption">
@@ -367,6 +383,7 @@ function Section({section, def, parent, units}) {
     sub_sections = [...def.sub_sections]
     sub_sections.reverse()
   }
+  const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
 
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
@@ -397,12 +414,15 @@ function Section({section, def, parent, units}) {
       }
     </Compartment>
     <Compartment title="quantities">
-      {def.quantities
+      {quantities
         .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
         .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           const disabled = section[key] === undefined
+          if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+            return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+          }
           return (
             <Item key={key} itemKey={key} disabled={disabled}>
               <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
@@ -435,7 +455,44 @@ Section.propTypes = ({
   units: PropTypes.object
 })
 
-const useSubSectionListStyles = makeStyles(theme => ({
+function SubSectionList({subSectionDef}) {
+  const lane = useContext(laneContext)
+  const label = useMemo(() => {
+    let key = subSectionDef.more?.label_quantity
+    if (!key) {
+      const sectionDef = resolveRef(subSectionDef.sub_section)
+      key = sectionDef.more?.label_quantity
+      if (!key) {
+        key = ['name', 'type', 'id'].find(key => (
+          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
+        ))
+      }
+    }
+    return item => {
+      return key && item[key]
+    }
+  }, [subSectionDef])
+  const values = useMemo(() => lane.adaptor.e[subSectionDef.name].map(label), [lane.adaptor.e, subSectionDef.name, label])
+  return <PropertyValuesList
+    values={values}
+    label={formatSubSectionName(subSectionDef.name) || 'list'} />
+}
+SubSectionList.propTypes = ({
+  subSectionDef: PropTypes.object.isRequired
+})
+
+function ReferenceValuesList({quantityDef}) {
+  const lane = useContext(laneContext)
+  const values = useMemo(() => lane.adaptor.e[quantityDef.name].map(() => null), [lane.adaptor.e, quantityDef.name])
+  return <PropertyValuesList
+    values={values}
+    label={quantityDef.name} />
+}
+ReferenceValuesList.propTypes = ({
+  quantityDef: PropTypes.object.isRequired
+})
+
+const usePropertyValuesListStyles = makeStyles(theme => ({
   title: {
     color: theme.palette.text.primary,
     textDecoration: 'none',
@@ -455,41 +512,26 @@ const useSubSectionListStyles = makeStyles(theme => ({
     }
   }
 }))
-export function SubSectionList({subSectionDef}) {
-  const classes = useSubSectionListStyles()
+function PropertyValuesList({label, values}) {
+  const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-  const values = lane.adaptor.e[subSectionDef.name]
-  const label = useMemo(() => {
-    let key = subSectionDef.more?.label_quantity
-    if (!key) {
-      const sectionDef = resolveRef(subSectionDef.sub_section)
-      key = sectionDef.more?.label_quantity
-      if (!key) {
-        key = ['name', 'type', 'id'].find(key => (
-          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
-        ))
-      }
-    }
-    return item => {
-      return key && item[key]
-    }
-  }, [subSectionDef])
+
   return <div>
     <Typography onClick={() => setOpen(!open)} className={classNames(
       classes.title,
-      (!open && selected && selected.startsWith(subSectionDef.name + ':')) ? classes.selected : classes.unSelected
+      (!open && selected && selected.startsWith(label + ':')) ? classes.selected : classes.unSelected
     )}>
       {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-      <span>{formatSubSectionName(subSectionDef.name) || 'list'}</span>
+      <span>{label}</span>
     </Typography>
     {open &&
       <div>
         {values.map((item, index) => (
-          <Item key={index} itemKey={`${subSectionDef.name}:${index}`}>
+          <Item key={index} itemKey={`${label}:${index}`}>
             <Box component="span" marginLeft={2}>
-              <Typography component="span">{label(item) || index}</Typography>
+              <Typography component="span">{item || index}</Typography>
             </Box>
           </Item>
         ))}
@@ -497,22 +539,41 @@ export function SubSectionList({subSectionDef}) {
     }
   </div>
 }
-SubSectionList.propTypes = ({
-  subSectionDef: PropTypes.object.isRequired
+PropertyValuesList.propTypes = ({
+  label: PropTypes.string.isRequired,
+  values: PropTypes.arrayOf(PropTypes.string).isRequired
 })
 
 function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
-    <QuantityValue
-      value={value}
-      def={def}
-      units={units}
-    />
+    <Compartment title="value">
+      <QuantityValue
+        value={value}
+        def={def}
+        units={units}
+      />
+    </Compartment>
     <Meta def={def} />
   </Content>
 }
 Quantity.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
+})
+
+function Reference({value, def, units}) {
+  return <Content>
+    <Title def={def} data={value} kindLabel="value" />
+    <Compartment title="reference">
+      <Typography color="error">Cannot resolve reference.</Typography>
+      <Typography>{value}</Typography>
+    </Compartment>
+    <Meta def={def} />
+  </Content>
+}
+Reference.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired,
   units: PropTypes.object
