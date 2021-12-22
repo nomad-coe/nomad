@@ -1,9 +1,0 @@
-upload limit:
-
-I assume, you mean the limit of "unpublished" uploads. The limit of 10 unpublished uploads was put in place to avoid automated mass uploads and encourage users to use a few large uploads instead of many small ones. You currently have exactly 10 unpublished uploads.
-
-If you log into the gui and go to "uploads", you should be able see all your uploads and can either delete or publish the unpublished ones. Let me know, if you need assistance in deleting unwanted uploads.
-
-I like to have your feedback and maybe we should rethink that limit. Does this limit impose a serious problems on how you like to use NOMAD? Could you describe your workflow and why you would need a higher number?
-
-Please let me also know, if how this error was presented is confusing and if you think we should make this clearer to our users in the future.

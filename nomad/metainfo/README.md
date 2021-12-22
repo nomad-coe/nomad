@@ -113,7 +113,7 @@ These properties include:
 Properties define what data a section instance can hold. Properties are mapped to Python
 *descriptors*.
 
-- `section` specialized `parant` relation with the containing `Section`
+- `section` specialized `parent` relation with the containing `Section`
 
 
 #### SubSections

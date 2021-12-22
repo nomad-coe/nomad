@@ -22,7 +22,7 @@
 import pytest
 
 from nomad.metainfo import MSection
-from nomad.metainfo.metainfo import Quantity, SubSection, Section
+from nomad.metainfo.metainfo import Package, Quantity, SubSection, Section
 
 
 def test_base_section():
@@ -193,3 +193,26 @@ def test_inner_sections_inheritance():
     section = OuterSection(
         test_sub_section=OuterSection.InnerSection(test_quantity='test_value'))
     assert section.test_sub_section.test_quantity == 'test_value'
+
+
+def test_path():
+    class ChildSection(MSection):
+        pass
+
+    class EntryArchive(MSection):
+        child = SubSection(sub_section=ChildSection.m_def)
+
+    pkg = Package()
+    pkg.section_definitions.append(ChildSection.m_def)
+    pkg.section_definitions.append(EntryArchive.m_def)
+    pkg.__init_metainfo__()
+
+    assert SubSection._used_sections[ChildSection.m_def] == [EntryArchive.child]
+    assert ChildSection.m_def.path == 'child'
+
+    from nomad.datamodel.metainfo.simulation.calculation import Calculation, Energy
+    from nomad.datamodel.metainfo.simulation.system import System
+    from nomad.datamodel import EntryArchive  # pylint: disable=unused-import
+    assert Calculation.m_def.path == 'run.calculation'
+    assert System.m_def.path == 'run.system'
+    assert Energy.m_def.path == '__no_archive_path__'

@@ -128,7 +128,7 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     local_tmp='/tmp',
     prefix_size=2,
-    archive_version_suffix=None,
+    archive_version_suffix='v1',
     working_directory=os.getcwd()
 )
 
@@ -155,7 +155,7 @@ keycloak = NomadConfig(
 mongo = NomadConfig(
     host='localhost',
     port=27017,
-    db_name='nomad_fairdi'
+    db_name='nomad_v1'
 )
 
 logstash = NomadConfig(

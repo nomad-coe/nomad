@@ -1,8 +1,6 @@
 # Developing NOMAD
 
-## Getting started
-
-### Clone the sources
+## Clone the sources
 If not already done, you should clone nomad. If you have a gitlab@MPCDF account, you can clone with git URL:
 
 ```
@@ -32,7 +30,9 @@ git checkout -b <my-branch-name>
 ```
 This branch can be pushed to the repo, and then later may be merged to the relevant branch.
 
-### Prepare your Python environment
+## Installation
+
+### Setup a Python environment
 
 You work in a Python virtual environment.
 
@@ -70,7 +70,6 @@ To install libmagick for conda, you can use (other channels might also work):
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
-## Setup
 Using the following command one can install all the dependencies, and the sub-modules from the NOMAD-coe project
 ```
 bash setup.sh
@@ -78,14 +77,14 @@ bash setup.sh
 
 The script includes the following steps:
 
-### 1. pip
+### Upgrade pip
 Make sure you have the most recent version of pip:
 ```sh
 pip install --upgrade pip
 ```
 
 
-#### Missing system libraries (e.g. on MacOS)
+### Install missing system libraries (e.g. on MacOS)
 
 Even though the NOMAD infrastructure is written in python, there is a C library
 required by one of our python dependencies. Libmagic is missing on some systems.
@@ -96,7 +95,7 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
-### 2. Install sub-modules
+### Install sub-modules
 Nomad is based on python modules from the NOMAD-coe project.
 This includes parsers, python-common and the meta-info. These modules are maintained as
 their own GITLab/git repositories. To clone and initialize them run:
@@ -119,7 +118,7 @@ to install set package manually.
 The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
 to change the downloaded dependency code without having to reinstall after.
 
-### 3. Install nomad
+### Install nomad
 Finally, you can add nomad to the environment itself (including all extras)
 ```sh
 pip install -e .[all]
@@ -131,7 +130,7 @@ If pip tries to use and compile sources and this creates errors, it can be told 
 pip install -e .[all] --prefer-binary
 ```
 
-### 4. Generate GUI artifacts
+### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.
 ```sh
 nomad.cli dev metainfo > gui/src/metainfo.json
@@ -152,12 +151,14 @@ might not match the expected data in outdated files. If there are changes to uni
 In additional, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
 
-## Install docker
+## Run the infrastructure
+
+### Install docker
 One needs to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
 
-## Running the infrastructure
+### Run required 3rd party services
 
-To run NOMAD, some 3-rd party services are needed
+To run NOMAD, some 3rd party services are needed
 - elastic search: nomad's search and analytics engine
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
@@ -201,7 +202,7 @@ Usually these services only used by NOMAD, but sometimes you also
 need to check something or do some manual steps. You can access mongodb and elastic search
 via your preferred tools. Just make sure to use the right ports.
 
-## Running NOMAD
+### Run NOMAD
 
 Before you run NOMAD for development purposes, you should configure it to use the `test`
 realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
@@ -257,7 +258,7 @@ yarn
 yarn start
 ```
 
-## Running tests
+## Run tests
 
 To run the tests some additional settings and files are necessary that are not part
 of the code base.
@@ -295,7 +296,7 @@ nomad dev qa
 This mimiques the tests and checks that the GitLab CI/CD will perform.
 
 
-## Use an (I)DE
+## Setup your IDE
 
 The documentation section on development guidelines details (see below) how the code is organized,
 tested, formatted, and documented. To help you meet these guidelines, we recommend to
@@ -319,14 +320,12 @@ described in this tutorial (see above).
 
 ## Code guidelines
 
-### Design principles
+### Principles and rules
 
 - simple first, complicated only when necessary
 - adopting generic established 3rd party solutions before implementing specific solutions
 - only uni directional dependencies between components/modules, no circles
 - only one language: Python (except, GUI of course)
-
-### Rules
 
 The are some *rules* or better strong *guidelines* for writing code. The following
 applies to all python code (and were applicable, also to JS and other code):
@@ -359,8 +358,7 @@ applies to all python code (and were applicable, also to JS and other code):
 - Write tests for all contributions.
 
 
-### Enforcing Rules: CI/CD
-
+### Enforcing Rules with CI/CD
 
 These *guidelines* are partially enforced by CI/CD. As part of CI all tests are run on all
 branches; further we run a *linter*, *pep8* checker, and *mypy* (static type checker). You can
@@ -526,6 +524,26 @@ The lifecycle of a *feature* branch should look like this:
 
 - the maintainer performs the merge and the *feature* branch gets deleted
 
+### Submodules
+
+We currently use git submodules to manage NOMAD internal dependencies (e.g. parsers).
+All dependencies are python packages and installed via pip to your python environement.
+
+This allows us to target (e.g. install) individual commits. More importantly, we can address c
+ommit hashes to identify exact parser/normalizer versions. On the downside, common functions
+for all dependencies (e.g. the python-common package, or nomad_meta_info) cannot be part
+of the nomad-FAIRDI project. In general, it is hard to simultaneously develop nomad-FAIRDI
+and NOMAD-coe dependencies.
+
+Another approach is to integrate the NOMAD-coe sources with nomad-FAIRDI. The lacking
+availability of individual commit hashes, could be replaces with hashes of source-code
+files.
+
+We use the `master` branch on all dependencies. Of course feature branches can be used on
+dependencies to manage work in progress.
+
+### Keep a clean history
+
 While working on a feature, there are certain practices that will help us to create
 a clean history with coherent commits, where each commit stands on its own.
 
@@ -585,21 +603,3 @@ clean working directory.
   git submodule update
   git status
 ```
-
-### Submodules
-
-We currently use git submodules to manage NOMAD internal dependencies (e.g. parsers).
-All dependencies are python packages and installed via pip to your python environement.
-
-This allows us to target (e.g. install) individual commits. More importantly, we can address c
-ommit hashes to identify exact parser/normalizer versions. On the downside, common functions
-for all dependencies (e.g. the python-common package, or nomad_meta_info) cannot be part
-of the nomad-FAIRDI project. In general, it is hard to simultaneously develop nomad-FAIRDI
-and NOMAD-coe dependencies.
-
-Another approach is to integrate the NOMAD-coe sources with nomad-FAIRDI. The lacking
-availability of individual commit hashes, could be replaces with hashes of source-code
-files.
-
-We use the `master` branch on all dependencies. Of course feature branches can be used on
-dependencies to manage work in progress.

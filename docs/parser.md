@@ -68,9 +68,6 @@ python -m exampleparser tests/data/example.out
 The output should show the log entry and the minimal archive with one `section_run` and
 the respective `program_name`.
 ```json
-INFO     root                 2020-12-02T11:00:52 Hello World
-  - nomad.release: devel
-  - nomad.service: unknown nomad service
 {
   "section_run": [
     {

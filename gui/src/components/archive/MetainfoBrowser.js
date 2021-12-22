@@ -446,7 +446,13 @@ SubSectionDef.propTypes = ({
 })
 
 function DefinitionProperties({def, children}) {
-  if (!(children || def.aliases?.length || def.deprecated || Object.keys(def.more).length)) {
+  const searchAnnotations = def.m_annotations && Object.keys(def.m_annotations)
+    .filter(key => key === 'elasticsearch')
+    .map(key => def.m_annotations[key].filter(
+      value => !(value.endsWith('.suggestion') || value.endsWith('__suggestion')))
+    )
+
+  if (!(children || def.aliases?.length || def.deprecated || Object.keys(def.more).length || searchAnnotations)) {
     return ''
   }
 
@@ -457,6 +463,8 @@ function DefinitionProperties({def, children}) {
     {Object.keys(def.more).map((moreKey, i) => (
       <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
     ))}
+    {searchAnnotations && <Typography><b>search&nbsp;keys</b>:&nbsp;{
+      searchAnnotations.join(', ')}</Typography>}
   </Compartment>
 }
 DefinitionProperties.propTypes = ({

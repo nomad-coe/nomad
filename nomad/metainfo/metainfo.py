@@ -1541,6 +1541,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
+        def serialize_annotation(annotation):
+            if isinstance(annotation, Annotation):
+                return annotation.m_to_dict()
+            else:
+                return str(annotation)
+
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
             if with_meta:
@@ -1549,6 +1555,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     yield 'm_parent_index', self.m_parent_index
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
+
+                annotations = {}
+                for annotation_name, annotation in self.m_annotations.items():
+                    if isinstance(annotation, list):
+                        annotation_value = [serialize_annotation(item) for item in annotation]
+                    else:
+                        annotation_value = [serialize_annotation(annotation)]
+                    annotations[annotation_name] = annotation_value
+                if len(annotations) > 0:
+                    yield 'm_annotations', annotations
 
             # quantities
             sec_path = self.m_path()
@@ -2637,6 +2653,8 @@ class SubSection(Property):
             times in the parent section.
     '''
 
+    _used_sections: Dict['Section', Set['SubSection']] = {}
+
     sub_section: 'Quantity' = _placeholder_quantity
     repeats: 'Quantity' = _placeholder_quantity
 
@@ -2824,6 +2842,9 @@ class Section(Definition):
             A helper attribute that gives all inner_section_definitions including
             their aliases by name.
 
+        path: Shortest path from a root section to this section. This is not the path
+            in the metainfo schema (`m_path`) but a archive path in potential data.
+
         event_handlers:
             Event handler are functions that get called when the section data is changed.
             There are two types of events: ``set`` and ``add_sub_section``. The handler type
@@ -2859,6 +2880,7 @@ class Section(Definition):
     all_sub_sections_by_section: 'Quantity' = _placeholder_quantity
     all_aliases: 'Quantity' = _placeholder_quantity
     all_inner_section_definitions: 'Quantity' = _placeholder_quantity
+    path: 'Quantity' = _placeholder_quantity
 
     def __init__(self, *args, validate: bool = True, **kwargs):
         self._section_cls: Type[MSection] = None
@@ -3016,8 +3038,10 @@ class Package(Definition):
                 if isinstance(content.type, MProxy):
                     content.type.m_proxy_resolve()
             elif isinstance(content, SubSection):
-                if isinstance(content.sub_section, MProxy):
-                    content.sub_section.m_proxy_resolve()
+                target = content.sub_section
+                if isinstance(target, MProxy):
+                    target = target.m_proxy_resolve()
+                SubSection._used_sections.setdefault(target, []).append(content)
             elif isinstance(content, Section):
                 for base_section in content.base_sections:
                     if isinstance(base_section, MProxy):
@@ -3079,7 +3103,13 @@ class Category(Definition):
 
 class Annotation:
     ''' Base class for annotations. '''
-    pass
+
+    def m_to_dict(self):
+        '''
+        Returns a JSON serializable representation that is used for exporting the
+        annotation to JSON.
+        '''
+        return str(self.__class__.__name__)
 
 
 class DefinitionAnnotation(Annotation):
@@ -3227,6 +3257,30 @@ def all_inner_section_definitions(self) -> Dict[str, Section]:
     return result
 
 
+@derived(cached=True)
+def section_path(self) -> str:
+    used_in_sub_sections: List[SubSection] = SubSection._used_sections.get(self, [])  # type: ignore
+    if len(used_in_sub_sections) == 0:
+        if self.name == 'EntryArchive':
+            return None
+        else:
+            return '__no_archive_path__'
+
+    if len(used_in_sub_sections) > 1:
+        return '__ambiguous__'
+
+    parent_section = used_in_sub_sections[0].m_parent
+    parent_path = parent_section.path
+
+    if parent_path is None:
+        return used_in_sub_sections[0].name
+
+    if parent_path.startswith('__'):
+        return parent_path
+
+    return f'{parent_path}.{used_in_sub_sections[0].name}'
+
+
 Section.inherited_sections = inherited_sections
 Section.all_base_sections = all_base_sections
 Section.all_properties = all_properties
@@ -3235,6 +3289,8 @@ Section.all_sub_sections = all_sub_sections
 Section.all_sub_sections_by_section = all_sub_sections_by_section
 Section.all_aliases = all_aliases
 Section.all_inner_section_definitions = all_inner_section_definitions
+Section.path = section_path
+
 
 Property.template = Quantity(type=bool, name='template', default=False)
 
