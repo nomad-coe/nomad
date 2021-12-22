@@ -31,6 +31,8 @@ from nomad.datamodel import Dataset
 from nomad.parsing.parsers import parser_dict
 
 
+_upload_keys_to_remove_v0 = (
+    'published', 'upload_path', 'upload_time', 'temporary', 'joined')
 _metadata_keys_to_flatten_v0 = (
     'calc_hash', 'pid', 'external_id', 'nomad_version', 'nomad_commit', 'comment',
     'references', 'datasets')
@@ -80,7 +82,7 @@ def migrate_mongo_uploads(
     logger = utils.get_logger(__name__)
 
     number_of_uploads = uploads.count()
-    print(f'Found {number_of_uploads} uploads to import.')
+    logger.info(f'Found {number_of_uploads} uploads to import.')
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads
@@ -129,7 +131,7 @@ def migrate_mongo_uploads(
             elapsed = t - start_time
             progress = count_treated / number_of_uploads
             est_remain = elapsed * number_of_uploads / count_treated - elapsed
-            print(
+            logger.info(
                 f'Elapsed: {_seconds_to_h_m(elapsed)}, progress: {progress * 100.0:6.2f} %, '
                 f'est. remain: {_seconds_to_h_m(est_remain)}')
             next_report_time += 60
@@ -160,7 +162,7 @@ def migrate_mongo_uploads(
             summary += 'they already exist in the destination db.\n\n'
     if dry:
         summary += 'Dry run - nothing written to the destination db\n\n'
-    print(summary)
+    logger.info(summary)
     if count_failures:
         return -1
 
@@ -188,10 +190,12 @@ def _convert_mongo_upload(
         # Verify and then remove redundant legacy field 'published'.
         if 'published' in upload_dict:
             assert upload_dict['published'] == published, 'Inconsistency: published flag vs publish_time'
-            upload_dict.pop('published')
         # Set license if missing
         if 'license' not in upload_dict:
             upload_dict['license'] = 'CC BY 4.0'
+        for key in _upload_keys_to_remove_v0:
+            if key in upload_dict:
+                upload_dict.pop(key)
 
     # Fetch all entries as a dictionary
     entry_dicts = list(db_src.calc.find({'upload_id': upload_id}))
@@ -328,7 +332,7 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
     if entry_dict['_id'] != generated_entry_id:
         if not fix_problems:
             assert False, f'Entry id {entry_dict["_id"]} does not match generated value - use --fix-problems to fix'
-        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], entry_id=generated_entry_id)
+        logger.warn('Fixing bad id for entry', old_entry_id=entry_dict['_id'], new_entry_id=generated_entry_id)
         entry_dict['_id'] = generated_entry_id
     # Convert old v0 metadata
     if 'metadata' in entry_dict:
@@ -352,6 +356,7 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
             if key in entry_metadata:
                 entry_metadata.pop(key)
         assert not entry_metadata, f'Unexpected fields in Calc.metadata: {repr(entry_metadata)}'
+        entry_dict.pop('metadata')
 
     # Check that all required fields are populated
     for field in ('_id', 'upload_id', 'entry_create_time', 'parser_name'):
