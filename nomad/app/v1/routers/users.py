@@ -106,7 +106,7 @@ async def get_users(
     response_model_exclude_none=True,
     response_model=User)
 async def get_user(user_id: str):
-    user = infrastructure.keycloak.get_user(user_id=user_id)
+    user = datamodel.User.get(user_id=str(user_id)).m_copy()
     user.email = None
     return user
 
