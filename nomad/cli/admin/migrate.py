@@ -82,7 +82,7 @@ def migrate_mongo_uploads(
     logger = utils.get_logger(__name__)
 
     number_of_uploads = uploads.count()
-    logger.info(f'Found {number_of_uploads} uploads to import.')
+    print(f'Found {number_of_uploads} uploads to import.')
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads
@@ -131,7 +131,7 @@ def migrate_mongo_uploads(
             elapsed = t - start_time
             progress = count_treated / number_of_uploads
             est_remain = elapsed * number_of_uploads / count_treated - elapsed
-            logger.info(
+            print(
                 f'Elapsed: {_seconds_to_h_m(elapsed)}, progress: {progress * 100.0:6.2f} %, '
                 f'est. remain: {_seconds_to_h_m(est_remain)}')
             next_report_time += 60
@@ -162,7 +162,7 @@ def migrate_mongo_uploads(
             summary += 'they already exist in the destination db.\n\n'
     if dry:
         summary += 'Dry run - nothing written to the destination db\n\n'
-    logger.info(summary)
+    print(summary)
     if count_failures:
         return -1
 
@@ -332,7 +332,7 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
     if entry_dict['_id'] != generated_entry_id:
         if not fix_problems:
             assert False, f'Entry id {entry_dict["_id"]} does not match generated value - use --fix-problems to fix'
-        logger.warn('Fixing bad id for entry', old_entry_id=entry_dict['_id'], new_entry_id=generated_entry_id)
+        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], entry_id=generated_entry_id)
         entry_dict['_id'] = generated_entry_id
     # Convert old v0 metadata
     if 'metadata' in entry_dict:
