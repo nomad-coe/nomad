@@ -12,6 +12,7 @@ nav:
   - Extending and Developing NOMAD:
     - developers.md
     - metainfo.md
+    - search.md
     - parser.md
     - normalizers.md
   - Operating NOMAD (Oasis): oasis.md
@@ -22,8 +23,10 @@ theme:
     accent: teal
   font:
     text: 'Titillium Web'
-  logo: null
-  favicon: assets/favicon-hres.png
+  logo: assets/nomad-logo.png
+  favicon: assets/favicon.png
+  features:
+    - navigation.instant
 # repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
 markdown_extensions:
   - attr_list
@@ -40,8 +43,13 @@ markdown_extensions:
       toc_depth: 3
 extra:
   generator: false
+  homepage: https://nomad-lab.eu/prod/v1/gui/about
 use_directory_urls: false
 plugins:
     - search
     - macros:
         module_name: nomad/mkdocs
+extra_css:
+  - stylesheets/extra.css
+extra_javascript:
+  - javascript.js

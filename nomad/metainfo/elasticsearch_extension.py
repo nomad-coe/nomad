@@ -405,6 +405,9 @@ class DocumentType():
                 assert name not in self.metrics, 'Metric names must be unique: %s' % name
                 self.metrics[name] = (metric, search_quantity)
 
+        if self == entry_type:
+            annotation.search_quantity = search_quantity
+
     def __repr__(self):
         return self.name
 
@@ -596,6 +599,7 @@ class Elasticsearch(DefinitionAnnotation):
     Attributes:
         name:
             The name of the quantity (plus additional field if set).
+        search_quantity: The entry type SearchQuantity associated with this annoation.
     '''
     def __init__(
             self,
@@ -654,6 +658,8 @@ class Elasticsearch(DefinitionAnnotation):
         self.auto_include_subsections = auto_include_subsections
         self.nested = nested
         self.suggestion = suggestion
+
+        self.search_quantity = None
 
     @property
     def values(self):
@@ -748,6 +754,12 @@ class Elasticsearch(DefinitionAnnotation):
             return super().__repr__()
 
         return f'Elasticsearch({self.definition})'
+
+    def m_to_dict(self):
+        if self.search_quantity:
+            return self.search_quantity.qualified_name
+        else:
+            return self.name
 
 
 class SearchQuantity():

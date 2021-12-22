@@ -1541,6 +1541,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             else:
                 raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
 
+        def serialize_annotation(annotation):
+            if isinstance(annotation, Annotation):
+                return annotation.m_to_dict()
+            else:
+                return str(annotation)
+
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
             if with_meta:
@@ -1549,6 +1555,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     yield 'm_parent_index', self.m_parent_index
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
+
+                annotations = {}
+                for annotation_name, annotation in self.m_annotations.items():
+                    if isinstance(annotation, list):
+                        annotation_value = [serialize_annotation(item) for item in annotation]
+                    else:
+                        annotation_value = [serialize_annotation(annotation)]
+                    annotations[annotation_name] = annotation_value
+                if len(annotations) > 0:
+                    yield 'm_annotations', annotations
 
             # quantities
             sec_path = self.m_path()
@@ -3087,7 +3103,13 @@ class Category(Definition):
 
 class Annotation:
     ''' Base class for annotations. '''
-    pass
+
+    def m_to_dict(self):
+        '''
+        Returns a JSON serializable representation that is used for exporting the
+        annotation to JSON.
+        '''
+        return str(self.__class__.__name__)
 
 
 class DefinitionAnnotation(Annotation):

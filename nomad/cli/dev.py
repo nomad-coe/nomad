@@ -71,11 +71,16 @@ def metainfo():
 
 def metainfo_undecorated():
     from nomad.metainfo import Package, Environment
+    from nomad.datamodel import EntryArchive
 
     # TODO similar to before, due to lazyloading, we need to explicily access parsers
     # to actually import all parsers and indirectly all metainfo packages
     from nomad.parsing import parsers
     parsers.parsers
+
+    # Create the ES mapping to populate ES annoations with search keys.
+    from nomad.search import entry_type
+    entry_type.create_mapping(EntryArchive.m_def)
 
     # TODO we call __init_metainfo__() for all packages where this has been forgotten
     # by the package author. Ideally this would not be necessary and we fix the

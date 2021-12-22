@@ -254,3 +254,58 @@ m_package = Package()
 
 m_package.__init_metainfo__()
 ```
+
+## Adding definition to the existing metainfo schema
+
+Now you know how to define new sections and quantities, but how should your additions
+be integrated in the existing schema and what conventions need to be followed?
+
+### Metainfo schema super structure
+
+The `EntryArchive` section definition set the root of the archive for each entry in
+NOMAD. It therefore defines the top level sections:
+
+- `metadata`, all "administrative" metadata (ids, permissions, publish state, uploads, user metadata, etc.)
+- `results`, a summary with copies and references to data from method specific sections. This also
+presents the [searchable metadata](search.md).
+- `workflows`, all workflow metadata
+- Method specific sub-sections, e.g. `run`. This is were all parsers are supposed to
+add the parsed data.
+
+The main NOMAD Python project include Metainfo definitions in the following modules:
+
+- `nomad.metainfo` Defines the Metainfo itself. This includes a self-referencing schema
+of itself. E.g. there is a section `Section`, etc.
+- `nomad.datamodel` Mostly defines the section `metadata` that contains all "administrative"
+metadata. It also contains the root section `EntryArchive`.
+- `nomad.datamodel.metainfo` Defines all the central, method specific (but not parser specific) definitions.
+For example the section `run` with all the simulation (computational material science definitions)
+definition that are shared among the respective parsers.
+
+### Extending existing sections
+
+Parsers can provide their own definitions. By conventions those are places into a
+`metainfo` sub-module of the parser Python module. The definitions here can add properties
+to existing sections (e.g. from `nomad.datamodel.metainfo`). By convention us a `x_mycode_`
+prefix. This is done with the
+`extends_base_section` [Section property](#sections). Here is an example:
+
+```py
+from nomad.metainfo import Section
+from nomad.datamodel.metainfo.simulation import Method
+
+class MyCodeRun(Method)
+    m_def = Section(extends_base_section=True)
+    x_mycode_execution_mode = Quantity(
+        type=MEnum('hpc', 'parallel', 'single'), description='...')
+```
+
+### Metainfo schema conventions
+
+- Use lower snake case for section properties; use upper camel case for section definitions.
+- Use a `_ref` suffix for references.
+- Use sub-sections rather than inheritance to add specific quantities to a general section.
+E.g. section `workflow` contains a section `geometry_optimization` for all geometry optimization specific
+workflow quantities.
+- Prefix parser specific and custom definitions with `x_name_`. Where `name` is the
+short handle of a code name or other special method prefix.
