@@ -151,12 +151,22 @@ export const rootSections = sortDefs(defs.filter(def => (
  */
 export function resolveRef(ref, data) {
   const resolve = (ref, context) => {
-    if (ref.startsWith('../')) {
-      return null
+    const parts = ref.split('#')
+    if (parts.length === 2 && parts[0] !== '') {
+      const url = parts[0]
+      ref = parts[1]
+      data = data?.resources[url]
+      if (!data) {
+        return null
+      }
+    } else {
+      if (parts.length === 2) {
+        ref = parts[1]
+      } else {
+        ref = parts[0]
+      }
     }
-    if (ref[0] === '#') {
-      ref = ref.slice(1)
-    }
+
     try {
       context = context || metainfo
       const segments = ref.split('/').filter(segment => segment !== '')

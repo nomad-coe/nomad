@@ -825,7 +825,7 @@ async def delete_upload_raw_path(
 
 
 @router.get(
-    '/{upload_id}/entries/mainfile/{mainfile:path}/archive', tags=[archive_tag],
+    '/{upload_id}/archive/mainfile/{mainfile:path}', tags=[archive_tag],
     summary='Get the full archive for the given upload and mainfile path.',
     response_model=EntryArchiveResponse,
     response_model_exclude_unset=True,
@@ -850,7 +850,7 @@ async def get_upload_entry_archive_mainfile(
 
 
 @router.get(
-    '/{upload_id}/entries/{entry_id}/archive', tags=[archive_tag],
+    '/{upload_id}/archive/{entry_id}', tags=[archive_tag],
     summary='Get the full archive for the given upload and entry.',
     response_model=EntryArchiveResponse,
     response_model_exclude_unset=True,

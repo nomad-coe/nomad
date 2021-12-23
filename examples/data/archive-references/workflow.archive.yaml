@@ -4,7 +4,7 @@ workflow:
     calculations_ref:
       - '#/run/0/calculation/0'
       - '#/run/0/calculation/1'
-      - '../upload/mainfile/other.archive.yaml#/run/0/calculation/0'
+      - '../upload/archive/mainfile/other.archive.yaml#/run/0/calculation/0'
 run:
   - calculation:
     - calculation_converged: false

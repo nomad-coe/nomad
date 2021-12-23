@@ -853,7 +853,7 @@ def test_get_upload_entry_archive_mainfile(
     upload_id: str, mainfile: str, user: str, status_code: int
 ):
     user_auth, _ = test_auth_dict[user]
-    response = client.get(f'uploads/{upload_id}/entries/mainfile/{mainfile}/archive', headers=user_auth)
+    response = client.get(f'uploads/{upload_id}/archive/mainfile/{mainfile}', headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
@@ -871,7 +871,7 @@ def test_get_upload_entry_archive(
     upload_id: str, entry_id: str, user: str, status_code: int
 ):
     user_auth, _ = test_auth_dict[user]
-    response = client.get(f'uploads/{upload_id}/entries/{entry_id}/archive', headers=user_auth)
+    response = client.get(f'uploads/{upload_id}/archive/{entry_id}', headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useRef, useLayoutEffect, useMemo } from 'react'
+import React, { useContext, useRef, useLayoutEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
@@ -100,6 +100,8 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     next: null
   }), [adaptor, url])
 
+  const [render, setRender] = useState(0)
+
   const memoedAdapters = useRef({})
   const lanes = useMemo(() => {
     const lanes = [root]
@@ -111,13 +113,18 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
       const lane = {
         key: segment,
         path: path,
-        adaptor: adaptor
+        adaptor: adaptor,
+        data: root.adaptor.e,
+        update: () => {
+          memoedAdapters.current[path] = null
+          setRender(render + 1)
+        }
       }
       lanes.push(lane)
       prev.next = lane
     })
     return lanes
-  }, [root, archivePath, memoedAdapters])
+  }, [root, archivePath, memoedAdapters, render, setRender])
 
   return <RecoilRoot>
     {form}

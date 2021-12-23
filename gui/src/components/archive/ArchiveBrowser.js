@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
@@ -32,6 +32,8 @@ import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
 
 export const configState = atom({
   key: 'config',
@@ -50,6 +52,7 @@ export default function ArchiveBrowser({data}) {
   // up-to-date unit information, we pass the hook value down the component
   // hierarchy.
   const units = useUnits()
+  data.resources = data.resources || {}
   return (
     <Browser
       adaptor={archiveAdaptorFactory(data, undefined, units)}
@@ -384,7 +387,6 @@ function Section({section, def, parent, units}) {
     sub_sections.reverse()
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
-
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
     <Overview section={section} def={def} units={units}/>
@@ -564,6 +566,37 @@ Quantity.propTypes = ({
 })
 
 function Reference({value, def, units}) {
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const [loading, setLoading] = useState(true)
+  const {data, update} = useContext(laneContext)
+  useEffect(() => {
+    const url = value.split('#')[0]
+    const upload_id = data.metadata.upload_id
+    if (data.resources[url]) {
+      setLoading(false)
+      return
+    }
+
+    if (!(url.startsWith('../upload/archive/') && upload_id)) {
+      setLoading(false)
+      return
+    }
+
+    api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
+      .then(response => {
+        data.resources[url] = response.data.archive
+        update()
+      })
+      .catch(raiseError)
+  }, [api, data.metadata.upload_id, data.resources, raiseError, setLoading, update, value])
+
+  if (loading) {
+    return <Content>
+      <Typography>loading ...</Typography>
+    </Content>
+  }
+
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
     <Compartment title="reference">
