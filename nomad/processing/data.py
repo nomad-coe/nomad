@@ -48,7 +48,7 @@ from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
     create_tmp_dir, is_safe_relative_path)
 from nomad.processing.base import (
-    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
+    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -1444,6 +1444,7 @@ class Upload(Proc):
         logger.info('starting to (re)process')
         reprocess_settings = config.reprocess.customize(reprocess_settings)  # Add default settings
         self.reprocess_settings = reprocess_settings
+
         # Sanity checks
         if path_filter:
             assert is_safe_relative_path(path_filter), 'Invalid `path_filter`'
@@ -1451,6 +1452,15 @@ class Upload(Proc):
             assert not file_operation, 'Upload is published, cannot update files'
             assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
                 'Settings do no allow reprocessing of a published upload')
+
+        # TODO remove after worker_hostnames are handled correctly
+        if config.celery.routing == config.CELERY_WORKER_ROUTING:
+            if self.worker_hostname is None:
+                self.worker_hostname = worker_hostname
+            Calc._get_collection().update_many(
+                {'upload_id': self.upload_id},
+                {'$set': {'worker_hostname': self.worker_hostname}})
+
         # All looks ok, process
         self.update_files(file_operation)
         self.match_all(reprocess_settings, path_filter)
