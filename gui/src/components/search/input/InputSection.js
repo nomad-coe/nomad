@@ -56,7 +56,7 @@ const InputSection = React.memo(({
 
   // Determine the description and units
   const def = searchQuantities[section]
-  const nested = def.nested
+  const nested = def?.nested
   const desc = description || def?.description || ''
 
   // Get the final label for this section

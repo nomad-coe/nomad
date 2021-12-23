@@ -131,8 +131,8 @@ class MProxy():
         #/run/0/calculation/1  # same archive
         ../upload/archive/mainfile/{mainfile}#/run/0  # same upload
         /entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
-        /uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
-        https://my-oasis.de/api/v1/uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1  # global
+        /uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1  # same NOMAD
+        https://my-oasis.de/api/v1/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1  # global
 
     A URL can have 3 relevant path. The archive path as anchor string (after the `#`).
     The API part (more or less the URL's path). The oasis part (more or less the domain).

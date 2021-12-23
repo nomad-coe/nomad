@@ -150,14 +150,30 @@ export const rootSections = sortDefs(defs.filter(def => (
  * @param {object} data Archive.
  */
 export function resolveRef(ref, data) {
-  const resolve = (ref, idata) => {
+  const resolve = (ref, context) => {
+    const parts = ref.split('#')
+    if (parts.length === 2 && parts[0] !== '') {
+      const url = parts[0]
+      ref = parts[1]
+      data = data?.resources[url]
+      if (!data) {
+        return null
+      }
+    } else {
+      if (parts.length === 2) {
+        ref = parts[1]
+      } else {
+        ref = parts[0]
+      }
+    }
+
     try {
-      idata = idata || metainfo
+      context = context || metainfo
       const segments = ref.split('/').filter(segment => segment !== '')
       const reducer = (current, segment) => {
         return isNaN(segment) ? current[segment] : current[parseInt(segment)]
       }
-      return segments.reduce(reducer, idata)
+      return segments.reduce(reducer, context)
     } catch (e) {
       console.log('could not resolve: ' + ref)
       throw e

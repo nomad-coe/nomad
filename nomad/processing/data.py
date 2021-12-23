@@ -2351,7 +2351,7 @@ class UploadContext(Context):
         if entry_id is None:
             raise MetainfoReferenceError()
 
-        return f'../upload/archive/{entry_id}#{super().get_reference(section, quantity_def, value)}'
+        return f'../upload/entries/{entry_id}/archive#{super().get_reference(section, quantity_def, value)}'
 
     def _resolve_mainfile(self, mainfile: str) -> str:
         return generate_entry_id(self.upload.upload_id, mainfile)
@@ -2367,8 +2367,9 @@ class UploadContext(Context):
     def normalize_reference(self, url: str) -> str:
         api_url, archive_ref = self.split_url(url)
 
-        if url.startswith('../upload/archive/mainfile/'):
-            entry_id = self._resolve_mainfile(api_url.replace('../upload/archive/mainfile/', ''))
+        if url.startswith('../upload/archive/mainfile'):
+            mainfile = api_url.replace('../upload/archive/mainfile', '')
+            entry_id = self._resolve_mainfile(mainfile)
             return f'../upload/archive/{entry_id}#{archive_ref}'
 
         return super().normalize_reference(url)

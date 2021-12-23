@@ -203,8 +203,8 @@ References are serialized as URLs. There are different types of reference URLs:
 - `/run/0/calculation/1`, a reference in the same archive (legacy version)
 - `../upload/archive/mainfile/{mainfile}#/run/0`, a reference into an Archive of the same upload
 - `/entries/{entry_id}/archive#/run/0/calculation/1`, a reference into the Archive of a different entry on the same NOMAD installation
-- `/uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1`, similar but based on uploads
-- `https://myoasis.de/api/v1/uploads/{upload_id}/entries/{entry_id}/archive#/run/0/calculation/1`, a global reference towards a different NOMAD installation (Oasis)
+- `/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`, similar but based on uploads
+- `https://myoasis.de/api/v1/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`, a global reference towards a different NOMAD installation (Oasis)
 
 The host and path parts of URLs correspond with the NOMAD API. The anchors are paths from the root section of an Archive, over its sub-sections, to the referenced section or quantity value. Each path segment is the name of the sub-section or an index in a repeatable sub-section: `/system/0` or `/system/0/atom_labels`.
 

@@ -230,14 +230,18 @@ class ArchiveParser(MatchingParser):
             name='parsers/archive',
             code_name=config.services.unavailable_value,
             domain=None,
-            mainfile_mime_re=r'application/json',
-            mainfile_name_re=r'.*(archive|metainfo)\.json',
-            mainfile_contents_re=r'metadata|results')
+            mainfile_mime_re='.*',
+            mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None):
-        import json
-        with open(mainfile, 'rt') as f:
-            archive_data = json.load(f)
+        if mainfile.endswith('.json'):
+            import json
+            with open(mainfile, 'rt') as f:
+                archive_data = json.load(f)
+        else:
+            import yaml
+            with open(mainfile, 'rt') as f:
+                archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
 
         metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
