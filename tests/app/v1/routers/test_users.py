@@ -113,8 +113,8 @@ def test_users(
 
 @pytest.mark.parametrize('args, expected_status_code, expected_content', [
     pytest.param(dict(
-        user_id='00000000-0000-0000-0000-000000000001'), 200,
-        {'name': 'Sheldon Cooper', 'is_admin': False, 'is_oasis_admin': True, 'email': None},
+        user_id=conf_test_user_uuid(1)), 200,
+        conf_test_users[conf_test_user_uuid(1)],
         id='valid-user')])
 def test_users_id(
         client, example_data, test_auth_dict,
@@ -124,7 +124,4 @@ def test_users_id(
     assert rv.status_code == expected_status_code
     if rv.status_code == 200:
         user = rv.json()
-        assert user['name'] == expected_content['name']
-        assert user['is_admin'] == expected_content['is_admin']
-        assert user['is_oasis_admin'] == expected_content['is_oasis_admin']
-        assert 'email' not in user
+        assert_user(user, expected_content)
