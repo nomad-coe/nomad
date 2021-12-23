@@ -38,6 +38,8 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 from nomad.search import search
 
+from .test_entries import assert_archive_response
+
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
 using the following type of methods: fixtures, ``perfrom_*_test``, ``assert_*``, and
@@ -837,6 +839,42 @@ def test_get_upload_raw_path(
                                     found = True
                                     break
                             assert found, f'Missing expected path in zip file: {expected_path}'
+
+
+@pytest.mark.parametrize('upload_id, mainfile, user, status_code', [
+    pytest.param('id_published', 'test_content/subdir/test_entry_01/mainfile.json', None, 200, id='published'),
+    pytest.param('id_published', 'test_content/doesnotexist.json', None, 404, id='bad-mainfile'),
+    pytest.param('id_doesnotexist', 'test_content/subdir/test_entry_01/mainfile.json', None, 404, id='bad-upload-id'),
+    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', None, 401, id='unpublished'),
+    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', 'test_user', 200, id='auth')
+])
+def test_get_upload_entry_archive_mainfile(
+    client, example_data, test_auth_dict,
+    upload_id: str, mainfile: str, user: str, status_code: int
+):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get(f'uploads/{upload_id}/entries/mainfile/{mainfile}/archive', headers=user_auth)
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json())
+
+
+@pytest.mark.parametrize('upload_id, entry_id, user, status_code', [
+    pytest.param('id_published', 'id_01', None, 200, id='published'),
+    pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
+    pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
+    pytest.param('id_unpublished', 'id_unpublished_1', None, 401, id='unpublished'),
+    pytest.param('id_unpublished', 'id_unpublished_1', 'test_user', 200, id='auth')
+])
+def test_get_upload_entry_archive(
+    client, example_data, test_auth_dict,
+    upload_id: str, entry_id: str, user: str, status_code: int
+):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get(f'uploads/{upload_id}/entries/{entry_id}/archive', headers=user_auth)
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json())
 
 
 @pytest.mark.parametrize('mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token, expected_status_code, expected_mainfiles', [

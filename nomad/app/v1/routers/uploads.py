@@ -38,6 +38,7 @@ from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
     Files, files_parameters, WithQuery, MetadataEditRequest)
+from .entries import EntryArchiveResponse, answer_entry_archive_request
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem,
     create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
@@ -46,6 +47,7 @@ router = APIRouter()
 default_tag = 'uploads'
 metadata_tag = 'uploads/metadata'
 raw_tag = 'uploads/raw'
+archive_tag = 'uploads/archive'
 action_tag = 'uploads/action'
 bundle_tag = 'uploads/bundle'
 
@@ -820,6 +822,56 @@ async def delete_upload_raw_path(
             detail='The upload is currently blocked by another process.')
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.get(
+    '/{upload_id}/entries/mainfile/{mainfile:path}/archive', tags=[archive_tag],
+    summary='Get the full archive for the given upload and mainfile path.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive_mainfile(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        mainfile: str = Path(
+            ...,
+            description='The mainfile path within the upload\'s raw files.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `mainfile`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, mainfile=mainfile),
+        required='*', user=user)
+
+
+@router.get(
+    '/{upload_id}/entries/{entry_id}/archive', tags=[archive_tag],
+    summary='Get the full archive for the given upload and entry.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        entry_id: str = Path(
+            ...,
+            description='The unique entry id.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `entry_id`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, entry_id=entry_id),
+        required='*', user=user)
 
 
 @router.post(

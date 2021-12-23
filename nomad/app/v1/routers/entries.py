@@ -1030,10 +1030,9 @@ async def get_entry_raw_download_file(
     return StreamingResponse(raw_file_content, media_type=mime_type)
 
 
-def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):
+def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequired, user: User):
     required_reader = _validate_required(required)
 
-    query = dict(calc_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
         required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
@@ -1042,9 +1041,10 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
     if response.pagination.total == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.')
+            detail='The entry does not exist or is not visible to you.')
 
     entry_metadata = response.data[0]
+    entry_id = entry_metadata['entry_id']
 
     uploads = _Uploads()
     try:
@@ -1053,7 +1053,7 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
         except KeyError:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail='The entry with the given id does exist, but it has no archive.')
+                detail='The entry does exist, but it has no archive.')
 
         return {
             'entry_id': entry_id,
@@ -1082,7 +1082,7 @@ async def get_entry_archive(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    return _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
 
 
 @router.get(
@@ -1096,7 +1096,7 @@ async def get_entry_archive_download(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    response = _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
+    response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
     return response['data']['archive']
 
 
@@ -1116,7 +1116,7 @@ async def post_entry_archive_query(
     Returns a partial archive for the given `entry_id` based on the `required` specified
     in the body.
     '''
-    return _answer_entry_archive_request(entry_id=entry_id, required=data.required, user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
 
 
 def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
