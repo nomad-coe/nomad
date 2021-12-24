@@ -168,7 +168,7 @@ export function resolveRef(ref, data) {
     }
 
     try {
-      context = context || metainfo
+      context = data || metainfo
       const segments = ref.split('/').filter(segment => segment !== '')
       const reducer = (current, segment) => {
         return isNaN(segment) ? current[segment] : current[parseInt(segment)]
