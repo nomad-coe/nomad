@@ -19,7 +19,6 @@
 from nomad.datamodel.datamodel import EntryArchive
 from typing import Generator, Tuple
 import pytest
-from datetime import datetime
 import os.path
 import re
 import shutil
@@ -27,7 +26,7 @@ import zipfile
 import json
 import yaml
 
-from nomad import utils, infrastructure, config, datamodel
+from nomad import utils, infrastructure, config
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
@@ -747,46 +746,6 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
             assert coauthors[j].email == expected_coauthors[j].email
             assert coauthors[j].first_name == expected_coauthors[j].first_name
             assert coauthors[j].last_name == expected_coauthors[j].last_name
-
-
-@pytest.mark.parametrize('user, metadata_to_set, should_succeed', [
-    pytest.param(
-        'test_user', dict(upload_name='hello', embargo_length=13),
-        True, id='unprotected-attributes'),
-    pytest.param(
-        'test_user', dict(main_author='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
-        True, id='protected-attributes')])
-def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
-
-    upload_id = 'test_ems_upload'
-    user = test_users_dict[user]
-    upload = run_processing((upload_id, 'tests/data/proc/examples_ems.zip'), user)
-    if 'main_author' in metadata_to_set:
-        metadata_to_set['main_author'] = test_users_dict[metadata_to_set['main_author']].user_id
-    upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
-    try:
-        upload.set_upload_metadata(upload_metadata.m_to_dict())
-        upload.block_until_complete()
-        assert upload.process_status == ProcessStatus.SUCCESS
-    except Exception:
-        assert not should_succeed
-        return
-    upload = Upload.get(upload_id)
-    with upload.entries_metadata() as entries_metadata:
-        for entry_metadata in entries_metadata:
-            expected_upload_name = metadata_to_set.get('upload_name')
-            if expected_upload_name is not None:
-                assert upload.upload_name == (expected_upload_name or None)
-                assert entry_metadata.upload_name == upload.upload_name
-            if 'main_author' in metadata_to_set:
-                assert upload.main_author == metadata_to_set['main_author']
-                assert entry_metadata.main_author.user_id == upload.main_author
-            if 'upload_create_time' in metadata_to_set:
-                assert upload.upload_create_time == metadata_to_set['upload_create_time']
-                assert entry_metadata.upload_create_time == upload.upload_create_time
-            if 'embargo_length' in metadata_to_set:
-                assert upload.embargo_length == metadata_to_set['embargo_length']
-                assert entry_metadata.with_embargo == upload.with_embargo
 
 
 def test_skip_matching(proc_infra, test_user):
