@@ -35,7 +35,7 @@ import { createBrowserHistory } from 'history'
 // https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom/extend-expect'
 
-// Map from entry_id/calc_id to an archive
+// Map from entry_id to an archive
 export const archives = new Map()
 const archive = getArchive()
 archives.set(archive.metadata.entry_id, archive)

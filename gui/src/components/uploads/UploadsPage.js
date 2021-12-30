@@ -43,27 +43,29 @@ import Quantity from '../Quantity'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
-identify the main output files of supported codes.
-and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
+identify parseable files (*mainfiles*) and parse these.
+The result will be a list of entries (one per identified mainfile).
 Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
-describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
+describe your entry (e.g. chemical formula, used code, system type and symmetry, etc.).
 Furthermore, you can provide your own metadata (comments, references, co-authors, etc.).
-At first, uploaded data is only visible to you. Before others can actually see and download
-your data, you need to publish your upload.
+When an upload is created, it is created in the *staging area*, and it will only be visible
+to you (the main author). You can add other users as *co-authors*. They will be listed
+as co-authors of the upload and all its entries, and they can view and edit the upload.
+You can also add *reviewers*, which are users who are allowed the view the upload. No
+other users can see your data until you *publish* the upload.
 
 #### Prepare and upload files
 
-Please put all the relevant files of all the calculations
-you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
-We encourage you to add all code input and
-output files, as well as any other auxiliary files that you might have created.
-You can put data from multiple calculations into one file using as many directories as
-you like. NOMAD will consider all files on a single directory to form a single entry.
-Ideally, you put only files related to a single code run into each directory. If users
-want to download an entry, they can download all files in the respective directory.
-The directory structure can be nested.
+While the upload is in the staging area, you and the co-authors can add and remove files
+to it. You can upload plain files, or \`*.zip\` or \`*.tar.gz\` archives. We encourage you
+to add all input and output files, as well as any other auxiliary files that you might
+have created, and to organize your files in a folder structure. Ideally, you should have a
+separate directory for each entry, as NOMAD considers all files located in a directory where
+there is a mainfile to be auxiliary files to this entry. If users want to download an entry,
+they can download all files in the directory where the entry's mainfile is located. The
+directory structure can be nested.
 
-Drop your archive file(s) on the dropbox. You can also click the dropbox to select the file from
+Drop your archive file(s) on the dropbox. You can also click the dropbox to select a file from
 your hard drive. Alternatively, you can upload files via the given shell command.
 Replace \`<local_file>\` with your archive file. After executing the command,
 return here and press the reload button below).
@@ -72,36 +74,36 @@ There is a limit of 10 unpublished uploads per user. Please accumulate all data 
 few uploads as possible. But, there is a also an upper limit of 32 GB per upload.
 Please upload multiple archives, if you have more than 32 GB of data to upload.
 
-#### The staging area
+#### The uploads page
 
-Uploaded data will not be public immediately. Below you will find all your unpublished and
-published uploads. The unpublished uploads are only visible to you. You can see the
-progress on the processing, you can review your uploads, and publish or delete them again.
+Here you will find all your unpublished and published uploads. You can see the
+progress on the processing, you can review your uploads, and publish or delete them.
 
-Click on an upload to see more details about its contents. Click on processed calculations
+Click on an upload to see more details about its contents. Click on processed entries
 to see their metadata, archive data, and a processing log. In the details view, you also
-find buttons for editing user metadata, deleting uploads, and publishing uploads. Only
-full uploads can be deleted or published.
+find buttons for editing user metadata, deleting uploads, and publishing uploads. Entries
+cannot be published individually, only the upload as a whole, with all its entries, can be published.
 
 #### Publishing and embargo
 
-If you press publish, a dialog will appear that allows you to set an
-*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
-data with selected users, create a DOI for your data, and later publish the data.
-The *embargo* might last up to 36 month before data becomes public automatically.
-During an *embargo* the data (and datasets created from this data) are already visible and
-findable, but only you and users you share the data with (i.e. users you added under
-*share with* when editing entries) can view and download the raw-data and archive.
+When you publish, you can set an *embargo* or publish your data as *Open Access* right away.
+The embargo allows you to share data with selected users, create a DOI for your data, etc,
+before the full upload data is made public. The embargo might last up to 36 months, and when
+it expires the data becomes public automatically. While embargoed, some metadata (and datasets
+created from this data) are publicly visible and findable, but only you and users you share
+the upload with (i.e. users added as co-authors or reviewers) can view and download the raw
+data and archive.
 
 #### Processing errors
 
 We distinguish between uploads that fail processing completely and uploads that contain
 entries that could not be processed. The former might be caused by issues during the
-upload, bad file formats, etc. The latter (far more common) case means that not all of the provided
-code output files could be parsed by our parsers. The processing logs of the failed entries might provide some insight.
+upload, bad file formats, etc. The latter (far more common) case means that not all of the
+identified mainfiles could be parsed. The processing logs of the failed entries might
+provide some insight.
 
-You cannot publish uploads that failed processing completely. Frankly, in most
-cases there won't be any data to publish anyways. In the case of failed processing of
+You cannot publish uploads that failed processing completely. In most
+cases they wouldn't have any entries to publish anyway. In the case of failed processing of
 some entries however, the data can still be published. You will be able to share it and create
 DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
 or *unavailable*) and missing archive data. We continuously improve our parsers and
@@ -109,12 +111,12 @@ the now missing information might become available in the future automatically.
 
 #### Co-Authors, References, Comments, Datasets, DOIs
 
-You can edit additional *user metadata*. This data is assigned to individual entries, but
-you can select and edit many entries at once. Edit buttons for user metadata are available
-in many views on this web-page. For example, you can edit user metadata when you click on
-an upload to open its details, and press the edit button there. User metadata can also
-be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
-contains more information.
+You can edit additional *user metadata*. Some of these fields are set on the upload level,
+others on the entry level. You can select and edit many entries at once. Edit buttons for
+user metadata are available in many views on this web-page. For example, you can edit user
+metadata when you click on an upload to open its details, and press the edit button there.
+The metadata fields cannot be changed after the upload has been published (except for dataset members).
+The documentation on the [user data page](${guiBase}/userdata) contains more information.
 `
 const uploadsPageContext = React.createContext()
 

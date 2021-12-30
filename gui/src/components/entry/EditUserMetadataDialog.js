@@ -755,7 +755,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.example.calc_id !== this.props.example.calc_id) {
+    if (prevProps.example.entry_id !== this.props.example.entry_id) {
       this.update()
     }
   }
