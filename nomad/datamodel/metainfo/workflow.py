@@ -10,6 +10,101 @@ from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from .common import FastAccess
 
 
+class Interface(MSection):
+    '''
+    Section containing results of an interface (stacking fault, gamma surface, etc.)
+    workflow.
+    '''
+
+    m_def = Section(validate=False)
+
+    energy_extrinsic_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed extrinsic stacking fault energy per unit area.
+        ''')
+
+    energy_intrinsic_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed intrinsic stacking fault energy per unit area.
+        ''')
+
+    dimensionality = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Dimensionality of the property, i.e. 1 for stacking fault energy and 2 for gamma
+        surface.
+        ''')
+
+    shift_direction = Quantity(
+        type=str,
+        shape=['dimensionality'],
+        description='''
+        shift direction of the two crystal parts to calculate the fault energy.
+        ''')
+
+    n_displacements = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of displacements in the shift to calculate the fault energy.
+        ''')
+
+    displacement_fraction = Quantity(
+        type=np.dtype(np.float64),
+        shape=['dimensionality', 'n_displacements'],
+        description='''
+        Relative displacements of the two crystal parts along the direction indicated by
+        shift_direction.
+        ''')
+
+    energy_fault_plane = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_displacements'],
+        unit='joule / m ** 2',
+        description='''
+        Value of the relaxed excess energy per unit area for each displacement.
+        ''')
+
+    gamma_surface = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_displacements', 'n_displacements'],
+        unit='joule / m ** 2',
+        description='''
+        Value of the gamma surface, i.e. the excess energy per unit area calculated for
+        each displacement.
+        ''')
+
+    slip_fraction = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Relative displacement between two crystal parts where the energy is maximum.
+        ''')
+
+    energy_unstable_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed unstable stacking fault energy per unit area.
+        ''')
+
+    energy_unstable_twinning_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed unstable twinning energy per unit area.
+        ''')
+
+
 class Raman(MSection):
     '''
     Section containing results of a Raman workflow.
@@ -792,6 +887,14 @@ class Elastic(MSection):
         Elastic compliance matrix in 1/GPa
         ''')
 
+    elastic_constants_gradient_matrix_second_order = Quantity(
+        type=np.dtype(np.float64),
+        shape=[18, 18],
+        unit='newton',
+        description='''
+        gradient of the 2nd order elastic constant (stiffness) matrix in newton
+        ''')
+
     bulk_modulus_voigt = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -1486,6 +1589,10 @@ class Workflow(MSection):
 
     raman = SubSection(
         sub_section=Raman.m_def,
+        repeats=False)
+
+    interface = SubSection(
+        sub_section=Interface.m_def,
         repeats=False)
 
     thermodynamics = SubSection(
