@@ -31,6 +31,8 @@ from nomad.datamodel import Dataset
 from nomad.parsing.parsers import parser_dict
 
 
+_upload_keys_to_remove_v0 = (
+    'published', 'upload_path', 'upload_time', 'temporary', 'joined')
 _metadata_keys_to_flatten_v0 = (
     'calc_hash', 'pid', 'external_id', 'nomad_version', 'nomad_commit', 'comment',
     'references', 'datasets')
@@ -188,10 +190,12 @@ def _convert_mongo_upload(
         # Verify and then remove redundant legacy field 'published'.
         if 'published' in upload_dict:
             assert upload_dict['published'] == published, 'Inconsistency: published flag vs publish_time'
-            upload_dict.pop('published')
         # Set license if missing
         if 'license' not in upload_dict:
             upload_dict['license'] = 'CC BY 4.0'
+        for key in _upload_keys_to_remove_v0:
+            if key in upload_dict:
+                upload_dict.pop(key)
 
     # Fetch all entries as a dictionary
     entry_dicts = list(db_src.calc.find({'upload_id': upload_id}))
@@ -352,6 +356,7 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
             if key in entry_metadata:
                 entry_metadata.pop(key)
         assert not entry_metadata, f'Unexpected fields in Calc.metadata: {repr(entry_metadata)}'
+        entry_dict.pop('metadata')
 
     # Check that all required fields are populated
     for field in ('_id', 'upload_id', 'entry_create_time', 'parser_name'):
