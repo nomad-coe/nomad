@@ -90,8 +90,6 @@ class TaskNormalizer(Normalizer):
             #  |^       |^       |^
             #  v|       v|       v|
             #  SP1/C1   SP2/C2   SPN/CN
-            references = self.workflow.workflows_ref
-            references = references if references else self.workflow.calculations_ref
             for reference in references:
                 for n in range(2):
                     input, output = (self.workflow, reference) if n == 0 else (reference, self.workflow)
