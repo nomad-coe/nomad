@@ -6,7 +6,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, derived)
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from .common import FastAccess
 
 
@@ -515,6 +515,7 @@ class GeometryOptimization(MSection):
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
         ''')
+
     is_converged_geometry = Quantity(
         type=bool,
         shape=[],
@@ -1301,6 +1302,55 @@ class SinglePoint(MSection):
         ''')
 
 
+class Task(MSection):
+    '''
+    Section defining a specific task in the workflow chain. It has an input and an output,
+    both can either be a workflow or a calculation and their relation is noted in the
+    description.
+    '''
+
+    m_def = Section(
+        validate=False)
+
+    input_workflow = Quantity(
+        type=Reference(SectionProxy('Workflow')),
+        shape=[],
+        description='''
+        Reference to the input workflow.
+        ''')
+
+    output_workflow = Quantity(
+        type=Reference(SectionProxy('Workflow')),
+        shape=[],
+        description='''
+        Reference to the output workflow.
+        ''')
+
+    input_calculation = Quantity(
+        type=Reference(Calculation.m_def),
+        shape=[],
+        description='''
+        Reference to the input calculation.
+        ''')
+
+    output_calculation = Quantity(
+        type=Reference(Calculation.m_def),
+        shape=[],
+        description='''
+        Reference to the output calculation.
+        ''')
+
+    description = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Descibes the relationship between the input and output workflows. For example, if
+        a single_point workflow uses the relaxed structure from a geometry_optimization as
+        an input, the description may be "relaxed structure from geometry_optimization
+        used to calucalate single_point properties"
+        ''')
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -1317,6 +1367,13 @@ class Workflow(MSection):
         single_point, geometry_optimization, elastic, phonon, molecular_dynamics,
         debye_model, equation_of_state, nudged_elastic_band, adsorption, raman,
         thermodyanamics, magnetic_ordering
+        ''')
+
+    initial_structure = Quantity(
+        type=Reference(Atoms.m_def),
+        shape=[],
+        description='''
+        Starting structure for geometry optimization.
         ''')
 
     calculator = Quantity(
@@ -1375,6 +1432,8 @@ class Workflow(MSection):
         from an elastic workflow.
         ''',
         categories=[FastAccess])
+
+    task = SubSection(sub_section=Task.m_def, repeats=True)
 
     single_point = SubSection(
         sub_section=SinglePoint.m_def,

@@ -17,11 +17,12 @@
 #
 
 import numpy as np
+from nomad.datamodel.metainfo.simulation.calculation import Calculation
 
 from nomad.normalizing.normalizer import Normalizer
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.workflow import (
-    Workflow, SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic,
+    Workflow, Task, SinglePoint, GeometryOptimization, MolecularDynamics, Phonon, Elastic,
     Thermodynamics)
 
 
@@ -44,6 +45,37 @@ class TaskNormalizer(Normalizer):
         self.workflow = entry_archive.workflow[workflow_index]
         run = self.workflow.run_ref
         self.run = run if run else entry_archive.run[-1]
+
+    def normalize_task(self, kind=None):
+        if kind is None:
+            serial_tasks = ['geometry_optimization', 'molecular_dynamics']
+            kind = 'serial' if self.workflow.type in serial_tasks else 'parallel'
+        # TODO serialization of external archives does not work.
+        references = []
+        if self.workflow.workflows_ref:
+            references = self.workflow.workflows_ref
+        elif self.workflow.calculations_ref:
+            references = self.workflow.calculations_ref
+        references += [self.workflow]
+        if kind == 'kind':
+            references = self.workflow.workflows_ref
+            references = references if references else self.workflow.calculations_ref
+            for reference in references:
+                for n in range(2):
+                    input, output = (self.workflow, reference) if n == 0 else (reference, self.workflow)
+                    sec_task = self.workflow.m_create(Task)
+                    sec_task.input_workflow = input if isinstance(input, Workflow) else None
+                    sec_task.input_calculation = input if isinstance(input, Calculation) else None
+                    sec_task.output_workflow = output if isinstance(output, Workflow) else None
+                    sec_task.output_calculation = output if isinstance(output, Calculation) else None
+        else:
+            for n, reference in enumerate(references):
+                sec_task = self.workflow.m_create(Task)
+                input = references[-1] if n == 0 else references[n - 1]
+                sec_task.input_workflow = input if isinstance(input, Workflow) else None
+                sec_task.input_calculation = input if isinstance(input, Calculation) else None
+                sec_task.output_workflow = reference if isinstance(reference, Workflow) else None
+                sec_task.output_calculation = reference if isinstance(reference, Calculation) else None
 
 
 class SinglePointNormalizer(TaskNormalizer):
@@ -229,6 +261,17 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
             if criteria:
                 self.section.is_converged_geometry = True in criteria
 
+        # references to calculations (C)/single point (SP) workflows
+        # for geometry optimization (GO), calculations/workflows are run in series, i.e.
+        # input of a step is the preceeding step
+        # It starts from the input structure in GO and ends from the relaxed calculation
+        # reported to the the GO workflow
+        # GO <----------------------------
+        #  |                             |
+        #  v                             |
+        #  SP1/C1 -> SP2/C2 -> .... -> SPN/CN
+        self.normalize_task('serial')
+
 
 class PhononNormalizer(TaskNormalizer):
     def _get_n_imaginary_frequencies(self):
@@ -254,6 +297,19 @@ class PhononNormalizer(TaskNormalizer):
         if not self.section.n_imaginary_frequencies:
             # get number from bands (not complete as this is not the whole mesh)
             self.section.n_imaginary_frequencies = self._get_n_imaginary_frequencies()
+
+        # references to calculations/workflows
+        # for phonon workflow (Ph), calculations/workflows are run in parallel and
+        # for each run, two tasks are realized, first is when the structure is generated
+        # by the phonon code (input) and run by the force calculator (output) and the
+        # second is when the forces (input) are fed to the phonon code (output). We then
+        # have twice as number of tasks as workflows/calculations.
+        #
+        # Ph -------------...
+        #  |^       |^       |^
+        #  v|       v|       v|
+        #  SP1/C1   SP2/C2   SPN/CN
+        self.normalize_task('parallel')
 
 
 class ElasticNormalizer(TaskNormalizer):
