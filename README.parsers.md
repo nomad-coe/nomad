@@ -7,26 +7,25 @@ output files and provide all information in NOMAD's unified Metainfo based Archi
 
 ## Preparing code input and output file for uploading to NOMAD
 
-NOMAD accepts `.zip` and `.tar.gz` archives as uploads. Each upload can contain arbitrary
-files and directories. NOMAD will automatically try to choose the right parser for you files.
-For each parser (i.e. for each supported code) there is one type of file that the respective
-parser can recognize. We call these files `mainfiles` as they typically are the main
-output file a code. For each `mainfile` that NOMAD discovers it will create an entry
-in the database that users can search, view, and download. NOMAD will associate all files
-in the same directory as files that also belong to that entry. Parsers
-might also read information from these auxillary files. This way you can add more files
-to an entry, even if the respective parser/code might not directly support it.
+An *upload* is basically a directory structure with files. If you have all the files locally
+you can just upload everything as a `.zip` or `.tar.gz` file in a single step. While the upload is
+in the *staging area* (i.e. before it is published) you can also easily add or remove files in the
+directory tree via the web interface. NOMAD will automatically try to choose the right parser
+for you files.
 
-For $codeLabel$ please provide at least the files from this table if applicable to your
-calculations (remember that you can provide more files if you want):
+For each parser there is one type of file that the respective parser can recognize. We call
+these files *mainfiles*. For each mainfile that NOMAD discovers it will create an *entry*
+in the database, which users can search, view, and download. NOMAD will consider all files
+in the same directory as *auxiliary files* that also are associated with that entry. Parsers
+might also read information from these auxillary files. This way you can add more files
+to an entry, even if the respective parser/code might not use them. However, we strongly
+recommend to not have multiple mainfiles in the same directory. For CMS calculations, we
+recommend having a separate directory for each code run.
+
+For $codeLabel$ please provide at least the files from this table, if applicable
+(remember that you always can provide additional files if you want):
 
 $tableOfFiles$
-
-To create an upload with all calculations in a directory structure:
-
-```
-zip -r <upload-file>.zip <directory>/*
-```
 
 Go to the [NOMAD upload page](https://nomad-lab.eu/prod/rae/gui/uploads) to upload files
 or find instructions about how to upload files from the command line.

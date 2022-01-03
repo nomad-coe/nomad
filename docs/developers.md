@@ -380,30 +380,36 @@ Btw., the latter is almost never necessary in python.
 
 Terms:
 
-- upload: A logical unit that comprises one (.zip) file uploaded by a user.
-- calculation: A computation in the sense that is was created by an individual run of a CMS code.
-- raw file: User uploaded files (e.g. part of the uploaded .zip), usually code input or output.
-- upload file/uploaded file: The actual (.zip) file a user uploaded
-- mainfile: The mainfile output file of a CMS code run.
+- upload: A logical unit that comprises a collection of files uploaded by a user, organized
+  in a directory structure.
+- entry: An archive item, created by parsing a *mainfile*. Each entry belongs to an upload and
+  is associated with various metadata (an upload may have many entries).
+- calculation: denotes the results of a theoretical computation, created by CMS code.
+  Note that entries do not have to be based on calculations; they can also be based on
+  experimental results.
+- raw file: A user uploaded file, located somewhere in the upload's directory structure.
+- mainfile: A raw file identified as parseable, defining an entry of the upload in question.
 - aux file: Additional files the user uploaded within an upload.
-- repo entry: Some quantities of a calculation that are used to represent that calculation in the repository.
-- archive data: The normalized data of one calculation in nomad's meta-info-based format.
+- entry metadata: Some quantities of an entry that are searchable in NOMAD.
+- archive data: The normalized data of an entry in nomad's meta-info-based format.
 
 Throughout nomad, we use different ids. If something
 is called *id*, it is usually a random uuid and has no semantic connection to the entity
-it identifies. If something is called a *hash* than it is a hash build based on the
+it identifies. If something is called a *hash* then it is a hash generated based on the
 entity it identifies. This means either the whole thing or just some properties of
 said entities.
 
 - The most common hashes is the `calc_hash` based on mainfile and auxfile contents.
-- The `upload_id` is a UUID assigned at upload time and never changed afterwards.
-- The `mainfile` is a path within an upload that points to a main code output file.
-  Since, the upload directory structure does not change, this uniquely ids a calc within the upload.
-- The `calc_id` (internal calculation id) is a hash over the `mainfile` and respective
-  `upload_id`. Therefore, each `calc_id` ids a calc on its own.
-- We often use pairs of `upload_id/calc_id`, which in many context allow to resolve a calc
+- The `upload_id` is a UUID assigned to the upload on creation. It never changes.
+- The `mainfile` is a path within an upload that points to a file identified as parseable.
+  This also uniquely identifies an entry within the upload.
+- The `entry_id` (`calc_id`) uniquely identifies an entry. It is a hash over the `mainfile`
+  and respective `upload_id`. **Note**: we want to switch to use `entry_id` and "entry-terminology"
+  instead of `calc_id` and "calc-terminology". Thus **always use the former if possible**.
+- We often use pairs of `upload_id/entry_id`, which in many contexts allow to resolve an entry
   related file on the filesystem without having to ask a database about it.
-- The `pid` or (`coe_calc_id`) is an sequential interger id.
+- The `pid` or (`coe_calc_id`) is a legacy sequential interger id, previously used to identify
+  entries. We still store the `pid` on these older entries for historical purposes.
 - Calculation `handle` or `handle_id` are created based on those `pid`.
   To create hashes we use :py:func:`nomad.utils.hash`.
 
