@@ -473,7 +473,7 @@ nomad archive:
 nomad.archive(upload_id='hh41jh4l1e91821').run.system.atom_labels.values
 ```
 
-This can also be used to extend queries for calculations with queries for certain
+This can also be used to extend queries for entries with queries for certain
 data points:
 ```python
 nomad.archive(user='me@email.org', upload_name='last_upload').run.system(

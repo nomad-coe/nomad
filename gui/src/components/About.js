@@ -36,35 +36,30 @@ function CodeInfo({code, ...props}) {
 
   let introduction = `
     For [${metadata.codeLabel || code}](${metadata.codeUrl}) please provide
-    all files that were used as input, were output by the code, or were produced you.
+    all input and output files and any other relevant files you may have produced.
   `
   if (metadata.tableOfFiles && metadata.tableOfFiles !== '') {
     introduction = `
       For [${metadata.codeLabel || code}](${metadata.codeUrl}) please provide at least
-      the files from the following table (if applicable). Ideally, you upload
-      all files that were used as input, were output by the code, or were produced you.
-    `
+      the files from the following table (if applicable). We recommend to upload
+      all input and output files and any other relevant files you may have produced.
+      `
   }
 
   return <Dialog open={true} {...props}>
     <DialogTitle>{metadata.codeLabel || code}</DialogTitle>
     <DialogContent>
       <Markdown>{`
-        ${introduction} NOMAD will present all files in the same directory for each
-        recognized calculation. This works best, if you put all files that belong to
-        individual code runs into individual directories or only combine files from a few
-        runs in the same directory.
+        ${introduction} All files located in the same directory as a *mainfile* (i.e. a parseable
+        file which defines an entry) are considered to be associated with the entry.
+        You should therefore put all files related to the same entry in the same directory.
+        However, try to avoid putting multiple *mainfiles* in the same directory, to avoid
+        confusion. For CMS calculations, we recommend a separate directory for each code run.
 
         ${metadata.tableOfFiles}
 
         ${(metadata.parserSpecific && metadata.parserSpecific !== '' &&
         `Please note specifically for ${metadata.codeLabel || code}: ${metadata.parserSpecific}`) || ''}
-
-        To create an upload with all calculations in a directory structure:
-
-        \`\`\`
-        zip -r <upload-file>.zip <directory>/*
-        \`\`\`
 
         You can find further information on [the project page for NOMAD's ${metadata.codeLabel || code} parser](${metadata.parserGitUrl}).
       `}</Markdown>
@@ -278,7 +273,7 @@ export default function About() {
       </Grid>
       <InfoCard xs={4} title="Uploading is simple" bottom>
         <p>
-        You provide your own data <i>as is</i>. Just zip your code input and out files as they are,
+        You provide your own data <i>as is</i>. Just zip your files as they are,
         including nested directory structures and potential auxiliary files, and upload
         up to 32GB in a single .zip or .tar(.gz) file. NOMAD will automatically discover
         and process the relevant files.
@@ -289,9 +284,9 @@ export default function About() {
         selected users.
         </p>
         <p>
-        Add additional metadata like <b>comments</b>, <b>references</b> to websites or papers, and your
-          <b>co-authors</b>. Curate your uploaded code runs into larger <b>datasets</b> and cite your data with a <b>DOI</b>
-        that we provide on request.
+        Add additional metadata like <b>comments</b>, <b>references</b> to websites or papers, and
+        your <b>co-authors</b>. Organize the uploaded entries into <b>datasets</b> and
+        cite your data with a <b>DOI</b> that we provide on request.
         </p>
         <p>
           You can provide via GUI or shell command <Link component={RouterLink} to={'/uploads'}>here</Link>.
@@ -302,11 +297,11 @@ export default function About() {
         <p>
         Uploaded data is automatically processed and made available
         in the uploaded <b>raw files</b> or in its processed and unified <b>Archive</b> form.
-        NOMAD parsers convert raw code input and output files into NOMAD&apos;s common data format.
+        NOMAD parsers convert raw files into NOMAD&apos;s common data format.
         You can inspect the Archive form and extracted metadata before
         publishing your data.
         </p>
-        <p>NOMAD supports most community codes: <CodeList/></p>
+        <p>NOMAD supports most community codes and file formats: <CodeList/></p>
         <p>
         To use NOMAD&apos;s parsers and normalizers outside of NOMAD.
         Read <Link href="">here</Link> on how to install

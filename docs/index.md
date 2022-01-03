@@ -179,7 +179,7 @@ Elasticsearch allows for flexible scalable search and analytics.
 #### mongodb
 
 [Mongodb](https://docs.mongodb.com/) is used to store and track the state of the
-processing of uploaded files and therein contained calculations. We use
+processing of uploaded files and the generated entries. We use
 [mongoengine](http://docs.mongoengine.org/) to program with mongodb.
 
 

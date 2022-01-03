@@ -68,7 +68,7 @@ User metadata can also be provided in a file that is uploaded. This can be a `.j
         "<dataset-name>"
     ],
     "entries": {
-        "path/to/calcs/vasp.xml": {
+        "path/to/entry_dir/vasp.xml": {
             "commit": "An entry specific comment."
         }
     }
