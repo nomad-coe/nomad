@@ -33,7 +33,7 @@ from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
-from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 
@@ -166,9 +166,9 @@ def assert_file_upload_and_processing(
 
 def assert_expected_mainfiles(upload_id, expected_mainfiles):
     if expected_mainfiles is not None:
-        entries = [e.mainfile for e in Calc.objects(upload_id=upload_id)]
+        entries = [e.mainfile for e in Entry.objects(upload_id=upload_id)]
         assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
-        for entry in Calc.objects(upload_id=upload_id):
+        for entry in Entry.objects(upload_id=upload_id):
             if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
                 assert entry.process_status == ProcessStatus.SUCCESS
             else:
@@ -205,7 +205,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert_response(response, 404)
 
     assert Upload.objects(upload_id=upload_id).first() is None
-    assert Calc.objects(upload_id=upload_id).count() is 0
+    assert Entry.objects(upload_id=upload_id).count() is 0
 
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']

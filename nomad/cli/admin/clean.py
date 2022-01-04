@@ -42,7 +42,7 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
     infrastructure.setup_elastic()
 
     if not skip_entries:
-        uploads_for_entries = mongo_client[nomad_config.mongo.db_name]['calc'].distinct('upload_id')
+        uploads_for_entries = mongo_client[nomad_config.mongo.db_name]['entry'].distinct('upload_id')
         uploads = {}
         for upload in mongo_client[nomad_config.mongo.db_name]['upload'].distinct('_id'):
             uploads[upload] = True
@@ -57,7 +57,7 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
                 input('Will delete entries (mongo + es) for %d missing uploads. Press any key to continue ...' % len(missing_uploads))
 
             for upload in missing_uploads:
-                mongo_client[nomad_config.mongo.db_name]['calc'].remove(dict(upload_id=upload))
+                mongo_client[nomad_config.mongo.db_name]['entry'].remove(dict(upload_id=upload))
                 elasticsearch_dsl.Search(index=nomad_config.elastic.entries_index).query('term', upload_id=upload).delete()
         else:
             print('Found %s uploads that have entries in mongo, but there is no upload entry.' % len(missing_uploads))

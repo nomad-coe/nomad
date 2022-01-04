@@ -30,7 +30,7 @@ from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
-from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
+from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search
 
@@ -1553,7 +1553,7 @@ def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     return pydantic_upload
 
 
-def _entry_to_pydantic(entry: Calc) -> EntryProcData:
+def _entry_to_pydantic(entry: Entry) -> EntryProcData:
     ''' Converts the mongo db object to an EntryProcData object'''
     return EntryProcData.from_orm(entry)
 

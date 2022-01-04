@@ -22,7 +22,7 @@ data. These are information about users, their uploads and datasets, the associa
 entries, and files
 
 
-.. autoclass:: Calc
+.. autoclass:: Entry
 
 .. autoclass:: Upload
 
@@ -317,7 +317,7 @@ class MetadataEditRequestHandler:
             return self._mongo_metadata(upload, self._verified_file_metadata(path_dir=''))
         return {}
 
-    def get_entry_mongo_metadata(self, upload: 'Upload', entry: 'Calc') -> Dict[str, Any]:
+    def get_entry_mongo_metadata(self, upload: 'Upload', entry: 'Entry') -> Dict[str, Any]:
         '''
         Returns a dictionary with metadata to set on the mongo entry object. If the provided
         `edit_request` is a json dictionary the :func: `validate_json_request`) is assumed
@@ -506,7 +506,7 @@ class MetadataEditRequestHandler:
             assert False, 'Unhandled value type'  # Should not happen
 
     def _mongo_metadata(
-            self, mongo_doc: Union['Upload', 'Calc'], verified_metadata: Dict[str, Any]) -> Dict[str, Any]:
+            self, mongo_doc: Union['Upload', 'Entry'], verified_metadata: Dict[str, Any]) -> Dict[str, Any]:
         '''
         Calculates the upload or entry level *mongo* metadata, given a `mongo_doc` and a
         dictionary with *verified* metadata. The mongo metadata are the key-value pairs
@@ -514,7 +514,7 @@ class MetadataEditRequestHandler:
         '''
         rv: Dict[str, Any] = {}
         for quantity_name, verified_value in verified_metadata.items():
-            if isinstance(mongo_doc, Calc) and quantity_name not in _mongo_entry_metadata:
+            if isinstance(mongo_doc, Entry) and quantity_name not in _mongo_entry_metadata:
                 continue
             elif isinstance(mongo_doc, Upload) and quantity_name not in _mongo_upload_metadata:
                 continue
@@ -542,7 +542,7 @@ class MetadataEditRequestHandler:
                     new_list.remove(v)
         return new_list
 
-    def _get_entry_key(self, entry: 'Calc', entries_key: str) -> str:
+    def _get_entry_key(self, entry: 'Entry', entries_key: str) -> str:
         if entries_key == 'calc_id' or entries_key == 'entry_id':
             return entry.entry_id
         elif entries_key == 'mainfile':
@@ -602,7 +602,7 @@ class MetadataEditRequestHandler:
                 pass
         return []
 
-    def find_request_entries(self, upload: 'Upload') -> Iterable['Calc']:
+    def find_request_entries(self, upload: 'Upload') -> Iterable['Entry']:
         ''' Finds the entries of the specified upload which are effected by the request. '''
         query = self._restricted_request_query(upload.upload_id)
         if query:
@@ -613,10 +613,10 @@ class MetadataEditRequestHandler:
                 query=query,
                 required=MetadataRequired(include=['calc_id']))
             for result in search_result:
-                yield Calc.get(result['calc_id'])
+                yield Entry.get(result['calc_id'])
         else:
             # We have no query. Return all entries for the upload
-            for entry in Calc.objects(upload_id=upload.upload_id):
+            for entry in Entry.objects(upload_id=upload.upload_id):
                 yield entry
 
     def _verified_file_metadata(self, path_dir: str) -> Dict[str, Any]:
@@ -649,7 +649,7 @@ class MetadataEditRequestHandler:
         return self.verified_file_metadata_cache[path_dir]
 
 
-class Calc(Proc):
+class Entry(Proc):
     '''
     Instances of this class represent entries. This class manages the elastic
     search index entry, files, and archive for the respective entry.
@@ -725,7 +725,7 @@ class Calc(Proc):
         self._perform_index = True
 
     @classmethod
-    def get(cls, id) -> 'Calc':
+    def get(cls, id) -> 'Entry':
         return cls.get_by_id(id, 'calc_id')
 
     @property
@@ -1288,7 +1288,7 @@ class Upload(Proc):
 
     def delete(self):
         ''' Deletes this upload and its entries. '''
-        Calc.objects(upload_id=self.upload_id).delete()
+        Entry.objects(upload_id=self.upload_id).delete()
         super().delete()
 
     def delete_upload_local(self):
@@ -1303,7 +1303,7 @@ class Upload(Proc):
                 search.delete_upload(self.upload_id, refresh=True)
 
             with utils.timer(logger, 'upload partial archives deleted'):
-                entry_ids = [entry.entry_id for entry in Calc.objects(upload_id=self.upload_id)]
+                entry_ids = [entry.entry_id for entry in Entry.objects(upload_id=self.upload_id)]
                 delete_partial_archives_from_mongo(entry_ids)
 
             with utils.timer(logger, 'upload files deleted'):
@@ -1457,7 +1457,7 @@ class Upload(Proc):
         if config.celery.routing == config.CELERY_WORKER_ROUTING:
             if self.worker_hostname is None:
                 self.worker_hostname = worker_hostname
-            Calc._get_collection().update_many(
+            Entry._get_collection().update_many(
                 {'upload_id': self.upload_id},
                 {'$set': {'worker_hostname': self.worker_hostname}})
 
@@ -1600,7 +1600,7 @@ class Upload(Proc):
     def match_all(self, reprocess_settings, path_filter: str = None):
         '''
         The process step used to identify mainfile/parser combinations among the upload's files,
-        and create or delete respective :class:`Calc` instances (if needed).
+        and create or delete respective :class:`Entry` instances (if needed).
         '''
         self.set_last_status_message('Matching')
         logger = self.get_logger()
@@ -1621,7 +1621,7 @@ class Upload(Proc):
                 old_entries = set()
                 processing_entries = []
                 with utils.timer(logger, 'existing entries scanned'):
-                    for entry in Calc.objects(upload_id=self.upload_id):
+                    for entry in Entry.objects(upload_id=self.upload_id):
                         if entry.process_running:
                             processing_entries.append(entry.entry_id)
                         if self._passes_path_filter(entry.mainfile, path_filter):
@@ -1632,7 +1632,7 @@ class Upload(Proc):
                         entry_id = generate_entry_id(self.upload_id, filename)
 
                         try:
-                            entry = Calc.get(entry_id)
+                            entry = Entry.get(entry_id)
                             # Matching entry already exists.
                             # Ensure that we update the parser if in staging
                             if not self.published and parser.name != entry.parser_name:
@@ -1644,7 +1644,7 @@ class Upload(Proc):
                             # No existing entry found
                             if not self.published or reprocess_settings.add_matched_entries_to_published:
                                 # Create new entry
-                                entry = Calc.create(
+                                entry = Entry.create(
                                     calc_id=entry_id,
                                     mainfile=filename,
                                     parser_name=parser.name,
@@ -1667,7 +1667,7 @@ class Upload(Proc):
                             delete_partial_archives_from_mongo(entries_to_delete)
                             for entry_id in entries_to_delete:
                                 search.delete_entry(entry_id=entry_id, update_materials=True)
-                                entry = Calc.get(entry_id)
+                                entry = Entry.get(entry_id)
                             entry.delete()
 
                 # No entries *should* be processing, but if there are, we reset them to
@@ -1675,9 +1675,9 @@ class Upload(Proc):
                 if processing_entries:
                     logger.warn('Some entries are processing', count=len(processing_entries))
                     with utils.timer(logger, 'processing entries resetted'):
-                        Calc._get_collection().update_many(
+                        Entry._get_collection().update_many(
                             {'calc_id__in': processing_entries},
-                            {'$set': Calc.reset_pymongo_update(
+                            {'$set': Entry.reset_pymongo_update(
                                 worker_hostname=self.worker_hostname,
                                 process_status=ProcessStatus.FAILURE,
                                 errors=['process aborted'])})
@@ -1697,10 +1697,10 @@ class Upload(Proc):
         try:
             logger = self.get_logger()
             next_level: int = None
-            next_entries: List[Calc] = None
+            next_entries: List[Entry] = None
             with utils.timer(logger, 'entries processing called'):
                 # Determine what the next level is and which entries belongs to this level
-                for entry in Calc.objects(upload_id=self.upload_id):
+                for entry in Entry.objects(upload_id=self.upload_id):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level
@@ -1730,11 +1730,11 @@ class Upload(Proc):
             raise
 
     def child_cls(self):
-        return Calc
+        return Entry
 
     def join(self):
         '''
-        Called when all child processes (if any) on Calc are done. Process the next level
+        Called when all child processes (if any) on Entry are done. Process the next level
         of parsers (if any), otherwise cleanup and finalize the process.
         '''
         if self.parse_next_level(self.parser_level + 1):
@@ -1820,28 +1820,28 @@ class Upload(Proc):
                 with utils.timer(self.get_logger(), 'upload staging files deleted'):
                     staging_upload_files.delete()
 
-    def get_entry(self, entry_id) -> Calc:
+    def get_entry(self, entry_id) -> Entry:
         ''' Returns the upload entry with the given id or ``None``. '''
-        return Calc.objects(upload_id=self.upload_id, calc_id=entry_id).first()
+        return Entry.objects(upload_id=self.upload_id, calc_id=entry_id).first()
 
     @property
     def processed_entries_count(self) -> int:
         ''' The number of entries that have finished processing (process_status == SUCCESS | FAILURE). '''
-        return Calc.objects(
+        return Entry.objects(
             upload_id=self.upload_id, process_status__in=[
                 ProcessStatus.SUCCESS, ProcessStatus.FAILURE]).count()
 
     @property
     def total_entries_count(self) -> int:
         ''' The total number of entries for this upload (regardless of process status). '''
-        return Calc.objects(upload_id=self.upload_id).count()
+        return Entry.objects(upload_id=self.upload_id).count()
 
     @property
     def failed_entries_count(self) -> int:
         ''' The number of entries with failed processing. '''
-        return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
+        return Entry.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
 
-    def entries_sublist(self, start, end, order_by=None) -> Sequence[Calc]:
+    def entries_sublist(self, start, end, order_by=None) -> Sequence[Entry]:
         '''
         Returns all entries, paginated and ordered.
 
@@ -1850,7 +1850,7 @@ class Upload(Proc):
             end: the end index of the requested page
             order_by: the property to order by
         '''
-        query = Calc.objects(upload_id=self.upload_id)[start:end]
+        query = Entry.objects(upload_id=self.upload_id)[start:end]
         if not order_by:
             return query
         if type(order_by) == str:
@@ -1859,9 +1859,9 @@ class Upload(Proc):
         return query.order_by(*order_by)
 
     @property
-    def successful_entries(self) -> Sequence[Calc]:
+    def successful_entries(self) -> Sequence[Entry]:
         ''' All successfully processed entries. '''
-        return Calc.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
+        return Entry.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
     def entries_metadata(self) -> Iterator[List[EntryMetadata]]:
@@ -1873,7 +1873,7 @@ class Upload(Proc):
             # read all entry objects first to avoid missing cursor errors
             yield [
                 entry.full_entry_metadata(self)
-                for entry in list(Calc.objects(upload_id=self.upload_id))]
+                for entry in list(Entry.objects(upload_id=self.upload_id))]
 
         finally:
             self.upload_files.close()  # Because full_entry_metadata reads the archive files.
@@ -1883,7 +1883,7 @@ class Upload(Proc):
         Returns a list of :class:`EntryMetadata` containing the mongo metadata
         only, for all entries of this upload.
         '''
-        return [entry.mongo_metadata(self) for entry in Calc.objects(upload_id=self.upload_id)]
+        return [entry.mongo_metadata(self) for entry in Entry.objects(upload_id=self.upload_id)]
 
     @process()
     def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
@@ -1933,7 +1933,7 @@ class Upload(Proc):
         # Update mongo
         if entry_mongo_writes:
             with utils.timer(logger, 'Mongo bulk write completed', nupdates=len(entry_mongo_writes)):
-                mongo_result = Calc._get_collection().bulk_write(entry_mongo_writes)
+                mongo_result = Entry._get_collection().bulk_write(entry_mongo_writes)
             mongo_errors = mongo_result.bulk_api_result.get('writeErrors')
             assert not mongo_errors, (
                 f'Failed to update mongo! {len(mongo_errors)} failures, first is {mongo_errors[0]}')
@@ -1944,7 +1944,7 @@ class Upload(Proc):
                 assert not failed_es, f'Failed to update ES, there were {failed_es} fails'
 
     def entry_ids(self) -> List[str]:
-        return [entry.entry_id for entry in Calc.objects(upload_id=self.upload_id)]
+        return [entry.entry_id for entry in Entry.objects(upload_id=self.upload_id)]
 
     def export_bundle(
             self, export_as_stream: bool, export_path: str,
@@ -2188,7 +2188,7 @@ class Upload(Proc):
                     update['calc_id'] = entry_dict['_id']
                     if not settings.keep_original_timestamps:
                         update['entry_create_time'] = current_time
-                    entry: Calc = Calc.create(**update)
+                    entry: Entry = Entry.create(**update)
                     entry.process_status = entry_dict['process_status']
                     entry.validate()
                 except Exception as e:

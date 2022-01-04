@@ -27,7 +27,7 @@ from nomad import processing as proc, files
 from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
-from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing import Upload, Entry, ProcessStatus
 
 from tests.utils import ExampleData
 # TODO there is much more to test
@@ -76,7 +76,7 @@ class TestAdmin:
 
     #     Upload.objects(upload_id=upload_id).delete()
     #     assert published.upload_files.exists()
-    #     assert Calc.objects(upload_id=upload_id).first() is not None
+    #     assert Entry.objects(upload_id=upload_id).first() is not None
     #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
     #     # TODO test new index pair
@@ -88,7 +88,7 @@ class TestAdmin:
 
     #     assert result.exit_code == 0
     #     assert not published.upload_files.exists()
-    #     assert Calc.objects(upload_id=upload_id).first() is None
+    #     assert Entry.objects(upload_id=upload_id).first() is None
     #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
     #     # TODO test new index pair
@@ -102,7 +102,7 @@ class TestAdmin:
         upload_id = published.upload_id
         published.publish_time = publish_time
         published.save()
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         assert published.upload_files.exists()
         assert published.with_embargo
@@ -123,7 +123,7 @@ class TestAdmin:
 
     def test_delete_entry(self, published):
         upload_id = published.upload_id
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         result = invoke_cli(
             cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False)
@@ -131,7 +131,7 @@ class TestAdmin:
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
-        assert Calc.objects(calc_id=entry.entry_id).first() is None
+        assert Entry.objects(calc_id=entry.entry_id).first() is None
 
 
 def transform_for_index_test(entry):
@@ -179,11 +179,11 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is None
-        assert Calc.objects(upload_id=upload_id).first() is None
+        assert Entry.objects(upload_id=upload_id).first() is None
 
     def test_index(self, published):
         upload_id = published.upload_id
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         entry.comment = 'specific'
         entry.save()
 
@@ -214,7 +214,7 @@ class TestAdminUploads:
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')
         upload_id = published.upload_id
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         assert entry.nomad_version != 'test_version'
 
         result = invoke_cli(
@@ -227,7 +227,7 @@ class TestAdminUploads:
 
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         assert published.with_embargo
         published.embargo_length = 0
         published.save()
@@ -242,7 +242,7 @@ class TestAdminUploads:
         for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
             with upload_files.raw_file(path_info.path) as f:
                 f.read()
-        for entry in Calc.objects(upload_id=upload_id):
+        for entry in Entry.objects(upload_id=upload_id):
             with upload_files.read_archive(entry.entry_id) as archive:
                 assert entry.entry_id in archive
 
@@ -278,7 +278,7 @@ class TestAdminUploads:
         upload_id = non_empty_processed.upload_id
 
         upload = Upload.objects(upload_id=upload_id).first()
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         assert upload.process_status == ProcessStatus.SUCCESS
         assert entry.process_status == ProcessStatus.SUCCESS
 
@@ -292,7 +292,7 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'reset' in result.stdout
         upload = Upload.objects(upload_id=upload_id).first()
-        entry = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         expected_state = ProcessStatus.READY
         if success: expected_state = ProcessStatus.SUCCESS

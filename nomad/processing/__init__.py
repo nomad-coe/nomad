@@ -26,13 +26,13 @@ Processing is build on top of *celery* (http://www.celeryproject.org/) and
 Celery provides a task-based programming model for distributed computing. It uses
 a broker, e.g. a distributed task queue like *RabbitMQ* to distribute tasks. We
 use mongodb to store the current state of processing in :class:`Upload` and
-:class:`Calc` documents. This combination allows us to easily distribute
+:class:`Entry` documents. This combination allows us to easily distribute
 processing work while having the processing state, i.e. (intermediate) results,
 always available.
 
 This module is structured into our *celery app* and abstract process base class
 :class:`Proc` (``base.py``), and the concrete processing classes
-:class:`Upload` and :class:`Calc` (``data.py``).
+:class:`Upload` and :class:`Entry` (``data.py``).
 
 This module does not contain the functions to do the actual work. Those are encapsulated
 in :py:mod:`nomad.files`, :py:mod:`nomad.repo`, :py:mod:`nomad.users`,
@@ -51,15 +51,15 @@ We also don't have to deal with celery result backends and synchronizing with th
 
 .. autoclass:: nomad.processing.base.Proc
 
-There are two concrete processes :class:`Upload` and :class: `Calc`. Instances of both
+There are two concrete processes :class:`Upload` and :class: `Entry`. Instances of both
 classes do represent the processing state, as well as the respective entity.
 
 .. autoclass:: nomad.processing.data.Upload
     :members:
-.. autoclass:: nomad.processing.data.Calc
+.. autoclass:: nomad.processing.data.Entry
     :members:
 '''
 
 from nomad.processing.base import (
     app, InvalidId, ProcNotRegistered, ProcessStatus, ProcessAlreadyRunning)
-from nomad.processing.data import Upload, Calc, MetadataEditRequestHandler
+from nomad.processing.data import Upload, Entry, MetadataEditRequestHandler

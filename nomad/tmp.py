@@ -43,10 +43,10 @@ def transform_to_v0_10(entry: EntryMetadata) -> EntryMetadata:
 
 def set_external_db_in_mongo(upload_id: str = None):
     from nomad import infrastructure
-    from nomad.processing import Calc
+    from nomad.processing import Entry
     infrastructure.setup_mongo()
 
-    calcs = Calc._get_collection()
+    calcs = Entry._get_collection()
     print(calcs)
 
     for external_db, user_id in external_dbs.items():

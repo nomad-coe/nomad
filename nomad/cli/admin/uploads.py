@@ -222,7 +222,7 @@ def _query_uploads(
     if processing_incomplete_entries or processing_incomplete or processing_necessary:
         entries_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
-    mongo_entry_based_uploads = set(proc.Calc.objects(entries_mongo_query_q).distinct(field="upload_id"))
+    mongo_entry_based_uploads = set(proc.Entry.objects(entries_mongo_query_q).distinct(field="upload_id"))
     if entries_query_uploads is not None:
         entries_query_uploads = entries_query_uploads.intersection(mongo_entry_based_uploads)
     else:
@@ -339,13 +339,13 @@ def reset(ctx, uploads, with_entries, success, failure):
     i = 0
     for upload in uploads:
         if with_entries:
-            entry_update = proc.Calc.reset_pymongo_update()
+            entry_update = proc.Entry.reset_pymongo_update()
             if success:
                 entry_update['process_status'] = proc.ProcessStatus.SUCCESS
             if failure:
                 entry_update['process_status'] = proc.ProcessStatus.FAILURE
 
-            proc.Calc._get_collection().update_many(
+            proc.Entry._get_collection().update_many(
                 dict(upload_id=upload.upload_id), {'$set': entry_update})
 
         upload.reset(force=True)
@@ -422,7 +422,7 @@ def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_
 
     # delete mongo
     if not skip_mongo:
-        proc.Calc.objects(upload_id=upload.upload_id).delete()
+        proc.Entry.objects(upload_id=upload.upload_id).delete()
         upload.delete()
 
 
@@ -491,7 +491,7 @@ def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
     def stop_all(query):
         for process in query:
             logger_kwargs = dict(upload_id=process.upload_id)
-            if isinstance(process, proc.Calc):
+            if isinstance(process, proc.Entry):
                 logger_kwargs.update(calc_id=process.calc_id)
 
             if not no_celery:
@@ -518,7 +518,7 @@ def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
                 process.fail('process terminate via nomad cli')
 
     running_query = query & mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
-    stop_all(proc.Calc.objects(running_query))
+    stop_all(proc.Entry.objects(running_query))
     if not entries:
         stop_all(proc.Upload.objects(running_query))
 

@@ -112,7 +112,7 @@ def set_upload_entry_metadata(upload, metadata: Dict[str, Any]):
     Sets the provided metadata values on all entries of the given upload.
     '''
     from nomad import processing as proc
-    for entry in proc.Calc.objects(upload_id=upload.upload_id):
+    for entry in proc.Entry.objects(upload_id=upload.upload_id):
         entry.set_mongo_entry_metadata(**metadata)
         entry.save()
 
@@ -155,7 +155,7 @@ class ExampleData:
             for entry_metadata in self.entries.values():
                 process_status = (
                     proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
-                mongo_entry = proc.Calc(
+                mongo_entry = proc.Entry(
                     entry_create_time=entry_metadata.entry_create_time,
                     calc_id=entry_metadata.calc_id,
                     upload_id=entry_metadata.upload_id,

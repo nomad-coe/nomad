@@ -67,7 +67,7 @@ def reset_processing(zero_complete_time):
             errors=[], warnings=[],
             complete_time=datetime.fromtimestamp(0) if zero_complete_time else datetime.now())
 
-    reset_collection(proc.Calc)
+    reset_collection(proc.Entry)
     reset_collection(proc.Upload)
 
 
@@ -383,7 +383,7 @@ def migrate_mongo(
 
     if entry_query:
         print('Quering entries...')
-        upload_ids = list(db_src.calc.distinct('upload_id', entry_query))
+        upload_ids = list(db_src.entry.distinct('upload_id', entry_query))
     if upload_ids:
         upload_query = {'_id': {'$in': upload_ids}}
     print('Quering uploads...')

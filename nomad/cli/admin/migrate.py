@@ -25,7 +25,7 @@ from pymongo import ReplaceOne
 from pymongo.database import Database
 from pymongo.cursor import Cursor
 from nomad import utils
-from nomad.processing import ProcessStatus, Upload, Calc
+from nomad.processing import ProcessStatus, Upload, Entry
 from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
 from nomad.parsing.parsers import parser_dict
@@ -68,8 +68,8 @@ def create_collections_if_needed(db_dst: Database):
     '''
     if 'upload' not in db_dst.collection_names():
         Upload.objects()
-    if 'calc' not in db_dst.collection_names():
-        Calc.objects()
+    if 'entry' not in db_dst.collection_names():
+        Entry.objects()
     if 'dataset' not in db_dst.collection_names():
         Dataset.m_def.a_mongo.objects()
 

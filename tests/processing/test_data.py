@@ -29,7 +29,7 @@ import yaml
 from nomad import utils, infrastructure, config
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
-from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.processing.data import UploadContext, generate_entry_id
 from nomad.search import search, refresh as search_refresh
 
@@ -88,7 +88,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
     else:
         assert isinstance(upload_files, StagingUploadFiles)
 
-    for entry in Calc.objects(upload_id=upload.upload_id):
+    for entry in Entry.objects(upload_id=upload.upload_id):
         assert entry.parser_name is not None
         assert entry.mainfile is not None
         assert entry.process_status == ProcessStatus.SUCCESS
@@ -132,7 +132,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         upload_files.close()
 
     search_results = search(owner=None, query={'upload_id': upload.upload_id})
-    assert search_results.pagination.total == Calc.objects(upload_id=upload.upload_id).count()
+    assert search_results.pagination.total == Entry.objects(upload_id=upload.upload_id).count()
     for entry in search_results.data:
         assert entry['published'] == published
         assert entry['upload_id'] == upload.upload_id
@@ -226,7 +226,7 @@ def test_publish_failed(
         non_empty_uploaded: Tuple[str, str], internal_example_user_metadata, test_user,
         monkeypatch, proc_infra):
 
-    mock_failure(Calc, 'parsing', monkeypatch)
+    mock_failure(Entry, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
     set_upload_entry_metadata(processed, internal_example_user_metadata)
@@ -334,7 +334,7 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     assert published.upload_files.to_staging_upload_files() is None
 
     old_upload_time = published.last_update
-    first_entry: Calc = published.entries_sublist(0, 1)[0]
+    first_entry: Entry = published.entries_sublist(0, 1)[0]
     old_entry_time = first_entry.last_processing_time
 
     with published.upload_files.read_archive(first_entry.entry_id) as archive:
@@ -566,7 +566,7 @@ def test_re_pack(published: Upload):
         with upload_files.raw_file(path_info.path) as f:
             f.read()
 
-    for entry in Calc.objects(upload_id=upload_id):
+    for entry in Entry.objects(upload_id=upload_id):
         with upload_files.read_archive(entry.entry_id) as archive:
             archive[entry.entry_id].to_dict()
 
@@ -589,8 +589,8 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
     # mock the function to throw exceptions
     if hasattr(Upload, function):
         cls = Upload
-    elif hasattr(Calc, function):
-        cls = Calc
+    elif hasattr(Entry, function):
+        cls = Entry
     else:
         assert False
 
@@ -614,7 +614,7 @@ def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user,
                 assert entry.process_status == ProcessStatus.FAILURE
                 assert len(entry.errors) > 0
 
-    entry = Calc.objects(upload_id=upload_id).first()
+    entry = Entry.objects(upload_id=upload_id).first()
     if entry is not None:
         with upload.upload_files.read_archive(entry.entry_id) as archive:
             entry_archive = archive[entry.entry_id]
@@ -641,7 +641,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert len(upload.errors) == 0
     assert upload.process_status == ProcessStatus.SUCCESS
 
-    entries = Calc.objects(upload_id=upload.upload_id)
+    entries = Entry.objects(upload_id=upload.upload_id)
     assert entries.count() == 1
     entry = next(entries)
     assert not entry.process_running
@@ -724,7 +724,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     upload = run_processing(('test_upload', upload_file), test_user)
 
-    entries = Calc.objects(upload_id=upload.upload_id)
+    entries = Entry.objects(upload_id=upload.upload_id)
     entries = sorted(entries, key=lambda entry: entry.mainfile)
 
     comment = ['root entries comment 1', 'Entry 2 of 3', 'Entry 3 of 3', None]
