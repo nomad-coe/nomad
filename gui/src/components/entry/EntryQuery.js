@@ -58,7 +58,7 @@ export default function EntryQuery(props) {
   if (doesNotExist) {
     if (queryParams && queryParams['external_id'] && queryParams['external_id'].startsWith('mp-')) {
       message = <React.Fragment>
-        This particular calculation <Link href={`https://materialsproject.org/tasks/${queryParams['external_id']}#`}>
+        This particular entry <Link href={`https://materialsproject.org/tasks/${queryParams['external_id']}#`}>
           {queryParams['external_id']}
         </Link> has not yet been provided to NOMAD by the Materials Project.
       </React.Fragment>

@@ -49,7 +49,7 @@ export default function ResolvePID() {
       .then(response => {
         if (response.pagination.total >= 1) {
           const entry = response.data[0]
-          history.push(getUrl(`entry/id/${entry.upload_id}/${entry.calc_id}`, location))
+          history.push(getUrl(`entry/id/${entry.upload_id}/${entry.entry_id}`, location))
         } else {
           setDoesNotExist(true)
         }

@@ -55,7 +55,7 @@ from nomad.normalizing import normalizers
 from nomad.metainfo import Context, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EditableUserMetadata, UploadMetadata, AuthLevel)
+    EditableUserMetadata, AuthLevel)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.app.v1.models import (
@@ -1784,16 +1784,17 @@ class Upload(Proc):
             user = self.main_author_user
             name = '%s %s' % (user.first_name, user.last_name)
             message = '\n'.join([
-                'Dear %s,' % name,
+                'Dear {},',
                 '',
-                'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % (self.upload_name or ''), self.upload_create_time.isoformat()),
-                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
+                'your data "{}" uploaded at {} has completed processing.',
+                'You can review your data on your upload page: {}',
                 '',
                 'If you encounter any issues with your upload, please let us know and reply to this email.',
                 '',
                 'The nomad team'
-            ])
+            ]).format(
+                name, (self.upload_name or ''), self.upload_create_time.isoformat(),  # pylint: disable=no-member
+                config.gui_url(page='uploads'))
             try:
                 infrastructure.send_mail(
                     name=name, email=user.email, message=message, subject='Processing completed')
@@ -1889,60 +1890,6 @@ class Upload(Proc):
         only, for all entries of this upload.
         '''
         return [calc.mongo_metadata(self) for calc in Calc.objects(upload_id=self.upload_id)]
-
-    @process()
-    def set_upload_metadata(self, metadata: Dict[str, Any]):
-        '''
-        TODO: DEPRECATED - REMOVE ASAP
-        A @process which sets upload level metadata (metadata that is editable and set
-        on the upload level, rather than the entry level. Some of these fields are mirrored
-        from the upload to the entry metadata, however).
-
-        Arguments:
-            metadata: a dictionary with metadata to set. See the class
-                :class:`datamodel.UploadMetadata` for possible values.
-                Keys with None-values are left unchanged.
-        '''
-        self.set_upload_metadata_local(metadata)
-
-    def set_upload_metadata_local(self, metadata: Dict[str, Any]):
-        '''
-        The method that actually sets the upload metadata, but locally, not as a @process.
-        See :func:`set_upload_metadata`.
-        '''
-        logger = self.get_logger()
-        upload_metadata = UploadMetadata.m_from_dict(metadata)
-
-        need_to_reindex = False
-        need_to_repack = False
-        if upload_metadata.upload_name is not None:
-            self.upload_name = upload_metadata.upload_name
-            need_to_reindex = True
-        if upload_metadata.embargo_length is not None:
-            assert 0 <= upload_metadata.embargo_length <= 36, 'Invalid `embargo_length`, must be between 0 and 36 months'
-            if self.published and self.with_embargo != (upload_metadata.embargo_length > 0):
-                need_to_repack = True
-                need_to_reindex = True
-            self.embargo_length = upload_metadata.embargo_length
-        if upload_metadata.main_author is not None:
-            self.main_author = upload_metadata.main_author.user_id
-            need_to_reindex = True
-        if upload_metadata.upload_create_time is not None:
-            self.upload_create_time = upload_metadata.upload_create_time
-            need_to_reindex = True
-
-        self.save()
-
-        if need_to_repack:
-            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
-
-        if need_to_reindex and self.total_calcs > 0:
-            # Update entries and elastic search
-            with self.entries_metadata() as entries_metadata:
-                with utils.timer(logger, 'index updated'):
-                    search.update_metadata(
-                        entries_metadata, update_materials=config.process.index_materials,
-                        refresh=True)
 
     @process()
     def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):

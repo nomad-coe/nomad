@@ -336,25 +336,6 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     return authors
 
 
-class UploadMetadata(metainfo.MSection):
-    '''
-    Metadata that is set on the upload level and can be edited. Some of the fields are
-    also mirrored to the entries.
-    '''
-    upload_name = metainfo.Quantity(
-        type=str,
-        description='The user provided upload name')
-    upload_create_time = metainfo.Quantity(
-        type=metainfo.Datetime,
-        description='The date and time when the upload was created')
-    main_author = metainfo.Quantity(
-        type=user_reference,
-        description='The creator of the upload')
-    embargo_length = metainfo.Quantity(
-        type=int,
-        description='The length of the embargo period in months (0-36)')
-
-
 class EntryMetadata(metainfo.MSection):
     '''
     Attributes:

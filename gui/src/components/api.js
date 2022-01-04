@@ -257,7 +257,7 @@ class Api {
    * @param {string} entryId
    * @returns Object containing the raw file metadata.
    */
-  async getRawFileListFromCalc(entryId) {
+  async getRawFileListFromEntry(entryId) {
     this.onStartLoading()
     const auth = await this.authHeaders()
     try {

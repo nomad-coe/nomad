@@ -180,16 +180,14 @@ function PublishUpload({upload, onPublish}) {
       area into the public NOMAD. This step is final. All public data will be made available under the Creative
       Commons Attribution license ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
 
-      If you wish, you can put an embargo on your data. Embargoed data is
-      visible to and findable by others. This makes some metadata (e.g.
+      If you wish, you can put an embargo on your data. This makes some metadata (e.g.
       chemical formula, system type, spacegroup, etc.) public, but the raw-file
       and archive contents remain hidden (except to you, and users you explicitly
       share the data with).
       You can already create datasets and assign DOIs for data with embargo, e.g.
       to put it into your unpublished paper.
       The embargo will last up to 36 month. Afterwards, your data will be made publicly
-      available. You can also lift the embargo on entries at any time.
-      This functionality is part of editing entries.
+      available. You can also lift the embargo sooner if you wish.
     `}</Markdown>
     <Box marginTop={2}>
       <Grid container direction="row" spacing={2}>
@@ -361,8 +359,8 @@ function UploadPage() {
   }
 
   const handleNameChange = (upload_name) => {
-    api.put(`/uploads/${uploadId}/metadata?upload_name=${upload_name}`)
-      .then(results => setUpload(results.data))
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
+      .then(fetchData)
       .catch(errors.raiseError)
   }
 

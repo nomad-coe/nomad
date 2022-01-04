@@ -107,7 +107,7 @@ export default function ArchiveEntryView(props) {
       }
 
       <Download
-        classes={{root: classes.downloadFab}} tooltip="download calculation archive"
+        classes={{root: classes.downloadFab}} tooltip="download entry archive"
         component={Fab} className={classes.downloadFab} color="primary" size="medium"
         url={`entries/${entryId}/archive/download`} fileName={`${entryId}.json`}
       >
