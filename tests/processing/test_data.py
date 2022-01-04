@@ -101,7 +101,7 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
 
             has_test_event = False
             for log_data in entry_archive['processing_logs']:
-                for key in ['event', 'calc_id', 'level']:
+                for key in ['event', 'entry_id', 'level']:
                     key in log_data
                 has_test_event = has_test_event or log_data['event'] == 'a test log entry'
 
@@ -285,7 +285,7 @@ def test_publish_to_central_nomad(
         if k == 'with_embargo':
             assert new_entry_metadata_dict[k] == (embargo_length > 0)
         elif k not in (
-                'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
+                'upload_id', 'entry_id', 'upload_create_time', 'entry_create_time',
                 'last_processing_time', 'publish_time', 'embargo_length',
                 'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
             assert new_entry_metadata_dict[k] == v, f'Metadata not matching: {k}'

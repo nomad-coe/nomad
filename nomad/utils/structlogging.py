@@ -161,7 +161,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                     # vary for different instances of the same exception
                     message['exception_hash'] = utils.hash(
                         exception_trace[:exception_trace.rfind('\n')])
-                elif key in ['upload_id', 'calc_id', 'entry_id', 'dataset_id', 'user_id', 'mainfile']:
+                elif key in ['upload_id', 'entry_id', 'dataset_id', 'user_id', 'mainfile']:
                     key = 'nomad.%s' % key
                 else:
                     key = '%s.%s' % (record.name, key)

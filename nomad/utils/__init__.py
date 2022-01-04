@@ -272,8 +272,8 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
 
 class archive:
     @staticmethod
-    def create(upload_id: str, calc_id: str) -> str:
-        return '%s/%s' % (upload_id, calc_id)
+    def create(upload_id: str, entry_id: str) -> str:
+        return '%s/%s' % (upload_id, entry_id)
 
     @staticmethod
     def items(archive_id: str) -> List[str]:
@@ -284,7 +284,7 @@ class archive:
         return archive.items(archive_id)[index]
 
     @staticmethod
-    def calc_id(archive_id: str) -> str:
+    def entry_id(archive_id: str) -> str:
         return archive.item(archive_id, 1)
 
     @staticmethod

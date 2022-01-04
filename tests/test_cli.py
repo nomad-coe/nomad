@@ -131,7 +131,7 @@ class TestAdmin:
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
-        assert Entry.objects(calc_id=entry.entry_id).first() is None
+        assert Entry.objects(entry_id=entry.entry_id).first() is None
 
 
 def transform_for_index_test(entry):

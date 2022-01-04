@@ -290,7 +290,7 @@ def archive():
     archive = EntryArchive.m_from_dict(json.loads('''
         {
             "metadata": {
-                "calc_id": "test_id"
+                "entry_id": "test_id"
             },
             "results": {
                 "properties": {
@@ -381,7 +381,7 @@ def archive():
     pytest.param('*', None, id='include-all-alias'),
     pytest.param({'metadata': '*'}, None, id='include-sub-section'),
     pytest.param({'metadata': {
-        'calc_id': '*'
+        'entry_id': '*'
     }}, None, id='include-quantity'),
     pytest.param({
         'workflow': {
@@ -415,11 +415,11 @@ def archive():
     }, None, id='resolve-quantity-ref'),
     pytest.param({
         'metadata': {
-            'calc_id': {
+            'entry_id': {
                 'doesnotexist': '*'
             }
         }
-    }, ['metadata', 'calc_id'], id='not-a-section'),
+    }, ['metadata', 'entry_id'], id='not-a-section'),
     pytest.param({
         'metadata': 'bad-directive'
     }, ['metadata'], id='bad-directive')

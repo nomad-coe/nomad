@@ -157,7 +157,7 @@ class ExampleData:
                     proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
                 mongo_entry = proc.Entry(
                     entry_create_time=entry_metadata.entry_create_time,
-                    calc_id=entry_metadata.calc_id,
+                    entry_id=entry_metadata.entry_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser_name='parsers/vasp',
@@ -226,7 +226,7 @@ class ExampleData:
     def create_entry(
             self,
             entry_archive: EntryArchive = None,
-            calc_id: str = None, entry_id: str = None, upload_id: str = None,
+            entry_id: str = None, upload_id: str = None,
             material_id: str = None,
             mainfile: str = None,
             results: Union[Results, dict] = None,
@@ -234,9 +234,6 @@ class ExampleData:
 
         assert upload_id in self.uploads, 'Must create the upload first'
         upload_dict = self.uploads[upload_id]
-
-        if entry_id is None:
-            entry_id = calc_id
 
         if entry_id is None:
             entry_id = f'test_entry_id_{self._entry_id_counter}'
@@ -256,7 +253,7 @@ class ExampleData:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
         entry_metadata.m_update(
-            calc_id=entry_id,
+            entry_id=entry_id,
             upload_id=upload_id,
             mainfile=mainfile,
             entry_hash='dummy_hash_' + entry_id,

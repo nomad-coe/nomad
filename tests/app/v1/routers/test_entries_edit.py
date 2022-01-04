@@ -107,7 +107,7 @@ class TestEditRepo():
 
     def mongo(self, *args, edited: bool = True, **kwargs):
         for entry_id in args:
-            entry = proc.Entry.objects(calc_id='test_entry_id_%d' % entry_id).first()
+            entry = proc.Entry.objects(entry_id='test_entry_id_%d' % entry_id).first()
             assert entry is not None
             if edited:
                 assert entry.last_edit_time is not None

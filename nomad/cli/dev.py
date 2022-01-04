@@ -297,7 +297,7 @@ def example_data(username: str):
     upload_id = utils.create_uuid()
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
     data.create_entry(
-        calc_id=utils.create_uuid(),
+        entry_id=utils.create_uuid(),
         upload_id=upload_id,
         mainfile='test_content/test_embargo_entry/mainfile.json')
 

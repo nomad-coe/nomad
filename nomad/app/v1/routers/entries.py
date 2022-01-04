@@ -999,7 +999,7 @@ async def get_entry_raw_download_file(
     query = dict(entry_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
         user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:
@@ -1134,7 +1134,7 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
     # perform the update on the mongo db
     with utils.timer(logger, 'edit mongo update executed', size=len(entry_ids)):
         if mongo_update is not None:
-            n_updated = proc.Entry.objects(calc_id__in=entry_ids).update(multi=True, **mongo_update)
+            n_updated = proc.Entry.objects(entry_id__in=entry_ids).update(multi=True, **mongo_update)
             if n_updated != len(entry_ids):
                 logger.error('edit repo did not update all entries', payload=mongo_update)
 
@@ -1142,7 +1142,7 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
     with utils.timer(logger, 'edit elastic update executed', size=len(entry_ids)):
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
-            for entry in proc.Entry.objects(calc_id__in=entry_ids):
+            for entry in proc.Entry.objects(entry_id__in=entry_ids):
                 entry_metadata = entry.mongo_metadata(entry.upload)
                 # Ensure that updated fields are marked as "set", even if they are cleared
                 entry_metadata.m_update_from_dict(mongo_update)

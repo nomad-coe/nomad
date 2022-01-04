@@ -342,7 +342,7 @@ class EntryMetadata(metainfo.MSection):
         upload_id: The id of the upload (random UUID).
         upload_name: The user provided upload name.
         upload_create_time: The time that the upload was created
-        calc_id: The unique mainfile based entry id.
+        entry_id: The unique mainfile based entry id.
         entry_hash: The raw file content based checksum/hash of this entry.
         entry_create_time: The time that the entry was created
         last_edit_time: The date and time the user metadata was last edited.
@@ -401,11 +401,11 @@ class EntryMetadata(metainfo.MSection):
         a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    calc_id = metainfo.Quantity(
+    entry_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[MongoEntryMetadata, MongoSystemMetadata],
-        aliases=['entry_id'],
+        aliases=['calc_id'],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
     entry_hash = metainfo.Quantity(
@@ -664,7 +664,10 @@ class EntryMetadata(metainfo.MSection):
 class EntryArchive(metainfo.MSection):
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
-        derived=lambda entry: entry.metadata.calc_id,
+        derived=lambda entry: entry.metadata.entry_id)
+    calc_id = metainfo.Quantity(
+        type=str, description='Legacy field name, use `entry_id` instead.',
+        derived=lambda entry: entry.metadata.entry_id,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)

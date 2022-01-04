@@ -82,8 +82,8 @@ def test_mapping(example_entry):
 
 
 def test_get_dataset(api, example_entry):
-    calc_id = 'test-id'
-    rv = api.get('/datasets/%s' % calc_id)
+    entry_id = 'test-id'
+    rv = api.get('/datasets/%s' % entry_id)
     assert rv.status_code == 200
 
 

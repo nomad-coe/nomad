@@ -54,7 +54,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
     data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(
         upload_id='upload_1',
-        calc_id='entry_1',
+        entry_id='entry_1',
         mainfile='test_content/1/mainfile.json',
         datasets=[
             create_dataset(
@@ -71,7 +71,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
 
     data.create_entry(
         upload_id='upload_1',
-        calc_id='entry_2',
+        entry_id='entry_2',
         mainfile='test_content/2/mainfile.json',
         datasets=[
             create_dataset(
@@ -90,7 +90,7 @@ def data(elastic, raw_files, mongo, test_user, other_test_user):
     for i in range(1, 4):
         data.create_entry(
             upload_id='other_data',
-            calc_id='id_%02d' % i,
+            entry_id='id_%02d' % i,
             mainfile='test_content/%02d/mainfile.json' % i)
 
     data.save(with_files=False)
@@ -138,7 +138,7 @@ def assert_dataset(dataset, query: Query = None, entries: List[str] = None, n_en
 
     if entries is not None:
         search_results = search(
-            owner='user', query={'calc_id': Any_(any=entries)}, user_id=dataset['user_id'])
+            owner='user', query={'entry_id': Any_(any=entries)}, user_id=dataset['user_id'])
         n_entries = search_results.pagination.total
         assert n_entries <= len(entries)
     if query is not None:

@@ -43,4 +43,4 @@ def rm(entries, skip_es, skip_mongo):
             search.delete_entry(entry_id=entry, refresh=True, update_materials=True)
 
     if not skip_mongo:
-        proc.Entry.objects(calc_id__in=entries).delete()
+        proc.Entry.objects(entry_id__in=entries).delete()

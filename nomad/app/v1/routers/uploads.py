@@ -472,8 +472,8 @@ async def get_upload_entries(
     start = pagination.get_simple_index()
     end = start + pagination.page_size
 
-    # load upload's entries. Use calc_id as tie breaker for ordering.
-    entries = list(upload.entries_sublist(start, end, order_by=(order_by_with_sign, 'calc_id')))
+    # load upload's entries. Use entry_id as tie breaker for ordering.
+    entries = list(upload.entries_sublist(start, end, order_by=(order_by_with_sign, 'entry_id')))
     failed_entries_count = upload.failed_entries_count
 
     # load entries's metadata from search

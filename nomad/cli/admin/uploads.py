@@ -492,7 +492,7 @@ def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
         for process in query:
             logger_kwargs = dict(upload_id=process.upload_id)
             if isinstance(process, proc.Entry):
-                logger_kwargs.update(calc_id=process.calc_id)
+                logger_kwargs.update(entry_id=process.entry_id)
 
             if not no_celery:
                 logger.info(

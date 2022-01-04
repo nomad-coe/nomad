@@ -276,7 +276,6 @@ def assert_entry(entry, **kwargs):
     ''' Checks the content of a returned entry dictionary. '''
     assert 'upload_id' in entry
     assert 'entry_id' in entry
-    assert 'calc_id' not in entry
     assert 'entry_create_time' in entry
     assert not entry['process_running']
     for key, value in kwargs.items():
@@ -323,7 +322,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     '''
     return [
         EntryMetadata(
-            domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
+            domain='dft', entry_id=entry['entry_id'], mainfile=entry['mainfile'],
             with_embargo=Upload.get(entry['upload_id']).with_embargo)
         for entry in entries]
 
@@ -595,7 +594,7 @@ def test_get_upload(
         id='pag-order_by-parser_name'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'order_by': 'calc_id'},
+            query_args={'page_size': 1, 'order_by': 'entry_id'},
             expected_status_code=422),
         id='pag-order_by-illegal'),
     pytest.param(
@@ -1337,7 +1336,7 @@ def test_post_upload_action_publish_to_central_nomad(
             if k == 'with_embargo':
                 assert new_calc_metadata_dict[k] == (embargo_length > 0)
             elif k not in (
-                    'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
+                    'upload_id', 'entry_id', 'upload_create_time', 'entry_create_time',
                     'last_processing_time', 'publish_time', 'embargo_length',
                     'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
                 assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'

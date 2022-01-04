@@ -87,7 +87,7 @@ def _pack_log_event(logger, method_name, event_dict):
         log_data.update(**{
             key: value
             for key, value in getattr(logger, '_context', {}).items()
-            if key not in ['service', 'deployment', 'upload_id', 'calc_id', 'mainfile', 'process_status']})
+            if key not in ['service', 'deployment', 'upload_id', 'entry_id', 'mainfile', 'process_status']})
         log_data.update(logger=logger.name)
 
         return log_data
@@ -543,7 +543,7 @@ class MetadataEditRequestHandler:
         return new_list
 
     def _get_entry_key(self, entry: 'Entry', entries_key: str) -> str:
-        if entries_key == 'calc_id' or entries_key == 'entry_id':
+        if entries_key == 'entry_id':
             return entry.entry_id
         elif entries_key == 'mainfile':
             return entry.mainfile
@@ -611,9 +611,9 @@ class MetadataEditRequestHandler:
                 user_id=self.user.user_id,
                 owner=self.edit_request_obj.owner,
                 query=query,
-                required=MetadataRequired(include=['calc_id']))
+                required=MetadataRequired(include=['entry_id']))
             for result in search_result:
-                yield Entry.get(result['calc_id'])
+                yield Entry.get(result['entry_id'])
         else:
             # We have no query. Return all entries for the upload
             for entry in Entry.objects(upload_id=upload.upload_id):
@@ -661,7 +661,7 @@ class Entry(Proc):
 
     Attributes:
         upload_id: the id of the upload to which this entry belongs
-        calc_id: the id of this entry
+        entry_id: the id of this entry
         entry_hash: the hash of the entry files
         entry_create_time: the date and time of the creation of the entry
         last_processing_time: the date and time of the last processing
@@ -680,7 +680,7 @@ class Entry(Proc):
         datasets: a list of user curated datasets this entry belongs to
     '''
     upload_id = StringField(required=True)
-    calc_id = StringField(primary_key=True)
+    entry_id = StringField(primary_key=True)
     entry_hash = StringField()
     entry_create_time = DateTimeField(required=True)
     last_processing_time = DateTimeField()
@@ -726,12 +726,7 @@ class Entry(Proc):
 
     @classmethod
     def get(cls, id) -> 'Entry':
-        return cls.get_by_id(id, 'calc_id')
-
-    @property
-    def entry_id(self) -> str:
-        ''' Just an alias for calc_id. '''
-        return self.calc_id
+        return cls.get_by_id(id, 'entry_id')
 
     @property
     def mainfile_file(self) -> PathObject:
@@ -875,7 +870,7 @@ class Entry(Proc):
         '''
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.entry_id,
+            upload_id=self.upload_id, mainfile=self.mainfile, entry_id=self.entry_id,
             parser=self.parser_name, **kwargs)
 
         if self._proc_logs is None:
@@ -1645,7 +1640,7 @@ class Upload(Proc):
                             if not self.published or reprocess_settings.add_matched_entries_to_published:
                                 # Create new entry
                                 entry = Entry.create(
-                                    calc_id=entry_id,
+                                    entry_id=entry_id,
                                     mainfile=filename,
                                     parser_name=parser.name,
                                     worker_hostname=self.worker_hostname,
@@ -1676,7 +1671,7 @@ class Upload(Proc):
                     logger.warn('Some entries are processing', count=len(processing_entries))
                     with utils.timer(logger, 'processing entries resetted'):
                         Entry._get_collection().update_many(
-                            {'calc_id__in': processing_entries},
+                            {'entry_id__in': processing_entries},
                             {'$set': Entry.reset_pymongo_update(
                                 worker_hostname=self.worker_hostname,
                                 process_status=ProcessStatus.FAILURE,
@@ -1822,7 +1817,7 @@ class Upload(Proc):
 
     def get_entry(self, entry_id) -> Entry:
         ''' Returns the upload entry with the given id or ``None``. '''
-        return Entry.objects(upload_id=self.upload_id, calc_id=entry_id).first()
+        return Entry.objects(upload_id=self.upload_id, entry_id=entry_id).first()
 
     @property
     def processed_entries_count(self) -> int:
@@ -2185,7 +2180,7 @@ class Upload(Proc):
                     'current_process', 'complete_time', 'worker_hostname', 'celery_task_id'))
                 try:
                     update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
-                    update['calc_id'] = entry_dict['_id']
+                    update['entry_id'] = entry_dict['_id']
                     if not settings.keep_original_timestamps:
                         update['entry_create_time'] = current_time
                     entry: Entry = Entry.create(**update)
