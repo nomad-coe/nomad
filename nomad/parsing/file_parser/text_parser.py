@@ -122,6 +122,7 @@ class Quantity:
         self.repeats: bool = kwargs.get('repeats', False)
         self.convert: bool = kwargs.get('convert', True)
         self.flatten: bool = kwargs.get('flatten', True)
+        self.reduce: bool = kwargs.get('reduce', True)
         self.comment: str = kwargs.get('comment', None)
 
     @property
@@ -160,7 +161,8 @@ class Quantity:
 
             elif self.flatten:
                 val = val.strip().split() if isinstance(val, str) else val
-                val = val[0] if len(val) == 1 else val
+                if self.reduce:
+                    val = val[0] if len(val) == 1 else val
 
             def _convert(val):
                 if isinstance(val, str):
