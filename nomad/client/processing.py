@@ -32,7 +32,7 @@ def parse(
         backend_factory: typing.Callable = None,
         strict: bool = True, logger=None):
     '''
-    Run the given parser on the downloaded calculation. If no parser is given,
+    Run the given parser on the downloaded entry. If no parser is given,
     do parser matching and use the respective parser.
     '''
     from nomad import parsing
@@ -101,7 +101,7 @@ def normalize(
 
 def normalize_all(entry_archive, logger=None):
     '''
-    Parse the downloaded calculation and run the whole normalizer chain.
+    Parse the downloaded entry and run the whole normalizer chain.
     '''
     from nomad import normalizing
 
@@ -122,7 +122,7 @@ class LocalEntryProcessing:
 
     Arguments:
         entry_id: The entry_id of the entry to locally process.
-        override: Set to true to override any existing local calculation data.
+        override: Set to true to override any existing local entry data.
         auth: Optional Auth object to download private data.
     '''
     def __init__(self, entry_id: str, override: bool = False, auth: Auth = None) -> None:
@@ -149,7 +149,7 @@ class LocalEntryProcessing:
                 for chunk in response.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
                     f.write(chunk)
         else:
-            print('Calc already downloaded.')
+            print('Entry already downloaded.')
 
         self.upload_files = files.StagingUploadFiles(upload_id=f'tmp_{self.entry_id}', create=True)
 
@@ -166,7 +166,7 @@ class LocalEntryProcessing:
 
     def __enter__(self):
         # open/extract upload file
-        print('Extracting calc data.')
+        print('Extracting entry data.')
         if self.upload_files.is_empty():  # Only add the files once
             self.upload_files.add_rawfiles(self.local_path)
 
@@ -191,7 +191,7 @@ class LocalEntryProcessing:
 
     def parse(self, parser_name: str = None, **kwargs):
         '''
-        Run the given parser on the downloaded calculation. If no parser is given,
+        Run the given parser on the downloaded entry. If no parser is given,
         do parser matching and use the respective parser.
         '''
         return parse(
@@ -200,7 +200,7 @@ class LocalEntryProcessing:
 
     def normalize(self, normalizer: typing.Union[str, typing.Callable], entry_archive=None):
         '''
-        Parse the downloaded calculation and run the given normalizer.
+        Parse the downloaded entry and run the given normalizer.
         '''
         if entry_archive is None:
             entry_archive = self.parse()
@@ -210,7 +210,7 @@ class LocalEntryProcessing:
 
     def normalize_all(self, entry_archive=None):
         '''
-        Parse the downloaded calculation and run the whole normalizer chain.
+        Parse the downloaded entry and run the whole normalizer chain.
         '''
         return normalize_all(
             entry_archive=entry_archive, logger=utils.get_logger(__name__))

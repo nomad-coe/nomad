@@ -1326,11 +1326,11 @@ def test_post_upload_action_publish_to_central_nomad(
 
         old_upload = Upload.get(upload_id)
         new_upload = Upload.get(upload_id + suffix)
-        assert len(old_upload.calcs) == len(new_upload.calcs) == 1
+        assert len(old_upload.successful_entries) == len(new_upload.successful_entries) == 1
         if embargo_length is None:
             embargo_length = old_upload.embargo_length
-        old_calc = old_upload.calcs[0]
-        new_calc = new_upload.calcs[0]
+        old_calc = old_upload.successful_entries[0]
+        new_calc = new_upload.successful_entries[0]
         old_calc_metadata_dict = old_calc.full_entry_metadata(old_upload).m_to_dict()
         new_calc_metadata_dict = new_calc.full_entry_metadata(new_upload).m_to_dict()
         for k, v in old_calc_metadata_dict.items():

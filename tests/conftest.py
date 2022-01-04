@@ -676,12 +676,12 @@ def oasis_publishable_upload(
     monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
 
     # create a dataset to also test this aspect of oasis uploads
-    calc = non_empty_processed.calcs[0]
+    entry = non_empty_processed.successful_entries[0]
     datamodel.Dataset(
         dataset_id='dataset_id', dataset_name='dataset_name',
         user_id=test_user.user_id).a_mongo.save()
-    calc.datasets = ['dataset_id']
-    calc.save()
+    entry.datasets = ['dataset_id']
+    entry.save()
     return non_empty_processed.upload_id, suffix
 
 

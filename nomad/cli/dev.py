@@ -293,7 +293,7 @@ def example_data(username: str):
 
     data = ExampleData(main_author=main_author)
 
-    # one upload with two calc published with embargo, one shared
+    # one upload with two entries published with embargo, one shared
     upload_id = utils.create_uuid()
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
     data.create_entry(

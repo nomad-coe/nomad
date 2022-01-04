@@ -32,7 +32,7 @@ from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles
 from nomad.processing import Upload
 
 
-CalcWithFiles = Tuple[datamodel.EntryMetadata, str]
+EntryWithFiles = Tuple[datamodel.EntryMetadata, str]
 UploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], UploadFiles]
 StagingUploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], StagingUploadFiles]
 PublicUploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], PublicUploadFiles]
@@ -111,47 +111,47 @@ class TestObjects:
         assert os.path.exists(os.path.dirname(file.os_path)) == create
 
 
-example_calc: Dict[str, Any] = {
-    'calc_id': '0',
+example_entry: Dict[str, Any] = {
+    'entry_id': '0',
     'mainfile': 'examples_template/template.json',
     'data': 'value'
 }
-example_calc_id = example_calc['calc_id']
+example_entry_id = example_entry['entry_id']
 
 
-def generate_example_calc(
-        calc_id: int, with_mainfile_prefix: bool, subdirectory: str = None,
-        **kwargs) -> CalcWithFiles:
-    ''' Generate an example calc with :class:`EntryMetadata` and rawfile. '''
+def generate_example_entry(
+        entry_id: int, with_mainfile_prefix: bool, subdirectory: str = None,
+        **kwargs) -> EntryWithFiles:
+    ''' Generate an example entry with :class:`EntryMetadata` and rawfile. '''
 
-    example_calc = datamodel.EntryMetadata(domain='dft', calc_id=str(calc_id))
+    example_entry = datamodel.EntryMetadata(domain='dft', entry_id=str(entry_id))
 
     if with_mainfile_prefix:
-        mainfile = '%d.template.json' % calc_id
+        mainfile = '%d.template.json' % entry_id
     else:
         mainfile = 'template.json'
 
     if subdirectory is not None:
         mainfile = os.path.join(subdirectory, mainfile)
 
-    example_calc.mainfile = mainfile
-    example_calc.m_update(**kwargs)
+    example_entry.mainfile = mainfile
+    example_entry.m_update(**kwargs)
 
     example_file = os.path.join(config.fs.tmp, 'example.zip')
-    example_calc.files = []
+    example_entry.files = []
     with zipfile.ZipFile(example_file, 'w', zipfile.ZIP_DEFLATED) as zf:
         for filepath in example_file_contents:
             filename = os.path.basename(filepath)
             arcname = filename
             if arcname == 'template.json' and with_mainfile_prefix:
-                arcname = '%d.template.json' % calc_id
+                arcname = '%d.template.json' % entry_id
 
             if subdirectory is not None:
                 arcname = os.path.join(subdirectory, arcname)
-            example_calc.files.append(arcname)
+            example_entry.files.append(arcname)
             zf.write(os.path.join(example_directory, filename), arcname)
 
-    return example_calc, example_file
+    return example_entry, example_file
 
 
 def assert_example_files(names, with_mainfile: bool = True):
@@ -172,9 +172,9 @@ def assert_example_files(names, with_mainfile: bool = True):
     assert source == target
 
 
-def assert_example_calc(calc):
-    assert calc is not None
-    assert calc['data'] == example_calc['data']
+def assert_example_entry(entry):
+    assert entry is not None
+    assert entry['data'] == example_entry['data']
 
 
 class UploadFilesFixtures:
@@ -207,15 +207,15 @@ class UploadFilesContract(UploadFilesFixtures):
 
     def test_rawfile(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
-        for calc in entries:
-            for file_path in calc.files:
+        for entry in entries:
+            for file_path in entry.files:
                 with upload_files.raw_file(file_path) as f:
                     assert len(f.read()) > 0
 
     def test_rawfile_size(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
-        for calc in entries:
-            for file_path in calc.files:
+        for entry in entries:
+            for file_path in entry.files:
                 assert upload_files.raw_file_size(file_path) > 0
 
     @pytest.mark.parametrize('prefix', [None, 'examples'])
@@ -244,48 +244,48 @@ class UploadFilesContract(UploadFilesFixtures):
     def test_read_archive(self, test_upload: UploadWithFiles, with_access: str):
         _, _, upload_files = test_upload
 
-        with upload_files.read_archive(example_calc_id) as archive:
-            assert archive[example_calc_id].to_dict() == example_archive_contents
+        with upload_files.read_archive(example_entry_id) as archive:
+            assert archive[example_entry_id].to_dict() == example_archive_contents
 
 
-def create_staging_upload(upload_id: str, calc_specs: str, embargo_length: int = 0) -> StagingUploadWithFiles:
+def create_staging_upload(upload_id: str, entry_specs: str, embargo_length: int = 0) -> StagingUploadWithFiles:
     '''
     Create an upload according to given spec. Additional arguments are given to
     the StagingUploadFiles contstructor.
 
     Arguments:
         upload_id: The id that should be given to this test upload.
-        calc_specs: A string that determines the properties of the given upload.
-            With letters determining example calcs being public `p` or restricted `r`.
-            The calcs will be copies of calcs in `example_file`.
-            First calc is at top level, following calcs will be put under 1/, 2/, etc.
-            All calcs with capital `P`/`R` will be put in the same directory under multi/.
+        entry_specs: A string that determines the properties of the given upload.
+            With letters determining example entries being public `p` or restricted `r`.
+            The entries will be copies of entries in `example_file`.
+            First entry is at top level, following entries will be put under 1/, 2/, etc.
+            All entries with capital `P`/`R` will be put in the same directory under multi/.
     '''
     upload_files = StagingUploadFiles(upload_id, create=True)
-    calcs = []
+    entries = []
 
     prefix = 0
-    for calc_spec in calc_specs:
-        is_multi = calc_spec in ['R', 'P']
-        calc_spec = calc_spec.lower()
-        assert (calc_spec == 'r') == (embargo_length > 0)
+    for entry_spec in entry_specs:
+        is_multi = entry_spec in ['R', 'P']
+        entry_spec = entry_spec.lower()
+        assert (entry_spec == 'r') == (embargo_length > 0)
         if is_multi or prefix == 0:
             directory = 'examples_template'
         else:
             directory = os.path.join(str(prefix), 'examples_template')
 
-        calc, calc_file = generate_example_calc(
+        entry, entry_file = generate_example_entry(
             prefix, with_mainfile_prefix=is_multi, subdirectory=directory,
             with_embargo=embargo_length > 0)
 
-        upload_files.add_rawfiles(calc_file)
-        upload_files.write_archive(calc.calc_id, example_archive_contents)
+        upload_files.add_rawfiles(entry_file)
+        upload_files.write_archive(entry.entry_id, example_archive_contents)
 
-        calcs.append(calc)
+        entries.append(entry)
         prefix += 1
 
-    assert len(calcs) == len(calc_specs)
-    return upload_id, calcs, upload_files
+    assert len(entries) == len(entry_specs)
+    return upload_id, entries, upload_files
 
 
 class TestStagingUploadFiles(UploadFilesContract):
@@ -293,7 +293,7 @@ class TestStagingUploadFiles(UploadFilesContract):
     @pytest.fixture(scope='function', params=['r', 'rr', 'p', 'pp', 'RR', 'PP'])
     def test_upload(self, request, test_upload_id: str) -> StagingUploadWithFiles:
         embargo_length = 12 if 'r' in request.param.lower() else 0
-        return create_staging_upload(test_upload_id, calc_specs=request.param, embargo_length=embargo_length)
+        return create_staging_upload(test_upload_id, entry_specs=request.param, embargo_length=embargo_length)
 
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id) -> UploadFiles:
@@ -314,11 +314,11 @@ class TestStagingUploadFiles(UploadFilesContract):
         _, entries, upload_files = test_upload
         upload_files.pack(entries, with_embargo=entries[0].with_embargo)
 
-    @pytest.mark.parametrize('calc_specs', ['r', 'p'])
-    def test_pack_potcar(self, calc_specs):
-        embargo_length = 12 if 'r' in calc_specs.lower() else 0
+    @pytest.mark.parametrize('entry_specs', ['r', 'p'])
+    def test_pack_potcar(self, entry_specs):
+        embargo_length = 12 if 'r' in entry_specs.lower() else 0
         upload_id, entries, upload_files = create_staging_upload(
-            'test_potcar', calc_specs=calc_specs, embargo_length=embargo_length)
+            'test_potcar', entry_specs=entry_specs, embargo_length=embargo_length)
         # Add potcar files: one stripped and one unstripped
         filenames = ('POTCAR', 'POTCAR.stripped')
         for filename in filenames:
@@ -336,12 +336,12 @@ class TestStagingUploadFiles(UploadFilesContract):
                 assert not filename.endswith('.stripped'), 'Only non-stripped file should be removed'
 
     @pytest.mark.parametrize('with_mainfile', [True, False])
-    def test_calc_files(self, test_upload: StagingUploadWithFiles, with_mainfile):
+    def test_entry_files(self, test_upload: StagingUploadWithFiles, with_mainfile):
         _, entries, upload_files = test_upload
-        for calc in entries:
-            mainfile = calc.mainfile
-            calc_files = upload_files.calc_files(mainfile, with_mainfile=with_mainfile)
-            assert_example_files(calc_files, with_mainfile=with_mainfile)
+        for entry in entries:
+            mainfile = entry.mainfile
+            entry_files = upload_files.entry_files(mainfile, with_mainfile=with_mainfile)
+            assert_example_files(entry_files, with_mainfile=with_mainfile)
 
     def test_delete(self, test_upload: StagingUploadWithFiles):
         _, _, upload_files = test_upload
@@ -380,9 +380,9 @@ class TestStagingUploadFiles(UploadFilesContract):
 
 
 def create_public_upload(
-        upload_id: str, calc_specs: str, embargo_length: int = 0, with_upload: bool = True) -> PublicUploadWithFiles:
+        upload_id: str, entry_specs: str, embargo_length: int = 0, with_upload: bool = True) -> PublicUploadWithFiles:
 
-    _, entries, upload_files = create_staging_upload(upload_id, calc_specs, embargo_length)
+    _, entries, upload_files = create_staging_upload(upload_id, entry_specs, embargo_length)
 
     upload_files.pack(entries, with_embargo=embargo_length > 0)
     upload_files.delete()
@@ -399,17 +399,17 @@ class TestPublicUploadFiles(UploadFilesContract):
     @pytest.fixture(scope='function')
     def empty_test_upload(self, test_upload_id: str) -> UploadFiles:
         _, _, upload_files = create_public_upload(
-            test_upload_id, calc_specs='', with_upload=False)
+            test_upload_id, entry_specs='', with_upload=False)
 
         return upload_files
 
     @pytest.fixture(scope='function', params=itertools.product(
         ['r', 'rr', 'p', 'pp', 'RR', 'PP'], [True, False]))
     def test_upload(self, request, test_upload_id: str) -> PublicUploadWithFiles:
-        calc_specs, both_accesses = request.param
-        embargo_length = 12 if 'r' in calc_specs.lower() else 0
+        entry_specs, both_accesses = request.param
+        embargo_length = 12 if 'r' in entry_specs.lower() else 0
         _, entries, upload_files = create_staging_upload(
-            test_upload_id, calc_specs=calc_specs, embargo_length=embargo_length)
+            test_upload_id, entry_specs=entry_specs, embargo_length=embargo_length)
         upload_files.pack(entries, with_embargo=embargo_length > 0)
         upload_files.delete()
         public_upload_files = PublicUploadFiles(test_upload_id)
@@ -471,8 +471,8 @@ class TestPublicUploadFiles(UploadFilesContract):
 
     def test_repack(self, test_upload):
         upload_id, entries, upload_files = test_upload
-        for calc in entries:
-            calc.with_embargo = False
+        for entry in entries:
+            entry.with_embargo = False
         upload_files.re_pack(with_embargo=False)
         assert_upload_files(upload_id, entries, PublicUploadFiles, with_embargo=False)
         assert upload_files.access == 'public'
@@ -481,7 +481,7 @@ class TestPublicUploadFiles(UploadFilesContract):
 
     def test_archive_version_suffix(self, monkeypatch, test_upload_id):
         monkeypatch.setattr('nomad.config.fs.archive_version_suffix', 'test_suffix')
-        _, entries, upload_files = create_staging_upload(test_upload_id, calc_specs='p')
+        _, entries, upload_files = create_staging_upload(test_upload_id, entry_specs='p')
         upload_files.pack(entries, with_embargo=False)
         upload_files.delete()
 
@@ -506,21 +506,21 @@ def assert_upload_files(
     Arguments:
         upload_id: The id of the upload to assert
         cls: The :class:`UploadFiles` subclass that this upload should have
-        n_calcs: The number of expected calcs in the upload
-        **kwargs: Key, value pairs that each calc metadata should have
+        no_archive:
+        **kwargs: Key, value pairs that each entry metadata should have
     '''
     upload_files = UploadFiles.get(upload_id)
     assert upload_files is not None
     assert isinstance(upload_files, cls)
 
     upload_files = UploadFiles.get(upload_id)
-    for calc in entries:
-        with upload_files.raw_file(calc.mainfile, 'rb') as f:
+    for entry in entries:
+        with upload_files.raw_file(entry.mainfile, 'rb') as f:
             f.read()
 
         try:
-            archive = upload_files.read_archive(calc.calc_id)
-            assert calc.calc_id in archive
+            archive = upload_files.read_archive(entry.entry_id)
+            assert entry.entry_id in archive
 
         except KeyError:
             assert no_archive
@@ -542,7 +542,7 @@ def create_test_upload_files(
         upload_id: The upload id for the upload. Will generate a random UUID if None.
         archives: A list of class:`datamodel.EntryArchive` metainfo objects. This will
             be used to determine the mainfiles. Will create respective directories and
-            copy the template calculation to create raw files for each archive.
+            copy the template entry to create raw files for each archive.
             Will also be used to fill the archives in the create upload.
         published: Creates a :class:`PublicUploadFiles` object with published files
             instead of a :class:`StagingUploadFiles` object with staging files. Default
@@ -576,9 +576,9 @@ def create_test_upload_files(
             os.path.join(target, os.path.basename(mainfile)))
 
         # create an archive "file" for each archive
-        calc_id = archive.metadata.calc_id
-        assert calc_id is not None, 'Archives to create test upload must have a calc id'
-        upload_files.write_archive(calc_id, archive.m_to_dict())
+        entry_id = archive.metadata.entry_id
+        assert entry_id is not None, 'Archives to create test upload must have an entry_id'
+        upload_files.write_archive(entry_id, archive.m_to_dict())
 
     # remove the template
     shutil.rmtree(source)
@@ -612,8 +612,8 @@ def test_test_upload_files(raw_files_infra):
     for index in range(0, 3):
         archive = datamodel.EntryArchive()
         metadata = archive.m_create(datamodel.EntryMetadata)
-        metadata.calc_id = 'example_calc_id_%d' % index
-        metadata.mainfile = 'test/test/calc_%d/mainfile_%d.json' % (index, index)
+        metadata.entry_id = 'example_entry_id_%d' % index
+        metadata.mainfile = 'test/test/entry_%d/mainfile_%d.json' % (index, index)
         archives.append(archive)
 
     upload_files = create_test_upload_files(upload_id, archives, embargo_length=0)

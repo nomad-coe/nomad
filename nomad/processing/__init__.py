@@ -26,7 +26,7 @@ Processing is build on top of *celery* (http://www.celeryproject.org/) and
 Celery provides a task-based programming model for distributed computing. It uses
 a broker, e.g. a distributed task queue like *RabbitMQ* to distribute tasks. We
 use mongodb to store the current state of processing in :class:`Upload` and
-:class:`Calculation` documents. This combination allows us to easily distribute
+:class:`Calc` documents. This combination allows us to easily distribute
 processing work while having the processing state, i.e. (intermediate) results,
 always available.
 

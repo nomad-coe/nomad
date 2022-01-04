@@ -47,7 +47,7 @@ def reset(remove, i_am_really_sure):
     infrastructure.reset(remove)
 
 
-@admin.command(help='Reset all "stuck" in processing uploads and calc in low level mongodb operations.')
+@admin.command(help='Reset all uploads and entries "stuck" in processing using level mongodb operations.')
 @click.option('--zero-complete-time', is_flag=True, help='Sets the complete time to epoch zero.')
 def reset_processing(zero_complete_time):
     from datetime import datetime
@@ -111,7 +111,7 @@ def ops():
 #     pass
 
 
-@ops.command(help=('Dump the mongo (calculation metadata) db.'))
+@ops.command(help=('Dump the mongo db.'))
 @click.option('--restore', is_flag=True, help='Do not dump, but restore.')
 def dump(restore: bool):
     from datetime import datetime
@@ -121,7 +121,7 @@ def dump(restore: bool):
         config.mongo.host, config.mongo.port, config.mongo.db_name, date_str))
 
 
-@ops.command(help=('Restore the mongo (calculation metadata) db.'))
+@ops.command(help=('Restore the mongo db.'))
 @click.argument('PATH_TO_DUMP', type=str, nargs=1)
 def restore(path_to_dump):
     print('mongorestore --host {} --port {} --db {} {}'.format(

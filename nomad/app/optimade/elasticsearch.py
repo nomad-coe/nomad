@@ -42,7 +42,7 @@ class StructureResourceAttributesByAlias(StructureResourceAttributes):
     nmd_raw_file_download_url: Optional[str] = OptimadeField(
         None,
         alias='_nmd_raw_file_download_url',
-        description='The url to download all calculation raw files as .zip file.',
+        description='The url to download all entry raw files as .zip file.',
         support=SupportLevel.OPTIONAL)
 
     nmd_archive_url: Optional[str] = OptimadeField(

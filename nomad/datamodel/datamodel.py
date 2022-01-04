@@ -339,11 +339,11 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
 class EntryMetadata(metainfo.MSection):
     '''
     Attributes:
-        upload_id: The ``upload_id`` of the calculations upload (random UUID).
+        upload_id: The id of the upload (random UUID).
         upload_name: The user provided upload name.
         upload_create_time: The time that the upload was created
-        calc_id: The unique mainfile based calculation id.
-        calc_hash: The raw file content based checksum/hash of this calculation.
+        calc_id: The unique mainfile based entry id.
+        calc_hash: The raw file content based checksum/hash of this entry.
         entry_create_time: The time that the entry was created
         last_edit_time: The date and time the user metadata was last edited.
         parser_name: The NOMAD parser used for the last processing.
@@ -361,8 +361,8 @@ class EntryMetadata(metainfo.MSection):
             only visible to the main author, the upload coauthors, and the upload reviewers.
         license: A short license description (e.g. CC BY 4.0), that refers to the
             license of this entry.
-        processed: Boolean indicating if this calc was successfully processed and archive
-            data and calc metadata is available.
+        processed: Boolean indicating if this entry was successfully processed and archive
+            data and entry metadata is available.
         last_processing_time: The date and time of the last processing.
         processing_errors: Errors that occured during processing.
         nomad_version: A string that describes the version of the nomad software that was

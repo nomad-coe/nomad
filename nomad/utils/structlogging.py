@@ -23,8 +23,8 @@
 
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
-parser, parser version, calc_id, mainfile, etc. for all events that happen during
-calculation processing. This means the :func:`get_logger` and all logger functions
+parser, parser version, entry_id, mainfile, etc. for all events that happen during
+entry processing. This means the :func:`get_logger` and all logger functions
 take keyword arguments for structured data. Otherwise :func:`get_logger` can
 be used similar to the standard *logging.getLogger*.
 

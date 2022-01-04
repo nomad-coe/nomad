@@ -57,9 +57,9 @@ The parser definitions are available via the following two variables.
 .. autodata:: nomad.parsing.parsers.parsers
 .. autodata:: nomad.parsing.parsers.parser_dict
 
-Parsers are reused for multiple calculations.
+Parsers are reused for multiple entries.
 
-Parsers and calculation files are matched via regular expressions.
+Parsers and mainfiles are matched via regular expressions.
 
 .. autofunction:: nomad.parsing.parsers.match_parser
 

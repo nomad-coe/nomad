@@ -343,13 +343,13 @@ class ExampleData:
             upload_id: str, id: int, h: int, o: int, extra: List[str], periodicity: int,
             optimade: bool = True, metadata: dict = None):
 
-        ''' Creates a calculation in Elastic and Mongodb with the given properties.
+        ''' Creates an entry in Elastic and Mongodb with the given properties.
 
         Does require initialized :func:`elastic_infra` and :func:`mongo_infra`.
 
         Args:
             meta_info: A legace metainfo env.
-            id: A number to create ``test_calc_id_<number>`` ids.
+            id: A number to create ``test_entry_id_<number>`` ids.
             h: The amount of H atoms
             o: The amount of O atoms
             extra: A list of further atoms
@@ -386,7 +386,7 @@ class ExampleData:
 
         self.create_entry(
             entry_archive=archive,
-            upload_id=upload_id, calc_id='test_calc_id_%d' % id, domain='dft', **kwargs)
+            upload_id=upload_id, entry_id='test_entry_id_%d' % id, domain='dft', **kwargs)
 
 
 def create_template_upload_file(
