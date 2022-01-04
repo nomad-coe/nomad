@@ -383,7 +383,8 @@ def migrate_mongo(
 
     if entry_query:
         print('Quering entries...')
-        upload_ids = list(db_src.entry.distinct('upload_id', entry_query))
+        src_entry_collection = db_src.calc if 'calc' in db_src.collection_names() else db_src.entry
+        upload_ids = list(src_entry_collection.distinct('upload_id', entry_query))
     if upload_ids:
         upload_query = {'_id': {'$in': upload_ids}}
     print('Quering uploads...')
