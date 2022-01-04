@@ -399,7 +399,7 @@ it identifies. If something is called a *hash* then it is a hash generated based
 entity it identifies. This means either the whole thing or just some properties of
 said entities.
 
-- The most common hashes is the `calc_hash` based on mainfile and auxfile contents.
+- The most common hashes is the `entry_hash` based on mainfile and auxfile contents.
 - The `upload_id` is a UUID assigned to the upload on creation. It never changes.
 - The `mainfile` is a path within an upload that points to a file identified as parseable.
   This also uniquely identifies an entry within the upload.

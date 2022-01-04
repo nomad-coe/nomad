@@ -1061,7 +1061,7 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def calc_hash(self, mainfile: str) -> str:
+    def entry_hash(self, mainfile: str) -> str:
         '''
         Calculates a hash for the given entry based on file contents and aux file contents.
         Arguments:

@@ -662,7 +662,7 @@ class Entry(Proc):
     Attributes:
         upload_id: the id of the upload to which this entry belongs
         calc_id: the id of this entry
-        calc_hash: the hash of the entry files
+        entry_hash: the hash of the entry files
         entry_create_time: the date and time of the creation of the entry
         last_processing_time: the date and time of the last processing
         last_edit_time: the date and time the user metadata was last edited
@@ -681,7 +681,7 @@ class Entry(Proc):
     '''
     upload_id = StringField(required=True)
     calc_id = StringField(primary_key=True)
-    calc_hash = StringField()
+    entry_hash = StringField()
     entry_create_time = DateTimeField(required=True)
     last_processing_time = DateTimeField()
     last_edit_time = DateTimeField()
@@ -767,7 +767,7 @@ class Entry(Proc):
         '''
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
+        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile)
         entry_metadata.files = self.upload_files.entry_files(self.mainfile)
         entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []

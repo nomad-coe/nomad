@@ -259,7 +259,7 @@ class ExampleData:
             calc_id=entry_id,
             upload_id=upload_id,
             mainfile=mainfile,
-            calc_hash='dummy_hash_' + entry_id,
+            entry_hash='dummy_hash_' + entry_id,
             domain='dft',
             entry_create_time=self._next_time_stamp(),
             processed=True,

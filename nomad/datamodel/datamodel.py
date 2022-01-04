@@ -343,7 +343,7 @@ class EntryMetadata(metainfo.MSection):
         upload_name: The user provided upload name.
         upload_create_time: The time that the upload was created
         calc_id: The unique mainfile based entry id.
-        calc_hash: The raw file content based checksum/hash of this entry.
+        entry_hash: The raw file content based checksum/hash of this entry.
         entry_create_time: The time that the entry was created
         last_edit_time: The date and time the user metadata was last edited.
         parser_name: The NOMAD parser used for the last processing.
@@ -408,7 +408,7 @@ class EntryMetadata(metainfo.MSection):
         aliases=['entry_id'],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
-    calc_hash = metainfo.Quantity(
+    entry_hash = metainfo.Quantity(
         # Note: This attribute is not stored in ES
         type=str,
         description='A raw file content based checksum/hash',

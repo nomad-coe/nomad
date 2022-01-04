@@ -161,7 +161,7 @@ def add_calculation_info(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
     entry_metadata = entry_archive.metadata
     entry_metadata.upload_id = 'test_upload_id'
     entry_metadata.calc_id = 'test_calc_id'
-    entry_metadata.calc_hash = 'test_calc_hash'
+    entry_metadata.entry_hash = 'test_calc_hash'
     entry_metadata.mainfile = 'test/mainfile.txt'
     entry_metadata.m_update(**kwargs)
     return entry_archive
