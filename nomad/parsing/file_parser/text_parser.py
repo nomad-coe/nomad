@@ -122,6 +122,7 @@ class Quantity:
         self.repeats: bool = kwargs.get('repeats', False)
         self.convert: bool = kwargs.get('convert', True)
         self.flatten: bool = kwargs.get('flatten', True)
+        self.reduce: bool = kwargs.get('reduce', True)
         self.comment: str = kwargs.get('comment', None)
 
     @property
@@ -160,7 +161,8 @@ class Quantity:
 
             elif self.flatten:
                 val = val.strip().split() if isinstance(val, str) else val
-                val = val[0] if len(val) == 1 else val
+                if self.reduce:
+                    val = val[0] if len(val) == 1 else val
 
             def _convert(val):
                 if isinstance(val, str):
@@ -429,14 +431,17 @@ class TextParser(FileParser):
             index_unit = quantities[i].re_pattern.groupindex.get(
                 '__unit_%s' % quantities[i].name, None)
             for non_empty_match in non_empty_matches:
-                if index_unit is not None:
-                    unit = non_empty_match.pop(index_unit - 1)
-                    units.append(unit.decode())
+                try:
+                    if index_unit is not None:
+                        unit = non_empty_match.pop(index_unit - 1)
+                        units.append(unit.decode())
 
-                else:
-                    units.append(None)
+                    else:
+                        units.append(None)
 
-                values.append(' '.join([m.decode() for m in non_empty_match]))
+                    values.append(' '.join([m.decode() for m in non_empty_match]))
+                except Exception:
+                    self.logger.error('Error parsing quantities.')
 
             current_index += n_groups
 
@@ -470,10 +475,13 @@ class TextParser(FileParser):
                 value.append(sub_parser.parse())
 
             else:
-                unit = res.groupdict().get('__unit_%s' % quantity.name, None)
-                units.append(unit.decode() if unit is not None else None)
-                value.append(' '.join(
-                    [group.decode() for group in res.groups() if group and group != unit]))
+                try:
+                    unit = res.groupdict().get('__unit_%s' % quantity.name, None)
+                    units.append(unit.decode() if unit is not None else None)
+                    value.append(' '.join(
+                        [group.decode() for group in res.groups() if group and group != unit]))
+                except Exception:
+                    self.logger.error('Error parsing quantity.')
 
         if not value:
             return
