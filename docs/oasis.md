@@ -133,7 +133,7 @@ services:
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - nomad_oasis_files:/app/.volumes/fs
-        command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
+        command: python -m celery worker -l info -A nomad.processing -Q celery
 
     # nomad app (api + gui)
     app:
@@ -462,7 +462,7 @@ gunicorn "${params[@]}" -b 0.0.0.0:8000 nomad.app:app
 
 And the NOMAD worker, that runs the NOMAD processing.
 ```
-celery worker -l info -A nomad.processing -Q celery,calcs,uploads
+celery worker -l info -A nomad.processing -Q celery
 ```
 
 This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.
@@ -567,7 +567,7 @@ a single core, you can alter the worker service command in the `docker-compose.y
 add a `--concurrency` argument:
 
 ```
-command: python -m celery worker -l info -A nomad.processing --concurrency=1 -Q celery,calcs,uploads
+command: python -m celery worker -l info -A nomad.processing --concurrency=1 -Q celery
 ```
 
 See also the [celery documentation](https://docs.celeryproject.org/en/stable/userguide/workers.html#id1).

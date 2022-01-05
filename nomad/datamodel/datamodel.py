@@ -405,8 +405,12 @@ class EntryMetadata(metainfo.MSection):
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[MongoEntryMetadata, MongoSystemMetadata],
-        aliases=['calc_id'],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
+
+    calc_id = metainfo.Quantity(
+        type=str, description='Legacy field name, use `entry_id` instead.',
+        derived=lambda entry: entry.entry_id,
+        a_elasticsearch=Elasticsearch(material_entry_type))
 
     entry_hash = metainfo.Quantity(
         # Note: This attribute is not stored in ES
@@ -665,10 +669,6 @@ class EntryArchive(metainfo.MSection):
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
         derived=lambda entry: entry.metadata.entry_id)
-    calc_id = metainfo.Quantity(
-        type=str, description='Legacy field name, use `entry_id` instead.',
-        derived=lambda entry: entry.metadata.entry_id,
-        a_elasticsearch=Elasticsearch(material_entry_type))
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
