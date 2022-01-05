@@ -1328,19 +1328,19 @@ def test_post_upload_action_publish_to_central_nomad(
         assert len(old_upload.successful_entries) == len(new_upload.successful_entries) == 1
         if embargo_length is None:
             embargo_length = old_upload.embargo_length
-        old_calc = old_upload.successful_entries[0]
-        new_calc = new_upload.successful_entries[0]
-        old_calc_metadata_dict = old_calc.full_entry_metadata(old_upload).m_to_dict()
-        new_calc_metadata_dict = new_calc.full_entry_metadata(new_upload).m_to_dict()
-        for k, v in old_calc_metadata_dict.items():
+        old_entry = old_upload.successful_entries[0]
+        new_entry = new_upload.successful_entries[0]
+        old_entry_metadata_dict = old_entry.full_entry_metadata(old_upload).m_to_dict()
+        new_entry_metadata_dict = new_entry.full_entry_metadata(new_upload).m_to_dict()
+        for k, v in old_entry_metadata_dict.items():
             if k == 'with_embargo':
-                assert new_calc_metadata_dict[k] == (embargo_length > 0)
+                assert new_entry_metadata_dict[k] == (embargo_length > 0)
             elif k not in (
                     'upload_id', 'entry_id', 'upload_create_time', 'entry_create_time',
                     'last_processing_time', 'publish_time', 'embargo_length',
                     'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
-                assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
-        assert new_calc.datasets == ['dataset_id']
+                assert new_entry_metadata_dict[k] == v, f'Metadata not matching: {k}'
+        assert new_entry.datasets == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
         assert new_upload.from_oasis and new_upload.oasis_deployment_id
         assert new_upload.embargo_length == embargo_length

@@ -130,7 +130,7 @@ def run_parser(parser_name, mainfile):
     if metadata.domain is None:
         metadata.domain = parser.domain
 
-    return add_calculation_info(entry_archive, parser_name=parser_name)
+    return add_metadata(entry_archive, parser_name=parser_name)
 
 
 @pytest.fixture
@@ -157,11 +157,11 @@ def parsed_example(request) -> EntryArchive:
     return result
 
 
-def add_calculation_info(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
+def add_metadata(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
     entry_metadata = entry_archive.metadata
     entry_metadata.upload_id = 'test_upload_id'
     entry_metadata.entry_id = 'test_entry_id'
-    entry_metadata.entry_hash = 'test_calc_hash'
+    entry_metadata.entry_hash = 'test_entry_hash'
     entry_metadata.mainfile = 'test/mainfile.txt'
     entry_metadata.m_update(**kwargs)
     return entry_archive

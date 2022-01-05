@@ -51,7 +51,7 @@ def data(test_user, other_test_user, elastic_infra):
         upload_id='upload-id',
         last_processing_time=datetime.now(),
         entry_coauthors=[other_test_user],
-        comment='this is a calculation comment')
+        comment='this is an entry comment')
 
     data = ExampleData(main_author=test_user)
     data.create_upload(

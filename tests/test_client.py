@@ -74,7 +74,7 @@ def test_query_required(api_v1, published_wo_user_metadata, q_schema, sub_sectio
 
 
 def test_query_authentication(api_v1, published, other_test_user, test_user):
-    # The published test uploads uploader in calc and upload's user id do not match
+    # The published test uploads uploader in entry and upload's user id do not match
     # due to testing the uploader change via publish metadata.
 
     assert_results(query_archive(authentication=Auth(other_test_user.username, 'password', from_api=True)), total=0)

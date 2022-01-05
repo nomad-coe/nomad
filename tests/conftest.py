@@ -576,7 +576,7 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 
 @pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
-    ''' Provides a parsed calculation in the form of an EntryArchive. '''
+    ''' Provides a parsed entry in the form of an EntryArchive. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
@@ -589,7 +589,7 @@ def parsed_ems() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def normalized(parsed: EntryArchive) -> EntryArchive:
-    ''' Provides a normalized calculation in the form of a EntryArchive. '''
+    ''' Provides a normalized entry in the form of a EntryArchive. '''
     return run_normalize(parsed)
 
 
@@ -804,7 +804,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
                 material_id=upload_id,
                 mainfile=f'test_content/{entry_id}/mainfile.json')
 
-    # one upload with 23 calcs, published, no embargo
+    # one upload with 23 entries, published, no embargo
     data.create_upload(
         upload_id='id_published',
         upload_name='name_published',
@@ -829,13 +829,13 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             archive = data.archives[entry_id]
             write_partial_archive_to_mongo(archive)
 
-    # one upload, no calcs, still processing
+    # one upload, no entries, still processing
     data.create_upload(
         upload_id='id_processing',
         published=False,
         process_status=ProcessStatus.RUNNING)
 
-    # one upload, no calcs, unpublished
+    # one upload, no entries, unpublished
     data.create_upload(
         upload_id='id_empty',
         published=False)
