@@ -19,7 +19,6 @@
 from nomad.datamodel.datamodel import EntryArchive
 from typing import Generator, Tuple
 import pytest
-from datetime import datetime
 import os.path
 import re
 import shutil
@@ -27,16 +26,16 @@ import zipfile
 import json
 import yaml
 
-from nomad import utils, infrastructure, config, datamodel
+from nomad import utils, infrastructure, config
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Calc, ProcessStatus
-from nomad.processing.data import generate_entry_id
-from nomad.search import search
+from nomad.processing.data import UploadContext, generate_entry_id
+from nomad.search import search, refresh as search_refresh
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.utils import create_template_upload_file, set_upload_entry_metadata
+from tests.utils import ExampleData, create_template_upload_file, set_upload_entry_metadata
 
 
 def test_generate_entry_id():
@@ -474,6 +473,83 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         assert not upload.with_embargo
 
 
+@pytest.mark.parametrize('args', [
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='new_folder/new_sub_folder/template.json',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='add-one-filter-file'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='new_folder/new_sub_folder',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder/template.json': True}),
+        id='add-one-filter-folder'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder1', 'new_folder/new_sub_folder2'],
+            path_filter='new_folder',
+            expected_result={
+                'examples_template/template.json': False,
+                'new_folder/new_sub_folder1/template.json': True,
+                'new_folder/new_sub_folder2/template.json': True}),
+        id='add-two'),
+    pytest.param(
+        dict(
+            add=['examples_template/new_sub_folder'],
+            path_filter='examples_template/new_sub_folder',
+            expected_result={
+                'examples_template/template.json': True,
+                'examples_template/new_sub_folder/template.json': True}),
+        id='add-to-existing-entry-folder'),
+    pytest.param(
+        dict(
+            add=['examples_template/new_sub_folder'],
+            remove=['examples_template/template.json'],
+            path_filter='examples_template',
+            expected_result={
+                'examples_template/new_sub_folder/template.json': True}),
+        id='add-and-remove'),
+    pytest.param(
+        dict(
+            add=['new_folder/new_sub_folder'],
+            path_filter='examples_template',
+            expected_result={
+                'examples_template/template.json': True}),
+        id='add-one-filter-other'),
+    pytest.param(
+        dict(
+            remove=['examples_template/template.json'],
+            path_filter='examples_template',
+            expected_result={}),
+        id='remove-everything')])
+def test_process_partial(proc_infra, non_empty_processed: Upload, args):
+    add = args.get('add', [])
+    remove = args.get('remove', [])
+    path_filter = args['path_filter']
+    expected_result = args['expected_result']
+    old_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.calcs}
+    upload_files: StagingUploadFiles = non_empty_processed.upload_files  # type: ignore
+    for path in add:
+        upload_files.add_rawfiles('tests/data/proc/templates/template.json', path)
+    for path in remove:
+        upload_files.delete_rawfiles(path)
+    non_empty_processed.process_upload(path_filter=path_filter)
+    non_empty_processed.block_until_complete()
+    search_refresh()  # Process does not wait for search index to be refreshed when deleting
+    assert_processing(non_empty_processed)
+    new_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.calcs}
+    assert new_timestamps.keys() == expected_result.keys()
+    for key, expect_updated in expected_result.items():
+        if expect_updated:
+            assert key not in old_timestamps or old_timestamps[key] < new_timestamps[key]
+
+
 def test_re_pack(published: Upload):
     upload_id = published.upload_id
     upload_files: PublicUploadFiles = published.upload_files  # type: ignore
@@ -507,7 +583,7 @@ def mock_failure(cls, function_name, monkeypatch):
     monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
 
 
-@pytest.mark.parametrize('function', ['update_files', 'parse_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize('function', ['update_files', 'match_all', 'cleanup', 'parsing'])
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
     upload_id, _ = uploaded
@@ -574,6 +650,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert len(calc.errors) == 1
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
@@ -586,6 +663,7 @@ def test_ems_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
 def test_qcms_data(proc_infra, test_user):
     upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
 
@@ -598,30 +676,48 @@ def test_qcms_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
+@pytest.mark.timeout(config.tests.default_timeout)
+def test_phonopy_data(proc_infra, test_user):
+    upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
+
+    additional_keys = ['results.method.simulation.program_name']
+    assert upload.total_calcs == 2
+    assert len(upload.calcs) == 2
+
+    with upload.entries_metadata() as entries:
+        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_search_upload(entries, additional_keys, published=False)
+
+
 def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     upload_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(upload_file, 'w') as zf:
-        calc_1 = dict(
-            comment='Calculation 1 of 3',
-            entry_coauthors=other_test_user.user_id,
-            references=['http://test'],
-            external_id='external_id_1')
-        with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_1/template.json')
-        calc_2 = dict(
-            comment='Calculation 2 of 3',
-            references=['http://ttest'],
-            external_id='external_id_2')
-        with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_2/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/calc_3/template.json')
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
+        calc_1 = dict(
+            comment='Calculation 1 of 3',
+            references='http://test1',
+            external_id='external_id_1')
+        with zf.open('examples/calc_1/nomad.yaml', 'w') as f: f.write(yaml.dump(calc_1).encode())
+        calc_2 = dict(
+            comment='Calculation 2 of 3',
+            references=['http://test2'],
+            external_id='external_id_2')
+        with zf.open('examples/calc_2/nomad.json', 'w') as f: f.write(json.dumps(calc_2).encode())
         metadata = {
+            'upload_name': 'my name',
+            'coauthors': other_test_user.user_id,
+            'references': ['http://test0'],
             'entries': {
                 'examples/calc_3/template.json': {
                     'comment': 'Calculation 3 of 3',
-                    'references': ['http://ttest'],
+                    'references': 'http://test3',
                     'external_id': 'external_id_3'
+                },
+                'examples/calc_1/template.json': {
+                    'comment': 'root entries comment 1'
                 }
             }
         }
@@ -632,65 +728,64 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     calcs = Calc.objects(upload_id=upload.upload_id)
     calcs = sorted(calcs, key=lambda calc: calc.mainfile)
 
-    comment = ['Calculation 1 of 3', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
+    comment = ['root entries comment 1', 'Calculation 2 of 3', 'Calculation 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test'], ['http://ttest'], ['http://ttest'], []]
-    expected_entry_coauthors = [[other_test_user], [], [], []]
+    references = [['http://test1'], ['http://test2'], ['http://test3'], ['http://test0']]
+    expected_coauthors = [other_test_user]
 
     for i in range(len(calcs)):
         entry_metadata = calcs[i].full_entry_metadata(upload)
         assert entry_metadata.comment == comment[i]
         assert entry_metadata.references == references[i]
         assert entry_metadata.external_id == external_ids[i]
-        entry_coauthors = [a.m_proxy_resolve() for a in entry_metadata.entry_coauthors]
-        for j in range(len(entry_coauthors)):
-            assert entry_coauthors[j].user_id == expected_entry_coauthors[i][j].user_id
-            assert entry_coauthors[j].username == expected_entry_coauthors[i][j].username
-            assert entry_coauthors[j].email == expected_entry_coauthors[i][j].email
-            assert entry_coauthors[j].first_name == expected_entry_coauthors[i][j].first_name
-            assert entry_coauthors[j].last_name == expected_entry_coauthors[i][j].last_name
-
-
-@pytest.mark.parametrize('user, metadata_to_set, should_succeed', [
-    pytest.param(
-        'test_user', dict(upload_name='hello', embargo_length=13),
-        True, id='unprotected-attributes'),
-    pytest.param(
-        'test_user', dict(main_author='other_test_user', upload_create_time=datetime(2021, 5, 4, 11)),
-        True, id='protected-attributes')])
-def test_set_upload_metadata(proc_infra, test_users_dict, user, metadata_to_set, should_succeed):
-
-    upload_id = 'test_ems_upload'
-    user = test_users_dict[user]
-    upload = run_processing((upload_id, 'tests/data/proc/examples_ems.zip'), user)
-    if 'main_author' in metadata_to_set:
-        metadata_to_set['main_author'] = test_users_dict[metadata_to_set['main_author']].user_id
-    upload_metadata = datamodel.UploadMetadata.m_from_dict(metadata_to_set)
-    try:
-        upload.set_upload_metadata(upload_metadata.m_to_dict())
-        upload.block_until_complete()
-        assert upload.process_status == ProcessStatus.SUCCESS
-    except Exception:
-        assert not should_succeed
-        return
-    upload = Upload.get(upload_id)
-    with upload.entries_metadata() as entries_metadata:
-        for entry_metadata in entries_metadata:
-            expected_upload_name = metadata_to_set.get('upload_name')
-            if expected_upload_name is not None:
-                assert upload.upload_name == (expected_upload_name or None)
-                assert entry_metadata.upload_name == upload.upload_name
-            if 'main_author' in metadata_to_set:
-                assert upload.main_author == metadata_to_set['main_author']
-                assert entry_metadata.main_author.user_id == upload.main_author
-            if 'upload_create_time' in metadata_to_set:
-                assert upload.upload_create_time == metadata_to_set['upload_create_time']
-                assert entry_metadata.upload_create_time == upload.upload_create_time
-            if 'embargo_length' in metadata_to_set:
-                assert upload.embargo_length == metadata_to_set['embargo_length']
-                assert entry_metadata.with_embargo == upload.with_embargo
+        coauthors = [a.m_proxy_resolve() for a in entry_metadata.coauthors]
+        assert len(coauthors) == len(expected_coauthors)
+        for j in range(len(coauthors)):
+            assert coauthors[j].user_id == expected_coauthors[j].user_id
+            assert coauthors[j].username == expected_coauthors[j].username
+            assert coauthors[j].email == expected_coauthors[j].email
+            assert coauthors[j].first_name == expected_coauthors[j].first_name
+            assert coauthors[j].last_name == expected_coauthors[j].last_name
 
 
 def test_skip_matching(proc_infra, test_user):
     upload = run_processing(('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user)
     assert upload.total_calcs == 1
+
+
+@pytest.mark.parametrize('url,normalized_url', [
+    pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
+    pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')])
+def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
+    monkeypatch.setattr(
+        'nomad.processing.data.UploadContext._resolve_mainfile',
+        lambda *args, **kwargs: 'test_id')
+
+    from nomad.datamodel.metainfo import simulation
+
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_id', published=True)
+
+    referenced_archive = EntryArchive()
+    referenced_archive.run.append(simulation.Run())
+    referenced_archive.run[0].method.append(simulation.method.Method())
+    data.create_entry(
+        upload_id='test_id', entry_id='test_id', mainfile='my/test/file',
+        entry_archive=referenced_archive)
+
+    data.save(with_es=False)
+
+    upload = Upload.objects(upload_id='test_id').first()
+    assert upload is not None
+
+    context = UploadContext(upload)
+    test_archive = EntryArchive(m_context=context)
+
+    test_archive.run.append(simulation.Run())
+    calculation = simulation.calculation.Calculation()
+    test_archive.run[0].calculation.append(calculation)
+
+    assert calculation.m_root().m_context is not None
+    calculation.method_ref = url
+    assert calculation.m_to_dict()['method_ref'] == normalized_url if normalized_url else url
+    assert calculation.method_ref.m_root().metadata.entry_id == 'test_id'

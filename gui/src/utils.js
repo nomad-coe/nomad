@@ -19,6 +19,7 @@ import { cloneDeep, merge, isSet, isNil, isString, isNumber } from 'lodash'
 import { toUnitSystem, Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
+import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
 
 export const isEquivalent = (a, b) => {
@@ -352,7 +353,7 @@ export function diffTotal(values) {
  *
  * @return {number} The number with new formatting
  */
-export function formatNumber(value, type = 'float64', decimals = 3, scientific = true) {
+export function formatNumberOld(value, type = 'float64', decimals = 3, scientific = true) {
   if (type?.startsWith('int')) {
     decimals = 0
   }
@@ -365,6 +366,53 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     }
   }
   return Number(value.toFixed(decimals))
+}
+
+/**
+ * Formats the given number.
+ *
+ * @param {number} value Number to format
+ * @param {decimals} decimals Number of decimals to use
+ * @param {bool} scientific Whether to convert large or small values to scientific
+ * form.
+ *
+ * @return {number} The number with new formatting
+ */
+export function formatNumber(value, type = 'float64', decimals = 3, scientific = true, separators = false) {
+  if (isNil(value)) {
+    return value
+  }
+  let formatted = value
+  if (type?.startsWith('int')) {
+    decimals = 0
+  }
+  if (value === 0) {
+    return formatted
+  }
+  if (scientific) {
+    if (value > 1e3 || value < 1e-3) {
+      formatted = Number(Number.parseFloat(value).toExponential(decimals))
+      if (separators) {
+        formatted = formatted.toLocaleString()
+      }
+      return formatted
+    }
+  }
+  formatted = Number(formatted.toFixed(decimals))
+  if (separators) {
+    formatted = formatted.toLocaleString()
+  }
+  return formatted
+}
+
+/**
+ * Formats the given timestamp.
+ *
+ * @param {number} value The timestamp to format
+ * @return {str} The timestamp with new formatting
+ */
+export function formatTimestamp(value) {
+  return value && new Date(value).toLocaleString()
 }
 
 /**
@@ -383,6 +431,7 @@ export const DType = {
   Number: 'number',
   Timestamp: 'timestamp',
   String: 'string',
+  Boolean: 'boolean',
   Unknown: 'unknown'
 }
 export function getDatatype(quantity) {
@@ -394,6 +443,8 @@ export function getDatatype(quantity) {
     return DType.Timestamp
   } else if (type === 'str') {
     return DType.String
+  } else if (type === 'bool') {
+    return DType.Boolean
   } else {
     return DType.Unknown
   }
@@ -590,4 +641,25 @@ export function approxInteger(number) {
  */
 export function delay(func) {
   setTimeout(func, 0)
+}
+
+/**
+ * Returns a list of linestyles.
+ *
+ * @param {number} nLines number of lines to plot
+ */
+export function getLineStyles(nLines, theme) {
+  const styles = []
+  const lineStyles = ['solid', 'dot', 'dashdot']
+  const colors = chromaScale([theme.palette.primary.dark, theme.palette.secondary.light])
+    .mode('lch').colors(nLines)
+  for (let i = 0; i < nLines; ++i) {
+    const line = {
+      dash: lineStyles[i % lineStyles.length],
+      color: colors[i],
+      width: 2
+    }
+    styles.push(line)
+  }
+  return styles
 }

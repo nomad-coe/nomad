@@ -75,7 +75,7 @@ function handleApiError(e) {
     error.status = e.response.status
     error.apiMessage = message
   } else {
-    if (e.message === 'Failed to fetch') {
+    if (e.message === 'Failed to fetch' || e.message === 'Network Error') {
       error = new ApiError(e.message)
       error.status = 400
     } else {
@@ -258,7 +258,7 @@ class Api {
    * @param {string} entryId
    * @returns Object containing the raw file metadata.
    */
-  async getRawFileListFromCalc(entryId) {
+  async getRawFileListFromEntry(entryId) {
     this.onStartLoading()
     const auth = await this.authHeaders()
     try {

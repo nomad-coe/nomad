@@ -21,7 +21,7 @@ import io
 import os
 import time
 import zipfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
@@ -36,7 +36,8 @@ from nomad import config, files, infrastructure
 from nomad.processing import Upload, Calc, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
-from nomad.search import search
+
+from .test_entries import assert_archive_response
 
 '''
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -839,6 +840,42 @@ def test_get_upload_raw_path(
                             assert found, f'Missing expected path in zip file: {expected_path}'
 
 
+@pytest.mark.parametrize('upload_id, mainfile, user, status_code', [
+    pytest.param('id_published', 'test_content/subdir/test_entry_01/mainfile.json', None, 200, id='published'),
+    pytest.param('id_published', 'test_content/doesnotexist.json', None, 404, id='bad-mainfile'),
+    pytest.param('id_doesnotexist', 'test_content/subdir/test_entry_01/mainfile.json', None, 404, id='bad-upload-id'),
+    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', None, 401, id='unpublished'),
+    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', 'test_user', 200, id='auth')
+])
+def test_get_upload_entry_archive_mainfile(
+    client, example_data, test_auth_dict,
+    upload_id: str, mainfile: str, user: str, status_code: int
+):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get(f'uploads/{upload_id}/archive/mainfile/{mainfile}', headers=user_auth)
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json())
+
+
+@pytest.mark.parametrize('upload_id, entry_id, user, status_code', [
+    pytest.param('id_published', 'id_01', None, 200, id='published'),
+    pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
+    pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
+    pytest.param('id_unpublished', 'id_unpublished_1', None, 401, id='unpublished'),
+    pytest.param('id_unpublished', 'id_unpublished_1', 'test_user', 200, id='auth')
+])
+def test_get_upload_entry_archive(
+    client, example_data, test_auth_dict,
+    upload_id: str, entry_id: str, user: str, status_code: int
+):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get(f'uploads/{upload_id}/archive/{entry_id}', headers=user_auth)
+    assert_response(response, status_code)
+    if status_code == 200:
+        assert_archive_response(response.json())
+
+
 @pytest.mark.parametrize('mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token, expected_status_code, expected_mainfiles', [
     pytest.param(
         'stream', None, 'examples_template', example_file_aux, '', {'file_name': 'blah.aux'},
@@ -965,6 +1002,10 @@ def test_delete_upload_raw_path(
         user_auth_action = None
     else:
         token = None
+    if upload_id == 'id_processing_w':
+        # Ensure file exists (otherwise we get 404, which is not what we want to test)
+        upload_files = StagingUploadFiles(upload_id)
+        upload_files.add_rawfiles('tests/data/proc/examples_template/1.aux', 'examples_template')
     query_args = dict(token=token)
     response = client.delete(build_url(f'uploads/{upload_id}/raw/{path}', query_args), headers=user_auth_action)
     assert_response(response, expected_status_code)
@@ -980,75 +1021,6 @@ def test_delete_upload_raw_path(
             assert not upload_files.raw_path_exists(path)
 
         assert_expected_mainfiles(upload_id, expected_mainfiles)
-
-
-@pytest.mark.parametrize('user, upload_id, query_args, use_upload_token, expected_status_code', [
-    pytest.param('test_user', 'id_unpublished_w', dict(upload_name='test_name', embargo_length=13), False, 200, id='ok'),
-    pytest.param('test_user', 'id_published_w', dict(embargo_length=0), False, 200, id='lift-embargo'),
-    pytest.param('admin_user', 'id_unpublished_w', 'PROTECTED', False, 200, id='protected-admin'),
-    pytest.param('test_user', 'id_unpublished_w', 'PROTECTED', False, 401, id='protected-not-admin'),
-    pytest.param('test_user', 'id_unpublished_w', dict(upload_name='test_name'), True, 200, id='use-token'),
-    pytest.param('test_user', 'silly_value', dict(upload_name='test_name'), True, 404, id='bad-upload_id'),
-    pytest.param('admin_user', 'id_published_w', dict(upload_name='test_name'), False, 200, id='published-admin'),
-    pytest.param('test_user', 'id_published_w', dict(upload_name='test_name'), False, 401, id='published-not-admin'),
-    pytest.param(None, 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='no-credentials'),
-    pytest.param('invalid', 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='invalid-credentials'),
-    pytest.param('invalid', 'id_unpublished_w', dict(upload_name='test_name'), True, 401, id='invalid-credentials-token'),
-    pytest.param('other_test_user', 'id_unpublished_w', dict(upload_name='test_name'), False, 401, id='no-access'),
-    pytest.param('test_user', 'id_processing_w', dict(upload_name='test_name'), False, 400, id='processing'),
-    pytest.param('test_user', 'id_empty_w', dict(upload_name='test_name'), False, 200, id='empty-upload-ok')])
-def test_put_upload_metadata(
-        client, proc_infra, example_data_writeable, test_auth_dict, test_users_dict,
-        user, upload_id, query_args, use_upload_token, expected_status_code):
-
-    try:
-        upload = Upload.get(upload_id)
-        upload.upload_name = 'old_value'
-        upload.save()
-    except KeyError:
-        pass
-
-    if upload_id == 'id_published_w':
-        assert Upload.get(upload_id).with_embargo
-        es_data = search(owner=None, query=dict(entry_id='id_published_w_entry')).data[0]
-        assert es_data['with_embargo']
-
-    if query_args == 'PROTECTED':
-        # Arguments for testing changing protected fields
-        query_args = dict(
-            upload_create_time=(upload.upload_create_time - timedelta(hours=3, seconds=14)).isoformat(),
-            main_author=test_users_dict['other_test_user'].user_id)
-    user_auth, token = test_auth_dict[user]
-    if use_upload_token:
-        user_auth = None
-    else:
-        token = None
-
-    if token:
-        query_args['token'] = token
-
-    url = build_url(f'uploads/{upload_id}/metadata', query_args)
-    response = client.put(url, headers=user_auth)
-    assert_response(response, expected_status_code)
-    if expected_status_code == 200:
-        upload = Upload.get(upload_id)
-        upload.block_until_complete()
-        with upload.entries_metadata() as entries_metadata:
-            for entry_metadata in entries_metadata:
-                es_data = search(owner=None, query=dict(entry_id=entry_metadata.calc_id)).data[0]
-                if 'upload_name' in query_args:
-                    assert upload.upload_name == query_args.get('upload_name')
-                    assert entry_metadata.upload_name == es_data['upload_name'] == upload.upload_name
-                if 'main_author' in query_args:
-                    assert upload.main_author == query_args['main_author']
-                    assert entry_metadata.main_author.user_id == es_data['main_author']['user_id'] == upload.main_author
-                if 'upload_create_time' in query_args:
-                    assert upload.upload_create_time == datetime.fromisoformat(query_args['upload_create_time'])
-                    assert entry_metadata.upload_create_time == upload.upload_create_time
-                    assert datetime.fromisoformat(es_data['upload_create_time']) == upload.upload_create_time
-                if 'embargo_length' in query_args:
-                    assert upload.embargo_length == query_args['embargo_length']
-                    assert entry_metadata.with_embargo == es_data['with_embargo'] == upload.with_embargo
 
 
 @pytest.mark.parametrize('user, upload_id, kwargs', [
@@ -1102,11 +1074,6 @@ def test_put_upload_metadata(
             metadata=dict(upload_name='test_name'),
             add_coauthor=True),
         id='coauthor-access'),
-    pytest.param(
-        'test_user', 'id_processing_w', dict(
-            metadata=dict(upload_name='test_name'),
-            expected_status_code=400),
-        id='processing'),
     pytest.param(
         'test_user', 'id_empty_w', dict(
             metadata=dict(upload_name='test_name')),

@@ -49,6 +49,7 @@ import { useBoolState } from '../../../hooks'
 const useStaticStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(0.5),
+    marginTop: theme.spacing(-0.5),
     height: '2.5rem',
     width: '100%'
   },
@@ -62,10 +63,12 @@ const useStaticStyles = makeStyles(theme => ({
     display: 'flex',
     height: '100%',
     alignItems: 'center',
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   },
   spacer: {
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   }
 }))
 const scales = {
@@ -84,6 +87,7 @@ const InputHeader = React.memo(({
   scale,
   onChangeScale,
   draggable,
+  actions,
   className,
   classes
 }) => {
@@ -208,6 +212,7 @@ const InputHeader = React.memo(({
     </ActionHeader>
     {!disableScale && menuComp}
     {align === 'right' && !disableStatistics && control}
+    {actions}
   </Actions>
 })
 
@@ -220,6 +225,7 @@ InputHeader.propTypes = {
   scale: PropTypes.oneOf(Object.values(scales)),
   onChangeScale: PropTypes.func,
   draggable: PropTypes.bool,
+  actions: PropTypes.node,
   className: PropTypes.string,
   classes: PropTypes.object
 }

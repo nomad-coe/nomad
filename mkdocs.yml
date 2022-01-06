@@ -1,0 +1,55 @@
+site_name: NOMAD Documentation
+site_description: |
+  The documentation for NOMAD v1.
+site_author: The NOMAD Authors
+nav:
+  - Introduction: index.md
+  - web.md
+  - api.md
+  - pythonlib.md
+  - archive.md
+  # - Using the AI Toolkit and other remote tools: aitoolkit.md
+  - Extending and Developing NOMAD:
+    - developers.md
+    - metainfo.md
+    - search.md
+    - parser.md
+    - normalizers.md
+  - Operating NOMAD (Oasis): oasis.md
+theme:
+  name: material
+  palette:
+    primary: light blue
+    accent: teal
+  font:
+    text: 'Titillium Web'
+  logo: assets/nomad-logo.png
+  favicon: assets/favicon.png
+  features:
+    - navigation.instant
+# repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: True
+      toc_depth: 3
+extra:
+  generator: false
+  homepage: https://nomad-lab.eu/prod/v1/gui/about
+use_directory_urls: false
+plugins:
+    - search
+    - macros:
+        module_name: nomad/mkdocs
+extra_css:
+  - stylesheets/extra.css
+extra_javascript:
+  - javascript.js

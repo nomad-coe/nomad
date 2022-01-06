@@ -29,6 +29,7 @@ from .routers import users, entries, materials, auth, info, datasets, uploads, s
 
 logger = utils.get_logger(__name__)
 
+
 app = FastAPI(
     root_path=root_path,
     openapi_url='/openapi.json',
@@ -38,112 +39,8 @@ app = FastAPI(
     title='NOMAD API',
     version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
     description=utils.strip(f'''
-        ## Getting started
-
-        Here is a simple example on how to execute a search with Python and requests:
-        ```python
-        import requests
-
-        response = requests.post(
-            '{config.client.url}/v1/entry/query',
-            json={{
-                'query': {{
-                    'results.material.elements:any': ['Si', 'O']
-                }}
-            }})
-        response_data = response.json()
-        n_search_results = response_data['pagination']['total']
-        search_results = response_data['data']
-        ```
-
-        ## Conventions
-
-        ### Paths
-
-        The various API operations are organized with the following path scheme. The first
-        part of the path, describes the data entity that is covered by
-        the operations below (e.g. `entries`, `users`, `datasets`, `uploads`). For example
-        everything below `entries` will be about searching entries, getting
-        an entry, editing entries, etc.
-
-        The second (optional and variable) path segment allows to denote a specific entity instance,
-        e.g. a specific entry or dataset, usually by id. With out such a variable second
-        path segment, its about all instances, e.g. searching entries or listing all datasets.
-
-        Optional (if available) further path segments will determine the variety and format
-        of data. This is mostly for entries to distinguish the metadata, raw, and archive
-        data or distinguish between listing (i.e. paginated json) and downloading
-        (i.e. streaming a zip-file)
-
-        Further, we try to adhere to the paradim of getting and posting resources. Therefore,
-        when you post a complex query, you will not post it to `/entries` (a query is not an entry),
-        but `/entries/query`. Here *query* being a kind of virtual resource.
-
-        ### Parameters and bodies for GET and POST operations
-
-        We offer **GET** and **POST** versions for many complex operations. The idea is that
-        **GET** is easy to use, e.g. via curl or simply in the browser, while **POST**
-        allows to provide more complex parameters (i.e. a JSON body). For example to
-        search for entries, you can use the **GET** operation `/entries` to specify simple
-        queries via URL, e.g. `/entries?code_name=VASP&atoms=Ti`, but you would use
-        **POST** `/entries/query` to provide a complex nested queries, e.g. with logical
-        operators.
-
-        Typicall the **POST** version is a super-set of the functionality of the **GET**
-        version. But, most top-level parameters in the **POST** body, will be available
-        in the **GET** version as URL parameters with the same name and meaning. This
-        is especially true for reoccuring parameters for general API concepts like pagination
-        or specifying required result fields.
-
-        ### Response layout
-
-        Typically a response will mirror all input parameters in the normalized form that
-        was used to perform the operation.
-
-        Some of these will be augmented with result values. For example the pagination
-        section of a request will be augmented with the total available number.
-
-        The actual requested data, will be placed under the key `data`.
-
-        ## About Authentication
-
-        NOMAD is an open datasharing platform, and most of the API operations do not require
-        any authorization and can be freely used without a user or credentials. However,
-        to upload data, edit data, or view your own and potentially unpublished data,
-        the API needs to authenticate you.
-
-        The NOMAD API uses OAuth and tokens to authenticate users. We provide simple operations
-        that allow you to acquire an *access token* via username and password based:
-
-        ```
-        import requests
-
-        response = requests.get(
-            '{config.client.url}/v1/auth/token', params=dict(username='myname', password='mypassword'))
-        token = response.json()['access_token']
-
-        response = requests.get(
-            '{config.client.url}/v1/uploads',
-            headers={{'Authorization': f'Bearer {{token}}'}})
-        uploads = response.json()['data']
-        ```
-
-        If you have the `nomad-lab` Python module installed. You can use its `Auth`
-        implementation:
-
-        ```
-        import requests
-        from nomad.client import Auth
-
-        response = requests.get(
-            '{config.client.url}/v1/uploads',
-            auth=Auth(user='myname or email', password='mypassword'))
-        uploads = response.json()['data']
-        ```
-
-        To use authentication in the dashboard, simply use the Authorize button. The
-        dashboard GUI will manage the access token and use it while you try out the various
-        operations.
+        Please visit the [API section of the NOMAD documentation]({config.api_url(True, 'docs/api.html')})
+        for a introduction and examples.
     '''))
 
 app.add_middleware(

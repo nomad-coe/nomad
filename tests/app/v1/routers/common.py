@@ -589,6 +589,9 @@ def assert_metadata(response_json):
         if 'required' not in response_json:
             assert 'license' in metadata
 
+        if 'main_author' in metadata:
+            assert 'email' not in metadata['main_author']
+
 
 def assert_metadata_response(response, status_code=None):
     response_json = assert_base_metadata_response(response, status_code=status_code)

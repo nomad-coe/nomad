@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { Link } from '@material-ui/core'
 import EntryDownloadButton from '../../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions, Published } from '../../entry/EntryDetails'
-import { authorList } from '../../../utils'
+import { authorList, formatNumber, formatTimestamp } from '../../../utils'
 import {
   addColumnDefaults,
   Datatable, DatatableLoadMorePagination, DatatableTable,
@@ -38,7 +38,14 @@ const columns = [
   {key: 'results.material.symmetry.space_group_symbol'},
   {key: 'results.material.symmetry.space_group_number'},
   {key: 'mainfile', align: 'left'},
-  {key: 'upload_create_time', label: 'Upload time', align: 'left'},
+  {
+    key: 'upload_create_time',
+    label: 'Upload time',
+    align: 'left',
+    render: row => row?.upload_create_time
+      ? formatTimestamp(row.upload_create_time)
+      : <i>no upload time</i>
+  },
   {key: 'authors', render: row => authorList(row), align: 'left'},
   {key: 'comment', sortable: false, align: 'left'},
   {
@@ -106,7 +113,7 @@ const SearchResultsEntries = React.memo((props) => {
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
     selected={selected} onSelectedChanged={setSelected}
   >
-    <DatatableToolbar title={`${data.length}/${pagination.total} search results`}>
+    <DatatableToolbar title={`${formatNumber(data.length, 'int', 0, false, true)}/${formatNumber(pagination.total, 'int', 0, false, true)} search results`}>
       <DatatableToolbarActions selection>
         <EntryDownloadButton tooltip="Download files" query={query} />
       </DatatableToolbarActions>

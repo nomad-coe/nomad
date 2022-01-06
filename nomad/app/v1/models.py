@@ -52,23 +52,26 @@ Value = Union[StrictInt, StrictFloat, StrictBool, str, datetime.datetime]
 ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
 
 
-class Owner(str, enum.Enum):
-    '''
-    The `owner` allows to limit the scope of the searched based on entry ownership.
-    This is useful, if you only want to search among all publically downloadable
-    entries, or only among your own entries, etc.
+owner_documentation = strip('''
+The `owner` allows to limit the scope of the searched based on entry ownership.
+This is useful, if you only want to search among all publically downloadable
+entries, or only among your own entries, etc.
 
-    These are the possible owner values and their meaning:
-    * `all`: Consider all entries.
-    * `public` (default): Consider all entries that can be publically downloaded,
-        i.e. only published entries without embargo
-    * `user`: Only consider entries that belong to you.
-    * `shared`: Only consider entries that belong to you or are shared with you.
-    * `visible`: Consider all entries that are visible to you. This includes
-        entries with embargo or unpublished entries that belong to you or are
-        shared with you.
-    * `staging`: Only search through unpublished entries.
-    '''
+These are the possible owner values and their meaning:
+
+* `public`: Consider all entries that can be publically downloaded, i.e. only published entries without embargo.
+* `user`: Only consider entries that belong to you.
+* `shared`: Only consider entries that belong to you or are shared with you.
+* `visible`: Consider all entries that are visible to you. This includes
+    entries with embargo or unpublished entries that belong to you or are
+    shared with you.
+* `staging`: Only search through unpublished entries.
+* `all`: Consider all entries.
+''')
+
+
+class Owner(str, enum.Enum):
+    owner_documentation
 
     # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
     # it will ignore any given default or example and simply take the first enum value.
@@ -213,93 +216,96 @@ Not.update_forward_refs()
 Nested.update_forward_refs()
 
 
+query_documentation = strip('''
+A query can be very simple list of parameters. Different parameters are combined
+with a logical **and**, values of the same parameter with also with a logical **and**.
+The following would search for all entries that are VASP calculations,
+contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
+**and** *Chris Wolverton*.
+```json
+{
+    "results.material.elements": ["Na", "Cl"],
+    "results.method.simulation.program_name": "VASP",
+    "authors": ["Stefano Curtarolo", "Chris Wolverton"]
+}
+```
+
+A short cut to change the logical combination of values in a list, is to
+add a suffix to the quantity `:any`:
+```json
+{
+    "results.material.elements": ["Na", "Cl"],
+    "results.method.simulation.program_name": "VASP",
+    "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
+}
+```
+
+Otherwise, you can also write complex logical combinations of parameters like this:
+```json
+{
+    "and": [
+        {
+            "or": [
+                {
+                    "results.material.elements": ["Cl", "Na"]
+                },
+                {
+                    "results.material.elements": ["H", "O"]
+                }
+            ]
+        },
+        {
+            "not": {
+                "results.material.symmetry.crystal_system": "cubic"
+            }
+        }
+    ]
+}
+```
+Other short-cut prefixes are `none:` and `any:` (the default).
+
+By default all quantity values have to **equal** the given values to match. For
+some values you can also use comparison operators like this:
+```json
+{
+    "upload_create_time": {
+        "gt": "2020-01-01",
+        "lt": "2020-08-01"
+    },
+    "results.properties.geometry_optimization.final_energy_difference": {
+        "lte": 1.23e-18
+    }
+}
+```
+
+or shorter with suffixes:
+```json
+{
+    "upload_create_time:gt": "2020-01-01",
+    "upload_create_time:lt": "2020-08-01",
+    "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
+}
+```
+
+The searchable quantities are a subset of the NOMAD Archive quantities defined
+in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
+
+There is also an additional query parameter that you can use to formulate queries based
+on the optimade filter language:
+```json
+{
+    "optimade_filter": "nelements >= 2 AND elements HAS ALL 'Ti', 'O'"
+}
+```
+''')
+
+
 class WithQuery(BaseModel):
     owner: Optional[Owner] = Body('public')
     query: Optional[Query] = Body(
         None,
         embed=True,
-        description=strip('''
-            A query can be very simple list of parameters. Different parameters are combined
-            with a logical **and**, values of the same parameter with also with a logical **and**.
-            The following would search for all entries that are VASP calculations,
-            contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
-            **and** *Chris Wolverton*.
-            ```
-            {
-                "results.material.elements": ["Na", "Cl"],
-                "results.method.simulation.program_name": "VASP",
-                "authors": ["Stefano Curtarolo", "Chris Wolverton"]
-            }
-            ```
-
-            A short cut to change the logical combination of values in a list, is to
-            add a suffix to the quantity `:any`:
-            ```
-            {
-                "results.material.elements": ["Na", "Cl"],
-                "results.method.simulation.program_name": "VASP",
-                "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
-            }
-            ```
-
-            Otherwise, you can also write complex logical combinations of parameters like this:
-            ```
-            {
-                "and": [
-                    {
-                        "or": [
-                            {
-                                "results.material.elements": ["Cl", "Na"]
-                            },
-                            {
-                                "results.material.elements": ["H", "O"]
-                            }
-                        ]
-                    },
-                    {
-                        "not": {
-                            "results.material.symmetry.crystal_system": "cubic"
-                        }
-                    }
-                ]
-            }
-            ```
-            Other short-cut prefixes are `none:` and `any:` (the default).
-
-            By default all quantity values have to **equal** the given values to match. For
-            some values you can also use comparison operators like this:
-            ```
-            {
-                "upload_create_time": {
-                    "gt": "2020-01-01",
-                    "lt": "2020-08-01"
-                },
-                "results.properties.geometry_optimization.final_energy_difference": {
-                    "lte": 1.23e-18
-                }
-            }
-            ```
-
-            or shorter with suffixes:
-            ```
-            {
-                "upload_create_time:gt": "2020-01-01",
-                "upload_create_time:lt": "2020-08-01",
-                "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
-            }
-            ```
-
-            The searchable quantities are a subset of the NOMAD Archive quantities defined
-            in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
-
-            There is also an additional query parameter that you can use to formulate queries based
-            on the optimade filter language:
-            ```
-            {
-                "optimade_filter": "nelements >= 2 AND elements HAS ALL 'Ti', 'O'"
-            }
-            ```
-        '''),  # TODO custom documentation for entry and material API
+        description=query_documentation,
         example={
             'upload_create_time:gt': '2020-01-01',
             'results.material.elements': ['Ti', 'O'],
@@ -1192,7 +1198,7 @@ class Bucket(BaseModel):
             aggregations on non nested quantities.'''))
     metrics: Optional[Dict[str, int]]
 
-    value: Union[float, str]
+    value: Union[StrictBool, float, str]
 
 
 class BucketAggregationResponse(BaseModel):

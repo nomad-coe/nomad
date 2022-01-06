@@ -37,10 +37,16 @@ const FilterSubMenuElectronic = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
+        <InputField
+          quantity="electronic_properties"
+          visible={visible}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSection
           section="results.properties.electronic.band_structure_electronic.band_gap"
           visible={visible}
-          nested
         >
           <InputField
             quantity="results.properties.electronic.band_structure_electronic.band_gap.type"
@@ -56,11 +62,28 @@ const FilterSubMenuElectronic = React.memo(({
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputField
-          quantity="electronic_properties"
+        <InputSection
+          section="results.properties.electronic.band_structure_electronic"
           visible={visible}
-          disableSearch
-        />
+        >
+          <InputField
+            quantity="results.properties.electronic.band_structure_electronic.spin_polarized"
+            visible={visible}
+            disableSearch
+          />
+        </InputSection>
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputSection
+          section="results.properties.electronic.dos_electronic"
+          visible={visible}
+        >
+          <InputField
+            quantity="results.properties.electronic.dos_electronic.spin_polarized"
+            visible={visible}
+            disableSearch
+          />
+        </InputSection>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>

@@ -20,5 +20,5 @@ from flask import Blueprint
 import os.path
 
 docs_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '../../../docs/.build/html'))
+    os.path.dirname(__file__), '../../../docs/build'))
 blueprint = Blueprint('docs', __name__, static_url_path='/', static_folder=docs_folder)

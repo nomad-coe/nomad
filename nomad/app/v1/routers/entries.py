@@ -65,95 +65,98 @@ logger = utils.get_logger(__name__)
 
 query_parameters = QueryParameters(doc_type=entry_type)
 
+archive_required_documentation = strip('''
+The `required` part allows you to specify what parts of the requested archives
+should be returned. The NOMAD Archive is a hierarchical data format and
+you can *require* certain branches (i.e. *sections*) in the hierarchy.
+By specifing certain sections with specific contents or all contents (via
+the directive `"*"`), you can determine what sections and what quantities should
+be returned. The default is the whole archive, i.e., `"*"`.
+
+For example to specify that you are only interested in the `metadata`
+use:
+
+```json
+{
+    "metadata": "*"
+}
+```
+
+Or to only get the `energy_total` from each individual calculations, use:
+```json
+{
+    "run": {
+        "configuration": {
+            "energy": "*"
+        }
+    }
+}
+```
+
+You can also request certain parts of a list, e.g. the last calculation:
+```json
+{
+    "run": {
+        "calculation[-1]": "*"
+    }
+}
+```
+
+These required specifications are also very useful to get workflow results.
+This works because we can use references (e.g. workflow to final result calculation)
+and the API will resolve these references and return the respective data.
+For example just the total energy value and reduced formula from the resulting
+calculation:
+```json
+{
+    "workflow": {
+        "calculation_result_ref": {
+            "energy": "*",
+            "system_ref": {
+                "value": {
+                    "chemical_composition": "*"
+                }
+            }
+        }
+    }
+}
+```
+
+You can also resolve all references in a branch with the `include-resolved`
+directive. This will resolve all references in the branch, and also all references
+in referenced sections:
+```json
+{
+    "workflow":
+        "calculation_result_ref": "include-resolved"
+    }
+}
+```
+
+By default, the targets of "resolved" references are added to the archive at
+their original hierarchy positions.
+This means, all references are still references, but they are resolvable within
+the returned data, since they targets are now part of the data. Another option
+is to add
+`"resolve-inplace": true` to the root of required. Here, the reference targets will
+replace the references:
+```json
+{
+    "resolve-inplace": true,
+    "workflow":
+        "calculation_result_ref": "include-resolved"
+    }
+}
+```
+''')
+
+
 ArchiveRequired = Union[str, Dict[str, Any]]
 
 _archive_required_field = Body(
     '*',
     embed=True,
-    description=strip('''
-        The `required` part allows you to specify what parts of the requested archives
-        should be returned. The NOMAD Archive is a hierarchical data format and
-        you can *require* certain branches (i.e. *sections*) in the hierarchy.
-        By specifing certain sections with specific contents or all contents (via
-        the directive `"*"`), you can determine what sections and what quantities should
-        be returned. The default is the whole archive, i.e., `"*"`.
-
-        For example to specify that you are only interested in the `metadata`
-        use:
-
-        ```
-        {
-            "metadata": "*"
-        }
-        ```
-
-        Or to only get the `energy_total` from each individual calculations, use:
-        ```
-        {
-            "run": {
-                "configuration": {
-                    "energy": "*"
-                }
-            }
-        }
-        ```
-
-        You can also request certain parts of a list, e.g. the last calculation:
-        ```
-        {
-            "run": {
-                "calculation[-1]": "*"
-            }
-        }
-        ```
-
-        These required specifications are also very useful to get workflow results.
-        This works because we can use references (e.g. workflow to final result calculation)
-        and the API will resolve these references and return the respective data.
-        For example just the total energy value and reduced formula from the resulting
-        calculation:
-        ```
-        {
-            "workflow": {
-                "calculation_result_ref": {
-                    "energy": "*",
-                    "system_ref": {
-                        "value": {
-                            "chemical_composition": "*"
-                        }
-                    }
-                }
-            }
-        }
-        ```
-
-        You can also resolve all references in a branch with the `include-resolved`
-        directive. This will resolve all references in the branch, and also all references
-        in referenced sections:
-        ```
-        {
-            "workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-
-        By default, the targets of "resolved" references are added to the archive at
-        their original hierarchy positions.
-        This means, all references are still references, but they are resolvable within
-        the returned data, since they targets are now part of the data. Another option
-        is to add
-        `"resolve-inplace": true` to the root of required. Here, the reference targets will
-        replace the references:
-        ```
-        {
-            "resolve-inplace": true,
-            "workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-    '''),
+    description=archive_required_documentation,
     example={
         'run': {
             'calculation[-1]': {
@@ -829,7 +832,7 @@ def _answer_entries_archive_download_request(
             manifest.append(entry_metadata)
 
         # add the manifest at the end
-        manifest_content = json.dumps(manifest).encode()
+        manifest_content = json.dumps(manifest, indent=2).encode()
         yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
 
     try:
@@ -966,7 +969,7 @@ async def get_entry_raw_download(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The entry with the given id does not exist or is not visible to you.')
 
-    return _answer_entries_raw_download_request(owner=Owner.public, query=query, files=files, user=user)
+    return _answer_entries_raw_download_request(owner=Owner.visible, query=query, files=files, user=user)
 
 
 @router.get(
@@ -1027,10 +1030,9 @@ async def get_entry_raw_download_file(
     return StreamingResponse(raw_file_content, media_type=mime_type)
 
 
-def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user: User):
+def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequired, user: User):
     required_reader = _validate_required(required)
 
-    query = dict(calc_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
         required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
@@ -1039,9 +1041,10 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
     if response.pagination.total == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.')
+            detail='The entry does not exist or is not visible to you.')
 
     entry_metadata = response.data[0]
+    entry_id = entry_metadata['entry_id']
 
     uploads = _Uploads()
     try:
@@ -1050,7 +1053,7 @@ def _answer_entry_archive_request(entry_id: str, required: ArchiveRequired, user
         except KeyError:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail='The entry with the given id does exist, but it has no archive.')
+                detail='The entry does exist, but it has no archive.')
 
         return {
             'entry_id': entry_id,
@@ -1079,7 +1082,7 @@ async def get_entry_archive(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    return _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
 
 
 @router.get(
@@ -1093,7 +1096,7 @@ async def get_entry_archive_download(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    response = _answer_entry_archive_request(entry_id=entry_id, required='*', user=user)
+    response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
     return response['data']['archive']
 
 
@@ -1113,7 +1116,7 @@ async def post_entry_archive_query(
     Returns a partial archive for the given `entry_id` based on the `required` specified
     in the body.
     '''
-    return _answer_entry_archive_request(entry_id=entry_id, required=data.required, user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
 
 
 def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
@@ -1369,8 +1372,7 @@ async def post_entries_edit(
     '''
     edit_request_json = await request.json()
     try:
-        verified_json = proc.MetadataEditRequestHandler.edit_metadata(
-            edit_request_json=edit_request_json, upload_id=None, user=user)
+        verified_json = proc.MetadataEditRequestHandler.edit_metadata(edit_request_json, None, user)
         return verified_json
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.

@@ -19,14 +19,10 @@ import React, { useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { Typography, makeStyles, Box, Grid, Link, Divider } from '@material-ui/core'
+import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import { ApiDialog } from '../buttons/ApiDialogButton'
 import { Actions } from '../Actions'
 import Quantity from '../Quantity'
-import { Link as RouterLink } from 'react-router-dom'
-import { DOI } from '../dataset/DOI'
-import { authorList } from '../../utils'
-import searchQuantities from '../../searchQuantities'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
 import VibrationalPropertiesCard from '../entry/properties/VibrationalPropertiesCard'
@@ -137,61 +133,24 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
         <Divider className={classes.divider} />
         <MetadataSection title='Author metadata'>
           <Quantity flex>
-            <Quantity quantity='comment' placeholder='no comment' data={index} />
-            <Quantity quantity='references' placeholder='no references' data={index}>
-              {index.references &&
-              <div style={{display: 'inline-grid'}}>
-                {index.references.map(ref => <Typography key={ref} noWrap>
-                  <Link href={ref}>{ref}</Link>
-                </Typography>)}
-              </div>}
-            </Quantity>
-            <Quantity quantity='authors' data={index}>
-              <Typography>
-                {authorList(index || [])}
-              </Typography>
-            </Quantity>
-            <Quantity
-              description={searchQuantities['datasets'] && searchQuantities['datasets'].description}
-              label='datasets'
-              placeholder='no datasets'
-              data={index}
-            >
-              {(index.datasets && index.datasets.length !== 0) &&
-              <div>
-                {index.datasets.map(ds => (
-                  <Typography key={ds.dataset_id}>
-                    <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
-                    {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
-                  </Typography>))}
-              </div>}
-            </Quantity>
+            <Quantity quantity='comment' data={index} />
+            <Quantity quantity='references' data={index}/>
+            <Quantity quantity='authors' data={index}/>
+            <Quantity quantity="datasets" data={index}/>
           </Quantity>
         </MetadataSection>
         <Divider className={classes.divider}/>
         <MetadataSection>
           <Quantity column style={{maxWidth: 350}}>
-            <Quantity quantity="mainfile" noWrap ellipsisFront withClipboard data={index}/>
-            <Quantity quantity="entry_id" label='entry id' noWrap withClipboard data={index}/>
-            <Quantity quantity="results.material.material_id" label='material id' noWrap withClipboard data={index}/>
-            <Quantity quantity="upload_id" label='upload id' noWrap withClipboard data={index}/>
-            <Quantity quantity="upload_create_time" noWrap data={index}>
-              <Typography noWrap>
-                {new Date(index.upload_create_time).toLocaleString()}
-              </Typography>
-            </Quantity>
-            <Quantity quantity="raw_id" label='raw id' noWrap hideIfUnavailable withClipboard data={index}/>
-            <Quantity quantity="external_id" label='external id' hideIfUnavailable noWrap withClipboard data={index}/>
-            <Quantity quantity="last_processing_time" label='last processing time' placeholder="not processed" noWrap data={index}>
-              <Typography noWrap>
-                {new Date(index.last_processing_time).toLocaleString()}
-              </Typography>
-            </Quantity>
-            <Quantity description="Version used in the last processing" label='processing version' noWrap placeholder="not processed" data={index}>
-              <Typography noWrap>
-                {index.nomad_version}/{index.nomad_commit}
-              </Typography>
-            </Quantity>
+            <Quantity quantity="mainfile" data={index}/>
+            <Quantity quantity="entry_id" data={index}/>
+            <Quantity quantity="results.material.material_id" data={index}/>
+            <Quantity quantity="upload_id" data={index}/>
+            <Quantity quantity="upload_create_time" data={index}/>
+            <Quantity quantity="raw_id" data={index}/>
+            <Quantity quantity="external_id" data={index}/>
+            <Quantity quantity="last_processing_time" data={index}/>
+            <Quantity quantity="last_processing_version" data={index}/>
           </Quantity>
         </MetadataSection>
         <ApiDialog data={index} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>

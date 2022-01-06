@@ -46,6 +46,7 @@ file to the original *mainfile* and vice versa.
 from abc import ABCMeta
 import sys
 from typing import IO, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple
+from functools import lru_cache
 from pydantic import BaseModel
 from datetime import datetime
 import os.path
@@ -56,6 +57,7 @@ import zipstream
 import hashlib
 import io
 import json
+import yaml
 import magic
 
 from nomad import config, utils, datamodel
@@ -914,6 +916,31 @@ class StagingUploadFiles(UploadFiles):
         if path == '':
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
+
+    @lru_cache()
+    def metadata_file_cached(self, path_dir: str = ''):
+        '''
+        Gets the content of the metadata file located in the directory defined by `path_dir`.
+        The `path_dir` should be relative to the `raw` folder.
+        '''
+        path_incl_filename = os.path.join(path_dir, config.process.metadata_file_name)
+        for ext in config.process.metadata_file_extensions:
+            path_incl_filename_ext = path_incl_filename + '.' + ext
+            full_path = os.path.join(self._raw_dir.os_path, path_incl_filename_ext)
+            if os.path.isfile(full_path):
+                try:
+                    with open(full_path) as f:
+                        if full_path.endswith('.json'):
+                            return json.load(f)
+                        elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
+                            return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                        else:
+                            return {}
+                except Exception as e:
+                    # ignore the file contents if the file is not parsable, just warn.
+                    self.logger.warn(
+                        'could not parse nomad.yaml/json', path=path_incl_filename_ext, exc_info=e)
+        return {}
 
     @property
     def is_frozen(self) -> bool:

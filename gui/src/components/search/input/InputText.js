@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import { useRecoilValue } from 'recoil'
@@ -64,6 +64,9 @@ const useStyles = makeStyles(theme => ({
 }))
 export const InputTextQuantity = React.memo(({
   quantity,
+  suggestions,
+  loading,
+  onChange,
   disableSuggestions,
   className,
   classes,
@@ -77,22 +80,32 @@ export const InputTextQuantity = React.memo(({
   const [highlighted, setHighlighted] = useState({value: ''})
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  const [suggestions, loading] = useSuggestions([quantity], suggestionInput)
-  const disableSuggestionsFinal = isNil(disableSuggestions)
-    ? !searchQuantities[quantity].suggestion
-    : disableSuggestions
+  const suggestionQuantity = useMemo(() => [quantity], [quantity])
+  const [suggestionsAuto, loadingAuto] = useSuggestions(suggestionQuantity, suggestionInput)
+  const finalSuggestions = suggestions || suggestionsAuto
+  const finalLoading = loading || loadingAuto
+  const disableSuggestionsFinal = suggestions
+    ? true
+    : isNil(disableSuggestions)
+      ? !searchQuantities[quantity]?.suggestion
+      : disableSuggestions
 
   // Attach the filter hook
   const setFilter = useSetFilter(quantity)
   const locked = useFilterLocked(quantity)
   const disabled = locked || TextFieldProps.disabled
 
+  // Sets the input value and calls the callback if given
+  const handleChange = useCallback((input) => {
+    setInputValue(input)
+    onChange && onChange(input)
+  }, [onChange])
+
   // Clears the input and suggestions
   const clearInputValue = useCallback(() => {
-    setInputValue('')
-    setSuggestionInput('')
+    handleChange('')
     setOpen(false)
-  }, [])
+  }, [handleChange])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -152,7 +165,7 @@ export const InputTextQuantity = React.memo(({
     if (reason === 'reset') {
       handleSubmit(value)
     } else {
-      setInputValue(value)
+      handleChange(value)
     }
 
     // Suggestions are only retrieved on user input, or when the value has been
@@ -160,7 +173,7 @@ export const InputTextQuantity = React.memo(({
     if (!disableSuggestionsFinal && (value.trim() === '' || reason === 'input')) {
       setSuggestionInput(value)
     }
-  }, [disableSuggestionsFinal, handleSubmit])
+  }, [disableSuggestionsFinal, handleSubmit, handleChange])
 
   return <div className={clsx(className, styles.root)}>
     <Autocomplete
@@ -175,7 +188,7 @@ export const InputTextQuantity = React.memo(({
       fullWidth
       disableClearable
       classes={{endAdornment: styles.endAdornment}}
-      options={suggestions}
+      options={finalSuggestions}
       onInputChange={handleInputChange}
       onHighlightChange={handleHighlight}
       getOptionLabel={option => option.value}
@@ -187,7 +200,7 @@ export const InputTextQuantity = React.memo(({
         params.InputProps.className = undefined
         return <InputTextField
           {...params}
-          placeholder=""
+          placeholder="Type here"
           label={error || undefined}
           error={!!error}
           onKeyDown={handleKeyDown}
@@ -195,7 +208,7 @@ export const InputTextQuantity = React.memo(({
           InputProps={{
             ...params.InputProps,
             endAdornment: (<>
-              {loading ? <CircularProgress color="inherit" size={20} /> : null}
+              {finalLoading ? <CircularProgress color="inherit" size={20} /> : null}
               {(inputValue?.length || null) && <>
                 <Tooltip title="Clear">
                   <IconButton
@@ -218,10 +231,26 @@ export const InputTextQuantity = React.memo(({
 })
 
 InputTextQuantity.propTypes = {
+  /*
+   * The quantity targeted by the text field target.
+   */
   quantity: PropTypes.string,
   /*
-   * Whether to enable or disable suggestions. If no value is given the
-   * suggestions are turned on if they are available for the quantity.
+   * A manual array of suggestions.
+   */
+  suggestions: PropTypes.array,
+  /*
+   * Whether suggestions are being loade
+   */
+  loading: PropTypes.bool,
+  /*
+   * Callback for when the input changes
+   */
+  onChange: PropTypes.bool,
+  /*
+   * Whether to enable or disable automatic suggestions. Will be forcefully set
+   * to true if manual list of suggestions are provided. If no value is given
+   * the suggestions are turned on if they are available for the quantity.
    */
   disableSuggestions: PropTypes.bool,
   className: PropTypes.string,

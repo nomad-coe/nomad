@@ -20,6 +20,7 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
+import { InputCheckboxValue } from '../input/InputCheckbox'
 
 const FilterSubMenuDFT = React.memo(({
   value,
@@ -28,7 +29,16 @@ const FilterSubMenuDFT = React.memo(({
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu
+    value={value}
+    actions={<InputCheckboxValue
+      quantity="results.method.method_name"
+      value="DFT"
+      label=""
+      description="Search DFT entries"
+    />}
+    {...rest}
+  >
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField

@@ -28,7 +28,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
-from nomad import utils, config, files, datamodel
+from nomad import utils, config, files
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
@@ -38,6 +38,7 @@ from .auth import create_user_dependency, generate_upload_token
 from ..models import (
     MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
     Files, files_parameters, WithQuery, MetadataEditRequest)
+from .entries import EntryArchiveResponse, answer_entry_archive_request
 from ..utils import (
     parameter_dependency_from_model, create_responses, DownloadItem,
     create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
@@ -46,25 +47,11 @@ router = APIRouter()
 default_tag = 'uploads'
 metadata_tag = 'uploads/metadata'
 raw_tag = 'uploads/raw'
+archive_tag = 'uploads/archive'
 action_tag = 'uploads/action'
 bundle_tag = 'uploads/bundle'
 
 logger = utils.get_logger(__name__)
-
-
-class UploadMetadata(BaseModel):
-    upload_name: Optional[str] = Field(None, description=strip('''
-        A user-firendly name of the upload. Does not need to be unique'''))
-    embargo_length: Optional[int] = Field(None, description=strip('''
-        The embargo length in months (max 36).'''))
-    main_author: Optional[str] = Field(None, description=strip('''
-        The main author of the upload. **Note! Can only be updated by admin users.**'''))
-    upload_create_time: Optional[datetime] = Field(None, description=strip('''
-        The time of the creation of the upload. **Note! Can only be updated by admin users.**'''))
-
-
-upload_metadata_parameters = parameter_dependency_from_model(
-    'upload_metadata_parameters', UploadMetadata)
 
 
 class ProcData(BaseModel):
@@ -738,8 +725,6 @@ async def put_upload_raw_path(
     '''
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
-    _check_upload_not_processing(upload)
-
     if not is_safe_relative_path(path):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -753,10 +738,21 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='No upload file provided.')
 
-    _check_upload_not_processing(upload)  # Uploading the file could take long time
+    if files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path):
+        # Uploading an compressed file -> reprocess the entire target directory
+        path_filter = path
+    else:
+        # Uploading a single file -> reprocess only the file
+        path_filter = os.path.join(path, os.path.basename(upload_path))
 
-    upload.process_upload(
-        file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)))
+    try:
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
+            path_filter=path_filter)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
 
     if request.headers.get('Accept') == 'application/json':
         upload_proc_data_response = UploadProcDataResponse(
@@ -793,8 +789,6 @@ async def delete_upload_raw_path(
     '''
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
-    _check_upload_not_processing(upload)
-
     if not is_safe_relative_path(path):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -807,9 +801,64 @@ async def delete_upload_raw_path(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='No file or folder with that path found.')
 
-    upload.process_upload(file_operation=dict(op='DELETE', path=path))
+    try:
+        upload.process_upload(file_operation=dict(op='DELETE', path=path), path_filter=path)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.get(
+    '/{upload_id}/archive/mainfile/{mainfile:path}', tags=[archive_tag],
+    summary='Get the full archive for the given upload and mainfile path.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive_mainfile(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        mainfile: str = Path(
+            ...,
+            description='The mainfile path within the upload\'s raw files.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `mainfile`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, mainfile=mainfile),
+        required='*', user=user)
+
+
+@router.get(
+    '/{upload_id}/archive/{entry_id}', tags=[archive_tag],
+    summary='Get the full archive for the given upload and entry.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        entry_id: str = Path(
+            ...,
+            description='The unique entry id.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `entry_id`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, entry_id=entry_id),
+        required='*', user=user)
 
 
 @router.post(
@@ -830,7 +879,14 @@ async def post_upload(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
-        metadata: UploadMetadata = Depends(upload_metadata_parameters),
+        upload_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            A human readable name for the upload.''')),
+        embargo_length: int = FastApiQuery(
+            0,
+            description=strip('''
+            The requested embargo length, in months, if any (0-36).''')),
         publish_directly: bool = FastApiQuery(
             None,
             description=strip('''
@@ -876,31 +932,33 @@ async def post_upload(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
+    if not 0 <= embargo_length <= 36:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='`embargo_length` must be between 0 and 36 months.')
+
     upload_id = utils.create_uuid()
 
-    if metadata.upload_name and not file_name and files.is_safe_basename(metadata.upload_name):
+    if upload_name and not file_name and files.is_safe_basename(upload_name):
         # Try to default the file_name using name
-        file_name = metadata.upload_name
+        file_name = upload_name
 
     upload_path, method = await _get_file_if_provided(
         upload_id, request, file, local_path, file_name, user)
 
-    if not metadata.upload_name:
+    if not upload_name:
         # Try to default upload_name
         if method == 2:
-            metadata.upload_name = file_name or None
+            upload_name = file_name or None
         elif upload_path:
-            metadata.upload_name = os.path.basename(upload_path)
-
-    checked_upload_metadata = _check_upload_metadata(
-        metadata, is_admin=user.is_admin, published=False, current_embargo_length=0)
+            upload_name = os.path.basename(upload_path)
 
     upload = Upload.create(
         upload_id=upload_id,
-        main_author=checked_upload_metadata.main_author or user,
-        upload_name=checked_upload_metadata.upload_name,
-        upload_create_time=checked_upload_metadata.upload_create_time or datetime.utcnow(),
-        embargo_length=checked_upload_metadata.embargo_length or 0,
+        main_author=user,
+        upload_name=upload_name,
+        upload_create_time=datetime.utcnow(),
+        embargo_length=embargo_length,
         publish_directly=publish_directly)
 
     # Create staging files
@@ -923,38 +981,6 @@ async def post_upload(
         media_type = 'text/plain'
 
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
-
-
-@router.put(
-    '/{upload_id}/metadata', tags=[metadata_tag],
-    summary='Updates the metadata of the specified upload.',
-    response_model=UploadProcDataResponse,
-    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
-    response_model_exclude_unset=True,
-    response_model_exclude_none=True)
-async def put_upload_metadata(
-        upload_id: str = Path(
-            ...,
-            description='The unique id of the upload.'),
-        metadata: UploadMetadata = Depends(upload_metadata_parameters),
-        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
-    '''
-    Updates the upload-level metadata of the specified upload. Note, if the upload is
-    published, the only operation permitted for non-admin users is to reduce the `embargo_length`,
-    i.e. to shorten the embargo or lift it entirely by setting the value to 0. Moreover,
-    some of the fields can only be set by admins.
-    '''
-    upload = _get_upload_with_write_access(
-        upload_id, user, include_published=True, published_requires_admin=False)
-
-    _check_upload_not_processing(upload)
-
-    checked_upload_metadata = _check_upload_metadata(
-        metadata, user.is_admin, upload.published, upload.embargo_length)
-
-    upload.set_upload_metadata(checked_upload_metadata.m_to_dict())
-
-    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
 
 @router.post(
@@ -988,8 +1014,7 @@ async def post_upload_edit(
     '''
     edit_request_json = await request.json()
     try:
-        MetadataEditRequestHandler.edit_metadata(
-            edit_request_json=edit_request_json, upload_id=upload_id, user=user)
+        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
         return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
@@ -1018,8 +1043,6 @@ async def delete_upload(
     '''
     upload = _get_upload_with_write_access(
         upload_id, user, include_published=True, published_requires_admin=True)
-
-    _check_upload_not_processing(upload)
 
     try:
         upload.delete_upload()
@@ -1169,8 +1192,7 @@ async def post_upload_action_lift_embargo(
             Upload has no embargo.'''))
     # Lift the embargo using MetadataEditRequestHandler.edit_metadata
     try:
-        MetadataEditRequestHandler.edit_metadata(
-            edit_request_json={'metadata': {'embargo_length': 0}}, upload_id=upload_id, user=user)
+        MetadataEditRequestHandler.edit_metadata({'metadata': {'embargo_length': 0}}, upload_id, user)
         upload.reload()
         return UploadProcDataResponse(
             upload_id=upload_id,
@@ -1552,61 +1574,3 @@ def _check_upload_not_processing(upload: Upload):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently being processed, operation not allowed.')
-
-
-def _check_upload_metadata(
-        metadata: UploadMetadata, is_admin: bool, published: bool,
-        current_embargo_length: int) -> datamodel.UploadMetadata:
-    '''
-    Performs sanity checks and permission checks of the provided :class:`UploadMetadata`
-    and creates a :class:`datamodel.UploadMetadata` with validated values. Raises a
-    HTTPException if the checks fail.
-
-    Arguments:
-        metadata: the metadata to check.
-        is_admin: if the user trying to set this metadata is an admin user.
-        published: if the upload is published.
-        current_embargo_length: the current embargo_length of the upload.
-    '''
-    if not is_admin:
-        for field in ('main_author', 'upload_create_time'):
-            if getattr(metadata, field) is not None:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f'Must be admin to change {field}')
-        if published:
-            for field in ('upload_name',):
-                if getattr(metadata, field) is not None:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail=f'Upload is published, changing {field} requires admin.')
-    if metadata.main_author is not None:
-        try:
-            main_author = datamodel.User.get(user_id=metadata.main_author)
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`main_author` is not a valid user id.')
-    else:
-        main_author = None
-    if metadata.embargo_length is not None:
-        if not 0 <= metadata.embargo_length <= 36:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Invalid `embargo_length`. Must be between 0 and 36 months')
-        if published and not is_admin:
-            if current_embargo_length == 0 and metadata.embargo_length > 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='Cannot put an embargo on an upload after it has been published.')
-            if metadata.embargo_length >= current_embargo_length:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='Upload is published, embargo can only be shortened or lifted.')
-
-    upload_metadata: datamodel.UploadMetadata = datamodel.UploadMetadata()
-    upload_metadata.upload_name = metadata.upload_name
-    upload_metadata.embargo_length = metadata.embargo_length
-    upload_metadata.main_author = main_author
-    upload_metadata.upload_create_time = metadata.upload_create_time
-    return upload_metadata

@@ -19,7 +19,7 @@ import React, {useState, useEffect, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
-import { mergeObjects } from '../../utils'
+import { getLineStyles, mergeObjects } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
@@ -34,7 +34,18 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
 
   // Merge custom layout with default layout
   const tmpLayout = useMemo(() => {
+    if (data === undefined) {
+      return
+    }
+    const nTraces = data.length
     let defaultLayout = {
+      showlegend: nTraces > 1,
+      legend: {
+        x: 1,
+        y: 1,
+        xanchor: 'right',
+        yanchor: 'top'
+      },
       yaxis: {
         title: {
           text: 'Electron count'
@@ -48,7 +59,7 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
       }
     }
     return mergeObjects(layout, defaultLayout)
-  }, [layout, units])
+  }, [layout, units, data])
 
   // The plotted data is loaded only after the first render as a side effect to
   // avoid freezing the UI
@@ -57,21 +68,23 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
       return
     }
     const plotData = []
-    const energies = toUnitSystem(data.energy, energyUnit, units)
-    plotData.push(
-      {
-        x: energies,
-        y: data.count,
-        type: 'scatter',
-        mode: 'lines',
-        line: {
-          color: theme.palette.primary.main,
-          width: 2
+    const lineStyles = getLineStyles(data.length, theme)
+    for (let i = 0; i < data.length; ++i) {
+      const trace = data[i]
+      const energies = toUnitSystem(trace.energy, energyUnit, units)
+      plotData.push(
+        {
+          x: energies,
+          y: trace.count,
+          name: i,
+          type: 'scatter',
+          mode: 'lines',
+          line: lineStyles[i]
         }
-      }
-    )
+      )
+    }
     setFinalData(plotData)
-  }, [data, theme.palette.primary.main, theme.palette.secondary.main, units])
+  }, [data, theme, units])
 
   return <Plot
     data={finalData}
@@ -85,10 +98,10 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
 }
 
 EELS.propTypes = {
-  data: PropTypes.shape({
+  data: PropTypes.arrayOf(PropTypes.shape({
     count: PropTypes.arrayOf(PropTypes.number),
     energy: PropTypes.arrayOf(PropTypes.number)
-  }),
+  })),
   layout: PropTypes.object,
   aspectRatio: PropTypes.number,
   className: PropTypes.string,

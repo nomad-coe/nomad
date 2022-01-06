@@ -17,11 +17,11 @@
  */
 import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { scale } from 'chroma-js'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from './Plot'
 import { withErrorHandler } from '../ErrorHandler'
 import { toUnitSystem, Unit } from '../../units'
+import { getLineStyles } from '../../utils'
 
 /**
  * A thin wrapper for the Plot-component that is used for plotting energy-volume
@@ -29,7 +29,6 @@ import { toUnitSystem, Unit } from '../../units'
  */
 const energyUnit = new Unit('joule')
 const volumeUnit = new Unit('meter**3')
-const lineStyles = ['solid', 'dot', 'dashdot']
 
 const EnergyVolumeCurve = React.memo(({
   data,
@@ -39,16 +38,6 @@ const EnergyVolumeCurve = React.memo(({
 }) => {
   const [finalData, setFinalData] = useState(data)
   const theme = useTheme()
-
-  // Calculate color values for traces
-  const colors = useMemo(() => {
-    if (!data) {
-      return
-    }
-    const nTraces = data.data.length
-    return scale([theme.palette.primary.dark, theme.palette.secondary.light])
-      .mode('lch').colors(nTraces)
-  }, [data, theme])
 
   // Calculate indices that sort the data
   const indices = useMemo(() => {
@@ -78,6 +67,7 @@ const EnergyVolumeCurve = React.memo(({
 
     const traces = []
     let i = 0
+    const lineStyles = getLineStyles(data.data.length, theme)
     for (let curve of data.data) {
       const trace = {
         x: toUnitSystem(indices.map(i => curve.volumes[i]), volumeUnit, units),
@@ -85,17 +75,13 @@ const EnergyVolumeCurve = React.memo(({
         name: curve.name,
         visible: i === 0 || 'legendonly',
         type: 'scatter',
-        line: {
-          dash: lineStyles[i % lineStyles.length],
-          color: colors[i],
-          width: 2
-        }
+        line: lineStyles[i]
       }
       traces.push(trace)
       ++i
     }
     setFinalData(traces)
-  }, [data, units, theme, indices, colors])
+  }, [data, units, theme, indices])
 
   const plotLayout = useMemo(() => {
     if (!data) {

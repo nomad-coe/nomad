@@ -44,7 +44,7 @@ from pydantic import ValidationError
 from nomad import config, infrastructure, utils
 from nomad import datamodel
 from nomad.app.v1 import models
-from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.datamodel import EntryArchive, EntryMetadata, user_reference, author_reference
 from nomad.app.v1.models import (
     AggregationPagination, Criteria, MetadataPagination, Pagination, PaginationResponse,
     QuantityAggregation, Query, MetadataRequired,
@@ -273,6 +273,11 @@ _entry_metadata_defaults = {
     if quantity.default not in [None, [], False, 0]
 }
 
+_all_author_quantities = [
+    quantity.name
+    for quantity in EntryMetadata.m_def.all_quantities.values()
+    if quantity.type in [user_reference, author_reference]]
+
 
 def _es_to_entry_dict(hit, required: MetadataRequired = None) -> Dict[str, Any]:
     '''
@@ -290,6 +295,16 @@ def _es_to_entry_dict(hit, required: MetadataRequired = None) -> Dict[str, Any]:
                     continue
 
             entry_dict[key] = value
+
+    for author_quantity in _all_author_quantities:
+        authors = entry_dict.get(author_quantity)
+        if authors is None:
+            continue
+        if isinstance(authors, dict):
+            authors = [authors]
+        for author in authors:
+            if 'email' in author:
+                del(author['email'])
 
     return entry_dict
 
@@ -950,6 +965,15 @@ def _es_to_api_aggregation(
                     entries = [{longest_nested_key: item['_source']} for item in es_bucket.entries.hits.hits]
                 else:
                     entries = [item['_source'] for item in es_bucket.entries.hits.hits]
+
+            # By default ES returns values of 0 and 1 for terms aggregation
+            # targeting boolean values. Here we transform them into True/False
+            # to be more consistent.
+            if isinstance(agg, TermsAggregation) and quantity.annotation.mapping["type"] == "boolean":
+                if value == 0:
+                    value = False
+                elif value == 1:
+                    value = True
 
             values.add(value)
             if len(metrics) == 0:

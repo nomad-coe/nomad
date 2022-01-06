@@ -74,8 +74,9 @@ quantity_analyzer = analyzer(
 
 def QuantitySearch():
     return [
-        Elasticsearch(_es_field='keyword'),
+        Elasticsearch(material_entry_type, _es_field='keyword'),
         Elasticsearch(
+            material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
             field='path', _es_field='')]
 
@@ -93,9 +94,7 @@ class Author(metainfo.MSection):
 
     first_name = metainfo.Quantity(type=metainfo.Capitalized)
     last_name = metainfo.Quantity(type=metainfo.Capitalized)
-    email = metainfo.Quantity(
-        type=str,
-        a_elasticsearch=Elasticsearch())
+    email = metainfo.Quantity(type=str)
 
     affiliation = metainfo.Quantity(type=str)
     affiliation_address = metainfo.Quantity(type=str)
@@ -290,16 +289,9 @@ class DatasetReference(metainfo.Reference):
 dataset_reference = DatasetReference()
 
 
-class UserProvidableMetadata(metainfo.MCategory):
-    '''
-    NOMAD entry metadata quantities that can be edited by the user before publish,
-    i.e. via metadata files or api/ui.
-    '''
-
-
 class EditableUserMetadata(metainfo.MCategory):
     ''' NOMAD entry metadata quantities that can be edited by the user before or after publish. '''
-    m_def = metainfo.Category(categories=[UserProvidableMetadata])
+    pass
 
 
 class MongoUploadMetadata(metainfo.MCategory):
@@ -342,25 +334,6 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     if entry.entry_coauthors:
         authors.extend(entry.entry_coauthors)
     return authors
-
-
-class UploadMetadata(metainfo.MSection):
-    '''
-    Metadata that is set on the upload level and can be edited. Some of the fields are
-    also mirrored to the entries.
-    '''
-    upload_name = metainfo.Quantity(
-        type=str,
-        description='The user provided upload name')
-    upload_create_time = metainfo.Quantity(
-        type=metainfo.Datetime,
-        description='The date and time when the upload was created')
-    main_author = metainfo.Quantity(
-        type=user_reference,
-        description='The creator of the upload')
-    embargo_length = metainfo.Quantity(
-        type=int,
-        description='The length of the embargo period in months (0-36)')
 
 
 class EntryMetadata(metainfo.MSection):
@@ -486,11 +459,10 @@ class EntryMetadata(metainfo.MSection):
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
         ''',
-        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(entry_type))
 
     external_id = metainfo.Quantity(
-        type=str, categories=[MongoEntryMetadata, UserProvidableMetadata, EditableUserMetadata],
+        type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
         description='''
             A user provided external id. Usually the id for an entry in an external database
             where the data was imported from.
@@ -570,7 +542,7 @@ class EntryMetadata(metainfo.MSection):
 
     external_db = metainfo.Quantity(
         type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'),
-        categories=[MongoUploadMetadata, UserProvidableMetadata, EditableUserMetadata],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
 
@@ -645,7 +617,6 @@ class EntryMetadata(metainfo.MSection):
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
         description='The material science domain',
-        categories=[UserProvidableMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type))
 
     n_quantities = metainfo.Quantity(
@@ -711,3 +682,6 @@ class EntryArchive(metainfo.MSection):
         sub_section=Results,
         categories=[FastAccess],
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
+
+
+m_package.__init_metainfo__()

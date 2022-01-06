@@ -31,7 +31,8 @@ import {
   isArray,
   isPlainObject,
   isNil,
-  isSet
+  isSet,
+  isFunction
 } from 'lodash'
 import qs from 'qs'
 import PropTypes from 'prop-types'
@@ -70,8 +71,8 @@ import {
  * it actually changes the state of that component or not.
  */
 const orderByMap = {
-  'entries': 'upload_create_time',
-  'materials': 'chemical_formula_hill'
+  'entries': {order_by: 'upload_create_time', order: 'desc'},
+  'materials': {order_by: 'chemical_formula_hill', order: 'asc'}
 }
 let indexContext = 0
 let indexFilters = 0
@@ -85,7 +86,7 @@ export const SearchContext = React.memo(({
   children
 }) => {
   const {api} = useApi()
-  const {raiseErrors} = useErrors()
+  const {raiseError} = useErrors()
   const oldQuery = useRef(undefined)
   const oldPagination = useRef(undefined)
   const paginationResponse = useRef(undefined)
@@ -95,6 +96,7 @@ export const SearchContext = React.memo(({
   const updatedFilters = useRef(new Set())
   const refreshFilters = useRef(new Set())
   const firstLoad = useRef(true)
+  const disableUpdate = useRef(false)
 
   // Initialize the set of available filters. This may depend on the resource.
   const [filtersLocal, filterDataLocal] = useMemo(() => {
@@ -157,6 +159,7 @@ export const SearchContext = React.memo(({
     useResetFilters,
     useUpdateQueryString,
     queryState,
+    aggsFamily,
     aggsState,
     paginationState,
     resultsState,
@@ -255,8 +258,8 @@ export const SearchContext = React.memo(({
     const paginationState = atom({
       key: `pagination_${indexContext}`,
       default: initialPagination || {
-        order_by: orderByMap[resource],
-        page_size: 20
+        page_size: 20,
+        ...orderByMap[resource]
       }
     })
 
@@ -391,11 +394,10 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const nested = sectionContext?.nested
       const subname = useMemo(() => name.split('.').pop(), [name])
 
       const value = useRecoilValue(queryFamily(section || name))
-      return (section && nested)
+      return section
         ? value?.[subname]
         : value
     }
@@ -412,21 +414,23 @@ export const SearchContext = React.memo(({
       // inputSectionContext, we set the filter inside nested query.
       const sectionContext = useContext(inputSectionContext)
       const section = sectionContext?.section
-      const nested = sectionContext?.nested
       const subname = useMemo(() => name.split('.').pop(), [name])
 
       const setter = useSetRecoilState(queryFamily(section || name))
 
       const handleSet = useCallback((value) => {
         updatedFilters.current.add(name)
-        section && nested
+        section
           ? setter(old => {
             const newValue = isNil(old) ? {} : {...old}
+            if (isFunction(value)) {
+              value = value(newValue[subname])
+            }
             newValue[subname] = value
             return newValue
           })
           : setter(value)
-      }, [section, subname, setter, name, nested])
+      }, [section, subname, setter, name])
 
       return handleSet
     }
@@ -577,6 +581,7 @@ export const SearchContext = React.memo(({
      * @returns {object} {data, pagination, setPagination}
      */
     const useResults = () => useRecoilValue(resultsState)
+
     /**
      * Hook for modifying an aggregation request and fetching the latest values for
      * this aggregation.
@@ -589,7 +594,6 @@ export const SearchContext = React.memo(({
      * @returns {object} An object containing the aggregation results: the layout is
      * specific for each aggregation type.
      */
-
     const useAgg = (name, update = true, size = undefined, id = 'default') => {
       const setAgg = useSetRecoilState(aggsFamily(name))
       const aggResponse = useRecoilValue(aggsResponseFamily(name))
@@ -628,6 +632,7 @@ export const SearchContext = React.memo(({
       useResetFilters,
       useUpdateQueryString,
       queryState,
+      aggsFamily,
       aggsState,
       paginationState,
       resultsState,
@@ -651,12 +656,11 @@ export const SearchContext = React.memo(({
   const query = useRecoilValue(queryState)
   const [pagination, setPagination] = useRecoilState(paginationState)
   const updateQueryString = useUpdateQueryString()
-  const isStatisticsEnabled = useRecoilValue(isStatisticsEnabledState)
 
   // All of the heavier pre-processing, checking, etc. should be done in this
   // function, as it is the final one that gets called after the debounce
   // interval.
-  const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames, refresh = false) => {
+  const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames, refresh = false, callback = undefined) => {
     // Create the final search object.
     let apiQuery = {...query}
     if (filterDefaults) {
@@ -668,7 +672,7 @@ export const SearchContext = React.memo(({
     }
     const search = {
       owner: apiQuery.visibility,
-      query: toAPIFilter(apiQuery, resource, filterDefaults),
+      query: toAPIFilter(apiQuery, resource),
       aggregations: toAPIAgg(
         aggs,
         aggNames,
@@ -760,29 +764,36 @@ export const SearchContext = React.memo(({
       aggNames,
       search,
       resource
-    })).catch(raiseErrors)
-  }, [filterDefaults, resource, api, raiseErrors, updateAggsResponse, setResults, setPagination])
+    })).catch(raiseError).finally(() => callback && callback())
+  }, [filterDefaults, resource, api, raiseError, updateAggsResponse, setResults, setPagination])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
 
-  // When query, aggregation or pagination changes, make an API call. The API
-  // call is made immediately on first render. On subsequent renders it will be
-  // debounced.
-  useEffect(() => {
-    // If the query and pagination has not changed AND aggregations do not need
-    // to be updated, no update is necessary.
+  // Used to determine which parts need to be updated.
+  const updateStatus = useCallback((query, aggs, pagination) => {
     const queryChanged = query !== oldQuery.current
     const paginationChanged = pagination !== oldPagination.current
     let aggNames
     const reducedAggs = reduceAggs(aggs, updatedAggsMap.current, queryChanged)
-    if (!isStatisticsEnabled) {
-      aggNames = []
-    } else {
-      aggNames = Object.keys(reducedAggs).filter((key) => reducedAggs[key].update)
-    }
+    aggNames = Object.keys(reducedAggs).filter((key) => reducedAggs[key].update)
     const updateAggs = aggNames.length > 0
-    if (!paginationChanged && !queryChanged && !updateAggs) {
+    return {paginationChanged, queryChanged, updateAggs, reducedAggs, aggNames}
+  }, [])
+
+  // When query, aggregation or pagination changes, make an API call.
+  useEffect(() => {
+    // If the query and pagination has not changed AND aggregations do not need
+    // to be updated, no update is necessary.
+    const {
+      paginationChanged,
+      queryChanged,
+      updateAggs,
+      reducedAggs,
+      aggNames
+    } = updateStatus(query, aggs, pagination)
+    if ((!paginationChanged && !queryChanged && !updateAggs) || disableUpdate.current) {
+      disableUpdate.current = false
       return
     }
 
@@ -794,9 +805,9 @@ export const SearchContext = React.memo(({
     } else {
       apiCallDebounced(query, reducedAggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames)
     }
-  }, [query, aggs, pagination, apiCall, apiCallDebounced, isStatisticsEnabled])
+  }, [query, aggs, pagination, apiCall, apiCallDebounced, updateStatus])
 
-  // Hook for refreshing the results
+  // Hook for refreshing the results.
   const useRefresh = useCallback(() => {
     const query = useRecoilValue(queryState)
     const aggs = useRecoilValue(aggsState)
@@ -811,6 +822,47 @@ export const SearchContext = React.memo(({
     }, [aggNames, aggs, pagination, paginationChanged, query, queryChanged, updateAggs])
     return refresh
   }, [aggsState, apiCallDebounced, paginationState, queryState])
+
+  // Hook for imperatively requesting aggregation data. By using this hook you
+  // can track the state of individual calls and perform callbacks.
+  const useAggCall = useCallback((name) => {
+    const query = useRecoilValue(queryState)
+    const pagination = useRecoilValue(paginationState)
+    const setAgg = useSetRecoilState(aggsFamily(name))
+
+    const aggCall = useCallback((size, id, callback) => {
+      // Here we check if the new agg call will cause a new API query or not.
+      const agg = {[id]: {size, update: false}}
+      const aggs = {[name]: agg}
+      const {
+        paginationChanged,
+        queryChanged,
+        updateAggs,
+        aggNames
+      } = updateStatus(query, aggs, pagination)
+
+      // If the agg needs to be updated, we perform the query which will in the
+      // end trigger the given callback. Otherwise we directly trigger the
+      // callback.
+      if (updateAggs) {
+        apiCallDebounced(query, aggs, pagination, queryChanged, paginationChanged, updateAggs, aggNames, false, callback)
+      } else {
+        callback()
+      }
+
+      // We also need to update aggregation request state, otherwise the
+      // subsequent calls will not be able to know what was done by this call.
+      // To do this without triggering another API call, we disable API updates
+      // for one cycle.
+      disableUpdate.current = true
+      setAgg(old => {
+        const newAgg = old ? {...old, ...agg} : agg
+        return newAgg
+      })
+    }, [pagination, query, name, setAgg])
+
+    return aggCall
+  }, [apiCallDebounced, paginationState, queryState, updateStatus, aggsFamily])
 
   // This updated the query string to represent the latest value within the
   // search context.
@@ -845,6 +897,7 @@ export const SearchContext = React.memo(({
     useUpdateQueryString: useUpdateQueryString,
     useResults: useResults,
     useAgg: useAgg,
+    useAggCall: useAggCall,
     useSetFilters: useSetFilters,
     filters: filters,
     filterData: filterData
@@ -866,6 +919,7 @@ export const SearchContext = React.memo(({
     useRefresh,
     useResults,
     useAgg,
+    useAggCall,
     useSetFilters,
     isMenuOpenState,
     isCollapsedState,
@@ -1018,26 +1072,35 @@ function searchToQs(query, locked, statistics) {
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIFilter(query, resource, filterDefaults) {
+export function toAPIFilter(query, resource) {
   let queryCustomized = {}
   if (!query) {
     return undefined
   }
 
   // Perform custom transformations
-  const combine = query.combine
-  for (let [k, v] of Object.entries(query)) {
-    const data = filterDataGlobal[k]
-    const guiOnly = data?.guiOnly
-    const setter = data?.valueSet
-    if (guiOnly) {
-      continue
-    }
-    if (setter) {
-      setter(queryCustomized, query, v)
+  function customize(key, value) {
+    const data = filterDataGlobal[key]
+    const section = data?.section
+    if (section) {
+      for (let [keyNested, valueNested] of Object.entries(value)) {
+        customize(`${key}.${keyNested}`, valueNested)
+      }
     } else {
-      queryCustomized[k] = v
+      const guiOnly = data?.guiOnly
+      const setter = data?.valueSet
+      if (guiOnly) {
+        return
+      }
+      if (setter) {
+        setter(queryCustomized, query, value)
+      } else {
+        queryCustomized[key] = value
+      }
     }
+  }
+  for (let [k, v] of Object.entries(query)) {
+    customize(k, v)
   }
 
   // Create the API-compatible keys and values.
@@ -1056,6 +1119,7 @@ export function toAPIFilter(query, resource, filterDefaults) {
     // When combining results, we split each filter and each filter value into
     // it's own separate entries query. These queries are then joined with
     // 'and'.
+    const combine = query.combine
     if (combine) {
       const entrySearch = []
       for (const [k, v] of Object.entries(queryNormalized)) {
@@ -1236,10 +1300,13 @@ function toAPIAgg(aggs, aggNames, updatedFilters, resource) {
     const agg = aggs[aggName]
     const aggSet = filterDataGlobal[aggName].aggSet
     if (aggSet) {
-      for (const [key, type] of Object.entries(aggSet)) {
+      for (const [key, data] of Object.entries(aggSet)) {
         // If filter has been updated and the filter values are exclusive, the
         // filter is excluded from the aggregation.
-        const exclude = updatedFilters.has(key) && filterDataGlobal[key].exclusive
+        const type = data.type
+        const exclude = data.exclude
+          ? data.exclude(updatedFilters)
+          : updatedFilters.has(key) && filterDataGlobal[key].exclusive
         const name = resource === 'materials' ? materialNames[key.split(':')[0]] : key
         const apiAgg = apiAggs[name] || {}
         apiAgg[type] = {

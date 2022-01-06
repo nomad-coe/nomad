@@ -130,7 +130,7 @@ fs = NomadConfig(
     public_external=None,
     local_tmp='/tmp',
     prefix_size=2,
-    archive_version_suffix=None,
+    archive_version_suffix='v1',
     working_directory=os.getcwd()
 )
 
@@ -144,7 +144,7 @@ elastic = NomadConfig(
     host='localhost',
     port=9200,
     timeout=60,
-    bulk_timeout='10m',
+    bulk_timeout=600,
     bulk_size=1000,
     entries_per_material_cap=1000,
     entries_index='nomad_entries_v1',
@@ -163,7 +163,7 @@ keycloak = NomadConfig(
 mongo = NomadConfig(
     host='localhost',
     port=27017,
-    db_name='nomad_fairdi'
+    db_name='nomad_v1'
 )
 
 logstash = NomadConfig(
@@ -321,8 +321,8 @@ datacite = NomadConfig(
 meta = NomadConfig(
     version='1.0.0',
     commit=gitinfo.commit,
-    release='devel',
-    deployment='standard',
+    deployment='devel',
+    label=None,
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',

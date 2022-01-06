@@ -119,7 +119,7 @@ export default function RawFiles({data, entryId}) {
       return
     }
 
-    api.getRawFileListFromCalc(entryId).then(data => {
+    api.getRawFileListFromEntry(entryId).then(data => {
       const files = data.data.files.map(file => file.path)
       if (files.length > 500) {
         raiseError('There are more than 500 files in this entry. We can only show the first 500.')
@@ -144,8 +144,7 @@ export default function RawFiles({data, entryId}) {
       if (index === -1) {
         return [file, ...prevState]
       } else {
-        prevState.splice(index, 1)
-        return prevState
+        return [...prevState.slice(0, index), ...prevState.slice(index + 1)]
       }
     })
   }, [])
@@ -217,7 +216,7 @@ export default function RawFiles({data, entryId}) {
     // download the individual file
     downloadUrl = `entries/${entryId}/raw/download/${file(selectedFiles[0])}`
   } else if (selectedFiles.length === availableFiles.length) {
-    // use an endpoint that downloads all files of the calc
+    // use an endpoint that downloads all files of the entry
     downloadUrl = `entries/${entryId}/raw/download`
   } else if (selectedFiles.length > 0) {
     // download specific files

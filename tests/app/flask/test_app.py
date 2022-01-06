@@ -25,7 +25,7 @@ def test_alive(client):
 
 def test_docs(client):
     rv = client.get('/docs/index.html')
-    rv = client.get('/docs/introduction.html')
+    rv = client.get('/docs/oasis.html')
     assert rv.status_code == 200
 
 

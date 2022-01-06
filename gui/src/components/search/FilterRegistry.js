@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isString } from 'lodash'
+import { isNil, isString } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { getDimension } from '../../units'
@@ -48,6 +48,7 @@ export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
+export const labelArchive = 'Archive'
 
 /**
  * This function is used to register a new filter within the SearchContext.
@@ -113,7 +114,7 @@ function registerFilter(name, group, quantity, subQuantities) {
     if (agg) {
       let aggSet, aggGet
       if (isString(agg)) {
-        aggSet = {[name]: agg}
+        aggSet = {[name]: {type: agg}}
         aggGet = (aggs) => (aggs[name][agg].data)
       } else {
         aggSet = agg.set
@@ -136,6 +137,7 @@ function registerFilter(name, group, quantity, subQuantities) {
     data.dimension = getDimension(data.unit)
     data.deserializer = getDeserializer(data.dtype, data.dimension)
     data.label = quantity.label
+    data.section = !isNil(searchQuantities[name]?.nested)
     data.description = quantity.description
     data.scale = quantity.scale || 1
     data.aggSize = quantity.aggSize
@@ -156,7 +158,6 @@ function registerFilter(name, group, quantity, subQuantities) {
 
   // Register section subquantities
   if (subQuantities) {
-    filterDataGlobal[name].nested = true
     for (let quantity of subQuantities) {
       let subname = `${name}.${quantity.name}`
       save(subname, group, quantity)
@@ -182,6 +183,15 @@ const ptStatConfig = {
 
 // Presets for different kind of quantities
 const termQuantity = {agg: 'terms', stats: listStatConfig, aggSize: 5}
+const termQuantityBool = {
+  agg: 'terms',
+  stats: listStatConfig,
+  aggSize: 2,
+  options: {
+    false: {label: 'false'},
+    true: {label: 'true'}
+  }
+}
 const termQuantityNonExclusive = {agg: 'terms', stats: listStatConfig, exclusive: false, aggSize: 5}
 const noAggQuantity = {stats: listStatConfig}
 const nestedQuantity = {}
@@ -189,7 +199,7 @@ const noQueryQuantity = {guiOnly: true, multiple: false}
 const rangeQuantity = {agg: 'min_max', multiple: false}
 
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, termQuantity)
+registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: 1 / 4})
 registerFilter('results.material.functional_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.compound_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.material_name', labelMaterial, termQuantity)
@@ -204,16 +214,90 @@ registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, te
 registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
-registerFilter('results.method.method_name', labelMethod, termQuantity)
-registerFilter('results.method.simulation.program_name', labelSimulation, termQuantity)
+registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: 1 / 4})
+registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, termQuantity)
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: 1 / 2, label: 'XC Functional Type'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
-registerFilter('results.method.experiment.eels.detector_type', labelEELS, termQuantity)
-registerFilter('results.method.experiment.eels.resolution', labelEELS, rangeQuantity)
+registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
+registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
+registerFilter('upload_create_time', labelAuthor, rangeQuantity)
+registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name'})
+registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
+registerFilter('entry_id', labelIDs, noAggQuantity)
+registerFilter('upload_id', labelIDs, noAggQuantity)
+registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
+registerFilter('results.material.material_id', labelIDs, noAggQuantity)
+registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
+registerFilter(
+  'results.properties.spectroscopy.eels',
+  labelSpectroscopy,
+  {...nestedQuantity, label: 'Electron Energy Loss Spectrum (EELS)'},
+  [
+    {name: 'detector_type', ...termQuantity},
+    {name: 'resolution', ...rangeQuantity},
+    // {name: 'min_energy', ...rangeQuantity},
+    // {name: 'max_energy', ...rangeQuantity}
+    {
+      name: 'energy_window',
+      stats: listStatConfig,
+      agg: {
+        set: {
+          'results.properties.spectroscopy.eels.min_energy': {
+            type: 'min_max',
+            exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+          },
+          'results.properties.spectroscopy.eels.max_energy': {
+            type: 'min_max',
+            exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+          }
+        },
+        get: (aggs) => {
+          const min = aggs['results.properties.spectroscopy.eels.min_energy']
+          const max = aggs['results.properties.spectroscopy.eels.max_energy']
+          return [min.min_max.data[0], max.min_max.data[1]]
+        }
+      },
+      value: {
+        set: (newQuery, oldQuery, value) => {
+          newQuery['results.properties.spectroscopy.eels'] = {
+            min_energy: {
+              gte: value.gte
+            },
+            max_energy: {
+              lte: value.lte
+            }
+          }
+        }
+      },
+      multiple: false,
+      exlusive: true,
+      dtype: 'number',
+      unit: 'joule',
+      label: 'Energy Window',
+      description: 'Defines bounds for the minimum and maximum energies in the spectrum.'
+    }
+  ]
+)
+registerFilter(
+  'results.properties.electronic.band_structure_electronic',
+  labelElectronic,
+  {...nestedQuantity, label: 'Band Structure'},
+  [
+    {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
+  ]
+)
+registerFilter(
+  'results.properties.electronic.dos_electronic',
+  labelElectronic,
+  {...nestedQuantity, label: 'Density of States (DOS)'},
+  [
+    {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
+  ]
+)
 registerFilter(
   'results.properties.electronic.band_structure_electronic.band_gap',
   labelElectronic,
@@ -226,7 +310,7 @@ registerFilter(
 registerFilter(
   'results.properties.mechanical.bulk_modulus',
   labelMechanical,
-  {...nestedQuantity, label: 'Bulk modulus'},
+  nestedQuantity,
   [
     {name: 'type', ...termQuantity},
     {name: 'value', ...rangeQuantity}
@@ -241,15 +325,14 @@ registerFilter(
     {name: 'value', ...rangeQuantity}
   ]
 )
-registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
-registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
-registerFilter('upload_create_time', labelAuthor, rangeQuantity)
-registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name'})
-registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
-registerFilter('entry_id', labelIDs, noAggQuantity)
-registerFilter('upload_id', labelIDs, noAggQuantity)
-registerFilter('results.material.material_id', labelIDs, noAggQuantity)
-registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
+registerFilter(
+  'results.properties.mechanical.energy_volume_curve',
+  labelMechanical,
+  nestedQuantity,
+  [
+    {name: 'type', ...termQuantity}
+  ]
+)
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
 registerFilter('visibility', labelAccess, {...noQueryQuantity, default: 'visible'})
@@ -290,6 +373,7 @@ registerFilter(
 )
 // Electronic properties: subset of results.properties.available_properties
 const electronicOptions = {
+  'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
   band_structure_electronic: {label: 'Band structure'},
   dos_electronic: {label: 'Density of states'}
 }
@@ -300,7 +384,7 @@ registerFilter(
   {
     stats: listStatConfig,
     agg: {
-      set: {'results.properties.available_properties': 'terms'},
+      set: {'results.properties.available_properties': {type: 'terms'}},
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => electronicProps.has(value.value)))
     },
@@ -333,7 +417,7 @@ registerFilter(
   {
     stats: listStatConfig,
     agg: {
-      set: {'results.properties.available_properties': 'terms'},
+      set: {'results.properties.available_properties': {type: 'terms'}},
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => vibrationalProps.has(value.value)))
     },
@@ -354,9 +438,9 @@ registerFilter(
 )
 // Mechanical properties: subset of results.properties.available_properties
 export const mechanicalOptions = {
-  energy_volume_curve: {label: 'Energy-volume curve'},
   bulk_modulus: {label: 'Bulk modulus'},
-  shear_modulus: {label: 'Shear modulus'}
+  shear_modulus: {label: 'Shear modulus'},
+  energy_volume_curve: {label: 'Energy-volume curve'}
 }
 const mechanicalProps = new Set(Object.keys(mechanicalOptions))
 registerFilter(
@@ -365,7 +449,7 @@ registerFilter(
   {
     stats: listStatConfig,
     agg: {
-      set: {'results.properties.available_properties': 'terms'},
+      set: {'results.properties.available_properties': {type: 'terms'}},
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => mechanicalProps.has(value.value)))
     },
@@ -395,7 +479,7 @@ registerFilter(
   {
     stats: listStatConfig,
     agg: {
-      set: {'results.properties.available_properties': 'terms'},
+      set: {'results.properties.available_properties': {type: 'terms'}},
       get: (aggs) => (aggs['results.properties.available_properties'].terms.data
         .filter((value) => spectroscopicProps.has(value.value)))
     },
@@ -414,40 +498,6 @@ registerFilter(
     description: 'The spectroscopic properties that are present in an entry.'
   }
 )
-// EELS energy window: a slider that combines two metainfo values: min_energy
-// and max_energy.
-registerFilter(
-  'results.method.experiment.eels.energy_window',
-  labelEELS,
-  {
-    stats: listStatConfig,
-    agg: {
-      set: {
-        'results.method.experiment.eels.min_energy': 'min_max',
-        'results.method.experiment.eels.max_energy': 'min_max'
-      },
-      get: (aggs) => {
-        const min = aggs['results.method.experiment.eels.min_energy']
-        const max = aggs['results.method.experiment.eels.max_energy']
-        return [min.min_max.data[0], max.min_max.data[1]]
-      }
-    },
-    value: {
-      set: (newQuery, oldQuery, value) => {
-        newQuery['results.method.experiment.eels.min_energy'] = {gte: value.gte}
-        newQuery['results.method.experiment.eels.max_energy'] = {lte: value.lte}
-      }
-    },
-    multiple: false,
-    exlusive: false,
-    options: vibrationalOptions,
-    dtype: 'number',
-    unit: 'joule',
-    label: 'Energy Window',
-    description: 'Defines bounds for the minimum and maximum energies in the spectrum.'
-  }
-)
-
 // The filter abbreviation mapping has to be done only after all filters have
 // been registered.
 const abbreviations = {}

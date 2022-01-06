@@ -28,7 +28,7 @@ import {
  */
 const inputGridSpacing = 2
 export function InputGrid({children}) {
-  return <Grid container spacing={inputGridSpacing}>
+  return <Grid container spacing={inputGridSpacing} style={{marginTop: 0}}>
     {children}
   </Grid>
 }
@@ -48,7 +48,7 @@ const useInputGridItemStyles = makeStyles(theme => ({
     marginLeft: theme.spacing(-inputGridSpacing),
     marginRight: theme.spacing(-inputGridSpacing),
     marginTop: theme.spacing(-inputGridSpacing / 2),
-    marginBottom: theme.spacing(inputGridSpacing / 4),
+    marginBottom: theme.spacing(inputGridSpacing / 2),
     backgroundColor: theme.palette.grey[300]
   }
 }))

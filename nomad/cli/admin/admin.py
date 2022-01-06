@@ -344,10 +344,9 @@ def migrate_mongo(
         ids_from_file, failed_ids_to_file, upload_update, entry_update, overwrite, fix_problems, dry):
     import json
     from pymongo.database import Database
-    from nomad import utils, infrastructure
-    from .upgrade import create_collections_if_needed, migrate_mongo_uploads
+    from nomad import infrastructure
+    import nomad.cli.admin.migrate as migrate
 
-    logger = utils.get_logger('migrate-mongo')
     config.mongo.host = host
     config.mongo.port = port
     config.mongo.db_name = dst_db_name
@@ -357,7 +356,7 @@ def migrate_mongo(
     db_dst: Database = infrastructure.mongo_client.get_database(dst_db_name)
 
     if not dry:
-        create_collections_if_needed(db_dst)
+        migrate.create_collections_if_needed(db_dst)
 
     upload_ids = None
     if upload_query and entry_query:
@@ -371,7 +370,7 @@ def migrate_mongo(
             with open(ids_from_file, 'r') as f:
                 upload_ids = [line.strip() for line in f.readlines() if line.strip()]
         except FileNotFoundError:
-            logger.error(f'Could not open file {ids_from_file}')
+            print(f'Could not open file {ids_from_file}', file=sys.stderr)
             return -1
     elif upload_query:
         upload_query = json.loads(upload_query)
@@ -384,13 +383,13 @@ def migrate_mongo(
         entry_update = json.loads(entry_update)
 
     if entry_query:
-        logger.info('Quering entries...')
+        print('Quering entries...')
         upload_ids = list(db_src.calc.distinct('upload_id', entry_query))
     if upload_ids:
         upload_query = {'_id': {'$in': upload_ids}}
-    logger.info('Quering uploads...')
+    print('Quering uploads...')
     uploads = db_src.upload.find(upload_query)
 
-    migrate_mongo_uploads(
+    migrate.migrate_mongo_uploads(
         db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, overwrite,
-        fix_problems, dry, logger)
+        fix_problems, dry)

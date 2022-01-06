@@ -17,117 +17,10 @@
 #
 
 '''
-Access the NOMAD archive with the NOMAD client library
-______________________________________________________
-
 Retrieve and analyse (large amounts) of NOMAD's
 archive data. This allows to use queries to filter for desired entries, bulk download
 the required parts of the respective archives, and navigate the results using NOMAD's
 metainfo Python API.
-
-.. literalinclude:: ../examples/archive/client.py
-    :language: python
-
-This script should yield a result like this:
-
-.. code::
-
-    Number queries entries: 7628
-    Number of entries loaded in the last api call: 10
-    Bytes loaded in the last api call: 118048
-    Bytes loaded from this query: 118048
-    Number of downloaded entries: 10
-    Number of made api calls: 1
-
-    Cd2O2: energy -11467.827149010665 hartree
-    Sr2O2: energy -6551.45699684026 hartree
-    Sr2O2: energy -6551.461104765451 hartree
-    Be2O2: energy -178.6990610734937 hartree
-    Ca2O2: energy -1510.3938165430286 hartree
-    Ca2O2: energy -1510.3937761449583 hartree
-    Ba2O2: energy -16684.667362890417 hartree
-    Mg2O2: energy -548.9736595672932 hartree
-    Mg2O2: energy -548.9724185656775 hartree
-    Ca2O2: energy -1510.3908614326358 hartree
-
-Let's discuss the different elements here. First, we have a set of imports. The NOMAD source
-codes comes with various sub-modules. The `client` module contains everything related
-to what is described here; the `metainfo` is the Python interface to NOMAD's common
-archive data format and its data type definitions; the `config` module simply contains
-configuration values (like the URL to the NOMAD API).
-
-Next, we create an :class:`ArchiveQuery` instance. This object will be responsible for talking
-to NOMAD's API for us in a transparent and lazy manner. This means, it will not download
-all data right away, but do so when we are actually iterating through the results.
-
-The archive query takes several parameters:
-
-- The ``query`` is a dictionary of search criteria. The query is used to filter all of NOMAD's
-  entry down to a set of desired entries. You can use NOMAD's GUI to create queries and
-  copy their Python equivalent with the ``<>``-code button on the result list.
-- The ``required`` part, allows to specify what parts of the archive should be downloaded.
-  Leave it out to download the whole archives. Based on NOMAD's Metainfo (the 'schema' of
-  all archives), you can determine what sections to include and which to leave out. Here,
-  we are interested in the first run (usually entries only have one run) and the first
-  calculation result.
-- With the optional ``per_page`` you can determine, how many results are downloaded at
-  a time. For bulk downloading many results, we recommend ~100. If you are just interested
-  in the first results a lower number might increase performance.
-- With the optional ``max``, we limit the maximum amount of entries that are downloaded,
-  just to avoid accidentely iterating through a result set of unknown and potentially large
-  size.
-
-When you print the archive query object, you will get some basic statistics about the
-query and downloaded data.
-
-The archive query object can be treated as a Python list-like. You use indices and ranges
-to select results. Here we iterate through a slice and print the calculated energies
-from the first calculation of the entries. Each result is a Python object with attributes
-governed by the NOMAD Metainfo. Quantities yield numbers, string, or numpy arrays, while
-sub-sections return lists of further objects. Here we navigate the sections ``run`` and
-sub-section ``energy`` and sub-section ``total`` to access the quantity ``value``. This quantity is a
-number with an attached unit (Joule), which can be converted to something else (e.g. Hartree).
-
-The create query object keeps all results in memory. Keep this in mind, when you are
-accessing a large amount of query results. You should use :func:`ArchiveQuery.clear`
-to remove unnecessary results.
-
-The NOMAD Metainfo
-__________________
-
-You can imagine the NOMAD Metainfo as a complex schema for hiearchically organized scientific
-data. In this sense, the NOMAD Metainfo is a set of data type definitions. These definitions
-then govern how the archive for an data entry in NOMAD might look like. You can browse the
-hierarchy of definitions in our `Metainfo browser <../metainfo>`_.
-
-Be aware, that the definitions entail everything that an entry could possibly contain, but
-not all entries contain all sections and all quantities. What an entry contains depends
-on the information that the respective uploaded data contained, what could be extracted,
-and of course what was calculated in the first place. To see what the archive of an concrete
-entry looks like, you can use the `search interface <../search>`_, select an entry from the
-list fo search results, and click on the *Archive* tab.
-
-To *see inside* an archive object in Python, you can use :func:`nomad.metainfo.MSection.m_to_dict`
-which is provided by all archive objects. This will convert a (part of an) archive into a
-regular, JSON-serializable Python dictionary.
-
-For more details on the metainfo Python interface, consult the `metainfo documentation <metainfo.html>`_.
-
-The ArchiveQuery class
-______________________
-
-.. autoclass:: ArchiveQuery
-
-Working with private data
-_________________________
-
-Public NOMAD data can be accessed without any authentication; everyone can use our API
-without the need for an account or login. However, if you want to work with your own
-data that is not yet published, or embargoed data was shared with you, you need to
-authenticate before accessing this data. Otherwise, you will simply not find it with
-your queries. To authenticate simply provide your NOMAD username and password to the
-:class:`ArchiveQuery` constructor.
-
 '''
 
 from typing import Dict, Any, List
@@ -136,6 +29,7 @@ import requests
 from io import StringIO
 import math
 import multiprocessing
+import json
 
 from nomad import config
 from nomad import metainfo as mi
@@ -152,6 +46,9 @@ class QueryError(Exception):
 
 
 class ApiStatistics(mi.MSection):
+    total = mi.Quantity(
+        type=int, default=0,
+        description='Total number of entries that fulfil the query')
 
     nentries = mi.Quantity(
         type=int, default=0,
@@ -194,7 +91,7 @@ class ProcState:
         self.url = archive_query.url
         self.query_and_list = archive_query.query_and_list
         self.request: Dict[str, Any] = dict(
-            owner='visible',
+            owner=archive_query.owner,
             required=archive_query.required)
         self.per_page = archive_query.per_page
         self.authentication = archive_query.authentication
@@ -279,12 +176,13 @@ class ArchiveQuery(collections.abc.Sequence):
             call.
     '''
     def __init__(
-            self,
+            self, owner: str = 'visible',
             query: dict = None, required: dict = None,
             url: str = None, username: str = None, password: str = None,
             parallel: int = 1, per_page: int = 10, max: int = 10000,
-            authentication: Auth = None):
+            authentication: Auth = None, auth: Auth = None):
 
+        self.owner = owner
         self.page = 1
         self.parallel = parallel
         self.per_page = per_page
@@ -300,31 +198,56 @@ class ArchiveQuery(collections.abc.Sequence):
         # results with those properties are returned.
         quantities = set()
 
-        def collect(required, parent_def_name: str = None):
+        def collect(required, parent_section: mi.Section, parent_path: str = None):
             if not isinstance(required, dict):
                 return
 
             for key, value in required.items():
                 def_name = key.split('[')[0]
-                qualified_def_name = def_name
-                if parent_def_name:
-                    qualified_def_name = f'{parent_def_name}.{def_name}'
+                definition = parent_section.all_properties.get(def_name)
 
+                if definition is None:
+                    raise KeyError(f'{def_name} is not a property of {parent_section}')
+
+                if parent_path:
+                    qualified_def_name = f'{parent_path}.{def_name}'
+                else:
+                    qualified_def_name = def_name
                 quantities.add(qualified_def_name)
-                collect(value, qualified_def_name)
 
-        collect(required)
+                if isinstance(definition, mi.SubSection):
+                    collect(
+                        value,
+                        parent_section=definition.section_def,
+                        parent_path=qualified_def_name)
+                elif isinstance(definition, mi.Quantity) and isinstance(definition.type, mi.Reference):
+                    next_parent_section = definition.type.target_section_def.m_resolved()
+                    parent_path = next_parent_section.path
+                    if parent_path in ['__ambiguous__', '__no_archive_path__']:
+                        continue
+                    collect(
+                        value,
+                        parent_section=next_parent_section,
+                        parent_path=parent_path)
+
+        collect(required, parent_section=EntryArchive.m_def)
         self.query_and_list.append({'quantities': list(quantities)})
 
         self.password = password
         self.username = username
         self.url = config.client.url if url is None else url
         self._authentication = authentication
+        if not self._authentication:
+            self._authentication = auth
 
         self._total = -1
         self._results: List[dict] = []
         self._statistics = ApiStatistics()
         self._proc_states: List[ProcState] = None
+
+    @property
+    def query(self):
+        return {'and': self.query_and_list}
 
     @property
     def authentication(self):
@@ -352,10 +275,8 @@ class ArchiveQuery(collections.abc.Sequence):
 
         while True:
             uploads_request = {
-                'owner': 'visible',
-                'query': {
-                    'and': self.query_and_list
-                },
+                'owner': self.owner,
+                'query': self.query,
                 'pagination': {
                     'page_size': 0
                 },
@@ -382,6 +303,7 @@ class ArchiveQuery(collections.abc.Sequence):
                 raise Exception(
                     'Error requesting NOMAD API: HTTP %d' % response.status_code)
 
+            total = response_json['pagination']['total']
             agg_data = response_json['aggregations']['uploads']['terms']
             after = agg_data['pagination'].get('next_page_after_value', None)
             values = {bucket['value']: bucket for bucket in agg_data['data']}
@@ -420,6 +342,7 @@ class ArchiveQuery(collections.abc.Sequence):
 
         self._proc_states.append(proc_state)
         self._total = nentries
+        self._statistics.total = total
         self._statistics.nentries = nentries
 
     def call_api(self):
@@ -475,7 +398,7 @@ class ArchiveQuery(collections.abc.Sequence):
         if self._total == -1:
             self.call_api()
 
-        return str(self._statistics)
+        return f'Query: {json.dumps(self.query, indent=2)}\n{self._statistics}'
 
     def __getitem__(self, key):
         if isinstance(key, slice):

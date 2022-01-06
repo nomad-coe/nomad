@@ -93,7 +93,7 @@ const InputField = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
+  const {filterData, useAgg, useAggCall, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [visibleOptions, setVisibleOptions] = useState()
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
@@ -134,7 +134,9 @@ const InputField = React.memo(({
   const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity].aggSize
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
   const incr = useState(increment || minSize)[0]
-  const agg = useAgg(quantity, visible && !disableOptions, requestedAggSize)
+  const [loading, setLoading] = useState(false)
+  const agg = useAgg(quantity, visible && !disableOptions)
+  const aggCall = useAggCall(quantity)
   const receivedAggSize = agg?.data?.length
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -185,27 +187,29 @@ const InputField = React.memo(({
     setVisibleOptions(opt)
   }, [agg, filter, finalOptions, locked])
 
-  // Show more values. If the aggregation already has the values (some other
-  // component may have loaded them already), we simply show them. Otherwise we
-  // make an API call and update the values once they arrive.
+  // Show more values
   const handleShowMore = useCallback(() => {
-    setRequestedAggSize(old => {
-      const newAggSize = old + incr
-      if (receivedAggSize < newAggSize) {
-      }
-      return newAggSize
+    setLoading(true)
+    const newSize = requestedAggSize + incr
+    aggCall(newSize, 'show_more', () => {
+      setLoading(false)
+      setRequestedAggSize(newSize)
     })
-  }, [incr, receivedAggSize])
+  }, [aggCall, incr, requestedAggSize])
 
   // Show less values
   const handleShowLess = useCallback(() => {
-    setRequestedAggSize(old => Math.max(old - incr, minSize))
-  }, [incr, minSize])
+    setRequestedAggSize(old => {
+      const newSize = Math.max(old - incr, minSize)
+      aggCall(newSize, 'show_more', () => {})
+      return newSize
+    })
+  }, [aggCall, incr, minSize])
 
   // Handle changes in the selected values
-  const handleChange = useCallback((key, value) => {
+  const handleChange = useCallback((event, key, selected) => {
     const newOptions = {...visibleOptions}
-    newOptions[key].checked = value
+    newOptions[key].checked = selected
     const checked = Object.entries(newOptions)
       .filter(([key, value]) => value.checked)
       .map(([key, value]) => key)
@@ -221,7 +225,6 @@ const InputField = React.memo(({
           <InputTextQuantity
             className={styles.textField}
             quantity={quantity}
-            placeholder="Type here"
             disabled={disabled}
             disableSuggestions={disableSuggestions}
             fullWidth
@@ -237,10 +240,15 @@ const InputField = React.memo(({
     }
 
     const nItems = agg ? Object.keys(finalOptions).length : minSize
+    const didNotReceiveMore = isNil(receivedAggSize) ? false : receivedAggSize < requestedAggSize
+    const noMoreAvailable = isNil(nMaxOptions) ? false : requestedAggSize >= nMaxOptions
+    const hide = didNotReceiveMore || noMoreAvailable
     const showMore = fixedOptions
       ? false
-      : agg?.data && (receivedAggSize >= requestedAggSize) && (isNil(nMaxOptions) ? true : nMaxOptions > requestedAggSize)
-    const showLess = fixedOptions ? false : nItems - incr > 0
+      : !hide
+    const showLess = fixedOptions
+      ? false
+      : nItems - incr > 0
     const nRows = Math.ceil(nItems * xs / 12)
     const actionsHeight = 34
     let reservedHeight
@@ -286,8 +294,6 @@ const InputField = React.memo(({
         variant="rect"
         classes={{placeholder: styles.placeholder}}
       />
-    } else if (receivedAggSize === 0) {
-      aggComp = <InputUnavailable/>
     } else {
       aggComp = <>
         {items}
@@ -295,6 +301,7 @@ const InputField = React.memo(({
           {showMore && <LoadingButton
             size="small"
             onClick={handleShowMore}
+            loading={loading}
           >Show more
           </LoadingButton>}
           {showLess && <Button size="small"
@@ -326,7 +333,9 @@ const InputField = React.memo(({
     handleChange,
     scale,
     handleShowMore,
-    handleShowLess]
+    handleShowLess,
+    loading
+  ]
   )
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -349,11 +358,11 @@ InputField.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool,
   xs: PropTypes.number,
-  initialScale: PropTypes.number,
+  initialScale: PropTypes.number, // The initial statistics scaling
   initialSize: PropTypes.number, // The initial maximum number of items to load
   increment: PropTypes.number, // The amount of new items to load on 'show more'
   disableSearch: PropTypes.bool, // Whether to show the search field
-  disableOptions: PropTypes.bool, // Whether to show the options gathered through aggregations.
+  disableOptions: PropTypes.bool, // Whether to show the options gathered through aggregations
   disableSuggestions: PropTypes.bool, // Whether to disable the text field suggestions
   className: PropTypes.string,
   classes: PropTypes.object,

@@ -113,7 +113,7 @@ These properties include:
 Properties define what data a section instance can hold. Properties are mapped to Python
 *descriptors*.
 
-- `section` specialized `parant` relation with the containing `Section`
+- `section` specialized `parent` relation with the containing `Section`
 
 
 #### SubSections
@@ -473,7 +473,7 @@ nomad archive:
 nomad.archive(upload_id='hh41jh4l1e91821').run.system.atom_labels.values
 ```
 
-This can also be used to extend queries for calculations with queries for certain
+This can also be used to extend queries for entries with queries for certain
 data points:
 ```python
 nomad.archive(user='me@email.org', upload_name='last_upload').run.system(

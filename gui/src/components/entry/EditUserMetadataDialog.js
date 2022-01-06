@@ -412,6 +412,21 @@ class ListTextInputUnstyled extends React.Component {
     component: PropTypes.any
   }
 
+  static styles = theme => ({
+    root: {},
+    row: {
+      display: 'flex'
+    },
+    buttonContainer: {
+      position: 'relative',
+      width: 52
+    },
+    button: {
+      position: 'absolute',
+      bottom: 0
+    }
+  })
+
   render() {
     const { classes, values, onChange, label, component, ...fieldProps } = this.props
 
@@ -740,7 +755,7 @@ class EditUserMetadataDialogUnstyled extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.example.calc_id !== this.props.example.calc_id) {
+    if (prevProps.example.entry_id !== this.props.example.entry_id) {
       this.update()
     }
   }

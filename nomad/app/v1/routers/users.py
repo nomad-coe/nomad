@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 
-from typing import List
-from fastapi import Depends, APIRouter, status, HTTPException
+from typing import List, Union, Optional
+from fastapi import Depends, APIRouter, status, HTTPException, Query
 from pydantic.main import BaseModel
 
 from nomad import infrastructure, config, datamodel
@@ -51,7 +51,7 @@ class Users(BaseModel):
     '/me',
     tags=[default_tag],
     summary='Get your account data',
-    description='Returnes the account data of the authenticated user.',
+    description='Returns the account data of the authenticated user.',
     responses=create_responses(_authentication_required_response),
     response_model=User)
 async def read_users_me(current_user: User = Depends(create_user_dependency(required=True))):
@@ -62,16 +62,38 @@ async def read_users_me(current_user: User = Depends(create_user_dependency(requ
     '',
     tags=[default_tag],
     summary='Get existing users',
-    description='Get existing users with the given prefix',
+    description='Get existing users for given criteria',
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
     response_model=Users)
-async def get_users(prefix: str):
-    users = []
-    for user in infrastructure.keycloak.search_user(prefix):
-        user_dict = user.m_to_dict(include_derived=True)
-        user_dict['email'] = None
-        users.append(user_dict)
+async def get_users(
+        prefix: Optional[str] = Query(None, description=strip('''
+                Search the user with the given prefix.
+            ''')),
+        user_id: Union[List[str], None] = Query(None, description=strip('''
+                To get the user(s) by their user_id(s).
+            '''))):
+
+    users: List[User] = []
+    if user_id:
+        if type(user_id) == list:
+            for _user_id in user_id:
+                try:
+                    user = datamodel.User.get(user_id=str(_user_id)).m_copy()
+                    user.email = None
+                    users = users + [user]
+                except KeyError:
+                    pass
+        else:
+            user = datamodel.User.get(user_id=str(user_id)).m_copy()
+            user.email = None
+            users = [user]
+    elif prefix:
+        for user in infrastructure.keycloak.search_user(prefix):
+            user_dict = user.m_to_dict(include_derived=True)
+            user_dict['email'] = None
+            users.append(user_dict)
+
     return dict(data=users)
 
 
@@ -84,7 +106,7 @@ async def get_users(prefix: str):
     response_model_exclude_none=True,
     response_model=User)
 async def get_user(user_id: str):
-    user = infrastructure.keycloak.get_user(user_id=user_id)
+    user = datamodel.User.get(user_id=str(user_id)).m_copy()
     user.email = None
     return user
 

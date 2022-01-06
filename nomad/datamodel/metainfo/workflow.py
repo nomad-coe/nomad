@@ -6,8 +6,103 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference, derived)
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.system import System
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from .common import FastAccess
+
+
+class Interface(MSection):
+    '''
+    Section containing results of an interface (stacking fault, gamma surface, etc.)
+    workflow.
+    '''
+
+    m_def = Section(validate=False)
+
+    energy_extrinsic_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed extrinsic stacking fault energy per unit area.
+        ''')
+
+    energy_intrinsic_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed intrinsic stacking fault energy per unit area.
+        ''')
+
+    dimensionality = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Dimensionality of the property, i.e. 1 for stacking fault energy and 2 for gamma
+        surface.
+        ''')
+
+    shift_direction = Quantity(
+        type=str,
+        shape=['dimensionality'],
+        description='''
+        shift direction of the two crystal parts to calculate the fault energy.
+        ''')
+
+    n_displacements = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Number of displacements in the shift to calculate the fault energy.
+        ''')
+
+    displacement_fraction = Quantity(
+        type=np.dtype(np.float64),
+        shape=['dimensionality', 'n_displacements'],
+        description='''
+        Relative displacements of the two crystal parts along the direction indicated by
+        shift_direction.
+        ''')
+
+    energy_fault_plane = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_displacements'],
+        unit='joule / m ** 2',
+        description='''
+        Value of the relaxed excess energy per unit area for each displacement.
+        ''')
+
+    gamma_surface = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_displacements', 'n_displacements'],
+        unit='joule / m ** 2',
+        description='''
+        Value of the gamma surface, i.e. the excess energy per unit area calculated for
+        each displacement.
+        ''')
+
+    slip_fraction = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Relative displacement between two crystal parts where the energy is maximum.
+        ''')
+
+    energy_unstable_stacking_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed unstable stacking fault energy per unit area.
+        ''')
+
+    energy_unstable_twinning_fault = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / m **2',
+        description='''
+        Value of the relaxed unstable twinning energy per unit area.
+        ''')
 
 
 class Raman(MSection):
@@ -515,6 +610,7 @@ class GeometryOptimization(MSection):
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
         ''')
+
     is_converged_geometry = Quantity(
         type=bool,
         shape=[],
@@ -789,6 +885,14 @@ class Elastic(MSection):
         unit='1 / pascal',
         description='''
         Elastic compliance matrix in 1/GPa
+        ''')
+
+    elastic_constants_gradient_matrix_second_order = Quantity(
+        type=np.dtype(np.float64),
+        shape=[18, 18],
+        unit='newton',
+        description='''
+        gradient of the 2nd order elastic constant (stiffness) matrix in newton
         ''')
 
     bulk_modulus_voigt = Quantity(
@@ -1301,6 +1405,55 @@ class SinglePoint(MSection):
         ''')
 
 
+class Task(MSection):
+    '''
+    Section defining a specific task in the workflow chain. It has an input and an output,
+    both can either be a workflow or a calculation and their relation is noted in the
+    description.
+    '''
+
+    m_def = Section(
+        validate=False)
+
+    input_workflow = Quantity(
+        type=Reference(SectionProxy('Workflow')),
+        shape=[],
+        description='''
+        Reference to the input workflow.
+        ''')
+
+    output_workflow = Quantity(
+        type=Reference(SectionProxy('Workflow')),
+        shape=[],
+        description='''
+        Reference to the output workflow.
+        ''')
+
+    input_calculation = Quantity(
+        type=Reference(Calculation.m_def),
+        shape=[],
+        description='''
+        Reference to the input calculation.
+        ''')
+
+    output_calculation = Quantity(
+        type=Reference(Calculation.m_def),
+        shape=[],
+        description='''
+        Reference to the output calculation.
+        ''')
+
+    description = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Descibes the relationship between the input and output workflows. For example, if
+        a single_point workflow uses the relaxed structure from a geometry_optimization as
+        an input, the description may be "relaxed structure from geometry_optimization
+        used to calucalate single_point properties"
+        ''')
+
+
 class Workflow(MSection):
     '''
     Section containing the  results of a workflow.
@@ -1317,6 +1470,13 @@ class Workflow(MSection):
         single_point, geometry_optimization, elastic, phonon, molecular_dynamics,
         debye_model, equation_of_state, nudged_elastic_band, adsorption, raman,
         thermodyanamics, magnetic_ordering
+        ''')
+
+    initial_structure = Quantity(
+        type=Reference(Atoms.m_def),
+        shape=[],
+        description='''
+        Starting structure for geometry optimization.
         ''')
 
     calculator = Quantity(
@@ -1376,6 +1536,8 @@ class Workflow(MSection):
         ''',
         categories=[FastAccess])
 
+    task = SubSection(sub_section=Task.m_def, repeats=True)
+
     single_point = SubSection(
         sub_section=SinglePoint.m_def,
         # TODO determine if there is a need for this to be a repeating section
@@ -1427,6 +1589,10 @@ class Workflow(MSection):
 
     raman = SubSection(
         sub_section=Raman.m_def,
+        repeats=False)
+
+    interface = SubSection(
+        sub_section=Interface.m_def,
         repeats=False)
 
     thermodynamics = SubSection(

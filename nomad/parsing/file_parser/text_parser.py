@@ -122,6 +122,7 @@ class Quantity:
         self.repeats: bool = kwargs.get('repeats', False)
         self.convert: bool = kwargs.get('convert', True)
         self.flatten: bool = kwargs.get('flatten', True)
+        self.reduce: bool = kwargs.get('reduce', True)
         self.comment: str = kwargs.get('comment', None)
 
     @property
@@ -160,7 +161,8 @@ class Quantity:
 
             elif self.flatten:
                 val = val.strip().split() if isinstance(val, str) else val
-                val = val[0] if len(val) == 1 else val
+                if self.reduce:
+                    val = val[0] if len(val) == 1 else val
 
             def _convert(val):
                 if isinstance(val, str):
@@ -380,6 +382,25 @@ class TextParser(FileParser):
         for key in self.keys():
             yield key, self.get(key)
 
+    def _add_value(self, quantity, value, units):
+        try:
+            value_processed = quantity.to_data(value)
+            for i in range(len(value_processed)):
+                unit = units[i] if units[i] else quantity.unit
+                if not unit:
+                    continue
+                if isinstance(unit, str):
+                    value_processed[i] = pint.Quantity(value_processed[i], unit)
+                else:
+                    value_processed[i] = value_processed[i] * unit
+
+            if not quantity.repeats and value_processed:
+                value_processed = value_processed[0]
+
+            self._results[quantity.name] = value_processed
+        except Exception:
+            self.logger.warn('Error setting value', data=dict(quantity=quantity.name))
+
     def _parse_quantities(self, quantities):
         if len(self._results) == 0 and self._re_findall is not None:
             # maybe an opt
@@ -410,39 +431,24 @@ class TextParser(FileParser):
             index_unit = quantities[i].re_pattern.groupindex.get(
                 '__unit_%s' % quantities[i].name, None)
             for non_empty_match in non_empty_matches:
-                if index_unit is not None:
-                    unit = non_empty_match.pop(index_unit - 1)
-                    units.append(unit.decode())
+                try:
+                    if index_unit is not None:
+                        unit = non_empty_match.pop(index_unit - 1)
+                        units.append(unit.decode())
 
-                else:
-                    units.append(None)
+                    else:
+                        units.append(None)
 
-                values.append(' '.join([m.decode() for m in non_empty_match]))
+                    values.append(' '.join([m.decode() for m in non_empty_match]))
+                except Exception:
+                    self.logger.error('Error parsing quantities.')
 
             current_index += n_groups
 
             if not values:
                 continue
 
-            try:
-                value_processed = quantities[i].to_data(values)
-                for j in range(len(value_processed)):
-                    unit = units[j] if units[j] else quantities[i].unit
-                    if not unit:
-                        continue
-                    if isinstance(unit, str):
-                        value_processed[j] = pint.Quantity(value_processed[j], unit)
-                    else:
-                        value_processed[j] = value_processed[j] * unit
-
-                if not quantities[i].repeats and value_processed:
-                    value_processed = value_processed[0]
-
-                self._results[quantities[i].name] = value_processed
-
-            except Exception:
-                self.logger.warn('Error setting value', data=dict(quantity=quantities[i].name))
-                pass
+            self._add_value(quantities[i], values, units)
 
     def _parse_quantity(self, quantity):
 
@@ -469,10 +475,13 @@ class TextParser(FileParser):
                 value.append(sub_parser.parse())
 
             else:
-                unit = res.groupdict().get('__unit_%s' % quantity.name, None)
-                units.append(unit.decode() if unit is not None else None)
-                value.append(' '.join(
-                    [group.decode() for group in res.groups() if group and group != unit]))
+                try:
+                    unit = res.groupdict().get('__unit_%s' % quantity.name, None)
+                    units.append(unit.decode() if unit is not None else None)
+                    value.append(' '.join(
+                        [group.decode() for group in res.groups() if group and group != unit]))
+                except Exception:
+                    self.logger.error('Error parsing quantity.')
 
         if not value:
             return
@@ -481,24 +490,7 @@ class TextParser(FileParser):
             self._results[quantity.name] = value if quantity.repeats else value[0]
 
         else:
-            try:
-                value_processed = quantity.to_data(value)
-                for i in range(len(value_processed)):
-                    unit = units[i] if units[i] else quantity.unit
-                    if not unit:
-                        continue
-                    if isinstance(unit, str):
-                        value_processed[i] = pint.Quantity(value_processed[i], unit)
-                    else:
-                        value_processed[i] = value_processed[i] * unit
-
-                if not quantity.repeats and value_processed:
-                    value_processed = value_processed[0]
-
-                self._results[quantity.name] = value_processed
-            except Exception:
-                self.logger.warn('Error setting value', data=dict(quantity=quantity.name))
-                pass
+            self._add_value(quantity, value, units)
 
     def parse(self, key=None):
         '''

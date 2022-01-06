@@ -359,7 +359,6 @@ def keycloak(monkeypatch):
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
     ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
-    processing.Upload.metadata_file_cached.cache_clear()
     return dict(elastic=elastic)
 
 
@@ -872,11 +871,12 @@ def example_data_writeable(mongo, test_user, normalized):
         calc_id='id_unpublished_w_entry',
         mainfile='test_content/test_embargo_entry/mainfile.json')
 
-    # one upload, no entries, still processing
+    # one upload, no entries, running a blocking processing
     data.create_upload(
         upload_id='id_processing_w',
         published=False,
-        process_status=ProcessStatus.RUNNING)
+        process_status=ProcessStatus.RUNNING,
+        current_process='publish_upload')
 
     # one upload, no entries, unpublished
     data.create_upload(

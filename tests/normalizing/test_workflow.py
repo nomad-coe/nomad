@@ -69,6 +69,11 @@ def test_geometry_optimization_workflow(workflow_archive):
     assert sec_workflow.geometry_optimization.final_force_maximum > 0.0
     assert sec_workflow.geometry_optimization.is_converged_geometry
 
+    task = sec_workflow.task
+    assert len(task) == len(sec_workflow.calculations_ref) + 1
+    assert task[1].input_calculation == sec_workflow.calculations_ref[0]
+    assert task[-1].output_workflow == sec_workflow
+
 
 def test_elastic_workflow(workflow_archive):
     elastic_archive = workflow_archive(

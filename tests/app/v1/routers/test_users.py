@@ -18,6 +18,13 @@
 #
 
 import pytest
+from tests.conftest import test_users as conf_test_users, test_user_uuid as conf_test_user_uuid
+
+
+def assert_user(user, expected_user):
+    assert user['first_name'] == expected_user['first_name']
+    assert user['last_name'] == expected_user['last_name']
+    assert 'email' not in user
 
 
 def test_me(client, test_user_auth):
@@ -50,27 +57,64 @@ def test_invite(client, test_user_auth, no_warn):
     assert all(key in keys for key in required_keys)
 
 
-def test_users(client):
-    rv = client.get('users?prefix=Sheldon')
-    assert rv.status_code == 200
+@pytest.mark.parametrize('args, expected_status_code, expected_content', [
+    pytest.param(dict(
+        prefix='Sheldon'), 200,
+        conf_test_users[conf_test_user_uuid(1)],
+        id='search-user'),
+    pytest.param(dict(
+        user_id=conf_test_user_uuid(1)), 200,
+        conf_test_users[conf_test_user_uuid(1)],
+        id='one-user-id'),
+    pytest.param(dict(
+        user_id=[conf_test_user_uuid(1), conf_test_user_uuid(2)]), 200,
+        [conf_test_users[conf_test_user_uuid(1)], conf_test_users[conf_test_user_uuid(2)]],
+        id='multi-user-id'),
+    pytest.param(dict(
+        user_id=[conf_test_user_uuid(1), conf_test_user_uuid(9)]), 200,
+        [conf_test_users[conf_test_user_uuid(1)]],
+        id='wrong-user-id')
+])
+def test_users(
+        client, example_data, test_auth_dict,
+        args, expected_status_code, expected_content):
+    prefix = args.get('prefix', None)
+    user_id = args.get('user_id', None)
 
-    data = rv.json()
-    assert len(data['data']) == 1
-    user = data['data'][0]
+    if prefix:
+        rv = client.get(f'users?prefix={prefix}')
+        assert rv.status_code == expected_status_code
+        data = rv.json()
+        assert len(data['data']) == 1
+        user = data['data'][0]
+        for key in ['name', 'user_id']:
+            assert key in user
+        for value in user.values():
+            assert value is not None
+        assert_user(user, expected_content)
 
-    for key in ['name', 'user_id']:
-        assert key in user
-
-    for value in user.values():
-        assert value is not None
-
-    assert 'email' not in user
+    if user_id:
+        if type(user_id) != list:
+            rv = client.get(f'users?user_id={user_id}')
+            assert rv.status_code == expected_status_code
+            if rv.status_code == 200:
+                data = rv.json()
+                user = data['data'][0]
+                assert_user(user, expected_content)
+        else:
+            rv = client.get(f'users?user_id={"&user_id=".join(user_id)}')
+            assert rv.status_code == expected_status_code
+            if rv.status_code == 200:
+                data = rv.json()
+                users = data['data']
+                for user, expected_user in zip(users, expected_content):
+                    assert_user(user, expected_user)
 
 
 @pytest.mark.parametrize('args, expected_status_code, expected_content', [
     pytest.param(dict(
-        user_id='00000000-0000-0000-0000-000000000001'), 200,
-        {'name': 'Sheldon Cooper', 'is_admin': False, 'is_oasis_admin': True, 'email': None},
+        user_id=conf_test_user_uuid(1)), 200,
+        conf_test_users[conf_test_user_uuid(1)],
         id='valid-user')])
 def test_users_id(
         client, example_data, test_auth_dict,
@@ -80,7 +124,4 @@ def test_users_id(
     assert rv.status_code == expected_status_code
     if rv.status_code == 200:
         user = rv.json()
-        assert user['name'] == expected_content['name']
-        assert user['is_admin'] == expected_content['is_admin']
-        assert user['is_oasis_admin'] == expected_content['is_oasis_admin']
-        assert 'email' not in user
+        assert_user(user, expected_content)

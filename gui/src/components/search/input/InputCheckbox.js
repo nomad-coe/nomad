@@ -56,8 +56,8 @@ const InputCheckbox = React.memo(({
 
   // Determine the description and units
   const def = searchQuantities[quantity]
-  const desc = description || def?.description || ''
-  const title = label || def?.name
+  const desc = isNil(description) ? (def?.description || '') : description
+  const title = isNil(label) ? def?.name : label
   const disabled = locked
 
   const handleChange = useCallback((event, value) => {
@@ -68,6 +68,7 @@ const InputCheckbox = React.memo(({
     <Tooltip title={desc}>
       <FormControlLabel
         control={<Checkbox
+          color="primary"
           disabled={disabled}
           checked={isNil(filter) ? (isNil(initialValue) ? filterData[quantity].default : initialValue) : filter}
           onChange={handleChange}
@@ -89,3 +90,65 @@ InputCheckbox.propTypes = {
 }
 
 export default InputCheckbox
+
+const useInputCheckboxValueStyles = makeStyles(theme => ({
+  root: {
+    '& > :last-child': {
+      marginRight: -3
+    }
+  },
+  control: {
+    padding: 6
+  }
+}))
+export const InputCheckboxValue = React.memo(({
+  quantity,
+  label,
+  description,
+  value,
+  className,
+  classes,
+  'data-testid': testID
+}) => {
+  const theme = useTheme()
+  const styles = useInputCheckboxValueStyles({classes: classes, theme: theme})
+  const { useFilterState, useFilterLocked } = useSearchContext()
+  const [filter, setFilter] = useFilterState(quantity)
+  const locked = useFilterLocked(quantity)
+
+  // Determine the description and units
+  const def = searchQuantities[quantity]
+  const desc = isNil(description) ? (def?.description || '') : description
+  const disabled = locked
+
+  const handleChange = useCallback(() => {
+    setFilter(old => {
+      const newValue = old ? new Set(old) : new Set()
+      newValue.has(value) ? newValue.delete(value) : newValue.add(value)
+      return newValue
+    })
+  }, [setFilter, value])
+
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <Tooltip title={desc}>
+      <Checkbox
+        disabled={disabled}
+        color="primary"
+        checked={filter ? filter.has(value) : false}
+        onChange={handleChange}
+        className={styles.control}
+        size="small"
+      />
+    </Tooltip>
+  </div>
+})
+
+InputCheckboxValue.propTypes = {
+  quantity: PropTypes.string.isRequired,
+  label: PropTypes.string,
+  description: PropTypes.string,
+  value: PropTypes.any,
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  'data-testid': PropTypes.string
+}

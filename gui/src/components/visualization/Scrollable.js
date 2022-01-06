@@ -27,39 +27,47 @@ import clsx from 'clsx'
 /**
  * Component for displaying a scrollable view.
  */
-const useStyles = makeStyles(theme => ({
-  root: {
-    width: '100%',
-    height: '100%'
-  },
-  containerOuter: {
-    width: '100%',
-    height: '100%',
-    position: 'relative'
-  },
-  containerInner: {
-    width: '100%',
-    height: '100%',
-    overflowY: 'scroll',
-    boxSizing: 'border-box'
-  },
-  scrollHint: {
-    zIndex: 3,
-    position: 'absolute',
-    width: '100%',
-    height: '2rem',
-    backgroundColor: alpha(theme.palette.background.default, 0.8),
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  scrollUp: {
-    bottom: 0
-  },
-  scrollDown: {
-    top: 0
+const useStyles = makeStyles(theme => {
+  const startColor = alpha(theme.palette.grey[100], 0.0)
+  const endColor = alpha(theme.palette.grey[300], 0.4)
+  return {
+    root: {
+      width: '100%',
+      height: '100%'
+    },
+    containerOuter: {
+      width: '100%',
+      height: '100%',
+      position: 'relative'
+    },
+    containerInner: {
+      width: '100%',
+      height: '100%',
+      overflowY: 'scroll',
+      boxSizing: 'border-box'
+    },
+    scrollHint: {
+      zIndex: 3,
+      position: 'absolute',
+      width: '100%',
+      height: '1.5rem',
+      background: alpha(theme.palette.background.default, 0.8),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      pointerEvents: 'none'
+    },
+    scrollUp: {
+      background: `linear-gradient(0deg, ${endColor} 0%, ${startColor} 100%)`,
+      bottom: 0
+    },
+    scrollDown: {
+      borderTop: `1px solid ${theme.palette.grey[300]}`,
+      background: `linear-gradient(0deg, ${startColor} 0%, ${endColor} 100%)`,
+      top: 0
+    }
   }
-}))
+})
 const useScrollStyles = makeStyles((theme) => ({
   scrollBar: {
     overflowY: 'scroll',

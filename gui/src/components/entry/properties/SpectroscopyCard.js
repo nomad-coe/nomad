@@ -19,12 +19,19 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard, PropertyGrid, PropertyItem } from './PropertyCard'
 import { useUnits } from '../../../units'
+import { SectionTable } from '../../Quantity'
 import EELS from '../../visualization/EELS'
 import { resolveRef } from '../../archive/metainfo'
 
 /**
  * Card displaying spectroscopic properties.
 */
+const eelsProperties = {
+  detector_type: {label: 'Detector type', align: 'left'},
+  resolution: {label: 'Resolution', align: 'right'},
+  min_energy: {label: 'Min. energy', align: 'right'},
+  max_energy: {label: 'Max. energy', align: 'right'}
+}
 const SpectroscopyCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
 
@@ -37,17 +44,32 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
   }
 
   // Resolve EELS data
-  const dataRef = archive?.results?.properties?.spectroscopy?.eels
-  const data = dataRef && resolveRef(dataRef, archive)
+  let eelsTable
+  let eelsCurves
+  if (archive) {
+    const eels = archive?.results?.properties?.spectroscopy?.eels
+    eelsTable = {data: eels}
+    eelsCurves = eels.map((value) => resolveRef(value.spectrum, archive))
+  }
 
   return <PropertyCard title="Spectroscopy">
     <PropertyGrid>
-      <PropertyItem title="Electron energy loss spectroscopy" xs={12}>
+      <PropertyItem title="EELS" xs={12} height="25rem">
         <EELS
-          data={data}
+          data={eelsCurves}
           layout={{yaxis: {autorange: true}}}
-          aspectRatio={2}
           units={units}
+        />
+      </PropertyItem>
+      <PropertyItem xs={12} height="auto">
+        <SectionTable
+          horizontal
+          section="results.properties.spectroscopy.eels"
+          quantities={eelsProperties}
+          data={eelsTable}
+          units={units}
+          data-testid="bulk-modulus"
+          showIndex={eelsCurves && eelsCurves.length > 1}
         />
       </PropertyItem>
     </PropertyGrid>

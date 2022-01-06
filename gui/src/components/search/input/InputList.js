@@ -19,7 +19,6 @@ import React, { useState, useCallback, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Typography } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import { useRecoilValue } from 'recoil'
 import { isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import clsx from 'clsx'
@@ -29,7 +28,6 @@ import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
 import InputUnavailable from './InputUnavailable'
 import { useSearchContext } from '../SearchContext'
-import { guiState } from '../../GUIMenu'
 
 /**
  * Displays a list of options with fixed maximum size. Only options that are
@@ -67,8 +65,8 @@ const useStyles = makeStyles(theme => ({
     right: theme.spacing(1)
   },
   spacer: {
-    overflow: 'hidden',
-    flex: 1
+    flex: 1,
+    minHeight: 0
   },
   count: {
     marginTop: theme.spacing(0.5),
@@ -91,7 +89,7 @@ const InputList = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {useAgg, useFilterState, useFilterLocked, useResults} = useSearchContext()
+  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
@@ -99,25 +97,18 @@ const InputList = React.memo(({
   const { height, ref } = useResizeDetector()
   const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
   const agg = useAgg(quantity, !isNil(height) && visible, aggSize, 'statistics')
-  const aggNormalization = useRecoilValue(guiState('aggNormalization'))
-  const nResults = useResults()?.pagination?.total || 0
-  let total
-  if (aggNormalization === 'results') {
-    total = nResults
-  } else if (aggNormalization === 'agg_max') {
-    total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
-  }
+  const total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
 
   // Determine the description and units
   const def = searchQuantities[quantity]
   const desc = description || def?.description || ''
   const title = label || def?.name
 
-  const handleChange = useCallback((key, value) => {
+  const handleChange = useCallback((event, key, selected) => {
     setFilter(old => {
       if (!old) return new Set([key])
       const newValue = new Set(old)
-      value ? newValue.add(key) : newValue.delete(key)
+      selected ? newValue.add(key) : newValue.delete(key)
       return newValue
     })
   }, [setFilter])

@@ -36,10 +36,16 @@ const FilterSubMenuElectronic = React.memo(({
   return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
+        <InputField
+          quantity="mechanical_properties"
+          visible={visible}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSection
           section="results.properties.mechanical.bulk_modulus"
           visible={visible}
-          nested
         >
           <InputField
             quantity="results.properties.mechanical.bulk_modulus.type"
@@ -58,12 +64,12 @@ const FilterSubMenuElectronic = React.memo(({
         <InputSection
           section="results.properties.mechanical.shear_modulus"
           visible={visible}
-          nested
         >
           <InputField
             quantity="results.properties.mechanical.shear_modulus.type"
             visible={visible}
             initialSize={3}
+            disableSearch
           />
           <InputSlider
             quantity="results.properties.mechanical.shear_modulus.value"
@@ -74,11 +80,16 @@ const FilterSubMenuElectronic = React.memo(({
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
-        <InputField
-          quantity="mechanical_properties"
+        <InputSection
+          section="results.properties.mechanical.energy_volume_curve"
           visible={visible}
-          disableSearch
-        />
+        >
+          <InputField
+            quantity="results.properties.mechanical.energy_volume_curve.type"
+            visible={visible}
+            initialSize={5}
+          />
+        </InputSection>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>

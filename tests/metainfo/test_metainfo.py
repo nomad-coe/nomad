@@ -25,7 +25,7 @@ import pint.quantity
 
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, MResource, Annotation, SectionAnnotation,
+    MetainfoError, Environment, Annotation, SectionAnnotation, Context,
     DefinitionAnnotation, derived)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
@@ -191,14 +191,15 @@ class TestM2:
         class TestBase(MSection):
             name = Quantity(type=str)
 
-        with pytest.raises(MetainfoError):
-            class TestSection(TestBase):  # pylint: disable=unused-variable
-                name = Quantity(type=int)
+        # this is possible, can overwrite existing quantity
+        class TestSection(TestBase):  # pylint: disable=unused-variable
+            name = Quantity(type=int)
 
     def test_unique_names_extends(self):
         class TestBase(MSection):
             name = Quantity(type=str)
 
+        # this is not possible, cant replace existing quantity
         with pytest.raises(MetainfoError):
             class TestSection(TestBase):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
@@ -312,6 +313,32 @@ class TestM2:
         assert TestSection.test_quantity.a_test is not None
         assert len(TestSection.list_test_quantity.m_get_annotations(TestDefinitionAnnotation)) == 2
         assert TestSection.test_sub_section.a_test is not None
+
+    def test_more_property(self):
+        class TestSection(MSection):
+            m_def = Section(this_does_not_exist_in_metainfo='value')
+            test_quantity = Quantity(type=str, also_no_metainfo_quantity=1, one_more=False)
+            test_delayed_more_quantity = Quantity(type=str)
+            another_test_quantity = Quantity(type=str)
+
+        TestSection.test_delayed_more_quantity.more = dict(one_more='test')
+
+        assert TestSection.m_def.more['this_does_not_exist_in_metainfo'] == 'value'
+        assert TestSection.test_quantity.more['also_no_metainfo_quantity'] == 1
+        assert not TestSection.test_quantity.more['one_more']
+        assert TestSection.test_delayed_more_quantity.more['one_more'] == 'test'
+        assert len(TestSection.another_test_quantity.more) == 0
+
+        assert TestSection.m_def.this_does_not_exist_in_metainfo == 'value'
+        assert TestSection.test_quantity.also_no_metainfo_quantity == 1
+        assert not TestSection.test_quantity.one_more
+        with pytest.raises(AttributeError):
+            assert TestSection.not_even_in_more is None
+
+        serialized = TestSection.m_def.m_to_dict()
+        assert 'more' in serialized
+        assert 'this_does_not_exist_in_metainfo' in serialized['more']
+        assert 'this_does_not_exist_in_metainfo' not in serialized
 
 
 class TestM1:
@@ -509,7 +536,7 @@ class TestM1:
             def derived(self):
                 return self.value + self.list[0]
 
-        assert TestSection.derived.cached
+        assert TestSection.derived.cached  # pylint: disable=no-member
         test_section = TestSection(value='test', list=['1'])
         assert test_section.derived == 'test1'
         test_section.value = '2'
@@ -554,38 +581,6 @@ class TestM1:
         test_section.m_create(System, TestSection.one)
 
         assert test_section.one is not None
-
-    def test_resource(self):
-        resource = MResource()
-        run = resource.create(Run)
-        run.m_create(System)
-        run.m_create(System)
-
-        assert len(resource.all(System)) == 2
-
-    def test_resource_add(self):
-        # adding
-        resource = MResource()
-        run = Run()
-        resource.add(run)
-        run.m_create(System)
-        run.m_create(System)
-        assert len(resource.all(Run)) == 1
-        assert len(resource.all(System)) == 2
-
-        # implicitly moving to another resource
-        resource = MResource()
-        resource.add(run)
-        assert len(resource.all(Run)) == 1
-        assert len(resource.all(System)) == 2
-
-    def test_resource_move(self):
-        resource = MResource()
-        run = resource.create(Run)
-        system = run.m_create(System)
-
-        run = Run()
-        run.m_add_sub_section(Run.systems, system)
 
     def test_mapping(self):
         run = Run()
@@ -636,8 +631,11 @@ class TestM1:
         section.f64 = -200
 
     def test_np_allow_wrong_shape(self, caplog):
-        resource = MResource(logger=utils.get_logger(__name__))
-        scc = resource.create(SCC)
+        class MyContext(Context):
+            def warning(self, event, **kwargs):
+                utils.get_logger(__name__).warn(event, **kwargs)
+
+        scc = SCC(m_context=MyContext())
         scc.energy_total_0 = np.array([1.0, 1.0, 1.0])
         scc.m_to_dict()
         test_utils.assert_log(caplog, 'WARN', 'wrong shape')
