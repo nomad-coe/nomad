@@ -137,8 +137,8 @@ class NomadAuthenticator(GenericOAuthenticator):
                 pathlib.Path(host_path).mkdir(parents=True, exist_ok=True)
             volumes[host_path] = mount_path
 
-        add_volume(os.path.join(config.north.users_fs, user.name), f'/prefix/work')
-        add_volume(os.path.join(config.north.shared_fs), f'/prefix/shared')
+        add_volume(os.path.join(config.north.users_fs, user.name), f'/prefix/work', create=True)
+        add_volume(os.path.join(config.north.shared_fs), f'/prefix/shared', create=True)
 
         for upload in uploads_response.json()['data']:
             if 'upload_files_server_path' in upload:

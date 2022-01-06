@@ -121,7 +121,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -138,7 +138,7 @@ services:
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -154,17 +154,17 @@ services:
         command: ./run.sh
 
     # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
-    north:
+    hub:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north-jupyter-hub
-        container_name: nomad_oasis_north
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:north
+        container_name: nomad_oasis_hub
         environment:
             <<: *nomad_backend_env
-            NOMAD_SERVICE: nomad_oasis_north
+            NOMAD_SERVICE: nomad_oasis_hub
             NOMAD_NORTH_DOCKER_NETWORK: nomad_oasis_network
-            NOMAD_NORTH_HUB_IP_CONNECT: north
+            NOMAD_NORTH_HUB_IP_CONNECT: hub
             NOMAD_NORTH_HUB_IP: '0.0.0.0'
-            NOMAD_NORTH_HUB_HOST: 'north'
+            NOMAD_NORTH_HUB_HOST: 'hub'
             NOMAD_SERVICES_API_HOST: app
         links:
             - app
@@ -173,7 +173,7 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./.volumes/fs:/app/.volumes/fs
         command: python -m nomad.cli admin run hub
-        user: root
+        user: "1000:991"
 
     # nomad gui (a reverse proxy for nomad)
     gui:
@@ -185,22 +185,24 @@ services:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
         links:
             - app
-            - north
+            - hub
         ports:
-            - 80:80
-
+            - 8001:80
 
 volumes:
     nomad_oasis_mongo:
     nomad_oasis_elastic:
     nomad_oasis_rabbitmq:
+    nomad_oasis_files:
 
 networks:
     default:
         name: nomad_oasis_network
 ```
 
-There are no mandatory changes necessary.
+Changes necessary:
+- The group in the value of the hub's user parameter needs to match the docker group
+on the host. This should ensure that the user which runs the hub, has the rights to access the hosts docker.
 
 A few things to notice:
 
@@ -209,7 +211,7 @@ A few things to notice:
 - The only exposed port is `80`. This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
 - All container will be named `nomad_oasis_*`. These names can be used to later reference the container with the `docker` cmd.
-- The NOMAD images we use are tagged `stable`. This could be replaced with concrete version tags.
+- The NOMAD images we use are tagged `north`. This is the branch where we currently develop the nomad remote tools.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent
 indefinite restarts.
 
@@ -226,10 +228,10 @@ services:
 fs:
   staging_external: <abs path to nomad>/.volumes/fs/staging
 
-north:
+hub:
   jupyterhub_crypt_key: '<generated crypt key>'
-  users_fs: <abs path to nomad>/.volumes/fs/north/users
-  shared_fs: <abs path to nomad>/.volumes/fs/north/shared
+  users_fs: <abs path to nomad>/.volumes/fs/hub/users
+  shared_fs: <abs path to nomad>/.volumes/fs/hub/shared
   hub_ip_connect: '172.17.0.1'
 
 keycloak:
@@ -323,8 +325,8 @@ server {
         proxy_pass http://app:8000;
     }
 
-    location ~ /north/ {
-        proxy_pass http://north:9000;
+    location ~ /hub/ {
+        proxy_pass http://hub:9000;
 
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header Host $host;
