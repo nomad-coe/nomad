@@ -28,19 +28,19 @@ almost readonly (beside metadata) storage.
 .. code-block:: sh
 
     fs/staging/<upload>/raw/**
-                       /archive/<calc>.msg
+                       /archive/<entry_id>.msg
     fs/public/<upload>/raw-{access}.plain.zip
                       /archive-{access}.msg.msg
 
 Where `access` is either "public" (non-embargoed) or "restricted" (embargoed).
 
 There is an implicit relationship between files, based on them being in the same
-directory. Each directory with at least one *mainfile* is a *calculation directory*
-and all the files are *aux* files to that *mainfile*. This is independent of the
-respective files actually contributing data or not. A *calculation directory* might
-contain multiple *mainfile*. E.g., user simulated multiple states of the same system, have
-one calculation based on the other, etc. In this case the other *mainfile* is an *aux*
-file to the original *mainfile* and vice versa.
+directory. Each directory with at least one *mainfile* is an *entry directory*
+and all the files are *aux* files to that mainfile. This is independent of whether the
+respective files actually contributes data or not. An entry directory might
+contain multiple mainfiles. E.g., user simulated multiple states of the same system, have
+one entry based on the other, etc. In this case the other mainfile is an *aux file* to the
+original mainfile, and vice versa.
 '''
 
 from abc import ABCMeta
@@ -618,10 +618,10 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             mime_type = 'application/octet-stream'
         return mime_type
 
-    def read_archive(self, calc_id: str) -> ArchiveReader:
+    def read_archive(self, entry_id: str) -> ArchiveReader:
         '''
         Returns an :class:`nomad.archive.ArchiveReader` that contains the
-        given calc_id.
+        given entry_id.
         '''
         raise NotImplementedError()
 
@@ -749,11 +749,11 @@ class StagingUploadFiles(UploadFiles):
         assert is_safe_relative_path(file_path)
         return self._raw_dir.join_file(file_path)
 
-    def write_archive(self, calc_id: str, data: Any) -> int:
+    def write_archive(self, entry_id: str, data: Any) -> int:
         ''' Writes the data as archive file and returns the archive file size. '''
-        archive_file_object = self.archive_file_object(calc_id)
+        archive_file_object = self.archive_file_object(entry_id)
         try:
-            write_archive(archive_file_object.os_path, 1, data=[(calc_id, data)])
+            write_archive(archive_file_object.os_path, 1, data=[(entry_id, data)])
         except Exception as e:
             # in case of failure, remove the possible corrupted archive file
             if archive_file_object.exists():
@@ -761,17 +761,17 @@ class StagingUploadFiles(UploadFiles):
 
             raise e
 
-        return self.archive_file_object(calc_id).size
+        return self.archive_file_object(entry_id).size
 
-    def read_archive(self, calc_id: str) -> ArchiveReader:
+    def read_archive(self, entry_id: str) -> ArchiveReader:
         try:
-            return read_archive(self.archive_file_object(calc_id).os_path)
+            return read_archive(self.archive_file_object(entry_id).os_path)
 
         except FileNotFoundError:
-            raise KeyError(calc_id)
+            raise KeyError(entry_id)
 
-    def archive_file_object(self, calc_id: str) -> PathObject:
-        return self._archive_dir.join_file(f'{calc_id}.msg')
+    def archive_file_object(self, entry_id: str) -> PathObject:
+        return self._archive_dir.join_file(f'{entry_id}.msg')
 
     def add_rawfiles(
             self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False) -> None:
@@ -986,13 +986,13 @@ class StagingUploadFiles(UploadFiles):
         number_of_entries = len(entries)
 
         def create_iterator():
-            for calc in entries:
-                archive_file = self.archive_file_object(calc.calc_id)
+            for entry in entries:
+                archive_file = self.archive_file_object(entry.entry_id)
                 if archive_file.exists():
-                    data = read_archive(archive_file.os_path)[calc.calc_id].to_dict()
-                    yield (calc.calc_id, data)
+                    data = read_archive(archive_file.os_path)[entry.entry_id].to_dict()
+                    yield (entry.entry_id, data)
                 else:
-                    yield (calc.calc_id, {})
+                    yield (entry.entry_id, {})
 
         try:
             file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
@@ -1024,11 +1024,11 @@ class StagingUploadFiles(UploadFiles):
             self.logger.error('exception during packing raw files', exc_info=e)
             raise
 
-    def calc_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
+    def entry_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         '''
         Returns all the auxfiles and mainfile for a given mainfile. This implements
-        nomad's logic about what is part of a calculation and what not. The mainfile
-        is first entry, the rest is sorted.
+        nomad's logic about what is part of an entry and what not. The mainfile
+        is the first element, the rest is sorted.
         Arguments:
             mainfile: The mainfile relative to upload
             with_mainfile: Do include the mainfile, default is True
@@ -1038,19 +1038,19 @@ class StagingUploadFiles(UploadFiles):
             raise KeyError(mainfile)
 
         mainfile_basename = os.path.basename(mainfile)
-        calc_dir = os.path.dirname(mainfile_object.os_path)
-        calc_relative_dir = calc_dir[len(self._raw_dir.os_path) + 1:]
+        entry_dir = os.path.dirname(mainfile_object.os_path)
+        entry_relative_dir = entry_dir[len(self._raw_dir.os_path) + 1:]
 
         file_count = 0
         aux_files: List[str] = []
-        for filename in os.listdir(calc_dir):
-            if filename != mainfile_basename and os.path.isfile(os.path.join(calc_dir, filename)):
-                aux_files.append(os.path.join(calc_relative_dir, filename))
+        for filename in os.listdir(entry_dir):
+            if filename != mainfile_basename and os.path.isfile(os.path.join(entry_dir, filename)):
+                aux_files.append(os.path.join(entry_relative_dir, filename))
                 file_count += 1
 
             if with_cutoff and file_count > config.auxfile_cutoff:
-                # If there are two many of them, its probably just a directory with lots of
-                # calculations. In this case it does not make any sense to provide thousands of
+                # If there are too many of them, its probably just a directory with lots of
+                # mainfiles/entries. In this case it does not make any sense to provide thousands of
                 # aux files.
                 break
 
@@ -1061,18 +1061,18 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def calc_hash(self, mainfile: str) -> str:
+    def entry_hash(self, mainfile: str) -> str:
         '''
-        Calculates a hash for the given calc based on file contents and aux file contents.
+        Calculates a hash for the given entry based on file contents and aux file contents.
         Arguments:
-            mainfile: The mainfile path relative to the upload that identifies the calc in the folder structure.
+            mainfile: The mainfile path relative to the upload that identifies the entry in the folder structure.
         Returns:
             The calculated hash
         Raises:
             KeyError: If the mainfile does not exist.
         '''
         hash = hashlib.sha512()
-        for filepath in self.calc_files(mainfile):
+        for filepath in self.entry_files(mainfile):
             with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
@@ -1234,9 +1234,9 @@ class PublicUploadFiles(UploadFiles):
 
         if include_archive:
             with self._open_msg_file() as archive:
-                for calc_id, data in archive.items():
-                    calc_id = calc_id.strip()
-                    staging_upload_files.write_archive(calc_id, data.to_dict())
+                for entry_id, data in archive.items():
+                    entry_id = entry_id.strip()
+                    staging_upload_files.write_archive(entry_id, data.to_dict())
 
         return staging_upload_files
 
@@ -1373,15 +1373,15 @@ class PublicUploadFiles(UploadFiles):
 
         raise KeyError(file_path)
 
-    def read_archive(self, calc_id: str) -> Any:
+    def read_archive(self, entry_id: str) -> Any:
         try:
             archive = self._open_msg_file()
-            if calc_id in archive:
+            if entry_id in archive:
                 return archive
         except FileNotFoundError:
             pass
 
-        raise KeyError(calc_id)
+        raise KeyError(entry_id)
 
     def re_pack(self, with_embargo: bool) -> None:
         '''

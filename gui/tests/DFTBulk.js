@@ -33,7 +33,6 @@ const common = {
   last_processing_time: '2021-03-17T15:47:32.899000',
   nomad_version: '0.10.0',
   nomad_commit: 'bf3c06fa',
-  calc_id: 'dft_bulk',
   entry_id: 'dft_bulk',
   comment: 'Mocked',
   references: ['doi'],

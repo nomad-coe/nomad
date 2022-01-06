@@ -38,7 +38,7 @@ class Dataset(Resource):
         ''' Returns a DCAT dataset for a given NOMAD entry id. '''
         results = search(query=dict(entry_id=entry_id))
         if results.pagination.total == 0:
-            abort(404, message='There is no calculation with id %s' % entry_id)
+            abort(404, message='There is no entry with id %s' % entry_id)
 
         entry = results.data[0]
 

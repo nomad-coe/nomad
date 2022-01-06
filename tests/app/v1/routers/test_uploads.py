@@ -33,7 +33,7 @@ from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
 from tests.app.v1.routers.common import assert_response
 from nomad import config, files, infrastructure
-from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.datamodel import EntryMetadata
 
@@ -166,9 +166,9 @@ def assert_file_upload_and_processing(
 
 def assert_expected_mainfiles(upload_id, expected_mainfiles):
     if expected_mainfiles is not None:
-        entries = [e.mainfile for e in Calc.objects(upload_id=upload_id)]
+        entries = [e.mainfile for e in Entry.objects(upload_id=upload_id)]
         assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
-        for entry in Calc.objects(upload_id=upload_id):
+        for entry in Entry.objects(upload_id=upload_id):
             if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
                 assert entry.process_status == ProcessStatus.SUCCESS
             else:
@@ -205,7 +205,7 @@ def assert_upload_does_not_exist(client, upload_id: str, user_auth):
     assert_response(response, 404)
 
     assert Upload.objects(upload_id=upload_id).first() is None
-    assert Calc.objects(upload_id=upload_id).count() is 0
+    assert Entry.objects(upload_id=upload_id).count() is 0
 
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
@@ -276,7 +276,6 @@ def assert_entry(entry, **kwargs):
     ''' Checks the content of a returned entry dictionary. '''
     assert 'upload_id' in entry
     assert 'entry_id' in entry
-    assert 'calc_id' not in entry
     assert 'entry_create_time' in entry
     assert not entry['process_running']
     for key, value in kwargs.items():
@@ -323,7 +322,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
     '''
     return [
         EntryMetadata(
-            domain='dft', calc_id=entry['entry_id'], mainfile=entry['mainfile'],
+            domain='dft', entry_id=entry['entry_id'], mainfile=entry['mainfile'],
             with_embargo=Upload.get(entry['upload_id']).with_embargo)
         for entry in entries]
 
@@ -595,7 +594,7 @@ def test_get_upload(
         id='pag-order_by-parser_name'),
     pytest.param(
         dict(
-            query_args={'page_size': 1, 'order_by': 'calc_id'},
+            query_args={'page_size': 1, 'order_by': 'entry_id'},
             expected_status_code=422),
         id='pag-order_by-illegal'),
     pytest.param(
@@ -1326,22 +1325,22 @@ def test_post_upload_action_publish_to_central_nomad(
 
         old_upload = Upload.get(upload_id)
         new_upload = Upload.get(upload_id + suffix)
-        assert len(old_upload.calcs) == len(new_upload.calcs) == 1
+        assert len(old_upload.successful_entries) == len(new_upload.successful_entries) == 1
         if embargo_length is None:
             embargo_length = old_upload.embargo_length
-        old_calc = old_upload.calcs[0]
-        new_calc = new_upload.calcs[0]
-        old_calc_metadata_dict = old_calc.full_entry_metadata(old_upload).m_to_dict()
-        new_calc_metadata_dict = new_calc.full_entry_metadata(new_upload).m_to_dict()
-        for k, v in old_calc_metadata_dict.items():
+        old_entry = old_upload.successful_entries[0]
+        new_entry = new_upload.successful_entries[0]
+        old_entry_metadata_dict = old_entry.full_entry_metadata(old_upload).m_to_dict()
+        new_entry_metadata_dict = new_entry.full_entry_metadata(new_upload).m_to_dict()
+        for k, v in old_entry_metadata_dict.items():
             if k == 'with_embargo':
-                assert new_calc_metadata_dict[k] == (embargo_length > 0)
+                assert new_entry_metadata_dict[k] == (embargo_length > 0)
             elif k not in (
-                    'upload_id', 'calc_id', 'upload_create_time', 'entry_create_time',
+                    'upload_id', 'entry_id', 'upload_create_time', 'entry_create_time',
                     'last_processing_time', 'publish_time', 'embargo_length',
                     'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
-                assert new_calc_metadata_dict[k] == v, f'Metadata not matching: {k}'
-        assert new_calc.datasets == ['dataset_id']
+                assert new_entry_metadata_dict[k] == v, f'Metadata not matching: {k}'
+        assert new_entry.datasets == ['dataset_id']
         assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_id
         assert new_upload.from_oasis and new_upload.oasis_deployment_id
         assert new_upload.embargo_length == embargo_length

@@ -27,7 +27,7 @@ from nomad import processing as proc, files
 from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
-from nomad.processing import Upload, Calc, ProcessStatus
+from nomad.processing import Upload, Entry, ProcessStatus
 
 from tests.utils import ExampleData
 # TODO there is much more to test
@@ -76,7 +76,7 @@ class TestAdmin:
 
     #     Upload.objects(upload_id=upload_id).delete()
     #     assert published.upload_files.exists()
-    #     assert Calc.objects(upload_id=upload_id).first() is not None
+    #     assert Entry.objects(upload_id=upload_id).first() is not None
     #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
     #     # TODO test new index pair
@@ -88,7 +88,7 @@ class TestAdmin:
 
     #     assert result.exit_code == 0
     #     assert not published.upload_files.exists()
-    #     assert Calc.objects(upload_id=upload_id).first() is None
+    #     assert Entry.objects(upload_id=upload_id).first() is None
     #     search.refresh()
     #     assert search.SearchRequest().search_parameter('upload_id', upload_id).execute()['total'] > 0
     #     # TODO test new index pair
@@ -102,7 +102,7 @@ class TestAdmin:
         upload_id = published.upload_id
         published.publish_time = publish_time
         published.save()
-        calc = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         assert published.upload_files.exists()
         assert published.with_embargo
@@ -118,25 +118,25 @@ class TestAdmin:
         assert not published.with_embargo == lifted
         assert (search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0) == lifted
         if lifted:
-            with files.UploadFiles.get(upload_id=upload_id).read_archive(calc_id=calc.calc_id) as archive:
-                assert calc.calc_id in archive
+            with files.UploadFiles.get(upload_id=upload_id).read_archive(entry_id=entry.entry_id) as archive:
+                assert entry.entry_id in archive
 
     def test_delete_entry(self, published):
         upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         result = invoke_cli(
-            cli, ['admin', 'entries', 'rm', calc.calc_id], catch_exceptions=False)
+            cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is not None
-        assert Calc.objects(calc_id=calc.calc_id).first() is None
+        assert Entry.objects(entry_id=entry.entry_id).first() is None
 
 
-def transform_for_index_test(calc):
-    calc.comment = 'specific'
-    return calc
+def transform_for_index_test(entry):
+    entry.comment = 'specific'
+    return entry
 
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
@@ -179,13 +179,13 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
         assert Upload.objects(upload_id=upload_id).first() is None
-        assert Calc.objects(upload_id=upload_id).first() is None
+        assert Entry.objects(upload_id=upload_id).first() is None
 
     def test_index(self, published):
         upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
-        calc.comment = 'specific'
-        calc.save()
+        entry = Entry.objects(upload_id=upload_id).first()
+        entry.comment = 'specific'
+        entry.save()
 
         assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
@@ -214,20 +214,20 @@ class TestAdminUploads:
     def test_re_process(self, published, monkeypatch):
         monkeypatch.setattr('nomad.config.meta.version', 'test_version')
         upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
-        assert calc.nomad_version != 'test_version'
+        entry = Entry.objects(upload_id=upload_id).first()
+        assert entry.nomad_version != 'test_version'
 
         result = invoke_cli(
             cli, ['admin', 'uploads', 'process', '--parallel', '2', upload_id], catch_exceptions=False)
 
         assert result.exit_code == 0
         assert 'processing' in result.stdout
-        calc.reload()
-        assert calc.nomad_version == 'test_version'
+        entry.reload()
+        assert entry.nomad_version == 'test_version'
 
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id
-        calc = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         assert published.with_embargo
         published.embargo_length = 0
         published.save()
@@ -237,14 +237,14 @@ class TestAdminUploads:
 
         assert result.exit_code == 0
         assert 're-pack' in result.stdout
-        calc.reload()
+        entry.reload()
         upload_files = files.PublicUploadFiles(upload_id)
         for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
             with upload_files.raw_file(path_info.path) as f:
                 f.read()
-        for calc in Calc.objects(upload_id=upload_id):
-            with upload_files.read_archive(calc.calc_id) as archive:
-                assert calc.calc_id in archive
+        for entry in Entry.objects(upload_id=upload_id):
+            with upload_files.read_archive(entry.entry_id) as archive:
+                assert entry.entry_id in archive
 
         published.reload()
         assert published.process_status == ProcessStatus.SUCCESS
@@ -269,21 +269,21 @@ class TestAdminUploads:
             for entry_metadata in entries_metadata:
                 assert entry_metadata.main_author.user_id == other_test_user.user_id
 
-    @pytest.mark.parametrize('with_calcs,success,failure', [
+    @pytest.mark.parametrize('with_entries,success,failure', [
         (True, False, False),
         (False, False, False),
         (True, True, False),
         (False, False, True)])
-    def test_reset(self, non_empty_processed, with_calcs, success, failure):
+    def test_reset(self, non_empty_processed, with_entries, success, failure):
         upload_id = non_empty_processed.upload_id
 
         upload = Upload.objects(upload_id=upload_id).first()
-        calc = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
         assert upload.process_status == ProcessStatus.SUCCESS
-        assert calc.process_status == ProcessStatus.SUCCESS
+        assert entry.process_status == ProcessStatus.SUCCESS
 
         args = ['admin', 'uploads', 'reset']
-        if with_calcs: args.append('--with-calcs')
+        if with_entries: args.append('--with-entries')
         if success: args.append('--success')
         if failure: args.append('--failure')
         args.append(upload_id)
@@ -292,16 +292,16 @@ class TestAdminUploads:
         assert result.exit_code == 0
         assert 'reset' in result.stdout
         upload = Upload.objects(upload_id=upload_id).first()
-        calc = Calc.objects(upload_id=upload_id).first()
+        entry = Entry.objects(upload_id=upload_id).first()
 
         expected_state = ProcessStatus.READY
         if success: expected_state = ProcessStatus.SUCCESS
         if failure: expected_state = ProcessStatus.FAILURE
         assert upload.process_status == expected_state
-        if not with_calcs:
-            assert calc.process_status == ProcessStatus.SUCCESS
+        if not with_entries:
+            assert entry.process_status == ProcessStatus.SUCCESS
         else:
-            assert calc.process_status == expected_state
+            assert entry.process_status == expected_state
 
     @pytest.mark.parametrize('indexed', [True, False])
     def test_integrity_entry_index(self, test_user, mongo, elastic, indexed):
@@ -335,7 +335,7 @@ class TestClient:
     def test_local(self, published_wo_user_metadata, client_with_api_v1):
         result = invoke_cli(
             cli,
-            ['client', 'local', published_wo_user_metadata.calcs[0].calc_id],
+            ['client', 'local', published_wo_user_metadata.successful_entries[0].entry_id],
             catch_exceptions=True)
 
         assert result.exit_code == 0, result.output

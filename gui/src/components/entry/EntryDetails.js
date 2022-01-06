@@ -100,7 +100,7 @@ export const EntryIds = React.memo(({data}) => {
     <div>
       <Quantity column >
         {/* <Quantity quantity="pid" label='PID' placeholder="not yet assigned" noWrap data={data} withClipboard /> */}
-        <Quantity quantity="calc_id" label="entry id" noWrap withClipboard data={data} />
+        <Quantity quantity="entry_id" noWrap withClipboard data={data} />
         <Quantity quantity="raw_id" noWrap withClipboard data={data} />
         <Quantity quantity="external_id" noWrap withClipboard data={data} />
         <Quantity quantity="mainfile" noWrap ellipsisFront data={data} withClipboard />

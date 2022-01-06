@@ -112,7 +112,7 @@ def set_upload_entry_metadata(upload, metadata: Dict[str, Any]):
     Sets the provided metadata values on all entries of the given upload.
     '''
     from nomad import processing as proc
-    for entry in proc.Calc.objects(upload_id=upload.upload_id):
+    for entry in proc.Entry.objects(upload_id=upload.upload_id):
         entry.set_mongo_entry_metadata(**metadata)
         entry.save()
 
@@ -155,9 +155,9 @@ class ExampleData:
             for entry_metadata in self.entries.values():
                 process_status = (
                     proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
-                mongo_entry = proc.Calc(
+                mongo_entry = proc.Entry(
                     entry_create_time=entry_metadata.entry_create_time,
-                    calc_id=entry_metadata.calc_id,
+                    entry_id=entry_metadata.entry_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser_name='parsers/vasp',
@@ -226,7 +226,7 @@ class ExampleData:
     def create_entry(
             self,
             entry_archive: EntryArchive = None,
-            calc_id: str = None, entry_id: str = None, upload_id: str = None,
+            entry_id: str = None, upload_id: str = None,
             material_id: str = None,
             mainfile: str = None,
             results: Union[Results, dict] = None,
@@ -234,9 +234,6 @@ class ExampleData:
 
         assert upload_id in self.uploads, 'Must create the upload first'
         upload_dict = self.uploads[upload_id]
-
-        if entry_id is None:
-            entry_id = calc_id
 
         if entry_id is None:
             entry_id = f'test_entry_id_{self._entry_id_counter}'
@@ -256,10 +253,10 @@ class ExampleData:
             entry_metadata = entry_archive.m_create(EntryMetadata)
 
         entry_metadata.m_update(
-            calc_id=entry_id,
+            entry_id=entry_id,
             upload_id=upload_id,
             mainfile=mainfile,
-            calc_hash='dummy_hash_' + entry_id,
+            entry_hash='dummy_hash_' + entry_id,
             domain='dft',
             entry_create_time=self._next_time_stamp(),
             processed=True,
@@ -343,13 +340,13 @@ class ExampleData:
             upload_id: str, id: int, h: int, o: int, extra: List[str], periodicity: int,
             optimade: bool = True, metadata: dict = None):
 
-        ''' Creates a calculation in Elastic and Mongodb with the given properties.
+        ''' Creates an entry in Elastic and Mongodb with the given properties.
 
         Does require initialized :func:`elastic_infra` and :func:`mongo_infra`.
 
         Args:
             meta_info: A legace metainfo env.
-            id: A number to create ``test_calc_id_<number>`` ids.
+            id: A number to create ``test_entry_id_<number>`` ids.
             h: The amount of H atoms
             o: The amount of O atoms
             extra: A list of further atoms
@@ -386,7 +383,7 @@ class ExampleData:
 
         self.create_entry(
             entry_archive=archive,
-            upload_id=upload_id, calc_id='test_calc_id_%d' % id, domain='dft', **kwargs)
+            upload_id=upload_id, entry_id='test_entry_id_%d' % id, domain='dft', **kwargs)
 
 
 def create_template_upload_file(

@@ -30,7 +30,7 @@ from tests.utils import ExampleData
 
 
 def test_get_entry(published: Upload):
-    entry_id = list(published.calcs)[0].calc_id
+    entry_id = list(published.successful_entries)[0].entry_id
     with published.upload_files.read_archive(entry_id) as archive:
         data = archive[entry_id]
         assert data['metadata']['optimade'] is not None
@@ -203,7 +203,7 @@ def test_list_endpoint_response_fields(client, example_structures):
 
 
 def test_single_endpoint_response_fields(client, example_structures):
-    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_entry_id_1')
     assert rv.status_code == 200, json.dumps(rv.json(), indent=2)
     data = rv.json()
     ref_elements = ['H', 'O']
@@ -214,7 +214,7 @@ def test_single_endpoint_response_fields(client, example_structures):
 
 
 def test_single_endpoint(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1')
     assert rv.status_code == 200
     data = rv.json()
     for key in ['type', 'id', 'attributes']:
@@ -276,7 +276,7 @@ def test_structures_endpoint(client, example_structures):
 
 
 def test_structure_endpoint(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
@@ -297,7 +297,7 @@ def test_nmd_properties_info(client, example_structures):
 
 
 def test_nmd_properties(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
@@ -312,7 +312,7 @@ def test_nmd_properties(client, example_structures):
 
 def test_nmd_properties_include_all(client, example_structures):
     all_fields = [f'_nmd_{name}' for name in provider_specific_fields()]
-    rv = client.get(f'/optimade/structures/test_calc_id_1?response_fields={",".join(all_fields)}')
+    rv = client.get(f'/optimade/structures/test_entry_id_1?response_fields={",".join(all_fields)}')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None

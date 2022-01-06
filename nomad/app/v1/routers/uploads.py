@@ -30,7 +30,7 @@ from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files
 from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
-from nomad.processing import Upload, Calc, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
+from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search
 
@@ -472,9 +472,9 @@ async def get_upload_entries(
     start = pagination.get_simple_index()
     end = start + pagination.page_size
 
-    # load upload's calcs. Use calc_id as tie breaker for ordering.
-    entries = list(upload.all_calcs(start, end, order_by=(order_by_with_sign, 'calc_id')))
-    failed_calcs = upload.failed_calcs
+    # load upload's entries. Use entry_id as tie breaker for ordering.
+    entries = list(upload.entries_sublist(start, end, order_by=(order_by_with_sign, 'entry_id')))
+    failed_entries_count = upload.failed_entries_count
 
     # load entries's metadata from search
     metadata_entries_query = WithQuery(
@@ -497,13 +497,13 @@ async def get_upload_entries(
         pydantic_entry.entry_metadata = metadata_entries_map.get(entry.entry_id)
         data.append(pydantic_entry)
 
-    pagination_response = PaginationResponse(total=upload.total_calcs, **pagination.dict())
+    pagination_response = PaginationResponse(total=upload.total_entries_count, **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
 
     return EntryProcDataQueryResponse(
         pagination=pagination_response,
-        processing_successful=upload.processed_calcs - failed_calcs,
-        processing_failed=failed_calcs,
+        processing_successful=upload.processed_entries_count - failed_entries_count,
+        processing_failed=failed_entries_count,
         upload=_upload_to_pydantic(upload),
         data=data)
 
@@ -527,7 +527,7 @@ async def get_upload_entry(
     Fetches a specific entry for a specific upload.
     '''
     upload = _get_upload_with_read_access(upload_id, user)
-    entry = upload.get_calc(entry_id)
+    entry = upload.get_entry(entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             An entry by that id could not be found in the specified upload.'''))
@@ -1100,7 +1100,7 @@ async def post_upload_action_publish(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload that failed processing.')
-    if upload.processed_calcs == 0:
+    if upload.processed_entries_count == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload without any resulting entries.')
@@ -1549,11 +1549,11 @@ def _get_upload_with_write_access(
 def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
     pydantic_upload = UploadProcData.from_orm(upload)
-    pydantic_upload.entries = upload.total_calcs
+    pydantic_upload.entries = upload.total_entries_count
     return pydantic_upload
 
 
-def _entry_to_pydantic(entry: Calc) -> EntryProcData:
+def _entry_to_pydantic(entry: Entry) -> EntryProcData:
     ''' Converts the mongo db object to an EntryProcData object'''
     return EntryProcData.from_orm(entry)
 

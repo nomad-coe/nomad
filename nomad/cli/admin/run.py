@@ -54,7 +54,7 @@ def run_app(**kwargs):
 def run_worker():
     config.meta.service = 'worker'
     from nomad import processing
-    processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery,uploads,calcs'])
+    processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery'])
 
 
 @run.command(help='Run both app and worker.')

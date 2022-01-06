@@ -912,7 +912,7 @@ def index_entries(entries: List, refresh: bool = False):
                 actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
                 actions_and_docs.append(entry_index_doc)
             except Exception as e:
-                logger.error('could not create entry index doc', calc_id=entry['entry_id'], exc_info=e)
+                logger.error('could not create entry index doc', entry_id=entry['entry_id'], exc_info=e)
 
         timer_kwargs: Dict[str, Any] = {}
         try:

@@ -144,13 +144,13 @@ def _run_processing(
 @click.option('--outdated', help='Select published uploads with older nomad version', is_flag=True)
 @click.option('--processing', help='Select only processing uploads', is_flag=True)
 @click.option('--processing-failure-uploads', is_flag=True, help='Select uploads with failed processing')
-@click.option('--processing-failure-calcs', is_flag=True, help='Select uploads with calcs with failed processing')
-@click.option('--processing-failure', is_flag=True, help='Select uploads where the upload or any calc has failed processing')
+@click.option('--processing-failure-entries', is_flag=True, help='Select uploads with entries with failed processing')
+@click.option('--processing-failure', is_flag=True, help='Select uploads where the upload or any entry has failed processing')
 @click.option('--processing-incomplete-uploads', is_flag=True, help='Select uploads that have not yet been processed')
-@click.option('--processing-incomplete-calcs', is_flag=True, help='Select uploads where any calc has net yot been processed')
-@click.option('--processing-incomplete', is_flag=True, help='Select uploads where the upload or any calc has not yet been processed')
-@click.option('--processing-necessary', is_flag=True, help='Select uploads where the upload or any calc has either not been processed or processing has failed in the past')
-@click.option('--unindexed', is_flag=True, help='Select uploads that have no calcs in the elastic search index.')
+@click.option('--processing-incomplete-entries', is_flag=True, help='Select uploads where any entry has net yot been processed')
+@click.option('--processing-incomplete', is_flag=True, help='Select uploads where the upload or any entry has not yet been processed')
+@click.option('--processing-necessary', is_flag=True, help='Select uploads where the upload or any entry has either not been processed or processing has failed in the past')
+@click.option('--unindexed', is_flag=True, help='Select uploads that have no entries in the elastic search index.')
 @click.pass_context
 def uploads(ctx, **kwargs):
     ctx.obj.uploads_kwargs = kwargs
@@ -160,9 +160,9 @@ def _query_uploads(
         uploads,
         unpublished: bool, published: bool, processing: bool, outdated: bool,
         uploads_mongo_query: str, entries_mongo_query: str, entries_es_query: str,
-        processing_failure_uploads: bool, processing_failure_calcs: bool,
+        processing_failure_uploads: bool, processing_failure_entries: bool,
         processing_failure: bool, processing_incomplete_uploads: bool,
-        processing_incomplete_calcs: bool, processing_incomplete: bool,
+        processing_incomplete_entries: bool, processing_incomplete: bool,
         processing_necessary: bool, unindexed: bool):
 
     '''
@@ -216,13 +216,13 @@ def _query_uploads(
     if outdated:
         entries_mongo_query_q &= Q(nomad_version={'$ne': config.meta.version})
 
-    if processing_failure_calcs or processing_failure or processing_necessary:
+    if processing_failure_entries or processing_failure or processing_necessary:
         entries_mongo_query_q &= Q(process_status=proc.ProcessStatus.FAILURE)
 
-    if processing_incomplete_calcs or processing_incomplete or processing_necessary:
+    if processing_incomplete_entries or processing_incomplete or processing_necessary:
         entries_mongo_query_q &= Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
 
-    mongo_entry_based_uploads = set(proc.Calc.objects(entries_mongo_query_q).distinct(field="upload_id"))
+    mongo_entry_based_uploads = set(proc.Entry.objects(entries_mongo_query_q).distinct(field="upload_id"))
     if entries_query_uploads is not None:
         entries_query_uploads = entries_query_uploads.intersection(mongo_entry_based_uploads)
     else:
@@ -260,11 +260,11 @@ def _query_uploads(
 
 @uploads.command(help='List selected uploads')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('-c', '--calculations', is_flag=True, help='Show details about calculations.')
+@click.option('-e', '--entries', is_flag=True, help='Show details about entries.')
 @click.option('--ids', is_flag=True, help='Only show a list of ids.')
 @click.option('--json', is_flag=True, help='Output a JSON array of ids.')
 @click.pass_context
-def ls(ctx, uploads, calculations, ids, json):
+def ls(ctx, uploads, entries, ids, json):
     import tabulate
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
@@ -277,17 +277,17 @@ def ls(ctx, uploads, calculations, ids, json):
             upload.process_status,
             upload.published]
 
-        if calculations:
+        if entries:
             row += [
-                upload.total_calcs,
-                upload.failed_calcs,
-                upload.total_calcs - upload.processed_calcs]
+                upload.total_entries_count,
+                upload.failed_entries_count,
+                upload.total_entries_count - upload.processed_entries_count]
 
         return row
 
     headers = ['id', 'upload_name', 'user', 'process', 'published']
-    if calculations:
-        headers += ['calcs', 'failed', 'processing']
+    if entries:
+        headers += ['entries', 'failed', 'processing']
 
     if ids:
         for upload in uploads:
@@ -304,7 +304,7 @@ def ls(ctx, uploads, calculations, ids, json):
         headers=headers))
 
 
-@uploads.command(help='Change the owner of the upload and all its calcs.')
+@uploads.command(help='Change the owner of the upload and all its entries.')
 @click.argument('USERNAME', nargs=1)
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context
@@ -324,11 +324,11 @@ def chown(ctx, username, uploads):
 
 @uploads.command(help='Reset the processing state.')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('--with-calcs', is_flag=True, help='Also reset all calculations.')
+@click.option('--with-entries', is_flag=True, help='Also reset all entries.')
 @click.option('--success', is_flag=True, help='Set the process status to success instead of pending')
 @click.option('--failure', is_flag=True, help='Set the process status to failure instead of pending.')
 @click.pass_context
-def reset(ctx, uploads, with_calcs, success, failure):
+def reset(ctx, uploads, with_entries, success, failure):
     from nomad import processing as proc
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
@@ -338,15 +338,15 @@ def reset(ctx, uploads, with_calcs, success, failure):
 
     i = 0
     for upload in uploads:
-        if with_calcs:
-            calc_update = proc.Calc.reset_pymongo_update()
+        if with_entries:
+            entry_update = proc.Entry.reset_pymongo_update()
             if success:
-                calc_update['process_status'] = proc.ProcessStatus.SUCCESS
+                entry_update['process_status'] = proc.ProcessStatus.SUCCESS
             if failure:
-                calc_update['process_status'] = proc.ProcessStatus.FAILURE
+                entry_update['process_status'] = proc.ProcessStatus.FAILURE
 
-            proc.Calc._get_collection().update_many(
-                dict(upload_id=upload.upload_id), {'$set': calc_update})
+            proc.Entry._get_collection().update_many(
+                dict(upload_id=upload.upload_id), {'$set': entry_update})
 
         upload.reset(force=True)
         if success:
@@ -358,7 +358,7 @@ def reset(ctx, uploads, with_calcs, success, failure):
         print('resetted %d of %d uploads' % (i, uploads_count))
 
 
-@uploads.command(help='(Re-)index all calcs of the given uploads.')
+@uploads.command(help='(Re-)index all entries of the given uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--parallel', default=1, type=int, help='Use the given amount of parallel processes. Default is 1.')
 @click.option('--transformer', help='Qualified name to a Python function that should be applied to each EntryMetadata.')
@@ -384,7 +384,7 @@ def index(ctx, uploads, parallel, transformer, skip_materials, print_progress):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                print(f'   ERROR failed to transform calc (stop transforming for upload): {str(e)}')
+                print(f'   ERROR failed to transform entry (stop transforming for upload): {str(e)}')
                 break
 
     def index_upload(upload, logger):
@@ -422,14 +422,14 @@ def delete_upload(upload, skip_es: bool = False, skip_files: bool = False, skip_
 
     # delete mongo
     if not skip_mongo:
-        proc.Calc.objects(upload_id=upload.upload_id).delete()
+        proc.Entry.objects(upload_id=upload.upload_id).delete()
         upload.delete()
 
 
 @uploads.command(help='Delete selected upload')
 @click.argument('UPLOADS', nargs=-1)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
-@click.option('--skip-mongo', help='Keep uploads and calcs in mongo.', is_flag=True)
+@click.option('--skip-mongo', help='Keep uploads and entries in mongo.', is_flag=True)
 @click.option('--skip-files', help='Keep all related files.', is_flag=True)
 @click.pass_context
 def rm(ctx, uploads, skip_es, skip_mongo, skip_files):
@@ -476,11 +476,11 @@ def re_pack(ctx, uploads):
 
 @uploads.command(help='Attempt to abort the processing of uploads.')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('--calcs', is_flag=True, help='Only stop calculation processing.')
+@click.option('--entries', is_flag=True, help='Only stop entries processing.')
 @click.option('--kill', is_flag=True, help='Use the kill signal and force task failure.')
 @click.option('--no-celery', is_flag=True, help='Do not attempt to stop the actual celery tasks')
 @click.pass_context
-def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
+def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
     import mongoengine
 
     from nomad import utils, processing as proc
@@ -491,8 +491,8 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
     def stop_all(query):
         for process in query:
             logger_kwargs = dict(upload_id=process.upload_id)
-            if isinstance(process, proc.Calc):
-                logger_kwargs.update(calc_id=process.calc_id)
+            if isinstance(process, proc.Entry):
+                logger_kwargs.update(entry_id=process.entry_id)
 
             if not no_celery:
                 logger.info(
@@ -518,8 +518,8 @@ def stop(ctx, uploads, calcs: bool, kill: bool, no_celery: bool):
                 process.fail('process terminate via nomad cli')
 
     running_query = query & mongoengine.Q(process_status__in=proc.ProcessStatus.STATUSES_PROCESSING)
-    stop_all(proc.Calc.objects(running_query))
-    if not calcs:
+    stop_all(proc.Entry.objects(running_query))
+    if not entries:
         stop_all(proc.Upload.objects(running_query))
 
 
@@ -547,5 +547,5 @@ def entry_index(ctx, uploads):
             pagination=Pagination(page_size=0),
             user_id=config.services.admin_user_id)
 
-        if search_results.pagination.total != upload.total_calcs:
+        if search_results.pagination.total != upload.total_entries_count:
             print(upload.upload_id)

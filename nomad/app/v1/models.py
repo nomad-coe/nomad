@@ -1116,8 +1116,8 @@ class MetadataEditRequest(WithQuery):
             `entries_metadata_key` defines which type of key is used in the dictionary to identify
             the entries. Note, only quantities defined on the entry level can be set using this method.'''))
     entries_key: Optional[str] = Field(
-        default='calc_id', description=strip('''
-            Defines which type of key is used in `entries_metadata`. Default is `calc_id`.'''))
+        default='entry_id', description=strip('''
+            Defines which type of key is used in `entries_metadata`. Default is `entry_id`.'''))
     verify_only: Optional[bool] = Field(
         default=False, description=strip('''
             Do not execute the request, just verifies it and provides detailed feedback on

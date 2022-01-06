@@ -249,7 +249,7 @@ async def post_datasets(
             empty = len(entry_ids) == 0
 
     if not empty:
-        processing.Calc._get_collection().update_many(
+        processing.Entry._get_collection().update_many(
             mongo_query, {'$push': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''
@@ -308,7 +308,7 @@ async def delete_dataset(
     mongo_query = {'_id': {'$in': entry_ids}}
 
     if len(entry_ids) > 0:
-        processing.Calc._get_collection().update_many(
+        processing.Entry._get_collection().update_many(
             mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
         update_by_query(
             '''

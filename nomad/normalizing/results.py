@@ -122,7 +122,7 @@ class ResultsNormalizer(Normalizer):
         u, c = np.unique(shorthand_prop, return_counts=True)
         shorthand_prop = u[c == 1]
         available_properties |= set([str(x) for x in shorthand_prop])
-        results.properties.available_properties = list(available_properties)
+        results.properties.available_properties = sorted(available_properties)
 
     def normalize_measurement(self, measurement, logger) -> None:
         results = self.entry_archive.results

@@ -32,7 +32,7 @@ be easily rendered on the GUI. The information is readily available through the
 See also the `datamodel section in the introduction <introduction.html#data-model>`_.
 
 This module contains classes that allow to represent the core
-nomad data entities (entries/calculations, users, datasets) on a high level of abstraction
+nomad data entities (entries, users, datasets) on a high level of abstraction
 independent from their representation in the different modules
 :py:mod:`nomad.processing`, :py:mod:`nomad.parsing`, :py:mod:`nomad.search`, :py:mod:`nomad.app`.
 
@@ -40,7 +40,7 @@ Datamodel entities
 ------------------
 
 The entities in the datamodel are defined as NOMAD Metainfo sections. They are treated
-similarily to all Archive data. The entry/calculation datamodel data is created during
+similarily to all Archive data. The entry datamodel data is created during
 processing. It is not about representing every detail, but those parts that are directly involved in
 api, processing, mirroring, or other 'infrastructure' operations.
 
@@ -63,7 +63,7 @@ Domains
 ------------------
 
 The datamodel supports different *domains*. This means that most domain metadata of an
-entry/calculation is stored in domain-specific sub sections of the :class:`EntryMetadata`
+entry is stored in domain-specific sub sections of the :class:`EntryMetadata`
 section. We currently have the following domain specific metadata classes/sections:
 
 .. autoclass:: nomad.datamodel.OptimadeEntry
