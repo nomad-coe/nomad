@@ -17,7 +17,7 @@
 #
 
 '''
-After parsing calculations have to be normalized with a set of *normalizers*.
+After parsing entries have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
 Currently the normalizers are:

@@ -121,7 +121,7 @@ def write_partial_archive_to_mongo(archive: EntryArchive):
     ''' Partially writes the given archive to mongodb. '''
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
-    mongo_id = archive.metadata.calc_id
+    mongo_id = archive.metadata.entry_id
 
     partial_archive_dict = create_partial_archive(archive)
     partial_archive_dict['_id'] = mongo_id

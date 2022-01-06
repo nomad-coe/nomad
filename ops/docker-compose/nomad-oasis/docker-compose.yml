@@ -56,7 +56,7 @@ services:
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
             - ./.volumes/fs:/app/.volumes/fs
-        command: python -m celery worker -l info -A nomad.processing -Q celery,calcs,uploads
+        command: python -m celery worker -l info -A nomad.processing -Q celery
 
     # nomad app (api + gui)
     app:

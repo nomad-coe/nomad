@@ -63,7 +63,7 @@ def assert_edit_request(user, **kwargs):
     owner = kwargs.get('owner')
     metadata = kwargs.get('metadata')
     entries = kwargs.get('entries')
-    entries_key = kwargs.get('entries_key', 'calc_id')
+    entries_key = kwargs.get('entries_key', 'entry_id')
     verify_only = kwargs.get('verify_only', False)
     expected_error_loc = kwargs.get('expected_error_loc')
     affected_upload_ids = kwargs.get('affected_upload_ids', [upload_id])
@@ -93,11 +93,11 @@ def assert_metadata_edited(
     for upload_id in affected_upload_ids:
         upload = Upload.get(upload_id)
         upload.block_until_complete()
-        for entry in upload.calcs:
+        for entry in upload.successful_entries:
             assert entry.last_edit_time
             assert edit_start is None or entry.last_edit_time.isoformat()[0:22] >= edit_start
             entry_metadata_mongo = entry.mongo_metadata(upload).m_to_dict()
-            entry_metadata_es = search(owner=None, query={'calc_id': entry.calc_id}).data[0]
+            entry_metadata_es = search(owner=None, query={'entry_id': entry.entry_id}).data[0]
             values_to_check = expected_metadata
             for quantity_name, value_expected in values_to_check.items():
                 # Note, the expected value is provided on the "request format"

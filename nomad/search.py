@@ -222,7 +222,7 @@ def update_metadata(
 
             yield dict(
                 doc=entry_doc,
-                _id=entry_metadata.calc_id,
+                _id=entry_metadata.entry_id,
                 _type=entry_index.doc_type.name,
                 _index=entry_index.index_name,
                 _op_type='update')
@@ -255,7 +255,7 @@ def delete_entry(entry_id: str, index: str = None, refresh: bool = False, **kwar
     '''
     Deletes the given entry.
     '''
-    delete_by_query(query=dict(calc_id=entry_id), **kwargs)
+    delete_by_query(query=dict(entry_id=entry_id), **kwargs)
 
     if refresh:
         _refresh()
@@ -1232,7 +1232,7 @@ def search(
 def search_iterator(
         owner: str = 'public',
         query: Union[Query, EsQuery] = None,
-        order_by: str = 'calc_id',
+        order_by: str = 'entry_id',
         required: MetadataRequired = None,
         aggregations: Dict[str, Aggregation] = {},
         user_id: str = None,

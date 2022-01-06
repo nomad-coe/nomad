@@ -82,7 +82,7 @@ use:
 }
 ```
 
-Or to only get the `energy_total` from each individual calculations, use:
+Or to only get the `energy_total` from each individual entry, use:
 ```json
 {
     "run": {
@@ -999,7 +999,7 @@ async def get_entry_raw_download_file(
     query = dict(entry_id=entry_id)
     response = perform_search(
         owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['calc_id', 'upload_id', 'mainfile']),
+        required=MetadataRequired(include=['entry_id', 'upload_id', 'mainfile']),
         user_id=user.user_id if user is not None else None)
 
     if response.pagination.total == 0:
@@ -1120,21 +1120,21 @@ async def post_entry_archive_query(
 
 
 def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
-    # get all calculations that have to change
+    # get all entries that have to change
     entry_ids: List[str] = []
     upload_ids: Set[str] = set()
     with utils.timer(logger, 'edit query executed'):
         all_entries = _do_exaustive_search(
             owner=Owner.user, query=query, include=['entry_id', 'upload_id'], user=user)
 
-        for entry in all_entries:
-            entry_ids.append(entry['entry_id'])
-            upload_ids.add(entry['upload_id'])
+        for entry_dict in all_entries:
+            entry_ids.append(entry_dict['entry_id'])
+            upload_ids.add(entry_dict['upload_id'])
 
     # perform the update on the mongo db
     with utils.timer(logger, 'edit mongo update executed', size=len(entry_ids)):
         if mongo_update is not None:
-            n_updated = proc.Calc.objects(calc_id__in=entry_ids).update(multi=True, **mongo_update)
+            n_updated = proc.Entry.objects(entry_id__in=entry_ids).update(multi=True, **mongo_update)
             if n_updated != len(entry_ids):
                 logger.error('edit repo did not update all entries', payload=mongo_update)
 
@@ -1142,8 +1142,8 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
     with utils.timer(logger, 'edit elastic update executed', size=len(entry_ids)):
         if re_index:
             updated_metadata: List[datamodel.EntryMetadata] = []
-            for calc in proc.Calc.objects(calc_id__in=entry_ids):
-                entry_metadata = calc.mongo_metadata(calc.upload)
+            for entry in proc.Entry.objects(entry_id__in=entry_ids):
+                entry_metadata = entry.mongo_metadata(entry.upload)
                 # Ensure that updated fields are marked as "set", even if they are cleared
                 entry_metadata.m_update_from_dict(mongo_update)
                 # Add to list
@@ -1340,7 +1340,7 @@ async def post_entry_metadata_edit(
     # remove potentially empty old datasets
     if removed_datasets is not None:
         for dataset in removed_datasets:
-            if proc.Calc.objects(datasets=dataset).first() is None:
+            if proc.Entry.objects(datasets=dataset).first() is None:
                 datamodel.Dataset.m_def.a_mongo.objects(dataset_id=dataset).delete()
 
     return data

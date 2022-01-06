@@ -507,14 +507,14 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
         published=True)
     data.create_entry(
         upload_id='with_compr_published',
-        calc_id='with_compr_published',
+        entry_id='with_compr_published',
         mainfile='test_content/test_entry/mainfile.json')
     data.create_upload(
         upload_id='with_compr_unpublished',
         published=False)
     data.create_entry(
         upload_id='with_compr_unpublished',
-        calc_id='with_compr_unpublished',
+        entry_id='with_compr_unpublished',
         mainfile='test_content/test_entry/mainfile.json')
 
     data.save()

@@ -22,10 +22,10 @@ from typing import List, Dict, Set, Any, Optional
 from pydantic import BaseModel
 
 from pymongo import ReplaceOne
-from pymongo.database import Database
+from pymongo.database import Database, Collection
 from pymongo.cursor import Cursor
 from nomad import utils
-from nomad.processing import ProcessStatus, Upload, Calc
+from nomad.processing import ProcessStatus, Upload, Entry
 from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
 from nomad.parsing.parsers import parser_dict
@@ -34,7 +34,7 @@ from nomad.parsing.parsers import parser_dict
 _upload_keys_to_remove_v0 = (
     'published', 'upload_path', 'upload_time', 'temporary', 'joined')
 _metadata_keys_to_flatten_v0 = (
-    'calc_hash', 'pid', 'external_id', 'nomad_version', 'nomad_commit', 'comment',
+    'pid', 'external_id', 'nomad_version', 'nomad_commit', 'comment',
     'references', 'datasets')
 _metadata_keys_to_remove_v0 = (
     'upload_name', 'upload_time', 'uploader', 'published', 'license', 'with_embargo',
@@ -68,8 +68,8 @@ def create_collections_if_needed(db_dst: Database):
     '''
     if 'upload' not in db_dst.collection_names():
         Upload.objects()
-    if 'calc' not in db_dst.collection_names():
-        Calc.objects()
+    if 'entry' not in db_dst.collection_names():
+        Entry.objects()
     if 'dataset' not in db_dst.collection_names():
         Dataset.m_def.a_mongo.objects()
 
@@ -83,6 +83,7 @@ def migrate_mongo_uploads(
 
     number_of_uploads = uploads.count()
     print(f'Found {number_of_uploads} uploads to import.')
+    src_entry_collection = db_src.calc if 'calc' in db_src.collection_names() else db_src.entry
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads
@@ -115,8 +116,8 @@ def migrate_mongo_uploads(
                         continue
 
                 entry_dicts, dataset_dicts, doi_dicts = _convert_mongo_upload(
-                    db_src, upload_dict, upload_update, entry_update, fix_problems,
-                    dataset_cache, stats, logger)
+                    db_src, src_entry_collection, upload_dict, upload_update, entry_update,
+                    fix_problems, dataset_cache, stats, logger)
                 if not dry:
                     _commit_upload(upload_dict, entry_dicts, dataset_dicts, doi_dicts, db_dst, stats)
                 del entry_dicts, dataset_dicts  # To free up memory immediately
@@ -168,7 +169,7 @@ def migrate_mongo_uploads(
 
 
 def _convert_mongo_upload(
-        db_src: Database, upload_dict: Dict[str, Any],
+        db_src: Database, src_entry_collection: Collection, upload_dict: Dict[str, Any],
         upload_update: Dict[str, Any], entry_update: Dict[str, Any], fix_problems: bool,
         dataset_cache: Dict[str, _DatasetCacheItem], stats: _UpgradeStatistics, logger):
     '''
@@ -198,7 +199,7 @@ def _convert_mongo_upload(
                 upload_dict.pop(key)
 
     # Fetch all entries as a dictionary
-    entry_dicts = list(db_src.calc.find({'upload_id': upload_id}))
+    entry_dicts = list(src_entry_collection.find({'upload_id': upload_id}))
     stats.entries.total += len(entry_dicts)
     if is_v0 and entry_dicts:
         # Need to pass through all entries to check consistency and calculate common_coauthos
@@ -336,10 +337,12 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
         entry_dict['_id'] = generated_entry_id
     # Convert old v0 metadata
     if 'metadata' in entry_dict:
+        _rename_key(entry_dict, 'calc_id', 'entry_id')
         _rename_key(entry_dict, 'parser', 'parser_name')
         _rename_key(entry_dict, 'create_time', 'entry_create_time')
         _rename_key(entry_dict, 'metadata.last_processing', 'last_processing_time')
         _rename_key(entry_dict, 'metadata.last_edit', 'last_edit_time')
+        _rename_key(entry_dict, 'metadata.calc_hash', 'entry_hash')
 
         entry_metadata = entry_dict['metadata']
         # Entry coauthors
@@ -468,7 +471,7 @@ def _commit_upload(
         entry_writes = []
         for entry_dict in entry_dicts:
             entry_writes.append(ReplaceOne({'_id': entry_dict['_id']}, entry_dict, upsert=True))
-        db_dst.calc.bulk_write(entry_writes)
+        db_dst.entry.bulk_write(entry_writes)
         stats.entries.migrated += len(entry_dicts)
 
 

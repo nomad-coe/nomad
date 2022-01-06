@@ -578,7 +578,7 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 
 @pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
-    ''' Provides a parsed calculation in the form of an EntryArchive. '''
+    ''' Provides a parsed entry in the form of an EntryArchive. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
@@ -591,7 +591,7 @@ def parsed_ems() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def normalized(parsed: EntryArchive) -> EntryArchive:
-    ''' Provides a normalized calculation in the form of a EntryArchive. '''
+    ''' Provides a normalized entry in the form of a EntryArchive. '''
     return run_normalize(parsed)
 
 
@@ -657,7 +657,7 @@ def oasis_publishable_upload(
                     section_metadata['upload_id'] += suffix
                     new_entry_id = generate_entry_id(
                         section_metadata['upload_id'], section_metadata['mainfile'])
-                    section_metadata['calc_id'] = new_entry_id
+                    section_metadata['entry_id'] = new_entry_id
                     new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
         return upload_files
@@ -678,12 +678,12 @@ def oasis_publishable_upload(
     monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
 
     # create a dataset to also test this aspect of oasis uploads
-    calc = non_empty_processed.calcs[0]
+    entry = non_empty_processed.successful_entries[0]
     datamodel.Dataset(
         dataset_id='dataset_id', dataset_name='dataset_name',
         user_id=test_user.user_id).a_mongo.save()
-    calc.datasets = ['dataset_id']
-    calc.save()
+    entry.datasets = ['dataset_id']
+    entry.save()
     return non_empty_processed.upload_id, suffix
 
 
@@ -790,7 +790,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
                 published = False
                 embargo_length = 0
                 upload_name = None
-            calc_id = upload_id + '_1'
+            entry_id = upload_id + '_1'
             coauthors = [other_test_user.user_id] if sub_type == 'w_coauthor' else None
             reviewers = [other_test_user.user_id] if sub_type == 'w_reviewer' else None
             data.create_upload(
@@ -802,11 +802,11 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
                 embargo_length=embargo_length)
             data.create_entry(
                 upload_id=upload_id,
-                calc_id=calc_id,
+                entry_id=entry_id,
                 material_id=upload_id,
-                mainfile=f'test_content/{calc_id}/mainfile.json')
+                mainfile=f'test_content/{entry_id}/mainfile.json')
 
-    # one upload with 23 calcs, published, no embargo
+    # one upload with 23 entries, published, no embargo
     data.create_upload(
         upload_id='id_published',
         upload_name='name_published',
@@ -822,7 +822,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             kwargs['pid'] = '123'
         data.create_entry(
             upload_id='id_published',
-            calc_id=entry_id,
+            entry_id=entry_id,
             material_id=material_id,
             mainfile=mainfile,
             **kwargs)
@@ -831,13 +831,13 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             archive = data.archives[entry_id]
             write_partial_archive_to_mongo(archive)
 
-    # one upload, no calcs, still processing
+    # one upload, no entries, still processing
     data.create_upload(
         upload_id='id_processing',
         published=False,
         process_status=ProcessStatus.RUNNING)
 
-    # one upload, no calcs, unpublished
+    # one upload, no entries, unpublished
     data.create_upload(
         upload_id='id_empty',
         published=False)
@@ -858,7 +858,7 @@ def example_data_writeable(mongo, test_user, normalized):
         embargo_length=12)
     data.create_entry(
         upload_id='id_published_w',
-        calc_id='id_published_w_entry',
+        entry_id='id_published_w_entry',
         mainfile='test_content/test_embargo_entry/mainfile.json')
 
     # one upload with one entry, unpublished
@@ -868,7 +868,7 @@ def example_data_writeable(mongo, test_user, normalized):
         embargo_length=12)
     data.create_entry(
         upload_id='id_unpublished_w',
-        calc_id='id_unpublished_w_entry',
+        entry_id='id_unpublished_w_entry',
         mainfile='test_content/test_embargo_entry/mainfile.json')
 
     # one upload, no entries, running a blocking processing

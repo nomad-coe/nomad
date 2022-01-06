@@ -380,7 +380,7 @@ keycloak = Keycloak()
 
 def reset(remove: bool):
     '''
-    Resets the databases mongo, elastic/calcs, and all files. Be careful.
+    Resets the databases mongo, elastic/entries, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.

@@ -32,7 +32,7 @@ while upload['process_running']:
     assert response.status_code == 200
     upload = response.json()['data']
     time.sleep(5)
-    print('processed: %d, failures: %d' % (upload['processed_calcs'], upload['failed_calcs']))
+    print('processed: %d, failures: %d' % (upload['processed_entries_count'], upload['failed_entries_count']))
 
 # check if processing was a success
 if upload['process_status'] != 'SUCCESS':

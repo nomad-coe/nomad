@@ -122,7 +122,7 @@ def upload(ctx, path, upload_name: str, local_path: bool, publish: bool):
 
 @client.command(help='Run processing locally.')
 @click.argument('ENTRY_ID', nargs=1, required=True, type=str)
-@click.option('--override', is_flag=True, help='Override existing local calculation data.')
+@click.option('--override', is_flag=True, help='Override existing local entry data.')
 @click.option('--show-archive', is_flag=True, help='Print the archive data.')
 @click.option('--show-metadata', is_flag=True, help='Print the extracted repo metadata.')
 @click.option('--skip-normalizers', is_flag=True, help='Do not normalize.')

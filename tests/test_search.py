@@ -41,7 +41,7 @@ def assert_search_upload(
     else:
         assert False
 
-    keys = ['calc_id', 'upload_id', 'mainfile']
+    keys = ['entry_id', 'upload_id', 'mainfile']
     refresh()
     body: Dict[str, Any] = {}
     body.update(size=10)
@@ -120,7 +120,7 @@ def example_data(elastic, test_user):
     for i in range(0, 4):
         data.create_entry(
             upload_id='test_upload_id',
-            calc_id=f'test_entry_id_{i}',
+            entry_id=f'test_entry_id_{i}',
             mainfile='test_content/test_embargo_entry/mainfile.json')
 
     data.save(with_files=False, with_mongo=False)

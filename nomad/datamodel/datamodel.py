@@ -339,11 +339,11 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
 class EntryMetadata(metainfo.MSection):
     '''
     Attributes:
-        upload_id: The ``upload_id`` of the calculations upload (random UUID).
+        upload_id: The id of the upload (random UUID).
         upload_name: The user provided upload name.
         upload_create_time: The time that the upload was created
-        calc_id: The unique mainfile based calculation id.
-        calc_hash: The raw file content based checksum/hash of this calculation.
+        entry_id: The unique mainfile based entry id.
+        entry_hash: The raw file content based checksum/hash of this entry.
         entry_create_time: The time that the entry was created
         last_edit_time: The date and time the user metadata was last edited.
         parser_name: The NOMAD parser used for the last processing.
@@ -361,8 +361,8 @@ class EntryMetadata(metainfo.MSection):
             only visible to the main author, the upload coauthors, and the upload reviewers.
         license: A short license description (e.g. CC BY 4.0), that refers to the
             license of this entry.
-        processed: Boolean indicating if this calc was successfully processed and archive
-            data and calc metadata is available.
+        processed: Boolean indicating if this entry was successfully processed and archive
+            data and entry metadata is available.
         last_processing_time: The date and time of the last processing.
         processing_errors: Errors that occured during processing.
         nomad_version: A string that describes the version of the nomad software that was
@@ -401,14 +401,18 @@ class EntryMetadata(metainfo.MSection):
         a_auth_level=AuthLevel.admin,
         a_elasticsearch=Elasticsearch(material_entry_type))
 
-    calc_id = metainfo.Quantity(
+    entry_id = metainfo.Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[MongoEntryMetadata, MongoSystemMetadata],
-        aliases=['entry_id'],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
-    calc_hash = metainfo.Quantity(
+    calc_id = metainfo.Quantity(
+        type=str, description='Legacy field name, use `entry_id` instead.',
+        derived=lambda entry: entry.entry_id,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    entry_hash = metainfo.Quantity(
         # Note: This attribute is not stored in ES
         type=str,
         description='A raw file content based checksum/hash',
@@ -664,8 +668,7 @@ class EntryMetadata(metainfo.MSection):
 class EntryArchive(metainfo.MSection):
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
-        derived=lambda entry: entry.metadata.calc_id,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        derived=lambda entry: entry.metadata.entry_id)
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)
     section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)

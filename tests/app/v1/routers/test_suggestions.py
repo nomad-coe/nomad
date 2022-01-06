@@ -43,7 +43,7 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     )
     data.create_entry(
         upload_id=upload_id,
-        calc_id="suggestions_entry",
+        entry_id="suggestions_entry",
         mainfile="test_content/test_entry/mainfile.json",
         results={
             "material": {
