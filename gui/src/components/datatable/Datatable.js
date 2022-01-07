@@ -463,6 +463,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           <TableCell colSpan={numberOfColumns} />
         </TableRow>
       )}
+      <TableRow style={{ height: '1px' }}/>
     </TableBody>
   </Table>
 

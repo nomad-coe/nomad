@@ -78,30 +78,43 @@ function AddMember({...props}) {
   const {members, setMembers, setIsChanged} = useContext(editMembersDialogContext)
   const [isDuplicated, setIsDuplicated] = useState(false)
   const [isValid, setIsValid] = useState(false)
+  const [query, setQuery] = useState('')
 
-  const handleInputChange = useCallback((event, value) => {
-    const query = value.toLowerCase()
-    api.getUsers(query)
-      .then(users => {
-        const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(query) !== -1)
-        withQueryInName.sort((a, b) => {
-          const aValue = a.name.toLowerCase()
-          const bValue = b.name.toLowerCase()
-          if (aValue.startsWith(query)) {
-            return -1
-          } else if (bValue.startsWith(query)) {
-            return 1
-          } else {
-            return 0
-          }
+  const fetchUsers = useCallback((event, value) => {
+    let newQuery = value.toLowerCase()
+    if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
+      api.getUsers(newQuery)
+        .then(users => {
+          const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
+          withQueryInName.sort((a, b) => {
+            const aValue = a.name.toLowerCase()
+            const bValue = b.name.toLowerCase()
+            if (aValue.startsWith(newQuery)) {
+              return -1
+            } else if (bValue.startsWith(newQuery)) {
+              return 1
+            } else {
+              return 0
+            }
+          })
+          setSuggestions(withQueryInName.slice(0, 5))
         })
-        setSuggestions(withQueryInName.slice(0, 5))
-      })
-      .catch(err => {
-        setSuggestions([])
-        raiseError(err)
-      })
-  }, [api, raiseError])
+        .catch(err => {
+          setSuggestions([])
+          raiseError(err)
+        })
+    }
+    setQuery(newQuery)
+  }, [api, raiseError, query, suggestions])
+
+  let timeout = null
+
+  const handleInputChange = (event, value) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => {
+      fetchUsers(event, value)
+    }, 700)
+  }
 
   const handleChange = (event, value) => {
     if (value && value?.user_id) {
