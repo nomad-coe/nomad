@@ -37,8 +37,8 @@ import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
-import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import EditMembersDialog from '../entry/EditMembersDialog'
+import EditMetaDataDialog from '../entry/EditMetaDataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
@@ -509,15 +509,7 @@ function UploadPage() {
               You can either select and edit individual entries from the list above, or
               edit all entries at once.
             </Typography>
-            {!isEmpty && <EditUserMetadataDialog
-              example={data.data[0].entry_metadata || {}}
-              query={{'upload_id': [uploadId]}}
-              total={data.pagination.total}
-              onEditComplete={() => setPagination({...pagination})}
-              buttonProps={{variant: 'contained', color: 'primary', disabled: isProcessing}}
-              text={`Edit metadata of all ${data.pagination.total} entries`}
-              withoutLiftEmbargo={!isPublished}
-            />}
+            {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
