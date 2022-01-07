@@ -822,12 +822,12 @@ class Entry(Proc):
                 and the archive files will be read from this object.
         '''
         assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
-        archive = upload.upload_files.read_archive(self.entry_id)
         try:
             # instead of loading the whole archive, it should be enough to load the
             # parts that are referenced by section_metadata/EntryMetadata
             # TODO somehow it should determine which root setions too load from the metainfo
             # or configuration
+            archive = upload.upload_files.read_archive(self.entry_id)
             entry_archive = archive[self.entry_id]
             entry_archive_dict = {section_metadata: entry_archive[section_metadata].to_dict()}
             if section_workflow in entry_archive:
@@ -993,8 +993,6 @@ class Entry(Proc):
             try:
                 search.index(self._parser_results)
             except Exception as e:
-
-                search.index(self._parser_results)
                 self.get_logger().error(
                     'could not index archive after processing failure', exc_info=e)
 

@@ -45,18 +45,20 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
 
   // Resolve EELS data
   let eelsTable
-  let eelsCurves
+  let spectrumCurves
   if (archive) {
-    const eels = archive?.results?.properties?.spectroscopy?.eels
-    eelsTable = {data: eels}
-    eelsCurves = eels.map((value) => resolveRef(value.spectrum, archive))
+    const spectroscopy = archive?.results?.properties?.spectroscopy
+    eelsTable = {data: [spectroscopy?.eels]}
+    if (spectroscopy.spectrum) {
+      spectrumCurves = [resolveRef(spectroscopy.spectrum, archive)]
+    }
   }
 
   return <PropertyCard title="Spectroscopy">
     <PropertyGrid>
       <PropertyItem title="EELS" xs={12} height="25rem">
         <EELS
-          data={eelsCurves}
+          data={spectrumCurves}
           layout={{yaxis: {autorange: true}}}
           units={units}
         />
@@ -69,7 +71,7 @@ const SpectroscopyCard = React.memo(({index, properties, archive}) => {
           data={eelsTable}
           units={units}
           data-testid="bulk-modulus"
-          showIndex={eelsCurves && eelsCurves.length > 1}
+          showIndex={spectrumCurves && spectrumCurves.length > 1}
         />
       </PropertyItem>
     </PropertyGrid>

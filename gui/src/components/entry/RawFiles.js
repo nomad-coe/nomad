@@ -152,7 +152,10 @@ export default function RawFiles({data, entryId}) {
   const handleFileClicked = useCallback(file => {
     setShownFile(file)
     setFileContents(null)
-    api.get(`/entries/${entryId}/raw/download/${file.split('/').reverse()[0]}`, {length: 16 * 1024, decompress: true})
+    api.get(
+      `/entries/${entryId}/raw/download/${file.split('/').reverse()[0]}`,
+      {length: 16 * 1024, decompress: true},
+      {transformResponse: []})
       .then(contents => setFileContents({
         hasMore: true,
         contents: contents
@@ -170,7 +173,10 @@ export default function RawFiles({data, entryId}) {
     const initialEntryId = entryId
 
     if (fileContents.contents.length < (page + 1) * 16 * 1024) {
-      api.get(`/entries/${entryId}/raw/download/${shownFile.split('/').reverse()[0]}`, {offset: page * 16 * 1024, length: 16 * 1024, decompress: true})
+      api.get(
+        `/entries/${entryId}/raw/download/${shownFile.split('/').reverse()[0]}`,
+        {offset: page * 16 * 1024, length: 16 * 1024, decompress: true},
+        {transformResponse: []})
         .then(contents => {
           // The back-button navigation might cause a scroll event, might cause to loadmore,
           // will set this state, after navigation back to this page, but potentially

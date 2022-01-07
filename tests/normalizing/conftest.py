@@ -21,7 +21,9 @@ from typing import List, Union
 import pytest
 from ase import Atoms
 import ase.build
+import yaml
 
+from nomad.utils import strip
 from nomad.units import ureg
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
@@ -31,17 +33,6 @@ from nomad.datamodel.metainfo.simulation.method import (
     Electronic, Smearing, Scf, XCFunctional, Functional, GW)
 from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms as AtomsMethod)
-from nomad.datamodel.metainfo.common_experimental import (
-    Measurement,
-    Experiment,
-    Metadata,
-    Data,
-    Instrument,
-    Sample,
-    Spectrum,
-    SampleMaterial,
-    DeviceSettings,
-)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies)
 from nomad.datamodel.metainfo.workflow import (
@@ -121,30 +112,31 @@ def get_template_dft() -> EntryArchive:
 def get_template_eels() -> EntryArchive:
     """Returns a basic archive template for an EELS experiment.
     """
-    template = EntryArchive()
-    measurement = template.m_create(Measurement)
-    metadata = measurement.m_create(Metadata)
-    data = measurement.m_create(Data)
-    spectrum = data.m_create(Spectrum)
-    experiment = metadata.m_create(Experiment)
-    instrument = metadata.m_create(Instrument)
-    sample = metadata.m_create(Sample)
-    material = sample.m_create(SampleMaterial)
-    material.elements = ["Si", "O"]
-    material.formula = "SiO"
-    device_settings = instrument.m_create(DeviceSettings)
-    experiment.method_name = "electron energy loss spectroscopy"
-    device_settings.detector_type = "Quantum GIF"
-    min_energy = 100
-    max_energy = 200
-    resolution = 1
-    device_settings.min_energy = min_energy * ureg.electron_volt
-    device_settings.max_energy = max_energy * ureg.electron_volt
-    device_settings.resolution = resolution * ureg.electron_volt
-    spectrum.count = np.linspace(0, 100, 1)
-    spectrum.energy = np.linspace(min_energy, max_energy, resolution)
-    spectrum.n_values = spectrum.energy.shape[0]
-    return template
+    dct_data = yaml.safe_load(strip(f'''
+        results:
+            properties:
+                spectroscopy:
+                    spectrum: "#/measurement/0/eels/spectrum"
+                    eels:
+                        detector_type: Quantum GIF
+                        min_energy: {(100 * ureg.electron_volt).to(ureg.joule).m}
+                        max_energy: {(200 * ureg.electron_volt).to(ureg.joule).m}
+                        resolution: {(1 * ureg.electron_volt).to(ureg.joule).m}
+        measurement:
+            - method_name: electron energy loss spectroscopy
+              method_abbreviation: EELS
+              sample:
+                  - elements:
+                        - Si
+                        - O
+                    chemical_formula: SiO
+              eels:
+                  spectrum: {{}}
+    '''))
+    archive = EntryArchive.m_from_dict(dct_data)
+    archive.measurement[0].eels.spectrum.count = np.linspace(0, 100, 1)
+    archive.measurement[0].eels.spectrum.energy = np.linspace(100, 200, 1)
+    return archive
 
 
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:

@@ -269,17 +269,24 @@ class DocumentType():
 
         # Add the collected suggestion values
         for path, value in suggestions.items():
-            parts = path.split("/")
-            section = result
-            for part in parts[:-1]:
-                if part == "":
-                    continue
-                try:
-                    part = int(part)
-                except ValueError:
-                    pass
-                section = section[part]
-            section[parts[-1]] = value
+            try:
+                parts = path.split("/")
+                section = result
+                for part in parts[:-1]:
+                    if part == "":
+                        continue
+                    try:
+                        part = int(part)
+                    except ValueError:
+                        pass
+                    section = section[part]
+                section[parts[-1]] = value
+            except KeyError:
+                # TODO This typicall happens when a suggestion is stored in a referenced
+                # object that is in the metadata/results sections, e.g. referenced
+                # authored that are stored in EELS DB measurements
+                logger = utils.get_logger(__name__, doc_type=self.name)
+                logger.warn("could not add suggestion to es", path=path)
 
         # TODO deal with metadata
         metadata = result.get('metadata')
