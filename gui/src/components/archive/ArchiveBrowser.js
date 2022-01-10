@@ -353,17 +353,37 @@ function QuantityValue({value, def, units}) {
     ? toUnitSystem(val, def.unit, units, true)
     : [val, def.unit]
 
-  return <Box textAlign="center" fontWeight="bold">
-    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} type={def.type.type_data} /> : <Number value={finalValue} exp={16} variant="body2" />}
-    {def.shape.length > 0 &&
-      <Typography noWrap variant="caption">
-        ({def.shape.map((dimension, index) => <span key={index}>
-          {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
-        </span>)}&nbsp;)
-      </Typography>
+  let isMathValue = def.type.type_kind === 'numpy'
+  if (isMathValue) {
+    if (def.shape.length > 0) {
+      return <Box textAlign="center">
+        <Matrix
+          values={finalValue}
+          shape={def.shape}
+          invert={def.shape.length === 1}
+          type={def.type.type_data}
+        />
+        <Typography noWrap variant="caption">
+          ({def.shape.map((dimension, index) => <span key={index}>
+            {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+          </span>)}&nbsp;)
+        </Typography>
+        {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
+      </Box>
+    } else {
+      return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
-    {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
-  </Box>
+  } else {
+    if (Array.isArray(finalValue)) {
+      return <Typography>
+        <ul style={{margin: 0}}>
+          {finalValue.map(value, index => <li key={index}>{value}</li>)}
+        </ul>
+      </Typography>
+    } else {
+      return <Typography>{finalValue}</Typography>
+    }
+  }
 }
 QuantityValue.propTypes = ({
   value: PropTypes.any,

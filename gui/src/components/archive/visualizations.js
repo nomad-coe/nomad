@@ -21,7 +21,7 @@ import { FixedSizeGrid as Grid } from 'react-window'
 import { Typography, makeStyles, Button, Grid as MuiGrid, Box } from '@material-ui/core'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-export function Number({value, exp, variant, ...props}) {
+export function Number({value, exp, variant, unit, ...props}) {
   variant = variant || 'body2'
   exp = exp || 2
   const fixed = 5
@@ -39,12 +39,13 @@ export function Number({value, exp, variant, ...props}) {
       html = value.toString()
     }
   }
-  return <Typography {...props} variant={variant} >{html}</Typography>
+  return <Typography {...props} variant={variant} >{html}{unit && <span>&nbsp;{unit}</span>}</Typography>
 }
 Number.propTypes = ({
   value: PropTypes.any,
   variant: PropTypes.string,
-  exp: PropTypes.number
+  exp: PropTypes.number,
+  unit: PropTypes.string
 })
 
 function MatrixPagination({length, page, onChange}) {
@@ -117,7 +118,7 @@ export function Matrix({values, shape, invert, type}) {
   const rowHeight = 24
   const rowCount = invert ? values.length : shape.length > 1 ? values[0].length : 1
   const columnCount = invert ? shape.length > 1 ? values[0].length : 1 : values.length
-  const height = Math.min(300, rowCount * rowHeight + 15)
+  const height = Math.min(300, (rowCount - 1) * rowHeight + 24)
 
   useLayoutEffect(() => {
     if (type === 'str') {
