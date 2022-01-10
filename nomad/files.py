@@ -1257,15 +1257,16 @@ class PublicUploadFiles(UploadFiles):
                     directory_path = os.path.dirname(path)
                     size = zf.getinfo(path).file_size if file_name else 0
 
-                    # Ensure that all parent directories are added
-                    sub_path = ''
-                    for directory in directory_path.split(os.path.sep):
-                        sub_path_next = os.path.join(sub_path, directory)
-                        if sub_path_next not in self._directories:
-                            self._directories[sub_path_next] = {}
-                        directory_sizes.setdefault(sub_path_next, 0)
-                        directory_sizes[sub_path_next] += size
-                        sub_path = sub_path_next
+                    if directory_path:
+                        # Ensure that all parent directories are added
+                        sub_path = ''
+                        for directory in directory_path.split(os.path.sep):
+                            sub_path_next = os.path.join(sub_path, directory)
+                            if sub_path_next not in self._directories:
+                                self._directories[sub_path_next] = {}
+                                directory_sizes.setdefault(sub_path_next, 0)
+                            directory_sizes[sub_path_next] += size
+                            sub_path = sub_path_next
 
                     if file_name:
                         directory_content = self._directories[directory_path]
