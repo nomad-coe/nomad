@@ -74,7 +74,7 @@ const EntryPage = React.memo(() => {
     >
       <Tab label="Overview" value="overview" />
       <Tab label="Raw data" value="raw" />
-      <Tab label="Archive" value="archive"/>
+      <Tab label="Processed data" value="archive"/>
       <Tab label="Logs" value="logs"/>
     </Tabs>
     <CacheSwitch>

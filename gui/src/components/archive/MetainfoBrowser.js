@@ -108,7 +108,7 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
       ))
       results.push(...defsForName.map(def => {
-        let label = def.name
+        let label = def.more?.label || def.name
         if (defsForName.length > 1) {
           if (def._parentSections?.length) {
             label = `${label} (${def._parentSections[0].name})`
@@ -227,7 +227,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {sectionDefs.filter(def => !def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -235,7 +235,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {sectionDefs.filter(def => def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -243,7 +243,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {categoryDefs.sort(defCompare).map(def => {
           const key = `category_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -255,14 +255,14 @@ const Metainfo = React.memo(function Metainfo(props) {
   return <Content>
     <Compartment title="archive root section">
       <Item itemKey="EntryArchive">
-        <Typography>EntryArchive</Typography>
+        <Typography>Entry</Typography>
       </Item>
     </Compartment>
     <Compartment title="other root sections">
       {rootSections.filter(def => def.name !== 'EntryArchive').map((def, i) => (
         <Item key={i} itemKey={def.name}>
           <Typography>
-            {def.name}
+            {def.more?.label || def.name}
           </Typography>
         </Item>
       ))}
@@ -371,7 +371,7 @@ function SectionDefContent({def}) {
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
-                {formatSubSectionName(subSectionDef.name)}
+                {formatSubSectionName(subSectionDef.more?.label || subSectionDef.name)}
               </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
             </Typography>
           </Item>
@@ -388,7 +388,7 @@ function SectionDefContent({def}) {
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
-                  {quantityDef.name}
+                  {quantityDef.more?.label || quantityDef.name}
                 </Box>
               </Typography>
             </Box>
@@ -406,7 +406,7 @@ function SectionDefContent({def}) {
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
-                  {innerSectionDef.name}
+                  {innerSectionDef.more?.label || innerSectionDef.name}
                 </Box>
               </Typography>
             </Box>
@@ -435,7 +435,7 @@ function SubSectionDef({def}) {
   const sectionDef = resolveRef(def.sub_section)
   return <React.Fragment>
     <Content>
-      <Title def={def} isDefinition kindLabel="sub section definition" />
+      <Title def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
       <SectionDefContent def={sectionDef} />
     </Content>
@@ -529,7 +529,7 @@ DefinitionDocs.propTypes = {
 
 function Definition({def, ...props}) {
   return <React.Fragment>
-    <Title def={def} isDefinition {...props} />
+    <Title def={def} useName isDefinition {...props} />
     <DefinitionDocs def={def} />
   </React.Fragment>
 }
@@ -583,7 +583,7 @@ function DefinitionDetails({def, ...props}) {
       {def.categories.map(categoryRef => {
         const categoryDef = resolveRef(categoryRef)
         return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
-          <Typography>{categoryDef.name}</Typography>
+          <Typography>{categoryDef.more?.label || categoryDef.name}</Typography>
         </Item>
       })}
     </Compartment>}
@@ -624,13 +624,13 @@ const definitionLabels = {
   'SubSection': 'sub section',
   'Category': 'category'
 }
-export function Title({def, isDefinition, data, kindLabel}) {
+export function Title({def, isDefinition, data, kindLabel, useName}) {
   const color = isDefinition ? 'primary' : 'initial'
   return <Compartment>
     <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
       <Grid item>
         <Tooltip title={def._qualifiedName || def.name}>
-          <Typography color={color} variant="h6">{def.name}</Typography>
+          <Typography color={color} variant="h6">{(!useName && def.more?.label) || def.name}</Typography>
         </Tooltip>
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
       </Grid>
@@ -648,7 +648,8 @@ Title.propTypes = ({
   def: PropTypes.object.isRequired,
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
-  kindLabel: PropTypes.string
+  kindLabel: PropTypes.string,
+  useName: PropTypes.bool
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {
@@ -749,7 +750,7 @@ export function VicinityGraph({def}) {
         }))
 
     node.append('text')
-      .text(d => d.def.name)
+      .text(d => d.def.more?.label || d.def.name)
       .attr('text-anchor', 'middle')
       .attr('y', d => ((d.i % 2) === 0) ? 20 : -14)
 
