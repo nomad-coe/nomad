@@ -513,7 +513,7 @@ export const SectionTable = React.memo(({
               const unitName = defCustom.unit || def?.unit
               const unit = unitName && new Unit(unitName)
               const unitLabel = unit && unit.label(units)
-              const description = defCustom.description || def.description || ''
+              const description = defCustom.description || def?.description || ''
               const content = unit ? `${defCustom.label} (${unitLabel})` : defCustom.label
               const align = defCustom.align || 'right'
               return <TableCell key={index} align={align}>

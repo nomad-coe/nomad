@@ -37,7 +37,7 @@ from .results import Results  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
-from .metainfo.common_experimental import Measurement  # noqa
+from .metainfo.measurements import Measurement  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -328,6 +328,9 @@ def derive_origin(entry: 'EntryMetadata') -> str:
 
 
 def derive_authors(entry: 'EntryMetadata') -> List[User]:
+    if entry.external_db == 'EELS Data Base':
+        return list(entry.entry_coauthors)
+
     authors: List[User] = [entry.main_author]
     if entry.coauthors:
         authors.extend(entry.coauthors)
@@ -545,7 +548,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELSDB', 'Materials Project', 'AFLOW', 'OQMD'),
+        type=metainfo.MEnum('EELS Data Base', 'Materials Project', 'AFLOW', 'OQMD'),
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
@@ -671,7 +674,7 @@ class EntryArchive(metainfo.MSection):
         derived=lambda entry: entry.metadata.entry_id)
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)
-    section_measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
+    measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
     workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
     metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],

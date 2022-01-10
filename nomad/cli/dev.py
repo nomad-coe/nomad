@@ -66,10 +66,12 @@ def gui_qa(skip_tests: bool):
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
     import json
-    print(json.dumps(metainfo_undecorated(), indent=2))
+    export = _all_metainfo_packages()
+    metainfo_data = export.m_to_dict(with_meta=True)
+    print(json.dumps(metainfo_data, indent=2))
 
 
-def metainfo_undecorated():
+def _all_metainfo_packages():
     from nomad.metainfo import Package, Environment
     from nomad.datamodel import EntryArchive
 
@@ -94,19 +96,17 @@ def metainfo_undecorated():
     export = Environment()
     for package in Package.registry.values():
         export.m_add_sub_section(Environment.packages, package)
-
-    return export.m_to_dict(with_meta=True)
+    return export
 
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
+    _all_metainfo_packages()
     import json
 
     # Currently only quantities with "entry_type" are included.
     from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
     from nomad.datamodel import EntryArchive
-    entry_section_def = EntryArchive.m_def
-    entry_type.create_mapping(entry_section_def)
 
     def to_dict(search_quantity, section=False):
         if section:
@@ -764,9 +764,9 @@ def units(ctx):
             assert dimension == info["dimension"]
 
     # Go through the metainfo and check that all units are defined
-    all_metainfo = metainfo_undecorated()
+    all_metainfo = _all_metainfo_packages()
     units = set()
-    packages = all_metainfo["packages"]
+    packages = all_metainfo.m_to_dict(with_meta=True)['packages']
     for package in packages:
         sections = package.get("section_definitions", [])
         for section in sections:

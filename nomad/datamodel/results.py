@@ -22,7 +22,7 @@ from elasticsearch_dsl import Text
 from ase.data import chemical_symbols
 
 from nomad import config
-from nomad.datamodel.metainfo.common_experimental import Spectrum, DeviceSettings
+from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
@@ -862,28 +862,6 @@ class QuantumCMS(MSection):
     quantum_circuit = SubSection(sub_section=QuantumCircuit)
 
 
-class EELS(MSection):
-    m_def = Section(
-        description="""
-        Electron energy loss spectroscopy (EELS) data.
-        """
-    )
-    detector_type = DeviceSettings.detector_type.m_copy(es_annotation=[
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion="default")
-    ])
-    resolution = DeviceSettings.resolution.m_copy(es_annotation=[
-        Elasticsearch(material_entry_type),
-    ])
-    max_energy = DeviceSettings.max_energy.m_copy(es_annotation=[
-        Elasticsearch(material_entry_type),
-    ])
-    min_energy = DeviceSettings.min_energy.m_copy(es_annotation=[
-        Elasticsearch(material_entry_type),
-    ])
-    spectrum = Quantity(type=Spectrum)
-
-
 class Simulation(MSection):
     m_def = Section(
         description="""
@@ -1322,13 +1300,7 @@ class SpectroscopyProperties(MSection):
         Spectroscopic properties.
         """,
     )
-    other_spectrum = Quantity(type=Spectrum)
-
-    eels = SubSection(
-        sub_section=EELS.m_def,
-        repeats=True,
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
-    )
+    spectrum = Quantity(type=Spectrum)
 
 
 class Properties(MSection):
