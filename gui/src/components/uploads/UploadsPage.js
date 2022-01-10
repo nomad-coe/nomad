@@ -250,15 +250,16 @@ function UploadsPage() {
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
-    order_by: 'upload_create_time'
+    order_by: 'upload_create_time',
+    order: 'asc'
   })
 
   const fetchData = useCallback(() => {
-    const {page_size, page} = pagination
-    api.get(`/uploads?page_size=${page_size}&page=${page}`)
+    const {page_size, page, order_by, order} = pagination
+    api.get(`/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setData)
       .catch(errors.raiseError)
-    api.get(`/uploads?is_published=false&page_size=0`)
+    api.get(`/uploads?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setUnpublished)
       .catch(errors.raiseError)
   }, [pagination, setData, setUnpublished, errors, api])
@@ -308,7 +309,8 @@ function UploadsPage() {
         </Box>
         <Paper>
           <Datatable
-            columns={columns} selectedColumns={columns.map(column => column.key)}
+            columns={columns} shownColumns={columns.map(column => column.key)}
+            sortingColumns={columns.filter(column => column.key !== 'entries').map(column => column.key)}
             data={data.data || []}
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
