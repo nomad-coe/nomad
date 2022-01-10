@@ -225,12 +225,18 @@ class UploadFilesContract(UploadFilesFixtures):
         raw_files = list(path_info.path for path_info in path_infos)
         assert_example_files(raw_files)
 
-    @pytest.mark.parametrize('path', [None, 'examples_template'])
+    @pytest.mark.parametrize('path', ['', 'examples_template'])
     def test_raw_directory_list(self, test_upload: UploadWithFiles, path: str):
-        _, _, upload_files = test_upload
+        upload_id, _, upload_files = test_upload
+        # Add file to root to test corner case
+        append_raw_files(upload_id, 'tests/data/proc/examples_template/1.aux', '1.aux')
+        # Test recursive call (but do not verify result)
+        upload_files.raw_directory_list(path, files_only=False, recursive=True)
+        # Test non-recursive call, verify result partially
         raw_files = list(upload_files.raw_directory_list(path, files_only=True))
-        if path is None:
-            assert len(raw_files) == 0
+        if not path:
+            assert len(raw_files) == 1
+            assert raw_files[0].size == 8
         else:
             assert '1.aux' in list(os.path.basename(path_info.path) for path_info in raw_files)
             for path_info in raw_files:
