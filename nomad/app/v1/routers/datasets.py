@@ -302,7 +302,7 @@ async def delete_dataset(
     # TODO this should be part of a new edit API
     es_query = cast(Query, {'datasets.dataset_id': dataset_id})
     entries = _do_exaustive_search(
-        owner=Owner.public, query=es_query, user=user,
+        owner=Owner.user, query=es_query, user=user,
         include=['entry_id'])
     entry_ids = [entry['entry_id'] for entry in entries]
     mongo_query = {'_id': {'$in': entry_ids}}
