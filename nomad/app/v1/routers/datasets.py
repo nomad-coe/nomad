@@ -83,10 +83,9 @@ Dataset = datamodel.Dataset.m_def.a_pydantic.model
 class DatasetPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        # TODO: need real validation
         if order_by is None:
             return order_by
-        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
+        assert order_by in ('dataset_create_time', 'dataset_modified_time', 'dataset_name'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -141,17 +140,20 @@ async def get_datasets(
     '''
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
     query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id=user_id, dataset_type=dataset_type, doi=doi)
-    if prefix and prefix != '':
+    if prefix is not None and prefix != '':
         query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
 
     mongodb_query = mongodb_objects(**query_params)
 
-    order_by = pagination.order_by if pagination.order_by is not None else 'dataset_id'
-    if pagination.order == Direction.desc:
-        order_by = '-' + order_by
+    order_by = pagination.order_by
+    order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
+    if order_by == 'dataset_create_time':
+        order_by_args = [order_by_with_sign, 'dataset_id']  # Use upload_id as tie breaker
+    else:
+        order_by_args = [order_by_with_sign, 'dataset_create_time', 'dataset_id']
 
-    mongodb_query = mongodb_query.order_by(order_by)
+    mongodb_query = mongodb_query.order_by(*order_by_args)
 
     start = pagination.get_simple_index()
     end = start + pagination.page_size
@@ -296,8 +298,6 @@ async def delete_dataset(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
 
-    dataset.delete()
-
     # delete dataset from entries in mongo and elastic
     # TODO this should be part of a new edit API
     es_query = cast(Query, {'datasets.dataset_id': dataset_id})
@@ -306,6 +306,8 @@ async def delete_dataset(
         include=['entry_id'])
     entry_ids = [entry['entry_id'] for entry in entries]
     mongo_query = {'_id': {'$in': entry_ids}}
+
+    dataset.delete()
 
     if len(entry_ids) > 0:
         processing.Entry._get_collection().update_many(
