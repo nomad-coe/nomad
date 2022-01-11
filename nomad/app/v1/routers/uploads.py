@@ -135,7 +135,7 @@ class UploadProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'upload_create_time'  # Default value
-        assert order_by in ('upload_create_time', 'publish_time'), 'order_by must be a valid attribute'
+        assert order_by in ('upload_create_time', 'publish_time', 'upload_name', 'last_status_message'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -407,7 +407,7 @@ async def get_uploads(
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
     if order_by == 'upload_create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    elif order_by == 'publish_time':
+    else:
         order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
