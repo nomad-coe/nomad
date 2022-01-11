@@ -56,9 +56,8 @@ class TaskNormalizer(Normalizer):
         references = []
         if self.workflow.workflows_ref:
             references = self.workflow.workflows_ref
-        elif self.workflow.calculations_ref:
+        elif self.workflow.calculations_ref and not references:
             references = self.workflow.calculations_ref
-        references += [self.workflow]
         if self.workflow.type in self._serial_tasks:
             # for serial tasks such as geometry_optimization (GO), calculations (C) /
             # single point (SP) workflows are run in series, i.e. input of a step is the
@@ -70,6 +69,7 @@ class TaskNormalizer(Normalizer):
             #  |                             |
             #  v                             |
             #  SP1/C1 -> SP2/C2 -> .... -> SPN/CN
+            references += [self.workflow]
             for n, reference in enumerate(references):
                 sec_task = self.workflow.m_create(Task)
                 input = references[-1] if n == 0 else references[n - 1]
