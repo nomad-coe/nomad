@@ -19,7 +19,6 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import FileSaver from 'file-saver'
 import { useErrors } from '../errors'
-import { apiBase } from '../../config'
 import { Tooltip, IconButton } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
@@ -37,7 +36,7 @@ const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
     let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
-      const url = `${apiBase}/v1/uploads/${query.upload_id}/raw/?offset=0&length=-1&compress=true&owner=${owner}${token ? '&signature_token=' + token : ''}&json_query=${JSON.stringify(queryStringData)}`
+      const url = `https://nomad-lab.eu/dev/rae/upload-fixes/api/v1/uploads/${query.upload_id}/raw/?offset=0&length=-1&compress=true&owner=${owner}${token ? '&signature_token=' + token : ''}&json_query=${JSON.stringify(queryStringData)}`
       setTimeout(async () => console.log(await window.navigator.clipboard.writeText(url)), 1000)
       sleep(1000)
       FileSaver.saveAs(url, `nomad-download.zip`)
