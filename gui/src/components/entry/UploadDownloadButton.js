@@ -24,6 +24,7 @@ import { Tooltip, IconButton } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
+import {sleep} from '../../utils'
 
 const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
@@ -37,6 +38,8 @@ const UploadDownloadButton = React.memo(function UploadDownloadButton(props) {
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
       const url = `${apiBase}/v1/uploads/${query.upload_id}/raw?offset=0&length=-1&compress=true&owner=${owner}${token ? '&signature_token=' + token : ''}&json_query=${JSON.stringify(queryStringData)}`
+      setTimeout(async () => console.log(await window.navigator.clipboard.writeText(url)), 1000)
+      sleep(1000)
       FileSaver.saveAs(url, `nomad-download.zip`)
     }
 
