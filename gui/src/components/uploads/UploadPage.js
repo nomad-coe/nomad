@@ -279,7 +279,9 @@ ProcessingStatus.propTypes = {
 
 const useStyles = makeStyles(theme => ({
   stepper: {
-    backgroundColor: 'inherit'
+    backgroundColor: 'inherit',
+    paddingLeft: 0,
+    paddingRight: 0
   },
   stepContent: {
     marginBottom: theme.spacing(2)
