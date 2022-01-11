@@ -108,12 +108,13 @@ function DatasetsPage() {
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
-    order_by: 'created'
+    order_by: 'dataset_create_time',
+    order: 'asc'
   })
 
   const load = useCallback(() => {
-    const {page_size, page} = pagination
-    api.get(`/datasets?page_size=${page_size}&page=${page}`)
+    const {page_size, page, order_by, order} = pagination
+    api.get(`/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}`)
       .then(setData)
       .catch(errors.raiseError)
   }, [pagination, setData, errors, api])
@@ -128,6 +129,7 @@ function DatasetsPage() {
         <Paper>
           <Datatable
             columns={columns} selectedColumns={columns.map(column => column.key)}
+            sortingColumns={['dataset_create_time', 'dataset_modified_time', 'dataset_name']}
             data={data.data || []}
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
