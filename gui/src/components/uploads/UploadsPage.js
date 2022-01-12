@@ -256,10 +256,10 @@ function UploadsPage() {
 
   const fetchData = useCallback(() => {
     const {page_size, page, order_by, order} = pagination
-    api.get(`/uploads/?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
+    api.get(`/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setData)
       .catch(errors.raiseError)
-    api.get(`/uploads/?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
+    api.get(`/uploads?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setUnpublished)
       .catch(errors.raiseError)
   }, [pagination, setData, setUnpublished, errors, api])
