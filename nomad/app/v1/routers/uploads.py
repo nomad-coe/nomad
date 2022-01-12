@@ -1496,10 +1496,10 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
             of other users is only granted if the upload is published and not under embargo.
     '''
     mongodb_query = _query_mongodb(upload_id=upload_id)
-    if not mongodb_query.count():
+    upload = mongodb_query.first()
+    if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
-    upload = mongodb_query.first()
     if user and (user.is_admin or (str(user.user_id) in upload.viewers)):
         # Ok, the user a viewer, or we have an admin user
         return upload
