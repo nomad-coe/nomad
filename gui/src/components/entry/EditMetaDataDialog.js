@@ -567,8 +567,6 @@ function EditMetaDataDialog({...props}) {
         <DialogTitle>Manage upload meta data</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Upload ID: {upload?.upload_id}
-            <br/>
             You can add, remove or edit the meta data for the selected entries.
             <br/>
             {nSelected} of {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'} is selected.
