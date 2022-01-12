@@ -17,14 +17,12 @@
  */
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import FileSaver from 'file-saver'
 import { useErrors } from '../errors'
 import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { useApi } from '../api'
 import { toAPIFilter } from '../search/SearchContext'
-import {sleep} from '../../utils'
 
 const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
@@ -38,10 +36,8 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
     let queryStringData = toAPIFilter(query)
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
-      const url = `${apiBase}/v1/entries/${choice}/download/?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
-      setTimeout(async () => console.log(await window.navigator.clipboard.writeText(url)), 1000)
-      sleep(1000)
-      FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
+      const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
+      window.location.assign(url)
     }
 
     if (user) {
