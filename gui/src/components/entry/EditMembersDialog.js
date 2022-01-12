@@ -148,7 +148,8 @@ function AddMember({...props}) {
       renderInput={params => (
         <TextField
           {...params}
-          variant='standard'
+          variant='filled'
+          size='small'
           label='Search the name and select a user from the list'
           placeholder="Member's name"
           margin='normal'
