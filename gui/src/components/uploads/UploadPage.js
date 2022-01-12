@@ -321,22 +321,33 @@ function UploadPage() {
   const isProcessing = upload?.process_running
 
   const fetchData = useMemo(() => () => {
+    console.log('fetchData()')
     api.get(`/uploads/${uploadId}/entries`, pagination)
-      .then(results => setData(results))
+      .then(results => {
+        console.log('fetchData.then()')
+        setData(results)
+      })
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
+          console.log('fetchData.catch(1)')
           history.push(getUrl('uploads', location))
         } else {
           (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
+          console.log('fetchData.catch(2)')
         }
       })
   }, [api, uploadId, pagination, deleteClicked, history, errors, location])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
+    console.log('if (isProcessing)')
     if (isProcessing) {
+      console.log('setInterval()')
       const interval = setInterval(fetchData, 1000)
-      return () => clearInterval(interval)
+      return () => {
+        console.log('clearInterval()')
+        clearInterval(interval)
+      }
     }
   }, [fetchData, isProcessing])
 
