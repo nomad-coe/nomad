@@ -83,9 +83,9 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
         </IconButton>
       </span>
     </Tooltip>
-    <Tooltip title="Delete the dataset">
+    <Tooltip title={(data.doi ? 'The dataset cannot be deleted. A DOI has been assigned to the dataset.' : 'Delete the dataset')}>
       <span>
-        <IconButton onClick={handleDelete} disabled={!!data.doi}>
+        <IconButton onClick={handleDelete} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
           <DeleteIcon />
         </IconButton>
       </span>
