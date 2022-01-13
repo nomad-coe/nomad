@@ -86,19 +86,22 @@ function ArchiveConfigForm({searchOptions, data}) {
   const entryId = data?.metadata?.entry_id
 
   return (
-    <Box marginTop={-3} padding={0}>
+    <Box padding={0}>
       <FormGroup row style={{alignItems: 'center'}}>
         <Box style={{width: 350, height: 60}}>
           <Autocomplete
             options={searchOptions}
             getOptionLabel={(option) => option.name}
-            style={{ width: 350, marginTop: -20 }}
+            style={{ width: 500, marginTop: -20 }}
             onChange={(_, value) => {
               if (value) {
                 history.push(url + value.path)
               }
             }}
-            renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+            renderInput={(params) => <TextField
+              {...params} variant="filled"
+              size="small" label="search" margin="normal"
+            />}
           />
         </Box>
         <Box flexGrow={1} />
@@ -164,8 +167,7 @@ function archiveAdaptorFactory(data, sectionDef, units) {
 function archiveSearchOptions(data) {
   const options = []
   const optionDefs = {}
-  const optionKeys = {}
-  function traverse(data, def, parentPath) {
+  function traverse(data, def, parentName, parentPath) {
     for (let key in data) {
       const childDef = def._properties[key]
       if (!childDef) {
@@ -176,50 +178,36 @@ function archiveSearchOptions(data) {
       if (!child) {
         continue
       }
-
-      let path = `${parentPath}/${key}`
-      if (childDef.m_def === 'SubSection') {
-        const sectionDef = resolveRef(childDef.sub_section)
-        if (Array.isArray(child) && child.length > 0 && child[0]) {
-          if (child.length > 1) {
-            child.forEach((value, index) => traverse(value, sectionDef, `${path}:${index}`))
-          } else {
-            traverse(child[0], sectionDef, path)
-          }
-        } else {
-          traverse(child, sectionDef, path)
-        }
-      }
+      const path = parentPath ? `${parentPath}/${key}` : `/${key}`
+      const name = parentName ? `${parentName}.${childDef.name}` : childDef.name
 
       if (optionDefs[childDef._qualifiedName]) {
         continue
       }
       optionDefs[childDef._qualifiedName] = childDef
-
       const option = {
-        name: key,
+        name: name, // key
         data: data,
         def: childDef,
         path: path
       }
       options.push(option)
 
-      if (optionKeys[key]) {
-        const addPath = option => {
-          const parents = option.path.split('/')
-          const parent = parents[parents.length - 2].replace(/:[0-9]+$/, '')
-          option.name += ` (${parent})`
+      if (childDef.m_def === 'SubSection') {
+        const sectionDef = resolveRef(childDef.sub_section)
+        if (Array.isArray(child) && child.length > 0 && child[0]) {
+          if (child.length > 1) {
+            child.forEach((value, index) => traverse(value, sectionDef, name, `${path}:${index}`))
+          } else {
+            traverse(child[0], sectionDef, name, path)
+          }
+        } else {
+          traverse(child, sectionDef, name, path)
         }
-        if (!optionKeys[key].name.includes('(')) {
-          addPath(optionKeys[key])
-        }
-        addPath(option)
-      } else {
-        optionKeys[key] = option
       }
     }
   }
-  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), '')
+  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), null, null)
   return options
 }
 
