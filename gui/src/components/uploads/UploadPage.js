@@ -340,7 +340,7 @@ function UploadPage() {
 
   // constant fetching of upload data when necessary
   useEffect(() => {
-    console.log('if (isProcessing)')
+    console.log(`if (isProcessing = ${isProcessing})`)
     if (isProcessing) {
       console.log('setInterval()')
       const interval = setInterval(fetchData, 1000)
@@ -390,6 +390,7 @@ function UploadPage() {
   }
 
   const handleDelete = () => {
+    console.log(`--------------------------Delete Button Clicked-------------------------------`)
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
       .then(results => setUpload(results.data))
