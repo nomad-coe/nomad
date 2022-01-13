@@ -348,8 +348,11 @@ function UploadPage() {
         console.log('clearInterval()')
         clearInterval(interval)
       }
+    } else if (deleteClicked) {
+      console.log('Exit here')
+      history.push(getUrl('uploads', location))
     }
-  }, [fetchData, isProcessing])
+  }, [fetchData, isProcessing, deleteClicked, history, location])
 
   // initial fetching of upload data
   useEffect(fetchData, [fetchData])
@@ -390,7 +393,7 @@ function UploadPage() {
   }
 
   const handleDelete = () => {
-    console.log(`--------------------------Delete Button Clicked-------------------------------`)
+    console.log(`--------------------------Delete Button Clicked-----------------------------------------`)
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
       .then(results => setUpload(results.data))
