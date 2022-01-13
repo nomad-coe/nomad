@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
@@ -320,42 +320,28 @@ function UploadPage() {
 
   const isProcessing = upload?.process_running
 
-  const fetchData = useMemo(() => () => {
-    console.log('fetchData()')
+  const fetchData = useCallback(() => () => {
     api.get(`/uploads/${uploadId}/entries`, pagination)
-      .then(results => {
-        console.log('fetchData.then()')
-        setData(results)
-      })
+      .then(results => setData(results))
       .catch((error) => {
-        if (error instanceof DoesNotExist && deleteClicked) {
-          console.log('fetchData.catch(1)')
-          history.push(getUrl('uploads', location))
-        } else {
+        if (!(error instanceof DoesNotExist && deleteClicked)) {
           (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
-          console.log('fetchData.catch(2)')
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, history, errors, location])
+  }, [api, uploadId, pagination, deleteClicked, errors])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
-    console.log(`if (isProcessing = ${isProcessing})`)
     if (isProcessing) {
-      console.log('setInterval()')
-      const interval = setInterval(fetchData, 1000)
-      return () => {
-        console.log('clearInterval()')
-        clearInterval(interval)
-      }
+      const interval = setInterval(fetchData(), 1000)
+      return () => clearInterval(interval)
     } else if (deleteClicked) {
-      console.log('Exit here')
       history.push(getUrl('uploads', location))
     }
   }, [fetchData, isProcessing, deleteClicked, history, location])
 
   // initial fetching of upload data
-  useEffect(fetchData, [fetchData])
+  useEffect(fetchData(), [fetchData])
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -514,7 +500,7 @@ function UploadPage() {
           </StepContent>
         </Step>
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
-          <StepLabel>Edit metadata</StepLabel>
+          <StepLabel>Edit author metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
               You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
