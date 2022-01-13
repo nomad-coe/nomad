@@ -290,9 +290,9 @@ function UploadsPage() {
       <Box>
         <NewUploadButton color="primary" disabled={isDisabled}/>
         <Box display="inline-block" marginLeft={2}>
-          <Typography hidden={!isDisabled} color="error">
+          {isDisabled && <Typography color="error">
             You have reached maximum number of unpublished uploads!
-          </Typography>
+          </Typography>}
         </Box>
       </Box>
       <Box marginTop={4}>

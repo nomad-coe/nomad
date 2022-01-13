@@ -338,7 +338,7 @@ class TestEditRepo():
         'test_user', dict(
             query={'upload_id': 'id_published_w'},
             metadata=dict(comment='test comment'),
-            expected_error_loc=('metadata', 'comment')),
+            affected_upload_ids=['id_published_w']),
         id='published-not-admin'),
     pytest.param(
         None, dict(

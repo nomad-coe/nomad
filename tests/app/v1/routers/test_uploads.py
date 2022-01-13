@@ -1050,8 +1050,7 @@ def test_delete_upload_raw_path(
         id='published-admin'),
     pytest.param(
         'test_user', 'id_published_w', dict(
-            metadata=dict(upload_name='test_name'),
-            expected_error_loc=('metadata', 'upload_name')),
+            metadata=dict(upload_name='test_name')),
         id='published-not-admin'),
     pytest.param(
         None, 'id_unpublished_w', dict(
