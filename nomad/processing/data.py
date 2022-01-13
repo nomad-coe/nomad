@@ -285,15 +285,6 @@ class MetadataEditRequestHandler:
                         self._error(
                             f'Upload {upload.upload_id} is published, embargo can only be lifted',
                             ('metadata', 'embargo_length'))
-                if upload.published and not admin:
-                    has_invalid_edit = False
-                    for edit_loc in self.edit_attempt_locs:
-                        if edit_loc[-1] not in ('embargo_length', 'datasets'):
-                            has_invalid_edit = True
-                            self._error(
-                                f'Cannot update, upload {upload.upload_id} is published.', edit_loc)
-                    if has_invalid_edit:
-                        return
         except Exception as e:
             # Something unexpected has gone wrong
             self.logger.error(e)
