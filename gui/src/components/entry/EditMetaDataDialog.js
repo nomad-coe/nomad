@@ -558,12 +558,12 @@ function EditMetaDataDialog({...props}) {
   return <editMetaDataDialogContext.Provider value={contextValue}>
     <React.Fragment>
       {isIcon && <IconButton onClick={handleOpenDialog}>
-        <Tooltip title="Manage upload members">
+        <Tooltip title="Edit author metadata">
           <EditIcon />
         </Tooltip>
       </IconButton>}
       {!isIcon && <Button onClick={handleOpenDialog} variant='contained' color='primary' disabled={isProcessing}>
-        {`Edit metadata of all ${upload?.entries} entries`}
+        {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
       </Button>}
       {open && <Dialog classes={{paper: classes.dialog}} open={open} on disableBackdropClick disableEscapeKeyDown>
         <DialogTitle>Manage upload meta data</DialogTitle>
