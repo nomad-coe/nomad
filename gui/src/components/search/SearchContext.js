@@ -175,6 +175,7 @@ export const SearchContext = React.memo(({
     aggsState,
     paginationState,
     resultsState,
+    apiDataState,
     aggsResponseState,
     isMenuOpenState,
     isCollapsedState,
@@ -184,6 +185,7 @@ export const SearchContext = React.memo(({
     useStatisticState,
     useStatisticsValue,
     useResults,
+    useApiData,
     useAgg,
     useSetFilters
   ] = useMemo(() => {
@@ -350,6 +352,11 @@ export const SearchContext = React.memo(({
       default: {
         pagination: {}
       }
+    })
+
+    const apiDataState = atom({
+      key: `apiData_${indexContext}`,
+      default: null
     })
 
     const aggsFamily = atomFamily({
@@ -598,6 +605,13 @@ export const SearchContext = React.memo(({
     const useResults = () => useRecoilValue(resultsState)
 
     /**
+     * Hook for returning an object containing the last used API call.
+     *
+     * @returns {object} {method, url, body, response}
+     */
+    const useApiData = () => useRecoilValue(apiDataState)
+
+    /**
      * Hook for modifying an aggregation request and fetching the latest values for
      * this aggregation.
      *
@@ -651,6 +665,7 @@ export const SearchContext = React.memo(({
       aggsState,
       paginationState,
       resultsState,
+      apiDataState,
       aggsResponseState,
       isMenuOpenState,
       isCollapsedState,
@@ -660,12 +675,14 @@ export const SearchContext = React.memo(({
       useStatisticState,
       useStatisticsValue,
       useResults,
+      useApiData,
       useAgg,
       useSetFilters
     ]
   }, [initialQuery, filters, filtersLocked, initialStatistics, initialAggs, initialPagination, resource, filterData])
 
   const setResults = useSetRecoilState(resultsState)
+  const setApiData = useSetRecoilState(apiDataState)
   const updateAggsResponse = useSetRecoilState(aggsResponseState)
   const aggs = useRecoilValue(aggsState)
   const query = useRecoilValue(queryState)
@@ -775,22 +792,25 @@ export const SearchContext = React.memo(({
     }
     const timestamp = Date.now()
     apiQueue.current.push(timestamp)
-    api.query(resource, search, true).then((response) => {
-      resolve({
-        response,
-        timestamp,
-        queryChanged,
-        paginationChanged,
-        search,
-        resource,
-        callback
+    api.query(resource, search, {loadingIndicator: true, returnRequest: true})
+      .then((apiData) => {
+        const response = apiData.response
+        setApiData(apiData)
+        return resolve({
+          response,
+          timestamp,
+          queryChanged,
+          paginationChanged,
+          search,
+          resource,
+          callback
+        })
       })
-    }
-    ).catch((error) => {
-      raiseError(error)
-      callback && callback(undefined, error)
-    })
-  }, [filterDefaults, resource, api, raiseError, updateAggsResponse, setResults, setPagination])
+      .catch((error) => {
+        raiseError(error)
+        callback && callback(undefined, error)
+      })
+  }, [filterDefaults, resource, api, raiseError, updateAggsResponse, setResults, setApiData, setPagination])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
@@ -916,6 +936,7 @@ export const SearchContext = React.memo(({
     useStatisticsValue: useStatisticsValue,
     useUpdateQueryString: useUpdateQueryString,
     useResults: useResults,
+    useApiData: useApiData,
     useAgg: useAgg,
     useAggCall: useAggCall,
     useSetFilters: useSetFilters,
@@ -938,6 +959,7 @@ export const SearchContext = React.memo(({
     useUpdateQueryString,
     useRefresh,
     useResults,
+    useApiData,
     useAgg,
     useAggCall,
     useSetFilters,

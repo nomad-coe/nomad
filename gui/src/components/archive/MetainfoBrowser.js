@@ -29,13 +29,13 @@ import lime from '@material-ui/core/colors/lime'
 import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
-import { JsonCodeDialogButton } from '../buttons/CodeDialogButton'
 import Histogram from '../Histogram'
 import { appBase } from '../../config'
 import { useHistory, useRouteMatch } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -635,10 +635,10 @@ export function Title({def, isDefinition, data, kindLabel, useName}) {
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
       </Grid>
       <Grid item>
-        <JsonCodeDialogButton
+        <SourceJsonDialogButton
           tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
           title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
-          buttonProps={{size: 'small'}} json={data || def}
+          data={data || def}
         />
       </Grid>
     </Grid>

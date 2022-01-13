@@ -43,6 +43,7 @@ import { useSearchContext } from '../SearchContext'
 import { filterGroups } from '../FilterRegistry'
 import { pluralize } from '../../../utils'
 import { isNil } from 'lodash'
+import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider, SourceJsonCode } from '../../buttons/SourceDialogButton'
 
 // The menu animations use a transition on the 'transform' property. Notice that
 // animating 'transform' instead of e.g. the 'left' property is much more
@@ -283,13 +284,14 @@ export const FilterMenuItems = React.memo(({
   className,
   children
 }) => {
-  const { useResetFilters, useRefresh, resource } = useSearchContext()
+  const { useResetFilters, useRefresh, resource, useApiData } = useSearchContext()
   const styles = useFilterMenuItemsStyles()
   const { open, onOpenChange, collapsed, onCollapsedChange } = useContext(filterMenuContext)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
   const resetFilters = useResetFilters()
   const refresh = useRefresh()
+  const apiData = useApiData()
 
   // Callbacks
   const openMenu = useCallback((event) => {
@@ -335,6 +337,22 @@ export const FilterMenuItems = React.memo(({
             >
               <ClearIcon fontSize="small"/>
             </Action>
+            <SourceApiDialogButton tooltip={null} component={Action} buttonProps={{tooltip: 'API'}} maxWidth="lg" fullWidth>
+              <Typography>
+                NOMAD uses the same query format throughout its API. This is the query
+                based on the current filers:
+              </Typography>
+              <SourceJsonCode data={{owner: apiData?.body?.owner, query: apiData?.body?.query}}/>
+              <SourceDialogDivider/>
+              <Typography>
+                One application of the above query is this API call. This is what is currently
+                used to render this page and includes all displayed statistics data
+                (aggregations).
+              </Typography>
+              <SourceApiCall
+                {...apiData}
+              />
+            </SourceApiDialogButton>
             <Action
               tooltip="Options"
               onClick={openMenu}

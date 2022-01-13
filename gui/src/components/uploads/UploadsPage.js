@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
@@ -40,6 +40,7 @@ import {
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
 import Quantity from '../Quantity'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -244,7 +245,8 @@ UploadCommands.propTypes = {
 function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
-  const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
+  const data = useMemo(() => apiData?.response, [apiData])
   const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
@@ -256,13 +258,14 @@ function UploadsPage() {
 
   const fetchData = useCallback(() => {
     const {page_size, page, order_by, order} = pagination
-    api.get(`/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
-      .then(setData)
+    const url = `/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`
+    api.get(url, null, {returnRequest: true})
+      .then(setApiData)
       .catch(errors.raiseError)
     api.get(`/uploads?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setUnpublished)
       .catch(errors.raiseError)
-  }, [pagination, setData, setUnpublished, errors, api])
+  }, [pagination, setApiData, setUnpublished, errors, api])
 
   const handleReload = () => {
     fetchData()
@@ -323,6 +326,9 @@ function UploadsPage() {
               >
                 <ReloadIcon/>
               </TooltipButton>
+              <SourceApiDialogButton maxWidth="lg" fullWidth>
+                <SourceApiCall {...apiData} />
+              </SourceApiDialogButton>
             </DatatableToolbar>
             <DatatableTable actions={UploadActions}>
               <DatatablePagePagination />

@@ -27,7 +27,7 @@ const useStyles = makeStyles(theme => ({
   root: {}
 }))
 
-const Download = React.memo(function Download(props) {
+export const Download = React.memo(function Download(props) {
   const classes = useStyles(props)
   const {url, fileName, component, children, disabled, color, size, tooltip} = props
   const {api, user} = useApi()

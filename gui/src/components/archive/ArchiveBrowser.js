@@ -18,7 +18,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
@@ -34,6 +34,9 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import { Download } from '../entry/Download'
 
 export const configState = atom({
   key: 'config',
@@ -56,7 +59,7 @@ export default function ArchiveBrowser({data}) {
   return (
     <Browser
       adaptor={archiveAdaptorFactory(data, undefined, units)}
-      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+      form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
 }
@@ -64,7 +67,7 @@ ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
 
-function ArchiveConfigForm({searchOptions}) {
+function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
 
   const handleConfigChange = event => {
@@ -79,6 +82,8 @@ function ArchiveConfigForm({searchOptions}) {
 
   const history = useHistory()
   const { url } = useRouteMatch()
+
+  const entryId = data?.metadata?.entry_id
 
   return (
     <Box marginTop={-3} padding={0}>
@@ -132,11 +137,23 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
+        {entryId && <Download
+          tooltip="download the archive"
+          url={`entries/${entryId}/archive/download`}
+          fileName={`${entryId}.json`}
+          component={IconButton}
+        >
+          <DownloadIcon />
+        </Download>}
+        <SourceApiDialogButton maxWidth="lg" fullWidth>
+          <SourceApiCall />
+        </SourceApiDialogButton>
       </FormGroup>
     </Box>
   )
 }
 ArchiveConfigForm.propTypes = ({
+  data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 

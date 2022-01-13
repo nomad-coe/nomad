@@ -20,8 +20,6 @@ import PropTypes from 'prop-types'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
-import { ApiDialog } from '../buttons/ApiDialogButton'
-import { Actions } from '../Actions'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
@@ -31,6 +29,7 @@ import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCa
 import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
+import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -77,11 +76,12 @@ const useStyles = makeStyles(theme => ({
  */
 const OverviewView = React.memo(({entryId, ...moreProps}) => {
   const { raiseError } = useErrors()
-  const [index, setIndex] = useState(null)
+  const [indexApiData, setIndexApiData] = useState(null)
   const [exists, setExists] = useState(true)
-  const [showAPIDialog, setShowAPIDialog] = useState(false)
-  const [archive, setArchive] = useState(null)
+  const [archiveApiData, setArchiveApiData] = useState(null)
   const {api} = useApi()
+  const index = useMemo(() => indexApiData?.response?.data, [indexApiData])
+  const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const properties = useMemo(() => {
     return new Set(index?.results
       ? index.results.properties.available_properties
@@ -90,25 +90,44 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
   }, [index])
 
   useEffect(() => {
-    api.entry(entryId).then(response => {
-      const index = response.data
-      setIndex(index)
-      api.results(index.entry_id)
-        .then(setArchive)
-        .catch(error => {
-          if (error.name === 'DoesNotExist') {
-          } else {
-            raiseError(error)
+    async function fetchData() {
+      const indexApiData = await api.get(`/entries/${entryId}`, null, {returnRequest: true})
+      setIndexApiData(indexApiData)
+      const archiveApiData = await api.post(
+        `/entries/${entryId}/archive/query`,
+        {
+          required: {
+            'resolve-inplace': false,
+            results: {
+              material: '*',
+              method: '*',
+              properties: {
+                structures: '*',
+                electronic: 'include-resolved',
+                mechanical: 'include-resolved',
+                spectroscopy: 'include-resolved',
+                vibrational: 'include-resolved',
+                // For geometry optimizations we require only the energies.
+                // Trajectory, optimized structure, etc. are unnecessary.
+                geometry_optimization: {
+                  energies: 'include-resolved'
+                }
+              }
+            }
           }
-        })
-    }).catch(error => {
+        },
+        {returnRequest: true, jsonResponse: true}
+      )
+      setArchiveApiData(archiveApiData)
+    }
+    fetchData().catch(error => {
       if (error.name === 'DoesNotExist') {
         setExists(false)
       } else {
         raiseError(error)
       }
     })
-  }, [api, raiseError, entryId, setIndex, setExists, setArchive])
+  }, [api, raiseError, entryId, setIndexApiData, setExists, setArchiveApiData])
 
   const classes = useStyles()
 
@@ -153,19 +172,17 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
             <Quantity quantity="last_processing_version" data={index}/>
           </Quantity>
         </MetadataSection>
-        <ApiDialog data={index} open={showAPIDialog} onClose={() => { setShowAPIDialog(false) }}></ApiDialog>
-        <Actions
-          justifyContent='flex-end'
-          variant='outlined'
-          color='primary'
-          size='medium'
-          actions={[{
-            tooltip: 'Show the API access code',
-            onClick: (event) => { setShowAPIDialog(!showAPIDialog) },
-            content: 'API'
-          }]}
-        >
-        </Actions>
+        <SourceApiDialogButton label="API" maxWidth="lg" fullWidth buttonProps={{variant: 'contained', size: 'small'}}>
+          {indexApiData && <SourceApiCall
+            {...indexApiData}
+            description="The basic metadata shown on this page is retrieved from the *entry metadata* API."
+          />}
+          <SourceDialogDivider />
+          {archiveApiData && <SourceApiCall
+            {...archiveApiData}
+            description="The detailed property information is retrieved from the *entry archive* API. Only a specific parts of the archive are *required*."
+          />}
+        </SourceApiDialogButton>
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>

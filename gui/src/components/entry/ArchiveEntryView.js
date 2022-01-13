@@ -15,15 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Fab, Card, CardContent, Typography, makeStyles } from '@material-ui/core'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
-import Download from './Download'
+import { Card, CardContent, Typography, makeStyles } from '@material-ui/core'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
 import Page from '../Page'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
+import { ApiDataContext } from '../buttons/SourceDialogButton'
 
 export const help = `
 The NOMAD **archive** provides data and meta-data in a common hierarchical format based on
@@ -56,14 +55,13 @@ export default function ArchiveEntryView(props) {
   const {api} = useApi()
   const {raiseError} = useErrors()
 
-  const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState()
   const [doesNotExist, setDoesNotExist] = useState(false)
 
   useEffect(() => {
-    api.get(`/entries/${entryId}/archive`)
-      .then(response => {
-        response.data.archive.processing_logs = undefined
-        setData(response.data.archive)
+    api.get(`/entries/${entryId}/archive`, null, {returnRequest: true, jsonResponse: true})
+      .then(apiData => {
+        setApiData(apiData)
       })
       .catch(error => {
         if (error.name === 'DoesNotExist') {
@@ -72,7 +70,17 @@ export default function ArchiveEntryView(props) {
           raiseError(error)
         }
       })
-  }, [setData, setDoesNotExist, api, raiseError, entryId])
+  }, [setApiData, setDoesNotExist, api, raiseError, entryId])
+
+  const data = useMemo(() => {
+    const archive = apiData?.response?.data?.archive
+    if (!archive) {
+      return null
+    }
+    const cleanedArchive = {...archive}
+    cleanedArchive.processing_logs = undefined
+    return cleanedArchive
+  }, [apiData])
 
   if (doesNotExist) {
     return (
@@ -91,7 +99,9 @@ export default function ArchiveEntryView(props) {
       {
         data && typeof data !== 'string'
           ? <div className={classes.archiveBrowser}>
-            <ArchiveBrowser data={data} />
+            <ApiDataContext.Provider value={apiData}>
+              <ArchiveBrowser data={data} />
+            </ApiDataContext.Provider>
           </div> : <div>{
             data
               ? <div>
@@ -105,14 +115,6 @@ export default function ArchiveEntryView(props) {
               : <Typography>loading ...</Typography>
           }</div>
       }
-
-      <Download
-        classes={{root: classes.downloadFab}} tooltip="download entry archive"
-        component={Fab} className={classes.downloadFab} color="primary" size="medium"
-        url={`entries/${entryId}/archive/download`} fileName={`${entryId}.json`}
-      >
-        <DownloadIcon />
-      </Download>
     </Page>
   )
 }

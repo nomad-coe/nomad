@@ -37,11 +37,11 @@ beforeAll(() => {
   // API mock init
   useApi.mockReturnValue({
     api: {
-      results: entry_id => wait(archives.get(entry_id)),
-      entry: () => wait({
+      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
+      get: () => wait({response: { // entry metadata
         entry_id: index.entry_id,
         data: index
-      })
+      }})
     }
   })
 })
