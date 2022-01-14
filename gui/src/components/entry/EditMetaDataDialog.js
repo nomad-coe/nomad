@@ -38,6 +38,7 @@ import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import CloseIcon from '@material-ui/icons/Close'
 import CheckIcon from '@material-ui/icons/Check'
+import {DOI} from '../dataset/DOI'
 
 export const editMetaDataDialogContext = React.createContext()
 export const commentContext = React.createContext()
@@ -294,7 +295,7 @@ function EditDatasets() {
   const [defaultDatasets, setDefaultDatasets] = useState([])
 
   const columns = useMemo(() => ([
-    {key: '', align: 'left', render: dataset => dataset.dataset_name}
+    {key: '', align: 'left', render: dataset => (dataset.doi ? <span> {`${dataset.dataset_name},  DOI:`} <DOI doi={dataset.doi} /></span> : dataset.dataset_name)}
   ]), [])
 
   useEffect(() => {
@@ -323,12 +324,13 @@ function EditDatasets() {
   useEffect(() => {
     if (data?.data?.length > 0) {
       let _datasets = data?.data[0]?.entry_metadata?.datasets
-      if (_datasets) {
-        setNewDatasets(_datasets)
-        setDefaultDatasets(_datasets)
+      if (_datasets && allDatasets) {
+        let __datasets = allDatasets.filter(fullDatasetData => _datasets.map(dataset => dataset.dataset_id).includes(fullDatasetData.dataset_id))
+        setNewDatasets(__datasets)
+        setDefaultDatasets(__datasets)
       }
     }
-  }, [data])
+  }, [data, allDatasets])
 
   const validate = useCallback((value) => {
     if (allDatasets.map(dataset => dataset.dataset_name).includes(value.dataset_name)) return `There is already a dataset with name ${value.dataset_name}`
@@ -450,8 +452,8 @@ const DatasetsActions = React.memo((props) => {
         <OpenInNewIcon />
       </Tooltip>
     </IconButton>
-    <IconButton size='small' onClick={handleRemove}>
-      <Tooltip title="Remove the dataset">
+    <IconButton size='small' onClick={handleRemove} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
+      <Tooltip title={(data.doi ? 'The dataset cannot be removed. A DOI has been assigned to the dataset.' : 'Remove the dataset')}>
         <DeleteIcon />
       </Tooltip>
     </IconButton>
@@ -556,19 +558,17 @@ function EditMetaDataDialog({...props}) {
   return <editMetaDataDialogContext.Provider value={contextValue}>
     <React.Fragment>
       {isIcon && <IconButton onClick={handleOpenDialog}>
-        <Tooltip title="Manage upload members">
+        <Tooltip title="Edit author metadata">
           <EditIcon />
         </Tooltip>
       </IconButton>}
       {!isIcon && <Button onClick={handleOpenDialog} variant='contained' color='primary' disabled={isProcessing}>
-        {`Edit metadata of all ${upload?.entries} entries`}
+        {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
       </Button>}
       {open && <Dialog classes={{paper: classes.dialog}} open={open} on disableBackdropClick disableEscapeKeyDown>
         <DialogTitle>Manage upload meta data</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Upload ID: {upload?.upload_id}
-            <br/>
             You can add, remove or edit the meta data for the selected entries.
             <br/>
             {nSelected} of {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'} is selected.

@@ -228,6 +228,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     selected,
     onSelectedChanged,
     shownColumns,
+    sortingColumns,
     pagination,
     onPaginationChanged
   } = useDatatableContext()
@@ -270,7 +271,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           align={column.align || 'right'}
           sortDirection={order_by === column.key ? order : false}
         >
-          {withSorting ? <TableSortLabel
+          {withSorting && sortingColumns?.includes(column.key) ? <TableSortLabel
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}
@@ -697,6 +698,7 @@ Datatable.propTypes = {
   /** Optional array of column keys. Only those columns will be visible. Default is to
    * show all columns */
   shownColumns: PropTypes.arrayOf(PropTypes.string),
+  sortingColumns: PropTypes.arrayOf(PropTypes.string),
   /** Optional table data as array of objects. Default is empty table. */
   data: PropTypes.arrayOf(PropTypes.object),
   /** Optional pagination object (e.g. from NOMAD API). Used to display current pagination

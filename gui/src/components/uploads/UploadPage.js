@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
@@ -43,6 +43,8 @@ import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
 
 export const uploadPageContext = React.createContext()
 
@@ -279,7 +281,9 @@ ProcessingStatus.propTypes = {
 
 const useStyles = makeStyles(theme => ({
   stepper: {
-    backgroundColor: 'inherit'
+    backgroundColor: 'inherit',
+    paddingLeft: 0,
+    paddingRight: 0
   },
   stepContent: {
     marginBottom: theme.spacing(2)
@@ -315,31 +319,32 @@ function UploadPage() {
   const setUpload = useMemo(() => (upload) => {
     setData(data => ({...data, upload: upload}))
   }, [setData])
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
   const isProcessing = upload?.process_running
 
-  const fetchData = useMemo(() => () => {
+  const fetchData = useCallback(() => () => {
     api.get(`/uploads/${uploadId}/entries`, pagination)
       .then(results => setData(results))
       .catch((error) => {
-        if (error instanceof DoesNotExist && deleteClicked) {
-          history.push(getUrl('uploads', location))
-        } else {
+        if (!(error instanceof DoesNotExist && deleteClicked)) {
           (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, history, errors, location])
+  }, [api, uploadId, pagination, deleteClicked, errors])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
     if (isProcessing) {
-      const interval = setInterval(fetchData, 1000)
+      const interval = setInterval(fetchData(), 1000)
       return () => clearInterval(interval)
+    } else if (deleteClicked) {
+      history.push(getUrl('uploads', location))
     }
-  }, [fetchData, isProcessing])
+  }, [fetchData, isProcessing, deleteClicked, history, location])
 
   // initial fetching of upload data
-  useEffect(fetchData, [fetchData])
+  useEffect(fetchData(), [fetchData])
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -406,6 +411,14 @@ function UploadPage() {
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
 
+  const onConfirm = () => {
+    if (isEmpty) {
+      handleDelete()
+    } else {
+      setOpenConfirmDialog(true)
+    }
+  }
+
   return <uploadPageContext.Provider value={contextValue}>
     <Page limitedWidth>
       {(uploading || uploading === 0) && <Dialog open>
@@ -449,11 +462,25 @@ function UploadPage() {
               <ReprocessIcon />
             </Tooltip>
           </IconButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleDelete}>
+          <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
           </IconButton>
+          <Dialog
+            open={openConfirmDialog}
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogContent>
+              <DialogContentText id="alert-dialog-description">
+                The upload is not empty. Are you sure you want to delete this upload?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+              <Button onClick={handleDelete}>Delete</Button>
+            </DialogActions>
+          </Dialog>
         </Grid>
       </Grid>
       <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
@@ -497,7 +524,7 @@ function UploadPage() {
           </StepContent>
         </Step>
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
-          <StepLabel>Edit metadata</StepLabel>
+          <StepLabel>Edit author metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
               You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links

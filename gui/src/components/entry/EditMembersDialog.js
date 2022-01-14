@@ -148,7 +148,8 @@ function AddMember({...props}) {
       renderInput={params => (
         <TextField
           {...params}
-          variant='standard'
+          variant='filled'
+          size='small'
           label='Search the name and select a user from the list'
           placeholder="Member's name"
           margin='normal'
@@ -289,11 +290,9 @@ function EditMembersDialog({...props}) {
         <DialogTitle>Manage upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Upload ID: {upload?.upload_id}
+            You can add new members to this upload.
             <br/>
             The upload includes {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'}.
-            <br/>
-            You can add new members to this upload.
           </DialogContentText>
           <Divider/>
           <AddMember api={api} raiseError={raiseError} {...props}/>
