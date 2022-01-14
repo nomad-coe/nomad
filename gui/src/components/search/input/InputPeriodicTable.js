@@ -283,7 +283,8 @@ const InputPeriodicTable = React.memo(({
   description,
   visible,
   initialScale,
-  draggable
+  draggable,
+  aggId
 }) => {
   const styles = useTableStyles()
   const { useFilterState, useAgg } = useSearchContext()
@@ -291,7 +292,7 @@ const InputPeriodicTable = React.memo(({
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
   const [scale, setScale] = useState(initialScale)
-  const agg = useAgg(quantity, visible)
+  const agg = useAgg(quantity, visible, undefined, aggId)
   const availableValues = useMemo(() => {
     const elementCountMap = {}
     agg?.data && agg.data.forEach((value) => { elementCountMap[value.value] = value.count })
@@ -389,11 +390,13 @@ InputPeriodicTable.propTypes = {
   description: PropTypes.string,
   visible: PropTypes.bool,
   initialScale: PropTypes.number,
-  draggable: PropTypes.bool
+  draggable: PropTypes.bool,
+  aggId: PropTypes.string
 }
 
 InputPeriodicTable.defaultProps = {
-  initialScale: 1
+  initialScale: 1,
+  aggId: 'default'
 }
 
 export default InputPeriodicTable

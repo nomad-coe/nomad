@@ -101,59 +101,62 @@ export const labelArchive = 'Archive'
   *  - resources: A list of resources for which this filter is enabled.
   *  - aggSize: Aggregation size.
   */
-function registerFilter(name, group, quantity, subQuantities) {
-  function save(name, group, quantity) {
-    if (group) {
-      filterGroups[group]
-        ? filterGroups[group].add(name)
-        : filterGroups[group] = new Set([name])
-    }
-
-    const data = filterDataGlobal[name] || {}
-    const agg = quantity.agg
-    if (agg) {
-      let aggSet, aggGet
-      if (isString(agg)) {
-        aggSet = {[name]: {type: agg}}
-        aggGet = (aggs) => (aggs[name][agg].data)
-      } else {
-        aggSet = agg.set
-        aggGet = agg.get
-      }
-      data.aggSet = aggSet
-      data.aggGet = aggGet
-    }
-    if (quantity.value) {
-      data.valueSet = quantity.value.set
-    }
-    data.multiple = quantity.multiple === undefined ? true : quantity.multiple
-    data.exclusive = quantity.exclusive === undefined ? true : quantity.exclusive
-    data.stats = quantity.stats
-    data.options = quantity.options
-    data.unit = quantity.unit || searchQuantities[name]?.unit
-    data.dtype = quantity.dtype || getDatatype(name)
-    data.serializerExact = getSerializer(data.dtype, false)
-    data.serializerPretty = getSerializer(data.dtype, true)
-    data.dimension = getDimension(data.unit)
-    data.deserializer = getDeserializer(data.dtype, data.dimension)
-    data.label = quantity.label
-    data.section = !isNil(searchQuantities[name]?.nested)
-    data.description = quantity.description
-    data.scale = quantity.scale || 1
-    data.aggSize = quantity.aggSize
-    data.aggSizeOverride = quantity.aggSizeOverride
-    if (data.queryMode && !data.multiple) {
-      throw Error('Only filters that accept multiple values may have a query mode.')
-    }
-    data.queryMode = quantity.queryMode || 'any'
-    data.guiOnly = quantity.guiOnly
-    if (quantity.default && !data.guiOnly) {
-      throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
-    }
-    data.default = quantity.default
-    data.resources = new Set(quantity.resources || ['entries', 'materials'])
-    filterDataGlobal[name] = data
+function save(name, group, quantity) {
+  if (group) {
+    filterGroups[group]
+      ? filterGroups[group].add(name)
+      : filterGroups[group] = new Set([name])
   }
+
+  const data = filterDataGlobal[name] || {}
+  const agg = quantity.agg
+  if (agg) {
+    let aggSet, aggGet
+    if (isString(agg)) {
+      aggSet = {[name]: {type: agg}}
+      // Notice how here we have to introduce another inner function in order to
+      // get the value of "name" at the time this function was called.
+      aggGet = ((name, agg) => (aggs) => aggs[name][agg].data)(name, agg)
+    } else {
+      aggSet = agg.set
+      aggGet = agg.get
+    }
+    data.aggSet = aggSet
+    data.aggGet = aggGet
+  }
+  if (quantity.value) {
+    data.valueSet = quantity.value.set
+  }
+  data.multiple = quantity.multiple === undefined ? true : quantity.multiple
+  data.exclusive = quantity.exclusive === undefined ? true : quantity.exclusive
+  data.stats = quantity.stats
+  data.options = quantity.options
+  data.unit = quantity.unit || searchQuantities[name]?.unit
+  data.dtype = quantity.dtype || getDatatype(name)
+  data.serializerExact = getSerializer(data.dtype, false)
+  data.serializerPretty = getSerializer(data.dtype, true)
+  data.dimension = getDimension(data.unit)
+  data.deserializer = getDeserializer(data.dtype, data.dimension)
+  data.label = quantity.label
+  data.section = !isNil(searchQuantities[name]?.nested)
+  data.description = quantity.description
+  data.scale = quantity.scale || 1
+  data.aggSize = quantity.aggSize
+  data.aggSizeOverride = quantity.aggSizeOverride
+  if (data.queryMode && !data.multiple) {
+    throw Error('Only filters that accept multiple values may have a query mode.')
+  }
+  data.queryMode = quantity.queryMode || 'any'
+  data.guiOnly = quantity.guiOnly
+  if (quantity.default && !data.guiOnly) {
+    throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
+  }
+  data.default = quantity.default
+  data.resources = new Set(quantity.resources || ['entries', 'materials'])
+  filterDataGlobal[name] = data
+}
+
+function registerFilter(name, group, quantity, subQuantities) {
   save(name, group, quantity)
 
   // Register section subquantities
@@ -165,7 +168,7 @@ function registerFilter(name, group, quantity, subQuantities) {
   }
 }
 
-// Configuration for the docked statistics
+// Presets for the docked statistics
 const listStatConfig = {
   component: InputList,
   layout: {
@@ -220,12 +223,13 @@ registerFilter('results.method.simulation.program_version', labelSimulation, ter
 registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
 registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: 1 / 2, label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: 1 / 2, label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
 registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
 registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
-registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name'})
+registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggSize: 10})
 registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', labelIDs, noAggQuantity)
 registerFilter('upload_id', labelIDs, noAggQuantity)

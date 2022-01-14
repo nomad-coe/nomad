@@ -104,6 +104,7 @@ export const InputTextQuantity = React.memo(({
   // Clears the input and suggestions
   const clearInputValue = useCallback(() => {
     handleChange('')
+    setSuggestionInput('')
     setOpen(false)
   }, [handleChange])
 
@@ -135,7 +136,7 @@ export const InputTextQuantity = React.memo(({
     // When escape is pressed, close the menu if it is visible and showing some
     // items. Otherwise clear the current text input.
     if (event.key === 'Escape') {
-      if (open && suggestions.length > 0) {
+      if (open && suggestions?.length > 0) {
         setOpen(false)
       } else {
         clearInputValue()

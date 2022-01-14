@@ -84,6 +84,7 @@ const InputList = React.memo(({
   visible,
   initialScale,
   draggable,
+  aggId,
   className,
   classes,
   'data-testid': testID
@@ -96,7 +97,7 @@ const InputList = React.memo(({
   const locked = useFilterLocked(quantity)
   const { height, ref } = useResizeDetector()
   const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
-  const agg = useAgg(quantity, !isNil(height) && visible, aggSize, 'statistics')
+  const agg = useAgg(quantity, !isNil(height) && visible, aggSize, aggId)
   const total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
 
   // Determine the description and units
@@ -176,11 +177,13 @@ InputList.propTypes = {
   draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
+  aggId: PropTypes.string,
   'data-testid': PropTypes.string
 }
 
 InputList.defaultProps = {
-  initialScale: 1
+  initialScale: 1,
+  aggId: 'default'
 }
 
 export default InputList

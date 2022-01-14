@@ -50,6 +50,13 @@ const FilterSubMenuDFT = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
+          quantity="results.method.simulation.dft.xc_functional_names"
+          visible={visible}
+          xs={12}
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
           quantity="results.method.simulation.dft.basis_set_type"
           visible={visible}
           xs={12}

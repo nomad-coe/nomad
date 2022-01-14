@@ -772,7 +772,10 @@ class DFT(MSection):
         default=[],
         shape=["*"],
         description="The list of libXC functional names that where used in this entry.",
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion="default")
+        ]
     )
 
 

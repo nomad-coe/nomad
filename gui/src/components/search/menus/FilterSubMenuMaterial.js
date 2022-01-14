@@ -20,13 +20,11 @@ import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
-import { useUnits } from '../../../units'
 
 const FilterSubMenuMaterial = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
 
@@ -36,7 +34,6 @@ const FilterSubMenuMaterial = React.memo(({
         <InputField
           quantity="results.material.structural_type"
           visible={visible}
-          xs={12}
           disableSearch
         />
       </InputGridItem>
@@ -56,7 +53,6 @@ const FilterSubMenuMaterial = React.memo(({
         <InputField
           quantity="results.material.material_name"
           visible={visible}
-          units={units}
         />
       </InputGridItem>
     </InputGrid>
