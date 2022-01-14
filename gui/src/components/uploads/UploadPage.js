@@ -320,6 +320,7 @@ function UploadPage() {
     setData(data => ({...data, upload: upload}))
   }, [setData])
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
 
   const isProcessing = upload?.process_running
 
@@ -365,7 +366,7 @@ function UploadPage() {
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
-      .then(fetchData)
+      .then(fetchData())
       .catch(errors.raiseError)
   }
 
@@ -373,6 +374,13 @@ function UploadPage() {
     api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
+  }
+
+  const handleLiftEmbargo = () => {
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
+      .then(fetchData())
+      .catch(errors.raiseError)
+    setOpenEmbargoConfirmDialog(false)
   }
 
   const handleReprocess = () => {
@@ -542,8 +550,25 @@ function UploadPage() {
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
-            {isPublished && <Typography>This upload has already been published.</Typography>}
+            {isPublished && <Typography>{upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${new Date(upload?.publish_time).toLocaleString()}.` : `This upload has already been published.`}</Typography>}
             {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
+            {isPublished && upload?.with_embargo && upload?.embargo_length > 0 && <Button onClick={() => setOpenEmbargoConfirmDialog(true)} variant='contained' color='primary' disabled={isProcessing}>
+              Lift Embargo
+            </Button>}
+            <Dialog
+              open={openEmbargoConfirmDialog}
+              aria-describedby="alert-dialog-description"
+            >
+              <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                  You are about lifting the embargo. The data will be accessible to all.
+                </DialogContentText>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenEmbargoConfirmDialog(false)} autoFocus>Cancel</Button>
+                <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
+              </DialogActions>
+            </Dialog>
           </StepContent>
         </Step>}
       </Stepper>
