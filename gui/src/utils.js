@@ -353,31 +353,6 @@ export function diffTotal(values) {
  *
  * @return {number} The number with new formatting
  */
-export function formatNumberOld(value, type = 'float64', decimals = 3, scientific = true) {
-  if (type?.startsWith('int')) {
-    decimals = 0
-  }
-  if (value === 0) {
-    return value
-  }
-  if (scientific) {
-    if (value > 1e3 || value < 1e-3) {
-      return Number(Number.parseFloat(value).toExponential(decimals))
-    }
-  }
-  return Number(value.toFixed(decimals))
-}
-
-/**
- * Formats the given number.
- *
- * @param {number} value Number to format
- * @param {decimals} decimals Number of decimals to use
- * @param {bool} scientific Whether to convert large or small values to scientific
- * form.
- *
- * @return {number} The number with new formatting
- */
 export function formatNumber(value, type = 'float64', decimals = 3, scientific = true, separators = false) {
   if (isNil(value)) {
     return value
@@ -403,6 +378,17 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     formatted = formatted.toLocaleString()
   }
   return formatted
+}
+
+/**
+ * Formats the given integer number.
+ *
+ * @param {number} value Integer to format
+ *
+ * @return {number} The number with new formatting
+ */
+export function formatInteger(value) {
+  return formatNumber(value, 'int', 0, false, true)
 }
 
 /**
@@ -662,4 +648,38 @@ export function getLineStyles(nLines, theme) {
     styles.push(line)
   }
   return styles
+}
+
+/**
+ * Returns the correct form (plural/singular) for the given word. The syntax is
+ * similar to the "pluralize"-library.
+ *
+ * @param {string} word The word to plurarize
+ * @param {count} number How many of the words exist
+ * @param {boolean} inclusive Whether to prefix with the number (e.g. 3 ducks)
+ * @param {boolean} format Whether to format the number.
+ * @param {string} prefix An optional prefix that is placed between the number
+ * and the word.
+ */
+export function pluralize(word, count, inclusive, format = true, prefix) {
+  // Dictionary of known words. If it becomes too bothersome to keep track of
+  // these words, the pluralize-library should be used instead.
+  const dictionary = {
+    'result': 'results',
+    'entry': 'entries',
+    'material': 'materials',
+    'dataset': 'datasets'
+  }
+  const plural = dictionary[word]
+  if (isNil(plural)) {
+    throw Error(`The word ${word} is not in the dictionary, please add it.`)
+  }
+  const form = count === 1
+    ? word
+    : plural
+
+  const number = inclusive
+    ? format ? formatNumber(count, 'int', 0, false, true) : count
+    : ''
+  return `${isNil(number) ? '' : `${number} `}${isNil(prefix) ? '' : `${prefix} `}${form}`
 }

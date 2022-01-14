@@ -41,7 +41,7 @@ import FilterSettings from './FilterSettings'
 import { Actions, ActionHeader, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
 import { filterGroups } from '../FilterRegistry'
-import { formatNumber } from '../../../utils'
+import { pluralize } from '../../../utils'
 import { isNil } from 'lodash'
 
 // The menu animations use a transition on the 'transform' property. Notice that
@@ -539,7 +539,7 @@ export const FilterSubMenus = React.memo(({
   children
 }) => {
   const { useResults } = useSearchContext()
-  const nResults = formatNumber(useResults()?.pagination?.total, 'int', 0, false, true)
+  const nResults = useResults()?.pagination?.total
   const styles = useFilterSubMenusStyles()
   const { open, onOpenChange, size, collapsed } = useContext(filterMenuContext)
   const [menuStyle, containerStyle] = {
@@ -554,7 +554,7 @@ export const FilterSubMenus = React.memo(({
   >
     <div className={clsx(styles.menu, menuStyle, collapsed && styles.collapsed)}>
       <FilterMenuTopHeader
-        title={isNil(nResults) ? 'loading...' : `${nResults} result${nResults > 1 ? 's' : ''}`}
+        title={isNil(nResults) ? 'loading...' : pluralize('result', nResults, true)}
         actions={<Action
           tooltip="Close submenu"
           onClick={() => { onOpenChange(false) }}

@@ -134,7 +134,7 @@ const SearchBar = React.memo(({
   const quantitySuggestions = useMemo(() => {
     const suggestions = []
     for (let q of filters) {
-      if (!filterData[q].nested) {
+      if (!filterData[q].section) {
         suggestions.push({
           value: filterAbbreviations[q] || q,
           category: 'quantity name'
@@ -143,6 +143,18 @@ const SearchBar = React.memo(({
     }
     return suggestions
   }, [filterData, filters])
+
+  // Used to check the validity of the given quantity name
+  const checkMetainfo = useCallback((name) => {
+    const fullName = filterFullnames[name] || name
+    if (!filters.has(fullName)) {
+      return [undefined, `Unknown quantity name`]
+    }
+    if (filterData[fullName].section) {
+      return [fullName, `Cannot target metainfo sections`]
+    }
+    return [fullName, undefined]
+  }, [filters, filterData])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -160,9 +172,10 @@ const SearchBar = React.memo(({
     const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
     if (equals) {
       const quantityName = equals[1]
-      quantityFullname = filterFullnames[quantityName] || quantityName
-      if (!filters.has(quantityFullname)) {
-        setError(`Unknown quantity name`)
+      const [fullName, error] = checkMetainfo(quantityName)
+      quantityFullname = fullName
+      if (error) {
+        setError(error)
         return
       }
       try {
@@ -181,23 +194,26 @@ const SearchBar = React.memo(({
         const a = ltegte[1]
         const op = ltegte[2]
         const b = ltegte[3]
-        const aFullname = filterFullnames[a]
-        const bFullname = filterFullnames[b]
-        const isAQuantity = filters.has(aFullname)
-        const isBQuantity = filters.has(bFullname)
-        if (!isAQuantity && !isBQuantity) {
-          setError(`Unknown quantity name`)
+        const [aFullname, aError] = checkMetainfo(a)
+        const [bFullname, bError] = checkMetainfo(b)
+        if (aError && bError) {
+          if (!aFullname && !bFullname) {
+            setError(`Unknown quantity name`)
+          } else {
+            setError(aError || bError)
+          }
           return
         }
-        quantityFullname = isAQuantity ? aFullname : bFullname
+        quantityFullname = aError ? bFullname : aFullname
+        const value = aError ? a : b
         const dtype = getDatatype(quantityFullname)
         if (dtype !== DType.Number && dtype !== DType.Timestamp) {
-          setError(`Cannot perform range query for a non-numeric quantity.`)
+          setError(`Cannot perform range query for a non-numeric quantity`)
           return
         }
         let quantityValue
         try {
-          quantityValue = toGUIFilterSingle(quantityFullname, isAQuantity ? b : a, units)
+          quantityValue = toGUIFilterSingle(quantityFullname, value, units)
         } catch (error) {
           console.log(error)
           setError(`Invalid value for this metainfo. Please check your syntax.`)
@@ -218,18 +234,17 @@ const SearchBar = React.memo(({
         const b = ltegteSandwich[3]
         const op2 = ltegteSandwich[4]
         const c = ltegteSandwich[5]
-        quantityFullname = filterFullnames[b]
+        const [fullName, error] = checkMetainfo(b)
+        if (error) {
+          setError(error)
+          return
+        }
+        quantityFullname = fullName
         const dtype = getDatatype(quantityFullname)
         if (dtype !== DType.Number && dtype !== DType.Timestamp) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
-        const isBQuantity = filters.has(quantityFullname)
-        if (!isBQuantity) {
-          setError(`Unknown quantity name`)
-          return
-        }
-
         queryValue = {}
         try {
           queryValue[opMapReverse[op1]] = toGUIFilterSingle(quantityFullname, a, units)
@@ -259,7 +274,7 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, filtersLocked, filters, units, setFilter, filterData])
+  }, [inputValue, filtersLocked, checkMetainfo, units, setFilter, filterData])
 
   // Handle clear button
   const handleClose = useCallback(() => {

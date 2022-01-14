@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { Link } from '@material-ui/core'
 import EntryDownloadButton from '../../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions, Published } from '../../entry/EntryDetails'
-import { authorList, formatNumber, formatTimestamp } from '../../../utils'
+import { authorList, pluralize, formatInteger, formatTimestamp } from '../../../utils'
 import {
   addColumnDefaults,
   Datatable, DatatableLoadMorePagination, DatatableTable,
@@ -113,7 +113,7 @@ const SearchResultsEntries = React.memo((props) => {
     columns={columns} shownColumns={defaultSelectedColumns} {...props}
     selected={selected} onSelectedChanged={setSelected}
   >
-    <DatatableToolbar title={`${formatNumber(data.length, 'int', 0, false, true)}/${formatNumber(pagination.total, 'int', 0, false, true)} search results`}>
+    <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize('result', pagination.total, true, true, 'search')}`}>
       <DatatableToolbarActions selection>
         <EntryDownloadButton tooltip="Download files" query={query} />
       </DatatableToolbarActions>

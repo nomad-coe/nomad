@@ -68,6 +68,7 @@ class ErrorSnacksUnstyled extends React.Component {
         errorStr = 'The given OPTiMaDe query can not be parsed.'
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
+        console.log(error)
       }
     } else if (typeof error === 'string' || error instanceof String) {
       errorStr = `${error} Please try to reload and let us know, if this error keeps happening.`

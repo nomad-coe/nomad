@@ -35,6 +35,7 @@ const FilterSubMenuAuthor = React.memo(({
         <InputField
           quantity="authors.name"
           visible={visible}
+          disableOptions
         />
       </InputGridItem>
       <InputGridItem xs={12}>
