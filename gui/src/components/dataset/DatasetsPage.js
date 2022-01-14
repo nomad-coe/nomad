@@ -17,7 +17,7 @@
  */
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Paper, IconButton, Tooltip } from '@material-ui/core'
+import {Paper, IconButton, Tooltip, DialogContent, Button, Dialog} from '@material-ui/core'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
@@ -29,6 +29,8 @@ import {
   addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 import Quantity from '../Quantity'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
 
 export const help = `
 NOMAD allows you to create *datasets* from your data. A dataset is like a tag that you
@@ -64,6 +66,7 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {refresh} = useContext(PageContext)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
   const handleDelete = useCallback(() => {
     api.delete(`/datasets/${data.dataset_id}`)
@@ -75,6 +78,10 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
       .then(refresh).catch(raiseError)
   }, [api, raiseError, data.dataset_id, refresh])
 
+  const onConfirm = () => {
+    setOpenConfirmDialog(true)
+  }
+
   return <React.Fragment>
     <Tooltip title="Assign a DOI">
       <span>
@@ -85,7 +92,7 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
     </Tooltip>
     <Tooltip title={(data.doi ? 'The dataset cannot be deleted. A DOI has been assigned to the dataset.' : 'Delete the dataset')}>
       <span>
-        <IconButton onClick={handleDelete} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
+        <IconButton onClick={onConfirm} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
           <DeleteIcon />
         </IconButton>
       </span>
@@ -95,6 +102,20 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
         <DetailsIcon />
       </DatasetButton>
     </Tooltip>
+    <Dialog
+      open={openConfirmDialog}
+      aria-describedby="alert-dialog-description"
+    >
+      <DialogContent>
+        <DialogContentText id="alert-dialog-description">
+          Are you sure you want to permanently delete the dataset?
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handleDelete}>Delete</Button>
+      </DialogActions>
+    </Dialog>
   </React.Fragment>
 })
 DatasetActions.propTypes = {
