@@ -379,7 +379,6 @@ function UploadPage() {
   }
 
   const handleDelete = () => {
-    console.log(`--------------------------Delete Button Clicked-----------------------------------------`)
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
       .then(results => setUpload(results.data))
