@@ -37,6 +37,7 @@ import { useErrors } from '../errors'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
+import SectionEditor from './SectionEditor'
 
 export const configState = atom({
   key: 'config',
@@ -412,66 +413,77 @@ function Section({section, def, parent, units}) {
     sub_sections.reverse()
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
+
+  let contents
+  if (def.name === 'Sample') {
+    contents = <Compartment title="edit">
+      <SectionEditor sectionDef={def} section={section} />
+    </Compartment>
+  } else {
+    contents = <React.Fragment>
+      <Compartment title="sub sections">
+        {sub_sections
+          .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
+          .filter(filter)
+          .map(subSectionDef => {
+            const key = subSectionDef.name
+            const disabled = section[key] === undefined
+            if (!disabled && subSectionDef.repeats && section[key].length > 1) {
+              return <SubSectionList
+                key={subSectionDef.name}
+                subSectionDef={subSectionDef}
+                disabled={disabled}
+              />
+            } else {
+              return <Item key={key} itemKey={key} disabled={disabled}>
+                <Typography component="span">
+                  <Box fontWeight="bold" component="span">
+                    {formatSubSectionName(subSectionDef.name)}
+                  </Box>
+                </Typography>
+              </Item>
+            }
+          })
+        }
+      </Compartment>
+      <Compartment title="quantities">
+        {quantities
+          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
+          .filter(filter)
+          .map(quantityDef => {
+            const key = quantityDef.name
+            const disabled = section[key] === undefined
+            if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+              return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+            }
+            return (
+              <Item key={key} itemKey={key} disabled={disabled}>
+                <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+                  <Typography component="span">
+                    <Box fontWeight="bold" component="span">
+                      {quantityDef.name}
+                    </Box>
+                  </Typography>{!disabled &&
+                    <span>&nbsp;=&nbsp;
+                      <QuantityItemPreview
+                        value={section[quantityDef.name]}
+                        def={quantityDef}
+                        units={units}
+                      />
+                    </span>
+                  }
+                </Box>
+              </Item>
+            )
+          })
+        }
+      </Compartment>
+    </React.Fragment>
+  }
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
     <Overview section={section} def={def} units={units}/>
-    <Compartment title="sub sections">
-      {sub_sections
-        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
-        .filter(filter)
-        .map(subSectionDef => {
-          const key = subSectionDef.name
-          const disabled = section[key] === undefined
-          if (!disabled && subSectionDef.repeats && section[key].length > 1) {
-            return <SubSectionList
-              key={subSectionDef.name}
-              subSectionDef={subSectionDef}
-              disabled={disabled}
-            />
-          } else {
-            return <Item key={key} itemKey={key} disabled={disabled}>
-              <Typography component="span">
-                <Box fontWeight="bold" component="span">
-                  {formatSubSectionName(subSectionDef.name)}
-                </Box>
-              </Typography>
-            </Item>
-          }
-        })
-      }
-    </Compartment>
-    <Compartment title="quantities">
-      {quantities
-        .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
-        .filter(filter)
-        .map(quantityDef => {
-          const key = quantityDef.name
-          const disabled = section[key] === undefined
-          if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
-            return <ReferenceValuesList key={key} quantityDef={quantityDef} />
-          }
-          return (
-            <Item key={key} itemKey={key} disabled={disabled}>
-              <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-                <Typography component="span">
-                  <Box fontWeight="bold" component="span">
-                    {quantityDef.name}
-                  </Box>
-                </Typography>{!disabled &&
-                  <span>&nbsp;=&nbsp;
-                    <QuantityItemPreview
-                      value={section[quantityDef.name]}
-                      def={quantityDef}
-                      units={units}
-                    />
-                  </span>
-                }
-              </Box>
-            </Item>
-          )
-        })
-      }
-    </Compartment>
+    {contents}
     <Meta def={def} />
   </Content>
 }

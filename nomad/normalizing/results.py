@@ -100,7 +100,10 @@ class ResultsNormalizer(Normalizer):
             self.normalize_run(logger=self.logger)
 
         for measurement in self.entry_archive.measurement:
-            self.normalize_measurement(measurement, logger=self.logger)
+            self.normalize_measurement(measurement)
+
+        for sample in self.entry_archive.sample:
+            self.normalize_sample(sample)
 
         # Add the list of available_properties: it is a selected subset of the
         # stored properties.
@@ -124,24 +127,16 @@ class ResultsNormalizer(Normalizer):
                 available_properties.append(shortcut)
         results.properties.available_properties = sorted(available_properties)
 
-    def normalize_measurement(self, measurement, logger) -> None:
+    def normalize_sample(self, sample) -> None:
         results = self.entry_archive.results
 
-        # Method
-        if results.method is None:
-            results.method = Method(
-                method_name=measurement.method_abbreviation)
-
-        # Material
         if results.material is None:
             results.material = Material()
         material = results.material
-        if len(measurement.sample) > 0:
-            sample = measurement.sample[0]
-            if len(sample.elements) > 0:
-                material.elements = sample.elements
-            if sample.chemical_formula:
-                material.chemical_formula_descriptive = sample.chemical_formula
+        if sample.elements and len(sample.elements) > 0:
+            material.elements = sample.elements
+        if sample.chemical_formula:
+            material.chemical_formula_descriptive = sample.chemical_formula
 
         try:
             material.elements = material.elements if material.elements else []
@@ -150,17 +145,34 @@ class ResultsNormalizer(Normalizer):
                 try:
                     atoms = ase.Atoms(material.chemical_formula_descriptive)
                 except Exception as e:
-                    logger.warn('could not normalize formula, using elements next', exc_info=e)
+                    self.logger.warn('could not normalize formula, using elements next', exc_info=e)
 
             if atoms is None:
                 atoms = ase.Atoms(''.join(material.elements))
+
+            if material.elements is None or len(material.elements) == 0:
+                material.elements = atoms.get_chemical_symbols()
 
             formula = atoms.get_chemical_formula()
             results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
             results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
             results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
         except Exception as e:
-            logger.warn('could not normalize material', exc_info=e)
+            self.logger.warn('could not normalize material', exc_info=e)
+
+    def normalize_measurement(self, measurement) -> None:
+        results = self.entry_archive.results
+
+        # Method
+        if results.method is None:
+            results.method = Method(
+                method_name=measurement.method_abbreviation)
+
+        # Sample
+        if results.material is None:
+            results.material = Material(elements=[])
+        if len(measurement.sample) > 0:
+            self.normalize_sample(measurement.sample[0])
 
     def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered

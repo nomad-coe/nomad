@@ -39,7 +39,8 @@ const common = {
   authors: [{name: 'Lauri Himanen'}],
   datasets: [{dataset_id: 'Mock dataset', dataset_name: 'Mock dataset'}],
   mainfile: 'vasp.xml',
-  formula: 'Si2'
+  formula: 'Si2',
+  quantities: []
 }
 
 const vdwMethod = 'G06'
