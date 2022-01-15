@@ -756,6 +756,7 @@ export const SearchContext = React.memo(({
     // matter how long the actual call takes.
     function resolve(prop) {
       const {response, timestamp, queryChanged, paginationChanged, search, resource, callback} = prop
+      const data = response.response
       let next = apiQueue.current[0]
       if (next !== timestamp) {
         apiMap.current[timestamp] = prop
@@ -763,8 +764,8 @@ export const SearchContext = React.memo(({
       }
       // Update the aggregations if new aggregation data is received. The old
       // aggregation data is preserved and new information is updated.
-      if (!isEmpty(response.aggregations)) {
-        const newAggs = toGUIAgg(response.aggregations, aggsToUpdate, resource)
+      if (!isEmpty(data.aggregations)) {
+        const newAggs = toGUIAgg(data.aggregations, aggsToUpdate, resource)
         callback && callback(newAggs)
         updateAggsResponse(newAggs)
       } else {
@@ -773,17 +774,18 @@ export const SearchContext = React.memo(({
       // Update the query results if new data is received.
       if (queryChanged || paginationChanged) {
         const isExtend = search.pagination.page_after_value
-        paginationResponse.current = response.pagination
+        paginationResponse.current = data.pagination
         setResults(old => {
           const newResults = old ? {...old} : {}
-          isExtend ? newResults.data = [...newResults.data, ...response.data] : newResults.data = response.data
-          newResults.pagination = combinePagination(search.pagination, response.pagination)
+          isExtend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
+          newResults.pagination = combinePagination(search.pagination, data.pagination)
           newResults.setPagination = setPagination
           return newResults
         })
       }
       // Remove this query from queue and see if next can be resolved.
       apiQueue.current.shift()
+      setApiData(response)
       const nextTimestamp = apiQueue.current[0]
       const nextResolve = apiMap.current[nextTimestamp]
       if (nextResolve) {
@@ -793,9 +795,7 @@ export const SearchContext = React.memo(({
     const timestamp = Date.now()
     apiQueue.current.push(timestamp)
     api.query(resource, search, {loadingIndicator: true, returnRequest: true})
-      .then((apiData) => {
-        const response = apiData.response
-        setApiData(apiData)
+      .then((response) => {
         return resolve({
           response,
           timestamp,
@@ -815,8 +815,9 @@ export const SearchContext = React.memo(({
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
 
-  // Intermediate function that ensures that search context state is kept up to
-  // date even if no API call is made.
+  // Intermediate function that ensures that:
+  // - Calls are debounced when necessary
+  // - API calls are made only if necessary
   const apiCallInterMediate = useCallback((query, aggs, pagination, refresh = false, callback = undefined) => {
     if (disableUpdate.current) {
       disableUpdate.current = false
@@ -845,8 +846,6 @@ export const SearchContext = React.memo(({
     } else {
       callback && callback(undefined, undefined)
     }
-
-    // Post
   }, [apiCall, apiCallDebounced])
 
   // When query, aggregation or pagination changes, update the search context
@@ -880,8 +879,9 @@ export const SearchContext = React.memo(({
      * @param {number} size The new aggregation size
      * @param {string} id Identifier for this call
      * @param {boolean} update Whether to mark the filter as being updated
-     * @param {function} callback: Function that returns the new aggregation
-     * response. Returns the special value 'null' if no update was necessary.
+     * @param {function} callback: Function that returns an array containing the
+     * new aggregation response and an error if one was encountered. Returns the
+     * special value 'undefined' for the response if no update was necessary.
      */
     const aggCall = useCallback((size, id, update, callback) => {
       update && updatedFilters.current.add(name)
