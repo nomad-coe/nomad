@@ -30,6 +30,9 @@ import SpectroscopyCard from './properties/SpectroscopyCard'
 import { MethodMetadata } from './EntryDetails'
 import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
+import { useEntryContext } from './EntryContext'
+import SectionCard from './properties/SectionCard'
+import { defsByName } from '../archive/metainfo'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -74,14 +77,14 @@ const useStyles = makeStyles(theme => ({
 /**
  * Shows an informative overview about the selected entry.
  */
-const OverviewView = React.memo(({entryId, ...moreProps}) => {
+const OverviewView = React.memo((props) => {
   const { raiseError } = useErrors()
-  const [indexApiData, setIndexApiData] = useState(null)
-  const [exists, setExists] = useState(true)
   const [archiveApiData, setArchiveApiData] = useState(null)
-  const {api} = useApi()
-  const index = useMemo(() => indexApiData?.response?.data, [indexApiData])
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
+  const {api} = useApi()
+  const {metadata, metadataApiData, exists, entryId} = useEntryContext()
+  const index = metadata
+
   const properties = useMemo(() => {
     return new Set(index?.results
       ? index.results.properties.available_properties
@@ -90,44 +93,41 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
   }, [index])
 
   useEffect(() => {
-    async function fetchData() {
-      const indexApiData = await api.get(`/entries/${entryId}`, null, {returnRequest: true})
-      setIndexApiData(indexApiData)
-      const archiveApiData = await api.post(
-        `/entries/${entryId}/archive/query`,
-        {
-          required: {
-            'resolve-inplace': false,
-            results: {
-              material: '*',
-              method: '*',
-              properties: {
-                structures: '*',
-                electronic: 'include-resolved',
-                mechanical: 'include-resolved',
-                spectroscopy: 'include-resolved',
-                vibrational: 'include-resolved',
-                // For geometry optimizations we require only the energies.
-                // Trajectory, optimized structure, etc. are unnecessary.
-                geometry_optimization: {
-                  energies: 'include-resolved'
-                }
+    api.post(
+      `/entries/${entryId}/archive/query`,
+      {
+        required: {
+          'resolve-inplace': false,
+          sample: '*',
+          experiment: '*',
+          results: {
+            material: '*',
+            method: '*',
+            properties: {
+              structures: '*',
+              electronic: 'include-resolved',
+              mechanical: 'include-resolved',
+              spectroscopy: 'include-resolved',
+              vibrational: 'include-resolved',
+              // For geometry optimizations we require only the energies.
+              // Trajectory, optimized structure, etc. are unnecessary.
+              geometry_optimization: {
+                energies: 'include-resolved'
               }
             }
           }
-        },
-        {returnRequest: true, jsonResponse: true}
-      )
-      setArchiveApiData(archiveApiData)
-    }
-    fetchData().catch(error => {
-      if (error.name === 'DoesNotExist') {
-        setExists(false)
-      } else {
-        raiseError(error)
-      }
-    })
-  }, [api, raiseError, entryId, setIndexApiData, setExists, setArchiveApiData])
+        }
+      },
+      {returnRequest: true, jsonResponse: true}
+    ).then(setArchiveApiData).catch(raiseError)
+  }, [api, raiseError, entryId, setArchiveApiData])
+
+  const sections = useMemo(() => {
+    return [
+      {quantity: 'sample', sectionDef: defsByName.Sample[0], getSection: archive => archive.sample[0]},
+      {quantity: 'experiment', sectionDef: defsByName.Experiment[0], getSection: archive => archive.experiment[0]}
+    ]
+  }, [])
 
   const classes = useStyles()
 
@@ -173,8 +173,8 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
           </Quantity>
         </MetadataSection>
         <SourceApiDialogButton label="API" maxWidth="lg" fullWidth buttonProps={{variant: 'contained', size: 'small'}}>
-          {indexApiData && <SourceApiCall
-            {...indexApiData}
+          {metadataApiData && <SourceApiCall
+            {...metadataApiData}
             description="The basic metadata shown on this page is retrieved from the *entry metadata* API."
           />}
           <SourceDialogDivider />
@@ -186,6 +186,9 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>
+        {metadata && sections
+          .filter(section => metadata.quantities.indexOf(section.quantity) !== -1)
+          .map((section, index) => <SectionCard key={index} {...section} />)}
         <MaterialCard index={index} archive={archive} properties={properties}/>
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
@@ -198,7 +201,6 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
 })
 
 OverviewView.propTypes = {
-  entryId: PropTypes.string.isRequired
 }
 
 OverviewView.whyDidYouRender = true

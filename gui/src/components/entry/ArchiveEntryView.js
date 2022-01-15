@@ -15,13 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react'
-import PropTypes from 'prop-types'
+import React, { useEffect } from 'react'
 import { Card, CardContent, Typography, makeStyles } from '@material-ui/core'
 import ArchiveBrowser from '../archive/ArchiveBrowser'
 import Page from '../Page'
-import { useErrors } from '../errors'
-import { useApi } from '../api'
+import { useEntryContext } from './EntryContext'
 import { ApiDataContext } from '../buttons/SourceDialogButton'
 
 export const help = `
@@ -51,38 +49,13 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveEntryView(props) {
   const classes = useStyles()
-  const {entryId} = props
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-
-  const [apiData, setApiData] = useState()
-  const [doesNotExist, setDoesNotExist] = useState(false)
+  const {requireArchive, archive, archiveApiData, exists} = useEntryContext()
 
   useEffect(() => {
-    api.get(`/entries/${entryId}/archive`, null, {returnRequest: true, jsonResponse: true})
-      .then(apiData => {
-        setApiData(apiData)
-      })
-      .catch(error => {
-        if (error.name === 'DoesNotExist') {
-          setDoesNotExist(true)
-        } else {
-          raiseError(error)
-        }
-      })
-  }, [setApiData, setDoesNotExist, api, raiseError, entryId])
+    requireArchive()
+  }, [requireArchive])
 
-  const data = useMemo(() => {
-    const archive = apiData?.response?.data?.archive
-    if (!archive) {
-      return null
-    }
-    const cleanedArchive = {...archive}
-    cleanedArchive.processing_logs = undefined
-    return cleanedArchive
-  }, [apiData])
-
-  if (doesNotExist) {
+  if (!exists) {
     return (
       <Page>
         <Typography className={classes.error}>
@@ -97,18 +70,18 @@ export default function ArchiveEntryView(props) {
   return (
     <Page width={'100%'}>
       {
-        data && typeof data !== 'string'
+        archive && typeof archive !== 'string'
           ? <div className={classes.archiveBrowser}>
-            <ApiDataContext.Provider value={apiData}>
-              <ArchiveBrowser data={data} />
+            <ApiDataContext.Provider value={archiveApiData}>
+              <ArchiveBrowser data={archive} />
             </ApiDataContext.Provider>
           </div> : <div>{
-            data
+            archive
               ? <div>
                 <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
                 <Card>
                   <CardContent>
-                    <pre>{data || ''}</pre>
+                    <pre>{archive || ''}</pre>
                   </CardContent>
                 </Card>
               </div>
@@ -118,6 +91,4 @@ export default function ArchiveEntryView(props) {
     </Page>
   )
 }
-ArchiveEntryView.propTypes = {
-  entryId: PropTypes.string.isRequired
-}
+ArchiveEntryView.propTypes = {}

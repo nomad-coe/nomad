@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 import React, { useContext, useState, useEffect } from 'react'
-import PropTypes from 'prop-types'
 import { Typography, makeStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import { errorContext } from '../errors'
 import { useApi } from '../api'
 import RawFiles from './RawFiles'
 import Page from '../Page'
+import { useEntryContext } from './EntryContext'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -29,8 +29,9 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function RawFileView({entryId}) {
+export default function RawFileView(props) {
   const classes = useStyles()
+  const {entryId} = useEntryContext()
   const {raiseError} = useContext(errorContext)
   const [state, setState] = useState({entryData: null, doesNotExist: false})
   const {api} = useApi()
@@ -74,6 +75,4 @@ export default function RawFileView({entryId}) {
   )
 }
 
-RawFileView.propTypes = {
-  entryId: PropTypes.string.isRequired
-}
+RawFileView.propTypes = {}

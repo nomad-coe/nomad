@@ -46,6 +46,7 @@ import UploadDownloadButton from '../entry/UploadDownloadButton'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import CreateEntry from './CreateEntry'
 
 export const uploadPageContext = React.createContext()
 
@@ -526,7 +527,15 @@ function UploadPage() {
                   disabled={isProcessing} />
               </React.Fragment>
             )}
-            <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
+            <div className={classes.stepContent}>
+              <FilesBrower uploadId={uploadId} disabled={isProcessing || deleteClicked} />
+            </div>
+            <React.Fragment>
+              <Typography className={classes.stepContent}>
+                Or, create and edit entries manually.
+              </Typography>
+              <CreateEntry />
+            </React.Fragment>
           </StepContent>
         </Step>
         <Step expanded={!isEmpty}>

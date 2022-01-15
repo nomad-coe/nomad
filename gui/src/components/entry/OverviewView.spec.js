@@ -29,6 +29,7 @@ import {
   testSymmetry,
   testLatticeParameters
 } from './properties/MaterialCard.spec'
+import EntryContext from './EntryContext'
 
 jest.mock('../api')
 const index = getIndex()
@@ -37,11 +38,11 @@ beforeAll(() => {
   // API mock init
   useApi.mockReturnValue({
     api: {
-      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
+      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}, 1000), // results
       get: () => wait({response: { // entry metadata
         entry_id: index.entry_id,
         data: index
-      }})
+      }}, 1)
     }
   })
 })
@@ -52,7 +53,11 @@ afterAll(() => {
 })
 
 test('correctly renders metadata and all properties', async () => {
-  render(<OverviewView entryId={index.entry_id} uploadId="dont-care" />)
+  render(
+    <EntryContext entryId={index.entry_id}>
+      <OverviewView />
+    </EntryContext>
+  )
 
   // Wait to load the entry metadata, i.e. wait for an arbitrary placeholder to appear
   await waitFor(() => {
