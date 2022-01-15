@@ -18,14 +18,14 @@
 import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
-  Box, Divider, TextField, MenuItem, Select, StepLabel, Typography
+  Box, Divider, TextField, MenuItem, Select, Typography, FormControl, InputLabel
 } from '@material-ui/core'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import {uploadPageContext} from '../uploads/UploadPage'
-import {Datatable, DatatableTable, DatatableToolbar} from '../datatable/Datatable'
+import {uploadPageContext} from './UploadPage'
+import {Datatable, DatatableTable} from '../datatable/Datatable'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
@@ -64,9 +64,8 @@ function MembersTable() {
     }
   ]
 
-  return <Datatable columns={columns} data={members} >
-    <DatatableToolbar title={`Members (${members.length})`} hideColumns/>
-    <DatatableTable actions={DeleteAction}/>
+  return <Datatable columns={columns} data={members}>
+    <DatatableTable actions={DeleteAction} />
   </Datatable>
 }
 
@@ -162,16 +161,25 @@ function AddMember({...props}) {
         The selected user is already in the members list
       </Typography>
     </Box>
-    <StepLabel>{"Select the member's role"}</StepLabel>
-    <Select defaultValue={'Co-author'} style={{width: '100%'}} onChange={(event) => setRole(event.target.value)}>
-      <MenuItem value={'Co-author'}>Co-author</MenuItem>
-      <MenuItem value={'Reviewer'}>Reviewer</MenuItem>
-    </Select>
-    <DialogActions>
-      <Button onClick={handleAdd} color="primary" disabled={isDuplicated || !isValid}>
+    <FormControl variant="filled" fullWidth>
+      <InputLabel htmlFor="role">Select the member&apos;s role</InputLabel>
+      <Select
+        native
+        onChange={(event) => setRole(event.target.value)}
+        inputProps={{
+          name: 'role',
+          id: 'role'
+        }}
+      >
+        <option value={'Co-author'}>Co-author</option>
+        <option value={'Reviewer'}>Reviewer</option>
+      </Select>
+    </FormControl>
+    <Box display="flex" justifyContent="end" paddingY={1}>
+      <Button onClick={handleAdd} color="primary" variant="contained" disabled={isDuplicated || !isValid}>
         Add
       </Button>
-    </DialogActions>
+    </Box>
   </React.Fragment>
 }
 AddMember.propTypes = {
@@ -296,7 +304,6 @@ function EditMembersDialog({...props}) {
           </DialogContentText>
           <Divider/>
           <AddMember api={api} raiseError={raiseError} {...props}/>
-          <Divider/>
           <MembersTable />
         </DialogContent>
         <DialogActions>

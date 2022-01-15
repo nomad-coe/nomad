@@ -24,14 +24,13 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import EditIcon from '@material-ui/icons/Edit'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import {uploadPageContext} from '../uploads/UploadPage'
+import {uploadPageContext} from './UploadPage'
 import PropTypes from 'prop-types'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import {useLocation} from 'react-router-dom'
 import {getUrl} from '../nav/Routes'
-import AddIcon from '@material-ui/icons/Add'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
 import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
@@ -197,16 +196,21 @@ function EditReferences() {
           References
         </Typography>
       </Box>
-      <Box display="flex">
-        <TextField style={{width: '100%'}} label='Enter the URL' defaultValue='' onChange={handleTextFieldChange}
-          error={validation !== ''} helperText={validation !== '' && validation} variant='filled' size='small'/>
-        <IconButton size='small' onClick={handleAdd} disabled={validation !== '' || newReference === ''}>
-          <AddIcon fontSize='inherit' />
-        </IconButton>
+      <TextField
+        style={{width: '100%'}} label='Enter the URL' defaultValue='' onChange={handleTextFieldChange}
+        error={validation !== ''} helperText={validation !== '' && validation} variant='filled' size='small'
+      />
+      <Box display="flex" justifyContent="right" marginY={1}>
+        <Button variant="contained" color="primary" onClick={handleAdd} disabled={validation !== '' || newReference === ''}>
+          add
+        </Button>
       </Box>
-      {columns && newReferences.length > 0 && <Datatable columns={columns} data={newReferences} >
-        <DatatableTable actions={ReferencesActions}/>
-      </Datatable>}
+      {columns && newReferences.length > 0 && <React.Fragment>
+        <Divider />
+        <Datatable columns={columns} data={newReferences}>
+          <DatatableTable actions={ReferencesActions} noHeader />
+        </Datatable>
+      </React.Fragment>}
     </Box>
   </referencesContext.Provider>
 }
@@ -389,6 +393,17 @@ function EditDatasets() {
     checkChanges: checkChanges
   }), [newDatasets, setNewDatasets, setDatasets, checkChanges])
 
+  let addDatasetButton = <Button color="primary" variant="contained" disabled>add</Button>
+  if (validation === '' && newDataset.dataset_name !== '') {
+    addDatasetButton = <Button color="primary" variant="contained" onClick={handleCreate}>
+      add entry to new dataset
+    </Button>
+  } else if (!isDuplicated && addDataset !== '') {
+    addDatasetButton = <Button variant="contained" color="primary" onClick={handleAdd}>
+      add entry to existing dataset
+    </Button>
+  }
+
   return <datasetsContext.Provider value={contextValue}>
     <Box display={'block'}>
       <Box marginBottom={1} marginTop={3}>
@@ -396,34 +411,34 @@ function EditDatasets() {
           Datasets
         </Typography>
       </Box>
-      <Box display="flex" marginBottom={1}>
-        <TextField style={{width: '100%'}} label='Create a new dataset' placeholder='Dataset name' defaultValue='' onChange={handleTextFieldChange}
-          error={validation !== ''} helperText={validation !== '' && validation} variant='filled' size='small'/>
-        <IconButton size="small" onClick={handleCreate} disabled={validation !== '' || newDataset.dataset_name === ''}>
-          <AddIcon fontSize="inherit" />
-        </IconButton>
-      </Box>
-      <Box display="flex">
-        <AutoComplete
-          style={{width: '100%'}}
-          options={suggestions}
-          getOptionLabel={option => option.dataset_name}
-          onInputChange={handleInputChange}
-          onChange={handleAutoCompleteChange}
-          renderInput={params => (
-            <TextField
-              {...params}
-              variant='filled' label='Search the datasets' placeholder='Dataset name' argin='normal' fullWidth size='small'
-              error={isDuplicated} helperText={isDuplicated && 'The data is already in the selected dataset'}
-            />
-          )}
+      <Box marginBottom={1}>
+        <TextField
+          style={{width: '100%'}} label='Create a new dataset' placeholder='Dataset name'
+          defaultValue='' onChange={handleTextFieldChange}
+          error={validation !== ''} helperText={validation !== '' && validation}
+          variant='filled' size='small'
         />
-        <IconButton size="small" onClick={handleAdd} disabled={isDuplicated || addDataset === ''}>
-          <AddIcon fontSize="inherit" />
-        </IconButton>
       </Box>
+      <AutoComplete
+        style={{width: '100%'}}
+        options={suggestions}
+        getOptionLabel={option => option.dataset_name}
+        onInputChange={handleInputChange}
+        onChange={handleAutoCompleteChange}
+        renderInput={params => (
+          <TextField
+            {...params}
+            variant='filled' label='Search for an existing dataset' placeholder='Dataset name' argin='normal' fullWidth size='small'
+            error={isDuplicated} helperText={isDuplicated && 'The data is already in the selected dataset'}
+          />
+        )}
+      />
+      <Box display="flex" justifyContent="right" marginY={1}>
+        {addDatasetButton}
+      </Box>
+      <Divider/>
       {columns && newDatasets.length > 0 && <Datatable columns={columns} data={newDatasets} >
-        <DatatableTable actions={DatasetsActions}/>
+        <DatatableTable actions={DatasetsActions} noHeader />
       </Datatable>}
     </Box>
   </datasetsContext.Provider>

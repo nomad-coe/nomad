@@ -408,7 +408,7 @@ const useDatatableTableStyles = makeStyles(theme => ({
 }))
 
 /** The actional table, including pagination. Must be child of a Datatable component. */
-export const DatatableTable = React.memo(function DatatableTable({children, actions, details}) {
+export const DatatableTable = React.memo(function DatatableTable({children, actions, details, noHeader}) {
   const classes = useDatatableTableStyles()
   const {shownColumns, data, pagination, onPaginationChanged, selected, withSelectionFeature} = useDatatableContext()
   const {page_size} = pagination
@@ -446,7 +446,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
   }
 
   const table = <Table size="medium" stickyHeader={isScrolling}>
-    <DatatableHeader actions={actions}/>
+    {!noHeader && <DatatableHeader actions={actions}/>}
     <TableBody>
       {dataToShow.map((row, index) => (
         <DatatableRow
@@ -492,6 +492,8 @@ DatatableTable.propTypes = {
   /** Objectal render function or component for row actions. Function and component
    * get row object as "data" prop. */
   actions: PropTypes.elementType,
+  /** Do not show the table header */
+  noHeader: PropTypes.bool,
   /** Optional pagination component, e.g. DatatablePagePagination. */
   children: PropTypes.node
 }

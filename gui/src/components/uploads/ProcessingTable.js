@@ -27,7 +27,7 @@ import {
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import Quantity from '../Quantity'
 import {uploadPageContext} from './UploadPage'
-import EditMetaDataDialog from '../entry/EditMetaDataDialog'
+import EditMetaDataDialog from './EditMetaDataDialog'
 
 const columns = [
   {
