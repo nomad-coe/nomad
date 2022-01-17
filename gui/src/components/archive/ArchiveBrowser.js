@@ -18,7 +18,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
@@ -34,6 +34,9 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import { Download } from '../entry/Download'
 
 export const configState = atom({
   key: 'config',
@@ -56,7 +59,7 @@ export default function ArchiveBrowser({data}) {
   return (
     <Browser
       adaptor={archiveAdaptorFactory(data, undefined, units)}
-      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+      form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
 }
@@ -64,7 +67,7 @@ ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
 
-function ArchiveConfigForm({searchOptions}) {
+function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
 
   const handleConfigChange = event => {
@@ -80,20 +83,25 @@ function ArchiveConfigForm({searchOptions}) {
   const history = useHistory()
   const { url } = useRouteMatch()
 
+  const entryId = data?.metadata?.entry_id
+
   return (
-    <Box marginTop={-3} padding={0}>
+    <Box padding={0}>
       <FormGroup row style={{alignItems: 'center'}}>
         <Box style={{width: 350, height: 60}}>
           <Autocomplete
             options={searchOptions}
             getOptionLabel={(option) => option.name}
-            style={{ width: 350, marginTop: -20 }}
+            style={{ width: 500, marginTop: -20 }}
             onChange={(_, value) => {
               if (value) {
                 history.push(url + value.path)
               }
             }}
-            renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+            renderInput={(params) => <TextField
+              {...params} variant="filled"
+              size="small" label="search" margin="normal"
+            />}
           />
         </Box>
         <Box flexGrow={1} />
@@ -132,11 +140,23 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
+        {entryId && <Download
+          tooltip="download the archive"
+          url={`entries/${entryId}/archive/download`}
+          fileName={`${entryId}.json`}
+          component={IconButton}
+        >
+          <DownloadIcon />
+        </Download>}
+        <SourceApiDialogButton maxWidth="lg" fullWidth>
+          <SourceApiCall />
+        </SourceApiDialogButton>
       </FormGroup>
     </Box>
   )
 }
 ArchiveConfigForm.propTypes = ({
+  data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
@@ -147,8 +167,7 @@ function archiveAdaptorFactory(data, sectionDef, units) {
 function archiveSearchOptions(data) {
   const options = []
   const optionDefs = {}
-  const optionKeys = {}
-  function traverse(data, def, parentPath) {
+  function traverse(data, def, parentName, parentPath) {
     for (let key in data) {
       const childDef = def._properties[key]
       if (!childDef) {
@@ -159,50 +178,36 @@ function archiveSearchOptions(data) {
       if (!child) {
         continue
       }
-
-      let path = `${parentPath}/${key}`
-      if (childDef.m_def === 'SubSection') {
-        const sectionDef = resolveRef(childDef.sub_section)
-        if (Array.isArray(child) && child.length > 0 && child[0]) {
-          if (child.length > 1) {
-            child.forEach((value, index) => traverse(value, sectionDef, `${path}:${index}`))
-          } else {
-            traverse(child[0], sectionDef, path)
-          }
-        } else {
-          traverse(child, sectionDef, path)
-        }
-      }
+      const path = parentPath ? `${parentPath}/${key}` : `/${key}`
+      const name = parentName ? `${parentName}.${childDef.name}` : childDef.name
 
       if (optionDefs[childDef._qualifiedName]) {
         continue
       }
       optionDefs[childDef._qualifiedName] = childDef
-
       const option = {
-        name: key,
+        name: name, // key
         data: data,
         def: childDef,
         path: path
       }
       options.push(option)
 
-      if (optionKeys[key]) {
-        const addPath = option => {
-          const parents = option.path.split('/')
-          const parent = parents[parents.length - 2].replace(/:[0-9]+$/, '')
-          option.name += ` (${parent})`
+      if (childDef.m_def === 'SubSection') {
+        const sectionDef = resolveRef(childDef.sub_section)
+        if (Array.isArray(child) && child.length > 0 && child[0]) {
+          if (child.length > 1) {
+            child.forEach((value, index) => traverse(value, sectionDef, name, `${path}:${index}`))
+          } else {
+            traverse(child[0], sectionDef, name, path)
+          }
+        } else {
+          traverse(child, sectionDef, name, path)
         }
-        if (!optionKeys[key].name.includes('(')) {
-          addPath(optionKeys[key])
-        }
-        addPath(option)
-      } else {
-        optionKeys[key] = option
       }
     }
   }
-  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), '')
+  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), null, null)
   return options
 }
 
@@ -353,17 +358,37 @@ function QuantityValue({value, def, units}) {
     ? toUnitSystem(val, def.unit, units, true)
     : [val, def.unit]
 
-  return <Box textAlign="center" fontWeight="bold">
-    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} type={def.type.type_data} /> : <Number value={finalValue} exp={16} variant="body2" />}
-    {def.shape.length > 0 &&
-      <Typography noWrap variant="caption">
-        ({def.shape.map((dimension, index) => <span key={index}>
-          {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
-        </span>)}&nbsp;)
-      </Typography>
+  let isMathValue = def.type.type_kind === 'numpy'
+  if (isMathValue) {
+    if (def.shape.length > 0) {
+      return <Box textAlign="center">
+        <Matrix
+          values={finalValue}
+          shape={def.shape}
+          invert={def.shape.length === 1}
+          type={def.type.type_data}
+        />
+        <Typography noWrap variant="caption">
+          ({def.shape.map((dimension, index) => <span key={index}>
+            {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+          </span>)}&nbsp;)
+        </Typography>
+        {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
+      </Box>
+    } else {
+      return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
-    {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
-  </Box>
+  } else {
+    if (Array.isArray(finalValue)) {
+      return <Typography>
+        <ul style={{margin: 0}}>
+          {finalValue.map(value, index => <li key={index}>{value}</li>)}
+        </ul>
+      </Typography>
+    } else {
+      return <Typography>{finalValue}</Typography>
+    }
+  }
 }
 QuantityValue.propTypes = ({
   value: PropTypes.any,

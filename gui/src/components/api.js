@@ -89,8 +89,9 @@ class Api {
   constructor(keycloak, setLoading) {
     this.keycloak = keycloak
     this.setLoading = setLoading
+    this.baseURL = `${apiBase}/v1`
     this.axios = axios.create({
-      baseURL: `${apiBase}/v1`
+      baseURL: this.baseURL
     })
 
     this.nLoading = 0
@@ -141,25 +142,6 @@ class Api {
   }
 
   /**
-   * Returns the entry information that is stored in the search index.
-   *
-   * @param {string} entryId
-   * @returns Object containing the search index contents.
-   */
-  async entry(entryId) {
-    this.onStartLoading()
-    const auth = await this.authHeaders()
-    try {
-      const entry = await this.axios.get(`/entries/${entryId}`, auth)
-      return entry.data
-    } catch (errors) {
-      handleApiError(errors)
-    } finally {
-      this.onFinishLoading()
-    }
-  }
-
-  /**
    * Returns the data related to the specified dataset.
    *
    * @param {string} datasetID
@@ -171,52 +153,6 @@ class Api {
     try {
       const entry = await this.axios.get(`/datasets/${datasetId}`, auth)
       return entry.data.data
-    } catch (errors) {
-      handleApiError(errors)
-    } finally {
-      this.onFinishLoading()
-    }
-  }
-
-  /**
-   * Returns section_results from the archive corresponding to the given entry.
-   * Some large quantities which are not required by the GUI are filtered out.
-   * All references within the section are resolved by the server before
-   * sending.
-   *
-   * @param {string} entryId
-   * @returns Object containing section_results
-   */
-  async results(entryId) {
-    this.onStartLoading()
-    const auth = await this.authHeaders()
-    try {
-      const entry = await this.axios.post(
-        `/entries/${entryId}/archive/query`,
-        {
-          required: {
-            'resolve-inplace': false,
-            results: {
-              material: '*',
-              method: '*',
-              properties: {
-                structures: '*',
-                electronic: 'include-resolved',
-                mechanical: 'include-resolved',
-                spectroscopy: 'include-resolved',
-                vibrational: 'include-resolved',
-                // For geometry optimizations we require only the energies.
-                // Trajectory, optimized structure, etc. are unnecessary.
-                geometry_optimization: {
-                  energies: 'include-resolved'
-                }
-              }
-            }
-          }
-        },
-        auth
-      )
-      return parse(entry).data.data.archive
     } catch (errors) {
       handleApiError(errors)
     } finally {
@@ -276,44 +212,51 @@ class Api {
    * @param {string} searchTarget The target of the search: entries or materials
    * @returns Object containing the raw file metadata.
    */
-  async query(searchTarget, search, show = true) {
-    this.onStartLoading(show)
+  async query(searchTarget, search, config) {
+    this.onStartLoading(config?.loadingIndicator || false)
     const auth = await this.authHeaders()
     try {
-      const result = await this.axios.post(
-        `${searchTarget}/query`,
-        {
+      const request = {
+        method: 'POST',
+        path: `${searchTarget}/query`,
+        url: `${apiBase}/${searchTarget}/query`,
+        body: {
           exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'optimade', 'dft.labels', 'dft.geometries'],
           ...search
-        },
-        auth
-      )
-      return result.data
+        }
+      }
+      const result = await this.axios.post(request.path, request.body, auth)
+      if (config.returnRequest) {
+        request.response = result.data
+        return request
+      } else {
+        return result.data
+      }
     } catch (errors) {
       handleApiError(errors)
     } finally {
-      this.onFinishLoading(show)
+      this.onFinishLoading(config?.loadingIndicator || false)
     }
   }
 
   async get(path, query, config) {
-    const method = (path, body, config) => this.axios.get(path, config)
-    return this.doHttpRequest(method, path, null, {params: query, ...config})
+    const GET = (path, body, config) => this.axios.get(path, config)
+    return this.doHttpRequest(GET, path, null, {params: query, ...config})
   }
 
   async post(path, body, config) {
-    const method = (path, body, config) => this.axios.post(path, body, config)
-    return this.doHttpRequest(method, path, body, config)
+    const POST = (path, body, config) => this.axios.post(path, body, config)
+    return this.doHttpRequest(POST, path, body, config)
   }
 
   async put(path, body, config) {
-    const method = (path, body, config) => this.axios.put(path, body, config)
-    return this.doHttpRequest(method, path, body, config)
+    const PUT = (path, body, config) => this.axios.put(path, body, config)
+    return this.doHttpRequest(PUT, path, body, config)
   }
 
   async delete(path, config) {
-    const method = (path, body, config) => this.axios.delete(path, config)
-    return this.doHttpRequest(method, path, null, config)
+    const DELETE = (path, body, config) => this.axios.delete(path, config)
+    return this.doHttpRequest(DELETE, path, null, config)
   }
 
   async doHttpRequest(method, path, body, config) {
@@ -330,6 +273,17 @@ class Api {
     }
     try {
       const results = await method(path, body, config)
+      if (config.jsonResponse) {
+        results.data = repairJsonResponse(results.data)
+      }
+      if (config.returnRequest) {
+        return {
+          method: method.name,
+          url: `${this.baseURL}${path}`,
+          body: body,
+          response: results.data
+        }
+      }
       return results.data
     } catch (errors) {
       if (config.noHandleErrors) {
@@ -385,7 +339,7 @@ class Api {
  * Custom JSON parse function that can handle NaNs that can be created by the
  * python JSON serializer.
  */
-function parse(result) {
+function repairJsonResponse(result) {
   if (typeof result === 'string') {
     try {
       return JSON.parse(result)

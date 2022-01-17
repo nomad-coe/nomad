@@ -45,6 +45,7 @@ import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
 export const uploadPageContext = React.createContext()
 
@@ -313,6 +314,7 @@ function UploadPage() {
   })
   const [deleteClicked, setDeleteClicked] = useState(false)
   const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
   const [uploading, setUploading] = useState(null)
   const [err, setErr] = useState(null)
   const upload = data?.upload
@@ -325,14 +327,17 @@ function UploadPage() {
   const isProcessing = upload?.process_running
 
   const fetchData = useCallback(() => () => {
-    api.get(`/uploads/${uploadId}/entries`, pagination)
-      .then(results => setData(results))
+    api.get(`/uploads/${uploadId}/entries`, pagination, {returnRequest: true})
+      .then(apiData => {
+        setApiData(apiData)
+        setData(apiData.response)
+      })
       .catch((error) => {
         if (!(error instanceof DoesNotExist && deleteClicked)) {
           (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, errors])
+  }, [api, uploadId, pagination, deleteClicked, errors, setData, setApiData])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
@@ -470,6 +475,9 @@ function UploadPage() {
               <ReprocessIcon />
             </Tooltip>
           </IconButton>
+          <SourceApiDialogButton maxWidth="lg" fullWidth>
+            <SourceApiCall {...apiData} />
+          </SourceApiDialogButton>
           <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />

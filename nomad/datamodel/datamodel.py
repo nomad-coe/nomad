@@ -388,6 +388,8 @@ class EntryMetadata(metainfo.MSection):
             an embargo.
         datasets: Ids of all datasets that this entry appears in
     '''
+    m_def = metainfo.Section(label='Metadata')
+
     upload_id = metainfo.Quantity(
         type=str, categories=[MongoUploadMetadata],
         description='The persistent and globally unique identifier for the upload of the entry',
@@ -669,6 +671,8 @@ class EntryMetadata(metainfo.MSection):
 
 
 class EntryArchive(metainfo.MSection):
+    m_def = metainfo.Section(label='Entry')
+
     entry_id = metainfo.Quantity(
         type=str, description='The unique primary id for this entry.',
         derived=lambda entry: entry.metadata.entry_id)

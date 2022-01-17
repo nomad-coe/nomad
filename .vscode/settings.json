@@ -107,5 +107,10 @@
     "files.exclude": {
         "\"**/*.pyc\": {\"when\": \"$(basename).py\"}": true,
         "**/__pycache__": true
-    }
+    },
+    "eslint.workingDirectories": [
+        {
+            "directory": "gui"
+        }
+    ]
 }

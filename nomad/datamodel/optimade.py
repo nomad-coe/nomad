@@ -129,6 +129,7 @@ class Species(MSection):
 
 class OptimadeEntry(MSection):
     m_def = Section(
+        label='Optimade',
         links=optimade_links('h.6.2'))
 
     elements = Quantity(

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import {Paper, IconButton, Tooltip, DialogContent, Button, Dialog} from '@material-ui/core'
 import { useApi, withLoginRequired } from '../api'
@@ -31,6 +31,7 @@ import {
 import Quantity from '../Quantity'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
 export const help = `
 NOMAD allows you to create *datasets* from your data. A dataset is like a tag that you
@@ -125,7 +126,8 @@ DatasetActions.propTypes = {
 function DatasetsPage() {
   const {api} = useApi()
   const errors = useErrors()
-  const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
+  const data = useMemo(() => apiData?.response, [apiData])
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
@@ -135,10 +137,11 @@ function DatasetsPage() {
 
   const load = useCallback(() => {
     const {page_size, page, order_by, order} = pagination
-    api.get(`/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}`)
-      .then(setData)
+    const url = `/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}`
+    api.get(url, null, {returnRequest: true})
+      .then(setApiData)
       .catch(errors.raiseError)
-  }, [pagination, setData, errors, api])
+  }, [pagination, setApiData, errors, api])
 
   useEffect(() => {
     load()
@@ -155,7 +158,11 @@ function DatasetsPage() {
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
           >
-            <DatatableToolbar title="Your datasets" />
+            <DatatableToolbar title="Your datasets">
+              <SourceApiDialogButton maxWidth="lg" fullWidth>
+                <SourceApiCall {...apiData} />
+              </SourceApiDialogButton>
+            </DatatableToolbar>
             <DatatableTable actions={DatasetActions}>
               <DatatableLoadMorePagination />
             </DatatableTable>
