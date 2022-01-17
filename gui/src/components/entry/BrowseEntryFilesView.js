@@ -26,7 +26,7 @@ import Page from '../Page'
 const useStyles = makeStyles(theme => ({
   error: {
     marginTop: theme.spacing(2)
-  },
+  }
 }))
 export default function BrowseEntryFilesView({entryId}) {
   const classes = useStyles()

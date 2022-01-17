@@ -16,10 +16,13 @@
  * limitations under the License.
  */
 import React, { useEffect, useContext, useState } from 'react'
+import PropTypes from 'prop-types'
 import { Typography, Grid, IconButton } from '@material-ui/core'
 import { useErrors } from '../errors'
 import Browser, { Item, Content, Adaptor, laneContext } from './Browser'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import FolderIcon from '@material-ui/icons/Folder'
+import FileIcon from '@material-ui/icons/AssignmentOutlined'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import { useApi } from '../api'
@@ -28,6 +31,10 @@ const FileBrowser = React.memo(({uploadId, path}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path)
   return <Browser adaptor={adaptor} />
 })
+FileBrowser.propTypes = {
+  uploadId: PropTypes.string.isRequired,
+  path: PropTypes.string.isRequired
+}
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
@@ -35,19 +42,20 @@ class RawDirectoryAdaptor extends Adaptor {
     super()
     this.uploadId = uploadId
     this.path = path
-    this.data = undefined  // Will be set by RawDirectoryContent component when loaded
+    this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
   isLoaded() {
     return this.data !== undefined
   }
   itemAdaptor(key) {
     const ext_path = this.path ? this.path + '/' + key : key
-    for(let element of this.data) {
-      if(element.name === key) {
-        if(element.is_file)
+    for (let element of this.data) {
+      if (element.name === key) {
+        if (element.is_file) {
           return new FilePreviewAdaptor(this.uploadId, ext_path, element)
-        else
+        } else {
           return new RawDirectoryAdaptor(this.uploadId, ext_path)
+        }
       }
     }
     throw new Error('Bad path: ' + key)
@@ -66,14 +74,14 @@ function RawDirectoryContent({uploadId, path}) {
   useEffect(() => {
     if (loadedPath !== path) {
       api.get(`/uploads/${uploadId}/raw/` + encodeURIComponent(path))
-      .then(response => {
-        lane.adaptor.data = response.content
-        setLoadedPath(path)
-        lane.update()
-      })
-      .catch(error => {
-        raiseError(error)
-      })
+        .then(response => {
+          lane.adaptor.data = response.content
+          setLoadedPath(path)
+          lane.update()
+        })
+        .catch(error => {
+          raiseError(error)
+        })
     }
   }, [uploadId, path, api, lane, loadedPath, setLoadedPath, raiseError])
 
@@ -87,63 +95,78 @@ function RawDirectoryContent({uploadId, path}) {
           <Item itemKey={element.name} key={path ? path + '/' + element.name : element.name}>
             {
               element.is_file
-              ? <Typography>{element.name}</Typography>
-              : <Typography><b>{element.name + '/'}</b></Typography>
+                ? <table>
+                  <tr>
+                    <td><FileIcon /></td>
+                    <td><Typography>{element.name}</Typography></td>
+                  </tr>
+                </table>
+                : <table>
+                  <tr>
+                    <td><FolderIcon /></td>
+                    <td><Typography><b>{element.name}</b></Typography></td>
+                  </tr>
+                </table>
             }
           </Item>))}
       </Content>)
   }
 }
+RawDirectoryContent.propTypes = {
+  uploadId: PropTypes.string.isRequired,
+  path: PropTypes.string.isRequired
+}
 
 class FilePreviewAdaptor extends Adaptor {
-    constructor(uploadId, path, data) {
-      super()
-      this.uploadId = uploadId
-      this.path = path
-      this.data = data
+  constructor(uploadId, path, data) {
+    super()
+    this.uploadId = uploadId
+    this.path = path
+    this.data = data
+  }
+  render() {
+    // A nicer, human-readable size string
+    let size = this.data.size
+    let niceSize, unit, factor
+    if (size > 1e9) {
+      [unit, factor] = ['GB', 1e9]
+    } else if (size > 1e6) {
+      [unit, factor] = ['MB', 1e6]
+    } else if (size > 1e3) {
+      [unit, factor] = ['kB', 1e3]
     }
-    render() {
-      // A nicer, human-readable size string
-      let size = this.data.size
-      let niceSize, unit, factor
-      if(size > 1e9) {
-        [unit, factor] = ['GB', 1e9]
-      } else if (size > 1e6) {
-        [unit, factor] = ['MB', 1e6]
-      } else if (size > 1e3) {
-        [unit, factor] = ['kB', 1e3]
-      }
-      if(unit) {
-        if(size / factor > 100)
-          // No decimals
-          niceSize = `${Math.round(size / factor)} ${unit} (${size} bytes)`
-        else
-          // One decimal
-          niceSize = `${Math.round(size * 10 / factor) / 10} ${unit} (${size} bytes)`
+    if (unit) {
+      if (size / factor > 100) {
+        // No decimals
+        niceSize = `${Math.round(size / factor)} ${unit} (${size} bytes)`
       } else {
-        // Unit = bytes
-        niceSize = `${size} bytes`
+        // One decimal
+        niceSize = `${Math.round(size * 10 / factor) / 10} ${unit} (${size} bytes)`
       }
-      let encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-      let downloadUrl = `uploads/${this.uploadId}/raw/${encodedPath}`
-
-      return (
-        <Content key={this.path}>
-          <Grid container justifyContent="flex-end">
-            <Grid item>
-              <Download component={IconButton} disabled={false}
-                  color="secondary"
-                  tooltip="download this file"
-                  url={downloadUrl}
-                  fileName={this.data.name}>
-                <DownloadIcon />
-              </Download>
-            </Grid>
-          </Grid>
-          <Quantity quantity="filename" data={{filename: this.data.name}} label="file name" noWrap ellipsisFront withClipboard />
-          <Quantity quantity="path" data={{path: this.path}} label="full path" noWrap ellipsisFront withClipboard />
-          <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
-        </Content>
-      )
+    } else {
+      // Unit = bytes
+      niceSize = `${size} bytes`
     }
+    let encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+    let downloadUrl = `uploads/${this.uploadId}/raw/${encodedPath}`
+
+    return (
+      <Content key={this.path}>
+        <Grid container justifyContent="flex-end">
+          <Grid item>
+            <Download component={IconButton} disabled={false}
+              color="secondary"
+              tooltip="download this file"
+              url={downloadUrl}
+              fileName={this.data.name}>
+              <DownloadIcon />
+            </Download>
+          </Grid>
+        </Grid>
+        <Quantity quantity="filename" data={{filename: this.data.name}} label="file name" noWrap ellipsisFront withClipboard />
+        <Quantity quantity="path" data={{path: this.path}} label="full path" noWrap ellipsisFront withClipboard />
+        <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
+      </Content>
+    )
+  }
 }

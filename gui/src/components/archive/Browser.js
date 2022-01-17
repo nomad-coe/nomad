@@ -26,7 +26,6 @@ import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 
-
 function escapeBadPathChars(s) {
   return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replace('%', '$3')
 }
@@ -34,7 +33,6 @@ function escapeBadPathChars(s) {
 function unescapeBadPathChars(s) {
   return s.replace('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
 }
-
 
 export function formatSubSectionName(name) {
   // return name.startsWith('section_') ? name.slice(8) : name
@@ -132,13 +130,13 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   let oldLanes = lanes.current
   let newLanes = [root]
   let i = 1
-  for(let segment of segments) {
+  for (let segment of segments) {
     const prev = newLanes[i - 1]
     const path = prev.path + '/' + encodeURI(segment)
     segment = unescapeBadPathChars(segment)
 
     let curr = oldLanes[i]
-    if(curr?.path !== path) {
+    if (curr?.path !== path) {
       // Cannot use cached value, create a new lane
       curr = {
         key: segment,
@@ -149,10 +147,12 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
     newLanes.push(curr)
     prev.next = curr
-    if(!curr.adaptor && prev.adaptor.isLoaded())
+    if (!curr.adaptor && prev.adaptor.isLoaded()) {
       curr.adaptor = prev.adaptor.itemAdaptor(segment)
-    if(!curr.adaptor)
-      break  // Previous lane has not yet been loaded, can't create any more lanes at this point
+    }
+    if (!curr.adaptor) {
+      break // Previous lane has not yet been loaded, can't create any more lanes at this point
+    }
     i += 1
   }
   lanes.current = newLanes
@@ -201,8 +201,9 @@ const Lane = function({lane}) {
   const classes = useLaneStyles()
   const { key, adaptor, next } = lane
   const content = useMemo(() => {
-    if(!adaptor)
+    if (!adaptor) {
       return ''
+    }
     return <div className={classes.root}>
       <div className={classes.container}>
         <laneContext.Provider value={lane}>
