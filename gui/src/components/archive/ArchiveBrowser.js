@@ -382,7 +382,7 @@ function QuantityValue({value, def, units}) {
     if (Array.isArray(finalValue)) {
       return <Typography>
         <ul style={{margin: 0}}>
-          {finalValue.map(value, index => <li key={index}>{value}</li>)}
+          {finalValue.map((value, index) => <li key={index}>{value}</li>)}
         </ul>
       </Typography>
     } else {
