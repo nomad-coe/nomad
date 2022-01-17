@@ -47,7 +47,7 @@ export const configState = atom({
   }
 })
 
-export default function ArchiveBrowser({data}) {
+const ArchiveBrowser = React.memo(({data}) => {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
 
   // For some reason, this hook does not work in all of the components used in
@@ -62,10 +62,11 @@ export default function ArchiveBrowser({data}) {
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
-}
+})
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
+export default ArchiveBrowser
 
 function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)

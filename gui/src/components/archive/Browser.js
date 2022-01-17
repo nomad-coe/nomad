@@ -26,6 +26,16 @@ import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 
+
+function escapeBadPathChars(s) {
+  return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replace('%', '$3')
+}
+
+function unescapeBadPathChars(s) {
+  return s.replace('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
+}
+
+
 export function formatSubSectionName(name) {
   // return name.startsWith('section_') ? name.slice(8) : name
   return name
@@ -40,7 +50,15 @@ export class Adaptor {
     }
   }
 
+  isLoaded() {
+    // Return false to signal to the Browser component that this adaptor needs to load some
+    // data before we can call itemAdaptor. Adaptors that need to load data should call
+    // lane.update() when they are done, to trigger rendering.
+    return true
+  }
+
   itemAdaptor(key) {
+    // Gets the adaptor for the next lane. Will only be called if isLoaded returns true.
     return null
   }
 
@@ -91,40 +109,53 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
   const { pathname } = useLocation()
   const { url } = useRouteMatch()
-  const archivePath = pathname.substring(url.length).split('/')
+  const segments = pathname.substring(url.length).split('/').filter(segment => segment)
+  const renderCounter = useRef(0)
+  const [, setRender] = useState(0)
+
+  const update = () => {
+    // Used to trigger the Browser component to re-render
+    renderCounter.current += 1
+    setRender(renderCounter.current)
+  }
 
   const root = useMemo(() => ({
     key: 'root',
     path: url.endsWith('/') ? url.substring(0, url.length - 1) : url,
     adaptor: adaptor,
-    next: null
+    next: null,
+    update: update
   }), [adaptor, url])
 
-  const [render, setRender] = useState(0)
+  // Update the lanes
+  let lanes = useRef([])
+  let oldLanes = lanes.current
+  let newLanes = [root]
+  let i = 1
+  for(let segment of segments) {
+    const prev = newLanes[i - 1]
+    const path = prev.path + '/' + encodeURI(segment)
+    segment = unescapeBadPathChars(segment)
 
-  const memoedAdapters = useRef({})
-  const lanes = useMemo(() => {
-    const lanes = [root]
-    archivePath.filter(segment => segment).forEach((segment, i) => {
-      const prev = lanes[i]
-      const path = `${prev.path}/${segment}`
-      const adaptor = memoedAdapters.current[path] || prev.adaptor.itemAdaptor(segment)
-      memoedAdapters.current[path] = adaptor
-      const lane = {
+    let curr = oldLanes[i]
+    if(curr?.path !== path) {
+      // Cannot use cached value, create a new lane
+      curr = {
         key: segment,
         path: path,
-        adaptor: adaptor,
         data: root.adaptor.e,
-        update: () => {
-          memoedAdapters.current[path] = null
-          setRender(render + 1)
-        }
+        update: update
       }
-      lanes.push(lane)
-      prev.next = lane
-    })
-    return lanes
-  }, [root, archivePath, memoedAdapters, render, setRender])
+    }
+    newLanes.push(curr)
+    prev.next = curr
+    if(!curr.adaptor && prev.adaptor.isLoaded())
+      curr.adaptor = prev.adaptor.itemAdaptor(segment)
+    if(!curr.adaptor)
+      break  // Previous lane has not yet been loaded, can't create any more lanes at this point
+    i += 1
+  }
+  lanes.current = newLanes
 
   return <RecoilRoot>
     {form}
@@ -133,8 +164,8 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         <div className={classes.root} ref={rootRef} >
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
-              {lanes.map((lane, index) => (
-                <Lane key={lane.key} lane={lane} />
+              {newLanes.map((lane, index) => (
+                <Lane key={index} lane={lane} />
               ))}
             </div>
           </div>
@@ -166,10 +197,12 @@ const useLaneStyles = makeStyles(theme => ({
     margin: theme.spacing(1)
   }
 }))
-const Lane = React.memo(function Lane({lane}) {
+const Lane = function({lane}) {
   const classes = useLaneStyles()
-  const { key, selected, adaptor, next } = lane
+  const { key, adaptor, next } = lane
   const content = useMemo(() => {
+    if(!adaptor)
+      return ''
     return <div className={classes.root}>
       <div className={classes.container}>
         <laneContext.Provider value={lane}>
@@ -182,9 +215,9 @@ const Lane = React.memo(function Lane({lane}) {
     // We deliberetly break the React rules here. The goal is to only update if the
     // lanes contents change and not the lane object.
     // eslint-disable-next-line
-  }, [key, selected, adaptor, next?.key, classes])
+  }, [key, adaptor, next?.key, classes])
   return content
-})
+}
 Lane.propTypes = ({
   lane: PropTypes.object.isRequired
 })
@@ -232,7 +265,7 @@ export function Item({children, itemKey, disabled}) {
       classes.root,
       selected === itemKey ? classes.rootSelected : classes.rootUnSelected
     )}
-    to={`${lane.path}/${itemKey}`}
+    to={lane.path + '/' + encodeURI(escapeBadPathChars(itemKey))}
   >
     <span className={classes.childContainer}>{children}</span>
     <ArrowRightIcon/>

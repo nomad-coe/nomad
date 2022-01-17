@@ -22,6 +22,7 @@ import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RawFileView from './RawFileView'
+import BrowseEntryFilesView from './BrowseEntryFilesView'
 import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom'
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 
@@ -55,6 +56,7 @@ const EntryPage = React.memo(() => {
   const urls = useRef({
     'overview': `${urlNoSlash}/overview`,
     'raw': `${urlNoSlash}/raw`,
+    'browse': `${urlNoSlash}/browse`,
     'archive': `${urlNoSlash}/archive`,
     'logs': `${urlNoSlash}/logs`
   })
@@ -74,12 +76,14 @@ const EntryPage = React.memo(() => {
     >
       <Tab label="Overview" value="overview" />
       <Tab label="Raw data" value="raw" />
+      <Tab label="Browse" value="browse" />
       <Tab label="Processed data" value="archive"/>
       <Tab label="Logs" value="logs"/>
     </Tabs>
     <CacheSwitch>
       <CacheRoute path={`${path}`} exact render={() => <OverviewView entryId={entryId}/>} />
       <CacheRoute path={`${path}/raw`} render={() => <RawFileView entryId={entryId}/>} />
+      <CacheRoute when="back" path={`${path}/browse`} render={() => <BrowseEntryFilesView entryId={entryId}/>} />
       <CacheRoute when="back" path={`${path}/archive`} render={() => <ArchiveEntryView entryId={entryId}/>} />
       <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView entryId={entryId}/>} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
