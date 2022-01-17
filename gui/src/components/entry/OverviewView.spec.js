@@ -38,11 +38,11 @@ beforeAll(() => {
   // API mock init
   useApi.mockReturnValue({
     api: {
-      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}, 1000), // results
+      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
       get: () => wait({response: { // entry metadata
         entry_id: index.entry_id,
         data: index
-      }}, 1)
+      }})
     }
   })
 })
@@ -59,10 +59,14 @@ test('correctly renders metadata and all properties', async () => {
     </EntryContext>
   )
 
-  // Wait to load the entry metadata, i.e. wait for an arbitrary placeholder to appear
-  await waitFor(() => {
-    expect(screen.getByTestId('dos-electronic-placeholder')).toBeInTheDocument()
-  })
+  // Wait to load the entry metadata, i.e. wait for all cards to appear
+  const dosElectronic = await screen.findByTestId('dos-electronic')
+  const bsElectronic = await screen.findByTestId('bs-electronic')
+  const bsPhonon = await screen.findByTestId('bs-phonon')
+  const dosPhonon = await screen.findByTestId('dos-phonon')
+  const heatCapacity = await screen.findByTestId('heat-capacity')
+  const energyFree = await screen.findByTestId('energy-free')
+  const energyVolumeCurve = await screen.findByTestId('energy-volume-curve')
 
   // Check if all method quantities are shown (on the left)
   expectQuantity('results.method.simulation.program_name', index)
@@ -110,23 +114,14 @@ test('correctly renders metadata and all properties', async () => {
   expect(screen.getByText('Bulk modulus')).toBeInTheDocument()
   expect(screen.getByText('Shear modulus')).toBeInTheDocument()
 
-  // Check if all visualization placeholders are shown
-  const dosPhononPlaceholder = screen.getByTestId('dos-phonon-placeholder')
-  expect(dosPhononPlaceholder).toBeInTheDocument()
-  const bsPhononPlaceholder = screen.getByTestId('bs-phonon-placeholder')
-  expect(bsPhononPlaceholder).toBeInTheDocument()
-  const heatCapacityPlaceholder = screen.getByTestId('heat-capacity-placeholder')
-  expect(heatCapacityPlaceholder).toBeInTheDocument()
-  const energyFreePlaceholder = screen.getByTestId('energy-free-placeholder')
-  expect(energyFreePlaceholder).toBeInTheDocument()
-  const dosElectronicPlaceholder = screen.getByTestId('dos-electronic-placeholder')
-  expect(dosElectronicPlaceholder).toBeInTheDocument()
-  const bsElectronicPlaceholder = screen.getByTestId('bs-electronic-placeholder')
-  expect(bsElectronicPlaceholder).toBeInTheDocument()
-  const energyVolumeCurvePlaceholder = screen.getByTestId('energy-volume-curve-placeholder')
-  expect(energyVolumeCurvePlaceholder).toBeInTheDocument()
-
   // Check if all placeholders disappear
+  const dosPhononPlaceholder = screen.queryByTestId('dos-phonon-placeholder')
+  const bsPhononPlaceholder = screen.queryByTestId('bs-phonon-placeholder')
+  const heatCapacityPlaceholder = screen.queryByTestId('heat-capacity-placeholder')
+  const energyFreePlaceholder = screen.queryByTestId('energy-free-placeholder')
+  const dosElectronicPlaceholder = screen.queryByTestId('dos-electronic-placeholder')
+  const bsElectronicPlaceholder = screen.queryByTestId('bs-electronic-placeholder')
+  const energyVolumeCurvePlaceholder = screen.queryByTestId('energy-volume-curve-placeholder')
   await waitFor(() => { expect(dosElectronicPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(bsElectronicPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(dosPhononPlaceholder).not.toBeInTheDocument() })
@@ -142,19 +137,12 @@ test('correctly renders metadata and all properties', async () => {
   expect(msgs).toHaveLength(2)
 
   // Check that plot buttons are displayed
-  const dosElectronic = screen.getByTestId('dos-electronic')
   expectPlotButtons(dosElectronic)
-  const bsElectronic = screen.getByTestId('bs-electronic')
   expectPlotButtons(bsElectronic)
-  const bsPhonon = screen.getByTestId('bs-phonon')
   expectPlotButtons(bsPhonon)
-  const dosPhonon = screen.getByTestId('dos-phonon')
   expectPlotButtons(dosPhonon)
-  const heatCapacity = screen.getByTestId('heat-capacity')
   expectPlotButtons(heatCapacity)
-  const energyFree = screen.getByTestId('energy-free')
   expectPlotButtons(energyFree)
-  const energyVolumeCurve = screen.getByTestId('energy-volume-curve')
   expectPlotButtons(energyVolumeCurve)
 
   // Check that tables are shown
