@@ -19,7 +19,7 @@
 import numpy as np
 
 from nomad.metainfo import (
-    MSection, Package, Quantity, SubSection, Datetime)
+    MSection, Package, Quantity, SubSection, Datetime, MEnum)
 from nomad.metainfo.metainfo import Reference, SectionProxy
 
 
@@ -51,6 +51,8 @@ class Sample(MSection):
 
     elements = Quantity(type=str, shape=["*"])
     chemical_formula = Quantity(type=str)
+
+    enum = Quantity(type=MEnum('First', 'Second', 'third'), description='The enum.')
 
 
 class Experiment(MSection):
