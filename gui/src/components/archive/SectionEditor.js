@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Button, makeStyles, TextField, Typography } from '@material-ui/core'
+import {Box, Button, makeStyles, Select, TextField, Typography} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -15,6 +15,10 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
     return <TextField
       fullWidth variant="filled" value={value || ''} label={property.name}
       onChange={event => handleChange(event.target.value)}/>
+  } else if (property.type?.type_kind === 'Enum' && property.shape?.length === 0) {
+    return <Select variant="filled" native style={{width: '100%'}} inputProps={{name: property.name, id: property.name}}>
+      {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
+    </Select>
   }
   return ''
 })
