@@ -231,7 +231,7 @@ def clear_elastic_infra():
         except Exception:
             pass
 
-    return infrastructure.setup_elastic(create_indices=True)
+    return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic_infra):
