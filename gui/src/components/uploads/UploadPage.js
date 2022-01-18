@@ -47,6 +47,7 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import CreateEntry from './CreateEntry'
+import NorthTools from './NorthTools'
 
 export const uploadPageContext = React.createContext()
 
@@ -535,6 +536,12 @@ function UploadPage() {
                 Or, create and edit entries manually.
               </Typography>
               <CreateEntry />
+            </React.Fragment>
+            <React.Fragment>
+              <Typography className={classes.stepContent}>
+                Or, launch a remote tool to view, edit, or create files.
+              </Typography>
+              <NorthTools />
             </React.Fragment>
           </StepContent>
         </Step>
