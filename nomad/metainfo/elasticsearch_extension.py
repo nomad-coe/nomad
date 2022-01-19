@@ -223,17 +223,25 @@ class DocumentType():
             for elasticsearch_annotation in elasticsearch_annotations:
                 if elasticsearch_annotation.field is None:
                     if elasticsearch_annotation.suggestion:
-                        # The suggestions may have a different doc_type: we don't
-                        # serialize them if the doc types don't match.
+                        # The suggestions may have a different doc_type: we
+                        # don't serialize them if the doc types don't match.
                         if self != entry_type and elasticsearch_annotation.doc_type != self:
                             continue
 
                         # The suggestion values are saved into a temporary
-                        # dictionary. The actual path of the data in the metainfo
-                        # is used as a key.
+                        # dictionary. The actual path of the data in the
+                        # metainfo is used as a key. The suggestions will also
+                        # take into account any given variants of the input.
                         transform_function = elasticsearch_annotation.value
+                        variants = elasticsearch_annotation.variants
                         if transform_function is not None:
-                            suggestion_value = transform_function(value)
+                            if variants:
+                                suggestion_value = []
+                                for variant in variants(value):
+                                    suggestion_value.extend(transform_function(variant))
+                                suggestion_value = list(set(suggestion_value))
+                            else:
+                                suggestion_value = transform_function(value)
                         else:
                             suggestion_value = value
                         section_path = section.m_path()[len(root.m_path()):]
@@ -282,9 +290,10 @@ class DocumentType():
                     section = section[part]
                 section[parts[-1]] = value
             except KeyError:
-                # TODO This typicall happens when a suggestion is stored in a referenced
-                # object that is in the metadata/results sections, e.g. referenced
-                # authored that are stored in EELS DB measurements
+                # TODO This typically happens when a suggestion is stored in a
+                # referenced object that is in the metadata/results sections,
+                # e.g. referenced authored that are stored in EELS DB
+                # measurements
                 logger = utils.get_logger(__name__, doc_type=self.name)
                 logger.warn("could not add suggestion to es", path=path)
 
@@ -516,26 +525,28 @@ entry_index = Index(entry_type, index_config_key='entries_index')
 material_index = Index(material_type, index_config_key='materials_index')
 
 
-def tokenizer_default(value):
-    """The default suggestion tokenizer. Contains the full value and the value
-    split into tokens using whitespace, dot and underscore.
-    """
-    tokens = [value]
-    fragments = list(filter(lambda x: x != "", re.split(r'[\s_]', value)))
-    if len(fragments) > 1:
-        tokens += fragments
-    return tokens
+def get_tokenizer(regex):
+    '''Returns a function that tokenizes a given string using the provided
+    regular epression.
+    '''
+    def tokenizer(value):
+        tokens = [value]
+        for match in re.finditer(regex, value):
+            if (match):
+                token = value[match.end():]
+                if token != '':
+                    # Notice how we artificially extend the token by taking the
+                    # prefix and adding it at the end. This way the token
+                    # remains unique so that it will be returned by
+                    # ElasticSearch when "skip_duplicates" is used in the
+                    # query.
+                    tokens.append(f'{token} {value[:match.end()]}')
+        return tokens
+
+    return tokenizer
 
 
-def tokenizer_formula(value):
-    """Suggestion tokenizer for chemical formulas. Contains the full value and the value
-    split into formula fragments.
-    """
-    tokens = [value]
-    fragments = re.findall(r'[A-Z][a-z]?\d*', value)
-    if len(fragments) > 1:
-        tokens += fragments
-    return tokens
+tokenizer_default = get_tokenizer(r'[_\s\.\/]+')
 
 
 class Elasticsearch(DefinitionAnnotation):
@@ -598,10 +609,21 @@ class Elasticsearch(DefinitionAnnotation):
             If true the section is mapped to elasticsearch nested object and all queries
             become nested queries. Only applicable to sub sections.
         suggestion:
-            If true, a mapping with postfix '__suggestion' or a field called
-            'suggestion' is automatically created for this metainfo (depends on
-            whether you have specified a custom tokenizer with "value" or
-            not). This stores autocompletion suggestions for this value.
+            Controls the suggestions that are built for this field. Leave
+            undefined if no suggestions are required. Can be a custom callable
+            that transforms a string into a list of suggestion values, or one
+            of the preset strings:
+            - simple: Only the value is stored as an ES field.
+            - default: The value is split into tokens using whitespace, dot and
+              forward slash
+        variants:
+            A callable that is applied to a search value to get a list of
+            alternative forms of the input. Used to augment the available
+            suggestions with alternative forms.
+        normalizer:
+            A callable that is used to transform the search input when
+            targeting this field. Note that this does not affect the way the
+            value is indexed.
 
     Attributes:
         name:
@@ -623,31 +645,39 @@ class Elasticsearch(DefinitionAnnotation):
             auto_include_subsections: bool = False,
             nested: bool = False,
             suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
+            variants: Union[Callable[[str], List[str]]] = None,
+            normalizer: Callable[[Any], Any] = None,
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
         if suggestion:
             if doc_type != entry_type:
-                raise ValueError("Suggestions should only be stored in the entry index.")
+                raise ValueError('Suggestions should only be stored in the entry index.')
             for arg in [field, mapping, es_field, _es_field]:
                 if arg is not None:
-                    raise ValueError(f"You cannot modify the way suggestions are mapped or named.")
+                    raise ValueError(f'You cannot modify the way suggestions are mapped or named.')
             # If no tokenizer is specified, the suggestion is stored as a field
             # that holds only the original value.
-            if suggestion == "simple":
-                field = "suggestion"
-            elif suggestion == "formula":
-                value = tokenizer_formula
-            elif suggestion == "default":
+            if suggestion == 'simple':
+                field = 'suggestion'
+            elif suggestion == 'default':
                 value = tokenizer_default
             elif callable(suggestion):
                 value = suggestion
             else:
                 raise ValueError(
-                    "Please provide the suggestion as one of the predefined "
-                    "shortcuts, False or a custom callable."
+                    'Please provide the suggestion as one of the predefined '
+                    'shortcuts, False or a custom callable.'
                 )
+
+        if variants and not callable(variants):
+            raise ValueError('Please provide the variants as a custom callable.')
+        self.variants = variants
+
+        if normalizer and not callable(normalizer):
+            raise ValueError('Please provide the normalizer as a custom callable.')
+        self.normalizer = normalizer
 
         self._custom_mapping = mapping
         self.field = field
@@ -685,7 +715,9 @@ class Elasticsearch(DefinitionAnnotation):
 
         if self.suggestion:
             from elasticsearch_dsl import Completion
-            self._mapping = Completion().to_dict()
+            # The standard analyzer will retain numbers unlike the simple
+            # analyzer which is the default.
+            self._mapping = Completion(analyzer='standard').to_dict()
             return self._mapping
 
         if self._custom_mapping is not None:

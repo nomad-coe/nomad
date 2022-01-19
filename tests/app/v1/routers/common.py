@@ -23,6 +23,7 @@ from devtools import debug
 from urllib.parse import urlencode
 
 from nomad.datamodel import results
+from nomad.utils import deep_get
 
 from tests.utils import assert_at_least, assert_url_query_args
 
@@ -796,3 +797,18 @@ def perform_owner_test(
     test_method(
         client, headers=headers, owner=owner, status_code=status_code, total=total,
         http_method=http_method)
+
+
+def perform_quantity_search_test(quantity, resource, search, result, client):
+    if resource == "materials":
+        if quantity.startswith("results.material"):
+            quantity = quantity[len("results.material."):]
+        else:
+            quantity = f"entries.{quantity}"
+
+    body = {"query": {f"{quantity}": search}}
+    response = client.post(f"{resource}/query", json=body, headers={})
+    assert_response(response, 200)
+    response = response.json()
+    api_result = deep_get(response["data"][0], *quantity.split("."))
+    assert api_result == result

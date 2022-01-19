@@ -43,10 +43,11 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
     )
     data.create_entry(
         upload_id=upload_id,
-        entry_id="suggestions_entry",
+        entry_id="suggestions_entry_1",
         mainfile="test_content/test_entry/mainfile.json",
         results={
             "material": {
+                "material_name": "alpha/beta",
                 "elements": ["C", "H", "Br"],
                 "chemical_formula_hill": "C2H5Br",
                 "chemical_formula_anonymous": "A2B5C",
@@ -61,7 +62,11 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
             },
             "method": {
                 "simulation": {
-                    "program_name": "test_name"
+                    "program_name": "test_name",
+                    "program_version": "10.12",
+                    "dft": {
+                        "xc_functional_names": ["GGA_X_PBE_SOL", "GGA_C_PBE_SOL"]
+                    }
                 }
             },
             "properties": {
@@ -74,6 +79,36 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
                     ]
                 }
             }
+        }
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id="suggestions_entry_2",
+        mainfile="test_content/test_entry/mainfile.json",
+        results={
+            "material": {
+                "chemical_formula_hill": "ClNa",
+            },
+        }
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id="suggestions_entry_3",
+        mainfile="test_content/test_entry/mainfile.json",
+        results={
+            "material": {
+                "chemical_formula_hill": "Ni2O2",
+            },
+        }
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id="suggestions_entry_4",
+        mainfile="test_content/test_entry/mainfile.json",
+        results={
+            "material": {
+                "chemical_formula_hill": "Mg2O2",
+            },
         }
     )
 
@@ -95,15 +130,21 @@ def run_query(quantities, input, client):
     return response
 
 
-def assert_output(response, quantity, output):
-    response = response.json()
-    suggestions = response[quantity]
-    suggestion_values = set([suggestion["value"] for suggestion in suggestions])
-    if isinstance(output, str):
-        output = [output]
-    output = set(output)
-    assert output.issubset(suggestion_values)
-    assert len(suggestions) == len(output)
+def assert_suggestions(quantity, input, output, client):
+    if isinstance(input, str):
+        input = [input]
+    for x in input:
+        response = run_query(quantity, x, client)
+        assert_response(response, 200)
+
+        response = response.json()
+        suggestions = response[quantity]
+        suggestion_values = set([suggestion["value"] for suggestion in suggestions])
+        if isinstance(output, str):
+            output = [output]
+        output = set(output)
+        assert output.issubset(suggestion_values)
+        assert len(suggestions) == len(output)
 
 
 def test_suggestions_unknown(client, example_data_suggestions):
@@ -122,57 +163,39 @@ def test_suggestions_all(client, example_data_suggestions):
     assert_response(response, 200)
 
 
-def test_suggestion_simple(client, example_data_suggestions):
-    """Tests that the suggestions that are built on ES fields work.
-    """
-    quantity = "results.material.symmetry.crystal_system"
-    response = run_query(quantity, "cu", client)
-    assert_response(response, 200)
-    assert_output(response, quantity, "cubic")
-
-
 @pytest.mark.parametrize("quantity, input, output", [
-    ("results.material.symmetry.structure_name", "sa", "rock salt"),
-    ("results.method.simulation.program_name", "name", "test_name"),
-])
-def test_suggestion_default_tokenization(quantity, input, output, client, example_data_suggestions):
-    """Test that the default tokenization works as expected."""
-    response = run_query(quantity, input, client)
-    assert_response(response, 200)
-    assert_output(response, quantity, output)
+    # "simple" tokenizer
+    ("results.material.symmetry.crystal_system", "cu", "cubic"),
 
+    # "default" tokenizer
+    ("results.material.symmetry.structure_name", ["sa", "ro"], "rock salt"),  # Whitespace tokenization
+    ("results.method.simulation.program_name", ["te", "na"], "test_name"),  # Underscore tokenization
+    ("results.material.material_name", ["al", "be"], "alpha/beta"),  # Slash tokenization
+    ("results.method.simulation.program_version", ["10", "12"], "10.12"),  # Dot tokenization and numbers
+    # Input that spans across several tokenized words and does not start from the beginning
+    ("results.method.simulation.dft.xc_functional_names", "PBE_SOL", ["GGA_C_PBE_SOL", "GGA_X_PBE_SOL"]),
 
-def test_nested(client, example_data_suggestions):
-    """Test that fetching suggestions from nested documents works."""
-    quantity = "results.properties.mechanical.bulk_modulus.type"
-    response = run_query(quantity, "euler", client)
-    assert_response(response, 200)
-    assert_output(response, quantity, "birch_euler")
+    # Only "formula" tokenizer
+    ("results.material.chemical_formula_anonymous", ["A2", "B5", "C"], "A2B5C"),
+    ("results.material.chemical_formula_descriptive", ["C2", "H5", "Br"], "C2H5Br"),
+    ("results.material.chemical_formula_reduced", ["C2", "H5", "Br"], "C2H5Br"),
 
+    # "formula" tokenizer and "formula" variants. Note that the best matching
+    # variant is returned
+    ("results.material.chemical_formula_hill", ["Na", "NaC", "NaCl"], "NaCl"),
+    ("results.material.chemical_formula_hill", ["Cl", "ClN", "ClNa"], "ClNa"),
 
-@pytest.mark.parametrize("quantity, input, output", [
-    ("results.material.chemical_formula_hill", "H5", "C2H5Br"),
-    ("results.material.chemical_formula_anonymous", "B5", "A2B5C"),
-    ("results.material.chemical_formula_descriptive", "H5", "C2H5Br"),
-    ("results.material.chemical_formula_reduced", "H5", "C2H5Br"),
-])
-def test_suggestion_formula_tokenization(quantity, input, output, client, example_data_suggestions):
-    """Test that the custom tokenization for formulas works as expected."""
-    response = run_query(quantity, input, client)
-    assert_response(response, 200)
-    assert_output(response, quantity, output)
+    # Tests that all matches are returned even if they share the same matched token
+    ("results.material.chemical_formula_hill", "O2", ["Ni2O2", "Mg2O2"]),
 
+    # Nested fields
+    ("results.properties.mechanical.bulk_modulus.type", "euler", "birch_euler"),
 
-@pytest.mark.parametrize("quantity, input, output", [
+    # Fields with multiple values
     ("results.material.elements", "Br", "Br"),
     ("results.material.functional_type", "semic", "semiconductor"),
     ("results.material.functional_type", "semim", "semimetal"),
     ("results.material.functional_type", "semi", ["semiconductor", "semimetal"]),
 ])
-def test_suggestion_multiple_values(quantity, input, output, client, example_data_suggestions):
-    """Test that suggestions are correctly returned even for quantities that
-    have multiple values.
-    """
-    response = run_query(quantity, input, client)
-    assert_response(response, 200)
-    assert_output(response, quantity, output)
+def test_suggestions_quantities(quantity, input, output, client, example_data_suggestions):
+    assert_suggestions(quantity, input, output, client)
