@@ -210,7 +210,7 @@ export const OverviewEELS = React.memo(({def, section, units}) => {
 
   return <EELS
     className={style.root}
-    data={section}
+    data={[section]}
     layout={{yaxis: {autorange: true}}}
     units={units}
   />

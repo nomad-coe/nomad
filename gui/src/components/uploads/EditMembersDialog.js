@@ -18,14 +18,14 @@
 import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
-  Box, Divider, TextField, MenuItem, Select, StepLabel, Typography
+  Box, Divider, TextField, MenuItem, Select, Typography, FormControl, InputLabel
 } from '@material-ui/core'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import {uploadPageContext} from '../uploads/UploadPage'
-import {Datatable, DatatableTable, DatatableToolbar} from '../datatable/Datatable'
+import {uploadPageContext} from './UploadPage'
+import {Datatable, DatatableTable} from '../datatable/Datatable'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
@@ -64,9 +64,8 @@ function MembersTable() {
     }
   ]
 
-  return <Datatable columns={columns} data={members} >
-    <DatatableToolbar title={`Members (${members.length})`} hideColumns/>
-    <DatatableTable actions={DeleteAction}/>
+  return <Datatable columns={columns} data={members}>
+    <DatatableTable actions={DeleteAction} />
   </Datatable>
 }
 
@@ -78,30 +77,43 @@ function AddMember({...props}) {
   const {members, setMembers, setIsChanged} = useContext(editMembersDialogContext)
   const [isDuplicated, setIsDuplicated] = useState(false)
   const [isValid, setIsValid] = useState(false)
+  const [query, setQuery] = useState('')
 
-  const handleInputChange = useCallback((event, value) => {
-    const query = value.toLowerCase()
-    api.getUsers(query)
-      .then(users => {
-        const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(query) !== -1)
-        withQueryInName.sort((a, b) => {
-          const aValue = a.name.toLowerCase()
-          const bValue = b.name.toLowerCase()
-          if (aValue.startsWith(query)) {
-            return -1
-          } else if (bValue.startsWith(query)) {
-            return 1
-          } else {
-            return 0
-          }
+  const fetchUsers = useCallback((event, value) => {
+    let newQuery = value.toLowerCase()
+    if (!(newQuery.startsWith(query) && suggestions.length === 0) || query === '') {
+      api.getUsers(newQuery)
+        .then(users => {
+          const withQueryInName = users.filter(user => user.name.toLowerCase().indexOf(newQuery) !== -1)
+          withQueryInName.sort((a, b) => {
+            const aValue = a.name.toLowerCase()
+            const bValue = b.name.toLowerCase()
+            if (aValue.startsWith(newQuery)) {
+              return -1
+            } else if (bValue.startsWith(newQuery)) {
+              return 1
+            } else {
+              return 0
+            }
+          })
+          setSuggestions(withQueryInName.slice(0, 5))
         })
-        setSuggestions(withQueryInName.slice(0, 5))
-      })
-      .catch(err => {
-        setSuggestions([])
-        raiseError(err)
-      })
-  }, [api, raiseError])
+        .catch(err => {
+          setSuggestions([])
+          raiseError(err)
+        })
+    }
+    setQuery(newQuery)
+  }, [api, raiseError, query, suggestions])
+
+  let timeout = null
+
+  const handleInputChange = (event, value) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => {
+      fetchUsers(event, value)
+    }, 700)
+  }
 
   const handleChange = (event, value) => {
     if (value && value?.user_id) {
@@ -135,7 +147,8 @@ function AddMember({...props}) {
       renderInput={params => (
         <TextField
           {...params}
-          variant='standard'
+          variant='filled'
+          size='small'
           label='Search the name and select a user from the list'
           placeholder="Member's name"
           margin='normal'
@@ -148,16 +161,25 @@ function AddMember({...props}) {
         The selected user is already in the members list
       </Typography>
     </Box>
-    <StepLabel>{"Select the member's role"}</StepLabel>
-    <Select defaultValue={'Co-author'} style={{width: '100%'}} onChange={(event) => setRole(event.target.value)}>
-      <MenuItem value={'Co-author'}>Co-author</MenuItem>
-      <MenuItem value={'Reviewer'}>Reviewer</MenuItem>
-    </Select>
-    <DialogActions>
-      <Button onClick={handleAdd} color="primary" disabled={isDuplicated || !isValid}>
+    <FormControl variant="filled" fullWidth>
+      <InputLabel htmlFor="role">Select the member&apos;s role</InputLabel>
+      <Select
+        native
+        onChange={(event) => setRole(event.target.value)}
+        inputProps={{
+          name: 'role',
+          id: 'role'
+        }}
+      >
+        <option value={'Co-author'}>Co-author</option>
+        <option value={'Reviewer'}>Reviewer</option>
+      </Select>
+    </FormControl>
+    <Box display="flex" justifyContent="end" paddingY={1}>
+      <Button onClick={handleAdd} color="primary" variant="contained" disabled={isDuplicated || !isValid}>
         Add
       </Button>
-    </DialogActions>
+    </Box>
   </React.Fragment>
 }
 AddMember.propTypes = {
@@ -276,15 +298,12 @@ function EditMembersDialog({...props}) {
         <DialogTitle>Manage upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Upload ID: {upload?.upload_id}
+            You can add new members to this upload.
             <br/>
             The upload includes {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'}.
-            <br/>
-            You can add new members to this upload.
           </DialogContentText>
           <Divider/>
           <AddMember api={api} raiseError={raiseError} {...props}/>
-          <Divider/>
           <MembersTable />
         </DialogContent>
         <DialogActions>

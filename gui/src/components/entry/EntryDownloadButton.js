@@ -17,7 +17,6 @@
  */
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import FileSaver from 'file-saver'
 import { useErrors } from '../errors'
 import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
@@ -38,7 +37,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
     const owner = query.visibility || 'visible'
     const openDownload = (token) => {
       const url = `${apiBase}/v1/entries/${choice}/download?owner=${owner}&signature_token=${token}&json_query=${JSON.stringify(queryStringData)}`
-      FileSaver.saveAs(url, `nomad-${choice}-download.zip`)
+      window.location.assign(url)
     }
 
     if (user) {

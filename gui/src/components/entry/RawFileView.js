@@ -40,7 +40,7 @@ export default function RawFileView({entryId}) {
   }, [setState, entryId])
 
   useEffect(() => {
-    api.entry(entryId).then(entry => {
+    api.get(`/entries/${entryId}`).then(entry => {
       setState({entryData: entry.data, doesNotExist: false})
     }).catch(error => {
       if (error.name === 'DoesNotExist') {

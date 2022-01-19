@@ -21,13 +21,15 @@ import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
 import { refPath, resolveRef } from '../../archive/metainfo'
 import MechanicalProperties from '../../visualization/MechanicalProperties'
+import { useLocation } from 'react-router-dom'
 
 /**
  * Card displaying mechanical properties.
  */
 const MechanicalPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const archiveUrl = `/entry/id/${index.upload_id}/${index.entry_id}/archive`
+  const {pathname} = useLocation()
+  const archiveUrl = `${pathname}/archive`
 
   // Find out which properties are present
   const hasEVCurves = properties.has('energy_volume_curve')

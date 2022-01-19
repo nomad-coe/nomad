@@ -41,6 +41,12 @@ import unidecode
 
 from nomad import config, utils
 
+# The metainfo is defined and used during imports. This is problematic.
+# We import all parsers very early in the infrastructure setup. This will populate
+# the metainfo with parser specific definitions, before the metainfo might be used.
+from nomad.parsing import parsers  # pylint: disable=unused-import
+
+
 logger = utils.get_logger(__name__)
 
 elastic_client = None
@@ -81,22 +87,16 @@ def setup_mongo(client=False):
     return mongo_client
 
 
-def setup_elastic(create_indices=True):
+def setup_elastic():
     ''' Creates connection to elastic search. '''
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
         timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
-
-    # Setup materials index mapping. An alias is used to be able to reindex the
-    # materials with zero downtime. First see to which index the alias points
-    # to. If alias is not set, create it. Update the mapping in the index
-    # pointed to by the alias.
-    if create_indices:
-        from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
-        create_v1_indices()
-        logger.info('initialized v1 elastic indices')
+    from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
+    create_v1_indices()
+    logger.info('initialized v1 elastic indices')
 
     return elastic_client
 

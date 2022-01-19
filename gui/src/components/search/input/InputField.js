@@ -17,7 +17,7 @@
  */
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { Button } from '@material-ui/core'
+import { Button, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useRecoilValue } from 'recoil'
@@ -112,7 +112,6 @@ const InputField = React.memo(({
       return opt
     }
   }, [quantity])
-  const nMaxOptions = metainfoOptions && Object.keys(metainfoOptions).length
 
   // See if the filter has a fixed amount of options. These may have been
   // explicitly provided or defined in the metainfo. If you explicitly specify
@@ -133,9 +132,10 @@ const InputField = React.memo(({
 
   const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity].aggSize
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
+  const nMaxOptions = metainfoOptions && Object.keys(metainfoOptions).length
   const incr = useState(increment || minSize)[0]
   const [loading, setLoading] = useState(false)
-  const agg = useAgg(quantity, visible && !disableOptions)
+  const agg = useAgg(quantity, visible && !disableOptions, minSize)
   const aggCall = useAggCall(quantity)
   const receivedAggSize = agg?.data?.length
   const [filter, setFilter] = useFilterState(quantity)
@@ -190,8 +190,11 @@ const InputField = React.memo(({
   // Show more values
   const handleShowMore = useCallback(() => {
     setLoading(true)
-    const newSize = requestedAggSize + incr
-    aggCall(newSize, 'show_more', () => {
+    let newSize = requestedAggSize + incr
+    aggCall(newSize, 'scroll', true, (response, error) => {
+      if (response?.data?.length === requestedAggSize) {
+        newSize = requestedAggSize
+      }
       setLoading(false)
       setRequestedAggSize(newSize)
     })
@@ -201,7 +204,7 @@ const InputField = React.memo(({
   const handleShowLess = useCallback(() => {
     setRequestedAggSize(old => {
       const newSize = Math.max(old - incr, minSize)
-      aggCall(newSize, 'show_more', () => {})
+      aggCall(newSize, 'scroll', true, () => {})
       return newSize
     })
   }, [aggCall, incr, minSize])
@@ -248,7 +251,8 @@ const InputField = React.memo(({
       : !hide
     const showLess = fixedOptions
       ? false
-      : nItems - incr > 0
+      : (requestedAggSize - incr >= minSize)
+
     const nRows = Math.ceil(nItems * xs / 12)
     const actionsHeight = 34
     let reservedHeight
@@ -284,6 +288,7 @@ const InputField = React.memo(({
       ))}
     </div>
 
+    const noMore = agg?.exhausted && receivedAggSize === requestedAggSize
     let aggComp
     if (fixedOptions) {
       aggComp = items
@@ -298,12 +303,17 @@ const InputField = React.memo(({
       aggComp = <>
         {items}
         <div className={styles.actions}>
-          {showMore && <LoadingButton
-            size="small"
-            onClick={handleShowMore}
-            loading={loading}
-          >Show more
-          </LoadingButton>}
+          {showMore && <Tooltip title={noMore ? 'No more values available' : ''}>
+            <span>
+              <LoadingButton
+                size="small"
+                onClick={handleShowMore}
+                loading={loading}
+                disabled={noMore}
+              >Show more
+              </LoadingButton>
+            </span>
+          </Tooltip>}
           {showLess && <Button size="small"
             onClick={handleShowLess}
           >Show less
@@ -322,7 +332,6 @@ const InputField = React.memo(({
     fixedOptions,
     receivedAggSize,
     requestedAggSize,
-    nMaxOptions,
     incr,
     xs,
     aggCollapse,
@@ -334,7 +343,8 @@ const InputField = React.memo(({
     scale,
     handleShowMore,
     handleShowLess,
-    loading
+    loading,
+    nMaxOptions
   ]
   )
 

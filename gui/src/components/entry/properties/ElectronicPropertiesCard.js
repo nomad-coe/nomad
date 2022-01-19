@@ -21,10 +21,12 @@ import { PropertyCard } from './PropertyCard'
 import { useUnits } from '../../../units'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 import { refPath, resolveRef } from '../../archive/metainfo'
+import { useLocation } from 'react-router-dom'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   const units = useUnits()
-  const archiveUrl = `/entry/id/${index.upload_id}/${index.entry_id}/archive`
+  const {pathname} = useLocation()
+  const archiveUrl = `${pathname}/archive`
 
   // Find out which properties are present
   const hasDos = properties.has('dos_electronic')

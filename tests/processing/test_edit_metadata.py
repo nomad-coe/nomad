@@ -238,7 +238,7 @@ def convert_to_comparable_value_single(quantity, value, format, user):
             owner='user',
             upload_id=None,
             metadata=dict(comment='new comment'),
-            expected_error_loc=('metadata', 'comment')),
+            affected_upload_ids=['id_unpublished_w']),
         id='query-contains-published')])
 def test_edit_metadata(proc_infra, purged_app, example_data_writeable, a_dataset, test_users_dict, kwargs):
     kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]

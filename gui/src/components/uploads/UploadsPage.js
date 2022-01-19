@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useState, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import Markdown from '../Markdown'
 import {
@@ -40,6 +40,7 @@ import {
 import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
 import Quantity from '../Quantity'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -244,24 +245,27 @@ UploadCommands.propTypes = {
 function UploadsPage() {
   const {api} = useApi()
   const errors = useErrors()
-  const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
+  const data = useMemo(() => apiData?.response, [apiData])
   const [unpublished, setUnpublished] = useState(null)
   const [uploadCommands, setUploadCommands] = useState(null)
   const [pagination, setPagination] = useState({
     page_size: 10,
     page: 1,
-    order_by: 'upload_create_time'
+    order_by: 'upload_create_time',
+    order: 'asc'
   })
 
   const fetchData = useCallback(() => {
-    const {page_size, page} = pagination
-    api.get(`/uploads?page_size=${page_size}&page=${page}`)
-      .then(setData)
+    const {page_size, page, order_by, order} = pagination
+    const url = `/uploads?page_size=${page_size}&page=${page}&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`
+    api.get(url, null, {returnRequest: true})
+      .then(setApiData)
       .catch(errors.raiseError)
-    api.get(`/uploads?is_published=false&page_size=0`)
+    api.get(`/uploads?is_published=false&page_size=0&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(setUnpublished)
       .catch(errors.raiseError)
-  }, [pagination, setData, setUnpublished, errors, api])
+  }, [pagination, setApiData, setUnpublished, errors, api])
 
   const handleReload = () => {
     fetchData()
@@ -289,9 +293,9 @@ function UploadsPage() {
       <Box>
         <NewUploadButton color="primary" disabled={isDisabled}/>
         <Box display="inline-block" marginLeft={2}>
-          <Typography hidden={!isDisabled} color="error">
+          {isDisabled && <Typography color="error">
             You have reached maximum number of unpublished uploads!
-          </Typography>
+          </Typography>}
         </Box>
       </Box>
       <Box marginTop={4}>
@@ -308,7 +312,8 @@ function UploadsPage() {
         </Box>
         <Paper>
           <Datatable
-            columns={columns} selectedColumns={columns.map(column => column.key)}
+            columns={columns} shownColumns={columns.map(column => column.key)}
+            sortingColumns={['upload_create_time', 'upload_name', 'last_status_message', 'published']}
             data={data.data || []}
             pagination={combinePagination(pagination, data.pagination)}
             onPaginationChanged={setPagination}
@@ -321,6 +326,9 @@ function UploadsPage() {
               >
                 <ReloadIcon/>
               </TooltipButton>
+              <SourceApiDialogButton maxWidth="lg" fullWidth>
+                <SourceApiCall {...apiData} />
+              </SourceApiDialogButton>
             </DatatableToolbar>
             <DatatableTable actions={UploadActions}>
               <DatatablePagePagination />

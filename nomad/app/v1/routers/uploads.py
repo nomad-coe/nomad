@@ -137,7 +137,7 @@ class UploadProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'upload_create_time'  # Default value
-        assert order_by in ('upload_create_time', 'publish_time'), 'order_by must be a valid attribute'
+        assert order_by in ('upload_create_time', 'publish_time', 'upload_name', 'last_status_message'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -409,7 +409,7 @@ async def get_uploads(
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
     if order_by == 'upload_create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    elif order_by == 'publish_time':
+    else:
         order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
@@ -1498,10 +1498,10 @@ def _get_upload_with_read_access(upload_id: str, user: User, include_others: boo
             of other users is only granted if the upload is published and not under embargo.
     '''
     mongodb_query = _query_mongodb(upload_id=upload_id)
-    if not mongodb_query.count():
+    upload = mongodb_query.first()
+    if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
-    upload = mongodb_query.first()
     if user and (user.is_admin or (str(user.user_id) in upload.viewers)):
         # Ok, the user a viewer, or we have an admin user
         return upload

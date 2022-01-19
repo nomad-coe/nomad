@@ -122,6 +122,7 @@ const StatisticsGrid = React.memo(({
                   quantity={filter}
                   visible
                   draggable
+                  aggId="statistics"
                 />
               </Paper>
             </div>

@@ -29,13 +29,14 @@ from .conftest import (
 
 
 def test_eels(eels):
-    assert len(eels.results.properties.spectroscopy.eels) == 1
-    eels_data = eels.results.properties.spectroscopy.eels[0]
+    assert eels.results.properties.spectroscopy.eels is not None
+    spectroscopy_data = eels.results.properties.spectroscopy.spectrum
+    eels_data = eels.results.properties.spectroscopy.eels
     assert eels_data.resolution.to(ureg.electron_volt).magnitude == pytest.approx(1)
     assert eels_data.min_energy.to(ureg.electron_volt).magnitude == pytest.approx(100)
     assert eels_data.max_energy.to(ureg.electron_volt).magnitude == pytest.approx(200)
     assert eels_data.detector_type == "Quantum GIF"
-    assert eels_data.spectrum.n_values == eels_data.spectrum.count.shape[0] == eels_data.spectrum.energy.shape[0]
+    assert spectroscopy_data.n_values == spectroscopy_data.count.shape[0] == spectroscopy_data.energy.shape[0]
 
 
 def test_bulk_modulus(mechanical):

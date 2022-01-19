@@ -228,6 +228,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     selected,
     onSelectedChanged,
     shownColumns,
+    sortingColumns,
     pagination,
     onPaginationChanged
   } = useDatatableContext()
@@ -270,7 +271,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           align={column.align || 'right'}
           sortDirection={order_by === column.key ? order : false}
         >
-          {withSorting ? <TableSortLabel
+          {withSorting && sortingColumns?.includes(column.key) ? <TableSortLabel
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}
@@ -407,7 +408,7 @@ const useDatatableTableStyles = makeStyles(theme => ({
 }))
 
 /** The actional table, including pagination. Must be child of a Datatable component. */
-export const DatatableTable = React.memo(function DatatableTable({children, actions, details}) {
+export const DatatableTable = React.memo(function DatatableTable({children, actions, details, noHeader}) {
   const classes = useDatatableTableStyles()
   const {shownColumns, data, pagination, onPaginationChanged, selected, withSelectionFeature} = useDatatableContext()
   const {page_size} = pagination
@@ -445,7 +446,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
   }
 
   const table = <Table size="medium" stickyHeader={isScrolling}>
-    <DatatableHeader actions={actions}/>
+    {!noHeader && <DatatableHeader actions={actions}/>}
     <TableBody>
       {dataToShow.map((row, index) => (
         <DatatableRow
@@ -463,6 +464,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
           <TableCell colSpan={numberOfColumns} />
         </TableRow>
       )}
+      <TableRow style={{ height: '1px' }}/>
     </TableBody>
   </Table>
 
@@ -490,6 +492,8 @@ DatatableTable.propTypes = {
   /** Objectal render function or component for row actions. Function and component
    * get row object as "data" prop. */
   actions: PropTypes.elementType,
+  /** Do not show the table header */
+  noHeader: PropTypes.bool,
   /** Optional pagination component, e.g. DatatablePagePagination. */
   children: PropTypes.node
 }
@@ -696,6 +700,7 @@ Datatable.propTypes = {
   /** Optional array of column keys. Only those columns will be visible. Default is to
    * show all columns */
   shownColumns: PropTypes.arrayOf(PropTypes.string),
+  sortingColumns: PropTypes.arrayOf(PropTypes.string),
   /** Optional table data as array of objects. Default is empty table. */
   data: PropTypes.arrayOf(PropTypes.object),
   /** Optional pagination object (e.g. from NOMAD API). Used to display current pagination

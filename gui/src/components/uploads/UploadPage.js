@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
@@ -37,12 +37,15 @@ import WithButton from '../utils/WithButton'
 import PublishedIcon from '@material-ui/icons/Public'
 import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
-import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
-import EditMembersDialog from '../entry/EditMembersDialog'
+import EditMembersDialog from './EditMembersDialog'
+import EditMetaDataDialog from './EditMetaDataDialog'
 import Page from '../Page'
 import { getUrl } from '../nav/Routes'
 import { combinePagination } from '../datatable/Datatable'
 import UploadDownloadButton from '../entry/UploadDownloadButton'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
 const uploadContext = React.createContext()
 
@@ -285,7 +288,9 @@ ProcessingStatus.propTypes = {
 
 const useStyles = makeStyles(theme => ({
   stepper: {
-    backgroundColor: 'inherit'
+    backgroundColor: 'inherit',
+    paddingLeft: 0,
+    paddingRight: 0
   },
   stepContent: {
     marginBottom: theme.spacing(2)
@@ -315,37 +320,43 @@ function UploadPage() {
   })
   const [deleteClicked, setDeleteClicked] = useState(false)
   const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
   const [uploading, setUploading] = useState(null)
   const [err, setErr] = useState(null)
   const upload = data?.upload
   const setUpload = useMemo(() => (upload) => {
     setData(data => ({...data, upload: upload}))
   }, [setData])
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
 
   const isProcessing = upload?.process_running
 
-  const fetchData = useMemo(() => () => {
-    api.get(`/uploads/${uploadId}/entries`, pagination)
-      .then(results => setData(results))
+  const fetchData = useCallback(() => () => {
+    api.get(`/uploads/${uploadId}/entries`, pagination, {returnRequest: true})
+      .then(apiData => {
+        setApiData(apiData)
+        setData(apiData.response)
+      })
       .catch((error) => {
-        if (error instanceof DoesNotExist && deleteClicked) {
-          history.push(getUrl('uploads', location))
-        } else {
+        if (!(error instanceof DoesNotExist && deleteClicked)) {
           (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, history, errors, location])
+  }, [api, uploadId, pagination, deleteClicked, errors, setData, setApiData])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
     if (isProcessing) {
-      const interval = setInterval(fetchData, 1000)
+      const interval = setInterval(fetchData(), 1000)
       return () => clearInterval(interval)
+    } else if (deleteClicked) {
+      history.push(getUrl('uploads', location))
     }
-  }, [fetchData, isProcessing])
+  }, [fetchData, isProcessing, deleteClicked, history, location])
 
   // initial fetching of upload data
-  useEffect(fetchData, [fetchData])
+  useEffect(fetchData(), [fetchData])
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -366,7 +377,7 @@ function UploadPage() {
 
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
-      .then(fetchData)
+      .then(fetchData())
       .catch(errors.raiseError)
   }
 
@@ -374,6 +385,13 @@ function UploadPage() {
     api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
       .then(results => setUpload(results.data))
       .catch(errors.raiseError)
+  }
+
+  const handleLiftEmbargo = () => {
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
+      .then(fetchData())
+      .catch(errors.raiseError)
+    setOpenEmbargoConfirmDialog(false)
   }
 
   const handleReprocess = () => {
@@ -411,6 +429,14 @@ function UploadPage() {
   const isAuthenticated = api.keycloak.authenticated
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
+
+  const onConfirm = () => {
+    if (isEmpty) {
+      handleDelete()
+    } else {
+      setOpenConfirmDialog(true)
+    }
+  }
 
   return <uploadPageContext.Provider value={contextValue}>
     <Page limitedWidth>
@@ -455,11 +481,28 @@ function UploadPage() {
               <ReprocessIcon />
             </Tooltip>
           </IconButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleDelete}>
+          <SourceApiDialogButton maxWidth="lg" fullWidth>
+            <SourceApiCall {...apiData} />
+          </SourceApiDialogButton>
+          <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
           </IconButton>
+          <Dialog
+            open={openConfirmDialog}
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogContent>
+              <DialogContentText id="alert-dialog-description">
+                The upload is not empty. Are you sure you want to delete this upload?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+              <Button onClick={handleDelete}>Delete</Button>
+            </DialogActions>
+          </Dialog>
         </Grid>
       </Grid>
       <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
@@ -503,7 +546,7 @@ function UploadPage() {
           </StepContent>
         </Step>
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
-          <StepLabel>Edit metadata</StepLabel>
+          <StepLabel>Edit author metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
               You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
@@ -515,22 +558,35 @@ function UploadPage() {
               You can either select and edit individual entries from the list above, or
               edit all entries at once.
             </Typography>
-            {!isEmpty && <EditUserMetadataDialog
-              example={data.data[0].entry_metadata || {}}
-              query={{'upload_id': [uploadId]}}
-              total={data.pagination.total}
-              onEditComplete={() => setPagination({...pagination})}
-              buttonProps={{variant: 'contained', color: 'primary', disabled: isProcessing}}
-              text={`Edit metadata of all ${data.pagination.total} entries`}
-              withoutLiftEmbargo={!isPublished}
-            />}
+            {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
-            {isPublished && <Typography>This upload has already been published.</Typography>}
+            {isPublished && <Typography className={classes.stepContent}>
+              {upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${new Date(upload?.publish_time).toLocaleString()}.`
+                : `This upload has already been published.`}
+            </Typography>}
             {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
+            {isPublished && upload?.with_embargo && upload?.embargo_length > 0 &&
+              <Button onClick={() => setOpenEmbargoConfirmDialog(true)} variant='contained' color='primary' disabled={isProcessing}>
+                Lift Embargo
+              </Button>}
+            <Dialog
+              open={openEmbargoConfirmDialog}
+              aria-describedby="alert-dialog-description"
+            >
+              <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                  You are about lifting the embargo. The data will be publicly accessible.
+                </DialogContentText>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenEmbargoConfirmDialog(false)} autoFocus>Cancel</Button>
+                <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
+              </DialogActions>
+            </Dialog>
           </StepContent>
         </Step>}
       </Stepper>

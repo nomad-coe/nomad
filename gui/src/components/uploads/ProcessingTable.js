@@ -25,9 +25,9 @@ import {
   Datatable, DatatablePagePagination, DatatableTable,
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
-import EditUserMetadataDialog from '../entry/EditUserMetadataDialog'
 import Quantity from '../Quantity'
 import {uploadPageContext} from './UploadPage'
+import EditMetaDataDialog from './EditMetaDataDialog'
 
 const columns = [
   {
@@ -86,7 +86,7 @@ const defaultSelectedColumns = [
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
-  const {data, pagination, onPaginationChanged} = props
+  const {pagination} = props
   const {upload, isWriter} = useContext(uploadPageContext)
 
   const selectedQuery = useMemo(() => {
@@ -105,14 +105,7 @@ export default function ProcessingTable(props) {
       <DatatableToolbar title={`${pagination.total} search results`}>
         <DatatableToolbarActions selection>
           <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
-          {isWriter && <EditUserMetadataDialog
-            example={selected === 'all' ? data[0] : selected[0]}
-            query={selectedQuery}
-            total={pagination.total}
-            onEditComplete={() => onPaginationChanged({...pagination})} // simply trigger a refresh
-            buttonProps={{variant: 'contained', color: 'primary', disabled: upload?.process_running}}
-            withoutLiftEmbargo={!upload.published}
-          />}
+          {isWriter && <EditMetaDataDialog isIcon selectedEntries={selectedQuery}/>}
         </DatatableToolbarActions>
       </DatatableToolbar>
       <DatatableTable actions={EntryRowActions} details={EntryDetails}>
