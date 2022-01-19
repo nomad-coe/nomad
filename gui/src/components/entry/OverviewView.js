@@ -33,6 +33,7 @@ import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../bu
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
 import { defsByName } from '../archive/metainfo'
+import FilesCard from './properties/FilesCard'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -190,6 +191,7 @@ const OverviewView = React.memo((props) => {
           .filter(section => metadata.quantities.indexOf(section.quantity) !== -1)
           .map((section, index) => <SectionCard key={index} {...section} />)}
         <MaterialCard index={index} archive={archive} properties={properties}/>
+        <FilesCard />
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>

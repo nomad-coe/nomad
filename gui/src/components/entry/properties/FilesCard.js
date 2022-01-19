@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import React from 'react'
-import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import { Box, Grid, Typography } from '@material-ui/core'
 
