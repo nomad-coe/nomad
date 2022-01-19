@@ -391,13 +391,15 @@ bundle_import = NomadConfig(
 
 north = NomadConfig(
     hub_ip_connect='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    hub_connect_url=None,
     hub_ip='0.0.0.0',
     docker_network=None,
     hub_host='localhost',
     hub_port=9000,
     shared_fs='.volumes/fs/north/shared',
     users_fs='.volumes/fs/north/users',
-    jupyterhub_crypt_key=None
+    jupyterhub_crypt_key=None,
+    windows=True  # enable windows (as in windows the OS) hacks
 )
 
 

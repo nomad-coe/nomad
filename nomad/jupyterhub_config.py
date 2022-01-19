@@ -193,6 +193,24 @@ class NomadDockerSpawner(DockerSpawner):
 
         return await super().start(image, extra_create_kwargs, extra_host_config)
 
+    def _docker(self, method, *args, **kwargs):
+        if config.north.windows:
+            tries = 0
+            max_tries = 1
+            if method == 'port':
+                max_tries = 3
+            while tries < max_tries:
+                result = super()._docker(method, *args, **kwargs)
+                if result is not None:
+                    break
+                import time
+                time.sleep(3)
+                tries += 1
+
+            return result
+        else:
+            return super()._docker(method, *args, **kwargs)
+
 
 # launch with docker
 c.JupyterHub.spawner_class = NomadDockerSpawner
@@ -203,6 +221,8 @@ if config.north.docker_network:
 c.JupyterHub.hub_ip_connect = config.north.hub_ip_connect
 if config.north.hub_ip:
     c.JupyterHub.hub_ip = config.north.hub_ip
+if config.north.hub_connect_url:
+    c.DockerSpawner.hub_connect_url = config.north.hub_connect_url
 
 
 def configure_default(spawner: DockerSpawner):
