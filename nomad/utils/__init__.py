@@ -40,6 +40,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 
 from typing import List, Iterable
 from collections import OrderedDict
+from functools import reduce
 import base64
 from contextlib import contextmanager
 import json
@@ -504,3 +505,11 @@ def flat(obj, prefix=None):
         return result
     else:
         return obj
+
+
+def deep_get(dictionary, *keys):
+    '''
+    Helper that can be used to access nested dictionary-like containers using a
+    series of paths given as arguments.
+    '''
+    return reduce(lambda d, key: d.get(key) if d else None, keys, dictionary)

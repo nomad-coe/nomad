@@ -181,7 +181,7 @@ class SystemNormalizer(SystemBasedNormalizer):
         # formulas
         system.chemical_composition = atoms.get_chemical_formula(mode='all')
         system.chemical_composition_reduced = atoms.get_chemical_formula(mode='reduce')
-        system.chemical_composition_hill = atoms.get_chemical_formula(mode='hill')
+        system.chemical_composition_hill = atomutils.get_formula_hill(atoms.get_chemical_formula())
 
         # positions
         atom_positions = get_value(Atoms.positions, numpy=True, source=system.atoms)

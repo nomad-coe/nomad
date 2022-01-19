@@ -27,7 +27,46 @@ from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entries_with_materials,
     entry_type, material_type, material_entry_type, entry_index, material_index)
 
+from tests.utils import ExampleData
 from tests.conftest import clear_elastic_infra
+from tests.app.v1.routers.common import perform_quantity_search_test
+
+
+@pytest.fixture(scope="module")
+def example_data_normalizers(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+    data = ExampleData(main_author=test_user)
+    upload_id = "normalizer_upload"
+
+    data.create_upload(
+        upload_id=upload_id,
+        published=True
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id="normalizer_entry",
+        material_id="normalizer_material",
+        mainfile="test_content/test_entry/mainfile.json",
+        results={"material": {"chemical_formula_hill": "H2O"}}
+    )
+
+    data.save()
+
+    yield
+
+    data.delete()
+    from nomad.search import search
+    assert search(query=dict(upload_id=upload_id)).pagination.total == 0
+
+
+@pytest.mark.parametrize('quantity, search_str, response_str', [
+    pytest.param("results.material.chemical_formula_hill", "OH2", "H2O", id='formula-reorder')
+])
+def test_normalizer(quantity, search_str, response_str, api_v1, example_data_normalizers):
+    """Test that the normalizer specified for different annotations works
+    properly in the API queries.
+    """
+    for resource in ["entries", "materials"]:
+        perform_quantity_search_test(quantity, resource, search_str, response_str, api_v1)
 
 
 class Material(MSection):
@@ -290,7 +329,7 @@ def test_index_docs(indices):
         formula='H20', springer_labels=['water'])
     results.m_create(
         Properties,
-        data=data, n_series=data, band_gap=1e-12, available_properties=['data', 'band_grap'])
+        data=data, n_series=data, band_gap=1e-12, available_properties=['data', 'band_gap'])
 
     entry_doc = entry_type.create_index_doc(entry)
     material_entry_doc = material_entry_type.create_index_doc(entry)
@@ -315,7 +354,7 @@ def test_index_docs(indices):
                 'springer_labels': ['water']
             },
             'properties': {
-                'available_properties': ['data', 'band_grap'],
+                'available_properties': ['data', 'band_gap'],
                 'band_gap': 1e-12,
                 'data': {
                     'n_points': 2
@@ -329,7 +368,7 @@ def test_index_docs(indices):
         'entry_id': 'test_entry_id',
         'results': {
             'properties': {
-                'available_properties': ['data', 'band_grap'],
+                'available_properties': ['data', 'band_gap'],
                 'band_gap': 1e-12,
                 'data': {
                     'n_points': 2

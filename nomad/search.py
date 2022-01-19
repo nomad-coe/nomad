@@ -79,16 +79,17 @@ def update_by_query(
     '''
     if query is None:
         query = {}
-    es_query = _api_to_es_query(query)
-    if owner is not None:
-        es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    es_query_normalized = normalize_api_query(cast(Query, query), doc_type=entry_type)
+    owner_query = _owner_es_query(owner=owner, user_id=user_id, doc_type=entry_type)
+    es_query_validated = validate_api_query(es_query_normalized, entry_type, owner_query)
 
     body = {
         'script': {
             'source': update_script,
             'lang': 'painless'
         },
-        'query': es_query.to_dict()
+        'query': es_query_validated.to_dict()
     }
 
     body['script'].update(**kwargs)
@@ -119,11 +120,13 @@ def delete_by_query(
     '''
     if query is None:
         query = {}
-    es_query = _api_to_es_query(query)
-    es_query &= _owner_es_query(owner=owner, user_id=user_id)
+
+    es_query_normalized = normalize_api_query(cast(Query, query), doc_type=entry_type)
+    owner_query = _owner_es_query(owner=owner, user_id=user_id, doc_type=entry_type)
+    es_query_validated = validate_api_query(es_query_normalized, entry_type, owner_query)
 
     body = {
-        'query': es_query.to_dict()
+        'query': es_query_validated.to_dict()
     }
 
     try:
@@ -307,83 +310,6 @@ def _es_to_entry_dict(hit, required: MetadataRequired = None) -> Dict[str, Any]:
                 del(author['email'])
 
     return entry_dict
-
-
-def _api_to_es_query(query: models.Query) -> Q:
-    '''
-    Creates an ES query based on the API's query model. This needs to be a normalized
-    query expression with explicit objects for logical, set, and comparison operators.
-    Shorthand notations ala ``quantity:operator`` are not supported here; this
-    needs to be resolved via the respective pydantic validator. There is also no
-    validation of quantities and types.
-    '''
-    def quantity_to_es(name: str, value: models.Value) -> Q:
-        # TODO depends on keyword or not, value might need normalization, etc.
-        quantity = entry_type.quantities[name]
-        return Q('match', **{quantity.search_field: value})
-
-    def parameter_to_es(name: str, value: models.CriteriaValue) -> Q:
-
-        if isinstance(value, models.All):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, models.Any_):
-            return Q('bool', should=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, models.None_):
-            return Q('bool', must_not=[
-                quantity_to_es(name, item)
-                for item in value.op])
-
-        if isinstance(value, models.Range):
-            quantity = entry_type.quantities[name]
-            return Q('range', **{quantity.search_field: value.dict(
-                exclude_unset=True,
-            )})
-
-        # list of values is treated as an "all" over the items
-        if isinstance(value, list):
-            return Q('bool', must=[
-                quantity_to_es(name, item)
-                for item in value])
-
-        return quantity_to_es(name, cast(models.Value, value))
-
-    def query_to_es(query: models.Query) -> Q:
-        if isinstance(query, models.LogicalOperator):
-            if isinstance(query, models.And):
-                return Q('bool', must=[query_to_es(operand) for operand in query.op])
-
-            if isinstance(query, models.Or):
-                return Q('bool', should=[query_to_es(operand) for operand in query.op])
-
-            if isinstance(query, models.Not):
-                return Q('bool', must_not=query_to_es(query.op))
-
-            raise NotImplementedError()
-
-        if isinstance(query, models.Empty):
-            return Q()
-
-        if not isinstance(query, dict):
-            raise NotImplementedError()
-
-        # dictionary is like an "and" of all items in the dict
-        if len(query) == 0:
-            return Q()
-
-        if len(query) == 1:
-            key = next(iter(query))
-            return parameter_to_es(key, query[key])
-
-        return Q('bool', must=[
-            parameter_to_es(name, value) for name, value in query.items()])
-
-    return query_to_es(query)
 
 
 def _owner_es_query(owner: str, user_id: str = None, doc_type: DocumentType = entry_type):
@@ -630,8 +556,11 @@ def validate_api_query(
                     f'Could not parse optimade filter: {e}',
                     loc=[name])
 
-        # TODO non keyword quantities, quantities with value transformation, type checks
+        # TODO non keyword quantities, type checks
         quantity = validate_quantity(name, value, doc_type=doc_type)
+        normalizer = quantity.annotation.normalizer
+        if normalizer:
+            value = normalizer(value)
         return Q('match', **{quantity.search_field: value})
 
     def validate_query(query: Query) -> EsQuery:
