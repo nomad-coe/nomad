@@ -198,7 +198,7 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
               <QuantityCell quantity={`${structurePath}.lattice_parameters.gamma`} label="γ"/>
             </QuantityRow>
             <QuantityRow>
-              <QuantityCell colSpan={3} quantity={`${structurePath}.cell_volume`}/>
+              <QuantityCell colSpan={2} quantity={`${structurePath}.cell_volume`}/>
             </QuantityRow>
           </QuantityTable>
           : <NoData/>}

@@ -130,7 +130,7 @@ const InputField = React.memo(({
   }, [initialSize, filterData, quantity, metainfoOptions])
   const nFixedOptions = fixedOptions && Object.keys(fixedOptions).length
 
-  const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity].aggSize
+  const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggDefaultSize
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
   const nMaxOptions = metainfoOptions && Object.keys(metainfoOptions).length
   const incr = useState(increment || minSize)[0]

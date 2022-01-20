@@ -28,23 +28,33 @@ export default function GeometryOptimizationCard({index, archive, properties}) {
   // Find out which properties are present
   const hasGeometryOptimization = properties.has('geometry_optimization')
 
-  // Do not show the card if none of the properties are available
+  // Do not show the card if none of the properties are available, or if only
+  // one step is calculated.
   if (!hasGeometryOptimization) {
     return null
   }
 
-  // Resolve geometry optimization data
-  let geometryOptimization = hasGeometryOptimization ? null : false
-  const geoOptProps = archive?.results?.properties?.geometry_optimization
-  const geoOptMethod = index.results.method?.simulation?.geometry_optimization
-  if (geoOptProps) {
-    geometryOptimization = {}
-    geometryOptimization.energies = resolveRef(geoOptProps.energies, archive)
-    geometryOptimization.convergence_tolerance_energy_difference = geoOptMethod?.convergence_tolerance_energy_difference
+  // Resolve energies
+  let energies = hasGeometryOptimization ? null : false
+  const geoOptPropsArchive = archive?.results?.properties?.geometry_optimization
+  if (hasGeometryOptimization && archive) {
+    energies = resolveRef(geoOptPropsArchive.energies, archive)
+  }
+
+  // Resolve convergence properties
+  let convergence = false
+  const geoOptProps = index?.results?.properties?.geometry_optimization
+  const geoOptMethod = index.results?.method?.simulation?.geometry_optimization
+  if (hasGeometryOptimization) {
+    convergence = {...geoOptMethod, ...geoOptProps}
   }
 
   return <PropertyCard title="Geometry optimization">
-    <GeometryOptimization data={geometryOptimization} units={units} />
+    <GeometryOptimization
+      energies={energies}
+      convergence={convergence}
+      units={units}
+    />
   </PropertyCard>
 }
 

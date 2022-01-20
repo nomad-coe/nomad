@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet, isNil, isString, isNumber } from 'lodash'
+import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
 import { toUnitSystem, Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
+// import { filterData } from './components/search/FilterRegistry'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -365,11 +366,14 @@ export function formatNumber(value, type = 'float64', decimals = 3, scientific =
     return formatted
   }
   if (scientific) {
-    if (value > 1e3 || value < 1e-3) {
-      formatted = Number(Number.parseFloat(value).toExponential(decimals))
-      if (separators) {
-        formatted = formatted.toLocaleString()
-      }
+    if (separators) {
+      throw Error('Scientific form with separators not available.')
+    }
+    const absValue = Math.abs(value)
+    if (absValue > 1e3 || absValue < 1e-3) {
+      // Notice how we have to do this kind of chain to get a format that uses
+      // exponential notation but does not have trailing zeroes.
+      formatted = parseFloat(value.toExponential(decimals)).toExponential()
       return formatted
     }
   }
@@ -682,4 +686,16 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     ? format ? formatNumber(count, 'int', 0, false, true) : count
     : ''
   return `${isNil(number) ? '' : `${number} `}${isNil(prefix) ? '' : `${prefix} `}${form}`
+}
+
+/**
+ * Used to create a label from the metainfo name.
+ * @param {str} name Metainfo name
+ * @returns A formatted label constructed from the metainfo name.
+ */
+export function getLabel(name) {
+  let label = searchQuantities[name]?.name || name
+  label = label.replace(/_/g, ' ')
+  label = startCase(label)
+  return label
 }

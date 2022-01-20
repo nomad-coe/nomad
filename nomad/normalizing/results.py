@@ -397,6 +397,7 @@ class ResultsNormalizer(Normalizer):
                         geo_opt_prop.energies = geo_opt_wf
                     geo_opt_prop.final_energy_difference = geo_opt_wf.final_energy_difference
                     geo_opt_prop.final_force_maximum = geo_opt_wf.final_force_maximum
+                    geo_opt_prop.final_displacement_maximum = geo_opt_wf.final_displacement_maximum
                 properties.geometry_optimization = geo_opt_prop
 
                 return
