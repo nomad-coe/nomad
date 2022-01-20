@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isNil, isString } from 'lodash'
-import { setToArray, getDatatype, getSerializer, getDeserializer } from '../../utils'
+import { isNil } from 'lodash'
+import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { getDimension } from '../../units'
 import InputList from './input/InputList'
@@ -27,7 +27,7 @@ import elementData from '../../elementData'
 export const filterGroups = [] // Mapping from a group name -> set of filter names
 export const filterAbbreviations = [] // Mapping of filter full name -> abbreviation
 export const filterFullnames = [] // Mapping of filter abbreviation -> full name
-export const filterDataGlobal = {} // Stores data for each registered filter
+export const filterData = {} // Stores data for each registered filter
 
 // Labels for the filter menus
 export const labelMaterial = 'Material'
@@ -49,34 +49,40 @@ export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 export const labelArchive = 'Archive'
+export const labelWorkflow = 'Workflow'
 
 /**
  * This function is used to register a new filter within the SearchContext.
  * Filters are entities that can be searched through the filter panel and the
  * search bar, and can be encoded in the URL. Notice that a filter in this
- * context does not have to correspond to a quantity in the metainfo.
+ * context does not necessarily have to correspond to a quantity in the
+ * metainfo, altought typically this is preferrable.
  *
  * Only registered filters may be searched for. The registration must happen
  * before any components use the filters. This is because:
  *  - The initial aggregation results must be fetched before any components
  *  using the filter values are rendered.
  *  - Several components need to know the list of available filters (e.g. the
- *  search bar and  the search panel). If filters are only registered during
+ *  search bar and the search panel). If filters are only registered during
  *  component initialization, it may already be too late to update other
  *  components.
  *
  * @param {string} name Name of the filter.
  * @param {string} group The group into which the filter belongs to. Groups
  * are used to e.g. in showing FilterSummaries about a group of filters.
- * @param {quantity} options Data object containing options for the filter. Can
+ * @param {obj} config Data object containing options for the filter. Can
  * include the following data:
   *  - agg: Object containing a custom setter/getter for the aggregation value.
-  *      As a shortcut you can provide an ES aggregation type as a string,
-  *  - value: Object containfig a custom setter/getter for the filter value.
+  *      As a shortcut you can provide an ES aggregation config as a string,
+  *      e.g.  "terms".
+  *  - aggDefaultSize: The default aggregation size, may be overridden.
+  *  - value: Object containing a custom setter/getter for the filter value.
   *  - multiple: Whether the user can simultaneously provide multiple values for
   *      this filter.
-  *  - exclusive: Whether this filter is exclusive: only one value may be
-  *      associated with an entry.
+  *  - queryMode: The default query mode (e.g. 'any', 'all) when multiple values
+  *      can specified for this filter. Defaults to 'any'.
+  *  - exclusive: Whether this filter is exclusive: only one value is
+  *      associated with a single entry.
   *  - stats: Object that determines how this filter is visualized if it is
   *      docked above the search results.
   *  - options: Object containing explicit options that this filter supports.
@@ -92,80 +98,105 @@ export const labelArchive = 'Archive'
   *  - description: Description of the filter shown e.g. in the tooltips. If no
   *      value is given and the name corresponnds to a metainfo, the metainfo
   *      description is used.
-  *  - queryMode: The default query mode (e.g. 'any', 'all) when multiple values
-  *    can specified for this filter. Defaults to 'any'.
   *  - guiOnly: Whether this filter is only shown in the GUI and does not get
-  *    serialized into the API call.
+  *      serialized into the API call.
   *  - default: A default value which is implicitly enforced in the API call.
-  *    This value will not be serialized in the search bar.
-  *  - resources: A list of resources for which this filter is enabled.
-  *  - aggSize: Aggregation size.
+  *      This value will not be serialized in the search bar.
+  *  - resources: A list of resources (entries, materials) for which this filter
+  *      is enabled. Default is that a filter is available both for entries and
+  *      materials.
   */
-function save(name, group, quantity) {
+function saveFilter(name, group, config) {
   if (group) {
     filterGroups[group]
       ? filterGroups[group].add(name)
       : filterGroups[group] = new Set([name])
   }
 
-  const data = filterDataGlobal[name] || {}
-  const agg = quantity.agg
+  const data = filterData[name] || {}
+  const agg = config.agg
   if (agg) {
-    let aggSet, aggGet
-    if (isString(agg)) {
-      aggSet = {[name]: {type: agg}}
-      // Notice how here we have to introduce another inner function in order to
-      // get the value of "name" at the time this function was called.
-      aggGet = ((name, agg) => (aggs) => aggs[name][agg].data)(name, agg)
-    } else {
-      aggSet = agg.set
-      aggGet = agg.get
-    }
-    data.aggSet = aggSet
-    data.aggGet = aggGet
+    // Notice how here we have to introduce another inner function in order to
+    // get the value of "name" and "type" at the time this function is created.
+    data.aggGet = agg.get || ((name, type) => (aggs) => aggs[name][type].data)(name, agg)
+    data.aggSet = agg.set || {[name]: {[agg]: {}}}
   }
-  if (quantity.value) {
-    data.valueSet = quantity.value.set
+  if (config.value) {
+    data.valueSet = config.value.set
   }
-  data.multiple = quantity.multiple === undefined ? true : quantity.multiple
-  data.exclusive = quantity.exclusive === undefined ? true : quantity.exclusive
-  data.stats = quantity.stats
-  data.options = quantity.options
-  data.unit = quantity.unit || searchQuantities[name]?.unit
-  data.dtype = quantity.dtype || getDatatype(name)
+  data.aggDefaultSize = config.aggDefaultSize
+  data.multiple = config.multiple === undefined ? true : config.multiple
+  data.exclusive = config.exclusive === undefined ? true : config.exclusive
+  data.stats = config.stats
+  data.options = config.options
+  data.unit = config.unit || searchQuantities[name]?.unit
+  data.dtype = config.dtype || getDatatype(name)
   data.serializerExact = getSerializer(data.dtype, false)
   data.serializerPretty = getSerializer(data.dtype, true)
   data.dimension = getDimension(data.unit)
   data.deserializer = getDeserializer(data.dtype, data.dimension)
-  data.label = quantity.label
+  data.label = config.label || getLabel(name)
   data.section = !isNil(searchQuantities[name]?.nested)
-  data.description = quantity.description
-  data.scale = quantity.scale || 1
-  data.aggSize = quantity.aggSize
-  data.aggSizeOverride = quantity.aggSizeOverride
+  data.description = config.description || searchQuantities[name]?.description
+  data.scale = config.scale || 1
   if (data.queryMode && !data.multiple) {
     throw Error('Only filters that accept multiple values may have a query mode.')
   }
-  data.queryMode = quantity.queryMode || 'any'
-  data.guiOnly = quantity.guiOnly
-  if (quantity.default && !data.guiOnly) {
+  data.queryMode = config.queryMode || 'any'
+  data.guiOnly = config.guiOnly
+  if (config.default && !data.guiOnly) {
     throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
   }
-  data.default = quantity.default
-  data.resources = new Set(quantity.resources || ['entries', 'materials'])
-  filterDataGlobal[name] = data
+  data.default = config.default
+  data.resources = new Set(config.resources || ['entries', 'materials'])
+  filterData[name] = data
 }
 
-function registerFilter(name, group, quantity, subQuantities) {
-  save(name, group, quantity)
-
-  // Register section subquantities
+/**
+ * Used to register a filter value for an individual metaifo quantity or
+ * section.
+ */
+function registerFilter(name, group, config, subQuantities) {
+  saveFilter(name, group, config)
   if (subQuantities) {
-    for (let quantity of subQuantities) {
-      let subname = `${name}.${quantity.name}`
-      save(subname, group, quantity)
+    for (let subConfig of subQuantities) {
+      let subname = `${name}.${subConfig.name}`
+      saveFilter(subname, group, subConfig)
     }
   }
+}
+
+/**
+ * Used to register a filter that is based on a subset of quantity values.
+ */
+function registerFilterOptions(name, group, target, label, description, options) {
+  const keys = Object.keys(options)
+  registerFilter(
+    name,
+    group,
+    {
+      stats: listStatConfig,
+      agg: {
+        // Notice how here we have to introduce another inner function in order
+        // to get the value of "target" at the time this function is created.
+        get: ((target) => (aggs) => aggs[target].terms.data)(target),
+        set: {[target]: {terms: {include: keys}}}
+      },
+      aggDefaultSize: keys.length,
+      value: {
+        set: (newQuery, oldQuery, value) => {
+          const data = newQuery[target] || new Set()
+          value.forEach((item) => { data.add(item) })
+          newQuery[`${target}:all`] = data
+        }
+      },
+      multiple: true,
+      exclusive: false,
+      options: options,
+      label: label,
+      description: description
+    }
+  )
 }
 
 // Presets for the docked statistics
@@ -185,17 +216,17 @@ const ptStatConfig = {
 }
 
 // Presets for different kind of quantities
-const termQuantity = {agg: 'terms', stats: listStatConfig, aggSize: 5}
+const termQuantity = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig}
 const termQuantityBool = {
   agg: 'terms',
+  aggDefaultSize: 2,
   stats: listStatConfig,
-  aggSize: 2,
   options: {
     false: {label: 'false'},
     true: {label: 'true'}
   }
 }
-const termQuantityNonExclusive = {agg: 'terms', stats: listStatConfig, exclusive: false, aggSize: 5}
+const termQuantityNonExclusive = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig, exclusive: false}
 const noAggQuantity = {stats: listStatConfig}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
@@ -229,7 +260,7 @@ registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, l
 registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
 registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
-registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggSize: 10})
+registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})
 registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
 registerFilter('entry_id', labelIDs, noAggQuantity)
 registerFilter('upload_id', labelIDs, noAggQuantity)
@@ -243,20 +274,20 @@ registerFilter(
   [
     {name: 'detector_type', ...termQuantity},
     {name: 'resolution', ...rangeQuantity},
-    // {name: 'min_energy', ...rangeQuantity},
-    // {name: 'max_energy', ...rangeQuantity}
     {
       name: 'energy_window',
       stats: listStatConfig,
       agg: {
         set: {
           'results.properties.spectroscopy.eels.min_energy': {
-            type: 'min_max',
-            exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+            min_max: {
+              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+            }
           },
           'results.properties.spectroscopy.eels.max_energy': {
-            type: 'min_max',
-            exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+            min_max: {
+              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
+            }
           }
         },
         get: (aggs) => {
@@ -337,9 +368,21 @@ registerFilter(
     {name: 'type', ...termQuantity}
   ]
 )
+registerFilter(
+  'results.properties.geometry_optimization',
+  labelWorkflow,
+  nestedQuantity,
+  [
+    {name: 'final_energy_difference', ...rangeQuantity},
+    {name: 'final_displacement_maximum', ...rangeQuantity},
+    {name: 'final_force_maximum', ...rangeQuantity}
+  ]
+)
+
 // Visibility: controls the 'owner'-parameter in the API query, not part of the
 // query itself.
 registerFilter('visibility', labelAccess, {...noQueryQuantity, default: 'visible'})
+
 // Combine: controls whether materials search combines data from several
 // entries.
 registerFilter('combine', undefined, {
@@ -347,6 +390,7 @@ registerFilter('combine', undefined, {
   default: true,
   resources: ['materials']
 })
+
 // Exclusive: controls the way elements search is done.
 registerFilter('exclusive', undefined, {...noQueryQuantity, default: false})
 
@@ -358,7 +402,7 @@ registerFilter(
   {
     stats: ptStatConfig,
     agg: 'terms',
-    aggSize: elementData.elements.length,
+    aggDefaultSize: elementData.elements.length,
     value: {
       set: (newQuery, oldQuery, value) => {
         if (oldQuery.exclusive) {
@@ -375,137 +419,82 @@ registerFilter(
     queryMode: 'all'
   }
 )
+
 // Electronic properties: subset of results.properties.available_properties
-const electronicOptions = {
-  'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
-  band_structure_electronic: {label: 'Band structure'},
-  dos_electronic: {label: 'Density of states'}
-}
-const electronicProps = new Set(Object.keys(electronicOptions))
-registerFilter(
+registerFilterOptions(
   'electronic_properties',
   labelElectronic,
+  'results.properties.available_properties',
+  'Electronic properties',
+  'The electronic properties that are present in an entry.',
   {
-    stats: listStatConfig,
-    agg: {
-      set: {'results.properties.available_properties': {type: 'terms'}},
-      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-        .filter((value) => electronicProps.has(value.value)))
-    },
-    aggSizeOverride: 200,
-    value: {
-      set: (newQuery, oldQuery, value) => {
-        const data = newQuery['results.properties.available_properties'] || new Set()
-        value.forEach((item) => { data.add(item) })
-        newQuery['results.properties.available_properties:all'] = data
-      }
-    },
-    multiple: true,
-    exclusive: false,
-    options: electronicOptions,
-    label: 'Electronic properties',
-    description: 'The electronic properties that are present in an entry.'
+    'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
+    band_structure_electronic: {label: 'Band structure'},
+    dos_electronic: {label: 'Density of states'}
   }
 )
+
 // Vibrational properties: subset of results.properties.available_properties
-export const vibrationalOptions = {
-  dos_phonon: {label: 'Phonon density of states'},
-  band_structure_phonon: {label: 'Phonon band structure'},
-  energy_free_helmholtz: {label: 'Helmholtz free energy'},
-  heat_capacity_constant_volume: {label: 'Heat capacity constant volume'}
-}
-const vibrationalProps = new Set(Object.keys(vibrationalOptions))
-registerFilter(
+registerFilterOptions(
   'vibrational_properties',
   labelVibrational,
+  'results.properties.available_properties',
+  'Vibrational properties',
+  'The vibrational properties that are present in an entry.',
   {
-    stats: listStatConfig,
-    agg: {
-      set: {'results.properties.available_properties': {type: 'terms'}},
-      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-        .filter((value) => vibrationalProps.has(value.value)))
-    },
-    aggSizeOverride: 200,
-    value: {
-      set: (newQuery, oldQuery, value) => {
-        const data = newQuery['results.properties.available_properties'] || new Set()
-        value.forEach((item) => { data.add(item) })
-        newQuery['results.properties.available_properties:all'] = data
-      }
-    },
-    multiple: true,
-    exclusive: false,
-    options: vibrationalOptions,
-    label: 'Vibrational properties',
-    description: 'The vibrational properties that are present in an entry.'
+    dos_phonon: {label: 'Phonon density of states'},
+    band_structure_phonon: {label: 'Phonon band structure'},
+    energy_free_helmholtz: {label: 'Helmholtz free energy'},
+    heat_capacity_constant_volume: {label: 'Heat capacity constant volume'}
   }
 )
+
 // Mechanical properties: subset of results.properties.available_properties
-export const mechanicalOptions = {
-  bulk_modulus: {label: 'Bulk modulus'},
-  shear_modulus: {label: 'Shear modulus'},
-  energy_volume_curve: {label: 'Energy-volume curve'}
-}
-const mechanicalProps = new Set(Object.keys(mechanicalOptions))
-registerFilter(
+registerFilterOptions(
   'mechanical_properties',
   labelMechanical,
+  'results.properties.available_properties',
+  'Mechanical properties',
+  'The mechanical properties that are present in an entry.',
   {
-    stats: listStatConfig,
-    agg: {
-      set: {'results.properties.available_properties': {type: 'terms'}},
-      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-        .filter((value) => mechanicalProps.has(value.value)))
-    },
-    aggSizeOverride: 200,
-    value: {
-      set: (newQuery, oldQuery, value) => {
-        const data = newQuery['results.properties.available_properties'] || new Set()
-        value.forEach((item) => { data.add(item) })
-        newQuery['results.properties.available_properties:all'] = data
-      }
-    },
-    multiple: true,
-    exclusive: false,
-    options: mechanicalOptions,
-    label: 'Mechanical properties',
-    description: 'The mechanical properties that are present in an entry.'
+    bulk_modulus: {label: 'Bulk modulus'},
+    shear_modulus: {label: 'Shear modulus'},
+    energy_volume_curve: {label: 'Energy-volume curve'}
   }
 )
+
 // Spectroscopic properties: subset of results.properties.available_properties
-export const spectroscopicOptions = {
-  eels: {label: 'Electron energy loss spectrum'}
-}
-const spectroscopicProps = new Set(Object.keys(spectroscopicOptions))
-registerFilter(
+registerFilterOptions(
   'spectroscopic_properties',
   labelSpectroscopy,
+  'results.properties.available_properties',
+  'Spectroscopic properties',
+  'The spectroscopic properties that are present in an entry.',
   {
-    stats: listStatConfig,
-    agg: {
-      set: {'results.properties.available_properties': {type: 'terms'}},
-      get: (aggs) => (aggs['results.properties.available_properties'].terms.data
-        .filter((value) => spectroscopicProps.has(value.value)))
-    },
-    aggSizeOverride: 200,
-    value: {
-      set: (newQuery, oldQuery, value) => {
-        const data = newQuery['results.properties.available_properties'] || new Set()
-        value.forEach((item) => { data.add(item) })
-        newQuery['results.properties.available_properties:all'] = data
-      }
-    },
-    multiple: true,
-    exclusive: false,
-    options: spectroscopicOptions,
-    label: 'Spectroscopic properties',
-    description: 'The spectroscopic properties that are present in an entry.'
+    eels: {label: 'Electron energy loss spectrum'}
   }
 )
+
+// Workflow properties: subset of metadata.quantities
+registerFilterOptions(
+  'workflow',
+  labelWorkflow,
+  'quantities',
+  'Workflow',
+  'The workflows present in an entry.',
+  {
+    'workflow.geometry_optimization': {label: 'Geometry optimization'},
+    'workflow.molecular_dynamics': {label: 'Molecular dynamics'},
+    'workflow.elastic': {label: 'Elastic constants'},
+    'workflow.phonon': {label: 'Phonons'},
+    'workflow.single_point': {label: 'Single point'}
+  }
+)
+
 // The filter abbreviation mapping has to be done only after all filters have
 // been registered.
 const abbreviations = {}
-const nameAbbreviationPairs = [...Object.keys(filterDataGlobal)].map(
+const nameAbbreviationPairs = [...Object.keys(filterData)].map(
   fullname => [fullname, fullname.split('.').pop()])
 for (const [fullname, abbreviation] of nameAbbreviationPairs) {
   const old = abbreviations[abbreviation]

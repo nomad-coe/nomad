@@ -341,10 +341,10 @@ def test_entries_all_metrics(client, data):
             },
             7, 7, 200, 'test_user', id='entries-exclude'),
         pytest.param(
-            {'terms': {'quantity': 'entry_id', 'value_filter': '_0'}},
+            {'terms': {'quantity': 'entry_id', 'include': '_0'}},
             9, 9, 200, None, id='filter'),
         pytest.param(
-            {'terms': {'quantity': 'entry_id', 'value_filter': '.*_0.*'}},
+            {'terms': {'quantity': 'entry_id', 'include': '.*_0.*'}},
             -1, -1, 422, None, id='bad-filter')
     ])
 def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):

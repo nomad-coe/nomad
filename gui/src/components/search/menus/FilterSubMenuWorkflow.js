@@ -19,13 +19,12 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
 import InputSection from '../input/InputSection'
+import InputField from '../input/InputField'
 import { useUnits } from '../../../units'
-import { InputCheckboxValue } from '../input/InputCheckbox'
 
-const FilterSubMenuEELS = React.memo(({
+const FilterSubMenuWorkflow = React.memo(({
   value,
   ...rest
 }) => {
@@ -33,43 +32,42 @@ const FilterSubMenuEELS = React.memo(({
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
 
-  return <FilterSubMenu
-    value={value}
-    actions={<InputCheckboxValue
-      quantity="results.method.method_name"
-      value="EELS"
-      label=""
-      description="Search EELS entries"
-    />}
-    {...rest}>
+  return <FilterSubMenu value={value} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
+        <InputField
+          quantity="workflow"
+          visible={visible}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.spectroscopy.eels"
+          section="results.properties.geometry_optimization"
           visible={visible}
         >
           <InputSlider
-            quantity="results.properties.spectroscopy.eels.resolution"
+            quantity="results.properties.geometry_optimization.final_energy_difference"
             units={units}
             visible={visible}
           />
           <InputSlider
-            quantity="results.properties.spectroscopy.eels.energy_window"
+            quantity="results.properties.geometry_optimization.final_force_maximum"
             units={units}
             visible={visible}
           />
-          <InputField
-            quantity="results.properties.spectroscopy.eels.detector_type"
+          <InputSlider
+            quantity="results.properties.geometry_optimization.final_displacement_maximum"
+            units={units}
             visible={visible}
-            xs={12}
           />
         </InputSection>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuEELS.propTypes = {
+FilterSubMenuWorkflow.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuEELS
+export default FilterSubMenuWorkflow

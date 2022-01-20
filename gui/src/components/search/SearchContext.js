@@ -45,7 +45,7 @@ import { useErrors } from '../errors'
 import { combinePagination } from '../datatable/Datatable'
 import { inputSectionContext } from './input/InputSection'
 import {
-  filterDataGlobal,
+  filterData as filterDataGlobal,
   filterAbbreviations,
   filterFullnames,
   materialNames,
@@ -626,7 +626,7 @@ export const SearchContext = React.memo(({
     const useAgg = (name, update = true, size = undefined, id = 'default') => {
       const setAgg = useSetRecoilState(aggsFamily(name))
       const aggResponse = useRecoilValue(aggsResponseFamily(name))
-      const aggSize = size || filterData[name].aggSize
+      const aggSize = size || filterData[name]?.aggDefaultSize
 
       useEffect(() => {
         setAgg(old => {
@@ -1329,9 +1329,9 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
  * API.
  *
  * @param {object} aggs The aggregation data as constructed by the GUI.
+ * @param {object} updatedFilters Set of filters that were updated together with
+ * this call.
  * @param {string} resource The resource we are looking at: entries or materials.
- * @param {bool} update Whether to force the update of aggregations, overriding
- * the update-attribute of each aggregation.
  *
  * @returns {object} Aggregation query that is usable by the API.
  */
@@ -1342,21 +1342,23 @@ function toAPIAgg(aggs, updatedFilters, resource) {
       const agg = aggs[key]
       const aggSet = filterDataGlobal[key].aggSet
       if (aggSet) {
-        for (const [key, data] of Object.entries(aggSet)) {
+        for (const [quantity, data] of Object.entries(aggSet)) {
           // If filter has been updated and the filter values are exclusive, the
           // filter is excluded from the aggregation.
-          const type = data.type
-          const exclude = data.exclude
-            ? data.exclude(updatedFilters)
-            : updatedFilters.has(key) && filterDataGlobal[key].exclusive
-          const name = resource === 'materials' ? materialNames[key.split(':')[0]] : key
-          const apiAgg = apiAggs[name] || {}
-          apiAgg[type] = {
-            quantity: name,
-            exclude_from_search: exclude,
-            size: agg.size
+          for (const [type, options] of Object.entries(data)) {
+            const exclude = options.exclude
+              ? options.exclude(updatedFilters)
+              : updatedFilters.has(key) && filterDataGlobal[key].exclusive
+            const name = resource === 'materials' ? materialNames[quantity.split(':')[0]] : quantity
+            const apiAgg = apiAggs[name] || {}
+            apiAgg[type] = {
+              quantity: name,
+              exclude_from_search: exclude,
+              ...options,
+              size: agg.size
+            }
+            apiAggs[name] = apiAgg
           }
-          apiAggs[name] = apiAgg
         }
       }
     }
@@ -1441,13 +1443,6 @@ function reduceAggs(aggs, oldAggs, queryChanged) {
       if (!isNil(config.size) && config.size > size) {
         size = config.size
       }
-    }
-
-    // Some aggregations require us to load more data than what we are currently
-    // showing (e.g. properties lists).
-    const sizeOverride = filterDataGlobal[key].aggSizeOverride
-    if (sizeOverride) {
-      size = sizeOverride
     }
 
     // If the query has not changed, see if there is an old aggregation which

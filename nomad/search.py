@@ -766,9 +766,12 @@ def _api_to_es_aggregation(
                 else:
                     agg.size = 10
 
-            terms_kwargs = {}
-            if agg.value_filter is not None:
-                terms_kwargs['include'] = '.*%s.*' % agg.value_filter
+            terms_kwargs: Dict[str, Any] = {}
+            if agg.include is not None:
+                if isinstance(agg.include, str):
+                    terms_kwargs["include"] = f'.*{agg.include}.*'
+                else:
+                    terms_kwargs["include"] = agg.include
 
             terms = A('terms', field=quantity.search_field, size=agg.size, **terms_kwargs)
             es_agg = es_aggs.bucket(agg_name, terms)

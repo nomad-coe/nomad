@@ -1165,6 +1165,8 @@ class GeometryOptimizationProperties(MSection):
     final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
     final_energy_difference = GeometryOptimization.final_energy_difference.m_copy()
     final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    final_displacement_maximum = GeometryOptimization.final_displacement_maximum.m_copy()
+    final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
 
 
 class MolecularDynamicsProperties(MSection):

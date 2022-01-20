@@ -41,6 +41,7 @@ import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
 import FilterSubMenuIDs from './FilterSubMenuIDs'
 import FilterSubMenuArchive from './FilterSubMenuArchive'
+import FilterSubMenuWorkflow from './FilterSubMenuWorkflow'
 import {
   labelMaterial,
   labelElements,
@@ -60,7 +61,8 @@ import {
   labelIDs,
   labelAccess,
   labelSpectroscopy,
-  labelArchive
+  labelArchive,
+  labelWorkflow
 } from '../FilterRegistry'
 import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
@@ -115,6 +117,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelVibrational} depth={1}/>
       <FilterMenuItem value={labelMechanical} depth={1}/>
       <FilterMenuItem value={labelSpectroscopy} depth={1}/>
+      <FilterMenuItem value={labelWorkflow} depth={1}/>
       <FilterMenuItem value={labelAuthor} depth={0}/>
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
@@ -145,6 +148,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuVibrational value={labelVibrational}/>
         <FilterSubMenuMechanical value={labelMechanical}/>
         <FilterSubMenuSpectroscopy value={labelSpectroscopy}/>
+        <FilterSubMenuWorkflow value={labelWorkflow}/>
         <FilterSubMenuAuthor value={labelAuthor}/>
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>

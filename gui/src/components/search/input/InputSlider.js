@@ -25,13 +25,13 @@ import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { InputTextField } from './InputText'
-import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
+import { Quantity, Unit, toUnitSystem, toSI, getDimension } from '../../../units'
 import { formatNumber } from '../../../utils'
 import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 
 function format(value) {
-  return formatNumber(value, 'float', 6, true)
+  return formatNumber(value, 'float', 3, true)
 }
 
 const useStyles = makeStyles(theme => ({
@@ -45,9 +45,12 @@ const useStyles = makeStyles(theme => ({
   },
   textField: {
     marginTop: 0,
-    marginBotton: 0,
+    marginBottom: 0,
     flexGrow: 1,
-    width: '10rem'
+    width: '16rem'
+  },
+  textInput: {
+    textOverflow: 'ellipsis'
   },
   container: {
     width: '100%'
@@ -77,6 +80,7 @@ const InputSlider = React.memo(({
   quantity,
   description,
   step,
+  nSteps,
   visible,
   className,
   classes,
@@ -248,6 +252,15 @@ const InputSlider = React.memo(({
     setError()
   }, [])
 
+  // The final step value. If an explicit step is given, it is used. Otherwise
+  // the available range is broken down into a number of steps, and the closest
+  // power of ten (in the current unit system) is used.
+  const rangeSI = maxLocal - minLocal
+  const rangeCustom = toUnitSystem(rangeSI, unitSI, units)
+  const stepFinalCustom = Math.pow(10, (Math.ceil(Math.log10(rangeCustom / nSteps))))
+  const stepFinalSI = toSI(stepFinalCustom, units[getDimension(unitSI)])
+  const stepFinal = stepSI || stepFinalSI || undefined
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputHeader
       quantity={quantity}
@@ -263,6 +276,7 @@ const InputSlider = React.memo(({
             disabled={disabled}
             label="min"
             className={styles.textField}
+            inputProps={{className: styles.textInput}}
             value={minText}
             margin="normal"
             onChange={handleChange(startChanged, setMinText)}
@@ -275,7 +289,7 @@ const InputSlider = React.memo(({
               color="secondary"
               min={minLocal}
               max={maxLocal}
-              step={stepSI}
+              step={stepFinal}
               value={[range.gte, range.lte]}
               onChange={handleRangeChange}
               onChangeCommitted={handleRangeCommit}
@@ -306,12 +320,17 @@ InputSlider.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
-  step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]).isRequired,
+  step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]),
+  nSteps: PropTypes.number,
   visible: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
   'data-testid': PropTypes.string
+}
+
+InputSlider.defaultProps = {
+  nSteps: 20
 }
 
 export default InputSlider

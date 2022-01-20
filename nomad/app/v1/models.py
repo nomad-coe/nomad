@@ -856,10 +856,11 @@ class TermsAggregation(BucketAggregation):
         maximum number of aggregated values to return. If you need to exaust all
         possible value, use `pagination`.
         '''))
-    value_filter: Optional[pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')] = Field(  # type: ignore
+    include: Optional[Union[List[str], pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')]] = Field(  # type: ignore
         None, description=strip('''
-        An optional filter for values. Only values that contain the filter as substring
-        will be part of the statistics.
+        An optional filter for aggregation values. You can either specify a
+        single string which must be contained in the aggregation value or then
+        provide an array of keywords for which the aggregation will be created.
 
         This is only available for non paginated aggregations.
         '''))
