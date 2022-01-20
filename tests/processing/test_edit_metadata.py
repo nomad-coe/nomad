@@ -33,7 +33,7 @@ all_coauthor_metadata = dict(
     coauthors=['lhofstadter'],
     external_id='31415926536',
     comment='a humble comment',
-    references=['a reference', 'another reference'],
+    references=['http://reference1.com', 'http://reference2.com'],
     external_db='AFLOW',
     reviewers=['lhofstadter'],
     datasets=['test_dataset_1'])
@@ -359,25 +359,32 @@ def test_set_and_clear_all(proc_infra, example_data_writeable, example_datasets,
         id='reviewers-remove+set'),
     pytest.param(
         dict(
-            metadata_1=dict(references='ref1'),
-            expected_metadata_1=dict(references=['ref1']),
-            metadata_2=dict(references={'add': ['ref2']}),
-            expected_metadata_2=dict(references=['ref1', 'ref2'])),
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'add': ['http://ref2.com']}),
+            expected_metadata_2=dict(references=['http://ref1.com', 'http://ref2.com'])),
         id='references-add'),
     pytest.param(
         dict(
-            metadata_1=dict(references=['ref1', 'ref2']),
-            expected_metadata_1=dict(references=['ref1', 'ref2']),
-            metadata_2=dict(references={'add': 'ref3', 'remove': ['ref1']}),
-            expected_metadata_2=dict(references=['ref2', 'ref3'])),
+            metadata_1=dict(references=['http://ref1.com', 'http://ref2.com']),
+            expected_metadata_1=dict(references=['http://ref1.com', 'http://ref2.com']),
+            metadata_2=dict(references={'add': 'http://ref3.com', 'remove': ['http://ref1.com']}),
+            expected_metadata_2=dict(references=['http://ref2.com', 'http://ref3.com'])),
         id='references-add+remove'),
     pytest.param(
         dict(
-            metadata_1=dict(references='ref1'),
-            expected_metadata_1=dict(references=['ref1']),
-            metadata_2=dict(references={'remove': 'ref4', 'add': ['ref2', 'ref3', 'ref4']}),
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'remove': 'http://ref4.com', 'add': ['http://ref2.com', 'http://ref3.com', 'http://ref4.com']}),
             expected_error_loc_2=('metadata', 'references')),
-        id='references-add+remove-incoherent')])
+        id='references-add+remove-incoherent'),
+    pytest.param(
+        dict(
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'add': ['http://ref2', 'http://ref3.com']}),
+            expected_error_loc_2=('metadata', 'references')),
+        id='references-not-valid-URL')])
 def test_list_quantities(proc_infra, purged_app, example_data_writeable, example_datasets, test_users_dict, kwargs):
     def replace_dataset_ref(dataset_ref):
         if dataset_ref.startswith('ref:'):

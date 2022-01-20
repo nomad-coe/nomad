@@ -536,6 +536,7 @@ function UploadPage() {
             <ProcessingTable
               data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
               pagination={combinePagination(pagination, data.pagination)}
+              customTitle='entry'
               onPaginationChanged={setPagination}/>
           </StepContent>
         </Step>
