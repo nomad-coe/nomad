@@ -156,7 +156,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
 
         print('performing download')
         response = api.get(
-            'entries/raw/download',
+            'entries/raw',
             params=dict(upload_id=upload['upload_id'], owner='visible'), auth=auth)
         assert response.status_code == 200, response.text
 

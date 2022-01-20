@@ -256,7 +256,7 @@ are:
 
 - `entries/query` - Query entries for metadata
 - `entries/archive/query` - Query entries for archive data
-- `entries/{entry-id}/raw/download` - Download raw data for a specific entry
+- `entries/{entry-id}/raw` - Download raw data for a specific entry
 - `uploads/{upload-id}/raw/path/to/file` - Download a specific file of an upload
 
 ## Common concepts
@@ -392,7 +392,7 @@ files in one big zip-file. Here, you might want to use a program like *curl* to 
 directly from the shell:
 
 ```
-curl "{{ nomad_url() }}/v1/entries/raw/download?results.material.elements=Ti&results.material.elements=O" -o download.zip
+curl "{{ nomad_url() }}/v1/entries/raw?results.material.elements=Ti&results.material.elements=O" -o download.zip
 ```
 
 ## Access archives

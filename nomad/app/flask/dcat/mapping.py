@@ -190,7 +190,7 @@ class Mapping():
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_raw')))
-            self.g.add((dist, DCAT.accessURL, URIRef(f'https://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/raw/download')))
+            self.g.add((dist, DCAT.accessURL, URIRef(f'https://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/raw')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
 
         return dist
