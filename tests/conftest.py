@@ -307,7 +307,7 @@ class KeycloakMock:
             last_name=user.last_name, user_id=user.user_id)
         return None
 
-    def get_user(self, user_id=None, username=None):
+    def get_user(self, user_id=None, username=None, email=None):
         if user_id is not None:
             return User(**self.users[user_id])
         elif username is not None:
@@ -315,6 +315,11 @@ class KeycloakMock:
                 if user_values['username'] == username:
                     return User(**user_values)
             raise KeyError('Only test user usernames are recognized')
+        elif email is not None:
+            for user_id, user_values in self.users.items():
+                if user_values['email'] == email:
+                    return User(**user_values)
+            raise KeyError('Only test user emails are recognized')
         else:
             assert False, 'no token based get_user during tests'
 
