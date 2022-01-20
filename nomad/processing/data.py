@@ -61,6 +61,7 @@ from nomad.archive import (
 from nomad.app.v1.models import (
     MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
+import validators
 
 section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow.name
@@ -465,6 +466,8 @@ class MetadataEditRequestHandler:
             assert value is None or type(value) == definition.type, f'Expected a {definition.type.__name__}'
             if definition.name == 'embargo_length':
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
+            if definition.name == 'references':
+                assert validators.url(value), 'Please enter a valid URL ...'
             return None if value == '' else value
         elif definition.type == metainfo.Datetime:
             if value is not None:

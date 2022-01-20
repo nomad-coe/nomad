@@ -670,6 +670,7 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
   // these words, the pluralize-library should be used instead.
   const dictionary = {
     'result': 'results',
+    'search result': 'search results',
     'entry': 'entries',
     'material': 'materials',
     'dataset': 'datasets'
