@@ -929,9 +929,11 @@ class Entry(Proc):
 
             if parser is None:
                 # Should only be possible if the upload is published and we have
-                logger.warn('no parser matches during process, not updating the entry')
+                logger.warn('no parser matches during process')
                 self.warnings = ['no matching parser found during processing']
-            else:
+                parser = parser_dict[self.parser_name]
+
+            if parser is not None:
                 should_parse = True
                 parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
                 if parser_changed:
@@ -940,6 +942,10 @@ class Entry(Proc):
                             'different parser matches during process, use new parser',
                             parser=parser.name)
                         self.parser_name = parser.name  # Parser renamed
+            else:
+                should_parse = False
+                logger.error('could not determine a perser for this entry')
+                self.errors = ['could not determine a parser for this entry']
 
         if should_parse:
             self.set_last_status_message('Initializing metadata')
