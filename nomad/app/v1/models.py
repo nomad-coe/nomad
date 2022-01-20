@@ -1082,10 +1082,14 @@ class MetadataEditListAction(BaseModel):
     '''
     Defines an action to perform on a list quantity. This enables users to add and remove values.
     '''
-    op: str = Field(description=strip('''
-        Defines the type of operation (either `set`, `add` or `remove`)'''))
-    values: Union[str, List[str]] = Field(description=strip('''
-        The value or values to set/add/remove (string or list of strings)'''))
+    set: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to set. Note, a set-operation overwrites the old list with the provided list.
+        If a set-operation is specified, it is therefore not possible to also specify an
+        add- or remove-operation.'''))
+    add: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to add to the list'''))
+    remove: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to remove from the list'''))
 
 
 # Generate model for MetadataEditActions

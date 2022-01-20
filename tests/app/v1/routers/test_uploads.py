@@ -1097,7 +1097,7 @@ def test_delete_upload_raw_path(
             expected_error_loc=('query',)),
         id='query-no-results')])
 def test_post_upload_edit(
-        client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
+        client, proc_infra, example_data_writeable, example_datasets, test_auth_dict, test_users_dict,
         user, upload_id, kwargs):
     '''
     Note, since the endpoint basically just forwards the request to
