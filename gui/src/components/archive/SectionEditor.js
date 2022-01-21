@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import {Box, Button, makeStyles, Select, TextField, Typography} from '@material-ui/core'
+import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -11,14 +11,42 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
       onChange(value)
     }
   }, [onChange])
-  if (property.type?.type_kind === 'python' && property.type?.type_data === 'str' && property.shape?.length === 0) {
-    return <TextField
-      fullWidth variant="filled" value={value || ''} label={property.name}
-      onChange={event => handleChange(event.target.value)}/>
+
+  const handleIntegerValidator = useCallback((value) => {
+    let isValid = Number.parseInt(value)
+    if (onChange && isValid) {
+      onChange(value)
+    }
+  }, [onChange])
+
+  if (property.type?.type_kind === 'python') {
+    if (property.type?.type_data === 'str' && property.shape?.length === 0) {
+      return <TextField
+        fullWidth variant="filled" value={value || ''} label={property.name}
+        onChange={event => handleChange(event.target.value)}/>
+    }
+  } else if (property.type?.type_kind === 'numpy') {
+    if (property.type?.type_data === 'int64' && property.shape?.length === 0) {
+      return <TextField type='number'
+        fullWidth variant="filled" value={value || ''} label={property.name}
+        onChange={event => handleIntegerValidator(event.target.value)}/>
+    } else if (property.type?.type_data === 'uint64' && property.shape?.length === 0) {
+      return <TextField type='number'
+        fullWidth variant="filled" value={value || ''} label={property.name}
+        onChange={event => handleIntegerValidator(event.target.value)}/>
+    } else if (property.type?.type_data === 'float64' && property.shape?.length === 0) {
+      return <TextField type='number'
+        fullWidth variant="filled" value={value || ''} label={property.name}
+        onChange={event => handleChange(event.target.value)}/>
+    }
   } else if (property.type?.type_kind === 'Enum' && property.shape?.length === 0) {
-    return <Select variant="filled" native style={{width: '100%'}} inputProps={{name: property.name, id: property.name}}>
-      {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
-    </Select>
+    return <FormControl variant='filled' size='small' fullWidth>
+      <InputLabel htmlFor={property.name}>{property.name}</InputLabel>
+      <Select native value={value} onChange={(event) => handleChange(event.target.value)}>
+        <option key={''}>{'None'}</option>
+        {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
+      </Select>
+    </FormControl>
   }
   return ''
 })
@@ -42,6 +70,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
   const [savedVersion, setSavedVersion] = useState(0)
   const {metadata, archive, reload} = useEntryContext()
   const hasChanges = version > savedVersion
+
   const handleChange = useCallback((property, value) => {
     section[property.name] = value
     if (onChange) {
@@ -49,6 +78,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     }
     setVersion(value => value + 1)
   }, [section, onChange, setVersion])
+
   const handleSave = useCallback(() => {
     const uploadId = metadata.upload_id
     const {mainfile} = metadata
@@ -71,6 +101,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     }
     setSavedVersion(version)
   }, [setSavedVersion, version, api, raiseError, setSaving, archive, metadata, reload])
+
   return <div className={classes.root}>
     {sectionDef._allProperties.map(property => (
       <Box marginBottom={1} key={property.name}>
