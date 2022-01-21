@@ -52,7 +52,7 @@ class Sample(MSection):
     elements = Quantity(type=str, shape=["*"])
     chemical_formula = Quantity(type=str)
 
-    sample_enum = Quantity(type=MEnum('First', 'Second', 'third'), description='An enum list.')
+    sample_enum = Quantity(type=MEnum('100', '200', '300'), unit='seconds', description='An enum list.')
 
     sample_int = Quantity(
         type=np.dtype(np.int), description='A signed integer number.')

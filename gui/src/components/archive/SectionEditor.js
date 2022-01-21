@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography} from '@material-ui/core'
+import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography, InputAdornment} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
@@ -43,29 +43,34 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
   if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
       return <TextField
-        fullWidth variant="filled" value={value || ''} label={property.name}
+        fullWidth variant="filled" size='small' value={value || ''} label={property.name}
+        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
         onChange={event => handleChange(event.target.value)}/>
     }
   } else if (property.type?.type_kind === 'numpy') {
     if (property.type?.type_data === 'int64' && property.shape?.length === 0) {
       return <TextField onBlur={handleIntegerValidator} error={!!validationError} helperText={validationError}
-        fullWidth variant="filled" value={value || ''} label={property.name}
+        fullWidth variant="filled" size='small' value={value || ''} label={property.name}
+        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
         onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'uint64' && property.shape?.length === 0) {
       return <TextField onBlur={handleUIntegerValidator} error={!!validationError} helperText={validationError}
-        fullWidth variant="filled" value={value || ''} label={property.name}
+        fullWidth variant="filled" size='small' value={value || ''} label={property.name}
+        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
         onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'float64' && property.shape?.length === 0) {
       return <TextField onBlur={handleFloatValidator} error={!!validationError} helperText={validationError}
-        fullWidth variant="filled" value={value || ''} label={property.name}
+        fullWidth variant="filled" size='small' value={value || ''} label={property.name}
+        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
         onChange={event => handleChange(event.target.value)}/>
     }
   } else if (property.type?.type_kind === 'Enum' && property.shape?.length === 0) {
     return <FormControl variant='filled' size='small' fullWidth>
       <InputLabel htmlFor={property.name}>{property.name}</InputLabel>
-      <Select native value={value} onChange={(event) => handleChange(event.target.value)}>
+      <Select native value={value}
+        onChange={(event) => handleChange(event.target.value)}>
         <option key={''}>{''}</option>
-        {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
+        {property.type?.type_data.map(item => <option key={item}>{item} ({property.unit})</option>)}
       </Select>
     </FormControl>
   }
