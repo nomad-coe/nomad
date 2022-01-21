@@ -19,7 +19,7 @@
 import numpy as np
 
 from nomad.metainfo import (
-    MSection, Package, Quantity, SubSection, Datetime, MEnum, Unit)
+    MSection, Package, Quantity, SubSection, Datetime, MEnum)
 from nomad.metainfo.metainfo import Reference, SectionProxy
 
 

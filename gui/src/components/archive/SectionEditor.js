@@ -6,18 +6,39 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 
 const PropertyEditor = React.memo(function PropertyEditor({property, value, onChange}) {
+  const [validationError, setValidationError] = useState('')
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value)
     }
   }, [onChange])
 
-  const handleIntegerValidator = useCallback((value) => {
-    let isValid = Number.parseInt(value)
-    if (onChange && isValid) {
-      onChange(value)
-    }
-  }, [onChange])
+  function isFloat(str) {
+    const num = Number(str)
+    return !!num
+  }
+
+  function isInteger(str) {
+    const num = Number(str)
+    return Number.isInteger(num)
+  }
+
+  function isUInteger(str) {
+    const num = Number(str)
+    return Number.isInteger(num) && num > 0
+  }
+
+  const handleFloatValidator = (event) => {
+    (isFloat(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter a valid number!'))
+  }
+
+  const handleIntegerValidator = (event) => {
+    (isInteger(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter an integer number!'))
+  }
+
+  const handleUIntegerValidator = (event) => {
+    (isUInteger(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter an unsigned integer number!'))
+  }
 
   if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
@@ -27,15 +48,15 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
     }
   } else if (property.type?.type_kind === 'numpy') {
     if (property.type?.type_data === 'int64' && property.shape?.length === 0) {
-      return <TextField type='number'
+      return <TextField onBlur={handleIntegerValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" value={value || ''} label={property.name}
-        onChange={event => handleIntegerValidator(event.target.value)}/>
+        onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'uint64' && property.shape?.length === 0) {
-      return <TextField type='number'
+      return <TextField onBlur={handleUIntegerValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" value={value || ''} label={property.name}
-        onChange={event => handleIntegerValidator(event.target.value)}/>
+        onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'float64' && property.shape?.length === 0) {
-      return <TextField type='number'
+      return <TextField onBlur={handleFloatValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" value={value || ''} label={property.name}
         onChange={event => handleChange(event.target.value)}/>
     }
@@ -43,7 +64,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
     return <FormControl variant='filled' size='small' fullWidth>
       <InputLabel htmlFor={property.name}>{property.name}</InputLabel>
       <Select native value={value} onChange={(event) => handleChange(event.target.value)}>
-        <option key={''}>{'None'}</option>
+        <option key={''}>{''}</option>
         {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
       </Select>
     </FormControl>
