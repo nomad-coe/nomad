@@ -161,7 +161,7 @@ function AddMember({...props}) {
         The selected user is already in the members list
       </Typography>
     </Box>
-    <FormControl variant="filled" fullWidth>
+    <FormControl variant='filled' size='small' fullWidth>
       <InputLabel htmlFor="role">Select the member&apos;s role</InputLabel>
       <Select
         native
