@@ -22,7 +22,6 @@ import PropTypes from 'prop-types'
 import { isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import clsx from 'clsx'
-import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
@@ -90,7 +89,7 @@ const InputList = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const {useAgg, useFilterState, useFilterLocked} = useSearchContext()
+  const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [scale, setScale] = useState(initialScale)
   const [filter, setFilter] = useFilterState(quantity)
@@ -98,12 +97,12 @@ const InputList = React.memo(({
   const { height, ref } = useResizeDetector()
   const aggSize = useMemo(() => Math.floor(height / inputItemHeight), [height])
   const agg = useAgg(quantity, !isNil(height) && visible, aggSize, aggId)
-  const total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
+  const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
-  const desc = description || def?.description || ''
-  const title = label || def?.name
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
 
   const handleChange = useCallback((event, key, selected) => {
     setFilter(old => {
@@ -129,7 +128,7 @@ const InputList = React.memo(({
             key={option.value}
             value={option.value}
             selected={filter ? filter.has(option.value) : false}
-            total={total}
+            max={max}
             onChange={handleChange}
             variant="checkbox"
             count={option.count}
@@ -143,14 +142,14 @@ const InputList = React.memo(({
       component = <InputUnavailable/>
     }
     return [component, index]
-  }, [agg, aggSize, filter, handleChange, scale, locked, total])
+  }, [agg, aggSize, filter, handleChange, scale, locked, max])
 
   return <InputTooltip locked={locked}>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <InputHeader
         quantity={quantity}
-        label={title}
-        description={desc}
+        label={labelFinal}
+        description={descFinal}
         scale={scale}
         onChangeScale={setScale}
         draggable={draggable}
