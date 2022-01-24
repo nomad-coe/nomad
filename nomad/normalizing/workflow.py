@@ -17,6 +17,7 @@
 #
 
 import numpy as np
+from ase import Atoms
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 
 from nomad.normalizing.normalizer import Normalizer
@@ -255,9 +256,14 @@ class GeometryOptimizationNormalizer(TaskNormalizer):
         if not self.section.final_displacement_maximum:
             try:
                 system = self.run.system
+                ase_atoms = [Atoms(
+                    positions=system_i.atoms.positions.magnitude,
+                    cell=system_i.atoms.lattice_vectors.magnitude,
+                    pbc=system_i.atoms.periodic) for system_i in system]
+                _ = [atoms.wrap() for atoms in ase_atoms]
                 displacements = [np.max(np.abs(
-                    system[n].atoms.positions - system[n - 1].atoms.positions)) for n in range(1, len(system))]
-                self.section.final_displacement_maximum = resolve_difference(displacements)
+                    ase_atoms[n].get_positions() - ase_atoms[n - 1].get_positions())) for n in range(1, len(ase_atoms))]
+                self.section.final_displacement_maximum = displacements[np.amax(np.nonzero(displacements))]
             except Exception:
                 pass
 
