@@ -689,9 +689,61 @@ export const SearchContext = React.memo(({
   const [pagination, setPagination] = useRecoilState(paginationState)
   const updateQueryString = useUpdateQueryString()
 
-  // All of the heavier pre-processing, checking, etc. should be done in this
-  // function, as it is the final one that gets called after the debounce
-  // interval.
+  /**
+   * This function is used to sync up API calls so that they update the search
+   * context state in the same order as they were originally issued.
+   *
+   * As we cannot guarantee the order in which the API calls finish, we push all
+   * calls into a queue. The queue makes sure that API calls get resolved in the
+   * original order not matter how long the actual call takes.
+   */
+  const resolve = useCallback(prop => {
+    const {response, timestamp, queryChanged, paginationChanged, search, aggsToUpdate, resource, callback} = prop
+    const data = response.response
+    let next = apiQueue.current[0]
+    if (next !== timestamp) {
+      apiMap.current[timestamp] = prop
+      return
+    }
+    // Update the aggregations if new aggregation data is received. The old
+    // aggregation data is preserved and new information is updated.
+    if (!isEmpty(data.aggregations)) {
+      const newAggs = toGUIAgg(data.aggregations, aggsToUpdate, resource)
+      callback && callback(newAggs)
+      updateAggsResponse(newAggs)
+    } else {
+      callback && callback(null)
+    }
+    // Update the query results if new data is received.
+    if (queryChanged || paginationChanged) {
+      const isExtend = search.pagination.page_after_value
+      paginationResponse.current = data.pagination
+      setResults(old => {
+        const newResults = old ? {...old} : {}
+        isExtend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
+        newResults.pagination = combinePagination(search.pagination, data.pagination)
+        newResults.setPagination = setPagination
+        return newResults
+      })
+    }
+    // Remove this query from queue and see if next can be resolved.
+    apiQueue.current.shift()
+    setApiData(response)
+    const nextTimestamp = apiQueue.current[0]
+    const nextResolve = apiMap.current[nextTimestamp]
+    if (nextResolve) {
+      resolve(nextResolve)
+    }
+  }, [setApiData, setPagination, setResults, updateAggsResponse])
+
+  /**
+   * Function that preprocesses API call requests and finally performs the
+   * actual API call.
+   *
+   * All of the heavier pre-processing, checking, etc. should be done in this
+   * function, as it is the final one that gets called after the debounce
+   * interval.
+   */
   const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, refresh = false, callback = undefined) => {
     // Create the final search object.
     const aggsToUpdate = Object.keys(aggs).filter(key => aggs[key].update)
@@ -750,48 +802,6 @@ export const SearchContext = React.memo(({
     oldQuery.current = query
     oldPagination.current = pagination
 
-    // As we cannot guarantee the order in which the API calls finish, we push
-    // all calls into a queue. The API calls are always made instantly, but the
-    // queue makes sure that API calls get resolved in the original order not
-    // matter how long the actual call takes.
-    function resolve(prop) {
-      const {response, timestamp, queryChanged, paginationChanged, search, resource, callback} = prop
-      const data = response.response
-      let next = apiQueue.current[0]
-      if (next !== timestamp) {
-        apiMap.current[timestamp] = prop
-        return
-      }
-      // Update the aggregations if new aggregation data is received. The old
-      // aggregation data is preserved and new information is updated.
-      if (!isEmpty(data.aggregations)) {
-        const newAggs = toGUIAgg(data.aggregations, aggsToUpdate, resource)
-        callback && callback(newAggs)
-        updateAggsResponse(newAggs)
-      } else {
-        callback && callback(null)
-      }
-      // Update the query results if new data is received.
-      if (queryChanged || paginationChanged) {
-        const isExtend = search.pagination.page_after_value
-        paginationResponse.current = data.pagination
-        setResults(old => {
-          const newResults = old ? {...old} : {}
-          isExtend ? newResults.data = [...newResults.data, ...data.data] : newResults.data = data.data
-          newResults.pagination = combinePagination(search.pagination, data.pagination)
-          newResults.setPagination = setPagination
-          return newResults
-        })
-      }
-      // Remove this query from queue and see if next can be resolved.
-      apiQueue.current.shift()
-      setApiData(response)
-      const nextTimestamp = apiQueue.current[0]
-      const nextResolve = apiMap.current[nextTimestamp]
-      if (nextResolve) {
-        resolve(nextResolve)
-      }
-    }
     const timestamp = Date.now()
     apiQueue.current.push(timestamp)
     api.query(resource, search, {loadingIndicator: true, returnRequest: true})
@@ -802,6 +812,7 @@ export const SearchContext = React.memo(({
           queryChanged,
           paginationChanged,
           search,
+          aggsToUpdate,
           resource,
           callback
         })
@@ -810,14 +821,17 @@ export const SearchContext = React.memo(({
         raiseError(error)
         callback && callback(undefined, error)
       })
-  }, [filterDefaults, resource, api, raiseError, updateAggsResponse, setResults, setApiData, setPagination])
+  }, [filterDefaults, resource, api, raiseError, resolve])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useCallback(debounce(apiCall, 400), [])
 
-  // Intermediate function that ensures that:
-  // - Calls are debounced when necessary
-  // - API calls are made only if necessary
+  /**
+   * Intermediate function that should primarily be used when trying to perform
+   * an API call. Ensures that ensures that:
+   * - Calls are debounced when necessary
+   * - API calls are made only if necessary
+   */
   const apiCallInterMediate = useCallback((query, aggs, pagination, refresh = false, callback = undefined) => {
     if (disableUpdate.current) {
       disableUpdate.current = false

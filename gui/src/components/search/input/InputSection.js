@@ -16,14 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { createContext, useMemo } from 'react'
+import React, { createContext } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
-import { InputCheckboxValue } from './InputCheckbox'
 import { useSearchContext } from '../SearchContext'
 
 export const inputSectionContext = createContext()
@@ -44,7 +42,6 @@ const InputSection = React.memo(({
   label,
   section,
   description,
-  disableSearch,
   className,
   classes,
   children,
@@ -55,38 +52,20 @@ const InputSection = React.memo(({
   const { filterData } = useSearchContext()
 
   // Determine the description and units
-  const def = searchQuantities[section]
+  const def = filterData[section]
   const nested = def?.nested
-  const desc = description || def?.description || ''
-
-  // Get the final label for this section
-  const finalLabel = useMemo(() => {
-    let label = filterData[section]?.label
-    if (!label) {
-      label = searchQuantities[section]?.name || section
-      label = label.replace(/_/g, ' ')
-    }
-    return label
-  }, [filterData, section])
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
 
   return <InputTooltip>
     <div className={clsx(className, styles.root)} data-testid={testID}>
       <InputHeader
         quantity={section}
-        label={finalLabel}
-        description={desc}
+        label={labelFinal}
+        description={descFinal}
         className={styles.label}
         disableStatistics
         disableScale
-        actions={disableSearch
-          ? undefined
-          : <InputCheckboxValue
-            quantity={section}
-            value=""
-            label=""
-            description={`Search for ${finalLabel}`}
-          />
-        }
       />
       <inputSectionContext.Provider value={{
         section: section,
@@ -102,15 +81,10 @@ InputSection.propTypes = {
   label: PropTypes.string,
   section: PropTypes.string.isRequired,
   description: PropTypes.string,
-  disableSearch: PropTypes.bool, // Whether to disable the checkbox that enables searching for this section
   className: PropTypes.string,
   classes: PropTypes.object,
   children: PropTypes.node,
   'data-testid': PropTypes.string
-}
-
-InputSection.defaultProps = {
-  disableSearch: true
 }
 
 export default InputSection

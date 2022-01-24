@@ -31,7 +31,6 @@ import InputHeader from './InputHeader'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
-import searchQuantities from '../../../searchQuantities'
 import { approxInteger } from '../../../utils'
 
 // A fixed 2D, 10x18 array for the element data.
@@ -53,8 +52,7 @@ const useElementStyles = makeStyles(theme => ({
     bottom: 1,
     left: 1,
     right: 1,
-    position: 'absolute',
-    backgroundColor: theme.palette.secondary.veryLight
+    position: 'absolute'
   },
   fit: {
     top: 0,
@@ -137,7 +135,7 @@ const Element = React.memo(({
   selected,
   disabled,
   onClick,
-  total,
+  max,
   count,
   scale,
   localFilter
@@ -150,10 +148,10 @@ const Element = React.memo(({
   const scaler = useMemo(() => scalePow()
     .exponent(scale)
     .domain([0, 1])
-    .range([0, 1])
+    .range([0.1, 1]) // Note that the range should not start from 0
   , [scale])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
-  const finalScale = useMemo(() => scaler(count / total) || 0, [count, total, scaler])
+  const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
 
   // Dynamically calculated styles. The background color is formed by animating
   // opacity: opacity animation can be GPU-accelerated by the browser unlike
@@ -161,7 +159,7 @@ const Element = React.memo(({
   const useDynamicStyles = makeStyles((theme) => {
     return {
       bg: { opacity: isStatisticsEnabled
-        ? (isNil(count) || isNil(total))
+        ? (isNil(count) || isNil(max))
           ? 0
           : finalScale
         : 0.4 },
@@ -238,7 +236,7 @@ Element.propTypes = {
   onClick: PropTypes.func,
   selected: PropTypes.bool,
   disabled: PropTypes.bool,
-  total: PropTypes.number,
+  max: PropTypes.number,
   count: PropTypes.number,
   scale: PropTypes.number,
   localFilter: PropTypes.object
@@ -287,7 +285,7 @@ const InputPeriodicTable = React.memo(({
   aggId
 }) => {
   const styles = useTableStyles()
-  const { useFilterState, useAgg } = useSearchContext()
+  const {filterData, useFilterState, useAgg} = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const localFilter = useRef(new Set())
   const [update, setUpdate] = useState(0)
@@ -300,9 +298,9 @@ const InputPeriodicTable = React.memo(({
   }, [agg])
 
   // Determine the description and title
-  const def = searchQuantities[quantity]
-  const desc = description || def?.description || ''
-  const title = label || def?.name
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
 
   // The selected state of the periodic filter is kept in a local reference.
   // This way simply selecting an element does not cause a full re-render of the
@@ -333,8 +331,8 @@ const InputPeriodicTable = React.memo(({
   const table = useMemo(() => (<div className={styles.root}>
     <InputHeader
       quantity={quantity}
-      label={title}
-      description={desc}
+      label={labelFinal}
+      description={descFinal}
       scale={scale}
       onChangeScale={setScale}
       disableAggSize
@@ -356,7 +354,7 @@ const InputPeriodicTable = React.memo(({
                         disabled={!availableValues[element.symbol]}
                         onClick={() => onElementClicked(element.symbol)}
                         selected={localFilter.current.has(element.symbol)}
-                        total={agg?.total}
+                        max={agg ? Math.max(...agg.data.map(option => option.count)) : 0}
                         count={availableValues[element.symbol]}
                         localFilter={localFilter.current}
                         scale={scale}

@@ -83,7 +83,7 @@ const InputItem = React.memo(({
   disabled,
   tooltip,
   variant,
-  total,
+  max,
   count,
   scale,
   disableStatistics,
@@ -114,7 +114,7 @@ const InputItem = React.memo(({
   const labelComponent = <div className={styles.container}>
     {(isStatisticsEnabled && !disableStatistics) && <StatisticsBar
       className={styles.bar}
-      max={total}
+      max={max}
       value={count}
       scale={scale}
       selected={selected}
@@ -171,7 +171,7 @@ InputItem.propTypes = {
   disabled: PropTypes.bool, // Whether the option should be disabled
   tooltip: PropTypes.string, // Tooltip that is shown for label
   variant: PropTypes.oneOf(['radio', 'checkbox']), // The type of item to display
-  total: PropTypes.number, // Total number for statistics
+  max: PropTypes.number, // Maximum for statistics
   count: PropTypes.number, // Count of these values for statistics
   scale: PropTypes.number, // Scaling of the statistics
   disableStatistics: PropTypes.bool, // Use to disable statistics for this item

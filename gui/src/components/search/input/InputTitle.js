@@ -20,7 +20,6 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 import { inputSectionContext } from './InputSection'
 import { useUnits, Unit } from '../../../units'
@@ -64,7 +63,7 @@ const InputTitle = React.memo(({
     return label
   }, [filterData, quantity, units])
 
-  const finalDescription = description || filterData[quantity].description || searchQuantities[quantity]?.description
+  const finalDescription = description || filterData[quantity].description
 
   return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
     <Typography

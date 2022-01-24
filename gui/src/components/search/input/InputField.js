@@ -107,7 +107,11 @@ const InputField = React.memo(({
     if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
       const opt = {}
       for (const name of metainfoOptions) {
-        opt[name] = {label: name}
+        // We do not display the option for 'not processed': it is more of a
+        // debug value
+        if (name !== 'not processed') {
+          opt[name] = {label: name}
+        }
       }
       return opt
     }
@@ -267,7 +271,7 @@ const InputField = React.memo(({
       reservedHeight = itemHeight + actionHeight
     }
 
-    const total = agg ? Math.max(...agg.data.map(option => option.count)) : 0
+    const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
     const items = visibleOptions && <div
       className={styles.grid}
       style={{gridTemplateRows: `repeat(${nRows}, 1fr)`}}
@@ -281,7 +285,7 @@ const InputField = React.memo(({
           disabled={value.disabled}
           onChange={handleChange}
           variant="checkbox"
-          total={total}
+          max={max}
           count={value.count}
           scale={scale}
         />

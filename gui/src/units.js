@@ -57,11 +57,14 @@ export const useUnits = () => {
 /**
  * Convenience function for getting the dimension of the given unit.
  *
- * @param {string} unit The unit definition for which the dimension is retrieved.
+ * @param {string||Unit} unit The unit definition for which the dimension is retrieved.
  * @returns The metainfo dimension as a string, undefined if no dimension is
  * specified.
  */
 export function getDimension(unit) {
+  if (unit instanceof Unit) {
+    unit = unit.unitDef.name
+  }
   return unitMap[unit]?.dimension
 }
 

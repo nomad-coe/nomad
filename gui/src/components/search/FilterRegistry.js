@@ -18,7 +18,7 @@
 import { isNil } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
-import { getDimension } from '../../units'
+import { getDimension, Quantity } from '../../units'
 import InputList from './input/InputList'
 import InputPeriodicTable from './input/InputPeriodicTable'
 import elementData from '../../elementData'
@@ -76,6 +76,10 @@ export const labelArchive = 'Archive'
   *      As a shortcut you can provide an ES aggregation config as a string,
   *      e.g.  "terms".
   *  - aggDefaultSize: The default aggregation size, may be overridden.
+  *  - minOverride: Used to override the minimum value from a min_max
+  *      aggregation for this field. Use SI units.
+  *  - maxOverride: Used to override the maximum value from a min_max
+  *      aggregation for this field. Use SI units.
   *  - value: Object containing a custom setter/getter for the filter value.
   *  - multiple: Whether the user can simultaneously provide multiple values for
   *      this filter.
@@ -130,6 +134,21 @@ function saveFilter(name, group, config) {
   data.stats = config.stats
   data.options = config.options
   data.unit = config.unit || searchQuantities[name]?.unit
+  data.minOverride = config.minOverride
+  data.maxOverride = config.maxOverride
+  if (data.unit) {
+    const unitDimension = getDimension(data.unit)
+    if (data.minOverride && unitDimension !== getDimension(data.minOverride.unit)) {
+      console.log(unitDimension)
+      console.log(getDimension(data.minOverride.unit))
+      throw Error('The dimension for minOverride and the filter unit do not match.')
+    }
+    if (data.maxOverride && unitDimension !== getDimension(data.maxOverride.unit)) {
+      console.log(unitDimension)
+      console.log(getDimension(data.maxOverride.unit))
+      throw Error('The dimension for maxOverride and the filter unit do not match.')
+    }
+  }
   data.dtype = config.dtype || getDatatype(name)
   data.serializerExact = getSerializer(data.dtype, false)
   data.serializerPretty = getSerializer(data.dtype, true)
@@ -340,7 +359,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', ...rangeQuantity}
+    {name: 'value', minOverride: new Quantity(0, 'electron_volt'), ...rangeQuantity}
   ]
 )
 registerFilter(
@@ -379,9 +398,9 @@ registerFilter(
   labelGeometryOptimization,
   nestedQuantity,
   [
-    {name: 'final_energy_difference', ...rangeQuantity},
-    {name: 'final_displacement_maximum', ...rangeQuantity},
-    {name: 'final_force_maximum', ...rangeQuantity}
+    {name: 'final_energy_difference', maxOverride: new Quantity(0.1, 'electron_volt'), ...rangeQuantity},
+    {name: 'final_displacement_maximum', maxOverride: new Quantity(1, 'angstrom'), ...rangeQuantity},
+    {name: 'final_force_maximum', maxOverride: new Quantity(1E-6, 'newton'), ...rangeQuantity}
   ]
 )
 

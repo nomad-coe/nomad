@@ -333,7 +333,6 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
   const numberOfColumns = columns.length + (withSelectionFeature ? 1 : 0) + (actions ? 1 : 0)
 
   const handleRowCollapseChange = (event) => {
-    event.stopPropagation()
     onRowUncollapsed(uncollapsed ? null : row)
   }
 
