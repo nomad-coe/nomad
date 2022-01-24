@@ -34,7 +34,6 @@ const FilterSubMenuDFT = React.memo(({
     actions={<InputCheckboxValue
       quantity="results.method.method_name"
       value="DFT"
-      label=""
       description="Search DFT entries"
     />}
     {...rest}

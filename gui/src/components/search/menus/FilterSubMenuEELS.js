@@ -38,7 +38,6 @@ const FilterSubMenuEELS = React.memo(({
     actions={<InputCheckboxValue
       quantity="results.method.method_name"
       value="EELS"
-      label=""
       description="Search EELS entries"
     />}
     {...rest}>
