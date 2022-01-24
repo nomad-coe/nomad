@@ -49,8 +49,9 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   }
 
   if (property.m_def === 'SubSection') {
+    if (section && !(property.name in section)) section[property.name] = {}
     return <Compartment title={property.name}>
-      <SectionEditor sectionDef={property._subSection} section={section} />
+      <SectionEditor sectionDef={property._subSection} section={(section && section[property.name])} />
     </Compartment>
   } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
