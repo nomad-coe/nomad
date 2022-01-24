@@ -89,10 +89,10 @@ class Experiment(MSection):
     sample = SubSection(section_def=Sample, description='The used sample.')
     sample_ref = Quantity(type=Reference(Sample.m_def), description='Reference to the used sample.')
 
-    measurement = SubSection(
-        section_def=SectionProxy('Measurement'),
-        repeats=True,
-        description='Measurements performed in this experiment.')
+    #measurement = SubSection(
+    #    section_def=SectionProxy('Measurement'),
+    #    repeats=True,
+    #    description='Measurements performed in this experiment.')
 
 
 class Instrument(MSection):

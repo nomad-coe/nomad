@@ -4,8 +4,16 @@ import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typ
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import {Compartment} from './Browser'
 
-const PropertyEditor = React.memo(function PropertyEditor({property, value, onChange}) {
+const useStyles = makeStyles(theme => ({
+  adornment: {
+    marginRight: theme.spacing(3)
+  }
+}))
+
+const PropertyEditor = React.memo(function PropertyEditor({property, section, value, onChange}) {
+  const classes = useStyles()
   const [validationError, setValidationError] = useState('')
   const handleChange = useCallback((value) => {
     if (onChange) {
@@ -40,37 +48,42 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
     (isUInteger(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter an unsigned integer number!'))
   }
 
-  if (property.type?.type_kind === 'python') {
+  if (property.m_def === 'SubSection') {
+    return <Compartment title={property.name}>
+      <SectionEditor sectionDef={property._subSection} section={section} />
+    </Compartment>
+  } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
       return <TextField
-        fullWidth variant="filled" size='small' value={value || ''} label={property.name}
-        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
+        fullWidth variant="filled" size='small' value={value || ''} label={property.name} multiline={property.name === 'description'} minRows={4}
+        InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}}
         onChange={event => handleChange(event.target.value)}/>
     }
   } else if (property.type?.type_kind === 'numpy') {
     if (property.type?.type_data === 'int64' && property.shape?.length === 0) {
       return <TextField onBlur={handleIntegerValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" size='small' value={value || ''} label={property.name}
-        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
+        InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}}
         onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'uint64' && property.shape?.length === 0) {
       return <TextField onBlur={handleUIntegerValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" size='small' value={value || ''} label={property.name}
-        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
+        InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}}
         onChange={event => handleChange(event.target.value)}/>
     } else if (property.type?.type_data === 'float64' && property.shape?.length === 0) {
       return <TextField onBlur={handleFloatValidator} error={!!validationError} helperText={validationError}
         fullWidth variant="filled" size='small' value={value || ''} label={property.name}
-        InputProps={(property.unit && {endAdornment: <InputAdornment position='end'>{property.unit}</InputAdornment>})}
+        InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}}
         onChange={event => handleChange(event.target.value)}/>
     }
   } else if (property.type?.type_kind === 'Enum' && property.shape?.length === 0) {
     return <FormControl variant='filled' size='small' fullWidth>
       <InputLabel htmlFor={property.name}>{property.name}</InputLabel>
       <Select native value={value}
+        endAdornment={<InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}
         onChange={(event) => handleChange(event.target.value)}>
         <option key={''}>{''}</option>
-        {property.type?.type_data.map(item => <option key={item}>{item} ({property.unit})</option>)}
+        {property.type?.type_data.map(item => <option key={item}>{item}</option>)}
       </Select>
     </FormControl>
   }
@@ -78,6 +91,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, value, onCh
 })
 PropertyEditor.propTypes = {
   property: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
   value: PropTypes.any,
   onChange: PropTypes.func
 }
@@ -133,6 +147,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
       <Box marginBottom={1} key={property.name}>
         <PropertyEditor
           property={property}
+          section={section}
           value={section && section[property.name]} onChange={value => handleChange(property, value)}
         />
       </Box>
