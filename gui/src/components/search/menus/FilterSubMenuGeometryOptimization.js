@@ -18,29 +18,29 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputSlider from '../input/InputSlider'
 import InputSection from '../input/InputSection'
-import InputField from '../input/InputField'
+import { InputCheckboxValue } from '../input/InputCheckbox'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { useUnits } from '../../../units'
 
-const FilterSubMenuWorkflow = React.memo(({
+const FilterSubMenuGeometryOptimization = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
+  const units = useUnits()
 
-  return <FilterSubMenu value={value} {...rest}>
+  return <FilterSubMenu
+    value={value}
+    actions={<InputCheckboxValue
+      quantity="results.properties.available_properties"
+      value="geometry_optimization"
+      description="Search entries with geometry optimization results"
+    />}
+    {...rest}>
     <InputGrid>
-      <InputGridItem xs={12}>
-        <InputField
-          quantity="workflow"
-          visible={visible}
-          disableSearch
-        />
-      </InputGridItem>
       <InputGridItem xs={12}>
         <InputSection
           section="results.properties.geometry_optimization"
@@ -66,8 +66,8 @@ const FilterSubMenuWorkflow = React.memo(({
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuWorkflow.propTypes = {
+FilterSubMenuGeometryOptimization.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuWorkflow
+export default FilterSubMenuGeometryOptimization

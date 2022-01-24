@@ -25,7 +25,7 @@ from ase.formula import Formula
 from nomad import config
 from nomad import atomutils
 from nomad.datamodel.metainfo.measurements import Spectrum
-from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit
+from nomad.datamodel.metainfo.workflow import EquationOfState, EOSFit, Workflow
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
@@ -56,7 +56,7 @@ from nomad.datamodel.metainfo.simulation.method import (
     BasisSet, Scf, Electronic, Smearing, GW as GWMethod
 )  # noqa
 from nomad.datamodel.metainfo.workflow import (
-    GeometryOptimization, Phonon, Elastic, Thermodynamics
+    GeometryOptimization as MGeometryOptimization, Thermodynamics
 )  # noqa
 
 
@@ -814,56 +814,6 @@ class GW(MSection):
     )
 
 
-class GeometryOptimizationMethod(MSection):
-    m_def = Section(
-        description='''
-        Geometry optimization methodology. This methodology applies to the
-        properties presented in results.properties.geometry_optimization.
-        ''',
-    )
-    type = GeometryOptimization.type.m_copy()
-    convergence_tolerance_energy_difference = GeometryOptimization.convergence_tolerance_energy_difference.m_copy()
-    convergence_tolerance_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    convergence_tolerance_force_maximum = GeometryOptimization.convergence_tolerance_force_maximum.m_copy()
-    convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-
-
-class MolecularDynamicsMethod(MSection):
-    m_def = Section(
-        description='''
-        Molecular dynamics methodology. This methodology applies to the
-        properties presented in results.properties.molecular_dynamics.
-        ''',
-    )
-
-
-class VibrationalMethod(MSection):
-    m_def = Section(
-        description='''
-        Vibrational properties methodology. This methodology applies to the
-        properties presented in results.properties.vibrational.
-        ''',
-    )
-    force_calculator = Phonon.force_calculator.m_copy()
-    mesh_density = Phonon.mesh_density.m_copy()
-    random_displacements = Phonon.random_displacements.m_copy()
-    with_non_analytic_correction = Phonon.with_non_analytic_correction.m_copy()
-
-
-class ElasticMethod(MSection):
-    m_def = Section(
-        description='''
-        Elastic properties methodology. This methodology applies to the
-        properties presented in results.properties.elastic.
-        ''',
-    )
-    energy_stress_calculator = Elastic.energy_stress_calculator.m_copy()
-    elastic_calculation_method = Elastic.calculation_method.m_copy()
-    elastic_constants_order = Elastic.elastic_constants_order.m_copy()
-    fitting_error_maximum = Elastic.fitting_error_maximum.m_copy()
-    strain_maximum = Elastic.strain_maximum.m_copy()
-
-
 class QuantumCircuit(MSection):
     processors = Quantity(type=str, shape=['0..*'])
     number_of_registers = Quantity(type=int)
@@ -906,10 +856,6 @@ class Simulation(MSection):
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
-    geometry_optimization = SubSection(sub_section=GeometryOptimizationMethod.m_def, repeats=False)
-    molecular_dynamics = SubSection(sub_section=MolecularDynamicsMethod.m_def, repeats=False)
-    vibrational = SubSection(sub_section=VibrationalMethod.m_def, repeats=False)
-    elastic = SubSection(sub_section=ElasticMethod.m_def, repeats=False)
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
 
 
@@ -958,6 +904,13 @@ class Method(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
+
+    workflow_name = Workflow.type.m_copy()
+    workflow_name.shape = ['*']
+    workflow_name.m_annotations['elasticsearch'] = [
+        Elasticsearch(material_entry_type),
+        Elasticsearch(suggestion='default')
+    ]
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
 
 
@@ -1136,55 +1089,6 @@ class EnergyFreeHelmholtz(MSection):
     )
 
 
-class GeometryOptimizationProperties(MSection):
-    m_def = Section(
-        description='''
-        Properties from a geometry optimization.
-        ''',
-    )
-    trajectory = Quantity(
-        type=Calculation,
-        shape=['0..*'],
-        description='''
-        List of references to each section_single_configuration_calculation in
-        the optimization trajectory.
-        ''',
-    )
-    energies = Quantity(
-        type=GeometryOptimization.energies,
-        description='''
-        List of energy_total values gathered from the single configuration
-        calculations that are a part of the optimization trajectory.
-        ''',
-    )
-    structure_optimized = SubSection(
-        sub_section=StructureOptimized.m_def,
-        repeats=False,
-    )
-    final_force_maximum = GeometryOptimization.final_force_maximum.m_copy()
-    final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    final_energy_difference = GeometryOptimization.final_energy_difference.m_copy()
-    final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    final_displacement_maximum = GeometryOptimization.final_displacement_maximum.m_copy()
-    final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-
-
-class MolecularDynamicsProperties(MSection):
-    m_def = Section(
-        description='''
-        Properties from molecular_dynamics.
-        ''',
-    )
-    trajectory = Quantity(
-        type=Calculation,
-        shape=['0..*'],
-        description='''
-        List of references to each section_single_configuration_calculation in
-        the molecular dynamics trajectory.
-        ''',
-    )
-
-
 class VibrationalProperties(MSection):
     m_def = Section(
         description='''
@@ -1285,6 +1189,44 @@ class ShearModulus(MSection):
     )
 
 
+class GeometryOptimization(MSection):
+    m_def = Section(
+        description='''
+        Geometry optimization results and settings.
+        ''',
+    )
+    trajectory = Quantity(
+        type=Calculation,
+        shape=['0..*'],
+        description='''
+        List of references to each section_single_configuration_calculation in
+        the optimization trajectory.
+        ''',
+    )
+    energies = Quantity(
+        type=MGeometryOptimization.energies,
+        description='''
+        List of energy_total values gathered from the single configuration
+        calculations that are a part of the optimization trajectory.
+        ''',
+    )
+    structure_optimized = SubSection(
+        sub_section=StructureOptimized.m_def,
+        repeats=False,
+    )
+    type = MGeometryOptimization.type.m_copy()
+    convergence_tolerance_energy_difference = MGeometryOptimization.convergence_tolerance_energy_difference.m_copy()
+    convergence_tolerance_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    convergence_tolerance_force_maximum = MGeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    final_force_maximum = MGeometryOptimization.final_force_maximum.m_copy()
+    final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    final_energy_difference = MGeometryOptimization.final_energy_difference.m_copy()
+    final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    final_displacement_maximum = MGeometryOptimization.final_displacement_maximum.m_copy()
+    final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+
+
 class MechanicalProperties(MSection):
     m_def = Section(
         description='''
@@ -1331,12 +1273,11 @@ class Properties(MSection):
         '''
     )
     structures = SubSection(sub_section=Structures.m_def, repeats=False)
-    geometry_optimization = SubSection(sub_section=GeometryOptimizationProperties.m_def, repeats=False)
-    molecular_dynamics = SubSection(sub_section=MolecularDynamicsProperties.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
     mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
     spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
+    geometry_optimization = SubSection(sub_section=GeometryOptimization.m_def, repeats=False)
 
     n_calculations = Quantity(
         type=int,
@@ -1348,7 +1289,7 @@ class Properties(MSection):
     available_properties = Quantity(
         type=str,
         shape=['0..*'],
-        description='List of all properties which are present in this section_results',
+        description='Subset of the property names that are present in this entry.',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 

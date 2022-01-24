@@ -44,12 +44,12 @@ export const labelElectronic = 'Electronic'
 export const labelVibrational = 'Vibrational'
 export const labelMechanical = 'Mechanical'
 export const labelSpectroscopy = 'Spectroscopy'
+export const labelGeometryOptimization = 'Geometry optimization'
 export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 export const labelArchive = 'Archive'
-export const labelWorkflow = 'Workflow'
 
 /**
  * This function is used to register a new filter within the SearchContext.
@@ -249,6 +249,7 @@ registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuant
 registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
 registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: 1 / 4})
+registerFilter('results.method.workflow_name', labelMethod, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: 1 / 4})
 registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
 registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: 1 / 4})
@@ -361,6 +362,11 @@ registerFilter(
   ]
 )
 registerFilter(
+  'results.properties.available_properties',
+  labelProperties,
+  noAggQuantity
+)
+registerFilter(
   'results.properties.mechanical.energy_volume_curve',
   labelMechanical,
   nestedQuantity,
@@ -370,7 +376,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.geometry_optimization',
-  labelWorkflow,
+  labelGeometryOptimization,
   nestedQuantity,
   [
     {name: 'final_energy_difference', ...rangeQuantity},
@@ -472,22 +478,6 @@ registerFilterOptions(
   'The spectroscopic properties that are present in an entry.',
   {
     eels: {label: 'Electron energy loss spectrum'}
-  }
-)
-
-// Workflow properties: subset of metadata.quantities
-registerFilterOptions(
-  'workflow',
-  labelWorkflow,
-  'quantities',
-  'Workflow',
-  'The workflows present in an entry.',
-  {
-    'workflow.geometry_optimization': {label: 'Geometry optimization'},
-    'workflow.molecular_dynamics': {label: 'Molecular dynamics'},
-    'workflow.elastic': {label: 'Elastic constants'},
-    'workflow.phonon': {label: 'Phonons'},
-    'workflow.single_point': {label: 'Single point'}
   }
 )
 

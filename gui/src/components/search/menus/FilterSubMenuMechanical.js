@@ -25,7 +25,7 @@ import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { Quantity, useUnits } from '../../../units'
 
 const step = new Quantity(10, 'gigapascal')
-const FilterSubMenuElectronic = React.memo(({
+const FilterSubMenuMechanical = React.memo(({
   value,
   ...rest
 }) => {
@@ -94,8 +94,8 @@ const FilterSubMenuElectronic = React.memo(({
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuElectronic.propTypes = {
+FilterSubMenuMechanical.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuElectronic
+export default FilterSubMenuMechanical

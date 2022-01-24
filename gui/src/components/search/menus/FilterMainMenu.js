@@ -41,7 +41,6 @@ import FilterSubMenuAccess from './FilterSubMenuAccess'
 import FilterSubMenuDataset from './FilterSubMenuDataset'
 import FilterSubMenuIDs from './FilterSubMenuIDs'
 import FilterSubMenuArchive from './FilterSubMenuArchive'
-import FilterSubMenuWorkflow from './FilterSubMenuWorkflow'
 import {
   labelMaterial,
   labelElements,
@@ -62,11 +61,12 @@ import {
   labelAccess,
   labelSpectroscopy,
   labelArchive,
-  labelWorkflow
+  labelGeometryOptimization
 } from '../FilterRegistry'
 import { useSearchContext } from '../SearchContext'
 import InputCheckbox from '../input/InputCheckbox'
 import { delay } from '../../../utils'
+import FilterSubMenuGeometryOptimization from './FilterSubMenuGeometryOptimization'
 
 /**
  * Swipable menu that shows the available filters on the left side of the
@@ -117,7 +117,7 @@ const FilterMainMenu = React.memo(({
       <FilterMenuItem value={labelVibrational} depth={1}/>
       <FilterMenuItem value={labelMechanical} depth={1}/>
       <FilterMenuItem value={labelSpectroscopy} depth={1}/>
-      <FilterMenuItem value={labelWorkflow} depth={1}/>
+      <FilterMenuItem value={labelGeometryOptimization} depth={1}/>
       <FilterMenuItem value={labelAuthor} depth={0}/>
       <FilterMenuItem value={labelDataset} depth={0}/>
       <FilterMenuItem value={labelAccess} depth={0}/>
@@ -148,7 +148,7 @@ const FilterMainMenu = React.memo(({
         <FilterSubMenuVibrational value={labelVibrational}/>
         <FilterSubMenuMechanical value={labelMechanical}/>
         <FilterSubMenuSpectroscopy value={labelSpectroscopy}/>
-        <FilterSubMenuWorkflow value={labelWorkflow}/>
+        <FilterSubMenuGeometryOptimization value={labelGeometryOptimization}/>
         <FilterSubMenuAuthor value={labelAuthor}/>
         <FilterSubMenuDataset value={labelDataset}/>
         <FilterSubMenuAccess value={labelAccess}/>
