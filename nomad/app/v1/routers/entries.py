@@ -180,11 +180,11 @@ class EntriesArchiveDownload(WithQuery):
     files: Optional[Files] = Body(None)
 
 
-class EntriesRaw(WithQuery):
+class EntriesRawDir(WithQuery):
     pagination: Optional[MetadataPagination] = Body(None)
 
 
-class EntriesRawDownload(WithQuery):
+class EntriesRaw(WithQuery):
     files: Optional[Files] = Body(
         None,
         example={
@@ -192,26 +192,26 @@ class EntriesRawDownload(WithQuery):
         })
 
 
-class EntryRawFile(BaseModel):
+class EntryRawDirFile(BaseModel):
     path: str = Field(None)
     size: int = Field(None)
 
 
-class EntryRaw(BaseModel):
+class EntryRawDir(BaseModel):
     entry_id: str = Field(None)
     upload_id: str = Field(None)
     mainfile: str = Field(None)
-    files: List[EntryRawFile] = Field(None)
+    files: List[EntryRawDirFile] = Field(None)
 
 
-class EntriesRawResponse(EntriesRaw):
+class EntriesRawDirResponse(EntriesRawDir):
     pagination: PaginationResponse = Field(None)  # type: ignore
-    data: List[EntryRaw] = Field(None)
+    data: List[EntryRawDir] = Field(None)
 
 
-class EntryRawResponse(BaseModel):
+class EntryRawDirResponse(BaseModel):
     entry_id: str = Field(...)
-    data: EntryRaw = Field(...)
+    data: EntryRawDir = Field(...)
 
 
 class EntryArchive(BaseModel):
@@ -296,14 +296,14 @@ _bad_edit_request_empty_query = status.HTTP_404_NOT_FOUND, {
     'model': HTTPExceptionModel,
     'description': strip('No matching entries found.')}
 
-_raw_download_response = 200, {
+_raw_response = 200, {
     'content': {'application/zip': {}},
     'description': strip('''
         A zip file with the requested raw files. The file is streamed.
         The content length is not known in advance.
     ''')}
 
-_raw_download_file_response = 200, {
+_raw_file_response = 200, {
     'content': {'application/octet-stream': {}},
     'description': strip('''
         A byte stream with raw file contents. The content length is not known in advance.
@@ -462,7 +462,7 @@ class _Uploads():
             self._upload_files.close()
 
 
-def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
+def _create_entry_rawdir(entry_metadata: Dict[str, Any], uploads: _Uploads):
     entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
     mainfile = entry_metadata['mainfile']
@@ -472,12 +472,12 @@ def _create_entry_raw(entry_metadata: Dict[str, Any], uploads: _Uploads):
 
     files = []
     for path_info in upload_files.raw_directory_list(mainfile_dir, files_only=True):
-        files.append(EntryRawFile(path=path_info.path, size=path_info.size))
+        files.append(EntryRawDirFile(path=path_info.path, size=path_info.size))
 
-    return EntryRaw(entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, files=files)
+    return EntryRawDir(entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, files=files)
 
 
-def _answer_entries_raw_request(
+def _answer_entries_rawdir_request(
         owner: Owner, query: Query, pagination: MetadataPagination, user: User):
 
     if owner == Owner.all_:
@@ -495,19 +495,19 @@ def _answer_entries_raw_request(
     uploads = _Uploads()
     try:
         response_data = [
-            _create_entry_raw(entry_metadata, uploads)
+            _create_entry_rawdir(entry_metadata, uploads)
             for entry_metadata in search_response.data]
     finally:
         uploads.close()
 
-    return EntriesRawResponse(
+    return EntriesRawDirResponse(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
         data=response_data)
 
 
-def _answer_entries_raw_download_request(owner: Owner, query: Query, files: Files, user: User):
+def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: User):
     if owner == Owner.all_:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             The owner=all is not allowed for this operation as it will search for entries
@@ -558,16 +558,15 @@ def _answer_entries_raw_download_request(owner: Owner, query: Query, files: File
         raise
 
 
-_entries_raw_query_docstring = strip('''
+_entries_rawdir_query_docstring = strip('''
     Will perform a search and return a *page* of raw file metadata for entries fulfilling
     the query. This allows you to get a complete list of all rawfiles with their full
     path in their respective upload and their sizes. The first returned files for each
     entry, is their respective *mainfile*.
 
-    Each entry on NOMAD represents a set of raw files. These are the input and output
-    files (as well as additional auxiliary files) in their original form, i.e. as
-    provided by the uploader. More specifically, an entry represents a code-run identified
-    by a certain *mainfile*. This is usually the main output file of the code. All other
+    Each entry on NOMAD has a set of raw files. These are the files in their original form,
+    i.e. as provided by the uploader. More specifically, an entry has a *mainfile*, identified as
+    parseable. For CMS entries, the mainfile is usually the main output file of the code. All other
     files in the same directory are considered the entries *auxiliary* no matter their role
     or if they were actually parsed by NOMAD.
 
@@ -576,50 +575,49 @@ _entries_raw_query_docstring = strip('''
 
 
 @router.post(
-    '/raw/query',
+    '/rawdir/query',
     tags=[raw_tag],
     summary='Search entries and get their raw files metadata',
-    description=_entries_raw_query_docstring,
-    response_model=EntriesRawResponse,
+    description=_entries_rawdir_query_docstring,
+    response_model=EntriesRawDirResponse,
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_entries_raw_query(
-        request: Request, data: EntriesRaw, user: User = Depends(create_user_dependency())):
+async def post_entries_rawdir_query(
+        request: Request, data: EntriesRawDir, user: User = Depends(create_user_dependency())):
 
-    return _answer_entries_raw_request(
+    return _answer_entries_rawdir_request(
         owner=data.owner, query=data.query, pagination=data.pagination, user=user)
 
 
 @router.get(
-    '/raw',
+    '/rawdir',
     tags=[raw_tag],
-    summary='Search entries and get raw their raw files metadata',
-    description=_entries_raw_query_docstring,
-    response_model=EntriesRawResponse,
+    summary='Search entries and get their raw files metadata',
+    description=_entries_rawdir_query_docstring,
+    response_model=EntriesRawDirResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
     responses=create_responses(_bad_owner_response))
-async def get_entries_raw(
+async def get_entries_rawdir(
         request: Request,
         with_query: WithQuery = Depends(query_parameters),
         pagination: MetadataPagination = Depends(metadata_pagination_parameters),
         user: User = Depends(create_user_dependency())):
 
-    res = _answer_entries_raw_request(
+    res = _answer_entries_rawdir_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination, user=user)
     res.pagination.populate_urls(request)
     return res
 
 
-_entries_raw_download_query_docstring = strip('''
-    This operation will perform a search and stream a .zip file with raw input and output
-    files of the found entries.
+_entries_raw_query_docstring = strip('''
+    This operation will perform a search and stream a .zip file with the raw files of the
+    found entries.
 
-    Each entry on NOMAD represents a set of raw files. These are the input and output
-    files (as well as additional auxiliary files) in their original form, i.e. as
-    provided by the uploader. More specifically, an entry represents a code-run identified
-    by a certain *mainfile*. This is usually the main output file of the code. All other
+    Each entry on NOMAD has a set of raw files. These are the files in their original form,
+    i.e. as provided by the uploader. More specifically, an entry has a *mainfile*, identified as
+    parseable. For CMS entries, the mainfile is usually the main output file of the code. All other
     files in the same directory are considered the entries *auxiliary* no matter their role
     or if they were actually parsed by NOMAD.
 
@@ -633,32 +631,32 @@ _entries_raw_download_query_docstring = strip('''
 
 
 @router.post(
-    '/raw/download/query',
+    '/raw/query',
     tags=[raw_tag],
     summary='Search entries and download their raw files',
-    description=_entries_raw_download_query_docstring,
+    description=_entries_raw_query_docstring,
     response_class=StreamingResponse,
-    responses=create_responses(_raw_download_response, _bad_owner_response))
-async def post_entries_raw_download_query(
-        data: EntriesRawDownload, user: User = Depends(create_user_dependency())):
+    responses=create_responses(_raw_response, _bad_owner_response))
+async def post_entries_raw_query(
+        data: EntriesRaw, user: User = Depends(create_user_dependency())):
 
-    return _answer_entries_raw_download_request(
+    return _answer_entries_raw_request(
         owner=data.owner, query=data.query, files=data.files, user=user)
 
 
 @router.get(
-    '/raw/download',
+    '/raw',
     tags=[raw_tag],
     summary='Search entries and download their raw files',
-    description=_entries_raw_download_query_docstring,
+    description=_entries_raw_query_docstring,
     response_class=StreamingResponse,
-    responses=create_responses(_raw_download_response, _bad_owner_response))
-async def get_entries_raw_download(
+    responses=create_responses(_raw_response, _bad_owner_response))
+async def get_entries_raw(
         with_query: WithQuery = Depends(query_parameters),
         files: Files = Depends(files_parameters),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
 
-    return _answer_entries_raw_download_request(
+    return _answer_entries_raw_request(
         owner=with_query.owner, query=with_query.query, files=files, user=user)
 
 
@@ -913,14 +911,14 @@ async def get_entry_metadata(
 
 
 @router.get(
-    '/{entry_id}/raw',
+    '/{entry_id}/rawdir',
     tags=[raw_tag],
     summary='Get the raw files metadata for an entry by its id',
-    response_model=EntryRawResponse,
+    response_model=EntryRawDirResponse,
     responses=create_responses(_bad_id_response),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def get_entry_raw(
+async def get_entry_rawdir(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         user: User = Depends(create_user_dependency())):
     '''
@@ -940,18 +938,18 @@ async def get_entry_raw(
 
     uploads = _Uploads()
     try:
-        return EntryRawResponse(entry_id=entry_id, data=_create_entry_raw(response.data[0], uploads))
+        return EntryRawDirResponse(entry_id=entry_id, data=_create_entry_rawdir(response.data[0], uploads))
     finally:
         uploads.close()
 
 
 @router.get(
-    '/{entry_id}/raw/download',
+    '/{entry_id}/raw',
     tags=[raw_tag],
     summary='Get the raw data of an entry by its id',
     response_class=StreamingResponse,
-    responses=create_responses(_bad_id_response, _raw_download_response))
-async def get_entry_raw_download(
+    responses=create_responses(_bad_id_response, _raw_response))
+async def get_entry_raw(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         files: Files = Depends(files_parameters),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
@@ -969,16 +967,16 @@ async def get_entry_raw_download(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='The entry with the given id does not exist or is not visible to you.')
 
-    return _answer_entries_raw_download_request(owner=Owner.visible, query=query, files=files, user=user)
+    return _answer_entries_raw_request(owner=Owner.visible, query=query, files=files, user=user)
 
 
 @router.get(
-    '/{entry_id}/raw/download/{path}',
+    '/{entry_id}/raw/{path}',
     tags=[raw_tag],
     summary='Get the raw data of an entry by its id',
     response_class=StreamingResponse,
-    responses=create_responses(_bad_id_response, _bad_path_response, _raw_download_file_response))
-async def get_entry_raw_download_file(
+    responses=create_responses(_bad_id_response, _bad_path_response, _raw_file_response))
+async def get_entry_raw_file(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
         path: str = Path(..., description='A relative path to a file based on the directory of the entry\'s mainfile.'),
         offset: Optional[int] = QueryParameter(
@@ -1077,7 +1075,7 @@ def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequire
     response_model_exclude_none=True,
     responses=create_responses(_bad_id_response))
 async def get_entry_archive(
-        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.'),
         user: User = Depends(create_user_dependency())):
     '''
     Returns the full archive for the given `entry_id`.
@@ -1091,7 +1089,7 @@ async def get_entry_archive(
     summary='Get the archive for an entry by its id as plain archive json',
     responses=create_responses(_bad_id_response, _archive_download_response))
 async def get_entry_archive_download(
-        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.'),
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.'),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Returns the full archive for the given `entry_id`.
@@ -1110,7 +1108,7 @@ async def get_entry_archive_download(
     responses=create_responses(_bad_id_response, _bad_archive_required_response))
 async def post_entry_archive_query(
         data: EntryArchiveRequest, user: User = Depends(create_user_dependency()),
-        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve raw data from.')):
+        entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.')):
 
     '''
     Returns a partial archive for the given `entry_id` based on the `required` specified

@@ -153,7 +153,7 @@ export default function RawFiles({data, entryId}) {
     setShownFile(file)
     setFileContents(null)
     api.get(
-      `/entries/${entryId}/raw/download/${file.split('/').reverse()[0]}`,
+      `/entries/${entryId}/raw/${file.split('/').reverse()[0]}`,
       {length: 16 * 1024, decompress: true},
       {transformResponse: []})
       .then(contents => setFileContents({
@@ -174,7 +174,7 @@ export default function RawFiles({data, entryId}) {
 
     if (fileContents.contents.length < (page + 1) * 16 * 1024) {
       api.get(
-        `/entries/${entryId}/raw/download/${shownFile.split('/').reverse()[0]}`,
+        `/entries/${entryId}/raw/${shownFile.split('/').reverse()[0]}`,
         {offset: page * 16 * 1024, length: 16 * 1024, decompress: true},
         {transformResponse: []})
         .then(contents => {
@@ -220,14 +220,14 @@ export default function RawFiles({data, entryId}) {
   let downloadUrl
   if (selectedFiles.length === 1) {
     // download the individual file
-    downloadUrl = `entries/${entryId}/raw/download/${file(selectedFiles[0])}`
+    downloadUrl = `entries/${entryId}/raw/${file(selectedFiles[0])}`
   } else if (selectedFiles.length === availableFiles.length) {
     // use an endpoint that downloads all files of the entry
-    downloadUrl = `entries/${entryId}/raw/download`
+    downloadUrl = `entries/${entryId}/raw`
   } else if (selectedFiles.length > 0) {
     // download specific files
     const query = selectedFiles.map(file).map(f => `include_files=${encodeURIComponent(f)}`).join('&')
-    downloadUrl = `entries/${entryId}/raw/download?${query}`
+    downloadUrl = `entries/${entryId}/raw?${query}`
   }
 
   return (

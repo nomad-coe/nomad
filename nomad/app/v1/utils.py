@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Set, Iterator, Any, Optional, Union
+from typing import List, Dict, Set, Iterator, Any, Optional, Union
 from types import FunctionType
 import urllib
 import io
@@ -30,7 +30,7 @@ import lzma
 from nomad.files import UploadFiles, StreamedFile, create_zipstream
 
 
-def parameter_dependency_from_model(name: str, model_cls):
+def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = []):
     '''
     Takes a pydantic model class as input and creates a dependency with corresponding
     Query parameter definitions that can be used for GET
@@ -47,11 +47,11 @@ def parameter_dependency_from_model(name: str, model_cls):
     annotations: Dict[str, type] = {}
     defaults = []
     for field_model in model_cls.__fields__.values():
-        field_info = field_model.field_info
-
-        names.append(field_model.name)
-        annotations[field_model.name] = field_model.outer_type_
-        defaults.append(Query(field_model.default, description=field_info.description))
+        if field_model.name not in exclude:
+            field_info = field_model.field_info
+            names.append(field_model.name)
+            annotations[field_model.name] = field_model.outer_type_
+            defaults.append(Query(field_model.default, description=field_info.description))
 
     code = inspect.cleandoc('''
     def %s(%s):

@@ -569,7 +569,7 @@ class Pagination(BaseModel):
     @validator('page_offset')
     def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
         if page_offset is not None:
-            assert page_offset >= 0, 'page must be >= 1'
+            assert page_offset >= 0, 'page_offset must be >= 1'
         return page_offset
 
     @root_validator(skip_on_failure=True)

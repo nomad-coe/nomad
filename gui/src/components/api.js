@@ -206,7 +206,7 @@ class Api {
     this.onStartLoading()
     const auth = await this.authHeaders()
     try {
-      const entry = await this.axios.get(`/entries/${entryId}/raw`, auth)
+      const entry = await this.axios.get(`/entries/${entryId}/rawdir`, auth)
       return entry.data
     } catch (errors) {
       handleApiError(errors)
