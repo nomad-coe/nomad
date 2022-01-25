@@ -52,8 +52,15 @@ export class ApiError extends Error {
   }
 }
 
+export class ApiRequestError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'BadRequest'
+  }
+}
+
 function handleApiError(e) {
-  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist') {
+  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist' || e.name === 'BadRequest') {
     throw e
   }
 
@@ -66,6 +73,8 @@ function handleApiError(e) {
       error = new DoesNotExist(errorMessage)
     } else if (e.response.status === 401) {
       error = new NotAuthorized(errorMessage)
+    } else if (e.response.status === 400) {
+      error = new ApiRequestError(errorMessage)
     } else if (e.response.status === 502) {
       error = new ApiError(errorMessage)
     } else {

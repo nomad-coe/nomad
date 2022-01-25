@@ -56,7 +56,9 @@ class ErrorSnacksUnstyled extends React.Component {
   onError(error) {
     let errorStr = 'Unexpected error. Please try again and let us know, if this error keeps happening.'
     if (error instanceof Error) {
-      if (error.name === 'CannotReachApi') {
+      if (error.name === 'BadRequest') {
+        errorStr = error.message
+      } else if (error.name === 'CannotReachApi') {
         errorStr = 'Cannot reach NOMAD, please try again later.'
       } else if (error.name === 'NotAuthorized') {
         errorStr = error.message
