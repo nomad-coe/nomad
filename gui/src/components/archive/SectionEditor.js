@@ -5,6 +5,7 @@ import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import {Compartment} from './Browser'
+import _ from 'lodash'
 
 const useStyles = makeStyles(theme => ({
   adornment: {
@@ -12,7 +13,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const PropertyEditor = React.memo(function PropertyEditor({property, section, value, onChange}) {
+const PropertyEditor = React.memo(function PropertyEditor({property, section, value, nestedPath, parentVersion, setParentVersion, onChange}) {
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
   const handleChange = useCallback((value) => {
@@ -49,9 +50,9 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   }
 
   if (property.m_def === 'SubSection') {
-    if (section && !(property.name in section)) section[property.name] = {}
-    return <Compartment title={property.name}>
-      <SectionEditor sectionDef={property._subSection} section={(section && section[property.name])} />
+    let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
+    return <Compartment title={currentPath}>
+      <SectionEditor sectionDef={property._subSection} section={section} nestedPath={currentPath} parentVersion={parentVersion} setParentVersion={setParentVersion}/>
     </Compartment>
   } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
@@ -79,7 +80,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     }
   } else if (property.type?.type_kind === 'Enum' && property.shape?.length === 0) {
     return <FormControl variant='filled' size='small' fullWidth>
-      <InputLabel htmlFor={property.name}>{property.name}</InputLabel>
+      <InputLabel htmlFor={property.name} shrink={value !== undefined && value !== ''}>{property.name}</InputLabel>
       <Select native value={value}
         endAdornment={<InputAdornment className={classes.adornment} position='end'>{property.unit}</InputAdornment>}
         onChange={(event) => handleChange(event.target.value)}>
@@ -94,6 +95,9 @@ PropertyEditor.propTypes = {
   property: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   value: PropTypes.any,
+  parentVersion: PropTypes.bool,
+  setParentVersion: PropTypes.func,
+  nestedPath: PropTypes.string,
   onChange: PropTypes.func
 }
 
@@ -102,7 +106,7 @@ const useSectionEditorStyles = makeStyles(theme => ({
     minWidth: 600
   }
 }))
-const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange}) {
+const SectionEditor = React.memo(function SectionEditor({sectionDef, section, nestedPath, parentVersion, setParentVersion, onChange}) {
   const classes = useSectionEditorStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -113,12 +117,17 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
   const hasChanges = version > savedVersion
 
   const handleChange = useCallback((property, value) => {
-    section[property.name] = value
+    let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
+    _.set(section, currentPath, value)
     if (onChange) {
       onChange(section)
     }
-    setVersion(value => value + 1)
-  }, [section, onChange, setVersion])
+    if (parentVersion === undefined) {
+      setVersion(value => value + 1)
+    } else {
+      setParentVersion(value => value + 1)
+    }
+  }, [section, onChange, setVersion, nestedPath, parentVersion, setParentVersion])
 
   const handleSave = useCallback(() => {
     const uploadId = metadata.upload_id
@@ -149,11 +158,14 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
         <PropertyEditor
           property={property}
           section={section}
-          value={section && section[property.name]} onChange={value => handleChange(property, value)}
+          value={section && _.get(section, (nestedPath ? `${nestedPath}.${property.name}` : property.name))} onChange={value => handleChange(property, value)}
+          nestedPath={nestedPath}
+          parentVersion={(parentVersion || version)}
+          setParentVersion={(setParentVersion || setVersion)}
         />
       </Box>
     ))}
-    <Box display="flex" flexDirection="row" alignItems="center" marginY={1}>
+    {parentVersion === undefined && <Box display="flex" flexDirection="row" alignItems="center" marginY={1}>
       <Box flexGrow={1}>
         <Typography>{hasChanges ? 'Not yet saved' : 'All changes saved'}</Typography>
       </Box>
@@ -163,13 +175,16 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
       >
         {saving ? 'Saving...' : 'Save'}
       </Button>
-    </Box>
+    </Box>}
   </div>
 })
 SectionEditor.propTypes = {
   sectionDef: PropTypes.object.isRequired,
   section: PropTypes.object,
+  nestedPath: PropTypes.string,
   onChange: PropTypes.func,
+  parentVersion: PropTypes.bool,
+  setParentVersion: PropTypes.func,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

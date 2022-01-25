@@ -272,7 +272,7 @@ function EditMembersDialog({...props}) {
     }
   }
 
-  const onConfirm = () => {
+  const handleConfirm = () => {
     if (isChanged) {
       setOpenConfirmDialog(true)
     } else {
@@ -308,7 +308,7 @@ function EditMembersDialog({...props}) {
         </DialogContent>
         <DialogActions>
           <span style={{flexGrow: 1}} />
-          <Button onClick={onConfirm} color="secondary">
+          <Button onClick={handleConfirm} color="secondary">
             Cancel
           </Button>
           <Button onClick={handleSubmitChanges} disabled={!isChanged} color="secondary">
