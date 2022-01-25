@@ -294,7 +294,7 @@ function EditMembersDialog({...props}) {
           <MembersIcon/>
         </Tooltip>
       </IconButton>
-      {open && <Dialog classes={{paper: classes.dialog}} open={open} on disableBackdropClick disableEscapeKeyDown>
+      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
         <DialogTitle>Manage upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
