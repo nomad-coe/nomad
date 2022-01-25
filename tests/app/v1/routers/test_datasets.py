@@ -43,13 +43,14 @@ to assert for certain aspects in the responses.
 '''
 
 
+def create_dataset(**kwargs):
+    dataset = Dataset(dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(), **kwargs)
+    dataset.m_get_annotations('mongo').save()
+    return dataset
+
+
 @pytest.fixture(scope='function')
 def data(elastic, raw_files, mongo, test_user, other_test_user):
-    def create_dataset(**kwargs):
-        dataset = Dataset(dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(), **kwargs)
-        dataset.m_get_annotations('mongo').save()
-        return dataset
-
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(
@@ -276,9 +277,28 @@ def test_delete_dataset(client, data, test_user_auth, other_test_user_auth, data
     pytest.param('dataset_1', 'test_user', 200, id='plain'),
     pytest.param('dataset_1', None, 401, id='no-user'),
     pytest.param('dataset_1', 'other_test_user', 401, id='wrong-user'),
-    pytest.param('dataset_doi', 'test_user', 400, id='with-doi')
+    pytest.param('dataset_doi', 'test_user', 400, id='with-doi'),
+    pytest.param('unpublished', 'test_user', 400, id='unpublished'),
+    pytest.param('empty', 'test_user', 400, id='empty')
 ])
 def test_assign_doi_dataset(client, data, test_user, test_user_auth, other_test_user_auth, dataset_id, user, status_code):
+    more_data = ExampleData(main_author=test_user)
+    more_data.create_upload(upload_id='unpublished', published=False)
+    more_data.create_entry(
+        upload_id='unpublished', entry_id='unpublished',
+        mainfile='test_content/1/mainfile.json',
+        datasets=[create_dataset(
+            dataset_id='unpublished', user_id=test_user.user_id,
+            dataset_name='test unpublished entries',
+            dataset_type='owned')])
+
+    create_dataset(
+        dataset_id='empty', user_id=test_user.user_id,
+        dataset_name='test empty dataset',
+        dataset_type='owned')
+
+    more_data.save(with_files=False)
+
     auth = None
     if user == 'test_user':
         auth = test_user_auth
