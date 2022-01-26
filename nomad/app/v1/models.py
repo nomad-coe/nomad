@@ -217,9 +217,9 @@ Nested.update_forward_refs()
 
 
 query_documentation = strip('''
-A query can be very simple list of parameters. Different parameters are combined
-with a logical **and**, values of the same parameter with also with a logical **and**.
-The following would search for all entries that are VASP calculations,
+A query can be a very simple list of parameters. Different parameters or values of the same parameter are combined
+with a logical **and**.
+The following query would search for all entries that are VASP calculations,
 contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
 **and** *Chris Wolverton*.
 ```json
@@ -283,7 +283,7 @@ or shorter with suffixes:
 {
     "upload_create_time:gt": "2020-01-01",
     "upload_create_time:lt": "2020-08-01",
-    "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
+    "results.properties.geometry_optimization.final_energy_difference:lte": 1.23e-18
 }
 ```
 
