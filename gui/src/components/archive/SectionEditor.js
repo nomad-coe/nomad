@@ -2,15 +2,55 @@ import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
 import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography, InputAdornment} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
+import { styled } from '@material-ui/core/styles'
+import ArrowForwardIosSharpIcon from '@material-ui/icons/ArrowForwardIosSharp'
+import MuiAccordion from '@material-ui/core/Accordion'
+import MuiAccordionSummary from '@material-ui/core/AccordionSummary'
+import MuiAccordionDetails from '@material-ui/core/AccordionDetails'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import {Compartment} from './Browser'
 import _ from 'lodash'
 
 const useStyles = makeStyles(theme => ({
   adornment: {
     marginRight: theme.spacing(3)
   }
+}))
+
+const Accordion = styled((props) => (
+  <MuiAccordion disableGutters elevation={0} square {...props} />
+))(({ theme }) => ({
+  border: `1px solid ${theme.palette.divider}`,
+  '&:not(:last-child)': {
+    borderBottom: 0
+  },
+  '&:before': {
+    display: 'none'
+  }
+}))
+
+const AccordionSummary = styled((props) => (
+  <MuiAccordionSummary
+    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
+    {...props}
+  />
+))(({ theme }) => ({
+  backgroundColor:
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, .05)'
+        : 'rgba(0, 0, 0, .03)',
+  flexDirection: 'row-reverse',
+  '& .MuiAccordionSummary-expandIcon.Mui-expanded': {
+    transform: 'rotate(90deg)'
+  },
+  '& .MuiAccordionSummary-content': {
+    marginLeft: theme.spacing(1)
+  }
+}))
+
+const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
+  padding: theme.spacing(1.5),
+  borderTop: '1px solid rgba(0, 0, 0, .125)'
 }))
 
 const PropertyEditor = React.memo(function PropertyEditor({property, section, value, nestedPath, parentVersion, setParentVersion, onChange}) {
@@ -51,9 +91,14 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   if (property.m_def === 'SubSection') {
     let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
-    return <Compartment title={currentPath}>
-      <SectionEditor sectionDef={property._subSection} section={section} nestedPath={currentPath} parentVersion={parentVersion} setParentVersion={setParentVersion}/>
-    </Compartment>
+    return <Accordion>
+      <AccordionSummary>
+        <Typography>{property.name}</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <SectionEditor sectionDef={property._subSection} section={section} nestedPath={currentPath} parentVersion={parentVersion} setParentVersion={setParentVersion}/>
+      </AccordionDetails>
+    </Accordion>
   } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
       return <TextField
@@ -103,7 +148,7 @@ PropertyEditor.propTypes = {
 
 const useSectionEditorStyles = makeStyles(theme => ({
   root: {
-    minWidth: 600
+    width: '100%'
   }
 }))
 const SectionEditor = React.memo(function SectionEditor({sectionDef, section, nestedPath, parentVersion, setParentVersion, onChange}) {
