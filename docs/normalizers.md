@@ -3,15 +3,15 @@
 ## Introduction
 
 A normalizer can be any Python algorithm that takes the archive of an entry as input
-and manipulates (usually expands) the given archive. This way a normalizer can add
+and manipulates (usually expands) the given archive. This way, a normalizer can add
 additional sections and quantities based on the information already available in the archive.
 
-All normalizer are executed after parsing. Normalizer are run for each entry (i.e. each
-set of files that represent a code run). Normalizer are run in a particular order and
-you can make assumptions about the availability of data created by other normalizer.
-A normalizer is run in any case, but it might chose not to do anything. A normalizer
+All normalizer are executed after parsing. Normalizers are run for each entry (i.e. each
+set of files that represent a code run). Normalizers are run in a particular order, and
+you can make assumptions about the availability of data created by other normalizers.
+A normalizer is run in any case, but it might choose not to do anything. A normalizer
 can perform any operation on the archive, but in general should not alter existing information,
-but just add more information.
+but only add more information.
 
 
 ## Starting example
@@ -34,7 +34,7 @@ class UnitCellVolumeNormalizer(Normalizer):
 You simply inherit from `Normalizer` and implement the `normalize` method. The
 `archive` is available as a field. There is also a logger on the object that can be used.
 Be aware that the processing will already report the run of the normalizer, log its execution
-time, log any exceptions that might been thrown.
+time and any exceptions that might been thrown.
 
 
 Of course, if you add new information to the archive, this needs also be defined in the
@@ -58,7 +58,7 @@ Or you simply alter the `section_system` class (`nomad/datamodel/metainfo/public
 ## System normalizer
 
 There is a special base-class for normalizing systems that allows to run the normalization
-on all (or only the resulting `representative` system:
+on all (or only the resulting) `representative` systems:
 
 
 ```python
@@ -70,7 +70,7 @@ class UnitCellVolumeNormalizer(SystemBasedNormalizer):
         system.unit_cell_volume = get_volume(lattice_vectors.magnitude)
 ```
 
-The parameter `is_representative` will be true for the `representative` system, i.e.
+The parameter `is_representative` will be true for the `representative` systems, i.e.
 the final step in a geometry optimization or other workflow.
 
 
