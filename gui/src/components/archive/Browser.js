@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useRef, useLayoutEffect, useMemo, useState } from 'react'
+import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef } from 'react'
 import PropTypes from 'prop-types'
 import { RecoilRoot } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
@@ -81,7 +81,7 @@ const useBrowserStyles = makeStyles(theme => ({
   },
   lanes: {
     display: 'flex',
-    overflow: 'scroll',
+    overflow: 'hidden',
     height: '100%',
     overflowY: 'hidden',
     width: 'fit-content'
@@ -108,14 +108,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const { pathname } = useLocation()
   const { url } = useRouteMatch()
   const segments = pathname.substring(url.length).split('/').filter(segment => segment)
-  const renderCounter = useRef(0)
   const [, setRender] = useState(0)
-
-  const update = () => {
-    // Used to trigger the Browser component to re-render
-    renderCounter.current += 1
-    setRender(renderCounter.current)
-  }
+  const update = useCallback(() => {
+    setRender(current => current + 1)
+  }, [setRender])
 
   const root = useMemo(() => ({
     key: 'root',
@@ -123,39 +119,34 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     adaptor: adaptor,
     next: null,
     update: update
-  }), [adaptor, url])
+  }), [adaptor, url, update])
+
+  const lanes = useRef([])
 
   // Update the lanes
-  let lanes = useRef([])
-  let oldLanes = lanes.current
-  let newLanes = [root]
-  let i = 1
-  for (let segment of segments) {
-    const prev = newLanes[i - 1]
-    const path = prev.path + '/' + encodeURI(segment)
-    segment = unescapeBadPathChars(segment)
-
-    let curr = oldLanes[i]
-    if (curr?.path !== path) {
-      // Cannot use cached value, create a new lane
-      curr = {
+  const oldLanesByPath = {}
+  lanes.current.forEach(lane => { oldLanesByPath[lane.path] = lane })
+  lanes.current = [root]
+  root.next = null
+  segments.forEach(segment => {
+    const prev = lanes.current[lanes.current.length - 1]
+    if (prev.adaptor) {
+      const path = prev.path + '/' + encodeURI(segment)
+      segment = unescapeBadPathChars(segment)
+      const curr = oldLanesByPath[path] || {
         key: segment,
         path: path,
         data: root.adaptor.e,
         update: update
       }
+      curr.next = undefined
+      prev.next = curr
+      if (!curr.adaptor && prev.adaptor.isLoaded()) {
+        curr.adaptor = prev.adaptor.itemAdaptor(segment)
+      }
+      lanes.current.push(curr)
     }
-    newLanes.push(curr)
-    prev.next = curr
-    if (!curr.adaptor && prev.adaptor.isLoaded()) {
-      curr.adaptor = prev.adaptor.itemAdaptor(segment)
-    }
-    if (!curr.adaptor) {
-      break // Previous lane has not yet been loaded, can't create any more lanes at this point
-    }
-    i += 1
-  }
-  lanes.current = newLanes
+  })
 
   return <RecoilRoot>
     {form}
@@ -164,7 +155,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         <div className={classes.root} ref={rootRef} >
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
-              {newLanes.map((lane, index) => (
+              {lanes.current.map((lane, index) => (
                 <Lane key={index} lane={lane} />
               ))}
             </div>
@@ -199,13 +190,15 @@ const useLaneStyles = makeStyles(theme => ({
 }))
 const Lane = function({lane}) {
   const classes = useLaneStyles()
+  const containerRef = createRef()
   const { key, adaptor, next } = lane
+  lane.containerRef = containerRef
   const content = useMemo(() => {
     if (!adaptor) {
       return ''
     }
     return <div className={classes.root}>
-      <div className={classes.container}>
+      <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
             {adaptor.render()}
@@ -266,7 +259,7 @@ export function Item({children, itemKey, disabled}) {
       classes.root,
       selected === itemKey ? classes.rootSelected : classes.rootUnSelected
     )}
-    to={lane.path + '/' + encodeURI(escapeBadPathChars(itemKey))}
+    to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
     <span className={classes.childContainer}>{children}</span>
     <ArrowRightIcon/>

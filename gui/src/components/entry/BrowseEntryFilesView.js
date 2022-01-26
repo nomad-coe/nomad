@@ -60,8 +60,8 @@ export default function BrowseEntryFilesView({entryId}) {
     )
   }
   if (data && data?.upload_id && data?.mainfile) {
-    let last_slash = data.mainfile.lastIndexOf('/')
-    let mainfile_dir = last_slash === -1 ? '' : data.mainfile.substr(0, last_slash)
+    const last_slash = data.mainfile.lastIndexOf('/')
+    const mainfile_dir = last_slash === -1 ? '' : data.mainfile.substr(0, last_slash)
     return <Page><FileBrowser uploadId={data.upload_id} path={mainfile_dir}/></Page>
   } else {
     return <Page><Typography>loading ...</Typography></Page>

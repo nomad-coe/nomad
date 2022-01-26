@@ -146,7 +146,8 @@ export default function FilesBrower({uploadId, disabled}) {
 
   const fetchData = useMemo(() => (path, open) => {
     async function fetchData() {
-      const results = await api.get(`/uploads/${uploadId}/rawdir/${path}?page_size=500`)
+      const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      const results = await api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?page_size=500`)
       allData.current[path] = {
         open: open,
         ...results
