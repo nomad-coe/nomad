@@ -167,6 +167,7 @@ UploadName.propTypes = {
 
 function PublishUpload({upload, onPublish}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
     onPublish({embargo_length: embargo})
   }
@@ -177,7 +178,25 @@ function PublishUpload({upload, onPublish}) {
     `}</Markdown>
   }
 
+  const buttonLabel = embargo > 0 ? 'Publish with embargo' : 'Publish'
+
   return <React.Fragment>
+    <Dialog
+      open={openConfirmDialog}
+      onClose={() => setOpenConfirmDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to publish the upload</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You are about the publish this upload. The upload cannot be removed and
+          the files and entries in this upload cannot be changed after publication.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handlePublish}>{buttonLabel}</Button>
+      </DialogActions>
+    </Dialog>
     <Markdown>{`
       If you agree this upload will be published and move out of your private staging
       area into the public NOMAD. This step is final. All public data will be made available under the Creative
@@ -224,10 +243,10 @@ function PublishUpload({upload, onPublish}) {
             <Button
               style={{height: 32, minWith: 100}}
               size="small" variant="contained"
-              onClick={() => handlePublish()} color="primary"
+              onClick={() => setOpenConfirmDialog(true)} color="primary"
               disabled={upload.process_running}
             >
-              {embargo > 0 ? 'Publish with embargo' : 'Publish'}
+              {buttonLabel}
             </Button>
           </Box>
         </Grid>

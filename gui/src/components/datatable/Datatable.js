@@ -121,7 +121,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     rowsPerPage={pagination.page_size}
     page={pagination.page - 1}
     onPageChange={handleChangePage}
-    onChangeRowsPerPage={handleChangeRowsPerPage}
+    onRowsPerPageChange={handleChangeRowsPerPage}
   />
 })
 DatatablePagePagination.propTypes = {
@@ -392,7 +392,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
   </>
 })
 DatatableRow.propTypes = {
-  data: PropTypes.object.isRequired,
+  data: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
   selected: PropTypes.bool,
   uncollapsed: PropTypes.bool,
   onRowUncollapsed: PropTypes.func.isRequired,
@@ -701,7 +701,7 @@ Datatable.propTypes = {
   shownColumns: PropTypes.arrayOf(PropTypes.string),
   sortingColumns: PropTypes.arrayOf(PropTypes.string),
   /** Optional table data as array of objects. Default is empty table. */
-  data: PropTypes.arrayOf(PropTypes.object),
+  data: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.object, PropTypes.string])),
   /** Optional pagination object (e.g. from NOMAD API). Used to display current pagination
    * and ordering information. Either based on page (if using DatatablePagePagination) or
    * page_after_value (if using DatatableScrollPagination). */
