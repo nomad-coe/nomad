@@ -27,11 +27,11 @@ import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 
 function escapeBadPathChars(s) {
-  return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replace('%', '$3')
+  return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replaceAll('%', '$3').replaceAll('\\', '$4')
 }
 
 function unescapeBadPathChars(s) {
-  return s.replace('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
+  return s.replaceAll('$4', '\\').replaceAll('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
 }
 
 export function formatSubSectionName(name) {
