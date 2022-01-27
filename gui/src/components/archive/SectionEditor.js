@@ -1,12 +1,25 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useContext } from 'react'
 import PropTypes from 'prop-types'
-import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography, InputAdornment} from '@material-ui/core'
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  makeStyles,
+  Select,
+  TextField,
+  Typography,
+  InputAdornment,
+  DialogContent, Dialog
+} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import _ from 'lodash'
-import {formatSubSectionName, Item} from './Browser'
+import {formatSubSectionName, Item, laneContext} from './Browser'
 import SubSectionList from './ArchiveBrowser'
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogActions from "@material-ui/core/DialogActions";
 
 const useStyles = makeStyles(theme => ({
   adornment: {
@@ -15,6 +28,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const PropertyEditor = React.memo(function PropertyEditor({property, section, value, nestedPath, onChange}) {
+  const lane = useContext(laneContext)
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
   const handleChange = useCallback((value) => {
@@ -55,6 +69,8 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const handleUIntegerValidator = (event) => {
     (isUInteger(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter an unsigned integer number!'))
   }
+
+  if (!lane) return ''
 
   if (property.m_def === 'SubSection') {
     // let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
@@ -133,6 +149,7 @@ PropertyEditor.propTypes = {
 
 const useSectionEditorStyles = makeStyles(theme => ({
   root: {
+    minWidth: '500px',
     width: '100%'
   }
 }))
@@ -144,6 +161,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
   const [version, setVersion] = useState(0)
   const [savedVersion, setSavedVersion] = useState(0)
   const {metadata, archive, reload} = useEntryContext()
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const hasChanges = version > savedVersion
 
   const handleChange = useCallback((property, value) => {
@@ -155,6 +173,10 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
     setVersion(value => value + 1)
   }, [section, onChange, setVersion, nestedPath])
 
+  const handleConfirm = () => {
+    setOpenConfirmDialog(true)
+  }
+
   const handleDelete = () => {
     section = parent
     _.set(section, sectionDef.name.toLowerCase(), undefined)
@@ -162,6 +184,8 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
       onChange(section)
     }
     setVersion(value => value + 1)
+    setOpenConfirmDialog(false)
+    handleSave()
   }
 
   const handleSave = useCallback(() => {
@@ -202,12 +226,14 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
       <Box flexGrow={1}>
         <Typography>{hasChanges ? 'Not yet saved' : 'All changes saved'}</Typography>
       </Box>
-      {!isEmpty && <Button
-        color="primary" variant="contained"
-        onClick={handleDelete}
-      >
-        Delete
-      </Button>}
+      {!isEmpty && <Box flexGrow={1}>
+        <Button
+          color="primary" variant="contained"
+          onClick={handleConfirm}
+        >
+          Delete
+        </Button>
+      </Box>}
       <Button
         color="primary" variant="contained"
         disabled={!hasChanges || saving} onClick={handleSave}
@@ -215,6 +241,20 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
         {saving ? 'Saving...' : 'Save'}
       </Button>
     </Box>
+    <Dialog
+      open={openConfirmDialog}
+      aria-describedby="alert-dialog-description"
+    >
+      <DialogContent>
+        <DialogContentText id="alert-dialog-description">
+          Are you sure you want to delete the item?
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handleDelete}>Delete and save the changes</Button>
+      </DialogActions>
+    </Dialog>
   </div>
 })
 SectionEditor.propTypes = {
