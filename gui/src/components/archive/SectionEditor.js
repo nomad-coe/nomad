@@ -2,14 +2,11 @@ import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
 import {Box, Button, FormControl, InputLabel, makeStyles, Select, TextField, Typography, InputAdornment} from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
-import { styled } from '@material-ui/core/styles'
-import ArrowForwardIosSharpIcon from '@material-ui/icons/ArrowForwardIosSharp'
-import MuiAccordion from '@material-ui/core/Accordion'
-import MuiAccordionSummary from '@material-ui/core/AccordionSummary'
-import MuiAccordionDetails from '@material-ui/core/AccordionDetails'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import _ from 'lodash'
+import {formatSubSectionName, Item} from './Browser'
+import SubSectionList from './ArchiveBrowser'
 
 const useStyles = makeStyles(theme => ({
   adornment: {
@@ -17,48 +14,18 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const Accordion = styled((props) => (
-  <MuiAccordion disableGutters elevation={0} square {...props} />
-))(({ theme }) => ({
-  border: `1px solid ${theme.palette.divider}`,
-  '&:not(:last-child)': {
-    borderBottom: 0
-  },
-  '&:before': {
-    display: 'none'
-  }
-}))
-
-const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
-    {...props}
-  />
-))(({ theme }) => ({
-  backgroundColor:
-      theme.palette.mode === 'dark'
-        ? 'rgba(255, 255, 255, .05)'
-        : 'rgba(0, 0, 0, .03)',
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIcon.Mui-expanded': {
-    transform: 'rotate(90deg)'
-  },
-  '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(1)
-  }
-}))
-
-const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
-  padding: theme.spacing(1.5),
-  borderTop: '1px solid rgba(0, 0, 0, .125)'
-}))
-
-const PropertyEditor = React.memo(function PropertyEditor({property, section, value, nestedPath, parentVersion, setParentVersion, onChange}) {
+const PropertyEditor = React.memo(function PropertyEditor({property, section, value, nestedPath, onChange}) {
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value)
+    }
+  }, [onChange])
+
+  const handleCreate = useCallback((key) => {
+    if (onChange) {
+      onChange((property.repeats ? [{name: 'unnamed'}] : {name: 'unnamed'}))
     }
   }, [onChange])
 
@@ -90,15 +57,35 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   }
 
   if (property.m_def === 'SubSection') {
-    let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
-    return <Accordion>
-      <AccordionSummary>
-        <Typography>{property.name}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <SectionEditor sectionDef={property._subSection} section={section} nestedPath={currentPath} parentVersion={parentVersion} setParentVersion={setParentVersion}/>
-      </AccordionDetails>
-    </Accordion>
+    // let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
+    const key = property.name
+    const isEmpty = section && section[key] === undefined
+    if (isEmpty) {
+      return <Button onClick={() => handleCreate(property.name)} color="primary">
+        Create
+      </Button>
+    }
+    if (property.repeats) {
+      //return <SubSectionList
+      //  key={property.name}
+      //  subSectionDef={property}
+      ///>
+      return <Item key={key} itemKey={key}>
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            {formatSubSectionName(property.name)}
+          </Box>
+        </Typography>
+      </Item>
+    } else {
+      return <Item key={key} itemKey={key}>
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            {formatSubSectionName(property.name)}
+          </Box>
+        </Typography>
+      </Item>
+    }
   } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {
       return <TextField
@@ -140,8 +127,6 @@ PropertyEditor.propTypes = {
   property: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   value: PropTypes.any,
-  parentVersion: PropTypes.bool,
-  setParentVersion: PropTypes.func,
   nestedPath: PropTypes.string,
   onChange: PropTypes.func
 }
@@ -151,7 +136,7 @@ const useSectionEditorStyles = makeStyles(theme => ({
     width: '100%'
   }
 }))
-const SectionEditor = React.memo(function SectionEditor({sectionDef, section, nestedPath, parentVersion, setParentVersion, onChange}) {
+const SectionEditor = React.memo(function SectionEditor({sectionDef, section, parent, nestedPath, onChange, isEmpty}) {
   const classes = useSectionEditorStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -167,12 +152,17 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, ne
     if (onChange) {
       onChange(section)
     }
-    if (parentVersion === undefined) {
-      setVersion(value => value + 1)
-    } else {
-      setParentVersion(value => value + 1)
+    setVersion(value => value + 1)
+  }, [section, onChange, setVersion, nestedPath])
+
+  const handleDelete = () => {
+    section = parent
+    _.set(section, sectionDef.name.toLowerCase(), undefined)
+    if (onChange) {
+      onChange(section)
     }
-  }, [section, onChange, setVersion, nestedPath, parentVersion, setParentVersion])
+    setVersion(value => value + 1)
+  }
 
   const handleSave = useCallback(() => {
     const uploadId = metadata.upload_id
@@ -198,38 +188,44 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, ne
   }, [setSavedVersion, version, api, raiseError, setSaving, archive, metadata, reload])
 
   return <div className={classes.root}>
-    {sectionDef._allProperties.map(property => (
+    {!isEmpty && sectionDef._allProperties.map(property => (
       <Box marginBottom={1} key={property.name}>
         <PropertyEditor
           property={property}
           section={section}
           value={section && _.get(section, (nestedPath ? `${nestedPath}.${property.name}` : property.name))} onChange={value => handleChange(property, value)}
           nestedPath={nestedPath}
-          parentVersion={(parentVersion || version)}
-          setParentVersion={(setParentVersion || setVersion)}
         />
       </Box>
     ))}
-    {parentVersion === undefined && <Box display="flex" flexDirection="row" alignItems="center" marginY={1}>
+    <Box display="flex" flexDirection="row" alignItems="center" marginY={1}>
       <Box flexGrow={1}>
         <Typography>{hasChanges ? 'Not yet saved' : 'All changes saved'}</Typography>
       </Box>
+      {!isEmpty && <Button
+        color="primary" variant="contained"
+        onClick={handleDelete}
+      >
+        Delete
+      </Button>}
       <Button
         color="primary" variant="contained"
         disabled={!hasChanges || saving} onClick={handleSave}
       >
         {saving ? 'Saving...' : 'Save'}
       </Button>
-    </Box>}
+    </Box>
   </div>
 })
 SectionEditor.propTypes = {
   sectionDef: PropTypes.object.isRequired,
   section: PropTypes.object,
+  parent: PropTypes.any,
   nestedPath: PropTypes.string,
   onChange: PropTypes.func,
   parentVersion: PropTypes.bool,
   setParentVersion: PropTypes.func,
+  isEmpty: PropTypes.bool,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

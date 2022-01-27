@@ -252,7 +252,7 @@ class SectionAdaptor extends ArchiveAdaptor {
     } else if (property.m_def === 'SubSection') {
       const sectionDef = resolveRef(property.sub_section)
       if (property.repeats) {
-        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef, this.e)
+        return this.adaptorFactory((value ? value[parseInt(index || 0)] : undefined), sectionDef, this.e)
       } else {
         return this.adaptorFactory(value, sectionDef, this.e)
       }
@@ -399,10 +399,14 @@ QuantityValue.propTypes = ({
 
 function Section({section, def, parent, units}) {
   const config = useRecoilValue(configState)
-
+  let isEmpty
   if (!section) {
-    console.error('section is not available')
-    return ''
+    if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
+      isEmpty = true
+    } else {
+      console.error('section is not available')
+      return ''
+    }
   }
 
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
@@ -415,9 +419,9 @@ function Section({section, def, parent, units}) {
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
 
   let contents
-  if (def.name === 'Sample') {
+  if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
     contents = <Compartment title="edit">
-      <SectionEditor sectionDef={def} section={section} />
+      <SectionEditor sectionDef={def} section={section} parent={parent} isEmpty={isEmpty}/>
     </Compartment>
   } else {
     contents = <React.Fragment>
