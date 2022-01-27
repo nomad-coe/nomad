@@ -213,7 +213,7 @@ function RawFileContent({uploadId, path, data}) {
     niceSize = `${data.size} bytes`
   }
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}`
+  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
   return (
     <Content key={path}>
       <Grid container justifyContent="flex-end" alignItems="center">
@@ -275,7 +275,7 @@ function FilePreviewText({uploadId, path, scrollParent}) {
       // Load the first chunk of the file
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
-        {length: 16 * 1024, decompress: true},
+        {length: 16 * 1024, decompress: true, ignore_mime_type: true},
         {transformResponse: []})
         .then(fileContents => {
           lane.adaptor.fileContents = fileContents || ''
@@ -296,7 +296,7 @@ function FilePreviewText({uploadId, path, scrollParent}) {
       lane.adaptor.hasMore = false
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
-        {offset: lane.adaptor.fileContents?.length || 0, length: 16 * 1024, decompress: true},
+        {offset: lane.adaptor.fileContents?.length || 0, length: 16 * 1024, decompress: true, ignore_mime_type: true},
         {transformResponse: []})
         .then(fileContents => {
           // Note, changing tabs or using the webbrowser back/forward buttons to navigate
