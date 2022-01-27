@@ -20,7 +20,7 @@ cd nomad
 ```
 
 There are several branches in the repository. The master branch contains the latest released version, but there are also
-develop branches for each version called vX.X.X. Checkout the branch you want to work on it
+develop branches for each version called vX.X.X. Checkout the branch you want to work on.
 ```
 git checkout vX.X.X
 ```
@@ -34,20 +34,20 @@ This branch can be pushed to the repo, and then later may be merged to the relev
 
 ### Setup a Python environment
 
-You work in a Python virtual environment.
+You should work in a Python virtual environment.
 
 #### pyenv
-The nomad code currently targets python 3.7. If you host machine has an older version installed,
+The nomad code currently targets python 3.7. If your host machine has an older version installed,
 you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.7 in parallel to your
 system's python. Never the less, we have good experience with 3.8 and 3.9 users as well
 and everything might work with newer versions as well.
 
 #### virtualenv
-We strongly recommend to use *virtualenv* to create a virtual environment. It will allow you
+We strongly recommend to use *virtualenv* to create a virtual environment. It allows you
 to keep nomad and its dependencies separate from your system's python installation.
-Make sure to base the virtual environment on Python 3.
+Make sure that the virtual environment is based on Python 3.
 
-To install *virtualenv*, create an environment and activate the environment use:
+To install *virtualenv*, create an environment, and activate the environment, use:
 ```
 pip install virtualenv
 virtualenv -p `which python3` .pyenv
@@ -70,7 +70,7 @@ To install libmagick for conda, you can use (other channels might also work):
 conda install -c conda-forge --name nomad_env libmagic
 ```
 
-Using the following command one can install all the dependencies, and the sub-modules from the NOMAD-coe project
+The following command can be used to install all dependencies and the submodules of the NOMAD-coe project.
 ```
 bash setup.sh
 ```
@@ -104,16 +104,16 @@ their own GITLab/git repositories. To clone and initialize them run:
 git submodule update --init
 ```
 
-All requirements for these submodules need to be installed and they need to be installed
-themselves as python modules. Run the `dependencies.sh` script that will install
+All requirements for these submodules need to be installed and they themselves need to be installed
+as python modules. Run the `dependencies.sh` script that will install
 everything into your virtual environment:
 ```sh
 ./dependencies.sh -e
 ```
 
-If one of the Python packages that are installed during this process, fails because it
+If one of the Python packages, that are installed during this process, fail because it
 cannot be compiled on your platform, you can try `pip install --prefer-binary <packagename>`
-to install set package manually.
+to install set packages manually.
 
 The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
 to change the downloaded dependency code without having to reinstall after.
@@ -148,17 +148,18 @@ Or simply run
 The generated files are not stored in GIT. If you pull a different commit, the GUI code
 might not match the expected data in outdated files. If there are changes to units, metainfo, new parsers, new toolkits it might be necessary to regenerate these gui artifacts.
 
-In additional, you have to do some more steps to prepare your working copy to run all
+In addition, you have to do some more steps to prepare your working copy to run all
 the tests. See below.
 
 ## Run the infrastructure
 
 ### Install docker
-One needs to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
+You need to install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/).
 
 ### Run required 3rd party services
 
 To run NOMAD, some 3rd party services are needed
+
 - elastic search: nomad's search and analytics engine
 - mongodb: used to store processing state
 - rabbitmq: a task queue used to distribute work in a cluster
@@ -189,8 +190,8 @@ curl -XPUT -H "Content-Type: application/json" http://localhost:9200/_all/_setti
 
 Note that the ElasticSearch service has a known problem in quickly hitting the
 virtual memory limits of your OS. If you experience issues with the
-ElasticSearch container not running correctly or crashing, try [increasing the
-virtual memory limits as shown here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html).
+ElasticSearch container not running correctly or crashing, try increasing the
+virtual memory limits as shown [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html).
 
 To shut down everything, just `ctrl-c` the running output. If you started everything
 in *deamon* mode (`-d`) use:
@@ -198,11 +199,11 @@ in *deamon* mode (`-d`) use:
 docker-compose down
 ```
 
-Usually these services only used by NOMAD, but sometimes you also
+Usually these services are used only by NOMAD, but sometimes you also
 need to check something or do some manual steps. You can access mongodb and elastic search
 via your preferred tools. Just make sure to use the right ports.
 
-### Run NOMAD
+## Run NOMAD
 
 Before you run NOMAD for development purposes, you should configure it to use the `test`
 realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
@@ -214,8 +215,8 @@ keycloak:
 ```
 
 ### App and Worker
-NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run app and worker with
-the NOMAD cli. These commands will run the services and show their logout put. You should open
+NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run the app and the worker with
+the NOMAD cli. These commands will run the services and display their log output. You should open
 them in separate shells as they run continuously. They will not watch code changes and
 you have to restart manually.
 
@@ -227,7 +228,7 @@ nomad admin run app
 nomad admin run worker
 ```
 
-Or both together in once process:
+Or both together in one process:
 ```
 nomad admin run appworker
 ```
@@ -249,8 +250,8 @@ nomad dev toolkit-metadata > gui/src/toolkitMetadata.json
 nomad dev units > gui/src/unitsData.js
 ```
 
-When you run the gui on its own (e.g. with react dev server below), you have to have
-the app manually also. The gui and its dependencies run on [node](https://nodejs.org) and
+If you run the gui on its own (e.g. with react dev server below), you also have to have
+the app manually. The gui and its dependencies run on [node](https://nodejs.org) and
 the [yarn](https://yarnpkg.com/) dependency manager. Read their documentation on how to
 install them for your platform.
 ```sh
@@ -311,9 +312,7 @@ of the code base.
 
 You have to provide static files to serve the docs and NOMAD distribution:
 ```sh
-cd docs
-make html
-cd ..
+mkdocs build && mv site docs/build
 python setup.py compile
 python setup.py sdist
 cp dist/nomad-lab-*.tar.gz dist/nomad-lab.tar.gz
@@ -344,13 +343,13 @@ This mimiques the tests and checks that the GitLab CI/CD will perform.
 
 ## Setup your IDE
 
-The documentation section on development guidelines details (see below) how the code is organized,
+The documentation section for development guidelines (see below) details how the code is organized,
 tested, formatted, and documented. To help you meet these guidelines, we recommend to
 use a proper IDE for development and ditch any VIM/Emacs (mal-)practices.
 
 We strongly recommend that all developers use *visual studio code*, or *vscode* for short,
-(this is a copletely different producs than *visual studio*). It is available for free
-for all major platforms (here)[https://code.visualstudio.com/download].
+(this is a completely different producs than *visual studio*). It is available for free
+for all major platforms [here](https://code.visualstudio.com/download).
 
 You should launch and run vscode directly from the projects root directory. The source
 code already contains settings for vscode in the `.vscode` directory. The settings
@@ -361,7 +360,7 @@ pipelines. If you want to augment this with your own settings, you can have a
 The settings also include a few launch configuration for vscode's debugger. You can create
 your own launch configs in `.vscode/launch.json` (also in .gitignore).
 
-The settings exprect that you have installed a python environment at `.pyenv` as
+The settings expect that you have installed a python environment at `.pyenv` as
 described in this tutorial (see above).
 
 ## Code guidelines
@@ -394,8 +393,7 @@ applies to all python code (and were applicable, also to JS and other code):
 - Use google [docstrings](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
 
 - Add your doc-strings to the sphinx documentation in `docs`. Use .md, follow the example.
-  Markdown in sphinx is supported via [recommonmark]
-  (https://recommonmark.readthedocs.io/en/latest/index.html#autostructify)
+  Markdown in sphinx is supported via [recommonmark](https://recommonmark.readthedocs.io/en/latest/index.html#autostructify)
   and [AutoStructify](http://recommonmark.readthedocs.io/en/latest/auto_structify.html)
 
 - The project structure is according to [this guide](https://docs.python-guide.org/writing/structure/).
@@ -416,7 +414,7 @@ build and test stage completed successfully.
 
 ### Names and identifiers
 
-There are is some terminology consistently used in this documentation and the source
+There is a certain terminology consistently used in this documentation and the source
 code. Use this terminology for identifiers.
 
 Do not use abbreviations. There are (few) exceptions: `proc` (processing); `exc`, `e` (exception);
@@ -443,7 +441,7 @@ Throughout nomad, we use different ids. If something
 is called *id*, it is usually a random uuid and has no semantic connection to the entity
 it identifies. If something is called a *hash* then it is a hash generated based on the
 entity it identifies. This means either the whole thing or just some properties of
-said entities.
+this entities.
 
 - The most common hashes is the `entry_hash` based on mainfile and auxfile contents.
 - The `upload_id` is a UUID assigned to the upload on creation. It never changes.
@@ -452,8 +450,8 @@ said entities.
 - The `entry_id` (previously called `calc_id`) uniquely identifies an entry. It is a hash
   over the `mainfile` and respective `upload_id`. **NOTE:** For backward compatibility,
   `calc_id` is also still supported in the api, but using it is strongly discouraged.
-- We often use pairs of `upload_id/entry_id`, which in many contexts allow to resolve an entry
-  related file on the filesystem without having to ask a database about it.
+- We often use pairs of `upload_id/entry_id`, which in many contexts allow to resolve an entry-related
+  file on the filesystem without having to ask a database about it.
 - The `pid` or (`coe_calc_id`) is a legacy sequential interger id, previously used to identify
   entries. We still store the `pid` on these older entries for historical purposes.
 - Calculation `handle` or `handle_id` are created based on those `pid`.
@@ -473,8 +471,8 @@ There are three important prerequisites to understand about nomad-FAIRDI's loggi
   `logger_name`, `event` plus custom context data. Keep events very short, most
   information goes into the context.
 - We use logging to inform about the state of nomad-FAIRDI, not about user
-  behavior, input, data. Do not confuse this when determining the log-level for an event.
-  For example, a user providing an invalid upload file, for example, should never be an error.
+  behavior, input, or data. Do not confuse this when determining the log-level for an event.
+  For example, a user providing an invalid upload file should never be an error.
 
 Please follow the following rules when logging:
 
@@ -581,8 +579,8 @@ The lifecycle of a *feature* branch should look like this:
 We currently use git submodules to manage NOMAD internal dependencies (e.g. parsers).
 All dependencies are python packages and installed via pip to your python environement.
 
-This allows us to target (e.g. install) individual commits. More importantly, we can address c
-ommit hashes to identify exact parser/normalizer versions. On the downside, common functions
+This allows us to target (e.g. install) individual commits. More importantly, we can address commit
+hashes to identify exact parser/normalizer versions. On the downside, common functions
 for all dependencies (e.g. the python-common package, or nomad_meta_info) cannot be part
 of the nomad-FAIRDI project. In general, it is hard to simultaneously develop nomad-FAIRDI
 and NOMAD-coe dependencies.
@@ -620,8 +618,8 @@ In these cases, use rebase and not merge. Rebase puts your branch commits in fro
 merged commits instead of creating a new commit with two ancestors. It basically moves the
 point where you initially branched away from the version branch to the current position in
 the version branch. This will avoid merges, merge commits, and generally leave us with a
-more consistent history.  You can also rebase before create a merge request, basically
-allowing for no-op merges. Ideally the only real merges that we ever have, are between
+more consistent history.  You can also rebase before creating a merge request, which basically
+allows no-op merges. Ideally the only real merges that we ever have, are between
 version branches.
 
 ```sh
@@ -631,8 +629,8 @@ version branches.
 When you need multiple branches to implement a feature and merge between them, try to
 use *squash*. Squashing basically puts all commits of the merged branch into a single commit.
 It basically allows you to have many commits and then squash them into one. This is useful
-if these commits where just made for synchronization between workstations or due to
-unexpected errors in CI/CD, you needed a save point, etc. Again the goal is to have
+if these commits were made just to synchronize between workstations, due to
+unexpected errors in CI/CD, because you needed a save point, etc. Again the goal is to have
 coherent commits, where each commits makes sense on its own.
 
 Often a feature is also represented by an *issue* on GitLab. Please mention the respective
@@ -644,7 +642,7 @@ Remember that tags and branches are both Git references and you can accidentally
 
 The main NOMAD GitLab-project (`nomad-fair`) uses Git-submodules to maintain its
 parsers and other dependencies. All these submodules are places in the `/dependencies`
-directory. There are helper scripts to install (`./dependencies.sh` and
+directory. There are helper scripts to install (`./dependencies.sh`) and
 commit changes to all submodules (`./dependencies-git.sh`). After merging or checking out,
 you have to make sure that the modules are updated to not accidentally commit old
 submodule commits again. Usually you do the following to check if you really have a

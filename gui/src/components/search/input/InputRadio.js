@@ -21,7 +21,6 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import InputHeader from './InputHeader'
 import InputItem from './InputItem'
-import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
@@ -45,15 +44,15 @@ const InputRadio = React.memo(({
   'data-testid': testID
 }) => {
   const theme = useTheme()
-  const { useFilterState, useFilterLocked } = useSearchContext()
+  const { filterData, useFilterState, useFilterLocked } = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
-  const desc = description || def?.description || ''
-  const title = label || def?.name
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
 
   const handleChange = useCallback((event, key, selected) => {
     setFilter(key)
@@ -62,8 +61,8 @@ const InputRadio = React.memo(({
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputHeader
       quantity={quantity}
-      label={title}
-      description={desc}
+      label={labelFinal}
+      description={descFinal}
       disableStatistics
       disableScale
     />

@@ -96,11 +96,10 @@ function EditComments() {
 }
 
 function EditReferences() {
-  const {data, api, setIsReferencesChanged, setReferences} = useContext(editMetaDataDialogContext)
+  const {data, api, setIsReferencesChanged, setReferences, defaultReferences, setDefaultReferences} = useContext(editMetaDataDialogContext)
   const [newReference, setNewReference] = useState('')
   const [validation, setValidation] = useState('')
   const [newReferences, setNewReferences] = useState([])
-  const [defaultReferences, setDefaultReferences] = useState([])
   const [edit, setEdit] = useState({index: -1, value: '', validation: ''})
 
   const columns = [
@@ -128,13 +127,16 @@ function EditReferences() {
   }, [defaultReferences, setIsReferencesChanged])
 
   const validateAPI = useCallback((value) => {
-    let query = {metadata: {references: value}, verify_only: true}
-    let error = ''
-    api.post(`uploads/${data.upload.upload_id}/edit`, query)
-      .catch(err => {
-        error = err.apiMessage[0].msg
-      })
-    return error
+    return new Promise(async (resolve, reject) => {
+      try {
+        let query = {metadata: {references: value}, verify_only: true}
+        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, query)
+        if (response) {}
+        resolve('')
+      } catch (error) {
+        reject(error.apiMessage[0].msg)
+      }
+    })
   }, [api, data])
 
   const validate = useCallback((value, index) => {
@@ -158,7 +160,7 @@ function EditReferences() {
         setDefaultReferences(_references)
       }
     }
-  }, [data])
+  }, [data, setDefaultReferences])
 
   const handleTextFieldChange = (event) => {
     let _newReference = event.target.value
@@ -169,12 +171,19 @@ function EditReferences() {
   const handleAdd = () => {
     if (newReference) {
       let _validation = validate(newReference, '')
-      if (_validation === '') _validation = validateAPI(newReference)
       if (_validation === '') {
-        let _newReferences = [...newReferences, newReference]
-        setNewReferences(_newReferences)
-        setReferences(_newReferences)
-        checkChanges(_newReferences)
+        validateAPI(newReference)
+          .then(_api_validation => {
+            if (_api_validation === '') {
+              let _newReferences = [...newReferences, newReference]
+              setNewReferences(_newReferences)
+              setReferences(_newReferences)
+              checkChanges(_newReferences)
+            }
+          })
+          .catch(_api_validation => {
+            setValidation(_api_validation)
+          })
       } else {
         setValidation(_validation)
       }
@@ -284,26 +293,27 @@ const ReferencesActions = React.memo((props) => {
   </Box>
 })
 ReferencesActions.propTypes = {
-  data: PropTypes.object.isRequired
+  data: PropTypes.string.isRequired
 }
 
 function EditDatasets() {
-  const {data, api, raiseError, setIsDatasetChanged, setDatasets} = useContext(editMetaDataDialogContext)
-  const [suggestions, setSuggestions] = useState([])
+  const {data, setIsDatasetChanged, setDatasets, defaultDatasets, setDefaultDatasets} = useContext(editMetaDataDialogContext)
+  const {api, user} = useApi()
+  const {raiseError} = useErrors()
   const [validation, setValidation] = useState('')
   const [allDatasets, setAllDatasets] = useState([])
   const [newDataset, setNewDataset] = useState({dataset_id: '', dataset_name: ''})
   const [addDataset, setAddDataset] = useState('')
   const [newDatasets, setNewDatasets] = useState([])
   const [isDuplicated, setIsDuplicated] = useState(false)
-  const [defaultDatasets, setDefaultDatasets] = useState([])
+  const [apiValidation, setApiValidation] = useState('')
 
   const columns = useMemo(() => ([
     {key: '', align: 'left', render: dataset => (dataset.doi ? <span> {`${dataset.dataset_name},  DOI:`} <DOI doi={dataset.doi} /></span> : dataset.dataset_name)}
   ]), [])
 
   useEffect(() => {
-    api.get(`/datasets?page_size=${1000}&page=${1}`)
+    api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
       .then(datasets => {
         setAllDatasets(datasets?.data)
       })
@@ -311,19 +321,13 @@ function EditDatasets() {
         setAllDatasets([])
         raiseError(err)
       })
-  }, [api, raiseError])
+  }, [api, user, raiseError, setAllDatasets])
 
   const checkChanges = useCallback((_datasets) => {
     let isSame = defaultDatasets.length === _datasets.length &&
         defaultDatasets.map(dataset => dataset.dataset_id).every(id => _datasets.map(dataset => dataset.dataset_id).includes(id))
     setIsDatasetChanged(!isSame)
   }, [defaultDatasets, setIsDatasetChanged])
-
-  const handleInputChange = useCallback((event, value) => {
-    const query = value.toLowerCase()
-    const withQueryInName = (allDatasets ? allDatasets.filter(dataset => dataset.dataset_name.toLowerCase().indexOf(query) !== -1) : [])
-    setSuggestions(withQueryInName.slice(0, 5))
-  }, [allDatasets])
 
   useEffect(() => {
     if (data?.data?.length > 0) {
@@ -334,7 +338,20 @@ function EditDatasets() {
         setDefaultDatasets(__datasets)
       }
     }
-  }, [data, allDatasets])
+  }, [data, allDatasets, setDefaultDatasets])
+
+  const validateAPI = useCallback((value) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let query = {metadata: {datasets: value}, verify_only: true}
+        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, query)
+        if (response) {}
+        resolve('')
+      } catch (error) {
+        reject(error.apiMessage[0].msg)
+      }
+    })
+  }, [api, data])
 
   const validate = useCallback((value) => {
     if (allDatasets.map(dataset => dataset.dataset_name).includes(value.dataset_name)) return `There is already a dataset with name ${value.dataset_name}`
@@ -345,8 +362,13 @@ function EditDatasets() {
 
   const handleAutoCompleteChange = (event, value) => {
     if (value && value?.dataset_id) {
-      setAddDataset(value)
-      setIsDuplicated(newDatasets.map(dataset => dataset.dataset_id).includes(value.dataset_id))
+      validateAPI([value.dataset_id]).then(_validation => {
+        setApiValidation(_validation)
+        if (_validation === '') {
+          setAddDataset(value)
+          setIsDuplicated(newDatasets.map(dataset => dataset.dataset_id).includes(value.dataset_id))
+        }
+      }).catch(_validation => setApiValidation(_validation))
     } else {
       setAddDataset('')
     }
@@ -398,7 +420,7 @@ function EditDatasets() {
     addDatasetButton = <Button color="primary" variant="contained" onClick={handleCreate}>
       add entry to new dataset
     </Button>
-  } else if (!isDuplicated && addDataset !== '') {
+  } else if (!isDuplicated && !apiValidation && addDataset !== '') {
     addDatasetButton = <Button variant="contained" color="primary" onClick={handleAdd}>
       add entry to existing dataset
     </Button>
@@ -421,15 +443,16 @@ function EditDatasets() {
       </Box>
       <AutoComplete
         style={{width: '100%'}}
-        options={suggestions}
+        options={allDatasets}
         getOptionLabel={option => option.dataset_name}
-        onInputChange={handleInputChange}
         onChange={handleAutoCompleteChange}
         renderInput={params => (
           <TextField
             {...params}
-            variant='filled' label='Search for an existing dataset' placeholder='Dataset name' argin='normal' fullWidth size='small'
-            error={isDuplicated} helperText={isDuplicated && 'The data is already in the selected dataset'}
+            variant='filled' label='Search for an existing dataset'
+            placeholder='Dataset name' margin='normal' fullWidth size='small'
+            error={isDuplicated || apiValidation !== ''}
+            helperText={(isDuplicated ? 'The data is already in the selected dataset' : apiValidation)}
           />
         )}
       />
@@ -491,7 +514,9 @@ function EditMetaDataDialog({...props}) {
 
   const [comment, setComment] = useState('')
   const [references, setReferences] = useState([])
+  const [defaultReferences, setDefaultReferences] = useState([])
   const [datasets, setDatasets] = useState([])
+  const [defaultDatasets, setDefaultDatasets] = useState([])
   const [isCommentChanged, setIsCommentChanged] = useState(false)
   const [isReferencesChanged, setIsReferencesChanged] = useState(false)
   const [isDatasetChanged, setIsDatasetChanged] = useState(false)
@@ -533,12 +558,24 @@ function EditMetaDataDialog({...props}) {
     if (isCommentChanged || isReferencesChanged || isDatasetChanged) {
       let metadata = {}
       if (isCommentChanged) metadata.comment = comment
-      if (isReferencesChanged) metadata.references = references
+      if (isReferencesChanged) {
+        metadata.references = {}
+        let referencesToAdd = references.filter(dataset => !defaultReferences.includes(dataset))
+        let referencesToRemove = defaultReferences.filter(dataset => !references.includes(dataset))
+        if (referencesToAdd && referencesToAdd.length !== 0) metadata.references.add = referencesToAdd
+        if (referencesToRemove && referencesToRemove.length !== 0) metadata.references.remove = referencesToRemove
+      }
       if (isDatasetChanged) {
+        metadata.datasets = {}
         createNewDatasets().then(newDatasets => {
-          metadata.datasets = datasets.filter(_dataset => _dataset.dataset_id !== _dataset.dataset_name)
+          let newDatasetsIDs = datasets.filter(_dataset => _dataset.dataset_id !== _dataset.dataset_name)
             .map(_dataset => _dataset.dataset_id)
             .concat(newDatasets.map(_dataset => _dataset.dataset_id))
+          let defaultDatasetsIDs = defaultDatasets.map(_dataset => _dataset.dataset_id)
+          let datasetsToAdd = newDatasetsIDs.filter(dataset => !defaultDatasetsIDs.includes(dataset))
+          let datasetsToRemove = defaultDatasetsIDs.filter(dataset => !newDatasetsIDs.includes(dataset))
+          if (datasetsToAdd && datasetsToAdd.length !== 0) metadata.datasets.add = datasetsToAdd
+          if (datasetsToRemove && datasetsToRemove.length !== 0) metadata.datasets.remove = datasetsToRemove
           submitChanges(metadata)
         })
       } else {
@@ -567,8 +604,13 @@ function EditMetaDataDialog({...props}) {
     data: data,
     setComment: setComment,
     setReferences: setReferences,
-    setDatasets: setDatasets
-  }), [api, raiseError, setIsCommentChanged, setIsReferencesChanged, setIsDatasetChanged, upload, data, setComment, setReferences, setDatasets])
+    defaultReferences: defaultReferences,
+    setDefaultReferences: setDefaultReferences,
+    setDatasets: setDatasets,
+    defaultDatasets: defaultDatasets,
+    setDefaultDatasets: setDefaultDatasets
+  }), [api, raiseError, setIsCommentChanged, setIsReferencesChanged, setIsDatasetChanged, upload,
+    data, setComment, setReferences, defaultReferences, setDefaultReferences, setDatasets, defaultDatasets, setDefaultDatasets])
 
   return <editMetaDataDialogContext.Provider value={contextValue}>
     <React.Fragment>
@@ -580,8 +622,8 @@ function EditMetaDataDialog({...props}) {
       {!isIcon && <Button onClick={handleOpenDialog} variant='contained' color='primary' disabled={isProcessing}>
         {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
       </Button>}
-      {open && <Dialog classes={{paper: classes.dialog}} open={open} on disableBackdropClick disableEscapeKeyDown>
-        <DialogTitle>Manage upload meta data</DialogTitle>
+      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
+        <DialogTitle>Edit upload meta data</DialogTitle>
         <DialogContent>
           <DialogContentText>
             You can add, remove or edit the meta data for the selected entries.
@@ -624,7 +666,7 @@ function EditMetaDataDialog({...props}) {
 }
 EditMetaDataDialog.propTypes = {
   isIcon: PropTypes.bool,
-  selectedEntries: PropTypes.arrayOf(PropTypes.object)
+  selectedEntries: PropTypes.object
 }
 
 export default EditMetaDataDialog

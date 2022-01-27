@@ -27,6 +27,7 @@ import matid.geometry
 from nomad import config
 from nomad.units import ureg
 from nomad import atomutils
+from nomad.utils import deep_get
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
@@ -37,8 +38,7 @@ from nomad.datamodel.results import (
     Results,
     Material,
     Method,
-    GeometryOptimizationProperties,
-    GeometryOptimizationMethod,
+    GeometryOptimization,
     Properties,
     Structures,
     Structure,
@@ -102,24 +102,26 @@ class ResultsNormalizer(Normalizer):
         for measurement in self.entry_archive.measurement:
             self.normalize_measurement(measurement, logger=self.logger)
 
-        # Add the present quantities. The full path will be saved for each
-        # property, and if the leaf quantity/section name is unambiguous, also
-        # it will be saved. Each repeating section will be investigated as well
-        # to find all present properties.
-        available_properties = set()
-        for section, m_def, _ in results.properties.m_traverse():
-            parent_path = section.m_path()
-            path = "{}/{}".format(parent_path if parent_path != "/" else "", m_def.name)[20:]
-            parts = filter(lambda x: not isint(x), path.split("/"))
-            path = ".".join(parts)
-            available_properties.add(path)
-        shorthand_prop = list()
-        for prop in available_properties:
-            name = prop.rsplit(".", 1)[-1]
-            shorthand_prop.append(name)
-        u, c = np.unique(shorthand_prop, return_counts=True)
-        shorthand_prop = u[c == 1]
-        available_properties |= set([str(x) for x in shorthand_prop])
+        # Add the list of available_properties: it is a selected subset of the
+        # stored properties.
+        available_property_names = {
+            "properties.electronic.band_structure_electronic.band_gap": "electronic.band_structure_electronic.band_gap",
+            "properties.electronic.band_structure_electronic": "band_structure_electronic",
+            "properties.electronic.dos_electronic": "dos_electronic",
+            "properties.vibrational.dos_phonon": "dos_phonon",
+            "properties.vibrational.band_structure_phonon": "band_structure_phonon",
+            "properties.vibrational.energy_free_helmholtz": "energy_free_helmholtz",
+            "properties.vibrational.heat_capacity_constant_volume": "heat_capacity_constant_volume",
+            "properties.geometry_optimization": "geometry_optimization",
+            "properties.mechanical.bulk_modulus": "bulk_modulus",
+            "properties.mechanical.shear_modulus": "shear_modulus",
+            "properties.mechanical.energy_volume_curve": "energy_volume_curve",
+            "properties.spectroscopy.eels": "eels",
+        }
+        available_properties: List[str] = []
+        for path, shortcut in available_property_names.items():
+            if deep_get(results, *path.split(".")) is not None:
+                available_properties.append(shortcut)
         results.properties.available_properties = sorted(available_properties)
 
     def normalize_measurement(self, measurement, logger) -> None:
@@ -153,9 +155,10 @@ class ResultsNormalizer(Normalizer):
             if atoms is None:
                 atoms = ase.Atoms(''.join(material.elements))
 
-            results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
+            formula = atoms.get_chemical_formula()
+            results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
+            results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
             results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
-            results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
         except Exception as e:
             logger.warn('could not normalize material', exc_info=e)
 
@@ -190,7 +193,6 @@ class ResultsNormalizer(Normalizer):
             logger
         ).material()
         results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
-        self.geometry_optimization(results.method, results.properties)
 
     def species(self, labels: List[str], atomic_numbers: List[int], struct: Structure) -> None:
         """Given a list of species labels, creates the corresponding Species
@@ -366,7 +368,7 @@ class ResultsNormalizer(Normalizer):
 
         return None
 
-    def geometry_optimization(self, method: Method, properties: Properties) -> None:
+    def geometry_optimization(self) -> Union[GeometryOptimization, None]:
         """Populates both geometry optimization methodology and calculated
         properties based on the first found geometry optimization workflow.
         """
@@ -375,30 +377,25 @@ class ResultsNormalizer(Normalizer):
             # Check validity
             if workflow.type == "geometry_optimization" and workflow.calculations_ref:
 
-                # Method
+                geo_opt = GeometryOptimization()
                 geo_opt_wf = workflow.geometry_optimization
-                if geo_opt_wf is not None:
-                    geo_opt_meth = GeometryOptimizationMethod()
-                    geo_opt_meth.type = geo_opt_wf.type
-                    geo_opt_meth.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
-                    geo_opt_meth.convergence_tolerance_force_maximum = geo_opt_wf.convergence_tolerance_force_maximum
-                    method.simulation.geometry_optimization = geo_opt_meth
-
-                # Properties
-                geo_opt_prop = GeometryOptimizationProperties()
-                geo_opt_prop.trajectory = workflow.calculations_ref
+                geo_opt.trajectory = workflow.calculations_ref
                 system_ref = workflow.calculation_result_ref.system_ref
                 structure_optimized = self.nomad_system_to_structure(StructureOptimized, system_ref)
                 if structure_optimized:
-                    geo_opt_prop.structure_optimized = structure_optimized
+                    geo_opt.structure_optimized = structure_optimized
                 if geo_opt_wf is not None:
+                    geo_opt.type = geo_opt_wf.type
+                    geo_opt.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
+                    geo_opt.convergence_tolerance_force_maximum = geo_opt_wf.convergence_tolerance_force_maximum
                     if geo_opt_wf.energies is not None:
-                        geo_opt_prop.energies = geo_opt_wf
-                    geo_opt_prop.final_energy_difference = geo_opt_wf.final_energy_difference
-                    geo_opt_prop.final_force_maximum = geo_opt_wf.final_force_maximum
-                properties.geometry_optimization = geo_opt_prop
+                        geo_opt.energies = geo_opt_wf
+                    geo_opt.final_energy_difference = geo_opt_wf.final_energy_difference
+                    geo_opt.final_force_maximum = geo_opt_wf.final_force_maximum
+                    geo_opt.final_displacement_maximum = geo_opt_wf.final_displacement_maximum
+                return geo_opt
 
-                return
+        return None
 
     def properties(
             self,
@@ -473,7 +470,8 @@ class ResultsNormalizer(Normalizer):
         energy_volume_curves = self.energy_volume_curves()
         bulk_modulus = self.bulk_modulus()
         shear_modulus = self.shear_modulus()
-        if energy_volume_curves or bulk_modulus or shear_modulus:
+        geometry_optimization = self.geometry_optimization()
+        if energy_volume_curves or bulk_modulus or shear_modulus or geometry_optimization:
             mechanical = MechanicalProperties()
             for ev in energy_volume_curves:
                 mechanical.m_add_sub_section(MechanicalProperties.energy_volume_curve, ev)
@@ -482,6 +480,9 @@ class ResultsNormalizer(Normalizer):
             for sm in shear_modulus:
                 mechanical.m_add_sub_section(MechanicalProperties.shear_modulus, sm)
             properties.mechanical = mechanical
+
+        # Geometry optimization
+        properties.geometry_optimization = self.geometry_optimization()
 
         try:
             n_calc = len(self.section_run.calculation)

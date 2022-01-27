@@ -104,6 +104,7 @@ class MethodNormalizer():
         self.method_name = method_name
         settings_basis_set = get_basis_set(self.entry_archive, self.repr_method, self.repr_system, self.logger)
         functional_long_name = self.functional_long_name()
+        method.workflow_name = self.workflow_name()
 
         if method_name == "GW":
             method.method_name = "GW"
@@ -138,6 +139,12 @@ class MethodNormalizer():
         simulation.program_version = self.run.program.version
         method.simulation = simulation
         return method
+
+    def workflow_name(self):
+        workflow_name = None
+        if self.entry_archive.workflow:
+            workflow_name = set(filter(lambda x: x, map(lambda x: x.type, self.entry_archive.workflow)))
+        return workflow_name
 
     def method_id_dft(self, settings_basis_set, functional_long_name: str):
         """Creates a method id for DFT calculations if all required data is

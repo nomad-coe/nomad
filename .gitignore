@@ -24,6 +24,7 @@ target/
 .idea/
 .vscode/launch.json
 .vscode/settings.local.json
+.vscode/extensions.json
 nomad.yaml
 gunicorn.log.conf
 gunicorn.conf
@@ -31,6 +32,16 @@ build/
 dist/
 setup.json
 parser.osio.log
+gui/src/metainfo.json
+gui/src/searchQuantities.json
+gui/src/toolkitMetadata.json
+gui/src/unitsData.js
+gui/src/parserMetadata.js
+gui/src/northTools.json
+gui/.editorconfig
+gui/.pnp.cjs
+gui/.yarn/
+gui/.yarnrc.yml
 examples/workdir/
 gunicorn.log.conf
 nomad/gitinfo.py

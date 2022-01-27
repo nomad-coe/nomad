@@ -217,9 +217,9 @@ Nested.update_forward_refs()
 
 
 query_documentation = strip('''
-A query can be very simple list of parameters. Different parameters are combined
-with a logical **and**, values of the same parameter with also with a logical **and**.
-The following would search for all entries that are VASP calculations,
+A query can be a very simple list of parameters. Different parameters or values of the same parameter are combined
+with a logical **and**.
+The following query would search for all entries that are VASP calculations,
 contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
 **and** *Chris Wolverton*.
 ```json
@@ -283,7 +283,7 @@ or shorter with suffixes:
 {
     "upload_create_time:gt": "2020-01-01",
     "upload_create_time:lt": "2020-08-01",
-    "results.properties.geometry_optimization.final_energy_difference:lte" 1.23e-18
+    "results.properties.geometry_optimization.final_energy_difference:lte": 1.23e-18
 }
 ```
 
@@ -569,7 +569,7 @@ class Pagination(BaseModel):
     @validator('page_offset')
     def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
         if page_offset is not None:
-            assert page_offset >= 0, 'page must be >= 1'
+            assert page_offset >= 0, 'page_offset must be >= 1'
         return page_offset
 
     @root_validator(skip_on_failure=True)
@@ -856,10 +856,11 @@ class TermsAggregation(BucketAggregation):
         maximum number of aggregated values to return. If you need to exaust all
         possible value, use `pagination`.
         '''))
-    value_filter: Optional[pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')] = Field(  # type: ignore
+    include: Optional[Union[List[str], pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')]] = Field(  # type: ignore
         None, description=strip('''
-        An optional filter for values. Only values that contain the filter as substring
-        will be part of the statistics.
+        An optional filter for aggregation values. You can either specify a
+        single string which must be contained in the aggregation value or then
+        provide an array of keywords for which the aggregation will be created.
 
         This is only available for non paginated aggregations.
         '''))
@@ -1082,10 +1083,14 @@ class MetadataEditListAction(BaseModel):
     '''
     Defines an action to perform on a list quantity. This enables users to add and remove values.
     '''
-    op: str = Field(description=strip('''
-        Defines the type of operation (either `set`, `add` or `remove`)'''))
-    values: Union[str, List[str]] = Field(description=strip('''
-        The value or values to set/add/remove (string or list of strings)'''))
+    set: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to set. Note, a set-operation overwrites the old list with the provided list.
+        If a set-operation is specified, it is therefore not possible to also specify an
+        add- or remove-operation.'''))
+    add: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to add to the list'''))
+    remove: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to remove from the list'''))
 
 
 # Generate model for MetadataEditActions

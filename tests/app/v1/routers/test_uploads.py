@@ -666,18 +666,6 @@ def test_get_upload_entry(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
     pytest.param(dict(
-        user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/',
-        accept='application/json'),
-        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
-        id='unpublished-dir-json'),
-    pytest.param(dict(
-        user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/'),
-        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'],
-        id='unpublished-dir-html'),
-    pytest.param(dict(
-        user='test_user', upload_id='id_unpublished', path='', accept='application/json'),
-        200, 'application/json', ['test_content'], id='unpublished-dir-json-root'),
-    pytest.param(dict(
         user='other_test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
     pytest.param(dict(
@@ -686,16 +674,6 @@ def test_get_upload_entry(
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file'),
-    pytest.param(dict(
-        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01',
-        accept='application/json'),
-        200, 'application/json', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-json'),
-    pytest.param(dict(
-        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01'),
-        200, 'text/html; charset=utf-8', ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], id='published-dir-html'),
-    pytest.param(dict(
-        user='test_user', upload_id='id_published', path='', accept='application/json'),
-        200, 'application/json', ['test_content'], id='published-dir-json-root'),
     pytest.param(dict(
         user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
@@ -802,17 +780,6 @@ def test_get_upload_raw_path(
                     assert response.text == expected_content, 'Wrong content (offset and length)'
                 else:
                     assert expected_content in response.text, 'Expected content not found'
-        elif mime_type == 'application/json':
-            data = response.json()
-            assert data['path'] == (path.rstrip('/') or '')
-            if expected_content:
-                file_list_returned = [o['name'] for o in data['content']]
-                assert file_list_returned == expected_content, 'Incorrect list of files returned'
-        elif mime_type == 'text/html':
-            assert response.text, 'No response text'
-            if expected_content:
-                for name in expected_content:
-                    assert name in response.text
         elif mime_type == 'application/zip':
             if expected_content:
                 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
@@ -837,6 +804,107 @@ def test_get_upload_raw_path(
                                     found = True
                                     break
                             assert found, f'Missing expected path in zip file: {expected_path}'
+
+
+@pytest.mark.parametrize('user, upload_id, path, query_args, expected_status_code, expected_content, expected_file_metadata, expected_pagination', [
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/silly_value', {},
+        404, None, None, None,
+        id='bad-path'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', {},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
+        id='published-dir'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', {'include_entry_info': True},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
+        id='published-dir-include_entry_info'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01', {'include_entry_info': True, 'page_size': 2, 'page': 3},
+        200, ['mainfile.json'], None, {'total': 5},
+        id='published-dir-include_entry_info-page3'),
+    pytest.param(
+        'test_user', 'id_published', '', {},
+        200, ['test_content'], None, {'total': 1},
+        id='published-dir-root'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/id_unpublished_1/', {},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
+        id='unpublished-dir'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/id_unpublished_1/', {'page_size': 3, 'page': 1},
+        200, ['1.aux', '2.aux', '3.aux'], None, {'total': 5, 'next_page_after_value': '2'},
+        id='unpublished-dir-page1'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/id_unpublished_1/', {'page_size': 2, 'page': 4},
+        400, None, None, None,
+        id='unpublished-dir-page-out-of-range'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/id_unpublished_1/', {'include_entry_info': True},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
+        id='unpublished-dir-include_entry_info'),
+    pytest.param(
+        'test_user', 'id_unpublished', '', {},
+        200, ['test_content'], None, {'total': 1},
+        id='unpublished-dir-root'),
+    pytest.param(
+        'test_user', 'id_unpublished', 'test_content/id_unpublished_1/2.aux', {'include_entry_info': True},
+        200, None, {'name': '2.aux', 'size': 8, 'entry_id': None, 'parser_name': None}, None,
+        id='unpublished-aux-file'),
+    pytest.param(
+        'test_user', 'id_published', 'test_content/subdir/test_entry_01/mainfile.json', {'include_entry_info': True},
+        200, None, {'name': 'mainfile.json', 'size': 3237, 'entry_id': 'id_01', 'parser_name': 'parsers/vasp'}, None,
+        id='published-main-file'),
+    pytest.param(
+        'other_test_user', 'id_unpublished', 'test_content/id_unpublished_1', {},
+        401, None, None, None,
+        id='unpublished-no-access'),
+    pytest.param(
+        'other_test_user', 'id_embargo', 'test_content/id_embargo_1', {},
+        401, None, None, None,
+        id='embargoed-no-access'),
+    pytest.param(
+        'other_test_user', 'id_embargo_w_coauthor', 'test_content/id_embargo_w_coauthor_1', {},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
+        id='embargoed-coauthor-access')])
+def test_get_upload_rawdir_path(
+        client, example_data, test_auth_dict,
+        user, upload_id, path, query_args,
+        expected_status_code, expected_content, expected_file_metadata, expected_pagination):
+    user_auth, __token = test_auth_dict[user]
+
+    response = perform_get(
+        client, f'uploads/{upload_id}/rawdir/{path}', user_auth=user_auth, **query_args)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        data = response.json()
+        assert data['path'] == (path.rstrip('/') or '')
+        if expected_content is not None:
+            dir_content_returned = data['directory_metadata']['content']
+            assert [d['name'] for d in dir_content_returned] == expected_content, 'Incorrect list of files returned'
+            for d in dir_content_returned:
+                if query_args.get('include_entry_info'):
+                    assert (d.get('entry_id') is not None) == ('mainfile' in d['name'])
+                    assert (d.get('parser_name') is not None) == ('mainfile' in d['name'])
+                else:
+                    assert 'entry_id' not in d and 'parser_name' not in d
+        elif expected_file_metadata is not None:
+            file_metadata_returned = data['file_metadata']
+            for k, v in expected_file_metadata.items():
+                if v is None:
+                    assert k not in file_metadata_returned
+                else:
+                    assert file_metadata_returned.get(k) == v
+        if expected_pagination is None:
+            assert 'pagination' not in data
+        else:
+            pagination_returned = data['pagination']
+            for k, v in expected_pagination.items():
+                if v is None:
+                    assert k not in pagination_returned
+                else:
+                    assert pagination_returned.get(k) == v
 
 
 @pytest.mark.parametrize('upload_id, mainfile, user, status_code', [
@@ -1097,7 +1165,7 @@ def test_delete_upload_raw_path(
             expected_error_loc=('query',)),
         id='query-no-results')])
 def test_post_upload_edit(
-        client, proc_infra, example_data_writeable, a_dataset, test_auth_dict, test_users_dict,
+        client, proc_infra, example_data_writeable, example_datasets, test_auth_dict, test_users_dict,
         user, upload_id, kwargs):
     '''
     Note, since the endpoint basically just forwards the request to

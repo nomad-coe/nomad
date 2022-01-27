@@ -24,19 +24,19 @@ from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel, processing
+from nomad import utils, datamodel, processing, config
 from nomad.metainfo.elasticsearch_extension import entry_type
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
-from nomad.search import update_by_query
+from nomad.search import search, update_by_query
 
 from .auth import create_user_dependency
 from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    Pagination, PaginationResponse, Query, HTTPExceptionModel, User,
-    Direction, Owner, Any_)
+    Pagination, PaginationResponse, MetadataPagination, Query, HTTPExceptionModel,
+    User, Direction, Owner, Any_)
 
 
 router = APIRouter()
@@ -74,6 +74,20 @@ _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
     'model': HTTPExceptionModel,
     'description': strip('''
         The dataset already has a DOI and cannot be changed anymore.
+    ''')}
+
+_dataset_has_unpublished_contents = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The dataset has unpublished contents. No DOI can be assigned at the moment.
+        Publish the dataset contents first.
+    ''')}
+
+_dataset_is_empty = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The dataset is empty. No DOI can be assigned at this moment. Add some published
+        contents to the dataset first.
     ''')}
 
 
@@ -130,7 +144,7 @@ async def get_datasets(
         request: Request,
         dataset_id: str = FastApiQuery(None),
         dataset_name: str = FastApiQuery(None),
-        user_id: str = FastApiQuery(None),
+        user_id: List[str] = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
         doi: str = FastApiQuery(None),
         prefix: str = FastApiQuery(None),
@@ -138,8 +152,9 @@ async def get_datasets(
     '''
     Retrieves all datasets that match the given criteria.
     '''
+
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id=user_id, dataset_type=dataset_type, doi=doi)
+    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id__in=user_id, dataset_type=dataset_type, doi=doi)
     if prefix is not None and prefix != '':
         query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
@@ -336,7 +351,9 @@ async def delete_dataset(
     '/{dataset_id}/action/doi', tags=[default_tag],
     summary='Assign a DOI to a dataset',
     response_model=DatasetResponse,
-    responses=create_responses(_bad_id_response, _dataset_is_fixed_response, _bad_user_response),
+    responses=create_responses(
+        _bad_id_response, _dataset_is_fixed_response, _dataset_has_unpublished_contents,
+        _bad_user_response, _dataset_is_empty),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def assign_doi(
@@ -361,6 +378,27 @@ async def assign_doi(
         raise HTTPException(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
+
+    response = search(
+        owner='admin',
+        query={'datasets.dataset_id': dataset_id},
+        pagination=MetadataPagination(page_size=0),
+        user_id=config.services.admin_user_id)
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=_dataset_is_empty[0],
+            detail=_dataset_is_empty[1]['description'])
+
+    response = search(
+        owner='admin',
+        query={'datasets.dataset_id': dataset_id, 'published': False},
+        pagination=MetadataPagination(page_size=0),
+        user_id=config.services.admin_user_id)
+
+    if response.pagination.total > 0:
+        raise HTTPException(
+            status_code=_dataset_has_unpublished_contents[0],
+            detail=_dataset_has_unpublished_contents[1]['description'])
 
     doi = DOI.create(title='NOMAD dataset: %s' % dataset.dataset_name, user=user)
     doi.create_draft()

@@ -110,10 +110,12 @@ const Search = React.memo(({
         <Box marginBottom={2}>
           <SearchBar className={styles.searchBar} />
         </Box>
-        <Box marginBottom={2}>
+        <Box marginBottom={2} position="relative" zIndex={0}>
           <StatisticsGrid/>
         </Box>
-        <SearchResults />
+        <Box position="relative" zIndex={1}>
+          <SearchResults />
+        </Box>
         <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>
     </div>

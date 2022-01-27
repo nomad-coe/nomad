@@ -33,10 +33,10 @@ all_coauthor_metadata = dict(
     coauthors=['lhofstadter'],
     external_id='31415926536',
     comment='a humble comment',
-    references=['a reference', 'another reference'],
+    references=['http://reference1.com', 'http://reference2.com'],
     external_db='AFLOW',
     reviewers=['lhofstadter'],
-    datasets=['a dataset'])
+    datasets=['test_dataset_1'])
 
 all_coauthor_upload_metadata = {
     k: v for k, v in all_coauthor_metadata.items() if k in _mongo_upload_metadata}
@@ -240,12 +240,12 @@ def convert_to_comparable_value_single(quantity, value, format, user):
             metadata=dict(comment='new comment'),
             affected_upload_ids=['id_unpublished_w']),
         id='query-contains-published')])
-def test_edit_metadata(proc_infra, purged_app, example_data_writeable, a_dataset, test_users_dict, kwargs):
+def test_edit_metadata(proc_infra, purged_app, example_data_writeable, example_datasets, test_users_dict, kwargs):
     kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
     assert_edit_request(**kwargs)
 
 
-def test_set_and_clear_all(proc_infra, example_data_writeable, a_dataset, test_user):
+def test_set_and_clear_all(proc_infra, example_data_writeable, example_datasets, test_user):
     # Set all fields a coauthor can set
     assert_edit_request(
         user=test_user,
@@ -264,6 +264,157 @@ def test_set_and_clear_all(proc_infra, example_data_writeable, a_dataset, test_u
             reviewers=[]))
 
 
+@pytest.mark.parametrize('kwargs', [
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets={'add': 'test_dataset_1'}),
+            expected_metadata_1=dict(datasets=['test_dataset_1']),
+            metadata_2=dict(datasets={'add': 'test_dataset_2'}),
+            expected_metadata_2=dict(datasets=['test_dataset_1', 'test_dataset_2'])),
+        id='datasets-add'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets=['test_dataset_1']),
+            metadata_2=dict(datasets=['ref:test_dataset_2']),
+            expected_metadata_2=dict(datasets=['test_dataset_1', 'test_dataset_2'])),
+        id='datasets-implicit-add'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets=['test_dataset_1']),
+            metadata_2=dict(datasets=['test_dataset_3']),
+            expected_error_loc_2=('metadata', 'datasets')),
+        id='datasets-implicit-add-not-owner'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets=['test_dataset_1']),
+            metadata_2=dict(datasets=['ref:test_dataset_3']),
+            expected_error_loc_2=('metadata', 'datasets')),
+        id='datasets-implicit-add-not-owner-ref'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets=['test_dataset_1', 'test_dataset_2']),
+            metadata_2=dict(datasets={'remove': 'test_dataset_1'}),
+            expected_metadata_2=dict(datasets=['test_dataset_2'])),
+        id='datasets-remove'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets=['test_dataset_1', 'ref:test_dataset_2']),
+            metadata_2=dict(datasets={'remove': 'test_dataset_2'}),
+            expected_error_loc_2=('metadata', 'datasets')),
+        id='datasets-remove-with-doi'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets='test_dataset_1'),
+            metadata_2=dict(datasets={'add': ['test_dataset_2'], 'remove': 'ref:test_dataset_1'}),
+            expected_metadata_2=dict(datasets=['test_dataset_2'])),
+        id='datasets-add+remove'),
+    pytest.param(
+        dict(
+            metadata_1=dict(datasets={'set': ['test_dataset_2']}),
+            expected_error_loc_1=('metadata', 'datasets'),
+            metadata_2=dict(datasets={'add': 'test_dataset_1', 'set': ['test_dataset_2']}),
+            expected_error_loc_2=('metadata', 'datasets')),
+        id='datasets-set'),
+    pytest.param(
+        dict(
+            metadata_1=dict(coauthors='scooper'),
+            expected_metadata_1=dict(coauthors=[]),
+            metadata_2=dict(coauthors={'add': ['lhofstadter']}),
+            expected_metadata_2=dict(coauthors=['lhofstadter'])),
+        id='coauthors-add'),
+    pytest.param(
+        dict(
+            metadata_1=dict(coauthors='lhofstadter'),
+            expected_metadata_1=dict(coauthors=['lhofstadter']),
+            metadata_2=dict(coauthors={'add': ['admin'], 'remove': 'lhofstadter'}),
+            expected_metadata_2=dict(coauthors=['admin'])),
+        id='coauthors-add+remove'),
+    pytest.param(
+        dict(
+            metadata_1=dict(coauthors='lhofstadter'),
+            expected_metadata_1=dict(coauthors=['lhofstadter']),
+            metadata_2=dict(coauthors={'add': ['admin'], 'set': 'lhofstadter'}),
+            expected_error_loc_2=('metadata', 'coauthors')),
+        id='coauthors-add+set'),
+    pytest.param(
+        dict(
+            metadata_1=dict(reviewers='scooper'),
+            expected_metadata_1=dict(reviewers=[]),
+            metadata_2=dict(reviewers={'add': ['lhofstadter']}),
+            expected_metadata_2=dict(reviewers=['lhofstadter'])),
+        id='reviewers-add'),
+    pytest.param(
+        dict(
+            metadata_1=dict(reviewers='lhofstadter'),
+            expected_metadata_1=dict(reviewers=['lhofstadter']),
+            metadata_2=dict(reviewers={'add': ['admin'], 'remove': 'lhofstadter'}),
+            expected_metadata_2=dict(reviewers=['admin'])),
+        id='reviewers-add+remove'),
+    pytest.param(
+        dict(
+            metadata_1=dict(reviewers='lhofstadter'),
+            expected_metadata_1=dict(reviewers=['lhofstadter']),
+            metadata_2=dict(reviewers={'remove': ['admin'], 'set': 'lhofstadter'}),
+            expected_error_loc_2=('metadata', 'reviewers')),
+        id='reviewers-remove+set'),
+    pytest.param(
+        dict(
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'add': ['http://ref2.com']}),
+            expected_metadata_2=dict(references=['http://ref1.com', 'http://ref2.com'])),
+        id='references-add'),
+    pytest.param(
+        dict(
+            metadata_1=dict(references=['http://ref1.com', 'http://ref2.com']),
+            expected_metadata_1=dict(references=['http://ref1.com', 'http://ref2.com']),
+            metadata_2=dict(references={'add': 'http://ref3.com', 'remove': ['http://ref1.com']}),
+            expected_metadata_2=dict(references=['http://ref2.com', 'http://ref3.com'])),
+        id='references-add+remove'),
+    pytest.param(
+        dict(
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'remove': 'http://ref4.com', 'add': ['http://ref2.com', 'http://ref3.com', 'http://ref4.com']}),
+            expected_error_loc_2=('metadata', 'references')),
+        id='references-add+remove-incoherent'),
+    pytest.param(
+        dict(
+            metadata_1=dict(references='http://ref1.com'),
+            expected_metadata_1=dict(references=['http://ref1.com']),
+            metadata_2=dict(references={'add': ['http://ref2', 'http://ref3.com']}),
+            expected_error_loc_2=('metadata', 'references')),
+        id='references-not-valid-URL')])
+def test_list_quantities(proc_infra, purged_app, example_data_writeable, example_datasets, test_users_dict, kwargs):
+    def replace_dataset_ref(dataset_ref):
+        if dataset_ref.startswith('ref:'):
+            for dataset in example_datasets:
+                if dataset.dataset_name == dataset_ref[4:]:
+                    return dataset.dataset_id
+        return dataset_ref
+
+    def replace_dataset_ref_or_reflist(ref_or_reflist):
+        if type(ref_or_reflist) == list:
+            return [replace_dataset_ref(ref) for ref in ref_or_reflist]
+        return replace_dataset_ref(ref_or_reflist)
+
+    kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
+    for suffix in ('_1', '_2'):
+        for arg in ('metadata', 'expected_metadata', 'expected_error_loc'):
+            if arg in kwargs:
+                kwargs.pop(arg)
+            if arg + suffix in kwargs:
+                kwargs[arg] = kwargs.pop(arg + suffix)
+        datasets = kwargs['metadata'].get('datasets')
+        if datasets is not None:
+            if type(datasets) == dict:
+                datasets = {op: replace_dataset_ref_or_reflist(v) for op, v in datasets.items()}
+            else:
+                datasets = replace_dataset_ref_or_reflist(datasets)
+            kwargs['metadata']['datasets'] = datasets
+        assert_edit_request(**kwargs)
+
+
 def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_test_user, admin_user):
     assert_edit_request(
         user=admin_user, upload_id='id_published_w', metadata=all_admin_metadata)
@@ -273,7 +424,7 @@ def test_admin_quantities(proc_infra, example_data_writeable, test_user, other_t
             user=test_user, upload_id='id_unpublished_w', metadata={k: v}, expected_error_loc=('metadata', k))
 
 
-def test_query_cannot_set_upload_attributes(proc_infra, example_data_writeable, a_dataset, test_user):
+def test_query_cannot_set_upload_attributes(proc_infra, example_data_writeable, example_datasets, test_user):
     query = {'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]}
     for k, v in all_coauthor_upload_metadata.items():
         # Attempting to edit an upload level attribute with query should always fail,

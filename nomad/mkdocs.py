@@ -45,6 +45,6 @@ def define_env(env):
     @env.macro
     def metainfo_data():  # pylint: disable=unused-variable
         return utils.strip('''
-            You can browse the [NOMAD metainfo schema]({{ nomad_url() }}/../gui/analyze/metainfo)
-            or the archive of each entry (e.g. [a VASP example]({{ nomad_url() }}/../gui/search/entries/entry/id/d5OYC0SJTDevHMPk7YHd4A/-7j8ojKkna2NLXdytv_OjV4zsBXw/archive))
+            You can browse the [NOMAD metainfo schema](../gui/analyze/metainfo)
+            or the archive of each entry (e.g. [a VASP example](../gui/search/entries/entry/id/d5OYC0SJTDevHMPk7YHd4A/-7j8ojKkna2NLXdytv_OjV4zsBXw/archive))
             in the web-interface.''')

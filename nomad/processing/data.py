@@ -61,6 +61,7 @@ from nomad.archive import (
 from nomad.app.v1.models import (
     MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
+import validators
 
 section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow.name
@@ -415,29 +416,42 @@ class MetadataEditRequestHandler:
             else:
                 # We have a non-scalar quantity
                 if type(raw_value) == dict:
-                    # The raw value is a dict - expected to contain op and values
-                    assert raw_value.keys() == {'op', 'values'}, 'Expected keys `op` and `values`'
-                    op = raw_value['op']
-                    values = raw_value['values']
-                    assert op in ('set', 'add', 'remove'), 'op should be `set`, `add` or `remove`'
-                    if quantity_name == 'datasets' and op == 'set':
+                    # The raw value is a dict - expected to contain keys add/remove/set
+                    assert raw_value, 'No operation specified'
+                    for key in raw_value:
+                        assert key in ('set', 'add', 'remove'), (
+                            f'Allowed operations are `set`, `add`, and `remove`, got {key}')
+                    assert 'set' not in raw_value or ('add' not in raw_value and 'remove' not in raw_value), (
+                        'Cannot specify both `set` and `add`/`remove` operations')
+                    if quantity_name == 'datasets' and 'set' in raw_value:
                         self._error(
                             'Only `add` and `remove` operations permitted for datasets', loc)
                         return False, None
+                    raw_ops = raw_value
                 else:
-                    op = 'set'
-                    values = raw_value
+                    # The raw value is not a dict, but a value or list of values
+                    # -> interpret as a set-operation (or, for datasets: add-operation)
                     if quantity_name == 'datasets':
-                        op = 'add'  # Just specifying a list will be interpreted as add, rather than fail.
-                values = values if type(values) == list else [values]
-                verified_values = [self._verified_value_single(definition, v) for v in values]
-                return True, dict(op=op, values=verified_values)
+                        raw_ops = {'add': raw_value}
+                    else:
+                        raw_ops = {'set': raw_value}
+
+                verified_ops = {}
+                for op, values in raw_ops.items():
+                    values = values if type(values) == list else [values]
+                    verified_values = [self._verified_value_single(definition, v, op) for v in values]
+                    verified_ops[op] = verified_values
+
+                assert set(verified_ops.get('add', [])).isdisjoint(verified_ops.get('remove', [])), (
+                    'The same value cannot be specified for both `add` and `remove`')
+
+                return True, verified_ops
         except Exception as e:
             self._error(str(e), loc)
             return False, None
 
     def _verified_value_single(
-            self, definition: metainfo.Definition, value: Any) -> Any:
+            self, definition: metainfo.Definition, value: Any, op: str = None) -> Any:
         '''
         Verifies a *singular* raw value (i.e. for list quantities we should run this method
         for each value in the list, not with the list itself as input). Returns the verified
@@ -452,6 +466,8 @@ class MetadataEditRequestHandler:
             assert value is None or type(value) == definition.type, f'Expected a {definition.type.__name__}'
             if definition.name == 'embargo_length':
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
+            if definition.name == 'references':
+                assert validators.url(value), 'Please enter a valid URL ...'
             return None if value == '' else value
         elif definition.type == metainfo.Datetime:
             if value is not None:
@@ -491,7 +507,7 @@ class MetadataEditRequestHandler:
                 assert dataset is not None, f'Dataset reference not found: `{value}`'
                 assert self.user.is_admin or dataset.user_id == self.user.user_id, (
                     f'Dataset `{value}` does not belong to you')
-                assert not dataset.doi, f'Dataset `{value}` has a doi and cannot be changed'
+                assert op == 'add' or not dataset.doi, f'Dataset `{value}` has a doi, can only add entries to it'
                 return dataset.dataset_id
         else:
             assert False, 'Unhandled value type'  # Should not happen
@@ -518,19 +534,19 @@ class MetadataEditRequestHandler:
             if definition.type == metainfo.Datetime and verified_value:
                 return datetime.fromisoformat(verified_value)
             return verified_value
-        # Non-scalar property. The verified value should be a dict with op and values
-        op, values = verified_value['op'], verified_value['values']
+        # Non-scalar property. The verified value should be a dict with operations
         old_list = getattr(mongo_doc, quantity_name, [])
-        new_list = [] if op == 'set' else old_list.copy()
-        for v in values:
-            if op == 'add' or op == 'set':
-                if v not in new_list:
-                    if quantity_name in ('coauthors', 'reviewers') and v == mongo_doc.main_author:
-                        continue  # Prevent adding the main author to coauthors or reviewers
-                    new_list.append(v)
-            elif op == 'remove':
-                if v in new_list:
-                    new_list.remove(v)
+        new_list = [] if 'set' in verified_value else old_list.copy()
+        for op, values in verified_value.items():
+            for v in values:
+                if op == 'add' or op == 'set':
+                    if v not in new_list:
+                        if quantity_name in ('coauthors', 'reviewers') and v == mongo_doc.main_author:
+                            continue  # Prevent adding the main author to coauthors or reviewers
+                        new_list.append(v)
+                elif op == 'remove':
+                    if v in new_list:
+                        new_list.remove(v)
         return new_list
 
     def _get_entry_key(self, entry: 'Entry', entries_key: str) -> str:
@@ -916,9 +932,11 @@ class Entry(Proc):
 
             if parser is None:
                 # Should only be possible if the upload is published and we have
-                logger.warn('no parser matches during process, not updating the entry')
+                logger.warn('no parser matches during process')
                 self.warnings = ['no matching parser found during processing']
-            else:
+                parser = parser_dict[self.parser_name]
+
+            if parser is not None:
                 should_parse = True
                 parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
                 if parser_changed:
@@ -927,6 +945,10 @@ class Entry(Proc):
                             'different parser matches during process, use new parser',
                             parser=parser.name)
                         self.parser_name = parser.name  # Parser renamed
+            else:
+                should_parse = False
+                logger.error('could not determine a perser for this entry')
+                self.errors = ['could not determine a parser for this entry']
 
         if should_parse:
             self.set_last_status_message('Initializing metadata')

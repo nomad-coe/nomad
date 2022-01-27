@@ -306,8 +306,7 @@ def test_geometry_optimization(geometry_optimization):
     assert n_frames > 0
     assert n_frames == n_energies
     assert geo_opt_prop.final_energy_difference > 0
-    geo_opt_meth = geometry_optimization.results.method.simulation.geometry_optimization
-    assert geo_opt_meth.type == "ionic"
+    assert geo_opt_prop.type == "ionic"
 
 
 def test_n_calculations(geometry_optimization):

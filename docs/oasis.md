@@ -8,7 +8,8 @@ central NOMAD installation.
 
 While different use cases require different setups, this documentation
 describes the simplest setup of a NOMAD OASIS. It would allow a group to use NOMAD for
-local research data management, while using NOMAD's central user-management and its users.
+local research data management, while using NOMAD's central user-management and the
+already registered users.
 There are several environment in which you can run a NOMAD OASIS: base-metal linux,
 docker with docker-compose, and in a kubernetes cluster. We recommend using docker/docker-compose.
 
@@ -22,15 +23,14 @@ Comming soon ...
 
 We need to register some information about your OASIS in the central user management:
 
-- The hostname for the machine you run NOMAD on. This is important for redirects between
-your OASIS and the central NOMAD user-management and to allow your users to upload files (via GUI or API).
+- The hostname for the machine you run NOMAD on. This is important for forwarding between
+your OASIS and the central NOMAD user management and to allow your users to upload files (via GUI or API).
 Your machine needs to be accessible under this hostname from the public internet. The host
-name needs to be registered with the central NOMAD in order to configure the central user-
+name needs to be registered in the central NOMAD in order to configure the central user-
 management correctly.
-- Your NOMAD account that should act as an admin account for your OASIS. This account must be declared
-to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user-
-management.
-- You will need to know your NOMAD user-id. This information has to be provided by us.
+- Your NOMAD account should act as an admin account for your OASIS. This account must be declared
+to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user management.
+- You must know your NOMAD user-id. This information has to be provided by us.
 
 Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as an OASIS
 admin and to register your hostname. Please replace the indicated configuration items with
@@ -43,20 +43,20 @@ In principle, you can also run your own user management. This is not yet documen
 
 ### Pre-requisites
 
-NOMAD software is distributed as a set of docker containers. Further, other services
-that can be run with docker are required. Further, we use docker-compose to setup
-all necessary container in the simples possible manner.
+NOMAD software is distributed as a set of docker containers and there are also other services required
+that can be run with docker. Further, we use docker-compose to setup
+all necessary container in the simplest way possible.
 
 You will need a single computer, with **docker** and **docker-compose** installed.
 
 The following will run all necessary services with docker. These comprise: a **mongodb**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
-NOMAD **worker**, and NOMAD **gui**. Refer to this [introduction](/app/docs/introduction.html#architecture)
-to learn what each service does and why it is necessary.
+NOMAD **worker**, and NOMAD **gui**. In this [introduction](index.md#architecture),
+you will learn what each service does and why it is necessary.
 
 ### Configuration overview
 
-All docker container are configured via docker-compose an the respective `docker-compose.yaml` file.
+All docker container are configured via docker-compose and the respective `docker-compose.yaml` file.
 Further, we will need to mount some configuration files to configure the NOMAD services within
 their respective containers.
 
@@ -66,8 +66,8 @@ There are three files to configure:
 - `nomad.yaml`
 - `nginx.conf`
 
-In this example, we have all files in the same directory (the directory we also work from).
-You can download examples files from
+In this example, we have all files in the same directory (the directory we are also working in).
+You can download example files from
 [here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/tree/master/ops/docker-compose/nomad-oasis/).
 
 ### docker-compose.yaml
@@ -210,8 +210,9 @@ A few things to notice:
 - It mounts three configuration files that need to be provided (see below): `nomad.yaml`, `nginx.conf`, `env.js`.
 - The only exposed port is `80`. This could be changed to a desired port if necessary.
 - The NOMAD images are pulled from our gitlab in Garching, the other services use images from a public registry (*dockerhub*).
-- All container will be named `nomad_oasis_*`. These names can be used to later reference the container with the `docker` cmd.
 - The NOMAD images we use are tagged `north`. This is the branch where we currently develop the nomad remote tools.
+- All container will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
+- The NOMAD images we use are tagged `stable`. This could be replaced with concrete version tags.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent
 indefinite restarts.
 
@@ -253,21 +254,24 @@ elastic:
     materials_index: nomad_oasis_materials_v1
 ```
 
-You need to change:
+You need to change the following:
+
+- Replace `your-host`.
+- `api_base_path` defines the path under which the app is run. It needs to be changed if you use a different base path.
+- The admin user credentials (id, username, password, email).
 - Replace `abs path to nomad` with the absolute path to the directory where you are
 running the NOMAD Oasis docker-compose, i.e. the current directory. You should also create
 a `.volumes` directory. This is where NOMAD will keep all files.
 - Replace `your-host` and admin credentials respectively.
-- `api_base_path` defines the path under with the app is run. It needs to be changed, if you use a different base path.
-- The admin user credentials (id, username, password, email).
 - `generated crypt key` needs to be replaced with an actual key. You can generate one
 with `openssl rand -hex 32`.
 - On Windows or MacOS, you have to change `172.17.0.1` with `host.docker.internal`.
 
 A few things to notice:
+
 - Be secretive about your admin credentials; make sure this file is not publicly readable.
 - We will use your hostname as `deployment_id`. When you publish uploads from your Oasis to the
-central NOMAD, this will be added as upload metadata and allow to see where the upload came
+central NOMAD, this will be added as upload metadata and allows to see where the upload came
 from.
 
 ### nginx.conf
@@ -343,9 +347,14 @@ server {
 }
 ```
 
+You need to change:
+
+- Replace `<your-host>`
+
 A few things to notice:
+
 - It configures the base path (`nomad-oasis`) at multiple places. It needs to be changed, if you use a different base path.
-- You can use the server to server additional content if you like.
+- You can use the server for additional content if you like.
 - `client_max_body_size` sets a limit to the possible upload size.
 - If you operate the GUI container behind another proxy, keep in mind that your proxy should not buffer requests/responses to allow streaming of large requests/responses for `../api/uploads` and `../api/raw`.
 
@@ -359,12 +368,12 @@ configuration options.
 
 If you prepared the above files, simply use the usual `docker-compose` commands to start everything.
 
-To make sure you have the latest docker images for everything run this first:
+To make sure you have the latest docker images for everything, run this first:
 ```sh
 docker-compose pull
 ```
 
-In the beginning and for debugging problems, it is recommended to start services separately:
+In the beginning and to simplify debugging, it is recommended to start the services separately:
 ```sh
 docker-compose up -d mongodb elastic rabbitmq
 docker-compose up app worker gui
@@ -386,7 +395,7 @@ If everything works, the gui should be available under:
 http://<your host>/nomad-oasis/gui/
 ```
 
-If you run into troubles, use the dev-tools of you browser to check the javascript logs
+If you run into problems, use the dev-tools of you browser to check the javascript logs
 or monitor the network traffic for HTTP 500/400/404/401 responses.
 
 To see if at least the api works, check
@@ -417,7 +426,7 @@ If you want to report problems with your OASIS. Please provide the logs for
 ### Pre-requisites
 
 We will run NOMAD from the *nomad-lab* Python package. This package contains all the necessary
-code for running the processing, api, and gui. But, it is missing the necessary databases. You might be
+code to run the processing, api, and gui. But, it is missing the necessary databases. You might be
 able to run NOMAD in user space.
 
 You will need:
@@ -474,12 +483,13 @@ elastic:
     index_name: nomad_v0_8
 ```
 
-You need to change:
+You need to change the following:
 
 - Replace `your-host` and admin credentials respectively.
-- `api_base_path` defines the path under with the app is run. It needs to be changed, if you use a different base path.
+- `api_base_path` defines the path under which the app is run. It needs to be changed, if you use a different base path.
 
 A few things to notice:
+
 - Be secretive about your admin credentials; make sure this file is not publicly readable.
 
 ### nginx
@@ -514,7 +524,7 @@ To run NOMAD, you must run two services. One is the NOMAD app, it serves the API
 gunicorn "${params[@]}" -b 0.0.0.0:8000 nomad.app:app
 ```
 
-And the NOMAD worker, that runs the NOMAD processing.
+the second is the NOMAD worker, that runs the NOMAD processing.
 ```
 celery worker -l info -A nomad.processing -Q celery
 ```
@@ -557,7 +567,7 @@ because we are using a different database and search index now.
 
 To migrate the data, we created a command that you can run within your OASIS' NOMAD
 application container. This command takes the old database name as argument, it will copy
-all data from the old mongo db to the current one. The default v8.x database name
+all data from the old mongodb to the current one. The default v8.x database name
 was `nomad_fairdi`, but you might have changed this to `nomad_v0_8` as recommended by
 our old Oasis documentation.
 
@@ -584,7 +594,7 @@ Currently there are two ways to restrict access to your Oasis. First, you do not
 expose the Oasis to the public internet, e.g. you only make it available on an intra-net or
 through a VPN.
 
-Second, we offer a simple white-list mechanism. As the Oasis administrator your provide a
+Second, we offer a simple white-list mechanism. As the Oasis administrator you provide a
 list of accounts as part of your Oasis configuration. To use the Oasis, all users have to
 be logged in and be on your white list of allowed users. To enable white-listing, you
 can provide a list of NOMAD account email addresses in your `nomad.yaml` like this:
@@ -603,21 +613,21 @@ linux), you might run into problems with processing large uploads. If the NOMAD 
 and app are run on the same computer, the app might become unresponsive, when the worker
 consumes all system resources.
 
-By default, the worker container might as many worker processes as the system as CPU cores.
+By default, the worker container might have as many worker processes as the system as CPU cores.
 In addition, each worker process might spawn additional threads and consume
 more than one CPU core.
 
-There are multiple ways to restrict the resources that the worker might consume:
+There are multiple ways to restrict the worker's resource consumption:
 
 - limit the number of worker processes and thereby lower the number of used cores
-- disable or limit multi-threading
+- disable or restrict multithreading
 - limit available CPU utilization of the worker's docker container with docker
 
 #### Limit the number of worker processes
 
 The worker uses the Python package celery. Celery can be configured to use less than the
-default number of worker processes (which equals the number of available cores). To use just
-a single core, you can alter the worker service command in the `docker-compose.yml` and
+default number of worker processes (which equals the number of available cores). To use only
+a single core only, you can alter the worker service command in the `docker-compose.yml` and
 add a `--concurrency` argument:
 
 ```
@@ -628,8 +638,8 @@ See also the [celery documentation](https://docs.celeryproject.org/en/stable/use
 
 #### Limiting the use of threads
 
-You can also reduce the usable threads that Python packages based on OpenMP might use to
-reduce the threads that might be spawn by a single worker process. Simply set the `OMP_NUM_THREADS`
+You can also reduce the usable threads that Python packages based on OpenMP could use to
+reduce the threads that might be spawed by a single worker process. Simply set the `OMP_NUM_THREADS`
 environment variable in the worker container in your `docker-compose.yml`:
 
 ```
@@ -662,17 +672,22 @@ See also the [docker-compose documentation](https://docs.docker.com/compose/comp
 ## NOMAD Oasis FAQ
 
 #### Why use an Oasis?
-There are three reasons: You want to manage data in private, you want local availability of public NOMAD data without network restrictions, or you want to manage large amounts of low quality and preliminary data that is not intended for publication.
+There are three reasons:
+
+- You want to manage data in private,
+- you want local availability of public NOMAD data without network restrictions,
+- or you want to manage large amounts of low quality and preliminary data that is not intended for publication.
 
 #### How to organize data in NOMAD Oasis?
 
 ##### How can I categorize or label my data?
 Currently, NOMAD supports the following mechanism to organize data:
-data always belongs to one upload, which has a main author, and is assigned various metadata, like upload create time, a custom, human friendly upload name, etc.
-data can be assigned to multiple independent datasets
-data can hold a proprietary id called “external_id”
-data can be assigned multiple coauthors in addition to the main author
-Data can be filtered and searched in various ways.
+
+- Data always belongs to one upload, which has a main author, and is assigned various metadata, like the time the upload was created, a custom human friendly upload name, etc.
+- Data can be assigned to multiple independent datasets.
+- Data can hold a proprietary id called “external_id”.
+- Data can be assigned multiple coauthors in addition to the main author.
+- Data can be filtered and searched in various ways.
 
 #####  Is there some rights-based visibility?
 An upload can be viewed at any time by the main author, the upload coauthors, and the
@@ -685,11 +700,11 @@ The main author and upload coauthors are the only users who can edit the upload 
 Keep in mind, it is not entirely clear, how we will do this.
 
 ##### How to designate Oasis data for publishing to NOMAD?
-Currently, you should use one of the organizational mechanism to designate data for being published to NOMAD. we, you can use a dedicated dataset for publishable data.
+Currently, you should use one of the organizational mechanism to designate data for being published to NOMAD. You can use a dedicated dataset for publishable data.
 
 ##### How to upload?
 
-Will will probably provide functionality in the API of the central NOMAD to upload data from an Oasis to the central NOMAD. We will provide the necessary scripts and detailed instructions. Most likely the data that is uploaded to the central NOMAD can be selected via a search query. Therefore, using a dedicated dataset, would be an easy to select criteria.
+We will probably provide functionality in the API of the central NOMAD to upload data from an Oasis to the central NOMAD and provide the necessary scripts and detailed instructions. Most likely the data that is uploaded to the central NOMAD can be selected via a search query. Therefore, using a dedicated dataset, would be an easy to select criteria.
 
 #### How to maintain an Oasis installation?
 
@@ -706,7 +721,7 @@ When we release a new version of the NOMAD software, it will be available as a n
 Going from NOMAD 0.7.x to 0.8.x will require data migration. This means the layout of the data has changed and the new version cannot be used on top of the old data. This requires a separate installation of the new version and mirroring the data from the old version via NOMAD’s API. Detailed instructions will be made available with the new version.
 
 ##### How to move data between installations?
-We the release of 0.8.x, we will clarify and how to move data between installations. (See last question)
+With the release of 0.8.x, we will clarify how to move data between installations. (See last question)
 
 ##### How to backup my Oasis?
-To backup your Oasis at least the file data and mongodb data needs to be backed up. You determined the path to your file data (your uploads) during the installation. This directory can be backed up like any other file backup (e.g. rsync). To backup the mongodb, please refer to the official mongodb documentation: https://docs.mongodb.com/manual/core/backups/. We suggest a simple mongodump export that is backed up alongside your files. The elasticsearch contents can be reproduced with the information in files and mongodb.
+To backup your Oasis at least the file data and mongodb data needs to be backed up. You determined the path to your file data (your uploads) during the installation. This directory can be backed up like any other file backup (e.g. rsync). To backup the mongodb, please refer to the official [mongodb documentation](https://docs.mongodb.com/manual/core/backups/). We suggest a simple mongodump export that is backed up alongside your files. The elasticsearch contents can be reproduced with the information in the files and the mongodb.

@@ -173,6 +173,7 @@ UploadName.propTypes = {
 
 function PublishUpload({upload, onPublish}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
     onPublish({embargo_length: embargo})
   }
@@ -183,7 +184,25 @@ function PublishUpload({upload, onPublish}) {
     `}</Markdown>
   }
 
+  const buttonLabel = embargo > 0 ? 'Publish with embargo' : 'Publish'
+
   return <React.Fragment>
+    <Dialog
+      open={openConfirmDialog}
+      onClose={() => setOpenConfirmDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to publish the upload</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You are about the publish this upload. The upload cannot be removed and
+          the files and entries in this upload cannot be changed after publication.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handlePublish}>{buttonLabel}</Button>
+      </DialogActions>
+    </Dialog>
     <Markdown>{`
       If you agree this upload will be published and move out of your private staging
       area into the public NOMAD. This step is final. All public data will be made available under the Creative
@@ -230,10 +249,10 @@ function PublishUpload({upload, onPublish}) {
             <Button
               style={{height: 32, minWith: 100}}
               size="small" variant="contained"
-              onClick={() => handlePublish()} color="primary" autoFocus
+              onClick={() => setOpenConfirmDialog(true)} color="primary"
               disabled={upload.process_running}
             >
-              {embargo > 0 ? 'Publish with embargo' : 'Publish'}
+              {buttonLabel}
             </Button>
           </Box>
         </Grid>
@@ -505,7 +524,7 @@ function UploadPage() {
           </Dialog>
         </Grid>
       </Grid>
-      <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
+      <Stepper classes={{root: classes.stepper}} orientation="vertical" >
         <Step expanded active={false}>
           <StepLabel>Prepare and upload your files</StepLabel>
           <StepContent>
@@ -535,17 +554,18 @@ function UploadPage() {
             <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
           </StepContent>
         </Step>
-        <Step expanded={!isEmpty}>
+        <Step expanded={!isEmpty} active={false}>
           <StepLabel>Process data</StepLabel>
           <StepContent>
             <ProcessingStatus data={data} />
             <ProcessingTable
               data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
               pagination={combinePagination(pagination, data.pagination)}
+              customTitle='entry'
               onPaginationChanged={setPagination}/>
           </StepContent>
         </Step>
-        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Edit author metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
@@ -561,7 +581,7 @@ function UploadPage() {
             {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
-        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
             {isPublished && <Typography className={classes.stepContent}>

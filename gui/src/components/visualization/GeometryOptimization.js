@@ -19,18 +19,18 @@ import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
+import { QuantityTable, QuantityRow, QuantityCell } from '../Quantity'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
 import { toUnitSystem, Unit } from '../../units'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
-/**
- * A thin wrapper for the Plot-component that is used for plotting geometry
- * optimization convergence.
- */
 const energyUnit = new Unit('joule')
-const GeometryOptimization = React.memo(({data, className, classes, units}) => {
-  const [finalData, setFinalData] = useState(data)
+/**
+ * Component for visualizing the results of a geometry optimization workflow.
+ */
+const GeometryOptimization = React.memo(({energies, convergence, className, classes, units}) => {
+  const [finalData, setFinalData] = useState(energies)
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -38,15 +38,15 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
   // the first render containing the placeholders etc. can be done as fast as
   // possible.
   useEffect(() => {
-    if (!data) {
+    if (!energies) {
       return
     }
 
     // Convert energies into the correct units and calculate the total difference
-    let energyDiffTotal = toUnitSystem(diffTotal(data.energies), energyUnit, units)
-    let convergenceCriteria = toUnitSystem(data?.convergence_tolerance_energy_difference, energyUnit, units)
+    let energyDiffTotal = toUnitSystem(diffTotal(energies), energyUnit, units)
+    let convergenceCriteria = toUnitSystem(convergence?.convergence_tolerance_energy_difference, energyUnit, units)
 
-    let steps = [...Array(data.energies.length).keys()]
+    let steps = [...Array(energies.length).keys()]
     const energyDiff = []
     for (let i = 0; i < energyDiffTotal.length - 1; ++i) {
       energyDiff.push(Math.abs(energyDiffTotal[i + 1] - energyDiffTotal[i]))
@@ -96,10 +96,10 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
       })
     }
     setFinalData(traces)
-  }, [data, units, theme])
+  }, [energies, convergence, units, theme])
 
   const plotLayout = useMemo(() => {
-    if (!data) {
+    if (!energies) {
       return null
     }
     return {
@@ -117,7 +117,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         tickmode: 'auto',
         tickformat: ',d',
         autorange: false,
-        range: [0, data.energies.length - 1],
+        range: [0, energies.length - 1],
         zeroline: false,
         showspikes: true,
         spikethickness: 2,
@@ -148,7 +148,7 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         side: 'right'
       }
     }
-  }, [data, theme, units])
+  }, [energies, theme, units])
 
   return <PropertyGrid>
     <PropertyItem title="Energy convergence" xs={12}>
@@ -161,20 +161,45 @@ const GeometryOptimization = React.memo(({data, className, classes, units}) => {
         />
       </ErrorHandler>
     </PropertyItem>
+    <PropertyItem title="Convergence results" xs={12} height="auto">
+      <QuantityTable>
+        <QuantityRow>
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_energy_difference'
+            value={convergence?.final_energy_difference}
+          />
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_displacement_maximum'
+            value={convergence?.final_displacement_maximum}
+          />
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_force_maximum'
+            value={convergence?.final_force_maximum}
+          />
+        </QuantityRow>
+      </QuantityTable>
+    </PropertyItem>
   </PropertyGrid>
 })
 
 GeometryOptimization.propTypes = {
-  data: PropTypes.oneOfType([
-    PropTypes.bool, // Set to False to show NoData component
+  energies: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.oneOf([undefined]),
+    PropTypes.arrayOf(PropTypes.number)
+  ]),
+  convergence: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.oneOf([undefined]),
     PropTypes.shape({
-      energies: PropTypes.array.isRequired, // Energies in SI units
-      convergence_tolerance_energy_difference: PropTypes.number // Energy change criteria in SI units
+      final_energy_difference: PropTypes.number,
+      final_displacement_maximum: PropTypes.number,
+      final_force_maximum: PropTypes.number
     })
   ]),
   className: PropTypes.string,
   classes: PropTypes.object,
-  units: PropTypes.object // Contains the unit configuration
+  units: PropTypes.object
 }
 
 export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')

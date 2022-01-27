@@ -17,7 +17,7 @@
  */
 import React, { useCallback, useContext, useEffect, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import {Paper, IconButton, Tooltip, DialogContent, Button, Dialog} from '@material-ui/core'
+import {Paper, IconButton, Tooltip, DialogContent, Button, Dialog, DialogTitle} from '@material-ui/core'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
@@ -26,7 +26,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import DOIIcon from '@material-ui/icons/Bookmark'
 import { DatasetButton } from '../nav/Routes'
 import {
-  addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
+  addColumnDefaults, combinePagination, Datatable,
+  DatatablePagePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 import Quantity from '../Quantity'
 import DialogContentText from '@material-ui/core/DialogContentText'
@@ -67,33 +68,33 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {refresh} = useContext(PageContext)
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState(false)
+  const [openConfirmDoiDialog, setOpenConfirmDoiDialog] = useState(false)
 
   const handleDelete = useCallback(() => {
+    setOpenConfirmDeleteDialog(false)
     api.delete(`/datasets/${data.dataset_id}`)
       .then(refresh).catch(raiseError)
-  }, [api, raiseError, data.dataset_id, refresh])
+  }, [api, raiseError, data.dataset_id, refresh, setOpenConfirmDeleteDialog])
 
   const handleAssignDoi = useCallback(() => {
+    setOpenConfirmDoiDialog(false)
     api.post(`/datasets/${data.dataset_id}/action/doi`)
-      .then(refresh).catch(raiseError)
-  }, [api, raiseError, data.dataset_id, refresh])
-
-  const onConfirm = () => {
-    setOpenConfirmDialog(true)
-  }
+      .then(refresh)
+      .catch(raiseError)
+  }, [api, raiseError, data.dataset_id, refresh, setOpenConfirmDoiDialog])
 
   return <React.Fragment>
     <Tooltip title="Assign a DOI">
       <span>
-        <IconButton onClick={handleAssignDoi} disabled={!!data.doi}>
+        <IconButton onClick={() => setOpenConfirmDoiDialog(true)} disabled={!!data.doi}>
           <DOIIcon />
         </IconButton>
       </span>
     </Tooltip>
     <Tooltip title={(data.doi ? 'The dataset cannot be deleted. A DOI has been assigned to the dataset.' : 'Delete the dataset')}>
       <span>
-        <IconButton onClick={onConfirm} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
+        <IconButton onClick={() => setOpenConfirmDeleteDialog(true)} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
           <DeleteIcon />
         </IconButton>
       </span>
@@ -104,8 +105,7 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
       </DatasetButton>
     </Tooltip>
     <Dialog
-      open={openConfirmDialog}
-      aria-describedby="alert-dialog-description"
+      open={openConfirmDeleteDialog}
     >
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
@@ -113,8 +113,24 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={() => setOpenConfirmDeleteDialog(false)} autoFocus>Cancel</Button>
         <Button onClick={handleDelete}>Delete</Button>
+      </DialogActions>
+    </Dialog>
+    <Dialog
+      open={openConfirmDoiDialog}
+      onClose={() => setOpenConfirmDoiDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to assign a DOI</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Assigning a DOI is permanent. You will not be able to remove entries from
+          datasets with a DOI. You cannot delete datasets with a DOI.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDoiDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handleAssignDoi}>Assign DOI</Button>
       </DialogActions>
     </Dialog>
   </React.Fragment>
@@ -124,7 +140,7 @@ DatasetActions.propTypes = {
 }
 
 function DatasetsPage() {
-  const {api} = useApi()
+  const {api, user} = useApi()
   const errors = useErrors()
   const [apiData, setApiData] = useState(null)
   const data = useMemo(() => apiData?.response, [apiData])
@@ -132,16 +148,19 @@ function DatasetsPage() {
     page_size: 10,
     page: 1,
     order_by: 'dataset_create_time',
-    order: 'asc'
+    order: 'desc'
   })
 
   const load = useCallback(() => {
+    if (!user) {
+      return
+    }
     const {page_size, page, order_by, order} = pagination
-    const url = `/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}`
+    const url = `/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}&user_id=${user.sub}`
     api.get(url, null, {returnRequest: true})
       .then(setApiData)
       .catch(errors.raiseError)
-  }, [pagination, setApiData, errors, api])
+  }, [pagination, setApiData, errors, api, user])
 
   useEffect(() => {
     load()
@@ -164,7 +183,7 @@ function DatasetsPage() {
               </SourceApiDialogButton>
             </DatatableToolbar>
             <DatatableTable actions={DatasetActions}>
-              <DatatableLoadMorePagination />
+              <DatatablePagePagination />
             </DatatableTable>
           </Datatable>
         </Paper>

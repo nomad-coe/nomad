@@ -150,6 +150,10 @@ export const rootSections = sortDefs(defs.filter(def => (
  * @param {object} data Archive.
  */
 export function resolveRef(ref, data) {
+  if (!ref) {
+    return null
+  }
+
   const resolve = (ref, context) => {
     const parts = ref.split('#')
     if (parts.length === 2 && parts[0] !== '') {

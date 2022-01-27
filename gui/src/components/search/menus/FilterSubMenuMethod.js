@@ -38,6 +38,14 @@ const FilterSubMenuMethod = React.memo(({
           disableSearch
         />
       </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
+          quantity="results.method.workflow_name"
+          visible={visible}
+          xs={12}
+          disableSearch
+        />
+      </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })

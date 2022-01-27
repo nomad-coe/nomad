@@ -143,7 +143,7 @@ class LocalEntryProcessing:
             # download raw if not already downloaded or if override is set
             print('Downloading', self.entry_id)
             response = self.__handle_response(
-                api.get(f'entries/{self.entry_id}/raw/download', auth=auth))
+                api.get(f'entries/{self.entry_id}/raw', auth=auth))
 
             with open(self.local_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):

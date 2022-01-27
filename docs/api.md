@@ -71,8 +71,7 @@ This will give you something like this:
 The `entry_id` is a unique identifier for, well, entries. You can use it to access
 other entry data. For example, you want to access the entry's archive. More
 precisely, you want to gather the formula and energies from the main workflow result.
-The following requests the archive based on the `entry_id` and only requires
-the some archive sections.
+The following requests the archive based on the `entry_id` and only requires some archive sections.
 
 ```py
 first_entry_id = response_json['data'][0]['entry_id']
@@ -174,9 +173,9 @@ The result will look like this:
 ```
 
 You can work with the results in the given JSON (or respective Python dict/list) data already.
-If you have [NOMAD's Python library](pythonlib) installed ,
+If you have [NOMAD's Python library](pythonlib.md) installed ,
 you can take the archive data and use the Python interface.
-The [Python interface](metainfo) will help with code-completion (e.g. in notebook environments),
+The [Python interface](metainfo.md) will help with code-completion (e.g. in notebook environments),
 resolve archive references (e.g. from workflow to calculation to system), and allow unit conversion:
 ```py
 from nomad.datamodel import EntryArchive
@@ -200,12 +199,12 @@ programming interfaces (APIs). More specifically [RESTful HTTP APIs](https://en.
 to use NOMAD as a set of resources (think data) that can be uploaded, accessed, downloaded,
 searched for, etc. via [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol).
 
-You can get an overview on all NOMAD APIs on the [API page](https://nomad-lab.eu/prod/v1/gui/analyze/apis).
+You can get an overview on all NOMAD APIs on the [API page]({{ nomad_url() }}/v1/gui/analyze/apis).
 We will focus here on NOMAD's main API (v1). In fact, this API is also used by
 the web interface and should provide everything you need.
 
 There are different tools and libraries to use the NOMAD API that come with different
-trade-offs between expressiveness, learning curve, and convinience.
+trade-offs between expressiveness, learning curve, and convenience.
 
 #### You can use your browser
 
@@ -228,11 +227,11 @@ See [the initial example](#getting-started).
 
 #### Use our *dashboard*
 
-The NOMAD API has an [OpenAPI dashboard](../api/v1). This is an interactive documentation of all
+The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1/api/v1). This is an interactive documentation of all
 API functions that allows you to try these functions in the browser.
 
 #### Use NOMAD's Python package
-Install the [NOMAD Python client library](pythonlib) and use it's `ArchiveQuery`
+Install the [NOMAD Python client library](pythonlib.md) and use it's `ArchiveQuery`
 functionality for a more convenient query based access of archive data.
 
 ## Different kinds of data
@@ -244,7 +243,7 @@ the API:
 - Raw files, the files as they were uploaded to NOMAD.
 - Archive data, all of the extracted data for an entry.
 
-There are also different entities (see also [Datamodel](index#datamodel)) with different functions in the API:
+There are also different entities (see also [Datamodel](index.md#datamodel-uploads-entries-files-datasets)) with different functions in the API:
 
 - Entries
 - Uploads
@@ -256,7 +255,7 @@ are:
 
 - `entries/query` - Query entries for metadata
 - `entries/archive/query` - Query entries for archive data
-- `entries/{entry-id}/raw/download` - Download raw data for a specific entry
+- `entries/{entry-id}/raw` - Download raw data for a specific entry
 - `uploads/{upload-id}/raw/path/to/file` - Download a specific file of an upload
 
 ## Common concepts
@@ -284,9 +283,9 @@ available if you are [logged in](#authentication).
 
 ### Pagination
 
-Typically when you issue a query, not all results can be returned. Instead an API will
-typically only return one *page*. This behavior is controlled through pagination parameters,
-like `page_site`, `page`, `page_offset`, `page_after_value`.
+When you issue a query, usually not all results can be returned. Instead, an API returns
+only one *page*. This behavior is controlled through pagination parameters,
+like `page_site`, `page`, `page_offset`, or `page_after_value`.
 
 Let's consider a search for entries as an example.
 ```py
@@ -305,7 +304,7 @@ response = requests.post(
 )
 ```
 
-This will only produce a response with max 10 entries in it. The response will contain a
+This will only result in a response with a maximum of 10 entries. The response will contain a
 `pagination` object like this:
 ```json
 {
@@ -342,10 +341,10 @@ You will get the next 10 results.
 ### Authentication
 
 Most of the API operations do not require any authorization and can be freely used
-without a user or credentials. However, to upload data, edit data, or view your own and potentially unpublished data, the API needs to authenticate you.
+without a user or credentials. However, to upload, edit, or view your own and potentially unpublished data, the API needs to authenticate you.
 
 The NOMAD API uses OAuth and tokens to authenticate users. We provide simple operations
-that allow you to acquire an *access token* via username and password based:
+that allow you to acquire an *access token* via username and password:
 
 ```py
 import requests
@@ -380,27 +379,27 @@ operations.
 ## Search for entries
 
 See [getting started](#getting-started) for a typical search example. Combine the [different
-concepts](#common concepts) above to create the queries that you need.
+concepts](#common-concepts) above to create the queries that you need.
 
 Searching for entries is typically just an initial step. Once you know what entries exist
 you'll probably want to do one of the following things.
 
 ## Download raw files
-You can use [queries](#queries) to download raw files. But typically you don't want to
+You can use [queries](#queries) to download raw files, but typically you don't want to
 download file-by-file or entry-by-entry. Therefore, we allow to download a large set of
 files in one big zip-file. Here, you might want to use a program like *curl* to download
 directly from the shell:
 
 ```
-curl "{{ nomad_url() }}/v1/entries/raw/download?results.material.elements=Ti&results.material.elements=O" -o download.zip
+curl "{{ nomad_url() }}/v1/entries/raw?results.material.elements=Ti&results.material.elements=O" -o download.zip
 ```
 
 ## Access archives
-Above under [getting started](#getting started), you'll already learned how to access
-archive data. A speciality of archive API functions is that you can define what is `required`
+Above under [getting started](#getting started), you've already learned how to access
+archive data. A special feature of the archive API functions is that you can define what is `required`
 from the archives.
 
-```
+```py
 response = requests.post(
     f'{base_url}/entries/archive/query',
     json={

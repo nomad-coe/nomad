@@ -53,8 +53,15 @@ export class ApiError extends Error {
   }
 }
 
+export class ApiRequestError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'BadRequest'
+  }
+}
+
 function handleApiError(e) {
-  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist') {
+  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist' || e.name === 'BadRequest') {
     throw e
   }
 
@@ -67,6 +74,8 @@ function handleApiError(e) {
       error = new DoesNotExist(errorMessage)
     } else if (e.response.status === 401) {
       error = new NotAuthorized(errorMessage)
+    } else if (e.response.status === 400) {
+      error = new ApiRequestError(errorMessage)
     } else if (e.response.status === 502) {
       error = new ApiError(errorMessage)
     } else {
@@ -198,7 +207,7 @@ class Api {
     this.onStartLoading()
     const auth = await this.authHeaders()
     try {
-      const entry = await this.axios.get(`/entries/${entryId}/raw`, auth)
+      const entry = await this.axios.get(`/entries/${entryId}/rawdir`, auth)
       return entry.data
     } catch (errors) {
       handleApiError(errors)
@@ -242,22 +251,22 @@ class Api {
 
   async get(path, query, config) {
     const GET = (path, body, config) => this.axios.get(path, config)
-    return this.doHttpRequest(GET, path, null, {params: query, ...config})
+    return this.doHttpRequest(GET, path, null, {params: query, methodName: 'GET', ...config})
   }
 
   async post(path, body, config) {
     const POST = (path, body, config) => this.axios.post(path, body, config)
-    return this.doHttpRequest(POST, path, body, config)
+    return this.doHttpRequest(POST, path, body, {methodName: 'POST', ...config})
   }
 
   async put(path, body, config) {
     const PUT = (path, body, config) => this.axios.put(path, body, config)
-    return this.doHttpRequest(PUT, path, body, config)
+    return this.doHttpRequest(PUT, path, body, {methodName: 'PUT', ...config})
   }
 
   async delete(path, config) {
     const DELETE = (path, body, config) => this.axios.delete(path, config)
-    return this.doHttpRequest(DELETE, path, null, config)
+    return this.doHttpRequest(DELETE, path, null, {methodName: 'DELETE', ...config})
   }
 
   async doHttpRequest(method, path, body, config) {
@@ -279,7 +288,7 @@ class Api {
       }
       if (config.returnRequest) {
         return {
-          method: method.name,
+          method: config.methodName || method.name,
           url: `${this.baseURL}${path}`,
           body: body,
           response: results.data

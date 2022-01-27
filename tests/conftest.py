@@ -309,7 +309,7 @@ class KeycloakMock:
             last_name=user.last_name, user_id=user.user_id)
         return None
 
-    def get_user(self, user_id=None, username=None):
+    def get_user(self, user_id=None, username=None, email=None):
         if user_id is not None:
             return User(**self.users[user_id])
         elif username is not None:
@@ -317,6 +317,11 @@ class KeycloakMock:
                 if user_values['username'] == username:
                     return User(**user_values)
             raise KeyError('Only test user usernames are recognized')
+        elif email is not None:
+            for user_id, user_values in self.users.items():
+                if user_values['email'] == email:
+                    return User(**user_values)
+            raise KeyError('Only test user emails are recognized')
         else:
             assert False, 'no token based get_user during tests'
 
@@ -891,18 +896,30 @@ def example_data_writeable(mongo, test_user, normalized):
 
 
 @pytest.fixture(scope='function')
-def a_dataset(mongo, test_user):
-    now = datetime.utcnow()
-    dataset = datamodel.Dataset(
-        dataset_id=utils.create_uuid(),
-        dataset_name='a dataset',
-        user_id=test_user.user_id,
-        dataset_create_time=now,
-        dataset_modified_time=now,
-        dataset_type='owned')
-    dataset.a_mongo.create()
-    yield dataset
-    dataset.a_mongo.delete()
+def example_datasets(mongo, test_user, other_test_user):
+    dataset_specs = (
+        ('test_dataset_1', test_user, None),
+        ('test_dataset_2', test_user, 'test_doi_2'),
+        ('test_dataset_3', other_test_user, None)
+    )
+    datasets = []
+    for dataset_name, user, doi in dataset_specs:
+        now = datetime.utcnow()
+        dataset = datamodel.Dataset(
+            dataset_id=utils.create_uuid(),
+            dataset_name=dataset_name,
+            doi=doi,
+            user_id=user.user_id,
+            dataset_create_time=now,
+            dataset_modified_time=now,
+            dataset_type='owned')
+        dataset.a_mongo.create()
+        datasets.append(dataset)
+
+    yield datasets
+
+    while datasets:
+        datasets.pop().a_mongo.delete()
 
 
 @pytest.fixture

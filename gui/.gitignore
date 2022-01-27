@@ -13,13 +13,6 @@
 public/metainfo/
 public/meta.json
 
-src/toolkitMetadata.json
-src/northTools.json
-src/metainfo.json
-src/searchQuantities.json
-src/unitsData.js
-src/parserMetadata.json
-
 # misc
 .DS_Store
 .env.local

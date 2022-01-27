@@ -89,6 +89,7 @@ python-multipart==0.0.5
 jupyterhub==1.4.2
 dockerspawner==12.1.0
 oauthenticator==14.2.0
+validators==0.18.2
 
 # [dev]
 setuptools==57.5.0

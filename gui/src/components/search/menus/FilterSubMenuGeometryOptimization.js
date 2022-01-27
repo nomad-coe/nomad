@@ -18,57 +18,56 @@
 import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
-import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputField from '../input/InputField'
 import InputSlider from '../input/InputSlider'
 import InputSection from '../input/InputSection'
-import { useUnits } from '../../../units'
 import { InputCheckboxValue } from '../input/InputCheckbox'
+import { InputGrid, InputGridItem } from '../input/InputGrid'
+import { useUnits } from '../../../units'
 
-const FilterSubMenuEELS = React.memo(({
+const FilterSubMenuGeometryOptimization = React.memo(({
   value,
   ...rest
 }) => {
-  const units = useUnits()
   const {selected} = useContext(filterMenuContext)
   const visible = value === selected
+  const units = useUnits()
 
   return <FilterSubMenu
     value={value}
     actions={<InputCheckboxValue
-      quantity="results.method.method_name"
-      value="EELS"
-      description="Search EELS entries"
+      quantity="results.properties.available_properties"
+      value="geometry_optimization"
+      description="Search entries with geometry optimization results"
     />}
     {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.spectroscopy.eels"
+          section="results.properties.geometry_optimization"
           visible={visible}
         >
           <InputSlider
-            quantity="results.properties.spectroscopy.eels.resolution"
+            quantity="results.properties.geometry_optimization.final_energy_difference"
             units={units}
             visible={visible}
           />
           <InputSlider
-            quantity="results.properties.spectroscopy.eels.energy_window"
+            quantity="results.properties.geometry_optimization.final_force_maximum"
             units={units}
             visible={visible}
           />
-          <InputField
-            quantity="results.properties.spectroscopy.eels.detector_type"
+          <InputSlider
+            quantity="results.properties.geometry_optimization.final_displacement_maximum"
+            units={units}
             visible={visible}
-            xs={12}
           />
         </InputSection>
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuEELS.propTypes = {
+FilterSubMenuGeometryOptimization.propTypes = {
   value: PropTypes.string
 }
 
-export default FilterSubMenuEELS
+export default FilterSubMenuGeometryOptimization
