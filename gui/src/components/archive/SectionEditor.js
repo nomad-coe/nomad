@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useContext } from 'react'
+import React, {useCallback, useState, useContext} from 'react'
 import PropTypes from 'prop-types'
 import {
   Box,
@@ -18,8 +18,8 @@ import { useErrors } from '../errors'
 import _ from 'lodash'
 import {formatSubSectionName, Item, laneContext} from './Browser'
 import SubSectionList from './ArchiveBrowser'
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogActions from "@material-ui/core/DialogActions";
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
 
 const useStyles = makeStyles(theme => ({
   adornment: {
@@ -37,9 +37,9 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     }
   }, [onChange])
 
-  const handleCreate = useCallback((key) => {
+  const handleCreate = useCallback(() => {
     if (onChange) {
-      onChange((property.repeats ? [{name: 'unnamed'}] : {name: 'unnamed'}))
+      onChange((property.repeats ? [{}] : {}))
     }
   }, [onChange])
 
@@ -77,9 +77,16 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     const key = property.name
     const isEmpty = section && section[key] === undefined
     if (isEmpty) {
-      return <Button onClick={() => handleCreate(property.name)} color="primary">
-        Create
-      </Button>
+      return <Item key={key} itemKey={key} disabled={true}>
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            {formatSubSectionName(property.name)}
+            <Button color='primary' size='small' onClick={() => handleCreate()}>
+              Create
+            </Button>
+          </Box>
+        </Typography>
+      </Item>
     }
     if (property.repeats) {
       //return <SubSectionList
@@ -149,11 +156,11 @@ PropertyEditor.propTypes = {
 
 const useSectionEditorStyles = makeStyles(theme => ({
   root: {
-    minWidth: '500px',
+    minWidth: '400px',
     width: '100%'
   }
 }))
-const SectionEditor = React.memo(function SectionEditor({sectionDef, section, parent, nestedPath, onChange, isEmpty}) {
+const SectionEditor = React.memo(function SectionEditor({sectionDef, section, parent, nestedPath, onChange}) {
   const classes = useSectionEditorStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -183,7 +190,6 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
     if (onChange) {
       onChange(section)
     }
-    setVersion(value => value + 1)
     setOpenConfirmDialog(false)
     handleSave()
   }
@@ -212,7 +218,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
   }, [setSavedVersion, version, api, raiseError, setSaving, archive, metadata, reload])
 
   return <div className={classes.root}>
-    {!isEmpty && sectionDef._allProperties.map(property => (
+    {sectionDef._allProperties.map(property => (
       <Box marginBottom={1} key={property.name}>
         <PropertyEditor
           property={property}
@@ -226,19 +232,19 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
       <Box flexGrow={1}>
         <Typography>{hasChanges ? 'Not yet saved' : 'All changes saved'}</Typography>
       </Box>
-      {!isEmpty && <Box flexGrow={1}>
+      <Box flexGrow={1}>
         <Button
           color="primary" variant="contained"
-          onClick={handleConfirm}
+          disabled={!hasChanges || saving} onClick={handleSave}
         >
-          Delete
+          {saving ? 'Saving...' : 'Save'}
         </Button>
-      </Box>}
+      </Box>
       <Button
         color="primary" variant="contained"
-        disabled={!hasChanges || saving} onClick={handleSave}
+        onClick={handleConfirm}
       >
-        {saving ? 'Saving...' : 'Save'}
+        Delete
       </Button>
     </Box>
     <Dialog
@@ -265,7 +271,6 @@ SectionEditor.propTypes = {
   onChange: PropTypes.func,
   parentVersion: PropTypes.bool,
   setParentVersion: PropTypes.func,
-  isEmpty: PropTypes.bool,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

@@ -15,10 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, {useContext, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
+import {
+  Box,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  TextField,
+  Typography,
+  makeStyles,
+  Tooltip,
+  IconButton,
+  Button
+} from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
@@ -399,6 +410,7 @@ QuantityValue.propTypes = ({
 
 function Section({section, def, parent, units}) {
   const config = useRecoilValue(configState)
+
   let isEmpty
   if (!section) {
     if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
@@ -420,8 +432,8 @@ function Section({section, def, parent, units}) {
 
   let contents
   if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
-    contents = <Compartment title="edit">
-      <SectionEditor sectionDef={def} section={section} parent={parent} isEmpty={isEmpty}/>
+    contents = <Compartment title={(!isEmpty && 'edit')}>
+      {!isEmpty && <SectionEditor sectionDef={def} section={section} parent={parent}/>}
     </Compartment>
   } else {
     contents = <React.Fragment>
