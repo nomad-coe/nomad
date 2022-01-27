@@ -83,8 +83,8 @@ const EntryPage = React.memo(() => {
     <CacheSwitch>
       <CacheRoute path={`${path}`} exact render={() => <OverviewView entryId={entryId}/>} />
       <CacheRoute path={`${path}/raw`} render={() => <RawFileView entryId={entryId}/>} />
-      <CacheRoute when="back" path={`${path}/browse`} render={() => <BrowseEntryFilesView entryId={entryId}/>} />
-      <CacheRoute when="back" path={`${path}/archive`} render={() => <ArchiveEntryView entryId={entryId}/>} />
+      <CacheRoute when="always" path={`${path}/browse`} render={() => <BrowseEntryFilesView entryId={entryId}/>} />
+      <CacheRoute when="always" path={`${path}/archive`} render={() => <ArchiveEntryView entryId={entryId}/>} />
       <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView entryId={entryId}/>} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>

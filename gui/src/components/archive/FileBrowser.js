@@ -86,19 +86,20 @@ function RawDirectoryContent({uploadId, path}) {
   const [, setLoadedPath] = useState()
 
   useEffect(() => {
-    lane.adaptor.data = undefined
-    const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-    api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
-      .then(response => {
-        const elementsByName = {}
-        response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
-        lane.adaptor.data = {response, elementsByName}
-        lane.update()
-        setLoadedPath(path)
-      })
-      .catch(error => {
-        raiseError(error)
-      })
+    if (lane.adaptor.data === undefined) {
+      const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
+        .then(response => {
+          const elementsByName = {}
+          response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
+          lane.adaptor.data = {response, elementsByName}
+          lane.update()
+          setLoadedPath(path)
+        })
+        .catch(error => {
+          raiseError(error)
+        })
+    }
   }, [uploadId, path, setLoadedPath, lane, api, raiseError])
 
   if (lane.adaptor.data === undefined) {
@@ -150,6 +151,9 @@ class RawFileAdaptor extends Adaptor {
     this.uploadId = uploadId
     this.path = path
     this.data = data
+    this.previewing = false
+    this.hasMore = true
+    this.fileContents = null
   }
   render() {
     return <RawFileContent uploadId={this.uploadId} path={this.path} data={this.data} key={this.path}/>
@@ -158,7 +162,10 @@ class RawFileAdaptor extends Adaptor {
 
 function RawFileContent({uploadId, path, data}) {
   const lane = useContext(laneContext)
-  const [previewing, setPreviewing] = useState(false)
+  const [, setRender] = useState(0)
+  const update = useCallback(() => {
+    setRender(current => current + 1)
+  }, [setRender])
 
   // A nicer, human-readable size string
   let niceSize, unit, factor
@@ -191,7 +198,13 @@ function RawFileContent({uploadId, path, data}) {
         </Grid>
         <Grid item>
           <Tooltip title='Show contents'>
-            <IconButton onClick={() => { setPreviewing(!previewing) }} color={previewing ? 'default' : 'secondary'}>
+            <IconButton
+              onClick={() => {
+                lane.adaptor.previewing = !lane.adaptor.previewing
+                update()
+              }}
+              color={lane.adaptor.previewing ? 'default' : 'secondary'}
+            >
               <ViewIcon />
             </IconButton>
           </Tooltip>
@@ -211,7 +224,7 @@ function RawFileContent({uploadId, path, data}) {
       <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
       { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
       { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
-      { previewing && <FilePreviewText uploadId={uploadId} path={path} scrollParent={lane.containerRef}/>}
+      { lane.adaptor.previewing && <FilePreviewText uploadId={uploadId} path={path} scrollParent={lane.containerRef}/>}
     </Content>)
 }
 RawFileContent.propTypes = {
@@ -224,78 +237,76 @@ function FilePreviewText({uploadId, path, scrollParent}) {
   const theme = useTheme()
   const classes = useStyles(theme)
   const {raiseError} = useErrors()
-  const [fileContents, setFileContents] = useState(null)
   const {api} = useApi()
+  const lane = useContext(laneContext)
+  const [, setRender] = useState(0)
+  const update = useCallback(() => {
+    setRender(current => current + 1)
+  }, [setRender])
+
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
   useEffect(() => {
-    if (fileContents === null) {
+    if (lane.adaptor.hasMore && !lane.adaptor.fileContents) {
       // Load the first chunk of the file
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
         {length: 16 * 1024, decompress: true},
         {transformResponse: []})
-        .then(contents => setFileContents({
-          hasMore: true,
-          contents: contents
-        }))
+        .then(fileContents => {
+          lane.adaptor.fileContents = fileContents || ''
+          lane.adaptor.hasMore = fileContents?.length === 16 * 1024
+          update()
+        })
         .catch(raiseError)
     }
-  }, [uploadId, encodedPath, fileContents, setFileContents, api, raiseError])
+  }, [uploadId, encodedPath, lane, update, api, raiseError])
 
-  const handleLoadMore = useCallback((page) => {
+  const handleLoadMore = useCallback(() => {
     // The infinite scroll component has the issue if calling load more whenever it
     // gets updates, therefore calling this infinitely before it gets any chances of
     // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
     // Therefore, we have to set hasMore to false first and set it to true again after
     // receiving actual results.
-    setFileContents(prevState => { return {...prevState, hasMore: false} })
-    const initialUploadId = uploadId
-
-    if (fileContents.contents.length < (page + 1) * 16 * 1024) {
+    if (lane.adaptor.hasMore) {
+      lane.adaptor.hasMore = false
       api.get(
         `/uploads/${uploadId}/raw/${encodedPath}`,
-        {offset: page * 16 * 1024, length: 16 * 1024, decompress: true},
+        {offset: lane.adaptor.fileContents?.length || 0, length: 16 * 1024, decompress: true},
         {transformResponse: []})
-        .then(contents => {
-          // The back-button navigation might cause a scroll event, might cause to loadmore,
-          // will set this state, after navigation back to this page, but potentially
-          // different entry.
-          if (initialUploadId === uploadId) {
-            setFileContents({
-              hasMore: contents.length > 0,
-              contents: ((fileContents && fileContents.contents) || '') + contents
-            })
-          }
+        .then(fileContents => {
+          // Note, changing tabs or using the webbrowser back/forward buttons to navigate
+          // might cause a scroll event, and trigger to load more
+          lane.adaptor.fileContents = (lane.adaptor.fileContents || '') + (fileContents || '')
+          lane.adaptor.hasMore = fileContents?.length === 16 * 1024
+          update()
         })
         .catch(error => {
-          setFileContents(null)
+          lane.adaptor.fileContents = null
           raiseError(error)
         })
     }
-  }, [api, uploadId, encodedPath, fileContents, raiseError])
+  }, [api, uploadId, encodedPath, lane, update, raiseError])
 
-  if (fileContents === null) {
+  if (lane.adaptor.fileContents === null) {
     return <Typography>Loading ...</Typography>
-  } else if (fileContents && fileContents.contents !== null) {
-    return <React.Fragment>
-      <Typography variant="h6">File contents</Typography>
-      <InfiniteScroll
-        className={classes.fileContents}
-        pageStart={0}
-        loadMore={handleLoadMore}
-        hasMore={fileContents.hasMore}
-        useWindow={false}
-        getScrollParent={() => scrollParent.current}
-      >
-        <pre style={{margin: 0}}>
-          {`${fileContents.contents}`}
-          &nbsp;
-        </pre>
-      </InfiniteScroll>
-    </React.Fragment>
   }
-  return <Typography color="error">Cannot display file due to unsupported file format.</Typography>
+  return <React.Fragment>
+    <Typography variant="h6">File contents</Typography>
+    <InfiniteScroll
+      className={classes.fileContents}
+      pageStart={0}
+      loadMore={handleLoadMore}
+      hasMore={lane.adaptor.hasMore}
+      useWindow={false}
+      getScrollParent={() => scrollParent.current}
+    >
+      <pre style={{margin: 0}}>
+        {lane.adaptor.fileContents}
+        &nbsp;
+      </pre>
+    </InfiniteScroll>
+  </React.Fragment>
 }
 FilePreviewText.propTypes = {
   uploadId: PropTypes.string.isRequired,

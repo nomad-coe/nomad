@@ -92,6 +92,8 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const rootRef = useRef()
   const outerRef = useRef()
   const innerRef = useRef()
+  const { pathname } = useLocation()
+  const { url } = useRouteMatch()
 
   useLayoutEffect(() => {
     function update() {
@@ -100,34 +102,42 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
       const scrollAmmount = innerRef.current.clientWidth - outerRef.current.clientWidth
       outerRef.current.scrollLeft = Math.max(scrollAmmount, 0)
     }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    if (url !== undefined) {
+      update()
+      window.addEventListener('resize', update)
+      return () => window.removeEventListener('resize', update)
+    }
   })
 
-  const { pathname } = useLocation()
-  const { url } = useRouteMatch()
-  const segments = pathname.substring(url.length).split('/').filter(segment => segment)
   const [, setRender] = useState(0)
   const update = useCallback(() => {
     setRender(current => current + 1)
   }, [setRender])
 
-  const root = useMemo(() => ({
-    key: 'root',
-    path: url.endsWith('/') ? url.substring(0, url.length - 1) : url,
-    adaptor: adaptor,
-    next: null,
-    update: update
-  }), [adaptor, url, update])
-
   const lanes = useRef([])
+
+  if (url === undefined) {
+    // Can happen when navigating to another tab, possibly with the browser's back/forward buttons
+    // We want to keep the cached lanes, in case the user goes back to this tab, so return immediately.
+    return
+  }
 
   // Update the lanes
   const oldLanesByPath = {}
   lanes.current.forEach(lane => { oldLanesByPath[lane.path] = lane })
+
+  const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
+  const root = oldLanesByPath[rootPath] || {
+    key: 'root',
+    path: rootPath,
+    adaptor: adaptor,
+    next: null,
+    update: update
+  }
+
   lanes.current = [root]
   root.next = null
+  const segments = pathname.substring(url.length).split('/').filter(segment => segment)
   segments.forEach(segment => {
     const prev = lanes.current[lanes.current.length - 1]
     if (prev.adaptor) {

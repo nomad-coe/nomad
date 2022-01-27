@@ -28,7 +28,7 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(2)
   }
 }))
-export default function BrowseEntryFilesView({entryId}) {
+const BrowseEntryFilesView = React.memo(({entryId}) => {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -66,7 +66,8 @@ export default function BrowseEntryFilesView({entryId}) {
   } else {
     return <Page><Typography>loading ...</Typography></Page>
   }
-}
+})
 BrowseEntryFilesView.propTypes = {
   entryId: PropTypes.string.isRequired
 }
+export default BrowseEntryFilesView
