@@ -62,7 +62,7 @@ const BrowseEntryFilesView = React.memo(({entryId}) => {
   if (data && data?.upload_id && data?.mainfile) {
     const last_slash = data.mainfile.lastIndexOf('/')
     const mainfile_dir = last_slash === -1 ? '' : data.mainfile.substr(0, last_slash)
-    return <Page><FileBrowser uploadId={data.upload_id} path={mainfile_dir}/></Page>
+    return <Page><FileBrowser uploadId={data.upload_id} path={mainfile_dir} rootTitle="Entry raw files"/></Page>
   } else {
     return <Page><Typography>loading ...</Typography></Page>
   }

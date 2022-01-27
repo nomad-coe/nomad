@@ -42,21 +42,23 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const FileBrowser = React.memo(({uploadId, path}) => {
-  const adaptor = new RawDirectoryAdaptor(uploadId, path)
+const FileBrowser = React.memo(({uploadId, path, rootTitle}) => {
+  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle)
   return <Browser adaptor={adaptor} />
 })
 FileBrowser.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  path: PropTypes.string.isRequired
+  path: PropTypes.string.isRequired,
+  rootTitle: PropTypes.string.isRequired
 }
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(uploadId, path) {
+  constructor(uploadId, path, title) {
     super()
     this.uploadId = uploadId
     this.path = path
+    this.title = title
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
   isLoaded() {
@@ -69,25 +71,26 @@ class RawDirectoryAdaptor extends Adaptor {
       if (element.is_file) {
         return new RawFileAdaptor(this.uploadId, ext_path, element)
       } else {
-        return new RawDirectoryAdaptor(this.uploadId, ext_path)
+        return new RawDirectoryAdaptor(this.uploadId, ext_path, key)
       }
     }
     throw new Error('Bad path: ' + key)
   }
   render() {
-    return <RawDirectoryContent uploadId={this.uploadId} path={this.path}/>
+    return <RawDirectoryContent uploadId={this.uploadId} path={this.path} title={this.title}/>
   }
 }
 
-function RawDirectoryContent({uploadId, path}) {
+function RawDirectoryContent({uploadId, path, title}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const lane = useContext(laneContext)
   const [, setLoadedPath] = useState()
 
+  const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+
   useEffect(() => {
     if (lane.adaptor.data === undefined) {
-      const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
       api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
         .then(response => {
           const elementsByName = {}
@@ -100,14 +103,34 @@ function RawDirectoryContent({uploadId, path}) {
           raiseError(error)
         })
     }
-  }, [uploadId, path, setLoadedPath, lane, api, raiseError])
+  }, [uploadId, path, encodedPath, setLoadedPath, lane, api, raiseError])
 
   if (lane.adaptor.data === undefined) {
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
+    const downloadurl = `uploads/${uploadId}/raw/${encodedPath}?compress=true`
+    const segments = path.split('/')
+    const lastSegment = segments[segments.length - 1]
+    const downloadFilename = `${uploadId}${lastSegment ? ' - ' + lastSegment : ''}.zip`
     return (
       <Content key={path}>
+        <Grid container justifyContent="flex-end" wrap="nowrap" alignItems="center" style={{maxWidth: 500}}>
+          <Grid item style={{flexGrow: 1, overflow: 'hidden'}}>
+            <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
+              <Typography variant="h6" noWrap>{title}</Typography>
+            </div>
+          </Grid>
+          <Grid item>
+            <Download component={IconButton} disabled={false}
+              color="secondary"
+              tooltip="download this folder"
+              url={downloadurl}
+              fileName={downloadFilename}>
+              <DownloadIcon />
+            </Download>
+          </Grid>
+        </Grid>
         {
           lane.adaptor.data.response.directory_metadata.content.map(element => (
             <Item itemKey={element.name} key={path ? path + '/' + element.name : element.name}>
@@ -142,7 +165,8 @@ function RawDirectoryContent({uploadId, path}) {
 }
 RawDirectoryContent.propTypes = {
   uploadId: PropTypes.string.isRequired,
-  path: PropTypes.string.isRequired
+  path: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired
 }
 
 class RawFileAdaptor extends Adaptor {
