@@ -20,8 +20,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { Route } from 'react-router'
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
-import { matchPath, useLocation, Redirect, useHistory } from 'react-router-dom'
-import { Button, makeStyles, Tooltip } from '@material-ui/core'
+import { matchPath, useLocation, Redirect, useHistory, Link as RouterLink } from 'react-router-dom'
+import { Button, Link, makeStyles, Tooltip } from '@material-ui/core'
 import About from '../About'
 import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import TutorialsPage from '../aitoolkit/TutorialsPage'
@@ -341,6 +341,7 @@ export const routes = [
   },
   ...datasetRoutes,
   ...entryRoutes,
+  ...uploadRoutes,
   {
     path: 'dev/datatable',
     render: () => <DatatableExamples />
@@ -426,6 +427,17 @@ export function getUrl(path, location) {
   const url = match?.url || ''
 
   return `${url}/${path}`
+}
+
+export const RouteLink = React.forwardRef((props, ref) => {
+  const {path, children, ...moreProps} = props
+  const location = useLocation()
+  const to = getUrl(path, location)
+  return <Link component={RouterLink} to={to} {...moreProps}>{children}</Link>
+})
+RouteLink.propTypes = {
+  path: PropTypes.string.isRequired,
+  children: PropTypes.node
 }
 
 export const RouteButton = React.forwardRef((props, ref) => {
