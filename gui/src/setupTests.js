@@ -11,7 +11,7 @@ global.nomadEnv = {
   'appBase': 'http://nomad-lab.eu/prod/rae/beta',
   'debug': false,
   'version': {
-    'label': '1.0.2',
+    'label': '1.1.0',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,
