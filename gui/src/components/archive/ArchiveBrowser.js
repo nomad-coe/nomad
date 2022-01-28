@@ -510,7 +510,7 @@ Section.propTypes = ({
   units: PropTypes.object
 })
 
-function SubSectionList({subSectionDef}) {
+export function SubSectionList({subSectionDef}) {
   const lane = useContext(laneContext)
   const label = useMemo(() => {
     let key = subSectionDef.more?.label_quantity

@@ -17,7 +17,7 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import _ from 'lodash'
 import {formatSubSectionName, Item, laneContext} from './Browser'
-import SubSectionList from './ArchiveBrowser'
+import { SubSectionList } from './ArchiveBrowser'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 
@@ -89,17 +89,16 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
       </Item>
     }
     if (property.repeats) {
-      //return <SubSectionList
-      //  key={property.name}
-      //  subSectionDef={property}
-      ///>
-      return <Item key={key} itemKey={key}>
-        <Typography component="span">
-          <Box fontWeight="bold" component="span">
-            {formatSubSectionName(property.name)}
-          </Box>
-        </Typography>
-      </Item>
+      return <SubSectionList
+        key={property.name}
+        subSectionDef={property}/>
+      // return <Item key={key} itemKey={key}>
+      //   <Typography component="span">
+      //     <Box fontWeight="bold" component="span">
+      //       {formatSubSectionName(property.name)}
+      //     </Box>
+      //   </Typography>
+      // </Item>
     } else {
       return <Item key={key} itemKey={key}>
         <Typography component="span">
