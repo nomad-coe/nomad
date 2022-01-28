@@ -413,7 +413,7 @@ function Section({section, def, parent, units}) {
 
   let isEmpty
   if (!section) {
-    if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument') {
+    if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument' || def.name === 'XpsInstrument') {
       isEmpty = true
     } else {
       console.error('section is not available')
@@ -431,7 +431,7 @@ function Section({section, def, parent, units}) {
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
 
   let contents
-  if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument') {
+  if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument' || def.name === 'XpsInstrument') {
     contents = <Compartment title={(!isEmpty && 'edit')}>
       {!isEmpty && <SectionEditor sectionDef={def} section={section} parent={parent}/>}
     </Compartment>
@@ -510,7 +510,7 @@ Section.propTypes = ({
   units: PropTypes.object
 })
 
-export function SubSectionList({subSectionDef}) {
+export function SubSectionList({subSectionDef, addButton, deleteButton}) {
   const lane = useContext(laneContext)
   const label = useMemo(() => {
     let key = subSectionDef.more?.label_quantity
@@ -530,10 +530,12 @@ export function SubSectionList({subSectionDef}) {
   const values = useMemo(() => lane.adaptor.e[subSectionDef.name].map(label), [lane.adaptor.e, subSectionDef.name, label])
   return <PropertyValuesList
     values={values}
-    label={formatSubSectionName(subSectionDef.name) || 'list'} />
+    label={formatSubSectionName(subSectionDef.name) || 'list'} addButton={addButton} deleteButton={deleteButton}/>
 }
 SubSectionList.propTypes = ({
-  subSectionDef: PropTypes.object.isRequired
+  subSectionDef: PropTypes.object.isRequired,
+  addButton: PropTypes.bool,
+  deleteButton: PropTypes.bool
 })
 
 function ReferenceValuesList({quantityDef}) {
@@ -567,7 +569,7 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
     }
   }
 }))
-function PropertyValuesList({label, values}) {
+function PropertyValuesList({label, values, addButton, deleteButton}) {
   const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
   const lane = useContext(laneContext)
@@ -585,18 +587,23 @@ function PropertyValuesList({label, values}) {
       <div>
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
-            <Box component="span" marginLeft={2}>
+            <Box display='flex' component="span" marginLeft={2}>
+              <Box flexGrow='unset'>
+                {deleteButton}
+              </Box>
               <Typography component="span">{item || index}</Typography>
             </Box>
           </Item>
-        ))}
+        )).concat((addButton || []))}
       </div>
     }
   </div>
 }
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
-  values: PropTypes.arrayOf(PropTypes.string).isRequired
+  values: PropTypes.arrayOf(PropTypes.string).isRequired,
+  addButton: PropTypes.bool,
+  deleteButton: PropTypes.bool
 })
 
 function Quantity({value, def, units}) {

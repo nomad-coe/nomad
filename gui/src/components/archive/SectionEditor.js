@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
   InputAdornment,
-  DialogContent, Dialog
+  DialogContent, Dialog, IconButton
 } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { useApi } from '../api'
@@ -20,6 +20,8 @@ import {formatSubSectionName, Item, laneContext} from './Browser'
 import { SubSectionList } from './ArchiveBrowser'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
+import AddIcon from '@material-ui/icons/Add'
+import DeleteIcon from '@material-ui/icons/Delete'
 
 const useStyles = makeStyles(theme => ({
   adornment: {
@@ -31,6 +33,8 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const lane = useContext(laneContext)
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value)
@@ -39,7 +43,13 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   const handleCreate = useCallback(() => {
     if (onChange) {
-      onChange((property.repeats ? [{}] : {}))
+      onChange((property.repeats ? (property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined ? [{name: `new ${property.name}`}] : [{}]) : {}))
+    }
+  }, [onChange])
+
+  const handleAdd = useCallback(() => {
+    if (onChange) {
+      onChange(section[property.name].concat((property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined ? [{name: `new ${property.name}`}] : [{}])))
     }
   }, [onChange])
 
@@ -72,6 +82,29 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   if (!lane) return ''
 
+  const handleConfirm = () => {
+    setOpenConfirmDialog(true)
+  }
+
+  const handleDelete = () => {
+    setOpenConfirmDialog(false)
+  }
+
+  let confirmDialog = <Dialog
+    open={openConfirmDialog}
+    aria-describedby="alert-dialog-description"
+  >
+    <DialogContent>
+      <DialogContentText id="alert-dialog-description">
+        Are you sure you want to delete the item?
+      </DialogContentText>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+      <Button onClick={handleDelete}>Delete and save the changes</Button>
+    </DialogActions>
+  </Dialog>
+
   if (property.m_def === 'SubSection') {
     // let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
     const key = property.name
@@ -89,16 +122,27 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
       </Item>
     }
     if (property.repeats) {
-      return <SubSectionList
-        key={property.name}
-        subSectionDef={property}/>
-      // return <Item key={key} itemKey={key}>
-      //   <Typography component="span">
-      //     <Box fontWeight="bold" component="span">
-      //       {formatSubSectionName(property.name)}
-      //     </Box>
-      //   </Typography>
-      // </Item>
+      let deleteButton = <Item disabled={true}>
+        <IconButton size="small" onClick={handleConfirm}>
+          <DeleteIcon fontSize="inherit" />
+        </IconButton>
+      </Item>
+      let addButton = <Item disabled={true}>
+        <Box marginLeft={1}>
+          <Button color='primary' size='small' onClick={() => handleAdd()} startIcon={<AddIcon/>}>
+            {`Add new ${property.name}`}
+          </Button>
+        </Box>
+      </Item>
+      return <React.Fragment>
+        <SubSectionList
+          key={property.name}
+          subSectionDef={property}
+          addButton={addButton}
+          deleteButton={deleteButton}
+        />
+        {confirmDialog}
+      </React.Fragment>
     } else {
       return <Item key={key} itemKey={key}>
         <Typography component="span">
@@ -184,11 +228,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
   }
 
   const handleDelete = () => {
-    section = parent
-    _.set(section, sectionDef.name.toLowerCase(), undefined)
-    if (onChange) {
-      onChange(section)
-    }
+    _.set(parent, sectionDef.name.toLowerCase(), undefined)
     setOpenConfirmDialog(false)
     handleSave()
   }
