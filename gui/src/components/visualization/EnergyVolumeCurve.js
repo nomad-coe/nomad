@@ -46,10 +46,10 @@ const EnergyVolumeCurve = React.memo(({
     }
 
     // Get indices that sort the data by volume
-    const nTraces = data.data.length
-    const indices = new Array(nTraces)
     const volumes = data.data[0].volumes
-    for (let i = 0; i < nTraces; ++i) indices[i] = i
+    const nPoints = data.data[0].volumes.length
+    const indices = new Array(nPoints)
+    for (let i = 0; i < nPoints; ++i) indices[i] = i
     indices.sort((a, b) => {
       return volumes[a] < volumes[b] ? -1 : volumes[a] > volumes[b] ? 1 : 0
     })
@@ -97,7 +97,7 @@ const EnergyVolumeCurve = React.memo(({
       },
       xaxis: {
         title: {
-          text: `Volume (${volumeUnit.label(units)})`
+          text: `Volume/atom (${volumeUnit.label(units)})`
         },
         zeroline: false
       },

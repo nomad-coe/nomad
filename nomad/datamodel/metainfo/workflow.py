@@ -447,7 +447,7 @@ class EquationOfState(MSection):
         shape=['n_points'],
         unit='m ** 3',
         description='''
-        Array of volumes for which the energies are evaluated.
+        Array of volumes per atom for which the energies are evaluated.
         ''')
 
     energies = Quantity(
