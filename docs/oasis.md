@@ -121,7 +121,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -138,7 +138,7 @@ services:
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
@@ -210,10 +210,11 @@ meta:
   maintainer_email: '<oasis admin email>'
 
 mongo:
-    db_name: nomad_v0_8
+    db_name: nomad_v1
 
 elastic:
-    index_name: nomad_v0_8
+    entries_index: nomad_v1_entries
+    materials_index: nomad_v1_materials
 ```
 
 You need to change the following:
@@ -268,20 +269,14 @@ server {
         proxy_pass http://app:8000;
     }
 
-    location ~ \/api\/uploads\/?$ {
+    location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$)  {
         client_max_body_size 35g;
         proxy_request_buffering off;
         proxy_pass http://app:8000;
     }
 
-    location ~ \/api\/(raw|archive) {
+    location ~ /api/v1/.*/download {
         proxy_buffering off;
-        proxy_pass http://app:8000;
-    }
-
-    location ~ \/api\/mirror {
-        proxy_buffering off;
-        proxy_read_timeout 600;
         proxy_pass http://app:8000;
     }
 }

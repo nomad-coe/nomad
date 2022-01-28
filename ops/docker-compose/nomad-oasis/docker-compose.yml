@@ -44,7 +44,7 @@ services:
     # nomad worker (processing)
     worker:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_worker
         environment:
             <<: *nomad_backend_env
@@ -61,7 +61,7 @@ services:
     # nomad app (api + gui)
     app:
         restart: always
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:stable
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
         container_name: nomad_oasis_app
         environment:
             <<: *nomad_backend_env
