@@ -44,24 +44,7 @@ export const commentContext = React.createContext()
 export const referencesContext = React.createContext()
 export const datasetsContext = React.createContext()
 
-const useStyles = makeStyles(theme => ({
-  dialog: {
-    width: '100%'
-  },
-  comment: {
-    width: '100%'
-  },
-  datasets: {
-    display: 'flex',
-    justifyContent: 'left',
-    flexWrap: 'wrap',
-    listStyle: 'none',
-    padding: 'initial'
-  }
-}))
-
 function EditComments() {
-  const classes = useStyles()
   const {data, setComment, setIsCommentChanged} = useContext(editMetaDataDialogContext)
   const [newComment, setNewComment] = useState('')
   const [defaultComment, setDefaultComment] = useState('')
@@ -88,7 +71,7 @@ function EditComments() {
         Comments
       </Typography>
     </Box>
-    <TextField className={classes.comment} id='outlined-multiline-static' label='Comment'
+    <TextField fullWidth id='outlined-multiline-static' label='Comment'
       multiline rows={6} value={newComment} variant='filled' size='small'
       onChange={handleTextFieldChange}
     />
@@ -501,9 +484,15 @@ DatasetsActions.propTypes = {
   data: PropTypes.object.isRequired
 }
 
+const useEditMetaDataDialogStyles = makeStyles(theme => ({
+  dialog: {
+    width: '100%'
+  }
+}))
+
 function EditMetaDataDialog({...props}) {
   const {isIcon, selectedEntries} = props
-  const classes = useStyles()
+  const classes = useEditMetaDataDialogStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {upload, setUpload, data} = useContext(uploadPageContext)
