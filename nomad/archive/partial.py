@@ -31,9 +31,6 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
     Selected sections and other data that they reference (recursively) comprise the
     resulting partial archive.
 
-    TODO at the moment is hard coded and NOT informed by the metainfo. We simply
-    add sections EntryMetadata and Workflow.
-
     Arguments:
         archive: The archive as an :class:`EntryArchive` instance.
 
@@ -70,7 +67,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
         return True
 
     # add the main content
-    partial_contents = archive.m_to_dict(partial=partial)
+    partial_contents = archive.m_to_dict(include=partial)
 
     # add the referenced data
     def add(section, placeholder=False) -> dict:
@@ -96,7 +93,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
         if placeholder:
             result = {}
         else:
-            result = section.m_to_dict(partial=partial)
+            result = section.m_to_dict(include=partial)
 
         sub_section = section.m_parent_sub_section
         if sub_section.repeats:
@@ -124,7 +121,7 @@ def write_partial_archive_to_mongo(archive: EntryArchive):
     ''' Partially writes the given archive to mongodb. '''
     mongo_db = infrastructure.mongo_client[config.mongo.db_name]
     mongo_collection = mongo_db['archive']
-    mongo_id = archive.section_metadata.calc_id
+    mongo_id = archive.metadata.entry_id
 
     partial_archive_dict = create_partial_archive(archive)
     partial_archive_dict['_id'] = mongo_id
@@ -185,11 +182,18 @@ __all_parent_sections: Dict[Section, Tuple[str, Section]] = {}
 
 def _all_parent_sections():
     if len(__all_parent_sections) == 0:
+        added_sections = set()
+
         def add(section):
+            added_sections.add(section)
             for sub_section in section.all_sub_sections.values():
                 sub_section_section = sub_section.sub_section.m_resolved()
-                __all_parent_sections.setdefault(sub_section_section, []).append((sub_section.qualified_name(), section, ))
-                add(sub_section_section)
+
+                __all_parent_sections.setdefault(sub_section_section, []).append(
+                    (sub_section.qualified_name(), section, ))
+
+                if sub_section_section not in added_sections:
+                    add(sub_section_section)
 
         add(EntryArchive.m_def)
 
@@ -214,7 +218,7 @@ def compute_required_with_referenced(required):
     if not isinstance(required, dict):
         return None
 
-    if any(key.startswith('section_run') for key in required):
+    if any(key.startswith('run') for key in required):
         return None
 
     required = dict(**required)

@@ -20,7 +20,7 @@ import pytest
 import json
 import datetime
 
-from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized
+from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Datetime, Capitalized, Bytes
 
 
 @pytest.mark.parametrize('def_type, value', [
@@ -34,26 +34,27 @@ from nomad.metainfo import MSection, Quantity, Unit, units, JSON, Dimension, Dat
     pytest.param(Dimension, 1, id='Dimension-1'),
     pytest.param(Dimension, 'quantity', id='Dimension-quantity'),
     pytest.param(Datetime, datetime.datetime.now(), id='Datetime'),
-    pytest.param(Capitalized, 'Hello', id='Capitalize')
+    pytest.param(Capitalized, 'Hello', id='Capitalize'),
+    pytest.param(Bytes, b'hello', id='Bytes')
 ])
 def test_basic_types(def_type, value):
-    class TestSection(MSection):
+    class TestSectionA(MSection):
         quantity = Quantity(type=def_type)
 
-    section = TestSection()
+    section = TestSectionA()
     assert section.quantity is None
     section.quantity = value
 
     assert section.quantity == value
     section_serialized = section.m_to_dict()
     json.dumps(section_serialized)
-    section = TestSection.m_from_dict(section_serialized)
+    section = TestSectionA.m_from_dict(section_serialized)
     assert section.quantity == value
 
-    class TestSection(MSection):
+    class TestSectionB(MSection):
         quantity = Quantity(type=def_type, default=value)
 
-    section = TestSection()
+    section = TestSectionB()
     assert section.quantity == value
     assert 'quantity' not in section.m_to_dict()
 

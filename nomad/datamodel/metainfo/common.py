@@ -16,10 +16,19 @@
 # limitations under the License.
 #
 
-# This is just for backward compatibility of old imports. All definitions are now in common_dft
+from nomad.metainfo import MCategory, Category
 
-from nomad.metainfo import Package
 
-from .common_dft import *
+class FastAccess(MCategory):
+    '''
+    Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
+    because they are frequently accessed via archive API.
 
-m_package = Package(name='common_nomadmetainfo_json')
+    If applied to a sub_section, the section will be added to the fast storage. Currently
+    this only works for *root* sections that are sub_sections of `EntryArchive`.
+
+    If applied to a reference types quantity, the referenced section will also be added to
+    the fast storage, regardless if the referenced section has the category or not.
+    '''
+
+    m_def = Category()

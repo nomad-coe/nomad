@@ -16,10 +16,8 @@
 # limitations under the License.
 #
 from flask_restplus import Resource, abort
-from elasticsearch.exceptions import NotFoundError
 
-from nomad import search
-from nomad.app.flask.api.auth import authenticate
+from nomad.search import search
 
 from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping
@@ -36,15 +34,15 @@ class Dataset(Resource):
     @api.response(404, 'There is no entry with the given id.')
     @api.response(401, 'This entry is not publically accessible.')
     @api.response(200, 'Data send', headers={'Content-Type': 'application/xml'})
-    @authenticate()
     def get(self, entry_id):
         ''' Returns a DCAT dataset for a given NOMAD entry id. '''
-        try:
-            entry = search.entry_document.get(entry_id)
-        except NotFoundError:
-            abort(404, message='There is no calculation with id %s' % entry_id)
+        results = search(query=dict(entry_id=entry_id))
+        if results.pagination.total == 0:
+            abort(404, message='There is no entry with id %s' % entry_id)
 
-        if entry.with_embargo or not entry.published:
+        entry = results.data[0]
+
+        if entry['with_embargo'] or not entry['published']:
             abort(401, message='Not authorized to access %s' % entry_id)
 
         mapping = Mapping()

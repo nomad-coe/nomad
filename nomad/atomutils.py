@@ -20,44 +20,67 @@ import functools
 import itertools
 import math
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union, cast
+from typing import List, Dict, Tuple, Any, Union, Iterable, cast
 from nptyping import NDArray
 
 from ase.utils import pbc2pbc
 import ase.geometry
+import ase.data
+from ase import Atoms
+from ase.formula import Formula
 
 import numpy as np
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
-from matid.symmetry import WyckoffSet
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
-    """Calculates the summed atomic mass for the given atomic numbers.
+    '''
+    Calculates the summed atomic mass for the given atomic numbers.
 
     Args:
         atomic_numbers: Array of valid atomic numbers
 
     Returns:
         The atomic mass in kilograms.
-    """
+    '''
     # It is assumed that the atomic numbers are valid at this point.
     mass = np.sum(atomic_masses[atomic_numbers])
     return mass
 
 
 def get_volume(basis: NDArray[Any]) -> float:
-    """Calculates the volume of the given parallelepiped.
+    '''
+    Calculates the volume of the given parallelepiped.
 
     Args:
         basis: 3x3 matrix with basis vectors of a parallellepiped as rows.
 
     Returns:
         Volume of the parallelepiped defined by the basis.
-    """
+    '''
     return np.abs(np.linalg.det(basis))
+
+
+def is_valid_basis(basis: NDArray[Any]) -> bool:
+    '''
+    Checks if the given set of basis vectors are valid. Currently does not
+    check for linear independence, only for empty rows.
+
+    Args:
+        basis: 3x3 matrix with basis vectors as rows.
+
+    Returns:
+        True if the basis is valid, False otherwise.
+    '''
+    if basis is None:
+        return False
+    for row in np.asarray(basis):
+        if not np.any(row):
+            return False
+    return True
 
 
 def wrap_positions(
@@ -66,7 +89,8 @@ def wrap_positions(
         pbc: Union[bool, NDArray[Any]] = True,
         center: NDArray[Any] = [0.5, 0.5, 0.5],
         eps: float = 1e-12) -> NDArray[Any]:
-    """Wraps the given position so that they are within the unit cell. If no
+    '''
+    Wraps the given position so that they are within the unit cell. If no
     cell is given, scaled positions are assumed. For wrapping cartesian
     positions you also need to provide the cell.
 
@@ -80,7 +104,7 @@ def wrap_positions(
             positions will be nearest possible to.
         eps: Small number to prevent slightly negative coordinates from being
             wrapped.
-    """
+    '''
     if not hasattr(center, '__len__'):
         center = (center,) * 3
 
@@ -106,10 +130,24 @@ def wrap_positions(
         return fractional
 
 
+def chemical_symbols(atomic_numbers: Iterable[int]) -> List[str]:
+    '''
+    Converts atomic numbers to chemical_symbols.
+
+    Args:
+        atomic_numbers: The atomic numbers to convert.
+
+    Returns:
+        Array of chemical symbols.
+    '''
+    return [ase.data.chemical_symbols[x] for x in atomic_numbers]
+
+
 def to_scaled(
         positions: NDArray[Any],
         cell: NDArray[Any] = None) -> NDArray[Any]:
-    """Converts cartesian positions into scaled position one using the given
+    '''
+    Converts cartesian positions into scaled position one using the given
     cell lattice vectors as a basis.
 
     Args:
@@ -118,14 +156,15 @@ def to_scaled(
 
     Returns:
         The given positions in scaled coordinates.
-    """
+    '''
     return np.linalg.solve(complete_cell(cell).T, positions.T).T
 
 
 def to_cartesian(
         positions: NDArray[Any],
         cell: NDArray[Any] = None) -> NDArray[Any]:
-    """Converts scaled positions into cartesian one using the given cell
+    '''
+    Converts scaled positions into cartesian one using the given cell
     lattice vectors as a basis.
 
     Args:
@@ -134,13 +173,14 @@ def to_cartesian(
 
     Returns:
         The given positions in cartesian coordinates.
-    """
+    '''
     cartesian_positions = np.dot(positions, complete_cell(cell))
     return cartesian_positions
 
 
 def complete_cell(cell: NDArray[Any]) -> NDArray[Any]:
-    """Creates placeholder axes for cells with zero-dimensional lattice vectors
+    '''
+    Creates placeholder axes for cells with zero-dimensional lattice vectors
     in order to do linear algebra.
 
     Args:
@@ -149,24 +189,26 @@ def complete_cell(cell: NDArray[Any]) -> NDArray[Any]:
     Returns:
         The given cell with zero-dimensional lattice vectors filled with
         placeholder axes.
-    """
+    '''
     return ase.geometry.complete_cell(cell)
 
 
 def reciprocal_cell(cell: NDArray[Any]) -> NDArray[Any]:
-    """Returns the reciprocal cell without the factor or 2*Pi.
+    '''
+    Returns the reciprocal cell without the factor or 2*Pi.
 
     Args:
         cell: Lattice vectors.
 
     Returns:
         Reciprocal cell as a 3x3 array.
-    """
+    '''
     return np.linalg.pinv(cell).transpose()
 
 
 def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[int, None]:
-    """Attempts to find a position within a larger list of positions.
+    '''
+    Attempts to find a position within a larger list of positions.
 
     Args:
         pos: The point to search for
@@ -175,7 +217,7 @@ def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[
 
     Returns:
         Index of the matched position or None if match not found.
-    """
+    '''
     displacements = positions - pos
     distances = np.linalg.norm(displacements, axis=1)
     min_arg = np.argmin(distances)
@@ -187,7 +229,8 @@ def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[
 
 
 def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], a_direction: NDArray[Any] = None, degrees=False) -> NDArray[Any]:
-    """Creates a 3x3 cell from the given lattice_parameters.
+    '''
+    Creates a 3x3 cell from the given lattice_parameters.
 
     The returned cell is orientated such that a and b are normal to `ab_normal`
     and a is parallel to the projection of `a_direction` in the a-b plane.
@@ -214,7 +257,7 @@ def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], 
     Returns:
         Six parameters (in this order) as a numpy
         array. Here is an explanation of each parameter:
-    """
+    '''
     if not degrees:
         cellpar[3:6] *= 180.0 / np.pi
 
@@ -222,7 +265,8 @@ def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], 
 
 
 def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
-    """Returns lattice parameters for the given cell.
+    '''
+    Returns lattice parameters for the given cell.
 
     Args:
         normalized_cell: The normalized cell as a 3x3 array. Each row is a
@@ -239,7 +283,7 @@ def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
             alpha = angle between b and c in radians
             beta  = angle between a and c in radians
             gamma = angle between a and b in radians
-    """
+    '''
     # Lengths
     lengths = np.linalg.norm(cell, axis=1)
 
@@ -258,10 +302,16 @@ def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
     return np.concatenate((lengths, angles), axis=0)
 
 
-def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d: bool = False) -> str:
-    """Used to serialize symmetry information into a string. The Wyckoff
+def get_symmetry_string(space_group: int, wyckoff_sets: List[Any], is_2d: bool = False) -> str:
+    '''
+    Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.
+
+    The symmetry analysis of 2D structures is run by artificially extending the
+    system in the non-periodic direction. Due to this the symmetry information
+    may overlap with real 3D structures unless we include a distinguishing
+    label for 2D structures.
 
     Args:
         space_group: 3D space group number
@@ -274,25 +324,42 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[WyckoffSet], is_2d:
     Returns:
         A string that encodes the symmetry properties of an atomistic
         structure.
-    """
+    '''
     wyckoff_strings = []
     for group in wyckoff_sets:
         element = group.element
         wyckoff_letter = group.wyckoff_letter
         n_atoms = len(group.indices)
-        i_string = "{} {} {}".format(element, wyckoff_letter, n_atoms)
+        i_string = '{} {} {}'.format(element, wyckoff_letter, n_atoms)
         wyckoff_strings.append(i_string)
-    wyckoff_string = ", ".join(sorted(wyckoff_strings))
+    wyckoff_string = ', '.join(sorted(wyckoff_strings))
     if is_2d:
-        string = "2D {} {}".format(space_group, wyckoff_string)
+        string = '2D {} {}'.format(space_group, wyckoff_string)
     else:
-        string = "{} {}".format(space_group, wyckoff_string)
+        string = '{} {}'.format(space_group, wyckoff_string)
 
     return string
 
 
+def get_formula_hill(formula: str) -> str:
+    '''
+    Converts the given chemical formula into the Hill format.
+
+    Args:
+        formula: Original formula.
+
+    Returns:
+        Chemical formula in the Hill format.
+    '''
+    if formula is None:
+        return formula
+
+    return Formula(formula).format('hill')
+
+
 def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> Tuple[List[str], List[int]]:
-    """Given a list of atomic labels, returns the chemical formula using the
+    '''
+    Given a list of atomic labels, returns the chemical formula using the
     Hill system (https://en.wikipedia.org/wiki/Hill_system) with an exception
     for binary ionic compounds where the cation is always given first.
 
@@ -303,7 +370,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
 
     Returns:
         An ordered list of chemical symbols and the corresponding counts.
-    """
+    '''
     # Count occurancy of elements
     names = []
     counts = []
@@ -312,16 +379,16 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
 
     # Apply basic Hill system:
     # 1. Is Carbon part of the system?
-    if "C" in element_count_map:
-        names.append("C")
-        counts.append(element_count_map["C"])
+    if 'C' in element_count_map:
+        names.append('C')
+        counts.append(element_count_map['C'])
         del element_count_map['C']
 
         # 1a. add hydrogren
-        if "H" in element_count_map:
-            names.append("H")
-            counts.append(element_count_map["H"])
-            del element_count_map["H"]
+        if 'H' in element_count_map:
+            names.append('H')
+            counts.append(element_count_map['H'])
+            del element_count_map['H']
 
     # 2. all remaining elements in alphabetic order
     for element in sorted(element_count_map):
@@ -331,27 +398,27 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
     # 3. Binary ionic compounds: cation first, anion second
     # If any of the most electronegative elements is first
     # by alphabetic order, we move it to second
-    if len(counts) == 2 and names != ["C", "H"]:
+    if len(counts) == 2 and names != ['C', 'H']:
         order = {
-            "F": 1,
-            "O": 2,
-            "N": 3,
-            "Cl": 4,
-            "Br": 5,
-            "C": 6,
-            "Se": 7,
-            "S": 8,
-            "I": 9,
-            "As": 10,
-            "H": 11,
-            "P": 12,
-            "Ge": 13,
-            "Te": 14,
-            "B": 15,
-            "Sb": 16,
-            "Po": 17,
-            "Si": 18,
-            "Bi": 19
+            'F': 1,
+            'O': 2,
+            'N': 3,
+            'Cl': 4,
+            'Br': 5,
+            'C': 6,
+            'Se': 7,
+            'S': 8,
+            'I': 9,
+            'As': 10,
+            'H': 11,
+            'P': 12,
+            'Ge': 13,
+            'Te': 14,
+            'B': 15,
+            'Sb': 16,
+            'Po': 17,
+            'Si': 18,
+            'Bi': 19
         }
         if (names[0] in order):
             if (names[1] in order):
@@ -382,8 +449,9 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
     return names, counts
 
 
-def get_formula_string(symbols: List[str], counts: List[int]) -> str:
-    """Used to form a single formula string from a list of chemical species and
+def get_formula_string(symbols: Iterable[str], counts: Iterable[int]) -> str:
+    '''
+    Used to form a single formula string from a list of chemical species and
     their counts.
 
     Args:
@@ -392,20 +460,21 @@ def get_formula_string(symbols: List[str], counts: List[int]) -> str:
 
     Returns:
         The formula as a string.
-    """
-    formula = ""
+    '''
+    formula = ''
     for symbol, count in zip(symbols, counts):
         if count > 1:
-            formula += "%s%d" % (symbol, count)
+            formula += '%s%d' % (symbol, count)
         else:
             formula += symbol
     return formula
 
 
 def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArray[Any]) -> Dict[str, Dict[str, int]]:
-    """Returns a normalized Wyckoff sequence for the given atomic numbers and
+    '''
+    Returns a normalized Wyckoff sequence for the given atomic numbers and
     corresponding wyckoff letters. In a normalized sequence the chemical
-    species are "anonymized" by replacing them with upper case alphabets.
+    species are 'anonymized' by replacing them with upper case alphabets.
 
     Args:
         atomic_numbers: Array of atomic numbers.
@@ -415,8 +484,8 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
         Returns a dictionary that maps each present Wyckoff letter to a
         dictionary. The dictionary contains the number of atoms for each
         species, where the species names have been anomymized in the form
-        "X_<index>".
-    """
+        'X_<index>'.
+    '''
     # Count the occurrence of each chemical species
     atom_count: Dict[int, int] = {}
     for atomic_number in atomic_numbers:
@@ -452,7 +521,7 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
     sorted_species.sort(key=functools.cmp_to_key(compare_atomic_number))
     standard_atom_names = {}
     for i, at in enumerate(sorted_species):
-        standard_atom_names[at] = ("X_%d" % i)
+        standard_atom_names[at] = ('X_%d' % i)
 
     # Rename with anonymized species labels
     standard_wyc: dict = {}
@@ -477,7 +546,8 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
 
 
 def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
-    """Searches the AFLOW prototype library for a match for the given space
+    '''
+    Searches the AFLOW prototype library for a match for the given space
     group and normalized Wyckoff sequence. The normalized Wyckoff sequence is
     assumed to come from the MatID symmetry routine.
 
@@ -492,11 +562,11 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
 
     Returns:
         Dictionary containing the AFLOW prototype information.
-    """
+    '''
     structure_type_info = None
-    type_descriptions: Any = aflow_prototypes["prototypes_by_spacegroup"].get(space_group, [])
+    type_descriptions: Any = aflow_prototypes['prototypes_by_spacegroup'].get(space_group, [])
     for type_description in type_descriptions:
-        current_norm_wyckoffs = type_description.get("normalized_wyckoff_matid")
+        current_norm_wyckoffs = type_description.get('normalized_wyckoff_matid')
         if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
             structure_type_info = type_description
             break
@@ -504,7 +574,8 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
 
 
 def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
-    """Calculates the Brillouin Zone information from the given reciprocal
+    '''
+    Calculates the Brillouin Zone information from the given reciprocal
     lattice.
 
     This function uses the crystallographic definition, so there is no factor
@@ -516,11 +587,11 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
 
     Returns:
         A dictionary containing:
-        "vertices": The vertices of the first Brillouin zone
-        "faces": The indices of the vertices that make up the faces on the
+        'vertices': The vertices of the first Brillouin zone
+        'faces': The indices of the vertices that make up the faces on the
             first Brillouin zone. The order of these indices matter, because
             only when combined sequentially they form the correct face.
-    """
+    '''
     # Create the near lattice points that surround the origin
     b1 = reciprocal_lattice[0, :]
     b2 = reciprocal_lattice[1, :]
@@ -559,7 +630,49 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
     faces = faces
 
     brillouin_zone = {
-        "vertices": vertices,
-        "faces": faces,
+        'vertices': vertices,
+        'faces': faces,
     }
     return brillouin_zone
+
+
+def get_minimized_structure(atoms: Atoms):
+    '''
+    Reduce cell size to just fit the system in the non-periodic dimensions.
+
+    Args:
+        atoms: The structure to minimize
+
+    Returns:
+        A new structure where the non-periodic dimension have been minimized.
+    '''
+    min_atoms = atoms.copy()
+    pos = atoms.get_scaled_positions(wrap=False)
+    cell = atoms.get_cell()
+    new_cell = np.array(cell)
+    translation = np.zeros(3)
+    pbc = atoms.get_pbc()
+    for index, periodic in enumerate(pbc):
+        if not periodic:
+            imin = np.min(pos[:, index])
+            imax = np.max(pos[:, index])
+            translation -= cell[index, :] * imin
+            new_cell[index] = cell[index, :] * (imax - imin)
+
+    min_atoms.translate(translation)
+    min_atoms.set_cell(new_cell)
+
+    return min_atoms
+
+
+def swap_basis(atoms, a, b):
+    cell_old = atoms.get_cell()
+    pbc_old = atoms.get_pbc()
+    cell_new = np.array(cell_old)
+    cell_new[a] = cell_old[b]
+    cell_new[b] = cell_old[a]
+    pbc_new = np.array(pbc_old)
+    pbc_new[a] = pbc_old[b]
+    pbc_new[b] = pbc_old[a]
+    atoms.set_cell(cell_new)
+    atoms.set_pbc(pbc_new)

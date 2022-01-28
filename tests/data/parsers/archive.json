@@ -1,10 +1,15 @@
 {
-    "section_quantum_cms": {
-        "atom_labels": [ "He"],
-        "chemical_formula": "He2",
-        "chemical_name": "Helium"
+    "metadata": {
+        "domain": "test",
+        "raw_id": "test_id"
     },
-    "section_metadata": {
-        "domain": "qcms"
+    "results": {
+        "material": {
+            "chemical_formula_descriptive": "H2O",
+            "elements": ["H", "O"]
+        },
+        "method": {
+            "method_name": "test"
+        }
     }
 }

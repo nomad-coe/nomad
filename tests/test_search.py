@@ -16,378 +16,165 @@
 # limitations under the License.
 #
 
-from typing import List, Iterable
-from elasticsearch_dsl import Q
+from typing import List, Dict, Any, Union, Iterable
 import pytest
-from datetime import datetime
 import json
 
-from nomad import datamodel, processing, infrastructure, config
-from nomad.metainfo import search_extension
-from nomad.search import entry_document, SearchRequest, search, flat, update_by_query, refresh
+from nomad import config, utils, infrastructure
 from nomad.app.v1.models import WithQuery
+from nomad.search import quantity_values, search, update_by_query, refresh
+from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, material_index
 
-
-def test_init_mapping(elastic):
-    pass
-
-
-def test_index_skeleton_calc(elastic):
-    entry_metadata = datamodel.EntryMetadata(
-        domain='dft', upload_id='test_upload', calc_id='test_calc',
-        mainfile='test/mainfile', files=['test/file1', 'test/file2'])
-
-    create_entry(entry_metadata)
-
-
-def test_index_normalized_calc(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
-    entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id')
-    entry_metadata.apply_domain_metadata(normalized)
-    search_entry = create_entry(entry_metadata)
-    entry = flat(search_entry.to_dict())
-
-    assert 'calc_id' in entry
-    assert 'atoms' in entry
-    assert 'dft.code_name' in entry
-    assert 'dft.optimade.elements_ratios' in entry
-
-
-def test_index_normalized_calc_with_metadata(
-        elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
-    entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id')
-    entry_metadata.apply_domain_metadata(normalized)
-    internal_example_user_metadata.pop('embargo_length')  # is for uploads only
-    entry_metadata.apply_user_metadata(internal_example_user_metadata)
-
-    entry = create_entry(entry_metadata)
-
-    assert getattr(entry, 'with_embargo') == internal_example_user_metadata['with_embargo']
-    assert getattr(entry, 'comment') == internal_example_user_metadata['comment']
-
-
-def test_index_normalized_calc_with_author(
-        elastic, normalized: datamodel.EntryArchive, internal_example_user_metadata: dict):
-    entry_metadata = normalized.section_metadata
-    entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id',
-        coauthors=[dict(first_name='Howard', last_name='Wolowitz')])
-    entry_metadata.apply_domain_metadata(normalized)
-
-    search_entry = create_entry(entry_metadata)
-    flat(search_entry.to_dict())
-
-
-def test_index_upload(elastic, processed: processing.Upload):
-    pass
-
-
-@pytest.fixture()
-def example_search_data(elastic, normalized: datamodel.EntryArchive):
-    entry_metadata = normalized.section_metadata
-    entry_metadata.m_update(
-        domain='dft', upload_id='test upload id', calc_id='test id', published=True,
-        upload_time=datetime.now())
-    entry_metadata.apply_domain_metadata(normalized)
-    create_entry(entry_metadata)
-    refresh()
-
-    return normalized
-
-
-@pytest.fixture()
-def example_ems_search_data(elastic, parsed_ems: datamodel.EntryArchive):
-    entry_metadata = parsed_ems.section_metadata
-    entry_metadata.m_update(
-        domain='ems', upload_id='test upload id', calc_id='test id')
-    entry_metadata.apply_domain_metadata(parsed_ems)
-    create_entry(entry_metadata)
-    refresh()
-
-    return parsed_ems
-
-
-def test_search_entry(example_search_data):
-    results = SearchRequest(domain='dft').execute()
-    assert results['total'] > 0
-
-
-def test_search_scan(elastic, example_search_data):
-    results = list(SearchRequest(domain='dft').execute_scan())
-    assert len(results) > 0
-
-
-def test_search_paginated(elastic, example_search_data):
-    results = SearchRequest(domain='dft').execute_paginated()
-    assert results['total'] > 0
-    assert len(results['results']) > 0
-    pagination = results['pagination']
-    assert pagination['total'] > 0
-    assert 'page' in pagination
-    assert 'per_page' in pagination
-
-
-def test_search_scroll(elastic, example_search_data):
-    request = SearchRequest(domain='dft')
-    results = request.execute_scrolled()
-    scroll_id = results['scroll']['scroll_id']
-    assert results['scroll']['total'] == 1
-    assert len(results['results']) == 1
-    assert scroll_id is not None
-
-    results = request.execute_scrolled(scroll_id=scroll_id)
-    assert results['scroll']['total'] == 1
-    assert len(results['results']) == 0
-    assert 'scroll_id' not in results['scroll']
-
-
-def test_search_aggregated(elastic, example_search_data):
-    request = SearchRequest(domain='dft')
-    results = request.execute_aggregated()
-    after = results['aggregation']['after']
-    assert results['aggregation']['total'] == 1
-    assert len(results['results']) == 1
-    assert 'calc_id' in results['results'][0]
-    assert 'upload_id' in results['results'][0]
-    assert after is not None
-
-    results = request.execute_aggregated(after=after)
-    assert results['aggregation']['total'] == 1
-    assert len(results['results']) == 0
-    assert results['aggregation']['after'] is None
-
-
-def test_search_aggregated_includes(elastic, example_search_data):
-    request = SearchRequest(domain='dft')
-    results = request.execute_aggregated(includes=['with_embargo'])
-    assert 'with_embargo' in results['results'][0]
-
-
-def test_domain(elastic, example_ems_search_data):
-    assert len(list(SearchRequest(domain='ems').execute_scan())) > 0
-    assert len(list(SearchRequest(domain='ems').domain().execute_scan())) > 0
-    assert len(list(SearchRequest(domain='ems').domain('dft').execute_scan())) == 0
-    assert len(list(SearchRequest(domain='dft').domain('dft').execute_scan())) == 0
-
-    results = SearchRequest(domain='ems').statistic('ems.method', size=10).execute()
-    statistics = results['statistics']
-    assert 'ems.method' in statistics
-    assert 'electron energy loss spectroscopy' in statistics['ems.method']
-
-    results = SearchRequest(domain='ems').statistics(['ems.method']).execute()
-    statistics = results['statistics']
-    assert 'ems.method' in statistics
-    assert 'electron energy loss spectroscopy' in statistics['ems.method']
-
-
-def assert_metrics(container, metrics_names):
-    assert container['code_runs'] == 1
-    for metric in metrics_names:
-        assert metric in container
-
-
-def test_search_statistics(elastic, example_search_data):
-    assert 'authors' in search_extension.metrics.keys()
-    assert 'datasets' in search_extension.metrics.keys()
-    assert 'unique_entries' in search_extension.metrics.keys()
-
-    use_metrics = search_extension.metrics.keys()
-
-    request = SearchRequest(domain='dft').statistic(
-        'dft.system', size=10, metrics_to_use=use_metrics).date_histogram(metrics_to_use=use_metrics)
-    results = request.execute()
-
-    statistics = results['statistics']
-    assert 'results' not in results
-    assert 'bulk' in statistics['dft.system']
-    assert 'date_histogram' in statistics
-
-    example_statistic = statistics['dft.system']['bulk']
-    assert_metrics(example_statistic, use_metrics)
-    assert_metrics(statistics['date_histogram'][list(statistics['date_histogram'].keys())[0]], use_metrics)
-    assert_metrics(statistics['total']['all'], [])
-
-    assert 'quantities' not in results
-
-
-def test_suggest_statistics(elastic, example_search_data):
-    results = SearchRequest(domain='dft').statistic('dft.system', include='ulk', size=2).execute()
-    assert len(results['statistics']['dft.system']) == 1
-
-    results = SearchRequest(domain='dft').statistic('dft.system', include='not_ulk', size=2).execute()
-    assert len(results['statistics']['dft.system']) == 0
-
-
-def test_global_statistics(elastic, example_search_data):
-    results = SearchRequest().global_statistics().execute()
-    statistics = results.get('global_statistics')
-    assert statistics is not None
-    assert statistics.get('n_entries') is not None
-    assert statistics.get('n_uploads') is not None
-    assert statistics.get('n_calculations') is not None
-    assert statistics.get('n_quantities') is not None
-
-
-def test_search_totals(elastic, example_search_data):
-    use_metrics = search_extension.metrics.keys()
-
-    request = SearchRequest(domain='dft').totals(metrics_to_use=use_metrics)
-    results = request.execute()
-
-    statistics = results['statistics']
-    assert 'results' not in results
-    assert len(statistics) == 1
-
-    assert_metrics(statistics['total']['all'], [])
-
-    assert 'quantities' not in results
-
-
-def test_search_exclude(elastic, example_search_data):
-    for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in flat(item)
-
-    for item in SearchRequest().exclude('atoms').execute_paginated()['results']:
-        assert 'atoms' not in flat(item)
-
-
-def test_search_include(elastic, example_search_data):
-    for item in SearchRequest().execute_paginated()['results']:
-        assert 'atoms' in flat(item)
-
-    for item in SearchRequest().include('calc_id').execute_paginated()['results']:
-        item = flat(item)
-        assert 'atoms' not in item
-        assert 'calc_id' in item
-
-
-@pytest.mark.parametrize("order_by", [None, 'upload_id'])
-def test_search_quantity(
-        elastic, normalized: datamodel.EntryArchive, test_user: datamodel.User,
-        other_test_user: datamodel.User, order_by: str):
-
-    entry_metadata = datamodel.EntryMetadata(
-        domain='dft', upload_id='test upload id', calc_id='test id')
-    entry_metadata.apply_domain_metadata(normalized)
-    entry_metadata.uploader = test_user.user_id
-    create_entry(entry_metadata)
-
-    entry_metadata.calc_id = 'other test id'
-    entry_metadata.uploader = other_test_user.user_id
-    create_entry(entry_metadata)
-    refresh()
-
-    request = SearchRequest(domain='dft').quantity(
-        name='authors', size=1, examples=1, order_by=order_by)
-    results = request.execute()
-    assert len(results['quantities']['authors']['values'].keys()) == 1
-    name = list(results['quantities']['authors']['values'].keys())[0]
-    assert len(results['quantities']['authors']['values'][name]['examples']) == 1
-    if order_by is None:
-        assert results['quantities']['authors']['after'] == name
-    else:
-        assert results['quantities']['authors']['after'] == \
-            results['quantities']['authors']['values'][name]['examples'][0][order_by]
-
-
-def create_entry(entry_metadata: datamodel.EntryMetadata):
-    entry = entry_metadata.a_elastic.index()
-    assert_entry(entry_metadata.calc_id)
-    return entry
-
-
-def assert_entry(calc_id):
-    refresh()
-    calc = entry_document.get(calc_id)
-    assert calc is not None
-
-    search = entry_document.search().query(Q('term', calc_id=calc_id))[0:10]
-    assert search.count() == 1
-    results = list(hit.to_dict() for hit in search)
-    assert results[0]['calc_id'] == calc_id
+from tests.utils import ExampleData
 
 
 def assert_search_upload(
-        upload_entries: Iterable[datamodel.EntryMetadata],
-        additional_keys: List[str] = [], **kwargs):
-    keys = ['calc_id', 'upload_id', 'mainfile', 'calc_hash']
-    refresh()
-    search_results = entry_document.search().query('match_all')[0:10]
-    assert search_results.count() == len(list(upload_entries))
-    if search_results.count() > 0:
-        for hit in search_results:
-            hit = flat(hit.to_dict())
+        entries: Union[int, Iterable] = -1,
+        additional_keys: List[str] = [],
+        upload_id: str = None,
+        **kwargs):
 
+    if isinstance(entries, list):
+        size = len(entries)
+    elif isinstance(entries, int):
+        size = entries
+    else:
+        assert False
+
+    keys = ['entry_id', 'upload_id', 'mainfile']
+    refresh()
+    body: Dict[str, Any] = {}
+    body.update(size=10)
+    if upload_id is not None:
+        body['query'] = dict(match=dict(upload_id=upload_id))
+
+    search_results = infrastructure.elastic_client.search(
+        index=config.elastic.entries_index, body=body)['hits']
+
+    if size != -1:
+        assert search_results['total'] == size
+
+    if search_results['total'] > 0:
+        for hit in search_results['hits']:
+            hit = utils.flat(hit['_source'])
             for key, value in kwargs.items():
-                assert hit.get(key, None) == value
+                assert hit.get(key, None) == value, key
 
             if 'pid' in hit:
                 assert int(hit.get('pid')) > 0
 
             for key in keys:
-                assert key in hit
+                assert key in hit, f'{key} is missing'
 
             for key in additional_keys:
-                assert key in hit
+                assert key in hit, f'{key} is missing'
                 assert hit[key] != config.services.unavailable_value
 
-            for coauthor in hit.get('coauthors', []):
+            for coauthor in hit.get('entry_coauthors', []):
                 assert coauthor.get('name', None) is not None
 
 
-if __name__ == '__main__':
-    from .test_datamodel import generate_calc
-    from elasticsearch.helpers import bulk
-    import sys
-    print('Generate index with random example calculation data. First arg is number of items')
-    infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
-    n = 100
-    if len(sys.argv) > 1:
-        n = int(sys.argv[1])
+def test_mapping_compatibility(elastic_infra):
+    from nomad.infrastructure import elastic_client
 
-    def gen_data():
-        for pid in range(0, n):
-            calc = generate_calc(pid)
-            calc = entry_document.from_entry_metadata(calc)
-            yield calc.to_dict(include_meta=True)
+    v0 = elastic_client.indices.get(config.elastic.entries_index)
+    v1 = elastic_client.indices.get(config.elastic.entries_index)
 
-    bulk(infrastructure.elastic_client, gen_data())
+    def get_mapping(index):
+        assert len(index) == 1
+        index = index[next(iter(index))]
+        assert len(index['mappings']) == 1
+        return index['mappings'][next(iter(index['mappings']))]
+
+    v0, v1 = get_mapping(v0), get_mapping(v1)
+
+    def compare(a, b, path='', results=None):
+        if results is None:
+            results = []
+        if path != '':
+            path += '.'
+        for key in set(list(a.keys()) + list(b.keys())):
+            if key in a and key in b:
+                next_a, next_b = a[key], b[key]
+                if isinstance(next_a, dict) and isinstance(next_b, dict):
+                    compare(next_a, next_b, f'{path}{key}', results=results)
+                    continue
+
+                if next_a == next_b:
+                    continue
+
+            results.append(f"{'v0' if key in a else 'v1'}:{path}{key}")
+
+        return results
+
+    for diff in compare(v0, v1):
+        # assert that there are only top-level differences and mapping types and fields are
+        # the same
+        assert len([c for c in diff if c == '.']) == 1, diff
+
+
+@pytest.fixture()
+def example_data(elastic, test_user):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
+    for i in range(0, 4):
+        data.create_entry(
+            upload_id='test_upload_id',
+            entry_id=f'test_entry_id_{i}',
+            mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    data.save(with_files=False, with_mongo=False)
+
+
+def test_index(indices, example_data):
+    assert material_index.get(id='test_material_id') is not None
+    assert entry_index.get(id='test_entry_id_0') is not None
+
+
+@pytest.fixture()
+def indices(elastic):
+    pass
+
+
+def test_indices(indices):
+    assert entry_type.quantities.get('entry_id') is not None
+    assert entry_type.quantities.get('upload_id') is not None
 
 
 @pytest.mark.parametrize('api_query, total', [
-    pytest.param('{}', 1, id='empty'),
-    pytest.param('{"dft.code_name": "VASP"}', 1, id="match"),
-    pytest.param('{"dft.code_name": "VASP", "dft.xc_functional": "dne"}', 0, id="match_all"),
-    pytest.param('{"and": [{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 0, id="and"),
-    pytest.param('{"or":[{"dft.code_name": "VASP"}, {"dft.xc_functional": "dne"}]}', 1, id="or"),
-    pytest.param('{"not":{"dft.code_name": "VASP"}}', 0, id="not"),
-    pytest.param('{"dft.code_name": {"all": ["VASP", "dne"]}}', 0, id="all"),
-    pytest.param('{"dft.code_name": {"any": ["VASP", "dne"]}}', 1, id="any"),
-    pytest.param('{"dft.code_name": {"none": ["VASP", "dne"]}}', 0, id="none"),
-    pytest.param('{"dft.code_name": {"gte": "VASP"}}', 1, id="gte"),
-    pytest.param('{"dft.code_name": {"gt": "A"}}', 1, id="gt"),
-    pytest.param('{"dft.code_name": {"lte": "VASP"}}', 1, id="lte"),
-    pytest.param('{"dft.code_name": {"lt": "A"}}', 0, id="lt"),
+    pytest.param('{}', 4, id='empty'),
+    pytest.param('{"results.method.simulation.program_name": "VASP"}', 4, id="match"),
+    pytest.param('{"results.method.simulation.program_name": "VASP", "results.method.simulation.dft.xc_functional_type": "dne"}', 0, id="match_all"),
+    pytest.param('{"and": [{"results.method.simulation.program_name": "VASP"}, {"results.method.simulation.dft.xc_functional_type": "dne"}]}', 0, id="and"),
+    pytest.param('{"or":[{"results.method.simulation.program_name": "VASP"}, {"results.method.simulation.dft.xc_functional_type": "dne"}]}', 4, id="or"),
+    pytest.param('{"not":{"results.method.simulation.program_name": "VASP"}}', 0, id="not"),
+    pytest.param('{"results.method.simulation.program_name": {"all": ["VASP", "dne"]}}', 0, id="all"),
+    pytest.param('{"results.method.simulation.program_name": {"any": ["VASP", "dne"]}}', 4, id="any"),
+    pytest.param('{"results.method.simulation.program_name": {"none": ["VASP", "dne"]}}', 0, id="none"),
+    pytest.param('{"results.method.simulation.program_name": {"gte": "VASP"}}', 4, id="gte"),
+    pytest.param('{"results.method.simulation.program_name": {"gt": "A"}}', 4, id="gt"),
+    pytest.param('{"results.method.simulation.program_name": {"lte": "VASP"}}', 4, id="lte"),
+    pytest.param('{"results.method.simulation.program_name": {"lt": "A"}}', 0, id="lt"),
 ])
-def test_search_query(elastic, example_search_data, api_query, total):
+def test_search_query(indices, example_data, api_query, total):
     api_query = json.loads(api_query)
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
 
 
-def test_update_by_query(elastic, example_search_data):
-    result = update_by_query(
+def test_update_by_query(indices, example_data):
+    update_by_query(
         update_script='''
-            ctx._source.calc_id = "other test id";
+            ctx._source.entry_id = "other test id";
         ''',
-        owner='all', query={})
+        owner='all', query={}, index='v1')
 
-    refresh()
+    entry_index.refresh()
 
-    assert result['updated'] == 1
-    results = search(owner='all', query=dict(calc_id='other test id'))
-    assert results.pagination.total == 1
+    results = search(owner='all', query=dict(entry_id='other test id'))
+    assert results.pagination.total == 4
+
+
+def test_quantity_values(indices, example_data):
+    results = list(quantity_values('entry_id', page_size=1, owner='all'))
+    assert results == ['test_entry_id_0', 'test_entry_id_1', 'test_entry_id_2', 'test_entry_id_3']

@@ -15,58 +15,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import PropTypes from 'prop-types'
-import { withStyles, Typography } from '@material-ui/core'
-import { compose } from 'recompose'
-import { withApi } from '../api'
-import { matchPath } from 'react-router'
+import React, { useEffect, useState } from 'react'
+import { Typography, makeStyles } from '@material-ui/core'
+import { matchPath, useLocation, useRouteMatch, useHistory } from 'react-router'
+import {useApi} from '../api'
+import {useErrors} from '../errors'
+import { getUrl } from '../nav/Routes'
 
-class ResolveDOI extends React.Component {
-  static styles = theme => ({
-    root: {
-      padding: theme.spacing(3)
-    }
-  })
-
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    location: PropTypes.object.isRequired,
-    match: PropTypes.object.isRequired,
-    history: PropTypes.object.isRequired
+const useStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(3)
   }
+}))
 
-  update() {
-    const { location, match, api, history, raiseError } = this.props
+export default function ResolveDOI() {
+  const classes = useStyles()
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const history = useHistory()
+  const location = useLocation()
+  const match = useRouteMatch()
+
+  const [doesNotExist, setDoesNotExist] = useState(false)
+
+  useEffect(() => {
     const doiMatch = matchPath(location.pathname, {
       path: `${match.path}/:doi*`
     })
     let { doi } = doiMatch.params
 
-    api.resolveDoi(doi).then(dataset => {
-      history.push(`/dataset/id/${dataset.dataset_id}`)
-    }).catch(raiseError)
+    api.get('/datasets', {doi: doi})
+      .then(response => {
+        if (response.pagination.total >= 1) {
+          const dataset_id = response.data[0].dataset_id
+          history.push(getUrl(`dataset/id/${dataset_id}`, location))
+        } else {
+          setDoesNotExist(true)
+        }
+      })
+      .catch(raiseError)
+  }, [setDoesNotExist, history, location, match, api, raiseError])
+
+  let message = 'loading ...'
+
+  if (doesNotExist) {
+    message = 'This URL points to a dataset that does not exist.'
   }
 
-  componentDidMount() {
-    this.update()
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.location.pathname !== this.props.location.pathname || prevProps.api !== this.props.api) {
-      this.update()
-    }
-  }
-
-  render() {
-    const { classes } = this.props
-
-    return (
-      <Typography className={classes.root}>loading ...</Typography>
-    )
-  }
+  return (
+    <Typography className={classes.root}>{message}</Typography>
+  )
 }
-
-export default compose(withApi(false), withStyles(ResolveDOI.styles))(ResolveDOI)

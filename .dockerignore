@@ -27,7 +27,7 @@ dependencies/**/tests
 dependencies/**/regtests
 dependencies/parsers/phonopy-library/example*
 
-docs/.build
+site
 docs/*.graffle
 
 nomad/normalizing/data/*.db

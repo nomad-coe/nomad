@@ -17,11 +17,11 @@
  */
 import React, { useContext, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, makeStyles } from '@material-ui/core'
-import { apiContext } from '../api'
-import { domains } from '../domains'
-import { EntryPageContent } from './EntryPage'
+import { Typography, makeStyles, Card, CardHeader, CardContent } from '@material-ui/core'
 import { errorContext } from '../errors'
+import { useApi } from '../api'
+import RawFiles from './RawFiles'
+import Page from '../Page'
 
 const useStyles = makeStyles(theme => ({
   error: {
@@ -29,48 +29,51 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export default function RawFileView({uploadId, calcId}) {
+export default function RawFileView({entryId}) {
   const classes = useStyles()
-  const {api} = useContext(apiContext)
   const {raiseError} = useContext(errorContext)
-  const [state, setState] = useState({calcData: null, doesNotExist: false})
+  const [state, setState] = useState({entryData: null, doesNotExist: false})
+  const {api} = useApi()
 
   useEffect(() => {
-    setState({calcData: null, doesNotExist: false})
-  }, [setState, uploadId, calcId])
+    setState({entryData: null, doesNotExist: false})
+  }, [setState, entryId])
 
   useEffect(() => {
-    api.repo(uploadId, calcId).then(data => {
-      setState({calcData: data, doesNotExist: false})
+    api.get(`/entries/${entryId}`).then(entry => {
+      setState({entryData: entry.data, doesNotExist: false})
     }).catch(error => {
       if (error.name === 'DoesNotExist') {
-        setState({calcData: null, doesNotExist: true})
+        setState({entryData: null, doesNotExist: true})
       } else {
-        setState({calcData: null, doesNotExist: false})
+        setState({entryData: null, doesNotExist: false})
         raiseError(error)
       }
     })
-  }, [api, raiseError, uploadId, calcId, setState])
+  }, [api, raiseError, entryId, setState])
 
-  const calcData = state.calcData || {uploadId: uploadId, calcId: calcId}
-  const domain = calcData.domain && domains[calcData.domain]
+  const entryData = state.entryData || {entryId: entryId}
 
   if (state.doesNotExist) {
-    return <EntryPageContent>
+    return <Page>
       <Typography className={classes.error}>
         This entry does not exist.
       </Typography>
-    </EntryPageContent>
+    </Page>
   }
 
   return (
-    <EntryPageContent maxWidth={'1024px'} width={'100%'} minWidth={'800px'}>
-      {domain && <domain.EntryRawView data={calcData} calcId={calcId} uploadId={uploadId} />}
-    </EntryPageContent>
+    <Page limitedWidth>
+      <Card className={classes.root}>
+        <CardHeader title="Raw files" />
+        <CardContent>
+          <RawFiles data={entryData} entryId={entryId} />
+        </CardContent>
+      </Card>
+    </Page>
   )
 }
 
 RawFileView.propTypes = {
-  uploadId: PropTypes.string.isRequired,
-  calcId: PropTypes.string.isRequired
+  entryId: PropTypes.string.isRequired
 }

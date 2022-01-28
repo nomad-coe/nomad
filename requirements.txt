@@ -15,8 +15,6 @@ Pint==0.17
 orjson==3.6.0
 click==7.1.2
 requests==2.26.0
-jsonschema[format]==3.2.0
-bravado==11.0.3
 pytz==2021.1
 aniso8601==7.0.0
 ase==3.19.0
@@ -45,13 +43,13 @@ xarray==0.19.0
 phonopy==2.11.0
 
 # [infrastructure]
-optimade==0.14.0
+optimade[mongo]==0.14.0
 structlog==20.1.0
 elasticsearch==6.4.0
 msgpack==0.5.6
 celery[redis]==4.4.7
 mongoengine==0.19.1
-pymongo==3.10.1
+pymongo==3.11.4
 Werkzeug==0.16.1
 flask==1.1.4
 flask-restplus==0.13.0
@@ -70,6 +68,7 @@ filelock==3.3.1
 cryptography==3.3.2
 pyjwt[crypto]==1.7.1
 cryptography==3.3.2
+jsonschema[format]==4.1.2
 runstats==2.0.0
 pyyaml==6.0
 tabulate==0.8.9
@@ -87,14 +86,10 @@ fastapi==0.63.0
 uvicorn[standard]==0.13.4
 a2wsgi==1.4.0
 python-multipart==0.0.5
+validators==0.18.2
 
 # [dev]
 setuptools==57.5.0
-sphinx==2.4.4
-sphinxcontrib.httpdomain==1.8.0
-sphinx-click==3.0.1
-sphinx_rtd_theme==1.0.0
-mistune==0.8.4
 gitpython==3.1.24
 mypy==0.730
 typed-ast==1.4.2
@@ -107,9 +102,12 @@ pytest==3.10.0
 pytest-timeout==1.4.2
 pytest-cov==2.7.1
 rope==0.21.0
-mongomock==3.17.0
 names==0.3.0
 essential_generators==1.0
 twine==3.4.2
 python-gitlab==2.10.1
 devtools==0.8.0
+mkdocs==1.2.3
+mkdocs-material==8.1.1
+mkdocs-material-extensions==1.0.3
+mkdocs-macros-plugin==0.6.3

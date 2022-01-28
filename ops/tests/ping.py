@@ -20,23 +20,16 @@
 import requests
 import sys
 import time
-from ase.data import chemical_symbols
-import random
 from datetime import datetime
 
-base_url = 'https://nomad-lab.eu/prod/rae/api'
+base_url = 'https://nomad-lab.eu/prod/rae/api/v1'
 if len(sys.argv) > 1:
     base_url = sys.argv[1]
 
 while True:
     try:
         start = time.time()
-        atoms = '&atoms=%s&atoms%s' % (random.choice(chemical_symbols), random.choice(chemical_symbols))
-        response = requests.get('%s%s%s%s' % (
-            base_url,
-            '/repo/',
-            '?page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=atoms&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
-            atoms))
+        response = requests.get(f'{base_url}/entries', params=dict(owner='public'))
         end = time.time()
         print('PING – %s – %f - %s' % (response.status_code, end - start, datetime.now()))
         time.sleep(5)

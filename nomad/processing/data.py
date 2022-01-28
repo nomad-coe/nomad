@@ -19,58 +19,67 @@
 '''
 This module comprises a set of persistent document classes that hold all user related
 data. These are information about users, their uploads and datasets, the associated
-calculations, and files
+entries, and files
 
 
-.. autoclass:: Calc
+.. autoclass:: Entry
 
 .. autoclass:: Upload
 
 '''
 
-from typing import cast, List, Any, Tuple, Iterator, Dict, cast, Iterable
+from typing import cast, Any, List, Tuple, Set, Iterator, Dict, Iterable, Sequence, Union
 from mongoengine import (
-    StringField, DateTimeField, DictField, BooleanField, IntField, ListField)
-import logging
+    StringField, DateTimeField, BooleanField, IntField, ListField, DictField)
+from pymongo import UpdateOne
 from structlog import wrap_logger
 from contextlib import contextmanager
+import copy
 import os.path
-from datetime import datetime
-from pymongo import UpdateOne
+from datetime import datetime, timedelta
 import hashlib
 from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
-import yaml
-import json
-from functools import lru_cache
-import urllib.parse
 import requests
+from fastapi.exceptions import RequestValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
-from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing
+from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
-    PathObject, UploadFiles, ExtractError, ArchiveBasedStagingUploadFiles,
-    PublicUploadFiles, StagingUploadFiles)
-from nomad.processing.base import Proc, process, task, PENDING, SUCCESS, FAILURE
+    PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
+    create_tmp_dir, is_safe_relative_path)
+from nomad.processing.base import (
+    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
+from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
+from nomad.metainfo import Context, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import (
-    EntryArchive, EditableUserMetadata, OasisMetadata, UserProvidableMetadata)
+    EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
+    EditableUserMetadata, AuthLevel)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
-from nomad.datamodel.encyclopedia import EncyclopediaMetadata
+from nomad.app.v1.models import (
+    MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
+from nomad.search import update_metadata as es_update_metadata
+import validators
+
+section_metadata = datamodel.EntryArchive.metadata.name
+section_workflow = datamodel.EntryArchive.workflow.name
+section_results = datamodel.EntryArchive.results.name
 
 
-section_metadata = datamodel.EntryArchive.section_metadata.name
-section_workflow = datamodel.EntryArchive.section_workflow.name
-
-
-_editable_metadata: Dict[str, metainfo.Definition] = {}
-_editable_metadata.update(**{
-    quantity.name: quantity for quantity in UserProvidableMetadata.m_def.definitions})
-_editable_metadata.update(**{
-    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions})
-
-_oasis_metadata = {
-    quantity.name: quantity for quantity in OasisMetadata.m_def.definitions}
+_mongo_upload_metadata = tuple(
+    quantity.name for quantity in MongoUploadMetadata.m_def.definitions)
+_mongo_entry_metadata = tuple(
+    quantity.name for quantity in MongoEntryMetadata.m_def.definitions)
+_mongo_system_metadata = tuple(
+    quantity.name for quantity in MongoSystemMetadata.m_def.definitions)
+_mongo_entry_metadata_except_system_fields = tuple(
+    quantity_name for quantity_name in _mongo_entry_metadata
+    if quantity_name not in _mongo_system_metadata)
+_editable_metadata: Dict[str, metainfo.Definition] = {
+    quantity.name: quantity for quantity in EditableUserMetadata.m_def.definitions
+    if isinstance(quantity, metainfo.Quantity)}
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -79,7 +88,7 @@ def _pack_log_event(logger, method_name, event_dict):
         log_data.update(**{
             key: value
             for key, value in getattr(logger, '_context', {}).items()
-            if key not in ['service', 'release', 'upload_id', 'calc_id', 'mainfile', 'process_status']})
+            if key not in ['service', 'deployment', 'upload_id', 'entry_id', 'mainfile', 'process_status']})
         log_data.update(logger=logger.name)
 
         return log_data
@@ -95,76 +104,644 @@ _log_processors = [
     TimeStamper(fmt="%Y-%m-%d %H:%M.%S", utc=False)]
 
 
-def _normalize_oasis_upload_metadata(upload_id, metadata):
-    # This is overwritten by the tests to do necessary id manipulations
-    return upload_id, metadata
-
-
-class Calc(Proc):
+def check_user_ids(user_ids: Iterable[str], error_message: str):
     '''
-    Instances of this class represent calculations. This class manages the elastic
-    search index entry, files, and archive for the respective calculation.
+    Checks if all user_ids provided in the Iterable `user_ids` are valid. If not, raises an
+    AssertionError with the specified error message. The string {id} in `error_message` is
+    replaced with the bad value.
+    '''
+    for user_id in user_ids:
+        user = datamodel.User.get(user_id=user_id)
+        assert user is not None, error_message.replace('{id}', user_id)
 
-    It also contains the calculations processing and its state.
+
+def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message: str):
+    '''
+    Checks if the specified keys exist in the provided dictionary structure `data`.
+    Supports dot-notation to access subkeys.
+    '''
+    for key in required_keys:
+        current = data
+        for sub_key in key.split('.'):
+            assert sub_key in current, error_message.replace('{key}', key)
+            current = current[sub_key]
+
+
+def generate_entry_id(upload_id: str, mainfile: str) -> str:
+    '''
+    Generates an id for an entry.
+    Arguments:
+        upload_id: The id of the upload
+        mainfile: The mainfile path (relative to the raw directory).
+    Returns:
+        The generated entry id
+    '''
+    return utils.hash(upload_id, mainfile)
+
+
+class MetadataEditRequestHandler:
+    '''
+    Class for handling a request to edit metadata. The edit request can be defined either by
+    metadata files in the raw directory or a json dictionary complying with the
+    :class:`MetadataEditRequest` format. If the edit request is limited to a specific upload,
+    `upload_id` should be specified (only when this is the case can upload level metadata be edited).
+    '''
+    @classmethod
+    def edit_metadata(
+            cls, edit_request_json: Dict[str, Any], upload_id: str,
+            user: datamodel.User) -> Dict[str, Any]:
+        '''
+        Method to verify and execute a generic request to edit metadata from a certain user.
+        The request is specified as a json dictionary (requests defined by metadata files
+        are not handled by this method). Optionally, the request could be restricted
+        to a single upload by specifying `upload_id` (this is necessary when editing upload
+        level attributes). If `edit_request_json` has `verify_only` set to True, only
+        verification is carried out (i.e. nothing is actually updated). To just run the
+        verification should be quick in comparison to actually executing the request (which
+        may take some time and requires one or more @process to finish). If the request passes
+        the verification step and `verify_only` is not set to True, we will send the request
+        for execution, by initiating the @process :func:`edit_upload_metadata` for each affected
+        upload.
+
+        The method returns a json dictionary with verified metadata (references resolved to explicit
+        IDs, list actions always expressed as dicts with "op" and "values", etc), or raises
+        an exception, namely:
+         -  A :class:`ValidationError` if the request json can't be parsed by pydantic
+         -  A :class:`RequestValidationError` with information about validation failures and
+            their location (most errors should be of this type, provided that the json is valid)
+         -  A :class:`ProcessAlreadyRunning` exception if one of the affected uploads is blocked
+            by another process
+         -  Some other type of exception, if something goes wrong unexpectedly (should hopefully
+            never happen)
+        '''
+        logger = utils.get_logger('nomad.processing.edit_metadata')
+        handler = MetadataEditRequestHandler(logger, user, edit_request_json, upload_id)
+        # Validate the request
+        handler.validate_json_request()  # Should raise an exception if something looks wrong
+
+        if not edit_request_json.get('verify_only'):
+            # Check if any of the affected uploads are processing
+            for upload in handler.affected_uploads:
+                upload.reload()
+                if upload.queue_blocked:
+                    raise ProcessAlreadyRunning(f'Upload {upload.upload_id} is blocked by another process')
+            # Looks good, try to trigger processing
+            for upload in handler.affected_uploads:
+                upload.edit_upload_metadata(edit_request_json, user.user_id)  # Trigger the process
+        # All went well, return a verified json as response
+        verified_json = copy.deepcopy(edit_request_json)
+        verified_json['metadata'] = handler.verified_metadata
+        verified_json['entries'] = handler.verified_entries
+        return verified_json
+
+    def __init__(
+            self, logger, user: datamodel.User,
+            edit_request: Union[StagingUploadFiles, Dict[str, Any]],
+            upload_id: str = None):
+        # Initialization
+        assert user, 'Must specify `user`'
+        assert isinstance(edit_request, dict) or isinstance(edit_request, StagingUploadFiles), (
+            '`edit_request` must be either a json dictionary or a :class:`StagingUploadfiles` object')
+        self.logger = logger
+        self.user = user
+        self.edit_request = edit_request
+        self.upload_id = upload_id
+
+        self.errors: List[ErrorWrapper] = []  # A list of all encountered errors, if any
+        self.edit_attempt_locs: List[Tuple[str, ...]] = []  # locs where user has attempted to edit something
+        self.required_auth_level = AuthLevel.none  # Maximum required auth level for the edit
+        self.required_auth_level_locs: List[Tuple[str, ...]] = []  # locs where maximal auth level is needed
+        self.encountered_users: Dict[str, str] = {}  # { ref: user_id | None }, ref = user_id | username | email
+        self.encountered_datasets: Dict[str, datamodel.Dataset] = {}  # { ref : dataset | None }, ref = dataset_id | dataset_name
+
+        # Used when edit_request = json dict
+        self.edit_request_obj: MetadataEditRequest = None
+        self.verified_metadata: Dict[str, Any] = {}  # The metadata specified at the top/root level
+        self.verified_entries: Dict[str, Dict[str, Any]] = {}  # Metadata specified for individual entries
+        self.affected_uploads: List['Upload'] = None  # A MetadataEditRequest may involve multiple uploads
+
+        # Used when edit_request = files
+        self.verified_file_metadata_cache: Dict[str, Dict[str, Any]] = {}
+        self.root_file_entries: Dict[str, Dict[str, Any]] = None  # `entries` defined in the root metadata file
+
+    def validate_json_request(self):
+        ''' Validates the provided edit_request_json. '''
+        # Validate the request json. Will raise ValidationError if json is malformed
+        assert isinstance(self.edit_request, dict), 'edit_request should be json dict'
+        self.edit_request_obj = MetadataEditRequest(**self.edit_request)
+        try:
+            if not self.upload_id and not self.edit_request_obj.query:
+                return self._error('Must specify `query` or `upload_id`', 'query')
+            if self.edit_request_obj.entries and not self.edit_request_obj.entries_key:
+                return self._error('Must specify `entries_key` when specifying `entries`', 'entries_key')
+
+            can_edit_upload_quantities = bool(self.upload_id and not self.edit_request_obj.query)
+            if self.edit_request_obj.metadata:
+                self.verified_metadata = self._verify_metadata(
+                    self.edit_request['metadata'], ('metadata',), can_edit_upload_quantities)
+            if self.edit_request_obj.entries:
+                for key, entry_metadata in self.edit_request['entries'].items():
+                    verified_metadata = self._verify_metadata(
+                        entry_metadata, ('entries', key), False)
+                    self.verified_entries[key] = verified_metadata
+
+            if not self.edit_attempt_locs:
+                return self._error('No fields to update specified', 'metadata')
+            if self.required_auth_level == AuthLevel.admin and not self.user.is_admin:
+                for loc in self.required_auth_level_locs:
+                    self._error('Admin rights required', loc)
+                return
+
+            embargo_length: int = self.verified_metadata.get('embargo_length')
+            try:
+                self.affected_uploads = self._find_request_uploads()
+            except Exception as e:
+                return self._error('Could not evaluate query: ' + str(e), 'query')
+            if not self.affected_uploads:
+                if self.edit_request_obj.query:
+                    return self._error('No matching entries found', 'query')
+                return self._error('No matching upload found', 'upload_id')
+            for upload in self.affected_uploads:
+                # Check permissions
+                coauthor = upload.coauthors and self.user.user_id in upload.coauthors
+                main_author = self.user.user_id == upload.main_author
+                admin = self.user.is_admin
+                if self.required_auth_level == AuthLevel.coauthor:
+                    has_access = coauthor or main_author or admin
+                elif self.required_auth_level == AuthLevel.main_author:
+                    has_access = main_author or admin
+                elif self.required_auth_level == AuthLevel.admin:
+                    has_access = admin
+                else:
+                    assert False, 'Invalid required_auth_level'  # Should not happen
+                if not has_access:
+                    for loc in self.required_auth_level_locs:
+                        self._error(
+                            f'{self.required_auth_level} access required for upload '
+                            f'{upload.upload_id}', loc)
+                    return
+                # Other checks
+                if embargo_length is not None:
+                    if upload.published and not admin and embargo_length != 0:
+                        self._error(
+                            f'Upload {upload.upload_id} is published, embargo can only be lifted',
+                            ('metadata', 'embargo_length'))
+        except Exception as e:
+            # Something unexpected has gone wrong
+            self.logger.error(e)
+            raise
+        finally:
+            if self.errors:
+                raise RequestValidationError(errors=self.errors)
+
+    def get_upload_mongo_metadata(self, upload: 'Upload') -> Dict[str, Any]:
+        '''
+        Returns a dictionary with metadata to set on the mongo Upload object. If the provided
+        `edit_request` is a json dictionary the :func: `validate_json_request`) is assumed
+        to have been run first.
+        '''
+        if isinstance(self.edit_request, dict):
+            # edit_request = json dict
+            if self.verified_metadata:
+                return self._mongo_metadata(upload, self.verified_metadata)
+        else:
+            # edit_request = files
+            return self._mongo_metadata(upload, self._verified_file_metadata(path_dir=''))
+        return {}
+
+    def get_entry_mongo_metadata(self, upload: 'Upload', entry: 'Entry') -> Dict[str, Any]:
+        '''
+        Returns a dictionary with metadata to set on the mongo entry object. If the provided
+        `edit_request` is a json dictionary the :func: `validate_json_request`) is assumed
+        to have been run first.
+        '''
+        verified_metadata: Dict[str, Any] = {}
+        if isinstance(self.edit_request, dict):
+            # edit_request = json dict
+            if self.verified_metadata:
+                verified_metadata.update(self.verified_metadata)
+            if self.verified_entries:
+                entry_key = self._get_entry_key(entry, self.edit_request_obj.entries_key)
+                entry_metadata = self.verified_entries.get(entry_key)
+                if entry_metadata:
+                    # We also have metadata specified for this particular entry
+                    verified_metadata.update(entry_metadata)
+        else:
+            # edit_request = files
+            path_dir = os.path.dirname(entry.mainfile)
+            while True:
+                for quantity, verified_value in self._verified_file_metadata(path_dir).items():
+                    verified_metadata.setdefault(quantity, verified_value)
+                if not path_dir:
+                    break  # We're done witht the root folder (the raw dir)
+                path_dir = os.path.dirname(path_dir)  # Move to the parent folder
+
+            if self.root_file_entries:
+                entry_metadata = self.root_file_entries.get(entry.mainfile)
+                if entry_metadata:
+                    # Metadata for this entry specified under 'entries' on the root level
+                    loc = ('entries', entry.mainfile)
+                    if not isinstance(entry_metadata, dict):
+                        self._error('Expected dictionary', loc)
+                    else:
+                        verified_entry_metadata = self._verify_metadata(
+                            entry_metadata, loc, can_edit_upload_quantities=False,
+                            auth_level=AuthLevel.admin if self.user.is_admin else AuthLevel.main_author)
+                        verified_metadata.update(verified_entry_metadata)
+        return self._mongo_metadata(entry, verified_metadata)
+
+    def _error(self, msg: str, loc: Union[str, Tuple[str, ...]]):
+        ''' Registers an error associated with a particular location. '''
+        self.errors.append(ErrorWrapper(Exception(msg), loc=loc))
+        self.logger.error(msg, loc=loc)
+
+    def _verify_metadata(
+            self, raw_metadata: Dict[str, Any], loc: Tuple[str, ...],
+            can_edit_upload_quantities: bool, auth_level: AuthLevel = None) -> Dict[str, Any]:
+        '''
+        Performs basic validation of a dictionary with *raw* metadata (i.e. metadata with
+        key-value pairs as defined in the request json dictionary or metadata files), and
+        returns a dictionary with the same structure, but containing only the *verified* metadata.
+        The verified metadata contains only the key-value pairs that pass validation. Moreover:
+            1)  For lists, the verified value is always expressed as a list operation, i.e. a
+                dictionary with `op` and `values`.
+            2)  User references (which can be specified by a user_id, a username, or an email)
+                are always converted to user_id
+            3)  dataset references (which can be specified either by dataset_id or dataset_name)
+                are always replaced with dataset_ids, and it is verified that none of the
+                datasets has a doi.
+            4)  Only `add` and `remove` operations are allowed for datasets.
+        '''
+        rv = {}
+        for quantity_name, raw_value in raw_metadata.items():
+            if raw_value is not None:
+                success, verified_value = self._verify_metadata_single(
+                    quantity_name, raw_value, loc + (quantity_name,), can_edit_upload_quantities, auth_level)
+                if success:
+                    rv[quantity_name] = verified_value
+        return rv
+
+    def _verify_metadata_single(
+            self, quantity_name: str, raw_value: Any, loc: Tuple[str, ...],
+            can_edit_upload_quantities: bool, auth_level: AuthLevel) -> Tuple[bool, Any]:
+        '''
+        Performs validation of a single value. Returns (success, verified_value).
+        '''
+        definition = _editable_metadata.get(quantity_name)
+        if not definition:
+            self._error('Unknown quantity', loc)
+            return False, None
+
+        self.edit_attempt_locs.append(loc)
+
+        quantity_auth_level = getattr(definition, 'a_auth_level', AuthLevel.coauthor)
+
+        if auth_level is not None:
+            # Our auth level is known, check it immediately
+            if quantity_auth_level > auth_level:
+                self._error(f'{quantity_auth_level} privileges required', loc)
+                return False, None
+        if quantity_auth_level > self.required_auth_level:
+            self.required_auth_level = quantity_auth_level
+            self.required_auth_level_locs = [loc]
+        elif quantity_auth_level == self.required_auth_level:
+            self.required_auth_level_locs.append(loc)
+        if quantity_name in _mongo_upload_metadata and not can_edit_upload_quantities:
+            self._error('Quantity can only be edited on the upload level', loc)
+            return False, None
+
+        try:
+            if definition.is_scalar:
+                return True, self._verified_value_single(definition, raw_value)
+            else:
+                # We have a non-scalar quantity
+                if type(raw_value) == dict:
+                    # The raw value is a dict - expected to contain keys add/remove/set
+                    assert raw_value, 'No operation specified'
+                    for key in raw_value:
+                        assert key in ('set', 'add', 'remove'), (
+                            f'Allowed operations are `set`, `add`, and `remove`, got {key}')
+                    assert 'set' not in raw_value or ('add' not in raw_value and 'remove' not in raw_value), (
+                        'Cannot specify both `set` and `add`/`remove` operations')
+                    if quantity_name == 'datasets' and 'set' in raw_value:
+                        self._error(
+                            'Only `add` and `remove` operations permitted for datasets', loc)
+                        return False, None
+                    raw_ops = raw_value
+                else:
+                    # The raw value is not a dict, but a value or list of values
+                    # -> interpret as a set-operation (or, for datasets: add-operation)
+                    if quantity_name == 'datasets':
+                        raw_ops = {'add': raw_value}
+                    else:
+                        raw_ops = {'set': raw_value}
+
+                verified_ops = {}
+                for op, values in raw_ops.items():
+                    values = values if type(values) == list else [values]
+                    verified_values = [self._verified_value_single(definition, v, op) for v in values]
+                    verified_ops[op] = verified_values
+
+                assert set(verified_ops.get('add', [])).isdisjoint(verified_ops.get('remove', [])), (
+                    'The same value cannot be specified for both `add` and `remove`')
+
+                return True, verified_ops
+        except Exception as e:
+            self._error(str(e), loc)
+            return False, None
+
+    def _verified_value_single(
+            self, definition: metainfo.Definition, value: Any, op: str = None) -> Any:
+        '''
+        Verifies a *singular* raw value (i.e. for list quantities we should run this method
+        for each value in the list, not with the list itself as input). Returns the verified
+        value, which may be different from the origial value. It:
+            1) ensures a return value of a primitive type (str, int, float, bool or None),
+            2) that user refs exist,
+            3) that datasets refs exist and do not have a doi.
+            4) Translates user refs to user_id and dataset refs to dataset_id, if needed.
+        Raises exception in case of failures.
+        '''
+        if definition.type in (str, int, float, bool):
+            assert value is None or type(value) == definition.type, f'Expected a {definition.type.__name__}'
+            if definition.name == 'embargo_length':
+                assert 0 <= value <= 36, 'Value should be between 0 and 36'
+            if definition.name == 'references':
+                assert validators.url(value), 'Please enter a valid URL ...'
+            return None if value == '' else value
+        elif definition.type == metainfo.Datetime:
+            if value is not None:
+                datetime.fromisoformat(value)  # Throws exception if badly formatted timestamp
+            return None if value == '' else value
+        elif isinstance(definition.type, metainfo.MEnum):
+            assert type(value) == str, 'Expected a string value'
+            if value == '':
+                return None
+            assert value in definition.type._values, f'Bad enum value {value}'
+            return value
+        elif isinstance(definition.type, metainfo.Reference):
+            assert type(value) == str, 'Expected a string value'
+            reference_type = definition.type.target_section_def.section_cls
+            if reference_type in [datamodel.User, datamodel.Author]:
+                if value in self.encountered_users:
+                    user_id = self.encountered_users[value]
+                else:
+                    # New user reference encountered, try to fetch it
+                    user_id = None
+                    try:
+                        user_id = datamodel.User.get(user_id=value).user_id
+                    except KeyError:
+                        try:
+                            user_id = datamodel.User.get(username=value).user_id
+                        except KeyError:
+                            if '@' in value:
+                                try:
+                                    user_id = datamodel.User.get(email=value).user_id
+                                except KeyError:
+                                    pass
+                    self.encountered_users[value] = user_id
+                assert user_id is not None, f'User reference not found: `{value}`'
+                return user_id
+            elif reference_type == datamodel.Dataset:
+                dataset = self._get_dataset(value)
+                assert dataset is not None, f'Dataset reference not found: `{value}`'
+                assert self.user.is_admin or dataset.user_id == self.user.user_id, (
+                    f'Dataset `{value}` does not belong to you')
+                assert op == 'add' or not dataset.doi, f'Dataset `{value}` has a doi, can only add entries to it'
+                return dataset.dataset_id
+        else:
+            assert False, 'Unhandled value type'  # Should not happen
+
+    def _mongo_metadata(
+            self, mongo_doc: Union['Upload', 'Entry'], verified_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        '''
+        Calculates the upload or entry level *mongo* metadata, given a `mongo_doc` and a
+        dictionary with *verified* metadata. The mongo metadata are the key-value pairs
+        to set on `mongo_doc` in order to carry out the edit request.
+        '''
+        rv: Dict[str, Any] = {}
+        for quantity_name, verified_value in verified_metadata.items():
+            if isinstance(mongo_doc, Entry) and quantity_name not in _mongo_entry_metadata:
+                continue
+            elif isinstance(mongo_doc, Upload) and quantity_name not in _mongo_upload_metadata:
+                continue
+            rv[quantity_name] = self._mongo_value(mongo_doc, quantity_name, verified_value)
+        return rv
+
+    def _mongo_value(self, mongo_doc, quantity_name: str, verified_value: Any) -> Any:
+        definition = _editable_metadata[quantity_name]
+        if definition.is_scalar:
+            if definition.type == metainfo.Datetime and verified_value:
+                return datetime.fromisoformat(verified_value)
+            return verified_value
+        # Non-scalar property. The verified value should be a dict with operations
+        old_list = getattr(mongo_doc, quantity_name, [])
+        new_list = [] if 'set' in verified_value else old_list.copy()
+        for op, values in verified_value.items():
+            for v in values:
+                if op == 'add' or op == 'set':
+                    if v not in new_list:
+                        if quantity_name in ('coauthors', 'reviewers') and v == mongo_doc.main_author:
+                            continue  # Prevent adding the main author to coauthors or reviewers
+                        new_list.append(v)
+                elif op == 'remove':
+                    if v in new_list:
+                        new_list.remove(v)
+        return new_list
+
+    def _get_entry_key(self, entry: 'Entry', entries_key: str) -> str:
+        if entries_key == 'entry_id':
+            return entry.entry_id
+        elif entries_key == 'mainfile':
+            return entry.mainfile
+        assert False, f'Invalid entries_key: {entries_key}'
+
+    def _get_dataset(self, ref: str) -> datamodel.Dataset:
+        '''
+        Gets a dataset. They can be identified either using dataset_id or dataset_name, but
+        only datasets belonging to the user can be specified using names. If no matching
+        dataset can be found, None is returned.
+        '''
+        if ref in self.encountered_datasets:
+            return self.encountered_datasets[ref]
+        else:
+            # First time we encounter this ref
+            try:
+                dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=ref)
+            except KeyError:
+                try:
+                    dataset = datamodel.Dataset.m_def.a_mongo.get(
+                        user_id=self.user.user_id, dataset_name=ref)
+                except KeyError:
+                    dataset = None
+            self.encountered_datasets[ref] = dataset
+        return dataset
+
+    def _restricted_request_query(self, upload_id: str = None):
+        '''
+        Gets the query of the request, if it has any. If we have a query and if an `upload_id`
+        is specified, we return a modified query, by restricting the original query to this upload.
+        '''
+        query = self.edit_request_obj.query
+        if upload_id and query:
+            # Restrict query to the specified upload
+            return And(**{'and': [{'upload_id': upload_id}, query]})
+        return query
+
+    def _find_request_uploads(self) -> List['Upload']:
+        ''' Returns a list of :class:`Upload`s matching the edit request. '''
+        query = self._restricted_request_query(self.upload_id)
+        if query:
+            # Perform the search, aggregating by upload_id
+            search_response = search.search(
+                user_id=self.user.user_id,
+                owner=self.edit_request_obj.owner,
+                query=query,
+                aggregations=dict(agg=Aggregation(terms=TermsAggregation(quantity='upload_id'))),
+                pagination=MetadataPagination(page_size=0))
+            terms = search_response.aggregations['agg'].terms  # pylint: disable=no-member
+            return [Upload.get(bucket.value) for bucket in terms.data]  # type: ignore
+        elif self.upload_id:
+            # Request just specifies an upload_id, no query
+            try:
+                return [Upload.get(self.upload_id)]
+            except KeyError:
+                pass
+        return []
+
+    def find_request_entries(self, upload: 'Upload') -> Iterable['Entry']:
+        ''' Finds the entries of the specified upload which are effected by the request. '''
+        query = self._restricted_request_query(upload.upload_id)
+        if query:
+            # We have a query. Execute it to get the entries.
+            search_result = search.search_iterator(
+                user_id=self.user.user_id,
+                owner=self.edit_request_obj.owner,
+                query=query,
+                required=MetadataRequired(include=['entry_id']))
+            for result in search_result:
+                yield Entry.get(result['entry_id'])
+        else:
+            # We have no query. Return all entries for the upload
+            for entry in Entry.objects(upload_id=upload.upload_id):
+                yield entry
+
+    def _verified_file_metadata(self, path_dir: str) -> Dict[str, Any]:
+        '''
+        Gets the verified metadata defined in a metadata file in the provided directory.
+        The `path_dir` should be relative to the `raw` folder. Empty string gives the "root"
+        level metadata (i.e. the metadata defined by a file located in the `raw` directory).
+        If no parseable metadata file is found in the directory, an empty dict is returned.
+        A cached value is used if possible, otherwise we read the file, verify the content,
+        and caches and return the results.
+        '''
+        if path_dir not in self.verified_file_metadata_cache:
+            # Not cached
+            file_metadata = cast(StagingUploadFiles, self.edit_request).metadata_file_cached(path_dir)
+            if path_dir == '':
+                can_edit_upload_quantities = True
+                loc: Tuple[str, ...] = ('/',)
+                if 'entries' in file_metadata:
+                    self.root_file_entries = file_metadata.pop('entries')
+                    if not isinstance(self.root_file_entries, dict):
+                        self._error('`entries` defined in the root metadata file is not a dictionary', 'entries')
+                        self.root_file_entries = None
+            else:
+                can_edit_upload_quantities = False
+                loc = (path_dir,)
+            verified_file_metadata = self._verify_metadata(
+                file_metadata, loc, can_edit_upload_quantities,
+                auth_level=AuthLevel.admin if self.user.is_admin else AuthLevel.main_author)
+            self.verified_file_metadata_cache[path_dir] = verified_file_metadata
+        return self.verified_file_metadata_cache[path_dir]
+
+
+class Entry(Proc):
+    '''
+    Instances of this class represent entries. This class manages the elastic
+    search index entry, files, and archive for the respective entry.
+
+    It also contains information about the entry's processing state.
 
     The attribute list, does not include the various metadata properties generated
     while parsing, including ``code_name``, ``code_version``, etc.
 
     Attributes:
-        calc_id: the calc_id of this calc
-        parser: the name of the parser used to process this calc
-        upload_id: the id of the upload used to create this calculation
-        mainfile: the mainfile (including path in upload) that was used to create this calc
-
-        metadata: the metadata record wit calc and user metadata, see :class:`datamodel.EntryMetadata`
+        upload_id: the id of the upload to which this entry belongs
+        entry_id: the id of this entry
+        entry_hash: the hash of the entry files
+        entry_create_time: the date and time of the creation of the entry
+        last_processing_time: the date and time of the last processing
+        last_edit_time: the date and time the user metadata was last edited
+        mainfile: the mainfile (including path in upload) that was used to create this entry
+        parser_name: the name of the parser used to process this entry
+        pid: the legacy NOMAD pid of the entry
+        external_id: a user provided external id. Usually the id for an entry in an
+            external database where the data was imported from
+        nomad_version: the NOMAD version used for the last processing
+        nomad_commit: the NOMAD commit used for the last processing
+        comment: a user provided comment for this entry
+        references: user provided references (URLs) for this entry
+        entry_coauthors: a user provided list of co-authors specific for this entry. Note
+            that normally, coauthors should be set on the upload level.
+        datasets: a list of user curated datasets this entry belongs to
     '''
-    calc_id = StringField(primary_key=True)
-    upload_id = StringField()
+    upload_id = StringField(required=True)
+    entry_id = StringField(primary_key=True)
+    entry_hash = StringField()
+    entry_create_time = DateTimeField(required=True)
+    last_processing_time = DateTimeField()
+    last_edit_time = DateTimeField()
     mainfile = StringField()
-    parser = StringField()
-
-    metadata = DictField()
+    parser_name = StringField()
+    pid = StringField()
+    external_id = StringField()
+    nomad_version = StringField()
+    nomad_commit = StringField()
+    comment = StringField()
+    references = ListField(StringField())
+    entry_coauthors = ListField()
+    datasets = ListField(StringField())
 
     meta: Any = {
         'strict': False,
         'indexes': [
             'upload_id',
-            'parser',
+            'parser_name',
             ('upload_id', 'mainfile'),
-            ('upload_id', 'parser'),
-            ('upload_id', 'tasks_status'),
-            ('upload_id', 'current_task'),
+            ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
-            ('upload_id', 'metadata.nomad_version'),
-            'metadata.processed',
-            'metadata.last_processing',
-            'metadata.published',
-            'metadata.datasets',
-            'metadata.pid'
+            ('upload_id', 'nomad_version'),
+            'process_status',
+            'last_processing_time',
+            'datasets',
+            'pid'
         ]
     }
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('entry_create_time', datetime.utcnow())
         super().__init__(*args, **kwargs)
         self._parser_results: EntryArchive = None
+        self._is_initial_processing: bool = False
         self._upload: Upload = None
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
-        self._calc_proc_logs: List[Any] = None
+        self._upload_files: StagingUploadFiles = None
+        self._proc_logs: List[Any] = None
 
-        self._entry_metadata = None
+        self._entry_metadata: EntryMetadata = None
+        self._perform_index = True
 
     @classmethod
-    def get(cls, id):
-        return cls.get_by_id(id, 'calc_id')
-
-    @property
-    def entry_id(self) -> str:
-        ''' Just an alias for calc_id. '''
-        return self.calc_id
+    def get(cls, id) -> 'Entry':
+        return cls.get_by_id(id, 'entry_id')
 
     @property
     def mainfile_file(self) -> PathObject:
         return self.upload_files.raw_file_object(self.mainfile)
+
+    @property
+    def processed(self) -> bool:
+        return self.process_status == ProcessStatus.SUCCESS
 
     @property
     def upload(self) -> 'Upload':
@@ -173,106 +750,145 @@ class Calc(Proc):
             self._upload.worker_hostname = self.worker_hostname
         return self._upload
 
-    def apply_entry_metadata(self, entry_metadata: datamodel.EntryMetadata):
-        self.metadata = entry_metadata.m_to_dict(
-            include_defaults=True,
-            categories=[datamodel.MongoMetadata])  # TODO use embedded doc?
+    def _initialize_metadata_for_processing(self):
+        '''
+        Initializes self._entry_metadata and self._parser_results in preparation for processing.
+        Existing values in mongo are loaded first, then generated system values are
+        applied.
+        '''
+        self._entry_metadata = EntryMetadata()
+        self._apply_metadata_from_mongo(self.upload, self._entry_metadata)
+        self._apply_metadata_from_process(self._entry_metadata)
 
-    def create_metadata(self) -> datamodel.EntryMetadata:
+        self._parser_results = EntryArchive(m_context=self.upload.archive_context)
+        self._parser_results.metadata = self._entry_metadata
+
+    def _apply_metadata_from_process(self, entry_metadata: EntryMetadata):
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object, not necessarily the user metadata nor the metadata from
-        the archive.
+        Applies metadata generated when processing or re-processing an entry to `entry_metadata`.
         '''
-        entry_metadata = datamodel.EntryMetadata()
-        if self.parser is not None:
-            parser = parser_dict[self.parser]
-            if parser.domain:
-                entry_metadata.domain = parser_dict[self.parser].domain
-        entry_metadata.upload_id = self.upload_id
-        entry_metadata.calc_id = self.calc_id
-        entry_metadata.mainfile = self.mainfile
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.uploader = self.upload.user_id
-        entry_metadata.upload_time = self.upload.upload_time
-        entry_metadata.upload_name = self.upload.name
+        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile)
+        entry_metadata.files = self.upload_files.entry_files(self.mainfile)
+        entry_metadata.last_processing_time = datetime.utcnow()
+        entry_metadata.processing_errors = []
 
-        return entry_metadata
-
-    def entry_metadata(self, upload_files: UploadFiles) -> datamodel.EntryMetadata:
+    def _apply_metadata_from_mongo(self, upload: 'Upload', entry_metadata: EntryMetadata):
         '''
-        Returns a complete set of :class:`nomad.datamodel.EntryMetadata` including
-        the user metadata and metadata from the archive.
+        Loads entry metadata from mongo (that is: from `self` and the provided `upload` object)
+        and applies the values to `entry_metadata`.
+        '''
+        assert upload.upload_id == self.upload_id, 'Could not apply metadata: upload_id mismatch'
+        # Upload metadata
+        for quantity_name in _mongo_upload_metadata:
+            setattr(entry_metadata, quantity_name, getattr(upload, quantity_name))
+        # Entry metadata
+        for quantity_name in _mongo_entry_metadata:
+            setattr(entry_metadata, quantity_name, getattr(self, quantity_name))
+        # Special case: domain. May be derivable from mongo, or may have to be read from the archive
+        if self.parser_name is not None:
+            parser = parser_dict[self.parser_name]
+            if parser.domain:
+                entry_metadata.domain = parser.domain
+
+    def _apply_metadata_to_mongo_entry(self, entry_metadata: EntryMetadata):
+        '''
+        Applies the metadata fields that are stored on the mongo entry level to self.
+        In other words, basically the reverse operation of :func:`_apply_metadata_from_mongo`,
+        but excluding upload level metadata and system fields (like mainfile, parser_name etc.).
+        '''
+        entry_metadata_dict = entry_metadata.m_to_dict(include_defaults=True)
+        for quantity_name in _mongo_entry_metadata_except_system_fields:
+            setattr(self, quantity_name, entry_metadata_dict.get(quantity_name))
+
+    def set_mongo_entry_metadata(self, *args, **kwargs):
+        '''
+        Sets the entry level metadata in mongo. Expects either a positional argument
+        which is an instance of :class:`EntryMetadata` or keyword arguments with data to set.
+        '''
+        assert not (args and kwargs), 'Cannot provide both keyword arguments and a positional argument'
+        if args:
+            assert len(args) == 1 and isinstance(args[0], EntryMetadata), (
+                'Expected exactly one keyword argument of type `EntryMetadata`')
+            self._apply_metadata_to_mongo_entry(args[0])
+        else:
+            for key, value in kwargs.items():
+                if key in _mongo_entry_metadata_except_system_fields:
+                    setattr(self, key, value)
+                else:
+                    assert False, f'Cannot set metadata quantity: {key}'
+
+    def full_entry_metadata(self, upload: 'Upload') -> EntryMetadata:
+        '''
+        Returns a complete set of :class:`EntryMetadata` including
+        both the mongo metadata and the metadata from the archive.
 
         Arguments:
-            upload_files:
-                The :class:`nomad.files.UploadFiles` instance to read the archive from.
-            cache:
-                A boolean that indicates if the archive file should be left unclosed,
-                e.g. if this method is called for many entries of the same upload.
+            upload: The :class:`Upload` to which this entry belongs. Upload level metadata
+                and the archive files will be read from this object.
         '''
-        archive = upload_files.read_archive(self.calc_id)
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
         try:
             # instead of loading the whole archive, it should be enough to load the
             # parts that are referenced by section_metadata/EntryMetadata
             # TODO somehow it should determine which root setions too load from the metainfo
             # or configuration
-            calc_archive = archive[self.calc_id]
-            entry_archive_dict = {section_metadata: calc_archive[section_metadata].to_dict()}
-            if section_workflow in calc_archive:
-                entry_archive_dict[section_workflow] = calc_archive[section_workflow].to_dict()
+            archive = upload.upload_files.read_archive(self.entry_id)
+            entry_archive = archive[self.entry_id]
+            entry_archive_dict = {section_metadata: entry_archive[section_metadata].to_dict()}
+            if section_workflow in entry_archive:
+                for workflow in entry_archive[section_workflow]:
+                    entry_archive_dict.setdefault(section_workflow, [])
+                    entry_archive_dict[section_workflow].append(workflow.to_dict())
+            if section_results in entry_archive:
+                entry_archive_dict[section_results] = entry_archive[section_results].to_dict()
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
-
+            self._apply_metadata_from_mongo(upload, entry_metadata)
+            return entry_metadata
         except KeyError:
             # Due hard processing failures, it might be possible that an entry might not
-            # have an archive
+            # have an archive. Return the metadata that is available.
             if self._entry_metadata is not None:
-                entry_metadata = self._entry_metadata
-
+                return self._entry_metadata
             else:
-                entry_metadata = self.create_metadata()
+                return self.mongo_metadata(upload)
 
-        entry_metadata.m_update_from_dict(self.metadata)
-
-        return entry_metadata
-
-    def user_metadata(self) -> datamodel.EntryMetadata:
+    def mongo_metadata(self, upload: 'Upload') -> EntryMetadata:
         '''
-        Returns a :class:`nomad.datamodel.EntryMetadata` with values from this
-        processing object and the user metadata, not necessarily the metadata from
-        the archive.
+        Returns a :class:`EntryMetadata` with mongo metadata only
+        (fetched from `self` and `upload`), no archive metadata.
         '''
-        entry_metadata = self.create_metadata()
-        entry_metadata.m_update_from_dict(self.metadata)
-
+        assert upload.upload_id == self.upload_id, 'Mismatching upload_id encountered'
+        entry_metadata = EntryMetadata()
+        self._apply_metadata_from_mongo(upload, entry_metadata)
         return entry_metadata
 
     @property
-    def upload_files(self) -> ArchiveBasedStagingUploadFiles:
+    def upload_files(self) -> StagingUploadFiles:
         if not self._upload_files:
-            self._upload_files = ArchiveBasedStagingUploadFiles(
-                self.upload_id, is_authorized=lambda: True, upload_path=self.upload.upload_path)
+            self._upload_files = StagingUploadFiles(self.upload_id)
         return self._upload_files
 
     def get_logger(self, **kwargs):
         '''
-        Returns a wrapped logger that additionally saves all entries to the calculation
+        Returns a wrapped logger that additionally saves all entries to the entry
         processing log in the archive.
         '''
         logger = super().get_logger()
         logger = logger.bind(
-            upload_id=self.upload_id, mainfile=self.mainfile, calc_id=self.calc_id, **kwargs)
+            upload_id=self.upload_id, mainfile=self.mainfile, entry_id=self.entry_id,
+            parser=self.parser_name, **kwargs)
 
-        if self._calc_proc_logs is None:
-            self._calc_proc_logs = []
+        if self._proc_logs is None:
+            self._proc_logs = []
 
-        def save_to_calc_log(logger, method_name, event_dict):
+        def save_to_entry_log(logger, method_name, event_dict):
             try:
                 # sanitize the event_dict, because all kinds of values might have been added
                 dump_dict = {key: str(value) for key, value in event_dict.items()}
                 dump_dict.update(level=method_name.upper())
-                self._calc_proc_logs.append(dump_dict)
+                self._proc_logs.append(dump_dict)
 
                 if method_name == 'error':
                     error = event_dict.get('event', None)
@@ -285,145 +901,113 @@ class Calc(Proc):
 
             return event_dict
 
-        return wrap_logger(logger, processors=_log_processors + [save_to_calc_log])
+        return wrap_logger(logger, processors=_log_processors + [save_to_entry_log])
 
-    @process
-    def re_process_calc(self):
-        '''
-        Processes a calculation again. This means there is already metadata and
-        instead of creating it initially, we are just updating the existing
-        records.
-        '''
-        logger = self.get_logger()
-
-        if config.reprocess_rematch:
-            with utils.timer(logger, 'parser matching executed'):
-                parser = match_parser(
-                    self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
-
-            if parser is None and not config.reprocess_unmatched:
-                self.errors = ['no parser matches during re-process, will not re-process this calc']
-
-                try:
-                    upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-                    with upload_files.read_archive(self.calc_id) as archive:
-                        self.upload_files.write_archive(self.calc_id, archive[self.calc_id].to_dict())
-
-                except Exception as e:
-                    logger.error('could not copy archive for non matching, non reprocessed entry', exc_info=e)
-                    raise e
-
-                # mock the steps of actual processing
-                self._continue_with('parsing')
-                self._continue_with('normalizing')
-                self._continue_with('archiving')
-                self._complete()
-                return
-
-        else:
-            parser = parser_dict.get(self.parser)
-
-        if parser is None:
-            self.get_logger().warn('no parser matches during re-process, use the old parser')
-            self.warnings = ['no matching parser found during re-processing']
-
-        elif self.parser != parser.name:
-            if parser_dict[self.parser].name == parser.name:
-                # parser was just renamed
-                self.parser = parser.name
-
-            else:
-                self.parser = parser.name
-                logger.info(
-                    'different parser matches during re-process, use new parser',
-                    parser=parser.name)
-
-        try:
-            self._entry_metadata = self.user_metadata()
-            self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-            self._entry_metadata.nomad_version = config.meta.version
-            self._entry_metadata.nomad_commit = config.meta.commit
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.processing_errors = []
-            self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-
-            self.parsing()
-            self.normalizing()
-            self.archiving()
-        finally:
-            # close loghandler that was not closed due to failures
-            try:
-                if self._parser_results and self._parser_results.m_resource:
-                    self._parser_results.section_metadata = None
-                    self._parser_results.m_resource.unload()
-            except Exception as e:
-                logger.error('could not unload processing results', exc_info=e)
-
-    def _setup_fallback_metadata(self):
-        self._entry_metadata = self.create_metadata()
-        self._entry_metadata.calc_hash = self.upload_files.calc_hash(self.mainfile)
-        self._entry_metadata.last_processing = datetime.utcnow()
-        self._entry_metadata.processing_errors = []
-        self._entry_metadata.files = self.upload_files.calc_files(self.mainfile)
-        self._entry_metadata.parser_name = self.parser
-
-    @process
-    def process_calc(self):
-        '''
-        Processes a new calculation that has no prior records in the mongo, elastic,
-        or filesystem storage. It will create an initial set of (user) metadata.
-        '''
+    @process(is_child=True)
+    def process_entry(self):
+        ''' Processes or reprocesses an entry. '''
         logger = self.get_logger()
         if self.upload is None:
-            logger.error('calculation upload does not exist')
+            logger.error('upload does not exist')
 
-        try:
-            # save preliminary minimum calc metadata in case processing fails
-            # successful processing will replace it with the actual metadata
-            self._setup_fallback_metadata()
+        # Load the reprocess settings from the upload, and apply defaults
+        settings = config.reprocess.customize(self.upload.reprocess_settings)
+
+        self.set_last_status_message('Determining action')
+        # If this entry has been processed before, or imported from a bundle, nomad_version
+        # should be set. If not, this is the initial processing.
+        self._is_initial_processing = self.nomad_version is None
+        self._perform_index = self._is_initial_processing or settings.get('index_invidiual_entries', True)
+        if not self.upload.published or self._is_initial_processing:
+            should_parse = True
+        elif not settings.reprocess_existing_entries:
+            should_parse = False
+        else:
+            if settings.rematch_published and not settings.use_original_parser:
+                with utils.timer(logger, 'parser matching executed'):
+                    parser = match_parser(
+                        self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
+            else:
+                parser = parser_dict[self.parser_name]
+
+            if parser is None:
+                # Should only be possible if the upload is published and we have
+                logger.warn('no parser matches during process')
+                self.warnings = ['no matching parser found during processing']
+                parser = parser_dict[self.parser_name]
+
+            if parser is not None:
+                should_parse = True
+                parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
+                if parser_changed:
+                    if not settings.use_original_parser:
+                        logger.info(
+                            'different parser matches during process, use new parser',
+                            parser=parser.name)
+                        self.parser_name = parser.name  # Parser renamed
+            else:
+                should_parse = False
+                logger.error('could not determine a perser for this entry')
+                self.errors = ['could not determine a parser for this entry']
+
+        if should_parse:
+            self.set_last_status_message('Initializing metadata')
+            self._initialize_metadata_for_processing()
 
             if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
-                    'This calc has many aux files in its directory. '
-                    'Have you placed many calculations in the same directory?')
+                    'This entry has many aux files in its directory. '
+                    'Have you placed many mainfiles in the same directory?')
 
             self.parsing()
             self.normalizing()
             self.archiving()
-        finally:
-            # close loghandler that was not closed due to failures
+        elif self.upload.published:
+            self.set_last_status_message('Preserving entry data')
             try:
-                if self._parser_results and self._parser_results.m_resource:
-                    self._parser_results.section_metadata = None
-                    self._parser_results.m_resource.unload()
+                upload_files = PublicUploadFiles(self.upload_id)
+                with upload_files.read_archive(self.entry_id) as archive:
+                    self.upload_files.write_archive(self.entry_id, archive[self.entry_id].to_dict())
+
             except Exception as e:
-                logger.error('could unload processing results', exc_info=e)
+                logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
+                raise
 
     def on_fail(self):
-        # in case of failure, index a minimum set of metadata and mark
+        # in case of failure, create a minimum set of metadata and mark
         # processing failure
         try:
             if self._entry_metadata is None:
-                self._setup_fallback_metadata()
-
+                self._initialize_metadata_for_processing()
             self._entry_metadata.processed = False
 
             try:
-                self.apply_entry_metadata(self._entry_metadata)
+                self._apply_metadata_to_mongo_entry(self._entry_metadata)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply entry metadata to entry', exc_info=e)
 
             try:
-                self._entry_metadata.apply_domain_metadata(self._parser_results)
+                self._entry_metadata.apply_archvie_metadata(self._parser_results)
             except Exception as e:
                 self.get_logger().error(
                     'could not apply domain metadata to entry', exc_info=e)
-
-            self._entry_metadata.a_elastic.index()
         except Exception as e:
+            self._parser_results = EntryArchive(
+                m_context=self.upload.archive_context,
+                entry_id=self._parser_results.entry_id,
+                metadata=self._parser_results.metadata,
+                processing_logs=self._parser_results.processing_logs)
+
             self.get_logger().error(
-                'could not index after processing failure', exc_info=e)
+                'could not create minimal metadata after processing failure', exc_info=e)
+
+        if self._perform_index:
+            try:
+                search.index(self._parser_results)
+            except Exception as e:
+                self.get_logger().error(
+                    'could not index archive after processing failure', exc_info=e)
 
         try:
             self.write_archive(self._parser_results)
@@ -431,142 +1015,46 @@ class Calc(Proc):
             self.get_logger().error(
                 'could not write archive after processing failure', exc_info=e)
 
-    def on_process_complete(self, process_name):
-        # the save might be necessary to correctly read the join condition from the db
-        self.save()
-        # in case of error, the process_name might be unknown
-        if process_name == 'process_calc' or process_name == 're_process_calc' or process_name is None:
-            self.upload.reload()
-            self.upload.check_join()
+    def parent(self) -> 'Upload':
+        return self.upload
 
-    @task
     def parsing(self):
-        ''' The *task* that encapsulates all parsing related actions. '''
-        context = dict(parser=self.parser, step=self.parser)
+        ''' The process step that encapsulates all parsing related actions. '''
+        self.set_last_status_message('Parsing mainfile')
+        context = dict(step=self.parser_name)
         logger = self.get_logger(**context)
-        parser = parser_dict[self.parser]
-        self._entry_metadata.parser_name = self.parser
+        parser = parser_dict[self.parser_name]
+        self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
-            if not config.process_reuse_parser:
+            if not config.process.reuse_parser:
                 if isinstance(parser, parsing.FairdiParser):
                     try:
                         parser = parser.__class__()
                     except Exception as e:
-                        self.fail(
+                        raise ProcessFailure(
                             'could not re-create parser instance',
                             exc_info=e, error=str(e), **context)
-                        return
             try:
-                self._parser_results = EntryArchive()
-                # allow parsers to read/write metadata
-                self._parser_results.m_add_sub_section(EntryArchive.section_metadata, self._entry_metadata)
                 parser.parse(
                     self.upload_files.raw_file_object(self.mainfile).os_path,
                     self._parser_results, logger=logger)
 
             except Exception as e:
-                self.fail('parser failed with exception', exc_info=e, error=str(e), **context)
-                return
+                raise ProcessFailure('parser failed with exception', exc_info=e, error=str(e), **context)
             except SystemExit:
-                self.fail('parser raised system exit', error='system exit', **context)
-                return
+                raise ProcessFailure('parser raised system exit', error='system exit', **context)
 
-    def process_phonon(self):
-        """Function that is run for phonon calculation before cleanup.
-        This task is run by the celery process that is calling the join for the
-        upload.
-
-        This function re-opens the Archive for this calculation to add method
-        information from another referenced archive. Updates the method
-        information in section_encyclopedia as well as the DFT domain metadata.
-        """
-        try:
-            logger = self.get_logger(parser=self.parser, step=self.parser)
-
-            # Open the archive of the phonon calculation.
-            upload_files = StagingUploadFiles(self.upload_id, is_authorized=lambda: True)
-            with upload_files.read_archive(self.calc_id) as archive:
-                arch = archive[self.calc_id]
-                phonon_archive = EntryArchive.m_from_dict(arch.to_dict())
-            self._entry_metadata = phonon_archive.section_metadata
-            self._calc_proc_logs = phonon_archive.processing_logs
-
-            # Re-create the parse results
-            self._parser_results = phonon_archive
-
-            # Read in the first referenced calculation. The reference is given as
-            # an absolute path which needs to be converted into a path that is
-            # relative to upload root.
-            scc = self._parser_results.section_run[0].section_single_configuration_calculation[0]
-            calculation_refs = scc.section_calculation_to_calculation_refs
-            if calculation_refs is None:
-                logger.error("No calculation_to_calculation references found")
-                return
-
-            relative_ref = scc.section_calculation_to_calculation_refs[0].calculation_to_calculation_external_url
-            ref_id = upload_files.calc_id(relative_ref)
-            with upload_files.read_archive(ref_id) as archive:
-                arch = archive[ref_id]
-                ref_archive = EntryArchive.m_from_dict(arch.to_dict())
-
-            # Get encyclopedia method information directly from the referenced calculation.
-            ref_enc_method = ref_archive.section_metadata.encyclopedia.method
-            if ref_enc_method is None or len(ref_enc_method) == 0 or ref_enc_method.functional_type is None:
-                logger.error("No method information available in referenced calculation.")
-                return
-
-            self._parser_results.section_metadata.encyclopedia.method = ref_enc_method
-
-            # Overwrite old entry with new data. The metadata is updated with
-            # new timestamp and method details taken from the referenced
-            # archive.
-            self._entry_metadata.last_processing = datetime.utcnow()
-            self._entry_metadata.dft.xc_functional = ref_archive.section_metadata.dft.xc_functional
-            self._entry_metadata.dft.basis_set = ref_archive.section_metadata.dft.basis_set
-            self._entry_metadata.dft.update_group_hash()
-            self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.success
-        except Exception as e:
-            logger.error("Could not retrieve method information for phonon calculation.", exc_info=e)
-            if self._entry_metadata is None:
-                self._setup_fallback_metadata()
-                self._entry_metadata.processed = False
-
-            try:
-                if self._entry_metadata.encyclopedia is None:
-                    self._entry_metadata.encyclopedia = EncyclopediaMetadata()
-                self._entry_metadata.encyclopedia.status = EncyclopediaMetadata.status.type.failure
-            except Exception as e:
-                logger.error("Could set encyclopedia status.", exc_info=e)
-
-        finally:
-            # persist the calc metadata
-            with utils.timer(logger, 'calc metadata saved'):
-                self.apply_entry_metadata(self._entry_metadata)
-
-            # index in search
-            with utils.timer(logger, 'calc metadata indexed'):
-                self._entry_metadata.a_elastic.index()
-
-            # persist the archive
-            with utils.timer(
-                    logger, 'calc archived',
-                    input_size=self.mainfile_file.size) as log_data:
-
-                archive_size = self.write_archive(self._parser_results)
-                log_data.update(archive_size=archive_size)
-
-    @task
     def normalizing(self):
-        ''' The *task* that encapsulates all normalizing related actions. '''
-
+        ''' The process step that encapsulates all normalizing related actions. '''
+        self.set_last_status_message('Normalizing')
         # allow normalizer to access and add data to the entry metadata
-        if self._parser_results.section_metadata is None:
+        if self._parser_results.metadata is None:
             self._parser_results.m_add_sub_section(
-                datamodel.EntryArchive.section_metadata, self._entry_metadata)
+                datamodel.EntryArchive.metadata, self._entry_metadata)
 
         for normalizer in normalizers:
-            if normalizer.domain != parser_dict[self.parser].domain:
+            if normalizer.domain is not None and normalizer.domain != parser_dict[self.parser_name].domain:
                 continue
 
             normalizer_name = normalizer.__name__
@@ -578,94 +1066,40 @@ class Calc(Proc):
                     normalizer(self._parser_results).normalize(logger=logger)
                     logger.info('normalizer completed successfull', **context)
                 except Exception as e:
-                    self.fail('normalizer failed with exception', exc_info=e, error=str(e), **context)
+                    raise ProcessFailure('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
-    def _read_metadata_from_file(self, logger):
-        # metadata file name defined in nomad.config nomad_metadata.yaml/json
-        # which can be placed in the directory containing the mainfile or somewhere up
-        # highest priority is directory with mainfile
-        metadata_file = config.metadata_file_name
-        metadata_dir = os.path.dirname(self.mainfile_file.os_path)
-        upload_raw_dir = self.upload_files._raw_dir.os_path
+        parser = parser_dict[self.parser_name]
+        try:
+            parser.after_normalization(self._parser_results, logger=logger)
+        except Exception as e:
+            raise ProcessFailure(
+                'parser after normalization step failed with exception',
+                exc_info=e, error=str(e), **context)
 
-        metadata = {}
-        metadata_part = None
-        # apply the nomad files of the current directory and parent directories
-        while True:
-            metadata_part = self.upload.metadata_file_cached(
-                os.path.join(metadata_dir, metadata_file))
-            for key, val in metadata_part.items():
-                if key in ['entries', 'oasis_datasets']:
-                    continue
-                metadata.setdefault(key, val)
-
-            if metadata_dir == upload_raw_dir:
-                break
-
-            metadata_dir = os.path.dirname(metadata_dir)
-
-        # Top-level nomad file can also contain an entries dict with entry
-        # metadata per mainfile as key. This takes precedence of the other files.
-        entries = metadata_part.get('entries', {})
-        metadata_part = entries.get(self.mainfile, {})
-        for key, val in metadata_part.items():
-            metadata[key] = val
-
-        if len(metadata) > 0:
-            logger.info('Apply user metadata from nomad.yaml/json file')
-
-        for key, val in metadata.items():
-            if key in ['entries', 'skip_matching']:
-                continue
-
-            definition = _editable_metadata.get(key, None)
-            if definition is None and self.upload.from_oasis:
-                definition = _oasis_metadata.get(key, None)
-
-            if key == 'uploader':
-                if datamodel.User.get(self.upload.user_id).is_admin:
-                    definition = datamodel.EntryMetadata.uploader
-
-            if definition is None:
-                logger.warn('Users cannot set metadata', quantity=key)
-                continue
-
-            try:
-                self._entry_metadata.m_set(definition, val)
-                if definition == datamodel.EntryMetadata.calc_id:
-                    self.calc_id = val
-            except Exception as e:
-                logger.error(
-                    'Could not apply user metadata from nomad.yaml/json file',
-                    quantitiy=definition.name, exc_info=e)
-
-    @task
     def archiving(self):
-        ''' The *task* that encapsulates all archival related actions. '''
+        ''' The process step that encapsulates all archival related actions. '''
+        self.set_last_status_message('Archiving')
         logger = self.get_logger()
 
-        self._entry_metadata.apply_domain_metadata(self._parser_results)
+        self._entry_metadata.apply_archvie_metadata(self._parser_results)
         self._entry_metadata.processed = True
 
         if self.upload.publish_directly:
-            self._entry_metadata.published = False
+            self._entry_metadata.published |= True
 
-        try:
-            self._read_metadata_from_file(logger)
-        except Exception as e:
-            logger.error('could not process user metadata in nomad.yaml/json file', exc_info=e)
-
-        # persist the calc metadata
-        with utils.timer(logger, 'calc metadata saved'):
-            self.apply_entry_metadata(self._entry_metadata)
+        # persist the entry metadata
+        with utils.timer(logger, 'entry metadata saved'):
+            self._apply_metadata_to_mongo_entry(self._entry_metadata)
 
         # index in search
-        with utils.timer(logger, 'calc metadata indexed'):
-            self._entry_metadata.a_elastic.index()
+        if self._perform_index:
+            with utils.timer(logger, 'entry metadata indexed'):
+                assert self._parser_results.metadata == self._entry_metadata
+                search.index(self._parser_results)
 
         # persist the archive
         with utils.timer(
-                logger, 'calc archived',
+                logger, 'entry archived',
                 input_size=self.mainfile_file.size) as log_data:
 
             archive_size = self.write_archive(self._parser_results)
@@ -687,32 +1121,32 @@ class Calc(Proc):
                     if log.get('level') != 'DEBUG']
             return logs
 
-        if self._calc_proc_logs is None:
-            self._calc_proc_logs = []
+        if self._proc_logs is None:
+            self._proc_logs = []
 
         if archive is not None:
             archive = archive.m_copy()
         else:
-            archive = datamodel.EntryArchive()
+            archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
 
-        if archive.section_metadata is None:
-            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
+        if archive.metadata is None:
+            archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
 
-        archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
+        archive.processing_logs = filter_processing_logs(self._proc_logs)
 
         # save the archive msg-pack
         try:
-            return self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
+            return self.upload_files.write_archive(self.entry_id, archive.m_to_dict())
         except Exception as e:
             # most likely failed due to domain data, try to write metadata and processing logs
-            archive = datamodel.EntryArchive()
-            archive.m_add_sub_section(datamodel.EntryArchive.section_metadata, self._entry_metadata)
-            archive.processing_logs = filter_processing_logs(self._calc_proc_logs)
-            self.upload_files.write_archive(self.calc_id, archive.m_to_dict())
-            raise e
+            archive = datamodel.EntryArchive(m_context=self.upload.archive_context)
+            archive.m_add_sub_section(datamodel.EntryArchive.metadata, self._entry_metadata)
+            archive.processing_logs = filter_processing_logs(self._proc_logs)
+            self.upload_files.write_archive(self.entry_id, archive.m_to_dict())
+            raise
 
     def __str__(self):
-        return 'calc %s calc_id=%s upload_id%s' % (super().__str__(), self.calc_id, self.upload_id)
+        return 'entry %s entry_id=%s upload_id%s' % (super().__str__(), self.entry_id, self.upload_id)
 
 
 class Upload(Proc):
@@ -721,146 +1155,146 @@ class Upload(Proc):
     and processing state.
 
     Attributes:
-        name: Optional user provided upload name.
-        upload_path: The fs path were the uploaded files was stored during upload.
-        temporary: True if the uploaded file should be removed after extraction.
-
         upload_id: The upload id generated by the database or the uploaded NOMAD deployment.
-        upload_time: Datetime of the original upload independent of the NOMAD deployment
-            it was first uploaded to.
-        user_id: The id of the user that created this upload.
-        published: Boolean that indicates that the upload is published on this NOMAD deployment.
+        upload_name: Optional user provided upload name.
+        upload_create_time: Datetime of creation of the upload.
+        external_db: the repository or external database where the original data resides
+        main_author: The id of the main author of this upload (normally its creator).
+        coauthors: A list of upload coauthors.
+        reviewers: A user provided list of reviewers. Reviewers can see the whole upload,
+            also if it is unpublished or embargoed.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
-        last_update: Datetime of the last modifying process run (publish, re-processing, upload).
+        last_update: Datetime of the last modifying process run (publish, processing, upload).
 
         publish_directly: Boolean indicating that this upload should be published after initial processing.
         from_oasis: Boolean indicating that this upload is coming from another NOMAD deployment.
         oasis_id: The deployment id of the NOMAD that uploaded the upload.
         published_to: A list of deployment ids where this upload has been successfully uploaded to.
-
-        joined: Boolean indicates if the running processing has joined (:func:`check_join`).
     '''
     id_field = 'upload_id'
 
     upload_id = StringField(primary_key=True)
-    upload_path = StringField(default=None)
-    temporary = BooleanField(default=False)
-    embargo_length = IntField(default=36)
-
-    name = StringField(default=None)
-    upload_time = DateTimeField()
-    user_id = StringField(required=True)
-    published = BooleanField(default=False)
-    publish_time = DateTimeField()
+    upload_name = StringField(default=None)
+    upload_create_time = DateTimeField(required=True)
+    external_db = StringField()
+    main_author = StringField(required=True)
+    coauthors = ListField(StringField())
+    reviewers = ListField(StringField())
     last_update = DateTimeField()
+    publish_time = DateTimeField()
+    embargo_length = IntField(default=0, required=True)
+    license = StringField(default='CC BY 4.0', required=True)
 
-    publish_directly = BooleanField(default=False)
     from_oasis = BooleanField(default=False)
     oasis_deployment_id = StringField(default=None)
     published_to = ListField(StringField())
 
-    joined = BooleanField(default=False)
+    # Process parameters and state vars that need to be persisted during the process
+    publish_directly = BooleanField(default=False)
+    reprocess_settings = DictField(default=None)
+    parser_level = IntField(default=None)
 
     meta: Any = {
         'strict': False,
         'indexes': [
-            'user_id', 'tasks_status', 'process_status', 'published', 'upload_time', 'create_time'
+            'main_author', 'process_status', 'upload_create_time', 'publish_time'
         ]
     }
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.publish_directly = self.publish_directly or self.from_oasis
-        self._upload_files: ArchiveBasedStagingUploadFiles = None
-
-    @lru_cache()
-    def metadata_file_cached(self, path):
-        for ext in config.metadata_file_extensions:
-            full_path = '%s.%s' % (path, ext)
-            if os.path.isfile(full_path):
-                try:
-                    with open(full_path) as f:
-                        if full_path.endswith('.json'):
-                            return json.load(f)
-                        elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
-                            return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
-                        else:
-                            return {}
-                except Exception as e:
-                    self.get_logger().warn('could not parse nomad.yaml/json', path=path, exc_info=e)
-                    # ignore the file contents if the file is not parsable
-                    pass
-        return {}
+    @property
+    def viewers(self):
+        # It is possible to set a user as both coauthor and reviewer, need to ensure no duplicates
+        rv = [self.main_author] + self.coauthors
+        for user_id in self.reviewers:
+            if user_id not in rv:
+                rv.append(user_id)
+        return rv
 
     @property
-    def metadata(self) -> dict:
-        '''
-        Getter, setter for user metadata. Metadata is pickled to and from the public
-        bucket to allow sharing among all processes. Usually uploads do not have (much)
-        user defined metadata, but users provide all metadata per upload as part of
-        the publish process. This will change, when we introduce editing functionality
-        and metadata will be provided through different means.
-        '''
-        try:
-            upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True)
-        except KeyError:
-            return None
-        return upload_files.user_metadata
+    def writers(self):
+        return [self.main_author] + self.coauthors
 
-    @metadata.setter
-    def metadata(self, data: dict) -> None:
-        upload_files = PublicUploadFiles(self.upload_id, is_authorized=lambda: True, create=True)
-        upload_files.user_metadata = data
+    def __init__(self, **kwargs):
+        kwargs.setdefault('upload_create_time', datetime.utcnow())
+        super().__init__(**kwargs)
+        self._upload_files: UploadFiles = None
+        self.archive_context = UploadContext(self)
 
     @classmethod
-    def get(cls, id: str, include_published: bool = True) -> 'Upload':
+    def get(cls, id: str) -> 'Upload':
         return cls.get_by_id(id, 'upload_id')
 
     @classmethod
-    def user_uploads(cls, user: datamodel.User, **kwargs) -> List['Upload']:
+    def user_uploads(cls, user: datamodel.User, **kwargs) -> Sequence['Upload']:
         ''' Returns all uploads for the given user. Kwargs are passed to mongo query. '''
-        return cls.objects(user_id=str(user.user_id), **kwargs)
+        return cls.objects(main_author=str(user.user_id), **kwargs)
 
     @property
-    def uploader(self):
-        return datamodel.User.get(self.user_id)
+    def main_author_user(self) -> datamodel.User:
+        return datamodel.User.get(self.main_author)
+
+    @property
+    def published(self) -> bool:
+        return self.publish_time is not None
+
+    @property
+    def with_embargo(self) -> bool:
+        return self.embargo_length > 0
 
     def get_logger(self, **kwargs):
         logger = super().get_logger()
-        user = self.uploader
-        user_name = '%s %s' % (user.first_name, user.last_name)
-        # We are not using 'user_id' because logstash (?) will filter these entries ?!
+        main_author_user = self.main_author_user
+        main_author_name = '%s %s' % (main_author_user.first_name, main_author_user.last_name)
+        # We are not using 'main_author' because logstash (?) will filter these entries ?!
         logger = logger.bind(
-            upload_id=self.upload_id, upload_name=self.name, user_name=user_name,
-            user=user.user_id, **kwargs)
+            upload_id=self.upload_id, upload_name=self.upload_name, main_author_name=main_author_name,
+            main_author=self.main_author, **kwargs)
         return logger
 
     @classmethod
-    def create(cls, **kwargs) -> 'Upload':
+    def create(cls, main_author: datamodel.User = None, **kwargs) -> 'Upload':
         '''
-        Creates a new upload for the given user, a user given name is optional.
+        Creates a new upload for the given main_author, a user given upload_name is optional.
         It will populate the record with a signed url and pending :class:`UploadProc`.
         The upload will be already saved to the database.
 
         Arguments:
-            user: The user that created the upload.
+            main_author: The main author of the upload.
         '''
         # use kwargs to keep compatibility with super method
-        user: datamodel.User = kwargs['user']
-        del(kwargs['user'])
-
+        assert main_author is not None, 'No `main_author` provided.'
         if 'upload_id' not in kwargs:
             kwargs.update(upload_id=utils.create_uuid())
-        kwargs.update(user_id=user.user_id)
+        kwargs.update(main_author=main_author.user_id)
         self = super().create(**kwargs)
-
-        self._continue_with('uploading')
 
         return self
 
+    @classmethod
+    def create_skeleton_from_bundle(cls, bundle: UploadBundle) -> 'Upload':
+        '''
+        Creates a minimalistic "skeleton" from the provided upload bundle (basically just
+        with the right upload_id and user), on which we can initiate the :func:`import_bundle`
+        process to import the bundle data.
+        '''
+        bundle_info = bundle.bundle_info
+        keys_exist(bundle_info, ('upload_id', 'upload.main_author'), 'Missing key in bundle_info.json: {key}')
+        upload_id = bundle_info['upload_id']
+        main_author = bundle_info['upload']['main_author']
+        try:
+            Upload.get(upload_id)
+            assert False, f'Upload with id {upload_id} already exists'
+        except KeyError:
+            pass
+        main_author_user = datamodel.User.get(user_id=main_author)
+        assert main_author_user is not None, f'Invalid main_author: {main_author}'
+        return Upload.create(
+            upload_id=upload_id,
+            main_author=main_author_user)
+
     def delete(self):
-        ''' Deletes this upload process state entry and its calcs. '''
-        Calc.objects(upload_id=self.upload_id).delete()
+        ''' Deletes this upload and its entries. '''
+        Entry.objects(upload_id=self.upload_id).delete()
         super().delete()
 
     def delete_upload_local(self):
@@ -872,18 +1306,18 @@ class Upload(Proc):
 
         with utils.lnr(logger, 'upload delete failed'):
             with utils.timer(logger, 'upload deleted from index'):
-                search.delete_upload(self.upload_id)
+                search.delete_upload(self.upload_id, refresh=True)
 
             with utils.timer(logger, 'upload partial archives deleted'):
-                calc_ids = [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
-                delete_partial_archives_from_mongo(calc_ids)
+                entry_ids = [entry.entry_id for entry in Entry.objects(upload_id=self.upload_id)]
+                delete_partial_archives_from_mongo(entry_ids)
 
             with utils.timer(logger, 'upload files deleted'):
                 self.upload_files.delete()
 
             self.delete()
 
-    @process
+    @process(is_blocking=True)
     def delete_upload(self):
         '''
         Deletes the upload, including its processing state and
@@ -891,44 +1325,35 @@ class Upload(Proc):
         '''
         self.delete_upload_local()
 
-        return True  # do not save the process status on the delete upload
+        return ProcessStatus.DELETED  # Signal deletion to the process framework
 
-    @process
-    def publish_upload(self):
+    @process(is_blocking=True)
+    def publish_upload(self, embargo_length: int = None):
         '''
         Moves the upload out of staging to the public area. It will
         pack the staging upload files in to public upload files.
         '''
-        assert self.processed_calcs > 0
+        assert self.processed_entries_count > 0
 
         logger = self.get_logger(upload_size=self.upload_files.size)
         logger.info('started to publish')
 
+        if embargo_length is not None:
+            assert 0 <= embargo_length <= 36, 'Invalid embargo length, must be between 0 and 36 months'
+            self.embargo_length = embargo_length
+
         with utils.lnr(logger, 'publish failed'):
-            with self.entries_metadata(self.metadata) as calcs:
-
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(calc):
-                        calc.published = True
-                        calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
-                        return UpdateOne(
-                            {'_id': calc.calc_id},
-                            {'$set': {'metadata': calc.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
-
+            with self.entries_metadata() as entries:
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'staged upload files packed'):
-                        self.upload_files.pack(calcs)
+                        self.staging_upload_files.pack(entries, with_embargo=self.with_embargo)
 
                 with utils.timer(logger, 'index updated'):
-                    search.publish(calcs)
+                    search.publish(entries)
 
                 if isinstance(self.upload_files, StagingUploadFiles):
                     with utils.timer(logger, 'upload staging files deleted'):
                         self.upload_files.delete()
-                        self.published = True
                         self.publish_time = datetime.utcnow()
                         self.last_update = datetime.utcnow()
                         self.save()
@@ -936,246 +1361,128 @@ class Upload(Proc):
                     self.last_update = datetime.utcnow()
                     self.save()
 
-    @process
-    def publish_from_oasis(self):
+    @process(is_blocking=True)
+    def publish_externally(self, embargo_length: int = None):
         '''
-        Uploads the already published upload to a different NOMAD deployment. This allows
-        to push uploads from an OASIS to the central NOMAD.
+        Uploads the already published upload to a different NOMAD deployment. This is used
+        to push uploads from an OASIS to the central NOMAD. Makes use of the upload bundle
+        functionality.
         '''
         assert self.published, \
             'Only published uploads can be published to the central NOMAD.'
         assert config.oasis.central_nomad_deployment_id not in self.published_to, \
             'Upload is already published to the central NOMAD.'
 
-        from nomad.cli.client.client import _create_client as create_client
-        central_nomad_client = create_client(
-            user=config.keycloak.username,
-            password=config.keycloak.password,
-            api_base_url=config.oasis.central_nomad_api_url,
-            use_token=False)
+        tmp_dir = create_tmp_dir('export_' + self.upload_id)
+        bundle_path = os.path.join(tmp_dir, self.upload_id + '.zip')
+        try:
+            self.set_last_status_message('Creating bundle.')
 
-        # compile oasis metadata for the upload
-        upload_metadata = dict(upload_time=str(self.upload_time))
-        upload_metadata_entries = {}
-        upload_metadata_datasets = {}
-        for calc in self.calcs:
-            entry_metadata = dict(**{
-                key: str(value) if isinstance(value, datetime) else value
-                for key, value in calc.metadata.items()
-                if key in _editable_metadata or key in _oasis_metadata})
-            entry_metadata['calc_id'] = calc.calc_id
-            if entry_metadata.get('with_embargo'):
-                continue
-            upload_metadata_entries[calc.mainfile] = entry_metadata
-            if 'datasets' in entry_metadata:
-                for dataset_id in entry_metadata['datasets']:
-                    if dataset_id in upload_metadata_datasets:
-                        continue
+            self.export_bundle(
+                export_as_stream=False, export_path=bundle_path,
+                zipped=True, move_files=False, overwrite=False,
+                include_raw_files=True, include_archive_files=True, include_datasets=True)
 
-                    dataset = datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id)
-                    upload_metadata_datasets[dataset_id] = dataset.m_to_dict()
+            # upload to central NOMAD
+            self.set_last_status_message('Uploading bundle to central NOMAD.')
+            upload_auth = client.Auth(
+                user=config.keycloak.username,
+                password=config.keycloak.password)
+            upload_parameters: Dict[str, Any] = {}
+            if embargo_length is not None:
+                upload_parameters.update(embargo_length=embargo_length)
+            upload_url = f'{config.oasis.central_nomad_api_url}/v1/uploads/bundle'
 
-        upload_metadata['entries'] = upload_metadata_entries
-        upload_metadata['oasis_datasets'] = {
-            dataset['name']: dataset for dataset in upload_metadata_datasets.values()}
-        oasis_upload_id, upload_metadata = _normalize_oasis_upload_metadata(
-            self.upload_id, upload_metadata)
+            with open(bundle_path, 'rb') as f:
+                response = requests.post(
+                    upload_url, params=upload_parameters, data=f, auth=upload_auth)
 
-        self.last_status_message = 'Compiled metadata to upload to the central NOMAD.'
-        self.save()
+            if response.status_code != 200:
+                self.get_logger().error(
+                    'Could not upload to central NOMAD',
+                    status_code=response.status_code, body=response.text)
+                raise ProcessFailure('Error message from central NOMAD: {response.text}')
 
-        assert len(upload_metadata_entries) > 0, \
-            'Only uploads with public contents can be published to the central NOMAD.'
+            self.published_to.append(config.oasis.central_nomad_deployment_id)
+        finally:
+            PathObject(tmp_dir).delete()
 
-        # add oasis metadata to the upload
-        public_upload_files = cast(PublicUploadFiles, self.upload_files)
-        public_upload_files.add_metadata_file(upload_metadata)
-        file_to_upload = public_upload_files.public_raw_data_file
-
-        self.last_status_message = 'Prepared the upload for uploading to central NOMAD.'
-        self.save()
-
-        # upload to central NOMAD
-        oasis_admin_token = central_nomad_client.auth.get_auth().response().result.access_token
-        upload_headers = dict(Authorization='Bearer %s' % oasis_admin_token)
-        upload_parameters = dict(
-            oasis_upload_id=oasis_upload_id,
-            oasis_uploader_id=self.user_id,
-            oasis_deployment_id=config.meta.deployment_id)
-        upload_url = '%s/uploads/?%s' % (
-            config.oasis.central_nomad_api_url,
-            urllib.parse.urlencode(upload_parameters))
-
-        with open(file_to_upload, 'rb') as f:
-            response = requests.put(upload_url, headers=upload_headers, data=f)
-
-        if response.status_code != 200:
-            self.get_logger().error(
-                'Could not upload to central NOMAD', status_code=response.status_code)
-            self.last_status_message = 'Could not upload to central NOMAD.'
-            return
-
-        self.published_to.append(config.oasis.central_nomad_deployment_id)
-        self.last_status_message = 'Successfully uploaded to central NOMAD.'
-
-    @process
-    def re_process_upload(self):
+    @process()
+    def process_upload(
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None):
         '''
-        A *process* that performs the re-processing of a earlier processed
-        upload.
+        A @process that executes a file operation (if provided), and matches, parses and normalizes
+        the upload. Can be used for initial parsing or to re-parse, and can also be used
+        after an upload has been published (published uploads are extracted back to the
+        staging area first, and re-packed to the public area when done). Reprocessing may
+        also cause existing entries to disappear (if main files have been removed from an
+        upload in the staging area, or no longer match because of modified parsers, etc).
 
-        Runs the distributed process of fully reparsing/re-normalizing an existing and
-        already published upload. Will renew the archive part of the upload and update
-        mongo and elastic search entries.
+        Arguments:
+            file_operation: A dictionary specifying a file operation to perform before
+                the actual processing. The dictionary should contain a key `op` which defines
+                the operation, either "ADD" or "DELETE". The "ADD" operation further expects
+                keys named `path` (the path to the source file), `target_dir` (the destination
+                path relative to the raw folder), and `temporary` (if the source file and parent
+                folder should be deleted when done). The "DELETE" operation expects a key named
+                `path` (specifying the path relative to the raw folder which is to be deleted).
+            reprocess_settings: An optional dictionary specifying the behaviour when reprocessing.
+                Settings that are not specified are defaulted. See `config.reprocess` for
+                available options and the configured default values.
+            path_filter: An optional path used to filter out what should be processed.
+                Use to speed up processing if we know that only certain files/folders have
+                been modified. If provided, only entries located either in the same directory as
+                `path_filter` or *under* `path_filter` (recursively) are scanned in the
+                search for new entries, disappearing entries and old entries that need to
+                be reprocessed. If `path_filter` is None (default), no filtering is done.
+        '''
+        return self._process_upload_local(file_operation, reprocess_settings, path_filter)
 
-        TODO this implementation does not do any re-matching. This will be more complex
-        due to handling of new or missing matches.
+    def _process_upload_local(
+            self, file_operation: Dict[str, Any] = None, reprocess_settings: Dict[str, Any] = None,
+            path_filter: str = None):
+        '''
+        The function doing the actual processing, but locally, not as a @process.
+        See :func:`process_upload`
         '''
         logger = self.get_logger()
-        logger.info('started to re-process')
+        logger.info('starting to (re)process')
+        reprocess_settings = config.reprocess.customize(reprocess_settings)  # Add default settings
+        self.reprocess_settings = reprocess_settings
 
-        # mock the steps of actual processing
-        self._continue_with('uploading')
-
-        # extract the published raw files into a staging upload files instance
-        self._continue_with('extracting')
-
+        # Sanity checks
+        if path_filter:
+            assert is_safe_relative_path(path_filter), 'Invalid `path_filter`'
         if self.published:
-            try:
-                staging_upload_files = StagingUploadFiles(self.upload_id)
-                # public files exist and there is a staging directory, it is probably old
-                # and we delete it first
-                with utils.timer(logger, 'upload staging files deleted'):
-                    staging_upload_files.delete()
-                    logger.warn('deleted old staging files')
+            assert not file_operation, 'Upload is published, cannot update files'
+            assert reprocess_settings.rematch_published or reprocess_settings.reprocess_existing_entries, (
+                'Settings do no allow reprocessing of a published upload')
 
-            except KeyError as e:
-                logger.info('reprocessing published files')
+        # TODO remove after worker_hostnames are handled correctly
+        if config.celery.routing == config.CELERY_WORKER_ROUTING:
+            if self.worker_hostname is None:
+                self.worker_hostname = worker_hostname
+            Entry._get_collection().update_many(
+                {'upload_id': self.upload_id},
+                {'$set': {'worker_hostname': self.worker_hostname}})
+
+        # All looks ok, process
+        self.update_files(file_operation)
+        self.match_all(reprocess_settings, path_filter)
+        self.parser_level = None
+        if self.parse_next_level(0, path_filter):
+            self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
+            return ProcessStatus.WAITING_FOR_RESULT
         else:
-            logger.info('reprocessing staging files')
-
-        with utils.timer(logger, 'upload extracted'):
-            staging_upload_files = self.upload_files.to_staging_upload_files(create=True)
-
-        self._continue_with('parse_all')
-        try:
-            if config.reprocess_match:
-                with utils.timer(logger, 'calcs match on reprocess'):
-                    with_embargo_values = Calc._get_collection().distinct(
-                        'metadata.with_embargo', dict(upload_id=self.upload_id))
-                    with_embargo = with_embargo_values != [False]
-
-                    for filename, parser in self.match_mainfiles():
-                        calc_id = staging_upload_files.calc_id(filename)
-                        try:
-                            Calc.get(calc_id)
-                        except KeyError:
-                            calc = Calc.create(
-                                calc_id=calc_id,
-                                mainfile=filename, parser=parser.name,
-                                worker_hostname=self.worker_hostname,
-                                create_time=self.upload_time,
-                                upload_id=self.upload_id)
-
-                            calc.metadata.update(
-                                published=self.published,
-                                with_embargo=with_embargo)
-
-                            calc.save()
-
-            with utils.timer(logger, 'calcs resetted'):
-                # check if a calc is already/still processing
-                processing = Calc.objects(
-                    upload_id=self.upload_id,
-                    **Calc.process_running_mongoengine_query()).count()
-
-                if processing > 0:
-                    logger.warn(
-                        'processes are still/already running on calc, they will be resetted',
-                        count=processing)
-
-                # reset all calcs
-                Calc._get_collection().update_many(
-                    dict(upload_id=self.upload_id),
-                    {'$set': Calc.reset_pymongo_update(worker_hostname=self.worker_hostname)})
-
-            with utils.timer(logger, 'calcs re-processing called'):
-                # process call calcs
-                Calc.process_all(Calc.re_process_calc, dict(upload_id=self.upload_id), exclude=['metadata'])
-
-                logger.info('completed to trigger re-process of all calcs')
-
-        except Exception as e:
-            # try to remove the staging copy in failure case
-            logger.error('failed to trigger re-process of all calcs', exc_info=e)
-
-            if self.published:
-                if staging_upload_files is not None and staging_upload_files.exists():
-                    staging_upload_files.delete()
-
-            raise e
-
-        # the packing and removing of the staging upload files, will be trigged by
-        # the 'cleanup' task after processing all calcs
-
-    @process
-    def re_pack(self):
-        ''' A *process* that repacks the raw and archive data based on the current embargo data. '''
-        assert self.published
-        self.upload_files.re_pack(self.user_metadata())
-
-    @process
-    def process_upload(self):
-        ''' A *process* that performs the initial upload processing. '''
-        self.extracting()
-
-        if self.from_oasis:
-            # we might need to add datasets from the oasis before processing and
-            # adding the entries
-            oasis_metadata_file = os.path.join(self.upload_files._raw_dir.os_path, config.metadata_file_name + '.json')
-            with open(oasis_metadata_file, 'rt') as f:
-                oasis_metadata = json.load(f)
-            oasis_datasets = oasis_metadata.get('oasis_datasets', {})
-            metadata_was_changed = False
-            for oasis_dataset in oasis_datasets.values():
-                try:
-                    existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
-                        user_id=self.user_id, name=oasis_dataset['name'])
-                except KeyError:
-                    datamodel.Dataset(**oasis_dataset).a_mongo.save()
-                else:
-                    oasis_dataset_id = oasis_dataset['dataset_id']
-                    if existing_dataset.dataset_id != oasis_dataset_id:
-                        # A dataset for the same user with the same name was created
-                        # in both deployments. We consider this to be the "same" dataset.
-                        # These datasets have different ids and we need to migrate the provided
-                        # dataset ids:
-                        for entry in oasis_metadata['entries'].values():
-                            entry_datasets = entry.get('datasets', [])
-                            for index, dataset_id in enumerate(entry_datasets):
-                                if dataset_id == oasis_dataset_id:
-                                    entry_datasets[index] = existing_dataset.dataset_id
-                                    metadata_was_changed = True
-
-            if metadata_was_changed:
-                with open(oasis_metadata_file, 'wt') as f:
-                    json.dump(oasis_metadata, f)
-
-        self.parse_all()
-
-    @task
-    def uploading(self):
-        ''' A no-op *task* as a stand-in for receiving upload data. '''
-        pass
+            self.cleanup()
 
     @property
     def upload_files(self) -> UploadFiles:
-        upload_files_class = ArchiveBasedStagingUploadFiles if not self.published else PublicUploadFiles
-        kwargs = dict(upload_path=self.upload_path) if not self.published else {}
+        upload_files_class = StagingUploadFiles if not self.published else PublicUploadFiles
 
         if not self._upload_files or not isinstance(self._upload_files, upload_files_class):
-            self._upload_files = upload_files_class(
-                self.upload_id, is_authorized=lambda: True, **kwargs)
+            self._upload_files = upload_files_class(self.upload_id)
 
         return self._upload_files
 
@@ -1183,32 +1490,54 @@ class Upload(Proc):
     def staging_upload_files(self) -> StagingUploadFiles:
         return self.upload_files.to_staging_upload_files()
 
-    @task
-    def extracting(self):
-        '''
-        The *task* performed before the actual parsing/normalizing: extracting
-        the uploaded files.
-        '''
-        # extract the uploaded file
-        self._upload_files = ArchiveBasedStagingUploadFiles(
-            upload_id=self.upload_id, is_authorized=lambda: True, create=True,
-            upload_path=self.upload_path)
+    @classmethod
+    def _passes_path_filter(cls, mainfile: str, path_filter: str) -> bool:
+        if not path_filter:
+            return True
+        if mainfile == path_filter or mainfile.startswith(path_filter + os.path.sep):
+            return True
+        if os.path.dirname(mainfile) == os.path.dirname(path_filter):
+            return True
+        return False
 
+    def update_files(self, file_operation: Dict[str, Any]):
+        '''
+        Performed before the actual parsing/normalizing. It first ensures that there is a
+        folder for the upload in the staging area (if the upload is published, the files
+        will be temporarily extracted to the staging area for processing). It will then
+        execute the file operation specified (if `file_operation` is set).
+        '''
         logger = self.get_logger()
-        try:
-            with utils.timer(logger, 'upload extracted', upload_size=self.upload_files.size):
-                self.upload_files.extract()
 
-            if self.temporary:
-                os.remove(self.upload_path)
-                self.upload_path = None
+        if self.published and PublicUploadFiles.exists_for(self.upload_id):
+            # Clean up staging files, if they exist, and unpack the public files to the
+            # staging area.
+            self.set_last_status_message('Refreshing staging files')
+            self._cleanup_staging_files()
+            with utils.timer(logger, 'upload extracted'):
+                self.upload_files.to_staging_upload_files(create=True)
+        elif not StagingUploadFiles.exists_for(self.upload_id):
+            # Create staging files
+            self.set_last_status_message('Creating staging files')
+            StagingUploadFiles(self.upload_id, create=True)
 
-        except KeyError:
-            self.fail('processing requested for non existing upload', log_level=logging.ERROR)
-            return
-        except ExtractError:
-            self.fail('bad .zip/.tar file', log_level=logging.INFO)
-            return
+        staging_upload_files = self.staging_upload_files
+        # Execute the requested file_operation, if any
+        if file_operation:
+            op = file_operation['op']
+            if op == 'ADD':
+                self.set_last_status_message('Adding files')
+                with utils.timer(logger, 'Adding file(s) to upload', upload_size=staging_upload_files.size):
+                    staging_upload_files.add_rawfiles(
+                        file_operation['path'],
+                        file_operation['target_dir'],
+                        cleanup_source_file_and_dir=file_operation['temporary'])
+            elif op == 'DELETE':
+                self.set_last_status_message('Deleting files')
+                with utils.timer(logger, 'Deleting files or folders from upload'):
+                    staging_upload_files.delete_rawfiles(file_operation['path'])
+            else:
+                raise ValueError(f'Unknown operation {op}')
 
     def _preprocess_files(self, path):
         '''
@@ -1239,142 +1568,249 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self) -> Iterator[Tuple[str, object]]:
+    def match_mainfiles(self, path_filter: str) -> Iterator[Tuple[str, Parser]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
 
         Returns:
-            Tuples of mainfile, filename, and parsers
+            Tuples of (mainfile raw path, parser)
         '''
-        metadata = self.metadata_file_cached(
-            os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
+        staging_upload_files = self.staging_upload_files
+
+        metadata = staging_upload_files.metadata_file_cached(path_dir='')
         skip_matching = metadata.get('skip_matching', False)
         entries_metadata = metadata.get('entries', {})
 
-        directories_with_match: Dict[str, str] = dict()
-        upload_files = self.upload_files.to_staging_upload_files()
-        for filename in upload_files.raw_file_manifest():
-            self._preprocess_files(filename)
+        if not path_filter:
+            scan: List[Tuple[str, bool]] = [('', True)]
+        else:
+            scan = [(path_filter, True), (os.path.dirname(path_filter), False)]
 
-            if skip_matching and filename not in entries_metadata:
-                continue
+        for path, recursive in scan:
+            for path_info in staging_upload_files.raw_directory_list(path, recursive, files_only=True):
+                self._preprocess_files(path_info.path)
 
-            try:
-                parser = match_parser(upload_files.raw_file_object(filename).os_path)
-                if parser is not None:
-                    directory = os.path.dirname(filename)
-                    if directory in directories_with_match:
-                        # TODO this might give us the chance to store directory based relationship
-                        # between calcs for the future?
-                        pass
-                    else:
-                        directories_with_match[directory] = filename
+                if skip_matching and path_info.path not in entries_metadata:
+                    continue
 
-                    yield filename, parser
-            except Exception as e:
-                self.get_logger().error(
-                    'exception while matching pot. mainfile',
-                    mainfile=filename, exc_info=e)
+                try:
+                    parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
+                    if parser is not None:
+                        yield path_info.path, parser
+                except Exception as e:
+                    self.get_logger().error(
+                        'exception while matching pot. mainfile',
+                        mainfile=path_info.path, exc_info=e)
 
-    @task
-    def parse_all(self):
+    def match_all(self, reprocess_settings, path_filter: str = None):
         '''
-        The *task* used to identify mainfile/parser combinations among the upload's files, creates
-        respective :class:`Calc` instances, and triggers their processing.
+        The process step used to identify mainfile/parser combinations among the upload's files,
+        and create or delete respective :class:`Entry` instances (if needed).
         '''
+        self.set_last_status_message('Matching')
         logger = self.get_logger()
 
-        oasis_metadata = {}
-        if self.from_oasis:
-            oasis_metadata = self.metadata_file_cached(
-                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name)).get('entries', {})
+        try:
+            metadata_handler = None
+            if not self.published and not self.total_entries_count:
+                # In staging and no entries yet -> import upload level metadata from files if provided
+                metadata_handler = MetadataEditRequestHandler(
+                    logger, self.main_author_user, self.staging_upload_files, self.upload_id)
+                upload_metadata = metadata_handler.get_upload_mongo_metadata(self)
+                if upload_metadata:
+                    for quantity_name, mongo_value in upload_metadata.items():
+                        setattr(self, quantity_name, mongo_value)
+                    self.save()
 
-        with utils.timer(logger, 'calcs processing called'):
-            for filename, parser in self.match_mainfiles():
-                oasis_entry_metadata = oasis_metadata.get(filename)
-                if oasis_entry_metadata is not None:
-                    calc_id = oasis_entry_metadata.get('calc_id')
-                    if calc_id is None:
-                        logger.warn('Oasis entry without id', mainfile=filename)
-                        calc_id = self.upload_files.calc_id(filename)
-                else:
-                    calc_id = self.upload_files.calc_id(filename)
+            if not self.published or reprocess_settings.rematch_published:
+                old_entries = set()
+                processing_entries = []
+                with utils.timer(logger, 'existing entries scanned'):
+                    for entry in Entry.objects(upload_id=self.upload_id):
+                        if entry.process_running:
+                            processing_entries.append(entry.entry_id)
+                        if self._passes_path_filter(entry.mainfile, path_filter):
+                            old_entries.add(entry.entry_id)
 
-                calc = Calc.create(
-                    calc_id=calc_id,
-                    mainfile=filename, parser=parser.name,
-                    worker_hostname=self.worker_hostname,
-                    upload_id=self.upload_id)
+                with utils.timer(logger, 'matching completed'):
+                    for filename, parser in self.match_mainfiles(path_filter):
+                        entry_id = generate_entry_id(self.upload_id, filename)
 
-                calc.process_calc()
+                        try:
+                            entry = Entry.get(entry_id)
+                            # Matching entry already exists.
+                            # Ensure that we update the parser if in staging
+                            if not self.published and parser.name != entry.parser_name:
+                                entry.parser_name = parser.name
+                                entry.save()
 
-    def on_process_complete(self, process_name):
-        if process_name == 'process_upload' or process_name == 're_process_upload':
-            self.check_join()
+                            old_entries.remove(entry_id)
+                        except KeyError:
+                            # No existing entry found
+                            if not self.published or reprocess_settings.add_matched_entries_to_published:
+                                # Create new entry
+                                entry = Entry.create(
+                                    entry_id=entry_id,
+                                    mainfile=filename,
+                                    parser_name=parser.name,
+                                    worker_hostname=self.worker_hostname,
+                                    upload_id=self.upload_id)
+                                # Apply entry level metadata from files, if provided
+                                if not metadata_handler:
+                                    metadata_handler = MetadataEditRequestHandler(
+                                        logger, self.main_author_user, self.staging_upload_files, self.upload_id)
+                                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
+                                for quantity_name, mongo_value in entry_metadata.items():
+                                    setattr(entry, quantity_name, mongo_value)
+                                entry.save()
 
-    def check_join(self):
+                    # Delete old entries
+                    if len(old_entries) > 0:
+                        logger.warn('Some entries did not match', count=len(old_entries))
+                        if not self.published or reprocess_settings.delete_unmatched_published_entries:
+                            entries_to_delete: List[str] = list(old_entries)
+                            delete_partial_archives_from_mongo(entries_to_delete)
+                            for entry_id in entries_to_delete:
+                                search.delete_entry(entry_id=entry_id, update_materials=True)
+                                entry = Entry.get(entry_id)
+                            entry.delete()
+
+                # No entries *should* be processing, but if there are, we reset them to
+                # to minimize problems (should be safe to do so).
+                if processing_entries:
+                    logger.warn('Some entries are processing', count=len(processing_entries))
+                    with utils.timer(logger, 'processing entries resetted'):
+                        Entry._get_collection().update_many(
+                            {'entry_id__in': processing_entries},
+                            {'$set': Entry.reset_pymongo_update(
+                                worker_hostname=self.worker_hostname,
+                                process_status=ProcessStatus.FAILURE,
+                                errors=['process aborted'])})
+
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            logger.error('failed to trigger processing of all entries', exc_info=e)
+            if self.published:
+                self._cleanup_staging_files()
+            raise
+
+    def parse_next_level(self, min_level: int, path_filter: str = None) -> bool:
         '''
-        Performs an evaluation of the join condition and triggers the :func:`cleanup`
-        task if necessary. The join condition allows to run the ``cleanup`` after
-        all calculations have been processed. The upload processing stops after all
-        calculation processing have been triggered (:func:`parse_all` or
-        :func:`re_process_upload`). The cleanup task is then run within the last
-        calculation process (the one that triggered the join by calling this method).
+        Triggers processing on the next level of parsers (parsers with level >= min_level).
+        Returns True if there is a next level of parsers that require processing.
         '''
-        total_calcs = self.total_calcs
-        processed_calcs = self.processed_calcs
+        try:
+            logger = self.get_logger()
+            next_level: int = None
+            next_entries: List[Entry] = None
+            with utils.timer(logger, 'entries processing called'):
+                # Determine what the next level is and which entries belongs to this level
+                for entry in Entry.objects(upload_id=self.upload_id):
+                    parser = parser_dict.get(entry.parser_name)
+                    if parser:
+                        level = parser.level
+                        if level == 0 and not self._passes_path_filter(entry.mainfile, path_filter):
+                            continue  # Ignore level 0 parsers if not matching path filter
+                        if level >= min_level:
+                            if next_level is None or level < next_level:
+                                next_level = level
+                                next_entries = [entry]
+                            elif level == next_level:
+                                next_entries.append(entry)
+                if next_entries:
+                    self.parser_level = next_level
+                    # Trigger processing
+                    logger.info('Triggering next level', next_level=next_level, n_entries=len(next_entries))
+                    self.set_last_status_message(f'Parsing level {next_level}')
+                    with utils.timer(logger, 'processes triggered'):
+                        for entry in next_entries:
+                            entry.process_entry()
+                    return True
+            return False
+        except Exception as e:
+            # try to remove the staging copy in failure case
+            logger.error('failed to trigger processing of all entries', exc_info=e)
+            if self.published:
+                self._cleanup_staging_files()
+            raise
 
-        self.get_logger().debug('check join', processed_calcs=processed_calcs, total_calcs=total_calcs)
-        # check if process is not running anymore, i.e. not still spawining new processes to join
-        # check the join condition, i.e. all calcs have been processed
-        if not self.process_running and processed_calcs >= total_calcs:
-            # this can easily be called multiple times, e.g. upload finished after all calcs finished
-            modified_upload = self._get_collection().find_one_and_update(
-                {'_id': self.upload_id, 'joined': {'$ne': True}},
-                {'$set': {'joined': True}})
-            if modified_upload is None or modified_upload['joined'] is False:
-                self.get_logger().info('join')
+    def child_cls(self):
+        return Entry
 
-                # Before cleaning up, run an additional normalizer on phonon
-                # calculations. TODO: This should be replaced by a more
-                # extensive mechanism that supports more complex dependencies
-                # between calculations.
-                phonon_calculations = Calc.objects(upload_id=self.upload_id, parser="parsers/phonopy")
-                for calc in phonon_calculations:
-                    calc.process_phonon()
+    def join(self):
+        '''
+        Called when all child processes (if any) on Entry are done. Process the next level
+        of parsers (if any), otherwise cleanup and finalize the process.
+        '''
+        if self.parse_next_level(self.parser_level + 1):
+            self.set_last_status_message(f'Waiting for results (level {self.parser_level})')
+            return ProcessStatus.WAITING_FOR_RESULT
+        self.cleanup()
 
-                self.cleanup()
-            else:
-                # the join was already done due to a prior call
-                pass
+    def cleanup(self):
+        '''
+        The process step that "cleans" the processing, i.e. removed obsolete files and performs
+        pending archival operations. Depends on the type of processing.
+        '''
+        self.set_last_status_message('Cleanup')
+        logger = self.get_logger()
 
-    def reset(self, force=False):
-        self.joined = False
-        super().reset(force=force)
+        self.reprocess_settings = None  # Don't need this anymore
 
-    @classmethod
-    def reset_pymongo_update(cls, worker_hostname: str = None):
-        update = super().reset_pymongo_update()
-        update.update(joined=False)
-        return update
+        if self.published:
+            # We have reprocessed an already published upload
+            logger.info('started to repack re-processed upload')
 
-    def _cleanup_after_processing(self):
+            with utils.timer(logger, 'staged upload files re-packed'):
+                self.staging_upload_files.pack(
+                    self.entries_mongo_metadata(),
+                    with_embargo=self.with_embargo,
+                    create=False, include_raw=False)
+
+            self._cleanup_staging_files()
+            self.last_update = datetime.utcnow()
+            self.save()
+
+        if self.publish_directly and not self.published and self.processed_entries_count > 0:
+            logger = self.get_logger(upload_size=self.upload_files.size)
+            logger.info('started to publish upload directly')
+
+            with utils.lnr(logger, 'publish failed'):
+                with self.entries_metadata() as entries:
+                    with utils.timer(logger, 'upload staging files packed'):
+                        self.staging_upload_files.pack(entries, with_embargo=self.with_embargo)
+
+                with utils.timer(logger, 'upload staging files deleted'):
+                    self.staging_upload_files.delete()
+
+                self.publish_time = datetime.utcnow()
+                self.last_update = datetime.utcnow()
+                self.save()
+
+        with self.entries_metadata() as entries:
+            with utils.timer(logger, 'upload entries and materials indexed'):
+                archives = [entry.m_parent for entry in entries]
+                search.index(
+                    archives, update_materials=config.process.index_materials,
+                    refresh=True)
+
         # send email about process finish
         if not self.publish_directly:
-            user = self.uploader
+            user = self.main_author_user
             name = '%s %s' % (user.first_name, user.last_name)
             message = '\n'.join([
-                'Dear %s,' % name,
+                'Dear {},',
                 '',
-                'your data %suploaded at %s has completed processing.' % (
-                    '"%s" ' % self.name if self.name else '', self.upload_time.isoformat()),  # pylint: disable=no-member
-                'You can review your data on your upload page: %s' % config.gui_url(page='uploads'),
+                'your data "{}" uploaded at {} has completed processing.',
+                'You can review your data on your upload page: {}',
                 '',
                 'If you encounter any issues with your upload, please let us know and reply to this email.',
                 '',
                 'The nomad team'
-            ])
+            ]).format(
+                name, (self.upload_name or ''), self.upload_create_time.isoformat(),  # pylint: disable=no-member
+                config.gui_url(page='uploads'))
             try:
                 infrastructure.send_mail(
                     name=name, email=user.email, message=message, subject='Processing completed')
@@ -1383,117 +1819,44 @@ class Upload(Proc):
                 # don't fail or present this error to clients
                 self.logger.error('could not send after processing email', exc_info=e)
 
-        if not self.publish_directly or self.processed_calcs == 0:
-            return
+    def _cleanup_staging_files(self):
+        if self.published and PublicUploadFiles.exists_for(self.upload_id):
+            if StagingUploadFiles.exists_for(self.upload_id):
+                staging_upload_files = StagingUploadFiles(self.upload_id)
+                with utils.timer(self.get_logger(), 'upload staging files deleted'):
+                    staging_upload_files.delete()
 
-        logger = self.get_logger(upload_size=self.upload_files.size)
-        logger.info('started to publish upload directly')
-
-        with utils.lnr(logger, 'publish failed'):
-            metadata = self.metadata_file_cached(
-                os.path.join(self.upload_files.os_path, 'raw', config.metadata_file_name))
-
-            with self.entries_metadata(self.metadata) as calcs:
-                with utils.timer(logger, 'upload metadata updated'):
-                    def create_update(calc):
-                        calc.published = True
-                        calc.with_embargo = calc.with_embargo if calc.with_embargo is not None else False
-                        return UpdateOne(
-                            {'_id': calc.calc_id},
-                            {'$set': {'metadata': calc.m_to_dict(
-                                include_defaults=True, categories=[datamodel.MongoMetadata])}})
-
-                    Calc._get_collection().bulk_write([create_update(calc) for calc in calcs])
-
-                with utils.timer(logger, 'upload staging files packed'):
-                    self.upload_files.pack(calcs)
-
-                with utils.timer(logger, 'index updated'):
-                    search.publish(calcs)
-
-            with utils.timer(logger, 'upload staging files deleted'):
-                self.upload_files.delete()
-
-            if self.from_oasis:
-                if metadata is not None:
-                    self.upload_time = metadata.get('upload_time')
-
-                if self.upload_time is None:
-                    self.upload_time = datetime.utcnow()
-                    logger.warn('oasis upload without upload time')
-
-            self.publish_time = datetime.utcnow()
-            self.published = True
-            self.last_update = datetime.utcnow()
-            self.save()
-
-    def _cleanup_after_re_processing(self):
-        logger = self.get_logger(upload_size=self.upload_files.size)
-        if self.published:
-            staging_upload_files = self.staging_upload_files
-            logger.info('started to repack re-processed upload')
-
-            with utils.timer(logger, 'staged upload files re-packed'):
-                staging_upload_files.pack(self.user_metadata(), skip_raw=True)
-
-            with utils.timer(logger, 'staged upload files deleted'):
-                staging_upload_files.delete()
-                self.last_update = datetime.utcnow()
-                self.save()
-
-        else:
-            logger.info('no cleanup after re-processing unpublished upload')
-
-    @task
-    def cleanup(self):
-        '''
-        The *task* that "cleans" the processing, i.e. removed obsolete files and performs
-        pending archival operations. Depends on the type of processing.
-        '''
-        search.refresh()
-
-        if self.current_process == 're_process_upload':
-            self._cleanup_after_re_processing()
-        else:
-            self._cleanup_after_processing()
-
-    def get_calc(self, calc_id) -> Calc:
-        ''' Returns the upload calc with the given id or ``None``. '''
-        return Calc.objects(upload_id=self.upload_id, calc_id=calc_id).first()
+    def get_entry(self, entry_id) -> Entry:
+        ''' Returns the upload entry with the given id or ``None``. '''
+        return Entry.objects(upload_id=self.upload_id, entry_id=entry_id).first()
 
     @property
-    def processed_calcs(self):
-        '''
-        The number of successfully or not successfully processed calculations. I.e.
-        calculations that have finished processing.
-        '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status__in=[SUCCESS, FAILURE]).count()
+    def processed_entries_count(self) -> int:
+        ''' The number of entries that have finished processing (process_status == SUCCESS | FAILURE). '''
+        return Entry.objects(
+            upload_id=self.upload_id, process_status__in=[
+                ProcessStatus.SUCCESS, ProcessStatus.FAILURE]).count()
 
     @property
-    def total_calcs(self):
-        ''' The number of all calculations. '''
-        return Calc.objects(upload_id=self.upload_id).count()
+    def total_entries_count(self) -> int:
+        ''' The total number of entries for this upload (regardless of process status). '''
+        return Entry.objects(upload_id=self.upload_id).count()
 
     @property
-    def failed_calcs(self):
-        ''' The number of calculations with failed processing. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=FAILURE).count()
+    def failed_entries_count(self) -> int:
+        ''' The number of entries with failed processing. '''
+        return Entry.objects(upload_id=self.upload_id, process_status=ProcessStatus.FAILURE).count()
 
-    @property
-    def pending_calcs(self) -> int:
-        ''' The number of calculations with pending processing. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=PENDING).count()
-
-    def all_calcs(self, start, end, order_by=None):
+    def entries_sublist(self, start, end, order_by=None) -> Sequence[Entry]:
         '''
-        Returns all calculations, paginated and ordered.
+        Returns all entries, paginated and ordered.
 
         Arguments:
             start: the start index of the requested page
             end: the end index of the requested page
             order_by: the property to order by
         '''
-        query = Calc.objects(upload_id=self.upload_id)[start:end]
+        query = Entry.objects(upload_id=self.upload_id)[start:end]
         if not order_by:
             return query
         if type(order_by) == str:
@@ -1502,113 +1865,473 @@ class Upload(Proc):
         return query.order_by(*order_by)
 
     @property
-    def outdated_calcs(self):
-        ''' All successfully processed and outdated calculations. '''
-        return Calc.objects(
-            upload_id=self.upload_id, tasks_status=SUCCESS,
-            metadata__nomad_version__ne=config.meta.version)
-
-    @property
-    def calcs(self):
-        ''' All successfully processed calculations. '''
-        return Calc.objects(upload_id=self.upload_id, tasks_status=SUCCESS)
+    def successful_entries(self) -> Sequence[Entry]:
+        ''' All successfully processed entries. '''
+        return Entry.objects(upload_id=self.upload_id, process_status=ProcessStatus.SUCCESS)
 
     @contextmanager
-    def entries_metadata(
-            self, user_metadata: dict = None) -> Iterator[Iterable[datamodel.EntryMetadata]]:
+    def entries_metadata(self) -> Iterator[List[EntryMetadata]]:
         '''
         This is the :py:mod:`nomad.datamodel` transformation method to transform
-        processing upload's entries into list of :class:`nomad.datamodel.EntryMetadata` objects.
-
-        Arguments:
-            user_metadata: A dict of user metadata that is applied to the resulting
-                datamodel data and the respective calculations.
+        processing upload's entries into list of :class:`EntryMetadata` objects.
         '''
-        upload_files = self.upload_files
-
-        # prepare user metadata per upload and per calc
-        if user_metadata is not None:
-            entries_metadata_dict: Dict[str, Any] = dict()
-            upload_metadata: Dict[str, Any] = dict()
-
-            upload_metadata.update(user_metadata)
-            if 'calculations' in upload_metadata:
-                del(upload_metadata['calculations'])
-
-            for calc in user_metadata.get('calculations', []):  # pylint: disable=no-member
-                entries_metadata_dict[calc['mainfile']] = calc
-
-            user_upload_time = upload_metadata.get('upload_time', None)
-            user_upload_name = upload_metadata.get('upload_name', None)
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.entry_metadata(upload_files)
-                entry_user_metadata = dict(upload_metadata)
-                entry_user_metadata.pop('embargo_length', None)  # this is for uploads only
-                entry_user_metadata.update(entries_metadata_dict.get(calc.mainfile, {}))
-                entry_metadata.apply_user_metadata(entry_user_metadata)
-                if entry_metadata.upload_time is None:
-                    entry_metadata.upload_time = self.upload_time if user_upload_time is None else user_upload_time
-                if entry_metadata.upload_name is None:
-                    entry_metadata.upload_name = self.name if user_upload_name is None else user_upload_name
-
-                return entry_metadata
-        else:
-            user_upload_time = None
-
-            def get_metadata(calc: Calc):
-                entry_metadata = calc.entry_metadata(upload_files)
-                entry_metadata.upload_time = self.upload_time
-                entry_metadata.upload_name = self.name
-
-                return entry_metadata
-
         try:
-            # read all calc objects first to avoid missing curser errors
+            # read all entry objects first to avoid missing cursor errors
             yield [
-                get_metadata(calc)
-                for calc in list(Calc.objects(upload_id=self.upload_id))]
+                entry.full_entry_metadata(self)
+                for entry in list(Entry.objects(upload_id=self.upload_id))]
 
         finally:
-            upload_files.close()
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
 
-    def entry_ids(self) -> Iterable[str]:
-        return [calc.calc_id for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def user_metadata(self) -> Iterable[datamodel.EntryMetadata]:
-        return [calc.user_metadata() for calc in Calc.objects(upload_id=self.upload_id)]
-
-    def compress_and_set_metadata(self, metadata: Dict[str, Any]) -> None:
+    def entries_mongo_metadata(self) -> List[EntryMetadata]:
         '''
-        Stores the given user metadata in the upload document. This is the metadata
-        adhering to the API model (``UploadMetaData``). Most quantities can be stored
-        for the upload and for each calculation. This method will try to move same values
-        from the calculation to the upload to "compress" the data.
+        Returns a list of :class:`EntryMetadata` containing the mongo metadata
+        only, for all entries of this upload.
         '''
-        self.embargo_length = min(metadata.get('embargo_length', 36), 36)
+        return [entry.mongo_metadata(self) for entry in Entry.objects(upload_id=self.upload_id)]
 
-        compressed = {
-            key: value for key, value in metadata.items() if key != 'calculations'}
-        calculations: List[Dict[str, Any]] = []
-        compressed['calculations'] = calculations
+    @process()
+    def edit_upload_metadata(self, edit_request_json: Dict[str, Any], user_id: str):
+        '''
+        A @process that executes a metadata edit request, restricted to a specific upload,
+        on behalf of the provided user. The `edit_request_json` should be a json dict of the
+        format specified by the pydantic model :class:`MetadataEditRequest` (we need to use
+        primitive data types, i.e. the json format, to be able to pass the request to a
+        rabbitmq task).
+        '''
+        logger = self.get_logger()
+        user = datamodel.User.get(user_id=user_id)
+        assert not edit_request_json.get('verify_only'), 'Request has verify_only'
 
-        for calc in metadata.get('calculations', []):
-            compressed_calc: Dict[str, Any] = {}
-            calculations.append(compressed_calc)
-            for key, value in calc.items():
-                if key in ['pid', 'mainfile', 'external_id']:
-                    # these quantities are explicitly calc specific and have to stay with
-                    # the calc
-                    compressed_calc[key] = value
+        # Validate the request (the @process could have been invoked directly, without previous validation)
+        handler = MetadataEditRequestHandler(logger, user, edit_request_json, self.upload_id)
+        handler.validate_json_request()  # Should raise errors if something looks wrong
+
+        # Upload level metadata
+        old_with_embargo = self.with_embargo
+        upload_updates = handler.get_upload_mongo_metadata(self)
+        if upload_updates:
+            for quantity_name, mongo_value in upload_updates.items():
+                setattr(self, quantity_name, mongo_value)
+            self.save()
+
+        if self.published and old_with_embargo != self.with_embargo:
+            # Need to repack
+            PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
+
+        # Entry level metadata
+        last_edit_time = datetime.utcnow()
+        entry_mongo_writes = []
+        updated_metadata: List[datamodel.EntryMetadata] = []
+        for entry in handler.find_request_entries(self):
+            entry_updates = handler.get_entry_mongo_metadata(self, entry)
+            entry_updates['last_edit_time'] = last_edit_time
+            # Add mongo entry update operation to bulk write list
+            entry_mongo_writes.append(UpdateOne({'_id': entry.entry_id}, {'$set': entry_updates}))
+            # Create updates for ES
+            entry_metadata = entry.mongo_metadata(self)
+            if upload_updates:
+                entry_metadata.m_update_from_dict(upload_updates)
+            entry_metadata.m_update_from_dict(entry_updates)
+            updated_metadata.append(entry_metadata)
+
+        # Update mongo
+        if entry_mongo_writes:
+            with utils.timer(logger, 'Mongo bulk write completed', nupdates=len(entry_mongo_writes)):
+                mongo_result = Entry._get_collection().bulk_write(entry_mongo_writes)
+            mongo_errors = mongo_result.bulk_api_result.get('writeErrors')
+            assert not mongo_errors, (
+                f'Failed to update mongo! {len(mongo_errors)} failures, first is {mongo_errors[0]}')
+        # Update ES
+        if updated_metadata:
+            with utils.timer(logger, 'ES updated', nupdates=len(updated_metadata)):
+                failed_es = es_update_metadata(updated_metadata, update_materials=True, refresh=True)
+                assert not failed_es, f'Failed to update ES, there were {failed_es} fails'
+
+    def entry_ids(self) -> List[str]:
+        return [entry.entry_id for entry in Entry.objects(upload_id=self.upload_id)]
+
+    def export_bundle(
+            self, export_as_stream: bool, export_path: str,
+            zipped: bool, move_files: bool, overwrite: bool,
+            include_raw_files: bool, include_archive_files: bool, include_datasets: bool) -> Iterable[bytes]:
+        '''
+        Method for exporting an upload as an *upload bundle*. Upload bundles are file bundles
+        used to export and import uploads between different NOMAD installations.
+
+        Arguments:
+            export_as_stream: If the bundle should be exported as a stream, rather than saved
+                to a file or folder. If set to True, the `export_path` should be set to None.
+                Further, `zipped` must be set to True. The stream is returned by the function.
+            export_path: Defines the output path, when not exporting as a stream. Set to
+                None if exporting as a stream.
+            zipped: if the bundle should be zipped. Set to False to export the bundle to disk
+                as an uncompressed folder. If exporting as a stream, zipped must be set to True.
+            move_files: When internally moving data between different NOMAD installations,
+                it may be possible to move the source files, rather than copy them. In that
+                case, set this flag to True. Use with care. Requires that `zipped` and
+                `export_as_stream` are set to False.
+            overwrite:
+                If the target file/folder should be overwritten by this operation. Not
+                applicable if `export_as_stream` is True.
+            include_raw_files: If the "raw" files should be included.
+            include_archive_files: If the archive files (produced by parsing the raw files)
+                should be included.
+            include_datasets: If datasets referring to entries from this upload should be
+                included.
+        '''
+        # Safety checks
+        if export_as_stream:
+            assert export_path is None, 'Cannot have `export_path` set when exporting as a stream.'
+            assert zipped, 'Must have `zipped` set to True when exporting as stream.'
+        else:
+            assert export_path is not None, 'Must specify `export_path`.'
+            assert overwrite or not os.path.exists(export_path), '`export_path` alredy exists.'
+        if move_files:
+            # Special case, for quickly migrating uploads between two local NOMAD installations
+            assert include_raw_files and include_archive_files, (
+                'Must export entire upload when using `move_files`.')
+            assert not zipped and not export_as_stream, (
+                'Cannot use `move_files` together withh `zipped` or `export_as_stream`.')
+        assert not self.process_running or self.current_process == 'publish_externally', (
+            'Upload is being processed.')
+
+        # Create bundle_info json data
+        bundle_info: Dict[str, Any] = dict(
+            upload_id=self.upload_id,
+            source=config.meta,  # Information about the source system, i.e. this NOMAD installation
+            export_options=dict(
+                include_raw_files=include_raw_files,
+                include_archive_files=include_archive_files,
+                include_datasets=include_datasets),
+            upload=self.to_mongo().to_dict(),
+            entries=[entry.to_mongo().to_dict() for entry in self.successful_entries])
+        # Handle datasets
+        dataset_ids: Set[str] = set()
+        for entry_dict in bundle_info['entries']:
+            entry_datasets = entry_dict.get('datasets')
+            if entry_datasets:
+                if not include_datasets:
+                    entry_dict['datasets'] = None
                 else:
-                    if key not in compressed:
-                        compressed[key] = value
-                    elif compressed[key].__repr__ != value.__repr__:
-                        compressed_calc[key] = value
-                    else:
-                        compressed[key] = value
+                    dataset_ids.update(entry_datasets)
+        if include_datasets:
+            bundle_info['datasets'] = [
+                datamodel.Dataset.m_def.a_mongo.get(dataset_id=dataset_id).m_to_dict()
+                for dataset_id in sorted(dataset_ids)]
 
-        self.metadata = compressed
+        # Assemble the files
+        file_source = self.upload_files.files_to_bundle(
+            bundle_info, include_raw_files, include_archive_files)
+
+        # Export
+        if export_as_stream:
+            return file_source.to_zipstream()
+        elif zipped:
+            file_source.to_zipfile(export_path, overwrite)
+        else:
+            file_source.to_disk(export_path, move_files, overwrite)
+        return None
+
+    @process(is_blocking=True)
+    def import_bundle(
+            self, bundle_path: str, move_files: bool = False, embargo_length: int = None,
+            settings: config.NomadConfig = config.bundle_import.default_settings):
+        '''
+        A @process that imports data from an upload bundle to the current upload (which should
+        normally have been created using the :func:`create_skeleton_from_bundle` method).
+        Extensive checks are made to ensure referential consistency etc. Note, however,
+        that no permission checks are done (the method does not check who is invoking the
+        operation and if the user has the permissions to do so, this must be checked before
+        calling this method).
+
+        There are two ways to handle a failed bundle import: 1) leave the Upload object, files,
+        etc. as they are, but ensure that nothing related to this upload is indexed in
+        elastic search, or 2) delete everything, including the upload. This is determined
+        by the setting `delete_upload_on_fail`.
+
+        Arguments:
+            bundle_path: The path to the bundle to import.
+            move_files: If the files should be moved to the new location, rather than
+                copied (only applicable if the bundle is created from a folder).
+            embargo_length: Used to set the embargo length. If set to None, the value will be
+                imported from the bundle. The value should be between 0 and 36. A value of
+                0 means no embargo.
+            settings: A dictionary structure defining how to import, see
+                `config.import_bundle.default_settings` for available options. There,
+                the default settings are also defined
+        '''
+        try:
+            logger = self.get_logger(bundle_path=bundle_path)
+            settings = config.bundle_import.default_settings.customize(settings)  # Add defaults
+            bundle: UploadBundle = None
+            new_datasets: List[datamodel.Dataset] = []
+            entry_data_to_index: List[datamodel.EntryArchive] = []  # Data to index in ES
+            bundle = UploadBundle(bundle_path)
+            bundle_info = bundle.bundle_info
+            # Sanity checks
+            required_keys_root_level = (
+                'upload_id', 'source.version', 'source.commit', 'source.deployment', 'source.deployment_id',
+                'export_options.include_raw_files',
+                'export_options.include_archive_files',
+                'export_options.include_datasets',
+                'upload._id', 'upload.main_author',
+                'upload.upload_create_time', 'upload.process_status', 'upload.license',
+                'upload.embargo_length',
+                'entries')
+            required_keys_entry_level = (
+                '_id', 'upload_id', 'mainfile', 'parser_name', 'process_status', 'entry_create_time')
+            required_keys_datasets = (
+                'dataset_id', 'dataset_name', 'user_id')
+
+            keys_exist(bundle_info, required_keys_root_level, 'Missing key in bundle_info.json: {key}')
+
+            # Check version
+            bundle_version = bundle_info['source']['version']
+            assert bundle_version >= config.bundle_import.required_nomad_version, (
+                'Bundle created in NOMAD version {}, required at least {}'.format(
+                    bundle_version, config.bundle_import.required_nomad_version))
+
+            if settings.include_raw_files:
+                assert bundle_info['export_options']['include_raw_files'], (
+                    'Raw files required but not included in the bundle')
+            if settings.include_archive_files:
+                assert bundle_info['export_options']['include_archive_files'], (
+                    'Archive files required but not included in the bundle')
+            if settings.include_datasets:
+                assert bundle_info['export_options']['include_datasets'], (
+                    'Datasets data required but not included in the bundle')
+
+            upload_dict = bundle_info['upload']
+            assert self.upload_id == bundle_info['upload_id'] == upload_dict['_id'], (
+                'Inconsisten upload id information')
+            published = upload_dict.get('publish_time') is not None
+            if published:
+                assert bundle_info['entries'], 'Upload published but no entries in bundle_info.json'
+            # Check user references
+            check_user_ids([upload_dict['main_author']], 'Invalid main_author: {id}')
+            check_user_ids(upload_dict.get('coauthors', []), 'Invalid coauthor reference: {id}')
+            check_user_ids(upload_dict.get('reviewers', []), 'Invalid reviewers reference: {id}')
+            # Define which keys we think okay to copy from the bundle
+            upload_keys_to_copy = [
+                'upload_name', 'main_author', 'coauthors', 'reviewers', 'embargo_length', 'license',
+                'from_oasis', 'oasis_deployment_id']
+            if settings.keep_original_timestamps:
+                upload_keys_to_copy.extend(('upload_create_time', 'publish_time',))
+            try:
+                # Update the upload with data from the json, and validate it
+                update = {k: upload_dict[k] for k in upload_keys_to_copy if k in upload_dict}
+                self.modify(**update)
+                self.validate()
+            except Exception as e:
+                assert False, 'Bad upload json data: ' + str(e)
+            current_time = datetime.utcnow()
+            current_time_plus_tolerance = current_time + timedelta(minutes=2)
+            if published and not settings.keep_original_timestamps:
+                self.publish_time = current_time
+            for timestamp in (self.upload_create_time, self.last_update, self.complete_time, self.publish_time):
+                assert timestamp is None or timestamp < current_time_plus_tolerance, (
+                    'Timestamp is in the future')
+            if settings.set_from_oasis:
+                self.from_oasis = True
+                source_deployment_id = bundle_info['source']['deployment_id']
+                assert source_deployment_id, 'No source deployment_id defined'
+                if not self.oasis_deployment_id:
+                    self.oasis_deployment_id = source_deployment_id
+                    # Note, if oasis_deployment_id is set in the bundle_info, we keep this
+                    # value as it is, since it indicates that the upload has been imported from
+                    # somewhere else originally (i.e. source_deployment_id would not be the
+                    # original source)
+
+            # Dataset definitions
+            if settings.include_datasets:
+                assert 'datasets' in bundle_info, 'Missing datasets definition in bundle_info.json'
+                datasets = bundle_info['datasets']
+                dataset_id_mapping: Dict[str, str] = {}  # Map from old to new id (usually the same)
+                for dataset_dict in datasets:
+                    keys_exist(dataset_dict, required_keys_datasets, 'Missing key in dataset definition: {key}')
+                    check_user_ids([dataset_dict['user_id']], 'Invalid dataset creator id: {id}')
+                    dataset_id = dataset_dict['dataset_id']
+                    try:
+                        existing_dataset = datamodel.Dataset.m_def.a_mongo.get(
+                            user_id=dataset_dict['user_id'],
+                            dataset_name=dataset_dict['dataset_name'])
+                        # Dataset by the given dataset_name and user_id already exists
+                        dataset_id_mapping[dataset_id] = existing_dataset.dataset_id
+                        # Note, it may be that a dataset with the same dataset_name and creator
+                        # is created in both environments. In that case, we consider them
+                        # to be the "same" dataset, even if they do not have the same dataset_id.
+                        # Thus, in that case the dataset id needs to be translated.
+                        assert not existing_dataset.doi, (
+                            f'Matched dataset {existing_dataset.dataset_id} has a DOI, cannot be updated')
+                    except KeyError:
+                        # Completely new dataset, create it
+                        new_dataset = datamodel.Dataset(**dataset_dict)
+                        new_dataset.a_mongo.save()
+                        new_datasets.append(new_dataset)
+                        dataset_id_mapping[dataset_id] = dataset_id
+            # Entries
+            entries = []
+            for entry_dict in bundle_info['entries']:
+                keys_exist(entry_dict, required_keys_entry_level, 'Missing key for entry: {key}')
+                assert entry_dict['process_status'] in ProcessStatus.STATUSES_NOT_PROCESSING, (
+                    f'Invalid entry `process_status`')
+                # Check referential consistency
+                assert entry_dict['upload_id'] == self.upload_id, (
+                    'Mismatching upload_id in entry definition')
+                assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
+                    'Provided entry id does not match generated value')
+                check_user_ids(entry_dict.get('entry_coauthors', []), 'Invalid entry_coauthor reference: {id}')
+
+                # Instantiate an entry object from the json, and validate it
+                entry_keys_to_copy = list(_mongo_entry_metadata)
+                entry_keys_to_copy.extend((
+                    'upload_id', 'errors', 'warnings', 'last_status_message',
+                    'current_process', 'complete_time', 'worker_hostname', 'celery_task_id'))
+                try:
+                    update = {k: entry_dict[k] for k in entry_keys_to_copy if k in entry_dict}
+                    update['entry_id'] = entry_dict['_id']
+                    if not settings.keep_original_timestamps:
+                        update['entry_create_time'] = current_time
+                    entry: Entry = Entry.create(**update)
+                    entry.process_status = entry_dict['process_status']
+                    entry.validate()
+                except Exception as e:
+                    assert False, 'Bad entry json data: ' + str(e)
+                # Instantiate an EntryMetadata object to validate the format
+                try:
+                    if settings.include_datasets:
+                        entry_datasets = entry_dict.get('datasets')
+                        if entry_datasets:
+                            entry.datasets = [
+                                dataset_id_mapping[id] for id in entry_datasets] or None
+                    else:
+                        entry.datasets = None
+                    entry.mongo_metadata(self)
+                    # TODO: if we don't import archive files, should we still index something in ES?
+                except Exception as e:
+                    assert False, 'Invalid entry metadata: ' + str(e)
+                entries.append(entry)
+
+            # Validate embargo settings
+            if embargo_length is not None:
+                self.embargo_length = embargo_length  # Importing with different embargo
+            assert type(self.embargo_length) == int and 0 <= self.embargo_length <= 36, (
+                'Invalid embargo_length, must be between 0 and 36 months')
+
+            # Import the files
+            bundle.import_upload_files(
+                settings.include_raw_files, settings.include_archive_files, settings.include_bundle_info,
+                move_files)
+
+            if self.published and embargo_length is not None:
+                # Repack the upload
+                PublicUploadFiles(self.upload_id).re_pack(with_embargo=self.with_embargo)
+
+            # Check the archive metadata, if included
+            if settings.include_archive_files:
+                for entry in entries:
+                    try:
+                        entry_metadata = entry.full_entry_metadata(self)
+                        entry_data_to_index.append(
+                            cast(datamodel.EntryArchive, entry_metadata.m_parent))
+                        # TODO: Should we validate the entire ArchiveObject, not just the indexed data?
+                    except Exception as e:
+                        assert False, 'Invalid metadata in archive entry: ' + str(e)
+            self.upload_files.close()  # Because full_entry_metadata reads the archive files.
+
+            # Everything looks good - save to mongo.
+            self.save()
+            for entry in entries:
+                entry.save()
+
+            # Index in elastic search
+            if entry_data_to_index:
+                search.index(
+                    entry_data_to_index, update_materials=config.process.index_materials,
+                    refresh=True)
+
+            if settings.trigger_processing:
+                reprocess_settings = {
+                    k: v for k, v in settings.items() if k in config.reprocess}
+                return self._process_upload_local(reprocess_settings=reprocess_settings)
+
+        except Exception as e:
+            if settings.get('delete_upload_on_fail'):
+                # Delete everything
+                self.delete_upload_local()  # Will also delete files, entries and remove from elastic search
+                if new_datasets:
+                    for dataset in new_datasets:
+                        dataset.a_mongo.delete()
+                return ProcessStatus.DELETED
+            else:
+                # Just ensure the upload is deleted from search
+                with utils.timer(logger, 'upload deleted from index'):
+                    search.delete_upload(self.upload_id, refresh=True)
+                raise
+
+        finally:
+            if bundle:
+                bundle.close()
+                if settings.get('delete_bundle_when_done'):
+                    bundle.delete(settings.get('also_delete_bundle_parent_folder', False))
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)
+
+
+class UploadContext(Context):
+    def __init__(self, upload: Upload):
+        self.upload = upload
+
+    def get_reference(self, section: MSection, quantity_def: Quantity, value: Any) -> str:
+        if not isinstance(value, MSection):
+            return super().get_reference(section, quantity_def, value)
+
+        section_root: MSection = section.m_root()
+        value_root: MSection = value.m_root()
+        if section_root == value_root or section_root.m_context != value_root.m_context:
+            return super().get_reference(section, quantity_def, value)
+
+        entry_id = cast(EntryArchive, value_root).metadata.entry_id
+        if entry_id is None:
+            raise MetainfoReferenceError()
+
+        return f'../upload/entries/{entry_id}/archive#{super().get_reference(section, quantity_def, value)}'
+
+    def _resolve_mainfile(self, mainfile: str) -> str:
+        return generate_entry_id(self.upload.upload_id, mainfile)
+
+    def _get_archive(self, entry_id: str) -> EntryArchive:
+        try:
+            archive_dict = self.upload.upload_files.read_archive(entry_id)[entry_id].to_dict()
+        except KeyError:
+            raise MetainfoReferenceError(f'archive does not exist {entry_id}')
+
+        return EntryArchive.m_from_dict(archive_dict)
+
+    def normalize_reference(self, url: str) -> str:
+        api_url, archive_ref = self.split_url(url)
+
+        if url.startswith('../upload/archive/mainfile'):
+            mainfile = api_url.replace('../upload/archive/mainfile', '')
+            entry_id = self._resolve_mainfile(mainfile)
+            return f'../upload/archive/{entry_id}#{archive_ref}'
+
+        return super().normalize_reference(url)
+
+    def resolve_archive(self, url: str) -> MSection:
+        archive_url, _ = self.split_url(url)
+
+        if not url.startswith('../upload/archive/'):
+            return super().resolve_archive(url)
+
+        id_part = archive_url.replace('../upload/archive/', '')
+
+        if id_part.startswith('mainfile/'):
+            entry_id = self._resolve_mainfile(id_part.replace('mainfile/', ''))
+        else:
+            entry_id = id_part
+
+        return self._get_archive(entry_id)

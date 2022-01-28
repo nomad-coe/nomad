@@ -24,7 +24,7 @@ import os.path
 from functools import lru_cache
 
 from nomad import config
-from nomad.datamodel import EntryArchive, UserProvidableMetadata, EntryMetadata
+from nomad.datamodel import EntryArchive, EntryMetadata
 
 
 class Parser(metaclass=ABCMeta):
@@ -33,6 +33,11 @@ class Parser(metaclass=ABCMeta):
     and extracted files. Further, allows to run the parser on those 'main files'.
     '''
     name = "parsers/parser"
+    level = 0
+    '''
+    Level 0 parsers are run first, then level 1, and so on. Normally the value should be 0,
+    use higher values only when a parser depends on other parsers.
+    '''
 
     def __init__(self):
         self.domain = 'dft'
@@ -61,7 +66,19 @@ class Parser(metaclass=ABCMeta):
         Args:
             mainfile: A path to a mainfile that this parser can parse.
             archive: An instance of the section :class:`EntryArchive`. It might contain
-                a ``section_metadata`` with information about the entry.
+                a section ``metadata`` with information about the entry.
+            logger: A optional logger
+        '''
+        pass
+
+    def after_normalization(self, archive: EntryArchive, logger=None) -> None:
+        '''
+        This is called after the archive produced by `parsed` has been normalized. This
+        allows to apply additional code-specific processing steps based on the normalized data.
+
+        Args:
+            archive: An instance of the section :class:`EntryArchive`. It might contain
+                a section ``metadata`` with information about the entry.
             logger: A optional logger
         '''
         pass
@@ -213,25 +230,24 @@ class ArchiveParser(MatchingParser):
             name='parsers/archive',
             code_name=config.services.unavailable_value,
             domain=None,
-            mainfile_mime_re=r'application/json',
-            mainfile_name_re=r'.*(archive|metainfo)\.json',
-            mainfile_contents_re=r'section_metadata|results')
+            mainfile_mime_re='.*',
+            mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None):
-        import json
-        with open(mainfile, 'rt') as f:
-            archive_data = json.load(f)
+        if mainfile.endswith('.json'):
+            import json
+            with open(mainfile, 'rt') as f:
+                archive_data = json.load(f)
+        else:
+            import yaml
+            with open(mainfile, 'rt') as f:
+                archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
 
-        metadata_data = archive_data.get(EntryArchive.section_metadata.name, None)
+        metadata_data = archive_data.get(EntryArchive.metadata.name, None)
 
         if metadata_data is not None:
-            metadata = archive.section_metadata
-            for key, value in metadata_data.items():
-                if UserProvidableMetadata.m_def not in getattr(EntryMetadata, key).categories:
-                    continue
-
-                metadata.m_update_from_dict({key: value})
-            del(archive_data[EntryArchive.section_metadata.name])
+            # Setting metadata in this way is not supported (any more)
+            del(archive_data[EntryArchive.metadata.name])
 
         archive.m_update_from_dict(archive_data)
 

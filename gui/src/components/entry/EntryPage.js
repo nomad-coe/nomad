@@ -15,82 +15,76 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import PropTypes from 'prop-types'
-import { Tab, Tabs, Box } from '@material-ui/core'
+import React, { useRef } from 'react'
+import { Tab, Tabs } from '@material-ui/core'
+import { trimEnd } from 'lodash'
 import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
 import RawFileView from './RawFileView'
-import KeepState from '../KeepState'
-import { guiBase } from '../../config'
-import { useRouteMatch, useHistory, Route } from 'react-router-dom'
+import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom'
+import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 
 export const help = `
-The *raw files* tab, will show you all files that belong to the entry and offers a download
+The *overview* tab gives you an insightful overview about the most prominent
+contents found in an entry. You can find more details in the *archive* tab.
+
+The *raw data* tab will show you all files that belong to the entry and offers a download
 on individual, or all files. The files can be selected and downloaded. You can also
 view the contents of some files directly here on this page.
 
-The *archive* tab, shows you the parsed data as a tree
-data structure. This view is connected to NOMAD's [meta-info](${guiBase}/metainfo), which acts a schema for
+The *archive* tab shows you the parsed data as a tree
+data structure. This view is connected to NOMAD's [metainfo](/metainfo), which acts a schema for
 all parsed data.
 
-The *log* tab, will show you a log of the entry's processing.
+The *log* tab will show you a log of the entry's processing.
 `
 
-export function EntryPageContent({children, width, minWidth, maxWidth}) {
-  width = width || '1220px'
-  minWidth = minWidth || '1220px'
-  maxWidth = maxWidth || '1220px'
-  return <Box boxSizing={'border-box'} width={width} minWidth={minWidth} maxWidth={maxWidth} padding={'1.5rem 2rem'} margin="auto">
-    {children}
-  </Box>
-}
-EntryPageContent.propTypes = ({
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node
-  ]),
-  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  minWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  maxWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+const EntryPage = React.memo(() => {
+  const history = useHistory()
+  const currentPath = history.location.pathname
+  const {path, url} = useRouteMatch()
+  const urlNoSlash = trimEnd(url, '/')
+  const match = matchPath(currentPath, { path: `${path}/:tab?` })
+  const {params: {tab = 'overview'}} = match
+  const entryId = match?.params?.entryId
+
+  // We use a useRef object to keep track of the current urls of each tab. Switching
+  // tabs would go to the previous tab url. This way, the views behind a tab can add
+  // state to the URL (e.g. path to section on the ArchiveEntryView).
+  const urls = useRef({
+    'overview': `${urlNoSlash}/overview`,
+    'raw': `${urlNoSlash}/raw`,
+    'archive': `${urlNoSlash}/archive`,
+    'logs': `${urlNoSlash}/logs`
+  })
+
+  const handleChange = (_, value) => {
+    urls.current[tab] = currentPath
+    history.push(urls.current[value])
+  }
+
+  return <>
+    <Tabs
+      value={tab}
+      onChange={handleChange}
+      indicatorColor="primary"
+      textColor="primary"
+      variant="fullWidth"
+    >
+      <Tab label="Overview" value="overview" />
+      <Tab label="Raw data" value="raw" />
+      <Tab label="Processed data" value="archive"/>
+      <Tab label="Logs" value="logs"/>
+    </Tabs>
+    <CacheSwitch>
+      <CacheRoute path={`${path}`} exact render={() => <OverviewView entryId={entryId}/>} />
+      <CacheRoute path={`${path}/raw`} render={() => <RawFileView entryId={entryId}/>} />
+      <CacheRoute when="back" path={`${path}/archive`} render={() => <ArchiveEntryView entryId={entryId}/>} />
+      <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView entryId={entryId}/>} />
+      <Redirect strict from={`${path}/overview`} to={`${path}`} />
+    </CacheSwitch>
+  </>
 })
 
-export default function EntryPage() {
-  const history = useHistory()
-  const { path, url } = useRouteMatch()
-
-  return (
-    <Route
-      path={`${path}/:uploadId?/:calcId?/:tab?`}
-      render={({match: {params: {uploadId, calcId, tab = 'overview'}}}) => {
-        if (calcId && uploadId) {
-          const calcProps = { calcId: calcId, uploadId: uploadId }
-          return (
-            <React.Fragment>
-              <Tabs
-                value={tab || 'overview'}
-                onChange={(_, value) => history.push(`${url}/${uploadId}/${calcId}/${value}`)}
-                indicatorColor="primary"
-                textColor="primary"
-                variant="fullWidth"
-              >
-                <Tab label="Overview" value="overview" />
-                <Tab label="Raw data" value="raw" />
-                <Tab label="Archive" value="archive"/>
-                <Tab label="Logs" value="logs"/>
-              </Tabs>
-
-              <KeepState visible={tab === 'overview' || tab === undefined} render={props => <OverviewView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'raw'} render={props => <RawFileView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'archive'} render={props => <ArchiveEntryView {...props} />} {...calcProps} />
-              <KeepState visible={tab === 'logs'} render={props => <ArchiveLogView {...props} />} {...calcProps} />
-            </React.Fragment>
-          )
-        } else {
-          return ''
-        }
-      }}
-    />
-  )
-}
+export default EntryPage

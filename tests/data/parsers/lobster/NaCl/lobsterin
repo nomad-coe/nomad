@@ -1,0 +1,9 @@
+cohpstartenergy -12
+cohpendenergy 2.5
+COHPSteps 200
+basisfunctions Na 3s
+basisfunctions Cl 3s 3p
+basisset pbevaspfit2015
+cohpgenerator from 1.0 to 4.0 
+saveprojectiontofile
+rmsp

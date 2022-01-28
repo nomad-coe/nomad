@@ -23,8 +23,8 @@
 
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
-parser, parser version, calc_id, mainfile, etc. for all events that happen during
-calculation processing. This means the :func:`get_logger` and all logger functions
+parser, parser version, entry_id, mainfile, etc. for all events that happen during
+entry processing. This means the :func:`get_logger` and all logger functions
 take keyword arguments for structured data. Otherwise :func:`get_logger` can
 be used similar to the standard *logging.getLogger*.
 
@@ -143,15 +143,16 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
             # Nomad specific
             'nomad.service': config.meta.service,
-            'nomad.release': config.meta.release,
+            'nomad.deployment': config.meta.deployment,
             'nomad.version': config.meta.version,
-            'nomad.commit': config.meta.commit,
-            'nomad.deployment': config.meta.deployment
+            'nomad.commit': config.meta.commit
         }
+        if config.meta.label:
+            message['nomad.label'] = config.meta.label
 
         if record.name.startswith('nomad'):
             for key, value in structlog.items():
-                if key in ('event', 'stack_info', 'id', 'timestamp', 'path'):
+                if key in ('event', 'stack_info', 'id', 'timestamp'):
                     continue
                 elif key == 'exception':
                     exception_trace = value.strip('\n')
@@ -160,7 +161,7 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
                     # vary for different instances of the same exception
                     message['exception_hash'] = utils.hash(
                         exception_trace[:exception_trace.rfind('\n')])
-                elif key in ['upload_id', 'calc_id', 'mainfile']:
+                elif key in ['upload_id', 'entry_id', 'dataset_id', 'user_id', 'mainfile']:
                     key = 'nomad.%s' % key
                 else:
                     key = '%s.%s' % (record.name, key)
@@ -233,7 +234,7 @@ class ConsoleFormatter(LogstashFormatter):
                 print_key = key[6:]
             else:
                 print_key = key
-            if not cls.short_format or print_key not in ['release', 'service']:
+            if not cls.short_format or print_key not in ['deployment', 'service']:
                 out.write('\n  - %s: %s' % (print_key, str(message_dict.get(key, None))))
         return out.getvalue()
 
@@ -245,7 +246,7 @@ def add_logstash_handler(logger):
 
     if logstash_handler is None:
         logstash_handler = LogstashHandler()
-        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.meta.release])
+        logstash_handler.formatter = LogstashFormatter(tags=['nomad', config.meta.deployment])
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
 
@@ -312,7 +313,5 @@ if config.logstash.enabled:
         logstash_level=config.logstash.level)
 
 # configure log levels
-for logger in [
-        'elasticsearch',
-        'urllib3.connectionpool', 'bravado', 'bravado_core', 'swagger_spec_validator']:
+for logger in ['elasticsearch', 'urllib3.connectionpool']:
     logging.getLogger(logger).setLevel(logging.WARNING)

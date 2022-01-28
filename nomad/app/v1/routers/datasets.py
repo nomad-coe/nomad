@@ -24,18 +24,19 @@ from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel, search, processing
-from nomad.metainfo.elastic_extension import ElasticDocument
+from nomad import utils, datamodel, processing, config
+from nomad.metainfo.elasticsearch_extension import entry_type
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls
 from nomad.doi import DOI
+from nomad.search import search, update_by_query
 
 from .auth import create_user_dependency
 from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
-    Pagination, PaginationResponse, Query, HTTPExceptionModel, User,
-    Direction, Owner, Any_)
+    Pagination, PaginationResponse, MetadataPagination, Query, HTTPExceptionModel,
+    User, Direction, Owner, Any_)
 
 
 router = APIRouter()
@@ -75,6 +76,20 @@ _dataset_is_fixed_response = status.HTTP_400_BAD_REQUEST, {
         The dataset already has a DOI and cannot be changed anymore.
     ''')}
 
+_dataset_has_unpublished_contents = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The dataset has unpublished contents. No DOI can be assigned at the moment.
+        Publish the dataset contents first.
+    ''')}
+
+_dataset_is_empty = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The dataset is empty. No DOI can be assigned at this moment. Add some published
+        contents to the dataset first.
+    ''')}
+
 
 Dataset = datamodel.Dataset.m_def.a_pydantic.model
 
@@ -82,10 +97,9 @@ Dataset = datamodel.Dataset.m_def.a_pydantic.model
 class DatasetPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        # TODO: need real validation
         if order_by is None:
             return order_by
-        assert re.match('^[a-zA-Z0-9_]+$', order_by), 'order_by must be alphanumeric'
+        assert order_by in ('dataset_create_time', 'dataset_modified_time', 'dataset_name'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -114,7 +128,7 @@ class DatasetType(str, enum.Enum):
 
 
 class DatasetCreate(BaseModel):  # type: ignore
-    name: Optional[str] = Field(None, description='The new name for the dataset.')
+    dataset_name: Optional[str] = Field(None, description='The new name for the dataset.')
     dataset_type: Optional[DatasetType] = Field(None)
     query: Optional[Query] = Field(None)
     entries: Optional[List[str]] = Field(None)
@@ -129,23 +143,32 @@ class DatasetCreate(BaseModel):  # type: ignore
 async def get_datasets(
         request: Request,
         dataset_id: str = FastApiQuery(None),
-        name: str = FastApiQuery(None),
-        user_id: str = FastApiQuery(None),
+        dataset_name: str = FastApiQuery(None),
+        user_id: List[str] = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
+        doi: str = FastApiQuery(None),
+        prefix: str = FastApiQuery(None),
         pagination: DatasetPagination = Depends(dataset_pagination_parameters)):
     '''
     Retrieves all datasets that match the given criteria.
     '''
+
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(dataset_id=dataset_id, name=name, user_id=user_id, dataset_type=dataset_type)
+    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id__in=user_id, dataset_type=dataset_type, doi=doi)
+    if prefix is not None and prefix != '':
+        query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
+
     mongodb_query = mongodb_objects(**query_params)
 
-    order_by = pagination.order_by if pagination.order_by is not None else 'dataset_id'
-    if pagination.order == Direction.desc:
-        order_by = '-' + order_by
+    order_by = pagination.order_by
+    order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
+    if order_by == 'dataset_create_time':
+        order_by_args = [order_by_with_sign, 'dataset_id']  # Use upload_id as tie breaker
+    else:
+        order_by_args = [order_by_with_sign, 'dataset_create_time', 'dataset_id']
 
-    mongodb_query = mongodb_query.order_by(order_by)
+    mongodb_query = mongodb_query.order_by(*order_by_args)
 
     start = pagination.get_simple_index()
     end = start + pagination.page_size
@@ -201,7 +224,7 @@ async def post_datasets(
 
     # check if name already exists
     existing_dataset = DatasetDefinitionCls.m_def.a_mongo.objects(
-        user_id=user.user_id, name=create.name).first()
+        user_id=user.user_id, dataset_name=create.dataset_name).first()
     if existing_dataset is not None:
         raise HTTPException(
             status_code=_existing_name_response[0],
@@ -210,13 +233,15 @@ async def post_datasets(
     # create dataset
     dataset = DatasetDefinitionCls(
         dataset_id=create_uuid(),
-        name=create.name,
+        dataset_name=create.dataset_name,
         user_id=user.user_id,
-        created=now,
-        modified=now,
+        dataset_create_time=now,
+        dataset_modified_time=now,
         dataset_type=dataset_type)
     dataset.a_mongo.create()
 
+    # add dataset to entries in mongo and elastic
+    # TODO this should be part of a new edit API
     if dataset_type != DatasetType.owned:
         dataset.query = create.query
         dataset.entrys = create.entries
@@ -225,7 +250,7 @@ async def post_datasets(
         # add dataset to entries in mongo and elastic
         # TODO this should be part of a new edit API
         if create.entries is not None:
-            es_query = cast(Query, {'calc_id': Any_(any=create.entries)})
+            es_query = cast(Query, {'entry_id': Any_(any=create.entries)})
         elif create.query is not None:
             es_query = create.query
         else:
@@ -235,24 +260,23 @@ async def post_datasets(
             empty = True
         else:
             entries = _do_exaustive_search(
-                owner=Owner.user, query=es_query, user=user, include=['calc_id'])
-            entry_ids = [entry['calc_id'] for entry in entries]
+                owner=Owner.user, query=es_query, user=user, include=['entry_id'])
+            entry_ids = [entry['entry_id'] for entry in entries]
             mongo_query = {'_id': {'$in': entry_ids}}
             empty = len(entry_ids) == 0
 
     if not empty:
-        processing.Calc._get_collection().update_many(
-            mongo_query, {'$push': {'metadata.datasets': dataset.dataset_id}})
-        search.update_by_query(
+        processing.Entry._get_collection().update_many(
+            mongo_query, {'$push': {'datasets': dataset.dataset_id}})
+        update_by_query(
             '''
                 if (ctx._source.datasets == null) {
                     ctx._source.datasets = new ArrayList();
                 }
                 ctx._source.datasets.add(params.dataset);
             ''',
-            params=dict(dataset=ElasticDocument.create_index_entry(dataset)),
-            query=es_query, user_id=user.user_id)
-        search.refresh()
+            params=dict(dataset=entry_type.create_index_doc(dataset)),
+            query=es_query, user_id=user.user_id, refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -279,7 +303,7 @@ async def delete_dataset(
             status_code=_bad_id_response[0],
             detail=_bad_id_response[1]['description'])
 
-    if dataset.doi is not None:
+    if dataset.doi is not None and not user.is_admin:
         raise HTTPException(
             status_code=_existing_name_response[0],
             detail=_dataset_is_fixed_response[1]['description'])
@@ -289,21 +313,21 @@ async def delete_dataset(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
 
-    dataset.delete()
-
     # delete dataset from entries in mongo and elastic
     # TODO this should be part of a new edit API
-    es_query = cast(Query, {'dataset_id': dataset_id})
+    es_query = cast(Query, {'datasets.dataset_id': dataset_id})
     entries = _do_exaustive_search(
-        owner=Owner.public, query=es_query, user=user,
-        include=['calc_id'])
-    entry_ids = [entry['calc_id'] for entry in entries]
+        owner=Owner.user, query=es_query, user=user,
+        include=['entry_id'])
+    entry_ids = [entry['entry_id'] for entry in entries]
     mongo_query = {'_id': {'$in': entry_ids}}
 
+    dataset.delete()
+
     if len(entry_ids) > 0:
-        processing.Calc._get_collection().update_many(
-            mongo_query, {'$pull': {'metadata.datasets': dataset.dataset_id}})
-        search.update_by_query(
+        processing.Entry._get_collection().update_many(
+            mongo_query, {'$pull': {'datasets': dataset.dataset_id}})
+        update_by_query(
             '''
                 int index = -1;
                 for (int i = 0; i < ctx._source.datasets.length; i++) {
@@ -316,8 +340,7 @@ async def delete_dataset(
                 }
             ''',
             params=dict(dataset_id=dataset_id),
-            query=es_query, user_id=user.user_id)
-        search.refresh()
+            query=es_query, user_id=user.user_id, refresh=True)
 
     return {
         'dataset_id': dataset.dataset_id,
@@ -325,10 +348,12 @@ async def delete_dataset(
 
 
 @router.post(
-    '/{dataset_id}/doi', tags=[default_tag],
+    '/{dataset_id}/action/doi', tags=[default_tag],
     summary='Assign a DOI to a dataset',
     response_model=DatasetResponse,
-    responses=create_responses(_bad_id_response, _dataset_is_fixed_response, _bad_user_response),
+    responses=create_responses(
+        _bad_id_response, _dataset_is_fixed_response, _dataset_has_unpublished_contents,
+        _bad_user_response, _dataset_is_empty),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def assign_doi(
@@ -354,7 +379,28 @@ async def assign_doi(
             status_code=_bad_user_response[0],
             detail=_bad_user_response[1]['description'])
 
-    doi = DOI.create(title='NOMAD dataset: %s' % dataset.name, user=user)
+    response = search(
+        owner='admin',
+        query={'datasets.dataset_id': dataset_id},
+        pagination=MetadataPagination(page_size=0),
+        user_id=config.services.admin_user_id)
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=_dataset_is_empty[0],
+            detail=_dataset_is_empty[1]['description'])
+
+    response = search(
+        owner='admin',
+        query={'datasets.dataset_id': dataset_id, 'published': False},
+        pagination=MetadataPagination(page_size=0),
+        user_id=config.services.admin_user_id)
+
+    if response.pagination.total > 0:
+        raise HTTPException(
+            status_code=_dataset_has_unpublished_contents[0],
+            detail=_dataset_has_unpublished_contents[1]['description'])
+
+    doi = DOI.create(title='NOMAD dataset: %s' % dataset.dataset_name, user=user)
     doi.create_draft()
     doi.make_findable()
 

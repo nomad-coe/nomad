@@ -17,15 +17,14 @@
 #
 
 import os.path
+from typing import Dict
 
-from nomad import config, datamodel
+from nomad import config
+from nomad.datamodel import results
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from eelsdbconverter import EELSApiJsonConverter
-from mpesparser import MPESParser
-from aptfimparser import APTFIMParser
 from vaspparser import VASPParser
 from phonopyparser import PhonopyParser
 from elasticparser import ElasticParser
@@ -72,7 +71,16 @@ from libatomsparser import LibAtomsParser
 from atkparser import ATKParser
 from qboxparser import QboxParser
 from openkimparser import OpenKIMParser
-from openmxparser import OpenmxParser
+from xpsparser import XPSParser
+from eelsdbparser import EELSDBParser
+from aflowparser import AFLOWParser
+from mpparser import MPParser
+from asrparser import ASRParser
+from psi4parser import Psi4Parser
+from yamboparser import YamboParser
+# TODO
+# from mpesparser import MPESParser
+# from aptfimparser import APTFIMParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -192,9 +200,6 @@ parsers = [
     ElasticParser(),
     GamessParser(),
     TurbomoleParser(),
-    MPESParser(),
-    APTFIMParser(),
-    EELSApiJsonConverter(),
     QboxParser(),
     Dmol3Parser(),
     FleurParser(),
@@ -213,7 +218,15 @@ parsers = [
     AsapParser(),
     FploParser(),
     MopacParser(),
-    OpenmxParser(),
+    # MPESParser(),
+    # APTFIMParser(),
+    EELSDBParser(),
+    XPSParser(),
+    AFLOWParser(),
+    MPParser(),
+    ASRParser(),
+    Psi4Parser(),
+    YamboParser(),
     ArchiveParser()
 ]
 
@@ -250,10 +263,11 @@ parsers.append(BrokenParser())
 
 ''' Instantiation and constructor based config of all parsers. '''
 
-parser_dict = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
+parser_dict: Dict[str, Parser] = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
 ''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
 
 # renamed parsers
+parser_dict['parsers/vaspoutcar'] = parser_dict['parsers/vasp']
 parser_dict['parser/broken'] = parser_dict['parsers/broken']
 parser_dict['parser/fleur'] = parser_dict['parsers/fleur']
 parser_dict['parser/molcas'] = parser_dict['parsers/molcas']
@@ -269,5 +283,5 @@ for parser in parsers:
             getattr(parser, 'code_name') != 'Template':
         code_names.append(getattr(parser, 'code_name'))
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
-datamodel.DFTMetadata.code_name.a_search.statistic_values = code_names + [
+results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
     config.services.unavailable_value, config.services.not_processed_value]

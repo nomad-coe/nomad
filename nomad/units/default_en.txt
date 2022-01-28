@@ -308,6 +308,7 @@ inch_H2O_39F = inch * water_39F * g_0
 inch_H2O_60F = inch * water_60F * g_0
 foot_H2O = foot * water * g_0 = ftH2O = feet_H2O
 centimeter_H2O = centimeter * water * g_0 = cmH2O = cm_H2O
+atomic_unit_of_pressure = E_h / bohr_radius ** 3 = a_u_pressure
 
 # Torque
 [torque] = [force] * [length]

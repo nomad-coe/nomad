@@ -23,11 +23,10 @@ import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button, Link } 
 import UnderstoodIcon from '@material-ui/icons/Check'
 import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
-import AppBar from './AppBar'
-import { version, guiBase } from '../../config'
-import Routes from './Routes'
-import { withApi } from '../api'
-import { serviceWorkerUpdateHandlerRef } from '../../index'
+import AppBar, { appBarHeight } from './AppBar'
+import { guiBase, version } from '../../config'
+import { Routes } from './Routes'
+import { serviceWorkerUpdateHandlerRef } from '../../serviceWorker'
 import { ErrorBoundary } from '../errors'
 import { useCookies } from 'react-cookie'
 
@@ -165,7 +164,7 @@ const useStyles = makeStyles(theme => ({
     height: '100vh'
   },
   content: {
-    marginTop: theme.spacing(14),
+    marginTop: theme.spacing(appBarHeight),
     flexGrow: 1,
     backgroundColor: theme.palette.background.default,
     width: '100%',
@@ -173,7 +172,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-function Navigation() {
+export default function Navigation() {
   const classes = useStyles()
   const { pathname } = useLocation()
   const scrollParentRef = useRef(null)
@@ -203,5 +202,3 @@ function Navigation() {
     </div>
   )
 }
-
-export default withApi(false)(Navigation)

@@ -23,11 +23,9 @@ is run once for each *api* and *worker* process. Individual functions for partia
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
 '''
 
-from typing import Tuple, Dict
 import os.path
 import os
 import shutil
-from elasticsearch.exceptions import RequestError
 from elasticsearch_dsl import connections
 from mongoengine import connect, disconnect
 from mongoengine.connection import ConnectionFailure
@@ -37,12 +35,17 @@ from keycloak import KeycloakOpenID, KeycloakAdmin
 from keycloak.exceptions import KeycloakAuthenticationError, KeycloakGetError
 import json
 import jwt
-import basicauth
 from datetime import datetime
 import re
 import unidecode
 
 from nomad import config, utils
+
+# The metainfo is defined and used during imports. This is problematic.
+# We import all parsers very early in the infrastructure setup. This will populate
+# the metainfo with parser specific definitions, before the metainfo might be used.
+from nomad.parsing import parsers  # pylint: disable=unused-import
+
 
 logger = utils.get_logger(__name__)
 
@@ -84,52 +87,16 @@ def setup_mongo(client=False):
     return mongo_client
 
 
-def setup_elastic(create_mappings=True):
+def setup_elastic():
     ''' Creates connection to elastic search. '''
-    from nomad.search import entry_document, material_document
-    from elasticsearch_dsl import Index
-
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
-        timeout=60, max_retries=10, retry_on_timeout=True)
+        timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True)
     logger.info('setup elastic connection')
-
-    # Setup materials index mapping. An alias is used to be able to reindex the
-    # materials with zero downtime. First see to which index the alias points
-    # to. If alias is not set, create it. Update the mapping in the index
-    # pointed to by the alias.
-    if create_mappings:
-        try:
-            if elastic_client.indices.exists_alias(config.elastic.materials_index_name):
-                index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
-                material_document.init(index_name)
-            else:
-                index_name = config.elastic.materials_index_name + "_a"
-                material_document.init(index_name)
-                index = Index(index_name)
-                index.put_alias(name=config.elastic.materials_index_name)
-        except RequestError as e:
-            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-                # happens if two services try this at the same time
-                pass
-            else:
-                raise e
-
-        # Initialize calculation index mapping
-        try:
-            entry_document.init(index=config.elastic.index_name)
-        except RequestError as e:
-            if e.status_code == 400 and 'resource_already_exists_exception' in e.error:
-                # happens if two services try this at the same time
-                pass
-            else:
-                raise e
-
-        entry_document._index._name = config.elastic.index_name
-        material_document._index._name = config.elastic.materials_index_name
-        logger.info('initialized elastic index for calculations', index_name=config.elastic.index_name)
-        logger.info('initialized elastic index for materials', index_name=config.elastic.materials_index_name)
+    from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
+    create_v1_indices()
+    logger.info('initialized v1 elastic indices')
 
     return elastic_client
 
@@ -173,29 +140,6 @@ class Keycloak():
                 raise e
 
         return self.__public_keys
-
-    def auth(self, headers: Dict[str, str], allow_basic: bool = False) -> Tuple[object, str]:
-        '''
-        Performs authentication based on the provided headers. Either basic or bearer.
-
-        Returns:
-            The user and its access_token
-
-        Raises:
-            KeycloakError
-        '''
-
-        if headers.get('Authorization', '').startswith('Bearer '):
-            access_token = headers['Authorization'].split(None, 1)[1].strip()
-            return self.tokenauth(access_token), access_token
-
-        if allow_basic and headers.get('Authorization', '').startswith('Basic '):
-            auth = headers['Authorization'].split(None, 1)[1].strip()
-            username, password = basicauth.decode(auth)
-            access_token = self.basicauth(username, password)
-            return self.tokenauth(access_token), access_token
-
-        return None, None
 
     def basicauth(self, username: str, password: str) -> str:
         '''
@@ -249,6 +193,7 @@ class Keycloak():
             return datamodel.User(
                 user_id=user_id,
                 email=payload.get('email', None),
+                username=payload.get('preferred_username', None),
                 first_name=payload.get('given_name', None),
                 last_name=payload.get('family_name', None))
 
@@ -339,6 +284,11 @@ class Keycloak():
 
         try:
             self._admin_client.create_user(keycloak_user)
+        except KeycloakGetError as e:
+            try:
+                return json.loads(e.response_body)['errorMessage']
+            except Exception:
+                return str(e)
         except Exception as e:
             return str(e)
 
@@ -381,7 +331,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, username: str = None, user=None) -> object:
+    def get_user(self, user_id: str = None, username: str = None, email: str = None, user=None):
         '''
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
@@ -397,6 +347,16 @@ class Keycloak():
 
             if user_id is None:
                 raise KeyError('User with username %s does not exist' % username)
+
+        if email is not None and user_id is None:
+            with utils.lnr(logger, 'Could not use keycloak admin client'):
+                users = self._admin_client.get_users(query=dict(email=email))
+
+            if len(users) > 0:
+                user_id = users[0]['id']
+
+            if user_id is None:
+                raise KeyError('User with email %s does not exist' % email)
 
         assert user_id is not None, 'Could not determine user from given kwargs'
 
@@ -431,7 +391,7 @@ keycloak = Keycloak()
 
 def reset(remove: bool):
     '''
-    Resets the databases mongo, elastic/calcs, and all files. Be careful.
+    Resets the databases mongo, elastic/entries, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
     or any warranty it will succeed.
@@ -448,15 +408,16 @@ def reset(remove: bool):
         logger.error('exception reset mongodb', exc_info=e)
 
     try:
+        from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
+
         if not elastic_client:
             setup_elastic()
-        elastic_client.indices.delete(index=config.elastic.index_name)
-        material_index_name = list(elastic_client.indices.get(config.elastic.materials_index_name).keys())[0]
-        elastic_client.indices.delete(index=material_index_name)
-        from nomad.search import entry_document, material_document
+
+        delete_indices()
+
         if not remove:
-            entry_document.init(index=config.elastic.index_name)
-            material_document.init(index=material_index_name)
+            create_indices()
+
         logger.info('elastic index resetted')
     except Exception as e:
         logger.error('exception resetting elastic', exc_info=e)

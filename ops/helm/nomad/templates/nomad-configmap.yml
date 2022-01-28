@@ -10,28 +10,30 @@ metadata:
 data:
   nomad.yaml: |
     meta:
-      release: "{{ .Release.Name }}"
+      deployment: "{{ .Release.Name }}"
       service: "{{ .Values.meta.service }}"
       homepage: "{{ .Values.meta.homepage }}"
       source_url: "{{ .Values.meta.source_url }}"
       maintainer_email: "{{ .Values.meta.maintainer_email }}"
-      {{ if .Values.meta.deployment }}
-      deployment: "{{ .Values.meta.deployment }}"
-      {{ end }}
       beta:
         label: "{{ .Values.version.label }}"
         isBeta: {{ .Values.version.isBeta }}
         isTest: {{ .Values.version.isTest }}
         usesBetaData: {{ .Values.version.usesBetaData }}
         officialUrl: "{{ .Values.version.officialUrl }}"
-    reprocess_match: {{ .Values.reprocess_match }}
-    reprocess_unmatched: {{ .Values.reprocess_unmatched }}
-    reprocess_rematch: {{ .Values.reprocess_rematch }}
-    process_reuse_parser: {{ .Values.process_reuse_parser }}
-    encyclopedia_enabled: {{ .Values.encyclopedia.enabled }}
     aitoolkit_enabled: {{ .Values.aitoolkit.enabled }}
+    process:
+      reuse_parser: {{ .Values.process.reuseParser }}
+      index_materials: {{ .Values.process.indexMaterials }}
+    reprocess:
+      rematch_published: {{ .Values.reprocess.rematchPublished }}
+      reprocess_existing_entries: {{ .Values.reprocess.reprocessExistingEntries }}
+      use_original_parser: {{ .Values.reprocess.useOriginalParser }}
+      add_matched_entries_to_published:  {{ .Values.reprocess.addMatchedEntriesToPublished }}
+      delete_unmatched_published_entries: {{ .Values.reprocess.deleteUnmatchedPublishedEntries }}
+      index_invidiual_entries: {{ .Values.reprocess.indexIndividualEntries }}
     fs:
-      tmp: "{{ .Values.volumes.tmp }}"
+      tmp: ".volumes/fs/staging/tmp"
       prefix_size: {{ .Values.volumes.prefixSize }}
       working_directory: /app
       {{ if .Values.volumes.archiveVersionSuffix }}
@@ -54,8 +56,12 @@ data:
     elastic:
       host: "{{ .Values.elastic.host }}"
       port: {{ .Values.elastic.port }}
-      index_name: "{{ .Values.dbname }}"
-      materials_index_name: "{{ .Values.dbname }}_materials"
+      timeout: {{ .Values.elastic.timeout }}
+      bulk_timeout: {{ .Values.elastic.bulkTimeout }}
+      bulk_size: {{ .Values.elastic.bulkSize }}
+      entries_per_material_cap: {{ .Values.elastic.entriesPerMaterialCap }}
+      entries_index: "{{ .Values.dbname }}_entries_v1"
+      materials_index: "{{ .Values.dbname }}_materials_v1"
     mongo:
       host: "{{ .Values.mongo.host }}"
       port: {{ .Values.mongo.port }}

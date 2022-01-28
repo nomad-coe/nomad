@@ -15,62 +15,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, FormControl, RadioGroup, Radio } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, List, Adaptor } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
 import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
-import Structure from '../visualization/Structure'
-import BrillouinZone from '../visualization/BrillouinZone'
-import BandStructure from '../visualization/BandStructure'
-import DOS from '../visualization/DOS'
 import Markdown from '../Markdown'
-import { UnitSelector } from './UnitSelector'
-import { convertSI, getHighestOccupiedEnergy } from '../../utils'
-import { conversionMap } from '../../units'
-import { electronicRange } from '../../config'
+import { Overview } from './Overview'
+import { toUnitSystem, useUnits } from '../../units'
+import ArrowRightIcon from '@material-ui/icons/ArrowRight'
+import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
+import grey from '@material-ui/core/colors/grey'
+import classNames from 'classnames'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
+import { Download } from '../entry/Download'
 
 export const configState = atom({
   key: 'config',
   default: {
     'showMeta': false,
     'showCodeSpecific': false,
-    'showAllDefined': false,
-    'energyUnit': 'joule'
+    'showAllDefined': false
   }
 })
 
-let defaults = {}
-for (const dimension in conversionMap) {
-  const info = conversionMap[dimension]
-  defaults[dimension] = info.units[0]
-}
-const override = {
-  'length': 'angstrom',
-  'energy': 'electron_volt',
-  'system': 'custom'
-}
-defaults = {...defaults, ...override}
-export const unitsState = atom({
-  key: 'units',
-  default: defaults
-})
-
-// Contains details about the currently visualized system. Used to detect if a
-// reload is needed for the StructureViewer.
-const visualizedSystem = {}
-
 export default function ArchiveBrowser({data}) {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
+
+  // For some reason, this hook does not work in all of the components used in
+  // the Browser (notably: Quantity, QuantityItemPreview). In order to pass the
+  // up-to-date unit information, we pass the hook value down the component
+  // hierarchy.
+  const units = useUnits()
+  data.resources = data.resources || {}
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(data)}
-      form={<ArchiveConfigForm searchOptions={searchOptions} />}
+      adaptor={archiveAdaptorFactory(data, undefined, units)}
+      form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
 }
@@ -78,7 +67,7 @@ ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
 
-function ArchiveConfigForm({searchOptions}) {
+function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
 
   const handleConfigChange = event => {
@@ -94,20 +83,25 @@ function ArchiveConfigForm({searchOptions}) {
   const history = useHistory()
   const { url } = useRouteMatch()
 
+  const entryId = data?.metadata?.entry_id
+
   return (
-    <Box marginTop={-3} padding={0}>
+    <Box padding={0}>
       <FormGroup row style={{alignItems: 'center'}}>
         <Box style={{width: 350, height: 60}}>
           <Autocomplete
             options={searchOptions}
             getOptionLabel={(option) => option.name}
-            style={{ width: 350, marginTop: -20 }}
+            style={{ width: 500, marginTop: -20 }}
             onChange={(_, value) => {
               if (value) {
                 history.push(url + value.path)
               }
             }}
-            renderInput={(params) => <TextField {...params} label="search" margin="normal" />}
+            renderInput={(params) => <TextField
+              {...params} variant="filled"
+              size="small" label="search" margin="normal"
+            />}
           />
         </Box>
         <Box flexGrow={1} />
@@ -146,24 +140,34 @@ function ArchiveConfigForm({searchOptions}) {
             label="definitions"
           />
         </Tooltip>
-        <UnitSelector unitsState={unitsState}></UnitSelector>
+        {entryId && <Download
+          tooltip="download the archive"
+          url={`entries/${entryId}/archive/download`}
+          fileName={`${entryId}.json`}
+          component={IconButton}
+        >
+          <DownloadIcon />
+        </Download>}
+        <SourceApiDialogButton maxWidth="lg" fullWidth>
+          <SourceApiCall />
+        </SourceApiDialogButton>
       </FormGroup>
     </Box>
   )
 }
 ArchiveConfigForm.propTypes = ({
+  data: PropTypes.object.isRequired,
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
-function archiveAdaptorFactory(data, sectionDef) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
+function archiveAdaptorFactory(data, sectionDef, units) {
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data}, units)
 }
 
 function archiveSearchOptions(data) {
   const options = []
   const optionDefs = {}
-  const optionKeys = {}
-  function traverse(data, def, parentPath) {
+  function traverse(data, def, parentName, parentPath) {
     for (let key in data) {
       const childDef = def._properties[key]
       if (!childDef) {
@@ -174,66 +178,57 @@ function archiveSearchOptions(data) {
       if (!child) {
         continue
       }
-
-      let path = `${parentPath}/${key}`
-      if (childDef.m_def === 'SubSection') {
-        const sectionDef = resolveRef(childDef.sub_section)
-        if (Array.isArray(child) && child.length > 0 && child[0]) {
-          if (child.length > 1) {
-            child.forEach((value, index) => traverse(value, sectionDef, `${path}:${index}`))
-          } else {
-            traverse(child[0], sectionDef, path)
-          }
-        } else {
-          traverse(child, sectionDef, path)
-        }
-      }
+      const path = parentPath ? `${parentPath}/${key}` : `/${key}`
+      const name = parentName ? `${parentName}.${childDef.name}` : childDef.name
 
       if (optionDefs[childDef._qualifiedName]) {
         continue
       }
       optionDefs[childDef._qualifiedName] = childDef
-
       const option = {
-        name: key,
+        name: name, // key
         data: data,
         def: childDef,
         path: path
       }
       options.push(option)
 
-      if (optionKeys[key]) {
-        const addPath = option => {
-          const parents = option.path.split('/')
-          const parent = parents[parents.length - 2].replace(/:[0-9]+$/, '')
-          option.name += ` (${parent})`
+      if (childDef.m_def === 'SubSection') {
+        const sectionDef = resolveRef(childDef.sub_section)
+        if (Array.isArray(child) && child.length > 0 && child[0]) {
+          if (child.length > 1) {
+            child.forEach((value, index) => traverse(value, sectionDef, name, `${path}:${index}`))
+          } else {
+            traverse(child[0], sectionDef, name, path)
+          }
+        } else {
+          traverse(child, sectionDef, name, path)
         }
-        if (!optionKeys[key].name.includes('(')) {
-          addPath(optionKeys[key])
-        }
-        addPath(option)
-      } else {
-        optionKeys[key] = option
       }
     }
   }
-  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), '')
+  traverse(data, rootSections.find(def => def.name === 'EntryArchive'), null, null)
   return options
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(obj, def, parent, context) {
+  constructor(obj, def, parent, context, units) {
     super(obj)
     this.def = def
     this.parent = parent
     this.context = context
+    this.units = units
   }
 
   adaptorFactory(obj, def, parent, context) {
     if (def.m_def === 'Section') {
-      return new SectionAdaptor(obj, def, parent, context || this.context)
+      return new SectionAdaptor(obj, def, parent, context || this.context, this.units)
     } else if (def.m_def === 'Quantity') {
-      return new QuantityAdaptor(obj, def, parent, context || this.context)
+      if (def.type.type_kind === 'reference') {
+        return new ReferenceAdaptor(obj, def, parent, context || this.context, this.units)
+      } else {
+        return new QuantityAdaptor(obj, def, parent, context || this.context, this.units)
+      }
     }
   }
 
@@ -261,34 +256,52 @@ class SectionAdaptor extends ArchiveAdaptor {
         return this.adaptorFactory(value, sectionDef, this.e)
       }
     } else if (property.m_def === 'Quantity') {
-      if (property.type.type_kind === 'reference' && property.shape.length === 0) {
+      // References: sections and quantities
+      if (property.type.type_kind === 'reference') {
+        let reference = null
+        if (property.shape.length === 0) {
+          reference = value
+        } else if (property.shape.length === 1) {
+          const indexStr = key.split(':')[1]
+          const index = parseInt(indexStr)
+          reference = value[index]
+        }
+        if (!reference) {
+          return this.adaptorFactory(value, property, this.e)
+        }
+        const resolved = resolveRef(reference, this.context.archive)
         // some sections cannot be resolved, because they are not part of the archive
         // user_id->user is one example
-        const resolved = resolveRef(value, this.context.archive) || {}
-        const resolvedDef = resolveRef(property.type.type_data)
-        if (resolvedDef.name === 'User' && !resolved.user_id) {
-          resolved.user_id = value
+        if (!resolved) {
+          return this.adaptorFactory(reference, property, this.e)
         }
-        return this.adaptorFactory(resolved, resolveRef(property.type.type_data), this.e)
+        const resolvedDef = resolveRef(property.type.type_data)
+        return this.adaptorFactory(resolved, resolvedDef, this.e)
       }
+      // Regular quantities
       return this.adaptorFactory(value, property, this.e)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} parent={this.parent} />
+    return <Section section={this.e} def={this.def} parent={this.parent} units={this.units}/>
+  }
+}
+
+class ReferenceAdaptor extends ArchiveAdaptor {
+  render() {
+    return <Reference value={this.e} def={this.def} units={this.units}/>
   }
 }
 
 class QuantityAdaptor extends ArchiveAdaptor {
   render() {
-    return <Quantity value={this.e} def={this.def} />
+    return <Quantity value={this.e} def={this.def} units={this.units}/>
   }
 }
 
-function QuantityItemPreview({value, def}) {
-  const units = useRecoilState(unitsState)[0]
+function QuantityItemPreview({value, def, units}) {
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -323,11 +336,10 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    let finalValue = value
-    let finalUnit = def.unit
-    if (def.unit) {
-      [finalValue, finalUnit] = convertSI(value, def.unit, units)
-    }
+    const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    const [finalValue, finalUnit] = def.unit
+      ? toUnitSystem(val, def.unit, units, true)
+      : [val, def.unit]
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
       {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
@@ -336,194 +348,55 @@ function QuantityItemPreview({value, def}) {
 }
 QuantityItemPreview.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
-function QuantityValue({value, def}) {
-  // Figure out the units
-  const units = useRecoilState(unitsState)[0]
-  let finalValue = value
-  let finalUnit = def.unit
-  if (def.unit) {
-    [finalValue, finalUnit] = convertSI(value, def.unit, units)
-  }
+function QuantityValue({value, def, units}) {
+  const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+  const [finalValue, finalUnit] = def.unit
+    ? toUnitSystem(val, def.unit, units, true)
+    : [val, def.unit]
 
-  return <Box
-    marginTop={2} marginBottom={2} textAlign="center" fontWeight="bold"
-  >
-    {def.shape.length > 0 ? <Matrix values={finalValue} shape={def.shape} invert={def.shape.length === 1} /> : <Number value={finalValue} exp={16} variant="body2" />}
-    {def.shape.length > 0 &&
-      <Typography noWrap variant="caption">
-        ({def.shape.map((dimension, index) => <span key={index}>
-          {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
-        </span>)}&nbsp;)
-      </Typography>
+  let isMathValue = def.type.type_kind === 'numpy'
+  if (isMathValue) {
+    if (def.shape.length > 0) {
+      return <Box textAlign="center">
+        <Matrix
+          values={finalValue}
+          shape={def.shape}
+          invert={def.shape.length === 1}
+          type={def.type.type_data}
+        />
+        <Typography noWrap variant="caption">
+          ({def.shape.map((dimension, index) => <span key={index}>
+            {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
+          </span>)}&nbsp;)
+        </Typography>
+        {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
+      </Box>
+    } else {
+      return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
-    {def.unit && <Typography noWrap>{finalUnit}</Typography>}
-  </Box>
+  } else {
+    if (Array.isArray(finalValue)) {
+      return <Typography>
+        <ul style={{margin: 0}}>
+          {finalValue.map((value, index) => <li key={index}>{value}</li>)}
+        </ul>
+      </Typography>
+    } else {
+      return <Typography>{finalValue}</Typography>
+    }
+  }
 }
 QuantityValue.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
-/**
- * An optional overview for a section displayed directly underneath the section
- * title.
- */
-function Overview({section, def, parent}) {
-  // States
-  const [mode, setMode] = useState('bs')
-  const units = useRecoilValue(unitsState)
-
-  // Styles
-  const useStyles = makeStyles(
-    {
-      bands: {
-        width: '30rem',
-        height: '30rem',
-        margin: 'auto'
-      },
-      structure: {
-        width: '28rem',
-        margin: 'auto'
-      },
-      dos: {
-        width: '20rem',
-        height: '40rem',
-        margin: 'auto'
-      },
-      radio: {
-        display: 'flex',
-        justifyContent: 'center'
-      }
-    }
-  )
-  const style = useStyles()
-
-  const toggleMode = useCallback((event) => {
-    setMode(event.target.value)
-  }, [setMode])
-
-  // Structure visualization for section_system
-  if (def.name === 'System') {
-    let url = window.location.href
-    let name = 'section_system'
-    let rootIndex = url.indexOf(name) + name.length
-    let sectionPath = url.substring(0, rootIndex)
-    let tmp = url.substring(rootIndex)
-    let tmpIndex = tmp.indexOf('/')
-    let index = tmpIndex === -1 ? tmp : tmp.slice(0, tmpIndex)
-
-    // The section is incomplete, we leave the overview empty
-    if (!section.atom_species) {
-      return null
-    }
-    const nAtoms = section.atom_species.length
-    let system = {
-      'species': section.atom_species,
-      'cell': section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      'positions': convertSI(section.atom_positions, 'meter', {length: 'angstrom'}, false),
-      'pbc': section.configuration_periodic_dimensions
-    }
-    visualizedSystem.sectionPath = sectionPath
-    visualizedSystem.index = index
-    visualizedSystem.nAtoms = nAtoms
-
-    return <Structure
-      aspectRatio={4 / 3}
-      className={style.structure}
-      system={system}
-    ></Structure>
-  // Structure visualization for idealized_structure
-  } else if (def.name === 'IdealizedStructure') {
-    // The section is incomplete, we leave the overview empty
-    if (!section.atom_labels) {
-      return null
-    }
-    const system = {
-      species: section.atom_labels,
-      cell: section.lattice_vectors ? convertSI(section.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      positions: section.atom_positions,
-      fractional: true,
-      pbc: section.periodicity
-    }
-    return <Structure
-      system={system}
-      className={style.structure}
-      aspectRatio={1}>
-    </Structure>
-  // Band structure plot for section_k_band
-  } else if (def.name === 'KBand') {
-    section.energy_highest_occupied = getHighestOccupiedEnergy(section, parent)
-    return section.band_structure_kind !== 'vibrational'
-      ? <>
-        {mode === 'bs'
-          ? <Box>
-            <BandStructure
-              className={style.bands}
-              data={section}
-              layout={{yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}}
-              aspectRatio={1}
-              unitsState={unitsState}
-            ></BandStructure>
-          </Box>
-          : <BrillouinZone
-            className={style.bands}
-            data={section}
-            aspectRatio={1}
-          ></BrillouinZone>
-        }
-        <FormControl component="fieldset" className={style.radio}>
-          <RadioGroup row aria-label="position" name="position" defaultValue="bs" onChange={toggleMode} className={style.radio}>
-            <FormControlLabel
-              value="bs"
-              control={<Radio color="primary" />}
-              label="Band structure"
-              labelPlacement="end"
-            />
-            <FormControlLabel
-              value="bz"
-              control={<Radio color="primary" />}
-              label="Brillouin zone"
-              labelPlacement="end"
-            />
-          </RadioGroup>
-        </FormControl>
-      </>
-      : <Box>
-        <BandStructure
-          className={style.bands}
-          data={section}
-          aspectRatio={1}
-          unitsState={unitsState}
-          type='vibrational'
-        ></BandStructure>
-      </Box>
-  // DOS plot for section_dos
-  } else if (def.name === 'Dos') {
-    const isVibrational = section.dos_kind === 'vibrational'
-    const layout = isVibrational
-      ? undefined
-      : {yaxis: {autorange: false, range: convertSI(electronicRange, 'electron_volt', units, false)}}
-    return <DOS
-      className={style.dos}
-      layout={layout}
-      data={section}
-      aspectRatio={1 / 2}
-      unitsState={unitsState}
-      type={isVibrational ? 'vibrational' : null}
-    ></DOS>
-  }
-  return null
-}
-Overview.propTypes = ({
-  def: PropTypes.object,
-  section: PropTypes.object,
-  parent: PropTypes.object
-})
-
-function Section({section, def, parent}) {
+function Section({section, def, parent, units}) {
   const config = useRecoilValue(configState)
 
   if (!section) {
@@ -532,27 +405,34 @@ function Section({section, def, parent}) {
   }
 
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  let sub_sections = def._allProperties.filter(prop => prop.m_def === 'SubSection')
+  if (def.name === 'EntryArchive') {
+    // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
+    sub_sections = [...def.sub_sections]
+    sub_sections.reverse()
+  }
+  const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
   return <Content>
     <Title def={def} data={section} kindLabel="section" />
-    <Overview def={def} section={section} parent={parent}></Overview>
+    <Overview section={section} def={def} units={units}/>
     <Compartment title="sub sections">
-      {def.sub_sections
+      {sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
         .filter(filter)
         .map(subSectionDef => {
           const key = subSectionDef.name
           const disabled = section[key] === undefined
           if (!disabled && subSectionDef.repeats && section[key].length > 1) {
-            return <List
+            return <SubSectionList
               key={subSectionDef.name}
-              itemKey={subSectionDef.name}
-              title={subSectionDef.name} disabled={disabled}
+              subSectionDef={subSectionDef}
+              disabled={disabled}
             />
           } else {
             return <Item key={key} itemKey={key} disabled={disabled}>
               <Typography component="span">
                 <Box fontWeight="bold" component="span">
-                  {subSectionDef.name}
+                  {formatSubSectionName(subSectionDef.name)}
                 </Box>
               </Typography>
             </Item>
@@ -561,21 +441,34 @@ function Section({section, def, parent}) {
       }
     </Compartment>
     <Compartment title="quantities">
-      {def.quantities
-        .filter(quantityDef => section[quantityDef.name] || config.showAllDefined)
+      {quantities
+        .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
         .filter(filter)
         .map(quantityDef => {
           const key = quantityDef.name
           const disabled = section[key] === undefined
-          return <Item key={key} itemKey={key} disabled={disabled}>
-            <Box component="span" whiteSpace="nowrap">
-              <Typography component="span">
-                <Box fontWeight="bold" component="span">
-                  {quantityDef.name}
-                </Box>
-              </Typography>{!disabled && <span>&nbsp;=&nbsp;<QuantityItemPreview value={section[quantityDef.name]} def={quantityDef} /></span>}
-            </Box>
-          </Item>
+          if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+            return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+          }
+          return (
+            <Item key={key} itemKey={key} disabled={disabled}>
+              <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+                <Typography component="span">
+                  <Box fontWeight="bold" component="span">
+                    {quantityDef.name}
+                  </Box>
+                </Typography>{!disabled &&
+                  <span>&nbsp;=&nbsp;
+                    <QuantityItemPreview
+                      value={section[quantityDef.name]}
+                      def={quantityDef}
+                      units={units}
+                    />
+                  </span>
+                }
+              </Box>
+            </Item>
+          )
         })
       }
     </Compartment>
@@ -585,19 +478,163 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.any
+  parent: PropTypes.any,
+  units: PropTypes.object
 })
 
-function Quantity({value, def}) {
+function SubSectionList({subSectionDef}) {
+  const lane = useContext(laneContext)
+  const label = useMemo(() => {
+    let key = subSectionDef.more?.label_quantity
+    if (!key) {
+      const sectionDef = resolveRef(subSectionDef.sub_section)
+      key = sectionDef.more?.label_quantity
+      if (!key) {
+        key = ['name', 'type', 'id'].find(key => (
+          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
+        ))
+      }
+    }
+    return item => {
+      return key && item[key]
+    }
+  }, [subSectionDef])
+  const values = useMemo(() => lane.adaptor.e[subSectionDef.name].map(label), [lane.adaptor.e, subSectionDef.name, label])
+  return <PropertyValuesList
+    values={values}
+    label={formatSubSectionName(subSectionDef.name) || 'list'} />
+}
+SubSectionList.propTypes = ({
+  subSectionDef: PropTypes.object.isRequired
+})
+
+function ReferenceValuesList({quantityDef}) {
+  const lane = useContext(laneContext)
+  const values = useMemo(() => lane.adaptor.e[quantityDef.name].map(() => null), [lane.adaptor.e, quantityDef.name])
+  return <PropertyValuesList
+    values={values}
+    label={quantityDef.name} />
+}
+ReferenceValuesList.propTypes = ({
+  quantityDef: PropTypes.object.isRequired
+})
+
+const usePropertyValuesListStyles = makeStyles(theme => ({
+  title: {
+    color: theme.palette.text.primary,
+    textDecoration: 'none',
+    margin: `0 -${theme.spacing(1)}px`,
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    fontWeight: 'bold'
+  },
+  selected: {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    whiteSpace: 'nowrap'
+  },
+  unSelected: {
+    '&:hover': {
+      backgroundColor: grey[300]
+    }
+  }
+}))
+function PropertyValuesList({label, values}) {
+  const classes = usePropertyValuesListStyles()
+  const [open, setOpen] = useState(false)
+  const lane = useContext(laneContext)
+  const selected = lane.next && lane.next.key
+
+  return <div>
+    <Typography onClick={() => setOpen(!open)} className={classNames(
+      classes.title,
+      (!open && selected && selected.startsWith(label + ':')) ? classes.selected : classes.unSelected
+    )}>
+      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+      <span>{label}</span>
+    </Typography>
+    {open &&
+      <div>
+        {values.map((item, index) => (
+          <Item key={index} itemKey={`${label}:${index}`}>
+            <Box component="span" marginLeft={2}>
+              <Typography component="span">{item || index}</Typography>
+            </Box>
+          </Item>
+        ))}
+      </div>
+    }
+  </div>
+}
+PropertyValuesList.propTypes = ({
+  label: PropTypes.string.isRequired,
+  values: PropTypes.arrayOf(PropTypes.string).isRequired
+})
+
+function Quantity({value, def, units}) {
   return <Content>
     <Title def={def} data={value} kindLabel="value" />
-    <QuantityValue value={value} def={def} />
+    <Compartment title="value">
+      <QuantityValue
+        value={value}
+        def={def}
+        units={units}
+      />
+    </Compartment>
     <Meta def={def} />
   </Content>
 }
 Quantity.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
+})
+
+function Reference({value, def, units}) {
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const [loading, setLoading] = useState(true)
+  const {data, update} = useContext(laneContext)
+  useEffect(() => {
+    const url = value.split('#')[0]
+    const upload_id = data.metadata.upload_id
+    if (data.resources[url]) {
+      setLoading(false)
+      return
+    }
+
+    if (!(url.startsWith('../upload/archive/') && upload_id)) {
+      setLoading(false)
+      return
+    }
+
+    api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
+      .then(response => {
+        data.resources[url] = response.data.archive
+        update()
+      })
+      .catch(raiseError)
+  }, [api, data.metadata.upload_id, data.resources, raiseError, setLoading, update, value])
+
+  if (loading) {
+    return <Content>
+      <Typography>loading ...</Typography>
+    </Content>
+  }
+
+  return <Content>
+    <Title def={def} data={value} kindLabel="value" />
+    <Compartment title="reference">
+      <Typography color="error">Cannot resolve reference.</Typography>
+      <Typography>{value}</Typography>
+    </Compartment>
+    <Meta def={def} />
+  </Content>
+}
+Reference.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired,
+  units: PropTypes.object
 })
 
 const useMetaStyles = makeStyles(theme => ({

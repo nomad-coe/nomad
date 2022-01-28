@@ -25,10 +25,10 @@ def read_archive(entries):
         upload_files = files.UploadFiles.get(upload_id, lambda *args: True)
         assert upload_files is not None
         for entry in entries:
-            calc_id = entry['calc_id']
+            entry_id = entry['entry_id']
             material_id = entry['material_id']
-            with upload_files.read_archive(calc_id) as archive:
-                entry_archive = archive[calc_id].to_dict()
+            with upload_files.read_archive(entry_id) as archive:
+                entry_archive = archive[entry_id].to_dict()
                 for run in entry_archive.get('section_run', []):
                     for calc in run.get('section_single_configuration_calculation', []):
                         for dos in calc.get('section_dos', []):
@@ -36,7 +36,7 @@ def read_archive(entries):
                             if fingerprint:
                                 yield {
                                     'upload_id': upload_id,
-                                    'calc_id': calc_id,
+                                    'entry_id': entry_id,
                                     'material_id': material_id,
                                     'fingerprint': fingerprint}
     except Exception:

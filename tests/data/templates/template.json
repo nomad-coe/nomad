@@ -1,0 +1,109 @@
+{
+  "run": [
+    {
+      "program": {
+        "name": "VASP",
+        "version": "4.6.35  3Apr08 complex  parallel LinuxIFC"
+      },
+      "method": [
+        {
+          "dft": {
+            "xc_functional": {
+              "exchange": [
+                {
+                  "name": "GGA_X_PBE"
+                }
+              ]
+            }
+          },
+          "electronic": {
+            "method": "DFT"
+          },
+          "basis_set": [
+            {
+              "type": "plane waves"
+            }
+          ]
+        }
+      ],
+      "system": [
+        {
+          "atoms": {
+            "labels": [
+              "Br",
+              "K",
+              "Si",
+              "Si"
+            ],
+            "positions": [
+              [
+                2.88186311e-10,
+                0.0,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                2.88186311e-10,
+                2.0377849449999999e-10
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                2.88186311e-10,
+                2.88186311e-10,
+                0.0
+              ]
+            ],
+            "lattice_vectors": [
+              [
+                5.76372622e-10,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                5.76372622e-10,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                4.0755698899999997e-10
+              ]
+            ],
+            "periodic": [
+              true,
+              true,
+              true
+            ]
+          }
+        }
+      ],
+      "calculation": [
+        {
+          "system_ref": "/run/0/system/0",
+          "method_ref": "/run/0/method/0",
+          "energy": {
+            "total": {
+              "value": -1.5935696296699573e-18
+            },
+            "free": {
+              "value": -1.5936767191492225e-18
+            },
+            "total_t0": {
+              "value": -3.2126683561907e-22
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "workflow": [
+    {
+      "type": "geometry_optimization"
+    }
+  ]
+}

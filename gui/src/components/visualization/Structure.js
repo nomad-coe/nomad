@@ -17,9 +17,8 @@
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, fade } from '@material-ui/core/styles'
+import { makeStyles, alpha } from '@material-ui/core/styles'
 import {
-  Box,
   Checkbox,
   Button,
   Menu,
@@ -27,7 +26,7 @@ import {
   Typography,
   FormControlLabel
 } from '@material-ui/core'
-import { ToggleButton, ToggleButtonGroup, Alert } from '@material-ui/lab'
+import { Alert } from '@material-ui/lab'
 import {
   MoreVert,
   Fullscreen,
@@ -38,9 +37,10 @@ import {
 } from '@material-ui/icons'
 import { StructureViewer } from '@lauri-codes/materia'
 import Floatable from './Floatable'
+import NoData from './NoData'
 import Placeholder from '../visualization/Placeholder'
-import Actions from '../Actions'
-import { mergeObjects } from '../../utils'
+import { Actions, Action } from '../Actions'
+import { mergeObjects, delay } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
 import _ from 'lodash'
@@ -50,93 +50,95 @@ import clsx from 'clsx'
  * Used to show atomistic systems in an interactive 3D viewer based on the
  * 'materia'-library.
  */
-function Structure({
+const useStyles = makeStyles((theme) => {
+  return {
+    root: {},
+    column: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      flexDirection: 'column'
+    },
+    header: {
+      display: 'flex',
+      flexDirection: 'row',
+      zIndex: 1
+    },
+    toggles: {
+      marginBottom: theme.spacing(1),
+      height: '2rem'
+    },
+    toggle: {
+      color: alpha(theme.palette.action.active, 0.87)
+    },
+    selected: {
+      '&$selected': {
+        color: alpha(theme.palette.action.active, 0.87)
+      }
+    },
+    title: {
+      marginBottom: theme.spacing(1)
+    },
+    canvas: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(1)
+    },
+    switchContainer: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(1)
+    },
+    switchPlaceholder: {
+      left: theme.spacing(0),
+      right: theme.spacing(0),
+      top: theme.spacing(0.5),
+      bottom: theme.spacing(0.5)
+    }
+  }
+})
+const Structure = React.memo(({
   className,
   classes,
-  system,
-  systems,
+  data,
   options,
   materialType,
+  structureType,
+  m_path,
   viewer,
   captureName,
-  aspectRatio,
   positionsOnly,
   sizeLimit,
-  positionsSubject}
-) {
+  positionsSubject,
+  'data-testid': testID,
+  placeHolderStyle,
+  noDataStyle}
+) => {
   // States
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [showBonds, setShowBonds] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [showCell, setShowCell] = useState(true)
-  const [wrap, setWrap] = useState(true)
+  const [wrap, setWrap] = useState(materialType === 'bulk')
   const [showPrompt, setShowPrompt] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [nAtoms, setNAtoms] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [shownSystem, setShownSystem] = useState(null)
-  const [finalSystem, setFinalSystem] = useState(system)
-
-  const history = useHistory()
 
   // Variables
+  const history = useHistory()
   const open = Boolean(anchorEl)
   const refViewer = useRef(null)
-
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      root: {},
-      container: {
-        display: 'flex',
-        width: '100%',
-        height: '100%',
-        flexDirection: 'column',
-        backgroundColor: 'white'
-      },
-      header: {
-        paddingRight: theme.spacing(1),
-        display: 'flex',
-        flexDirection: 'row',
-        zIndex: 1
-      },
-      toggles: {
-        marginBottom: theme.spacing(1),
-        height: '2rem'
-      },
-      toggle: {
-        color: fade(theme.palette.action.active, 0.87)
-      },
-      selected: {
-        '&$selected': {
-          color: fade(theme.palette.action.active, 0.87)
-        }
-      },
-      title: {
-        marginBottom: theme.spacing(1)
-      },
-      viewerCanvas: {
-        flex: 1,
-        zIndex: 0,
-        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(1)
-      }
-    }
-  })
   const styles = useStyles(classes)
 
   useEffect(() => {
-    setFinalSystem(system)
-  }, [system])
-
-  useEffect(() => {
-    if (systems) {
-      const firstSystem = Object.keys(systems)[0]
-      setFinalSystem(systems[firstSystem])
-      setShownSystem(firstSystem)
+    if (data) {
+      setLoading(true)
     }
-  }, [systems])
+  }, [data])
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -153,48 +155,58 @@ function Structure({
     refViewer.current.changeHostElement(node, true, true)
   }, [])
 
+  // Merge custom options with default options. These options can only set once.
+  const finalOptions = useMemo(() => {
+    let defaultOptions = {
+      view: {
+        autoResize: false,
+        autoFit: true,
+        fitMargin: 0.6
+      },
+      bonds: {
+        enabled: true
+      },
+      latticeConstants: {
+        size: 0.7,
+        font: 'Titillium Web,sans-serif',
+        a: {color: '#f44336'},
+        b: {color: '#4caf50'},
+        c: {color: '#5c6bc0'}
+      },
+      layout: {
+        periodicity: wrap ? 'wrap' : 'none'
+      },
+      controls: {
+        enableZoom: true,
+        enablePan: true,
+        enableRotate: true
+      },
+      renderer: {
+        backgroundColor: ['#ffffff', 1],
+        shadows: {
+          enabled: false
+        }
+      }
+    }
+    let viewerOptions
+    if (options === undefined) {
+      viewerOptions = defaultOptions
+    } else {
+      viewerOptions = mergeObjects(options, defaultOptions)
+    }
+    return viewerOptions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Run only on first render to initialize the viewer. See the viewer
   // documentation for details on the meaning of different options:
   // https://nomad-coe.github.io/materia/viewers/structureviewer
   useEffect(() => {
-    let viewerOptions
-    if (options === undefined) {
-      viewerOptions = {
-        view: {
-          autoResize: false,
-          autoFit: true,
-          fitMargin: 0.6
-        },
-        bonds: {
-          enabled: true
-        },
-        latticeConstants: {
-          size: 0.7,
-          font: 'Titillium Web,sans-serif',
-          a: {color: '#f44336'},
-          b: {color: '#4caf50'},
-          c: {color: '#5c6bc0'}
-        },
-        controls: {
-          enableZoom: true,
-          enablePan: true,
-          enableRotate: true
-        },
-        renderer: {
-          backgroundColor: ['#ffffff', 1],
-          shadows: {
-            enabled: false
-          }
-        }
-      }
-    } else {
-      viewerOptions = mergeObjects(options, viewerOptions)
-    }
     if (viewer === undefined) {
-      refViewer.current = new StructureViewer(undefined, viewerOptions)
+      refViewer.current = new StructureViewer(undefined, finalOptions)
     } else {
       refViewer.current = viewer
-      refViewer.current.setOptions(viewerOptions, false, false)
+      refViewer.current.setOptions(finalOptions, false, false)
     }
     if (refCanvas.current) {
       refViewer.current.changeHostElement(refCanvas.current, false, false)
@@ -208,68 +220,88 @@ function Structure({
   }, [positionsSubject])
 
   const loadSystem = useCallback((system, refViewer) => {
-    // This function calls is wrapped inside a setTimeout in order to not block
-    // the first render of the component. setTimeout hoists the heavy function
-    // call outside so that the react rendering can finish before it.
-    setTimeout(() => {
+    // This function calls is delayed in order to not block the first render of
+    // the component. delay hoists the heavy function call outside so that the
+    // react rendering can finish before it.
+    delay(() => {
       // If the cell is all zeroes, positions are assumed to be cartesian.
       if (system.cell !== undefined) {
         if (_.flattenDeep(system.cell).every(v => v === 0)) {
           system.cell = undefined
         }
       }
-      // Systems with non-empty cell are centered on the cell center and
-      // orientation is defined by the cell vectors.
-      const opts = {}
-      if (system.cell !== undefined) {
-        opts.layout = {
-          viewRotation: {
-            alignments: [
+      // Determine the orientation and view centering based on material type and
+      // the structure type.
+      let layout = {
+        viewCenter: 'COP',
+        viewRotation: {
+          alignments: system.cell === undefined
+            ? undefined
+            : [
               ['up', 'c'],
               ['right', 'b']
             ],
-            rotations: [
-              [0, 1, 0, 60],
-              [1, 0, 0, 30]
-            ]
-          }
+          rotations: [
+            [0, 1, 0, 60],
+            [1, 0, 0, 30]
+          ]
         }
-      } else {
-        opts.layout = {
-          viewRotation: {
-            rotations: [
-              [0, 1, 0, 60],
-              [1, 0, 0, 30]
-            ]
+      }
+      if (structureType === 'conventional' || structureType === 'primitive') {
+        if (materialType === 'bulk') {
+          layout.viewCenter = 'COC'
+          layout.viewRotation.alignments = [
+            ['up', 'c'],
+            ['right', 'b']
+          ]
+        } else if (materialType === '2D') {
+          layout = {
+            viewCenter: 'COC',
+            viewRotation: {
+              alignments: [
+                ['right', 'a'],
+                ['up', 'b']
+              ],
+              rotations: [
+                [1, 0, 0, -60]
+              ]
+            }
+          }
+        } else if (materialType === '1D') {
+          layout = {
+            viewCenter: 'COC',
+            viewRotation: {
+              alignments: [
+                ['right', 'a']
+              ],
+              rotations: [
+                [1, 0, 0, -60],
+                [0, 1, 0, 30],
+                [1, 0, 0, 30]
+              ]
+            }
           }
         }
       }
-      if (system.cell !== undefined && materialType === 'bulk') {
-        opts.layout.viewCenter = 'COC'
-        opts.layout.periodicity = 'wrap'
-      // Systems without cell are centered on the center of positions
-      } else {
-        opts.layout.viewCenter = 'COP'
-        opts.layout.periodicity = 'none'
-      }
+      const opts = {layout}
       refViewer.current.setOptions(opts, false, false)
       refViewer.current.load(system)
       refViewer.current.fitToCanvas()
       refViewer.current.saveReset()
       refViewer.current.reset()
       setLoading(false)
-    }, 0)
-  }, [materialType])
+    })
+  }, [materialType, structureType])
 
   // Called whenever the given system changes. If positionsOnly is true, only
   // updates the positions. Otherwise reloads the entire structure.
   useEffect(() => {
-    if (!finalSystem) {
+    if (!data) {
       return
     }
 
     if (!accepted) {
-      const nAtoms = finalSystem.positions.length
+      const nAtoms = data.positions.length
       setNAtoms(nAtoms)
       if (nAtoms > 300) {
         setShowPrompt(true)
@@ -278,13 +310,13 @@ function Structure({
     }
 
     if (positionsOnly && !!(refViewer?.current?.structure)) {
-      refViewer.current.setPositions(finalSystem.positions)
+      refViewer.current.setPositions(data.positions)
       setLoading(false)
       return
     }
 
-    loadSystem(finalSystem, refViewer)
-  }, [finalSystem, positionsOnly, accepted, loadSystem])
+    loadSystem(data, refViewer)
+  }, [data, positionsOnly, accepted, loadSystem])
 
   // Viewer settings
   useEffect(() => {
@@ -296,10 +328,10 @@ function Structure({
   }, [showLatticeConstants])
 
   useEffect(() => {
-    if (finalSystem?.cell) {
+    if (data?.cell) {
       refViewer.current.setOptions({layout: {periodicity: wrap ? 'wrap' : 'none'}})
     }
-  }, [wrap, finalSystem])
+  }, [wrap, data])
 
   useEffect(() => {
     refViewer.current.setOptions({cell: {enabled: showCell}})
@@ -328,28 +360,9 @@ function Structure({
     refViewer.current.render()
   }, [])
 
-  const structureToggles = useMemo(() => {
-    if (systems) {
-      const toggles = []
-      for (let key in systems) {
-        toggles.push(<ToggleButton
-          key={key}
-          value={key}
-          aria-label={key}
-          classes={{root: styles.toggle, selected: styles.selected}}
-        >{key}</ToggleButton>)
-      }
-      return toggles
-    }
-    return null
-  }, [systems, styles])
-
-  // Enforce at least one structure view option
-  const handleStructureChange = (event, value) => {
-    if (value !== null) {
-      setShownSystem(value)
-      setFinalSystem(systems[value])
-    }
+  // If data is set explicitly to false, we show the NoData component.
+  if (data === false) {
+    return <NoData className={clsx(className, styles.root)} classes={{placeholder: noDataStyle}}/>
   }
 
   if (showPrompt) {
@@ -359,29 +372,24 @@ function Structure({
         <Button
           color="inherit"
           size="small"
-          onClick={e => { setShowPrompt(false); loadSystem(finalSystem, refViewer); setAccepted(true) }}
+          onClick={e => { setShowPrompt(false); loadSystem(data, refViewer); setAccepted(true) }}
         >
             YES
         </Button>
       }
+      data-testid={testID}
     >
       {`Visualization is by default disabled for systems with more than ${sizeLimit} atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`}
     </Alert>
   }
   if (loading) {
-    return <Placeholder variant="rect" className={clsx(styles.root, className)} aspectRatio={aspectRatio}></Placeholder>
+    return <Placeholder
+      variant="rect"
+      className={clsx(styles.root, className)}
+      data-testid={testID}
+      classes={{placeholder: placeHolderStyle}}
+    />
   }
-
-  // List of actionable buttons for the viewer
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
-  ]
-  if (finalSystem?.path) {
-    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(finalSystem.path) }, content: <ViewList/>})
-  }
-  actions.push({tooltip: 'Options', onClick: openMenu, content: <MoreVert/>})
 
   const menuItems = [
     <MenuItem key='show-bonds'>
@@ -397,7 +405,7 @@ function Structure({
       />
     </MenuItem>
   ]
-  if (finalSystem?.cell) {
+  if (data?.cell) {
     menuItems.push(...[
       <MenuItem key='show-axis'>
         <FormControlLabel
@@ -438,64 +446,85 @@ function Structure({
     ])
   }
 
-  const content = <Box className={styles.container}>
-    {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
-    {systems && <ToggleButtonGroup
-      className={styles.toggles}
-      size="small"
-      exclusive
-      value={shownSystem}
-      onChange={handleStructureChange}
-    >
-      {structureToggles}
-    </ToggleButtonGroup>
-    }
-    <div className={styles.viewerCanvas} ref={refCanvas}></div>
-    <div className={styles.header}>
-      <Actions actions={actions}></Actions>
-      <Menu
-        id='settings-menu'
-        anchorEl={anchorEl}
-        getContentAnchorEl={null}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        keepMounted
-        open={open}
-        onClose={closeMenu}
-      >
-        {menuItems}
-      </Menu>
+  return <Floatable
+    data-testid={testID}
+    className={clsx(styles.root, className)}
+    float={fullscreen}
+    onFloat={toggleFullscreen}
+  >
+    <div className={styles.column}>
+      {fullscreen && <Typography className={styles.title} variant="h6">Structure</Typography>}
+      {loading
+        ? <Placeholder
+          variant="rect"
+          className={styles.switchContainer}
+          classes={{placeholder: styles.switchPlaceholder}}
+        />
+        : <div className={styles.canvas} ref={refCanvas}></div>
+      }
+      <div className={styles.header}>
+        <Actions>
+          <Action tooltip='Reset view' onClick={handleReset}>
+            <Replay/>
+          </Action>
+          <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+            {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+          </Action>
+          <Action tooltip='Capture image' onClick={takeScreencapture}>
+            <CameraAlt/>
+          </Action>
+          {m_path &&
+            <Action tooltip='View data in the archive' onClick={() => { history.push(m_path) }}>
+              <ViewList/>
+            </Action>
+          }
+          <Action tooltip='Options' onClick={openMenu}>
+            <MoreVert/>
+          </Action>
+        </Actions>
+        <Menu
+          id='settings-menu'
+          anchorEl={anchorEl}
+          getContentAnchorEl={null}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          keepMounted
+          open={open}
+          onClose={closeMenu}
+        >
+          {menuItems}
+        </Menu>
+      </div>
     </div>
-  </Box>
-  return <Box className={clsx(styles.root, className)} >
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
-  </Box>
-}
+  </Floatable>
+})
 
 Structure.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
   viewer: PropTypes.object, // Optional shared viewer instance.
-  system: PropTypes.object, // The system to display in the native materia-format
-  systems: PropTypes.object, // Set of systems that can be switched
-  metaInfoLink: PropTypes.string, // A link to the metainfo definition
+  data: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.object
+  ]),
   options: PropTypes.object, // Viewer options
-  materialType: PropTypes.string, // The material type, affects the visualization layout.
+  materialType: PropTypes.oneOf(['bulk', '2D', '1D', 'molecule / cluster', 'unknown']),
+  structureType: PropTypes.oneOf(['original', 'conventional', 'primitive']),
+  m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
-  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   positionsOnly: PropTypes.bool, // Whether to update only positions. This is much faster than loading the entire structure.
   sizeLimit: PropTypes.number, // Maximum system size before a prompt is shown
+  placeHolderStyle: PropTypes.string, // The CSS class to apply for the Placeholder component.
+  noDataStyle: PropTypes.string, // The CSS class to apply for the NoData component.
   /**
    * A RxJS Subject for efficient, non-persistent, position changes that bypass
    * rendering of the component. Should send messages that contain the new
    * atomic positions as a list.
   */
-  positionsSubject: PropTypes.any
+  positionsSubject: PropTypes.any,
+  'data-testid': PropTypes.string
 }
 Structure.defaultProps = {
-  aspectRatio: 4 / 3,
   captureName: 'structure',
   sizeLimit: 300
 }

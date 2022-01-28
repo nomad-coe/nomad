@@ -20,46 +20,77 @@ from typing import List, Dict, Optional, Union, Any, Mapping
 import enum
 from fastapi import Body, Request, HTTPException, Query as FastApiQuery
 import pydantic
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import (  # pylint: disable=unused-import
+    BaseModel,
+    StrictInt,
+    StrictFloat,
+    StrictBool,
+    Field,
+    Extra,
+    validator,
+    root_validator,
+)
+from pydantic.main import create_model
 import datetime
 import numpy as np
 import re
 import fnmatch
+import json
 
-from nomad import datamodel  # pylint: disable=unused-import
+from nomad import datamodel, metainfo  # pylint: disable=unused-import
 from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
-from nomad.metainfo.search_extension import metrics, search_quantities, search_sub_sections
+from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_type, material_type
 
 from .utils import parameter_dependency_from_model, update_url_query_arguments
 
 
 User = datamodel.User.m_def.a_pydantic.model
+# It is important that datetime.datetime comes last. Otherwise, number valued strings
+# are interpreted as epoch dates by pydantic
+Value = Union[StrictInt, StrictFloat, StrictBool, str, datetime.datetime]
+ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
 
 
-calc_id = 'calc_id'
-Metric = enum.Enum('Metric', {name: name for name in metrics})  # type: ignore
-AggregateableQuantity = enum.Enum('AggregateableQuantity', {  # type: ignore
-    name: name for name in search_quantities
-    if search_quantities[name].aggregateable})
+owner_documentation = strip('''
+The `owner` allows to limit the scope of the searched based on entry ownership.
+This is useful, if you only want to search among all publically downloadable
+entries, or only among your own entries, etc.
 
-AggregateableQuantity.__doc__ = '''
-    Statistics and aggregations can only be computed for those search quantities that have
-    discrete values. For example a statistics aggregates a certain metric (e.g. the number of entries)
-    over all entries were this quantity has the same value (bucket aggregation, think historgam here).
-'''
+These are the possible owner values and their meaning:
 
-Value = Union[str, int, float, bool, datetime.datetime]
-ComparableValue = Union[str, int, float, datetime.datetime]
+* `public`: Consider all entries that can be publically downloaded, i.e. only published entries without embargo.
+* `user`: Only consider entries that belong to you.
+* `shared`: Only consider entries that belong to you or are shared with you.
+* `visible`: Consider all entries that are visible to you. This includes
+    entries with embargo or unpublished entries that belong to you or are
+    shared with you.
+* `staging`: Only search through unpublished entries.
+* `all`: Consider all entries.
+''')
 
 
-class AggregationOrderType(str, enum.Enum):
+class Owner(str, enum.Enum):
+    owner_documentation
+
+    # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
+    # it will ignore any given default or example and simply take the first enum value.
+    # Therefore, we put public first, which is the most default and save in most contexts.
+    public = 'public'
+    all_ = 'all'
+    visible = 'visible'
+    shared = 'shared'
+    user = 'user'
+    staging = 'staging'
+    admin = 'admin'
+
+
+class Direction(str, enum.Enum):
     '''
-    Allows to order statistics or aggregations by either quantity values (`values`) or number
-    of entries (`entries`).
+    Order direction, either ascending (`asc`) or descending (`desc`)
     '''
-    values = 'values'
-    entries = 'entries'
+    asc = 'asc'
+    desc = 'desc'
 
 
 class HTTPExceptionModel(BaseModel):
@@ -73,39 +104,65 @@ class NoneEmptyBaseModel(BaseModel):
         return values
 
 
-class All(NoneEmptyBaseModel):
+class All(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='all')
 
 
-class None_(NoneEmptyBaseModel):
+class None_(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='none')
 
 
-class Any_(NoneEmptyBaseModel):
+class Any_(NoneEmptyBaseModel, extra=Extra.forbid):
     op: List[Value] = Field(None, alias='any')
 
 
-class ComparisonOperator(NoneEmptyBaseModel): pass
+class Range(BaseModel, extra=Extra.forbid):
+    '''
+    Represents a finite range which can have open or closed ends. Supports
+    several datatypes that have a well-defined comparison operator.
+    '''
+    @root_validator
+    def check_range_is_valid(cls, values):  # pylint: disable=no-self-argument
+        lt = values.get('lt')
+        lte = values.get('lte')
+        gt = values.get('gt')
+        gte = values.get('gte')
+
+        # At least one value needs to be defined
+        assert (lt is not None) or (lte is not None) or (gt is not None) or (gte is not None)
+
+        # The start/end can only be either open or closed, not both
+        if lt is not None:
+            assert lte is None
+        if lte is not None:
+            assert lt is None
+        if gt is not None:
+            assert gte is None
+        if gte is not None:
+            assert gt is None
+
+        return values
+
+    lt: Optional[ComparableValue] = Field(None)
+    lte: Optional[ComparableValue] = Field(None)
+    gt: Optional[ComparableValue] = Field(None)
+    gte: Optional[ComparableValue] = Field(None)
 
 
-class Lte(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='lte')
+ops = {
+    'lte': Range,
+    'lt': Range,
+    'gte': Range,
+    'gt': Range,
+    'all': All,
+    'none': None_,
+    'any': Any_
+}
 
-
-class Lt(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='lt')
-
-
-class Gte(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='gte')
-
-
-class Gt(ComparisonOperator):
-    op: ComparableValue = Field(None, alias='gt')
+CriteriaValue = Union[Value, List[Value], Range, Any_, All, None_, Dict[str, Any]]
 
 
 class LogicalOperator(NoneEmptyBaseModel):
-
     @validator('op', check_fields=False)
     def validate_query(cls, query):  # pylint: disable=no-self-argument
         if isinstance(query, list):
@@ -126,56 +183,121 @@ class Not(LogicalOperator):
     op: 'Query' = Field(None, alias='not')
 
 
-ops = {
-    'lte': Lte,
-    'lt': Lt,
-    'gte': Gte,
-    'gt': Gt,
-    'all': All,
-    'none': None_,
-    'any': Any_
-}
+class Nested(BaseModel):
+    prefix: str
+    query: 'Query'
+
+    @validator('query')
+    def validate_query(cls, query):  # pylint: disable=no-self-argument
+        return _validate_query(query)
 
 
-QueryParameterValue = Union[Value, List[Value], Lte, Lt, Gte, Gt, Any_, All, None_]
+class Criteria(BaseModel, extra=Extra.forbid):
+    name: str
+    value: CriteriaValue
 
-Query = Union[
-    Mapping[str, QueryParameterValue], And, Or, Not]
+    @validator('value')
+    def validate_query(cls, value, values):  # pylint: disable=no-self-argument
+        name, value = _validate_criteria_value(values['name'], value)
+        values['name'] = name
+        return value
+
+
+class Empty(BaseModel, extra=Extra.forbid):
+    pass
+
+
+Query = Union[And, Or, Not, Nested, Criteria, Empty, Mapping[str, CriteriaValue]]
 
 
 And.update_forward_refs()
 Or.update_forward_refs()
 Not.update_forward_refs()
+Nested.update_forward_refs()
 
 
-class Owner(str, enum.Enum):
-    '''
-    The `owner` allows to limit the scope of the searched based on entry ownership.
-    This is useful, if you only want to search among all publically downloadable
-    entries, or only among your own entries, etc.
+query_documentation = strip('''
+A query can be a very simple list of parameters. Different parameters or values of the same parameter are combined
+with a logical **and**.
+The following query would search for all entries that are VASP calculations,
+contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
+**and** *Chris Wolverton*.
+```json
+{
+    "results.material.elements": ["Na", "Cl"],
+    "results.method.simulation.program_name": "VASP",
+    "authors": ["Stefano Curtarolo", "Chris Wolverton"]
+}
+```
 
-    These are the possible owner values and their meaning:
-    * `all`: Consider all entries.
-    * `public` (default): Consider all entries that can be publically downloaded,
-        i.e. only published entries without embargo
-    * `user`: Only consider entries that belong to you.
-    * `shared`: Only consider entries that belong to you or are shared with you.
-    * `visible`: Consider all entries that are visible to you. This includes
-        entries with embargo or unpublished entries that belong to you or are
-        shared with you.
-    * `staging`: Only search through unpublished entries.
-    '''
+A short cut to change the logical combination of values in a list, is to
+add a suffix to the quantity `:any`:
+```json
+{
+    "results.material.elements": ["Na", "Cl"],
+    "results.method.simulation.program_name": "VASP",
+    "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
+}
+```
 
-    # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
-    # it will ignore any given default or example and simply take the first enum value.
-    # Therefore, we put public first, which is the most default and save in most contexts.
-    public = 'public'
-    all_ = 'all'
-    visible = 'visible'
-    shared = 'shared'
-    user = 'user'
-    staging = 'staging'
-    admin = 'admin'
+Otherwise, you can also write complex logical combinations of parameters like this:
+```json
+{
+    "and": [
+        {
+            "or": [
+                {
+                    "results.material.elements": ["Cl", "Na"]
+                },
+                {
+                    "results.material.elements": ["H", "O"]
+                }
+            ]
+        },
+        {
+            "not": {
+                "results.material.symmetry.crystal_system": "cubic"
+            }
+        }
+    ]
+}
+```
+Other short-cut prefixes are `none:` and `any:` (the default).
+
+By default all quantity values have to **equal** the given values to match. For
+some values you can also use comparison operators like this:
+```json
+{
+    "upload_create_time": {
+        "gt": "2020-01-01",
+        "lt": "2020-08-01"
+    },
+    "results.properties.geometry_optimization.final_energy_difference": {
+        "lte": 1.23e-18
+    }
+}
+```
+
+or shorter with suffixes:
+```json
+{
+    "upload_create_time:gt": "2020-01-01",
+    "upload_create_time:lt": "2020-08-01",
+    "results.properties.geometry_optimization.final_energy_difference:lte": 1.23e-18
+}
+```
+
+The searchable quantities are a subset of the NOMAD Archive quantities defined
+in the NOMAD Metainfo. The searchable quantities also depend on the API endpoint.
+
+There is also an additional query parameter that you can use to formulate queries based
+on the optimade filter language:
+```json
+{
+    "optimade_filter": "nelements >= 2 AND elements HAS ALL 'Ti', 'O'"
+}
+```
+''')
 
 
 class WithQuery(BaseModel):
@@ -183,91 +305,15 @@ class WithQuery(BaseModel):
     query: Optional[Query] = Body(
         None,
         embed=True,
-        description=strip('''
-            A query can be very simple list of parameters. Different parameters are combined
-            with a logical **and**, values of the same parameter with also with a logical **and**.
-            The following would search for all entries that are VASP calculations,
-            contain *Na* **and** *Cl*, **and** are authored by *Stefano Curtarolo*
-            **and** *Chris Wolverton*.
-            ```
-            {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
-                "authors": ["Stefano Curtarolo", "Chris Wolverton"]
-            }
-            ```
-
-            A short cut to change the logical combination of values in a list, is to
-            add a suffix to the quantity `:any`:
-            ```
-            {
-                "atoms": ["Na", "Cl"],
-                "dft.code_name": "VASP",
-                "authors:any": ["Stefano Curtarolo", "Chris Wolverton"]
-            }
-            ```
-
-            Otherwise, you can also write complex logical combinations of parameters like this:
-            ```
-            {
-                "and": [
-                    {
-                        "or": [
-                            {
-                                "atoms": ["Cl", "Na"]
-                            },
-                            {
-                                "atoms": ["H", "O"]
-                            }
-                        ]
-                    },
-                    {
-                        "not": {
-                            "dft.crystal": "cubic"
-                        }
-                    }
-                ]
-            }
-            ```
-            Other short-cut prefixes are `none:` and `any:` (the default).
-
-            By default all quantity values have to **equal** the given values to match. For
-            some values you can also use comparison operators like this:
-            ```
-            {
-                "upload_time": {
-                    "gt": "2020-01-01",
-                    "lt": "2020-08-01"
-                },
-                "dft.workflow.section_geometry_optimization.final_energy_difference": {
-                    "lte": 1.23e-18
-                }
-            }
-            ```
-
-            or shorter with suffixes:
-            ```
-            {
-                "upload_time:gt": "2020-01-01",
-                "upload_time:lt": "2020-08-01",
-                "dft.workflow.section_geometry_optimization.final_energy_difference:lte" 1.23e-18
-            }
-            ```
-
-            The searchable quantities are a subset of the NOMAD Archive quantities defined
-            in the NOMAD Metainfo. The most common quantities are: %s.
-        ''' % ', '.join(reversed([
-            '`%s`' % name
-            for name in search_quantities
-            if (name.startswith('dft') or '.' not in name) and len(name) < 20
-        ]))),
+        description=query_documentation,
         example={
-            'upload_time:gt': '2020-01-01',
-            'atoms': ['Ti', 'O'],
-            'dft.code_name': 'VASP',
-            'dft.workflow.section_geometry_optimization.final_energy_difference:lte': 1.23e-18,
-            'dft.quantities': 'section_dos',
-            'dft.system:any': ['bulk', '2d']
+            'upload_create_time:gt': '2020-01-01',
+            'results.material.elements': ['Ti', 'O'],
+            'results.method.simulation.program_name': 'VASP',
+            'results.properties.geometry_optimization.final_energy_difference:lte': 1.23e-18,
+            'results.properties.available_properties': 'section_dos',
+            'results.material.type_structural:any': ['bulk', '2d'],
+            'optimade_filter': 'nelements >= 2 AND elements HAS ALL "Ti", "O"'
         })
 
     @validator('query')
@@ -275,127 +321,141 @@ class WithQuery(BaseModel):
         return _validate_query(query)
 
 
+def _validate_criteria_value(name: str, value: CriteriaValue):
+    if ':' in name:
+        quantity, qualifier = name.split(':')
+    else:
+        quantity, qualifier = name, None
+
+    if qualifier is not None:
+        assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
+        return quantity, ops[qualifier](**{qualifier: value})  # type: ignore
+    elif isinstance(value, list):
+        return quantity, All(all=value)
+    else:
+        return quantity, value
+
+
 def _validate_query(query: Query):
     if isinstance(query, dict):
         for key, value in list(query.items()):
-            # Note, we loop over a list of items, not query.items(). This is because we
-            # may modify the query in the loop.
-            if ':' in key:
-                quantity, qualifier = key.split(':')
-            else:
-                quantity, qualifier = key, None
-
-            assert quantity in search_quantities, '%s is not a searchable quantity' % key
-            if qualifier is not None:
+            quantity, value = _validate_criteria_value(key, value)
+            if quantity != key:
                 assert quantity not in query, 'a quantity can only appear once in a query'
-                assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
                 del(query[key])
-                query[quantity] = ops[qualifier](**{qualifier: value})  # type: ignore
-            elif isinstance(value, list):
-                query[quantity] = All(all=value)
+            query[quantity] = value
 
     return query
 
 
-def query_parameters(
-    request: Request,
-    owner: Optional[Owner] = FastApiQuery(
-        'public', description=strip(Owner.__doc__)),
-    q: Optional[List[str]] = FastApiQuery(
-        [], description=strip('''
-            Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
-            you can use the parameter `q` and encode a query parameter like this
-            `atoms__H` or `n_atoms__gt__3`. Multiple usage of `q` will combine parameters with
-            logical *and*.
-        '''))) -> WithQuery:
+class QueryParameters:
+    def __init__(self, doc_type: DocumentType):
+        self.doc_type = doc_type
 
-    # copy parameters from request
-    query_params = {
-        key: request.query_params.getlist(key)
-        for key in request.query_params}
+    def __call__(
+        self,
+        request: Request,
+        owner: Optional[Owner] = FastApiQuery(
+            'public', description=strip(Owner.__doc__)),
+        json_query: Optional[str] = FastApiQuery(None, description=strip('''
+                To pass a query string in the format of JSON e.g. '{{"results.material.elements": ["H", "O"]}}'.
+            ''')),
+        q: Optional[List[str]] = FastApiQuery(
+            [], description=strip('''
+                Since we cannot properly offer forms for all parameters in the OpenAPI dashboard,
+                you can use the parameter `q` and encode a query parameter like this
+                `atoms__H` or `n_atoms__gt__3`. Multiple usage of `q` will combine parameters with
+                logical *and*.
+            '''))) -> WithQuery:
 
-    # add the encoded parameters
-    for parameter in q:
-        fragments = parameter.split('__')
-        if len(fragments) == 1 or len(fragments) > 3:
-            raise HTTPException(422, detail=[{
-                'loc': ['query', 'q'],
-                'msg': 'wrong format, use <quantity>[__<op>]__<value>'}])
-        name_op, value = '__'.join(fragments[:-1]), fragments[-1]
-        quantity_name = name_op.split('__')[0]
+        # copy parameters from request
+        query_params = {
+            key: request.query_params.getlist(key)
+            for key in request.query_params}
 
-        if quantity_name not in search_quantities:
-            raise HTTPException(422, detail=[{
-                'loc': ['query', parameter],
-                'msg': '%s is not a search quantity' % quantity_name}])
+        # add the encoded parameters
+        for parameter in q:
+            fragments = parameter.split('__')
+            if len(fragments) == 1 or len(fragments) > 3:
+                raise HTTPException(422, detail=[{
+                    'loc': ['query', 'q'],
+                    'msg': 'wrong format, use <quantity>[__<op>]__<value>'}])
+            name_op, value = '__'.join(fragments[:-1]), fragments[-1]
+            quantity_name = name_op.split('__')[0]
 
-        query_params.setdefault(name_op, []).append(value)
+            doc_type = self.doc_type
+            if quantity_name.startswith('entries.'):
+                if self.doc_type == material_type:
+                    doc_type = material_entry_type
+                else:
+                    raise HTTPException(422, detail=[{
+                        'loc': ['query', parameter],
+                        'msg': f'entries can only be nested into material queries'}])
 
-    # transform query parameters to query
-    query: Dict[str, Any] = {}
-    for key in query_params:
-        op = None
-        if '__' in key:
-            quantity_name, op = key.split('__')
-        else:
-            quantity_name = key
+            if quantity_name not in doc_type.quantities:
+                raise HTTPException(422, detail=[{
+                    'loc': ['query', parameter],
+                    'msg': f'{quantity_name} is not a {doc_type} quantity'}])
 
-        if quantity_name not in search_quantities:
-            continue
+            query_params.setdefault(name_op, []).append(value)
 
-        quantity = search_quantities[quantity_name]
-        type_ = quantity.definition.type
-        if type_ is Datetime:
-            type_ = datetime.datetime.fromisoformat
-        elif isinstance(type_, MEnum):
-            type_ = str
-        elif isinstance(type_, np.dtype):
-            type_ = float
-        elif type_ not in [int, float, bool]:
-            type_ = str
-        values = query_params[key]
-        values = [type_(value) for value in values]
+        # transform query parameters to query
+        query: Dict[str, Any] = {}
+        for key in query_params:
+            op = None
+            if '__' in key:
+                quantity_name, op = key.split('__')
+            else:
+                quantity_name = key
 
-        if op is None:
-            if quantity.many_and:
-                op = 'all'
-            if quantity.many_or:
-                op = 'any'
+            if quantity_name.startswith('entries.'):
+                quantity = material_entry_type.quantities.get(quantity_name[8:])
+            else:
+                quantity = self.doc_type.quantities.get(quantity_name)
 
-        if op is None:
-            if len(values) > 1:
+            if quantity is None:
+                continue
+
+            type_ = quantity.definition.type
+            if type_ is Datetime:
+                type_ = datetime.datetime.fromisoformat
+            elif isinstance(type_, MEnum):
+                type_ = str
+            elif isinstance(type_, np.dtype):
+                type_ = float
+            elif type_ not in [int, float, bool]:
+                type_ = str
+            values = query_params[key]
+            values = [type_(value) for value in values]
+
+            if op is None:
+                op = 'all' if quantity.many_all else 'any'
+
+            if op == 'all':
+                query[quantity_name] = All(all=values)
+            elif op == 'any':
+                query[quantity_name] = Any_(any=values)
+            elif op in ops:
+                if len(values) > 1:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=[{
+                            'loc': ['query', key],
+                            'msg': 'operator %s does not support multiple values' % op}])
+                query[quantity_name] = ops[op](**{op: values[0]})
+            else:
                 raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        'loc': ['query', key],
-                        'msg':'search parameter %s does not support multiple values' % key}])
-            query[quantity_name] = values[0]
+                    422, detail=[{'loc': ['query', key], 'msg': 'operator %s is unknown' % op}])
 
-        elif op == 'all':
-            query[quantity_name] = All(all=values)
-        elif op == 'any':
-            query[quantity_name] = Any_(any=values)
-        elif op in ops:
-            if len(values) > 1:
+        # process the json_query
+        if json_query is not None:
+            try:
+                query.update(**json.loads(json_query))
+            except Exception:
                 raise HTTPException(
-                    status_code=422,
-                    detail=[{
-                        'loc': ['query', key],
-                        'msg': 'operator %s does not support multiple values' % op}])
-            query[quantity_name] = ops[op](**{op: values[0]})
-        else:
-            raise HTTPException(
-                422, detail=[{'loc': ['query', key], 'msg': 'operator %s is unknown' % op}])
+                    422, detail=[{'loc': ['json_query'], 'msg': 'cannot parse json_query'}])
 
-    return WithQuery(query=query, owner=owner)
-
-
-class Direction(str, enum.Enum):
-    '''
-    Order direction, either ascending (`asc`) or descending (`desc`)
-    '''
-    asc = 'asc'
-    desc = 'desc'
+        return WithQuery(query=query, owner=owner)
 
 
 class MetadataRequired(BaseModel):
@@ -404,31 +464,13 @@ class MetadataRequired(BaseModel):
     include: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to include for each result. Only those quantities will be
-            returned. The entry id quantity `calc_id` will always be included.
+            returned. At least one id quantity (e.g. `entry_id`) will always be included.
         '''))
     exclude: Optional[List[str]] = Field(
         None, description=strip('''
             Quantities to exclude for each result. Only all other quantities will
-            be returned. The quantity `calc_id` cannot be excluded.
+            be returned. The entity's id quantity (e.g. `entry_id`) cannot be excluded.
         '''))
-
-    @validator('include', 'exclude')
-    def validate_include(cls, value, values, field):  # pylint: disable=no-self-argument
-        if value is None:
-            return None
-
-        for item in value:
-            assert item in search_quantities or item in search_sub_sections or item[-1] == '*', \
-                f'required fields ({item}) must be valid search quantities or contain wildcards'
-
-        if field.name == 'include' and 'calc_id' not in value:
-            value.append('calc_id')
-
-        if field.name == 'exclude':
-            if 'calc_id' in value:
-                value.remove('calc_id')
-
-        return value
 
 
 metadata_required_parameters = parameter_dependency_from_model(
@@ -444,7 +486,7 @@ class Pagination(BaseModel):
             A `page_size` of 0 will return no results.
         '''))
     order_by: Optional[str] = Field(
-        None,  # type: ignore
+        None,
         description=strip('''
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
@@ -481,8 +523,19 @@ class Pagination(BaseModel):
             or where it can only be used partially. **If you want to just iterate through
             all the results, aways use the `page_after_value` and `next_page_after_value`!**
 
-            **NOTE #2**: In a request, you should never specify *both* `page` and
-            `page_after_value` (at most one index can be provided).
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        '''))
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            The number of skipped entries. When provided in a request, this attribute
+            can be used instead of `page_after_value` to jump to a particular results page.
+
+            **NOTE #1**: the option to request pages by submitting the `page_offset` number is
+            limited. There are api calls where this attribute cannot be used for indexing,
+            or where it can only be used partially. **If you want to just iterate through
+            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+
+            **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
 
     @validator('page_size')
@@ -513,6 +566,12 @@ class Pagination(BaseModel):
             assert page >= 1, 'page must be >= 1'
         return page
 
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'page_offset must be >= 1'
+        return page_offset
+
     @root_validator(skip_on_failure=True)
     def validate_values(cls, values):  # pylint: disable=no-self-argument
         # Because of a bug in pydantic (#2670), root validators can't be overridden, so
@@ -521,13 +580,19 @@ class Pagination(BaseModel):
 
     @classmethod
     def _root_validation(cls, values):
+        page_offset = values.get('page_offset')
         page = values.get('page')
         page_after_value = values.get('page_after_value')
         page_size = values.get('page_size')
-        assert page is None or page_after_value is None, 'Cannot specify both `page` and `page_after_value'
+
+        n_offset_criteria = (1 if page_offset else 0) + (1 if page else 0) + (1 if page_after_value else 0)
+        assert n_offset_criteria <= 1, 'Can only specify one `page_offset`, `page`, or `page_after_value'
+
         if page_size == 0:
+            assert page_offset is None, 'Cannot specify `page_offset` when `page_size` is set to 0'
             assert page is None, 'Cannot specify `page` when `page_size` is set to 0'
             assert page_after_value is None, 'Cannot specify `page_after_value` when `page_size` is set to 0'
+
         return values
 
     def get_simple_index(self):
@@ -536,13 +601,15 @@ class Pagination(BaseModel):
         corresponding index (0-based). It will look on either `page` or `page_after_value`.
         If neither index is provided, we return 0 (i.e. the first index).
         '''
-        if self.page is None and self.page_after_value is None:
-            return 0
+        if self.page_offset is not None:
+            return self.page_offset
         if self.page is not None:
             return (self.page - 1) * self.page_size
-        rv = int(self.page_after_value) + 1
-        assert rv >= 0
-        return rv
+        if self.page_after_value is not None:
+            rv = int(self.page_after_value) + 1
+            assert rv >= 0
+            return rv
+        return 0
 
 
 class PaginationResponse(Pagination):
@@ -635,9 +702,9 @@ class PaginationResponse(Pagination):
             self.populate_urls(request)
 
 
-class EntryBasedPagination(Pagination):
+class MetadataBasedPagination(Pagination):
     order_by: Optional[str] = Field(
-        calc_id,  # type: ignore
+        None,
         description=strip('''
             The results are ordered by the values of this field. If omitted, default
             ordering is applied.
@@ -645,24 +712,16 @@ class EntryBasedPagination(Pagination):
 
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
-        if order_by is None:
-            return order_by
-
-        assert order_by in search_quantities, 'order_by must be a valid search quantity'
-        quantity = search_quantities[order_by]
-        assert quantity.definition.is_scalar, 'the order_by quantity must be a scalar'
+        # No validation here – validation is done during search
         return order_by
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
-        order_by = values.get('order_by', calc_id)
-        if page_after_value is not None and order_by is not None and order_by != calc_id:
-            if ':' not in page_after_value:
-                page_after_value = '%s:' % page_after_value
+        # No validation here – validation is done during search
         return page_after_value
 
 
-class EntryPagination(EntryBasedPagination):
+class MetadataPagination(MetadataBasedPagination):
     page: Optional[int] = Field(
         None, description=strip('''
             For simple, index-based pagination, this should contain the number of the
@@ -670,8 +729,18 @@ class EntryPagination(EntryBasedPagination):
             used instead of `page_after_value` to jump to a particular results page.
 
             However, you can only retreive up to the 10.000th entry with a page number.
-            Only one, `page_after_value` *or* `page` can be provided.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
+
+    page_offset: Optional[int] = Field(
+        None, description=strip('''
+            Return the page that follows the given number of entries. Overwrites
+            `page` and `page_after_value`.
+
+            However, you can only retreive up to the 10.000th entry.
+            Only one, `page`, `page_offset` or `page_after_value`, can be used.
+        ''')
+    )
 
     @validator('page')
     def validate_page(cls, page, values):  # pylint: disable=no-self-argument
@@ -681,17 +750,35 @@ class EntryPagination(EntryBasedPagination):
 
         return page
 
+    @validator('page_offset')
+    def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
+        if page_offset is not None:
+            assert page_offset >= 0, 'Page offset has to be larger than 0.'
+            assert page_offset + values.get('page_size', 10) < 10000, 'Page offset plus page size has to be smaller thant 10.0000.'
 
-entry_pagination_parameters = parameter_dependency_from_model(
-    'entry_pagination_parameters', EntryPagination)
+        return page_offset
 
 
-class AggregationPagination(EntryBasedPagination):
+metadata_pagination_parameters = parameter_dependency_from_model(
+    'metadata_pagination_parameters', MetadataPagination)
+
+
+class AggregationPagination(MetadataBasedPagination):
     order_by: Optional[str] = Field(
         None,  # type: ignore
         description=strip('''
-            The results are ordered by the values of this field. If omitted, default
-            ordering is applied.
+            Either the string "count", "value", or the name of a quantity. If omitted the buckets
+            will be ordered by the item "count".
+
+            If you provide a quantity, all items
+            in a bucket must have the same value for this quantity. For example, aggregating
+            entries on `upload_id` and ordering with the buckets by `upload_create_time` is fine,
+            because all entries in an upload have the same `upload_create_time`. The API cannot
+            check this rule and the results will be unpredictable.
+
+            If you want to order by the bucket values, you can either use "value" or use
+            the aggregation quantity to `order_by`. The result will be the same, because
+            the bucket values are the quantity values.
         '''))
 
     @validator('page')
@@ -699,11 +786,16 @@ class AggregationPagination(EntryBasedPagination):
         assert page is None, 'Pagination by `page` is not possible for aggregations, use `page_after_value`'
         return page
 
+    @validator('page_size')
+    def validate_page_size(cls, page_size, values):  # pylint: disable=no-self-argument
+        assert page_size > 0, '0 or smaller page sizes are not allowed for aggregations.'
+        return page_size
+
 
 class AggregatedEntities(BaseModel):
     size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
         1, description=strip('''
-        The maximum number of entries that should be returned for each value in the
+        The number of entries that should be returned for each value in the
         aggregation.
         '''))
     required: Optional[MetadataRequired] = Field(
@@ -712,131 +804,329 @@ class AggregatedEntities(BaseModel):
         '''))
 
 
-class Aggregation(BaseModel):
-    quantity: AggregateableQuantity = Field(
+class AggregationBase(BaseModel):
+    pass
+
+
+class QuantityAggregation(AggregationBase):
+    quantity: str = Field(
         ..., description=strip('''
         The manatory name of the quantity for the aggregation. Aggregations
         can only be computed for those search metadata that have discrete values;
         an aggregation buckets entries that have the same value for this quantity.'''))
-    pagination: Optional[AggregationPagination] = Field(
-        AggregationPagination(), description=strip('''
-        Only the data few values are returned for each API call. Pagination allows to
-        get the next set of values based on the last value in the last call.
-        '''))
-    entries: Optional[AggregatedEntities] = Field(
-        None, description=strip('''
-        Optionally, a set of entries can be returned for each value.
-        '''))
+    exclude_from_search: bool = Field(
+        False, description=strip('''
+        If set to true, top-level search criteria involving the aggregation quantity, will not
+        be applied for this aggregation. Therefore, the aggregation will return all
+        values for the quantity, even if the possible values where filtered by the query.
+
+        There are two limitations. This is only supported with queries that start with a
+        dictionary. It will not work for queries with a boolean operator. It can only
+        exclude top-level criteria at the root of the query dictionary. Nested criteria,
+        e.g. within complex and/or constructs, cannot be considered. Using this might also
+        prohibit pagination with page_after_value on aggregations in the same request.
+        ''')
+    )
 
 
-class StatisticsOrder(BaseModel):
-    type_: Optional[AggregationOrderType] = Field(AggregationOrderType.entries, alias='type')
-    direction: Optional[Direction] = Field(Direction.desc)
-
-
-class Statistic(BaseModel):
-    quantity: AggregateableQuantity = Field(
-        ..., description=strip('''
-        The manatory name of the quantity that the statistic is calculated for. Statistics
-        can only be computed for those search metadata that have discrete values; a statistics
-        aggregates a certain metric (e.g. the number of entries) over all entries were
-        this quantity has the same value (bucket aggregation, think historgam here).
-
-        There is one except and these are date/time values quantities (most notably `upload_time`).
-        Here each statistic value represents an time interval. The interval can
-        be determined via `datetime_interval`.'''))
-    metrics: Optional[List[Metric]] = Field(
+class BucketAggregation(QuantityAggregation):
+    metrics: Optional[List[str]] = Field(
         [], description=strip('''
-        By default the returned statistics will provide the number of entries for each
+        By default the returned aggregations will provide the number of entries for each
         value. You can add more metrics. For each metric an additional number will be
         provided for each value. Metrics are also based on search metadata. Depending on
         the metric the number will represent either a sum (`calculations` for the number
         of individual calculation in each code run) or an amount of different values
         (i.e. `materials` for the amount of different material hashes).'''))
-    datetime_interval: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
-        None, description=strip('''
-        While statistics in general are only possible for quantities with discrete values,
-        these is one exception. These are date/time values quantities (most notably `upload_time`).
-        Here each statistic value represents an time interval.
 
-        A date/time interval is a number of seconds greater than 0. This will only be used for
-        date/time valued quantities (e.g. `upload_time`).
-        '''))
-    value_filter: Optional[pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')] = Field(  # type: ignore
+
+class TermsAggregation(BucketAggregation):
+    pagination: Optional[AggregationPagination] = Field(
         None, description=strip('''
-        An optional filter for values. Only values that contain the filter as substring
-        will be part of the statistics.
+        Only the data few values are returned for each API call. Aggregation
+        pagination allows to get all available values by pagination. It also allows to
+        order values.
+
+        You can only use pagination (to page through all available values) or size (to
+        get the size number of values with the most available data).
         '''))
     size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
         None, description=strip('''
-        An optional maximum size of values in the statistics. The default depends on the
-        quantity.
+        The ammount of aggregation values is limited. This allows you to configure the
+        maximum number of aggregated values to return. If you need to exaust all
+        possible value, use `pagination`.
         '''))
-    order: Optional[StatisticsOrder] = Field(
-        StatisticsOrder(), description=strip('''
-        The values in the statistics are either ordered by the entry count or by the
-        natural ordering of the values.
+    include: Optional[Union[List[str], pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')]] = Field(  # type: ignore
+        None, description=strip('''
+        An optional filter for aggregation values. You can either specify a
+        single string which must be contained in the aggregation value or then
+        provide an array of keywords for which the aggregation will be created.
+
+        This is only available for non paginated aggregations.
+        '''))
+    entries: Optional[AggregatedEntities] = Field(
+        None, description=strip('''
+        Optionally, a set of entries can be returned for each value. These are basically
+        example entries that have the respective bucket value.
         '''))
 
-    @root_validator(skip_on_failure=True)
-    def fill_default_size(cls, values):  # pylint: disable=no-self-argument
-        if 'size' not in values or values['size'] is None:
-            values['size'] = search_quantities[values['quantity'].value].statistic_size
 
-        return values
+class HistogramAggregation(BucketAggregation):
+    interval: pydantic.confloat(gt=0)  # type: ignore
+
+
+class DateHistogramAggregation(BucketAggregation):
+    interval: str = Field('1M')  # type: ignore
+
+
+class MinMaxAggregation(QuantityAggregation):
+    pass
+
+
+class StatisticsAggregation(AggregationBase):
+    metrics: Optional[List[str]] = Field(
+        [], description=strip('''
+        A list of search quantities to act as metrics on all data. Depending on
+        the metric the number will represent either a sum (`calculations` for the number
+        of individual calculation in each code run) or an amount (cardinality) of
+        different values (i.e. `materials` for the amount of different material hashes).'''))
+
+
+class Aggregation(BaseModel):
+    terms: Optional[TermsAggregation] = Body(
+        None,
+        description=strip('''
+            A `terms` aggregation allows to get the values of a quantity that occur in
+            the search query result data. For each value, a bucket is created with
+            information about how many entries have the value (or additional metrics).
+            For example to get all entries that use a certain code, you can use:
+            ```json
+            {
+                "aggregations": {
+                    "all_codes": {
+                        "terms": {
+                            "quantity": "results.method.simulation.program_name"
+                        }
+                    }
+                }
+            }
+            ```
+
+            Terms aggregations can also be used to paginate though all values of a certain
+            quantities. Each page will be companied with a `page_after_value` that
+            can be used to retrieve the next value. For example to go through all datasets
+            available in the search query:
+            ```json
+            {
+                "aggregations": {
+                    "all_datasets": {
+                        "terms": {
+                            "quantity": "datasets",
+                            "pagination": {
+                                "page_size": 100
+                            }
+                        }
+                    }
+                }
+            }
+            ```
+        '''))
+
+    histogram: Optional[HistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `histogram` aggregation allows to get the ranges quantity values and
+            how many (or another metrics) entries exhibit values in those ranges:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "histogram": {
+                            "quantity": "properties.n_calculations",
+                            "interval": 10
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity. An interval is
+            mandatory and determines the bucket size.
+        '''))
+
+    date_histogram: Optional[DateHistogramAggregation] = Body(
+        None,
+        description=strip('''
+            A `date_histogram` aggregation is like a normal `histogram` but for date valued
+            quantities.:
+
+            ```json
+            {
+                "aggregations": {
+                    "upload_create_times": {
+                        "histogram": {
+                            "quantity": "upload_create_time",
+                            "interval": "1M"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a datetime typed quantity. Intervals are strings
+            that determine a time period. The default is one month, `1M`.
+        '''))
+
+    min_max: Optional[MinMaxAggregation] = Body(
+        None,
+        description=strip('''
+            A `min_max` aggregation allows to get the minumum and maximum quantity values:
+
+            ```json
+            {
+                "aggregations": {
+                    "calculations_per_entry": {
+                        "min_max": {
+                            "quantity": "results.properties.n_calculations"
+                        }
+                    }
+                }
+            }
+            ```
+
+            The used quantity must be a float or int typed quantity.
+        '''))
+
+    statistics: Optional[StatisticsAggregation] = Body(
+        None,
+        description=strip('''
+            A `statistics` aggregation allows to get metrics (sums or cardinalities) from all data
+            that matches the search.
+
+            ```json
+            {
+                "aggregations": {
+                    "statistics": {
+                        "global": {
+                            "metrics": ["results.properties.n_calculations", "results.material.material_id"]
+                        }
+                    }
+                }
+            }
+            ```
+        '''))
 
 
 class WithQueryAndPagination(WithQuery):
-    pagination: Optional[EntryPagination] = Body(
+    pagination: Optional[MetadataPagination] = Body(
         None,
         example={
             'page_size': 5,
-            'order_by': 'upload_time'
+            'order_by': 'upload_create_time'
         })
 
 
-class EntriesMetadata(WithQueryAndPagination):
+class Metadata(WithQueryAndPagination):
     required: Optional[MetadataRequired] = Body(
         None,
         example={
-            'include': ['calc_id', 'mainfile', 'upload_id', 'authors', 'upload_time']
-        })
-    statistics: Optional[Dict[str, Statistic]] = Body(
-        {},
-        description=strip('''
-            This allows to define additional statistics that should be returned.
-            Statistics aggregate entries that show the same quantity values for a given quantity.
-            A simple example is the number of entries for each `dft.code_name`. These statistics
-            will be computed only over the query results. This allows to get an overview about
-            query results.
-        '''),
-        example={
-            'by_code_name': {
-                'metrics': ['uploads', 'datasets'],
-                'quantity': 'dft.code_name'
-            }
+            'include': ['entry_id', 'mainfile', 'upload_id', 'authors', 'upload_create_time']
         })
     aggregations: Optional[Dict[str, Aggregation]] = Body(
         {},
         example={
-            'uploads': {
-                'quantity': 'upload_id',
-                'pagination': {
-                    'page_size': 10,
-                    'order_by': 'upload_time'
-                },
-                'entries': {
-                    'size': 1,
-                    'required': {
-                        'include': ['mainfile']
+            'all_codes': {
+                'terms': {
+                    'quantity': 'results.method.simulation.program_name',
+                    'entries': {
+                        'size': 1,
+                        'required': {
+                            'include': ['mainfile']
+                        }
                     }
+                },
+            },
+            'all_datasets': {
+                'terms': {
+                    'quantity': 'datasets.dataset_name',
+                    'pagination': {
+                        'page_size': 100
+                    }
+                }
+            },
+            'system_size': {
+                'min_max': {
+                    'quantity': 'results.properties.structures.structure_conventional.n_sites'
+                }
+            },
+            'upload_create_times': {
+                'date_histogram': {
+                    'quantity': 'upload_create_time',
+                    'interval': '1M'
+                }
+            },
+            'calculations_per_entry': {
+                'histogram': {
+                    'quantity': 'results.properties.n_calculations',
+                    'interval': 5
                 }
             }
         },
         description=strip('''
-            Defines additional aggregations to return. An aggregation list entries
-            for the values of a quantity, e.g. to get all uploads and their entries.
+            Defines additional aggregations to return. There are different types of
+            aggregations: `terms`, `histogram`, `data_histogram`, `min_max`.
         '''))
+
+
+class MetadataEditListAction(BaseModel):
+    '''
+    Defines an action to perform on a list quantity. This enables users to add and remove values.
+    '''
+    set: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to set. Note, a set-operation overwrites the old list with the provided list.
+        If a set-operation is specified, it is therefore not possible to also specify an
+        add- or remove-operation.'''))
+    add: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to add to the list'''))
+    remove: Optional[Union[str, List[str]]] = Field(description=strip('''
+        Value(s) to remove from the list'''))
+
+
+# Generate model for MetadataEditActions
+_metadata_edit_actions_fields = {}
+for quantity in datamodel.EditableUserMetadata.m_def.definitions:
+    if quantity.is_scalar:
+        pydantic_type = quantity.type if quantity.type in (str, int, float, bool) else str
+    else:
+        pydantic_type = Union[str, List[str], MetadataEditListAction]
+    if getattr(quantity, 'a_auth_level', None) == datamodel.AuthLevel.admin:
+        description = '**NOTE:** Only editable by admin user'
+    else:
+        description = None
+    _metadata_edit_actions_fields[quantity.name] = (
+        Optional[pydantic_type], Field(description=description))
+
+MetadataEditActions = create_model('MetadataEditActions', **_metadata_edit_actions_fields)  # type: ignore
+
+
+class MetadataEditRequest(WithQuery):
+    ''' Defines a request to edit metadata. '''
+    metadata: Optional[MetadataEditActions] = Field(  # type: ignore
+        description=strip('''
+            Metadata to set, on the upload and/or selected entries.'''))
+    entries: Optional[Dict[str, MetadataEditActions]] = Field(  # type: ignore
+        description=strip('''
+            An optional dictionary, specifying metadata to set on individual entries. The field
+            `entries_metadata_key` defines which type of key is used in the dictionary to identify
+            the entries. Note, only quantities defined on the entry level can be set using this method.'''))
+    entries_key: Optional[str] = Field(
+        default='entry_id', description=strip('''
+            Defines which type of key is used in `entries_metadata`. Default is `entry_id`.'''))
+    verify_only: Optional[bool] = Field(
+        default=False, description=strip('''
+            Do not execute the request, just verifies it and provides detailed feedback on
+            encountered errors etc.'''))
 
 
 class Files(BaseModel):
@@ -861,6 +1151,11 @@ class Files(BaseModel):
         whole path.
 
         A re pattern will replace a given glob pattern.'''))
+    include_files: Optional[List[str]] = Field(
+        None, description=strip('''
+        Optional list of file names. Only files with these names are included in the
+        results. This will overwrite any given glob or re pattern.''')
+    )
 
     @validator('glob_pattern')
     def validate_glob_pattern(cls, glob_pattern):  # pylint: disable=no-self-argument
@@ -885,6 +1180,11 @@ class Files(BaseModel):
         # use the compiled glob pattern as re
         if values.get('re_pattern') is None:
             values['re_pattern'] = values.get('glob_pattern')
+
+        if values.get('include_files') is not None:
+            files = values['include_files']
+            values['re_pattern'] = re.compile(f'({"|".join([re.escape(f) for f in files])})$')
+
         return values
 
 
@@ -892,153 +1192,51 @@ files_parameters = parameter_dependency_from_model(
     'files_parameters', Files)
 
 
-ArchiveRequired = Union[str, Dict[str, Any]]
-
-
-_archive_required_field = Body(
-    '*',
-    embed=True,
-    description=strip('''
-        The `required` part allows you to specify what parts of the requested archives
-        should be returned. The NOMAD Archive is a hierarchical data format and
-        you can *require* certain branches (i.e. *sections*) in the hierarchy.
-        By specifing certain sections with specific contents or all contents (via
-        the directive `"*"`), you can determine what sections and what quantities should
-        be returned. The default is the whole archive, i.e., `"*"`.
-
-        For example to specify that you are only interested in the `section_metadata`
-        use:
-
-        ```
-        {
-            "section_metadata": "*"
-        }
-        ```
-
-        Or to only get the `energy_total` from each individual calculations, use:
-        ```
-        {
-            "section_run": {
-                "section_single_configuration_calculation": {
-                    "energy_total": "*"
-                }
-            }
-        }
-        ```
-
-        You can also request certain parts of a list, e.g. the last calculation:
-        ```
-        {
-            "section_run": {
-                "section_single_configuration_calculation[-1]": "*"
-            }
-        }
-        ```
-
-        These required specifications are also very useful to get workflow results.
-        This works because we can use references (e.g. workflow to final result calculation)
-        and the API will resolve these references and return the respective data.
-        For example just the total energy value and reduced formula from the resulting
-        calculation:
-        ```
-        {
-            "section_workflow": {
-                "calculation_result_ref": {
-                    "energy_total": "*",
-                    "single_configuration_calculation_to_system_ref": {
-                        "chemical_composition_reduced": "*"
-                    }
-                }
-            }
-        }
-        ```
-
-        You can also resolve all references in a branch with the `include-resolved`
-        directive. This will resolve all references in the branch, and also all references
-        in referenced sections:
-        ```
-        {
-            "section_workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-
-        By default, the targets of "resolved" references are added to the archive at
-        their original hierarchy positions.
-        This means, all references are still references, but they are resolvable within
-        the returned data, since they targets are now part of the data. Another option
-        is to add
-        `"resolve-inplace": true` to the root of required. Here, the reference targets will
-        replace the references:
-        ```
-        {
-            "resolve-inplace": true,
-            "section_workflow":
-                "calculation_result_ref": "include-resolved"
-            }
-        }
-        ```
-    '''),
-    example={
-        'section_run': {
-            'section_single_configuration_calculation[-1]': {
-                'energy_total': '*'
-            },
-            'section_system[-1]': '*'
-        },
-        'section_metadata': '*'
-    })
-
-
-class EntriesArchive(WithQueryAndPagination):
-    required: Optional[ArchiveRequired] = _archive_required_field
-
-
-class EntryArchiveRequest(BaseModel):
-    required: Optional[ArchiveRequired] = _archive_required_field
-
-
-class EntriesArchiveDownload(WithQuery):
-    files: Optional[Files] = Body(None)
-
-
-class EntriesRaw(WithQuery):
-    pagination: Optional[EntryPagination] = Body(None)
-
-
-class EntriesRawDownload(WithQuery):
-    files: Optional[Files] = Body(
-        None,
-        example={
-            'glob_pattern': 'vasp*.xml*'
-        })
-
-
-class StatisticResponse(Statistic):
-    data: Dict[str, Dict[str, int]] = Field(
-        None, description=strip('''
-        The returned statistics data as dictionary. The key is a string representation of the values.
-        The concrete type depends on the quantity that was used to create the statistics.
-        Each dictionary value is a dictionary itself. The keys are the metric names the
-        values the metric values. The key `entries` that gives the amount of entries with
-        this value is always returned.'''))
-
-
-class AggregationDataItem(BaseModel):
-    data: Optional[List[Dict[str, Any]]] = Field(
+class Bucket(BaseModel):
+    entries: Optional[List[Dict[str, Any]]] = Field(
         None, description=strip('''The entries that were requested for each value.'''))
-    size: int = Field(
+    count: int = Field(
         None, description=strip('''The amount of entries with this value.'''))
+    nested_count: int = Field(
+        None, description=strip('''
+            The amount of nested entries with this values. Is the same as count for
+            aggregations on non nested quantities.'''))
+    metrics: Optional[Dict[str, int]]
+
+    value: Union[StrictBool, float, str]
+
+
+class BucketAggregationResponse(BaseModel):
+    data: List[Bucket] = Field(
+        None, description=strip('''The aggregation data as a list.'''))
+
+
+class TermsAggregationResponse(BucketAggregationResponse, TermsAggregation):
+    pagination: Optional[PaginationResponse]  # type: ignore
+
+
+class HistogramAggregationResponse(BucketAggregationResponse, HistogramAggregation):
+    pass
+
+
+class DateHistogramAggregationResponse(BucketAggregationResponse, DateHistogramAggregation):
+    pass
+
+
+class MinMaxAggregationResponse(MinMaxAggregation):
+    data: List[Union[float, None]]
+
+
+class StatisticsAggregationResponse(StatisticsAggregation):
+    data: Optional[Dict[str, int]]
 
 
 class AggregationResponse(Aggregation):
-    pagination: PaginationResponse  # type: ignore
-    data: Dict[str, AggregationDataItem] = Field(
-        None, description=strip('''
-        The aggregation data as a dictionary. The key is a string representation of the values.
-        The dictionary values contain the aggregated data depending if `entries` where
-        requested.'''))
+    terms: Optional[TermsAggregationResponse]
+    histogram: Optional[HistogramAggregationResponse]
+    date_histogram: Optional[DateHistogramAggregationResponse]
+    min_max: Optional[MinMaxAggregationResponse]
+    statistics: Optional[StatisticsAggregationResponse]
 
 
 class CodeResponse(BaseModel):
@@ -1047,63 +1245,15 @@ class CodeResponse(BaseModel):
     nomad_lab: Optional[str]
 
 
-class EntriesMetadataResponse(EntriesMetadata):
-    pagination: PaginationResponse  # type: ignore
-    statistics: Optional[Dict[str, StatisticResponse]]  # type: ignore
+class MetadataResponse(Metadata):
+    pagination: PaginationResponse = None  # type: ignore
     aggregations: Optional[Dict[str, AggregationResponse]]  # type: ignore
+
     data: List[Dict[str, Any]] = Field(
         None, description=strip('''
         The entries data as a list. Each item is a dictionary with the metadata for each
         entry.'''))
+
     code: Optional[CodeResponse]
-
-
-class EntryRawFile(BaseModel):
-    path: str = Field(None)
-    size: int = Field(None)
-
-
-class EntryRaw(BaseModel):
-    calc_id: str = Field(None)
-    upload_id: str = Field(None)
-    mainfile: str = Field(None)
-    files: List[EntryRawFile] = Field(None)
-
-
-class EntriesRawResponse(EntriesRaw):
-    pagination: PaginationResponse = Field(None)  # type: ignore
-    data: List[EntryRaw] = Field(None)
-
-
-class EntryMetadataResponse(BaseModel):
-    entry_id: str = Field(None)
-    required: MetadataRequired = Field(None)
-    data: Dict[str, Any] = Field(
-        None, description=strip('''A dictionary with the metadata of the requested entry.'''))
-
-
-class EntryRawResponse(BaseModel):
-    entry_id: str = Field(...)
-    data: EntryRaw = Field(...)
-
-
-class EntryArchive(BaseModel):
-    calc_id: str = Field(None)
-    upload_id: str = Field(None)
-    parser_name: str = Field(None)
-    archive: Dict[str, Any] = Field(None)
-
-
-class EntriesArchiveResponse(EntriesArchive):
-    pagination: PaginationResponse = Field(None)  # type: ignore
-    data: List[EntryArchive] = Field(None)
-
-
-class EntryArchiveResponse(EntryArchiveRequest):
-    entry_id: str = Field(...)
-    data: EntryArchive = Field(None)
-
-
-class SearchResponse(EntriesMetadataResponse):
     es_query: Any = Field(
         None, description=strip('''The elasticsearch query that was used to retrieve the results.'''))

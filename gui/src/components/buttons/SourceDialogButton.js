@@ -1,0 +1,265 @@
+/*
+ * Copyright The NOMAD Authors.
+ *
+ * This file is part of NOMAD. See https://nomad-lab.eu for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import React, { useMemo, useState, useContext } from 'react'
+import PropTypes from 'prop-types'
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, makeStyles, Tooltip, Typography } from '@material-ui/core'
+import CodeIcon from '@material-ui/icons/Code'
+import ReactJson from 'react-json-view'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
+import ClipboardIcon from '@material-ui/icons/Assignment'
+import Markdown from '../Markdown'
+import { apiBase, appBase } from '../../config'
+
+export const ApiDataContext = React.createContext()
+
+const useCodeStyles = makeStyles(theme => ({
+  codeContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'flex-start'
+  },
+  code: {
+    flexGrow: 1,
+    overflow: 'auto',
+    padding: '12px 18px',
+    borderRadius: 4,
+    backgroundColor: theme.palette.secondary.veryLight,
+    fontSize: 16,
+    fontFamily: 'monospace',
+    whiteSpace: 'pre'
+  },
+  codeActions: {
+    marginTop: theme.spacing(3)
+  }
+}))
+const Code = React.memo(function Code({code}) {
+  const classes = useCodeStyles()
+  return <React.Fragment>
+    <div className={classes.codeContainer}>
+      <div className={classes.code}>
+        {code}
+      </div>
+      <div className={classes.codeActions}>
+        <CopyToClipboard text={code} onCopy={() => null}>
+          <Tooltip title="Copy to clipboard">
+            <IconButton>
+              <ClipboardIcon />
+            </IconButton>
+          </Tooltip>
+        </CopyToClipboard>
+      </div>
+    </div>
+  </React.Fragment>
+})
+Code.propTypes = {
+  code: PropTypes.string
+}
+
+const DialogButton = React.memo(function DialogButton(props) {
+  const {tooltip, component, icon, label, title, children, buttonProps, ...dialogProps} = props
+  const [open, setOpen] = useState(false)
+
+  const componentToUse = component || (label ? Button : IconButton)
+  const button = useMemo(() => {
+    return React.createElement(
+      componentToUse,
+      {onClick: () => setOpen(true), ...buttonProps},
+      label || icon || <CodeIcon/>
+    )
+  }, [componentToUse, setOpen, label, icon, buttonProps])
+  const buttonWithTooltip = useMemo(() => {
+    if (tooltip) {
+      return <Tooltip title={tooltip}>{button}</Tooltip>
+    } else {
+      return button
+    }
+  }, [button, tooltip])
+
+  return <React.Fragment>
+    <Dialog {...dialogProps} open={open}>
+      {title && <DialogTitle>{title}</DialogTitle>}
+      <DialogContent>
+        {children}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpen(false)}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+    {buttonWithTooltip}
+  </React.Fragment>
+})
+DialogButton.propTypes = {
+  tooltip: PropTypes.string,
+  icon: PropTypes.node,
+  title: PropTypes.string,
+  label: PropTypes.string,
+  component: PropTypes.elementType,
+  buttonProps: PropTypes.object,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
+}
+
+export const SourceApiDialogButton = React.memo(function SourceApiDialogButton({description, children, ...props}) {
+  const help = `The information on this page was loaded from the NOMAD API. You can also use
+    the API to retrieve this information. Visit also our [API documentation](${appBase}/docs/api.html)
+    or [API dashboard](${apiBase}).`
+
+  return <DialogButton title="API" tooltip="API" size="small" {...props}>
+    <Markdown text={description || help} />
+    <SourceDialogDivider />
+    {children}
+  </DialogButton>
+})
+SourceApiDialogButton.propTypes = {
+  description: PropTypes.string,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
+}
+
+const CopyToClipboardButton = React.memo(function CopyToClipboardButton({code}) {
+  return <CopyToClipboard text={code || ''} onCopy={() => null}>
+    <Tooltip title="Copy to clipboard">
+      <IconButton>
+        <ClipboardIcon />
+      </IconButton>
+    </Tooltip>
+  </CopyToClipboard>
+})
+CopyToClipboardButton.propTypes = {
+  code: PropTypes.string
+}
+
+const useSourceApiCallStyles = makeStyles(theme => ({
+  root: {},
+  request: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    fontSize: 16,
+    fontFamily: 'monospace',
+    alignItems: 'center'
+  },
+  method: {
+    minWidth: 60,
+    fontWeight: 'bold'
+  },
+  code: {
+    flexGrow: 1,
+    padding: '12px 18px',
+    overflow: 'auto',
+    borderRadius: 4,
+    backgroundColor: theme.palette.secondary.veryLight,
+    whiteSpace: 'pre'
+  },
+  heading: {
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(1),
+    display: 'block'
+  }
+}))
+export const SourceApiCall = React.memo(function ApiCall(props) {
+  const apiData = useContext(ApiDataContext)
+  const {method, url, description, body, response} = {...apiData, ...props}
+  const classes = useSourceApiCallStyles()
+  let formatedBody
+  if (body) {
+    // serialized json has "private" values that might contain circles removed
+    formatedBody = JSON.stringify(
+      body,
+      (name, value) => name.startsWith('_') ? undefined : value,
+      2
+    )
+  }
+
+  return <div className={classes.root}>
+    <Markdown text={description} />
+    <Typography className={classes.heading} variant="body1"><b>Request</b></Typography>
+    <div className={classes.request}>
+      <span className={classes.method}>{method}</span>
+      <span className={classes.code}>{url}</span>
+      <CopyToClipboardButton code={url} />
+    </div>
+    {formatedBody && <div className={classes.request} style={{alignItems: 'start'}}>
+      <span className={classes.method}>&nbsp;</span>
+      <span className={classes.code}>{formatedBody}</span>
+      <CopyToClipboardButton code={formatedBody} />
+    </div>}
+    <Typography className={classes.heading} variant="body1"><b>Response</b></Typography>
+    <SourceJson data={response} />
+  </div>
+})
+SourceApiCall.propTypes = {
+  description: PropTypes.string,
+  method: PropTypes.string,
+  url: PropTypes.string,
+  body: PropTypes.any,
+  response: PropTypes.any
+}
+
+export const SourceJsonDialogButton = React.memo(function SourceJsonDialogButton({description, data, ...props}) {
+  return <DialogButton title="Json" tooltip="Json data" size="small" {...props}>
+    {description && <React.Fragment>
+      <Markdown text={description} />
+      <SourceDialogDivider />
+    </React.Fragment>}
+    <SourceJson data={data} />
+  </DialogButton>
+})
+SourceJsonDialogButton.propTypes = {
+  description: PropTypes.string,
+  data: PropTypes.object
+}
+
+export const SourceJson = React.memo(function SourceJson({data, ...props}) {
+  const dataToRender = typeof data === 'object' ? data : {data: data}
+  // serialized json has "private" values that might contain circles removed
+  const code = JSON.stringify(data, (name, value) => name.startsWith('_') ? undefined : value, 2)
+
+  return <Box display="flex" flexDirection="row" alignItems="start">
+    <Box flexGrow={1}>
+      <ReactJson
+        src={dataToRender}
+        enableClipboard={false}
+        collapsed={2}
+        displayObjectSize={false}
+        {...props}
+      />
+    </Box>
+    <CopyToClipboardButton code={code} />
+  </Box>
+})
+SourceJson.propTypes = {
+  data: PropTypes.object
+}
+
+export const SourceJsonCode = React.memo(function SourceJsonCode({data}) {
+  // serialized json has "private" values that might contain circles removed
+  const code = JSON.stringify(data, (name, value) => name.startsWith('_') ? undefined : value, 2)
+  return <Code code={code} />
+})
+SourceJsonCode.propTypes = {
+  data: PropTypes.object
+}
+
+export const SourceDialogDivider = (props) => <Box marginY={2}><Divider/></Box>

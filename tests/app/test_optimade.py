@@ -20,30 +20,31 @@ import json
 import pytest
 
 from nomad.processing import Upload
-from nomad import search
+from nomad import utils
+from nomad.search import search
 from nomad.app.optimade import parse_filter
 from nomad.app.optimade.common import provider_specific_fields
 
 from tests.conftest import clear_elastic, clear_raw_files
+from tests.utils import ExampleData
 
 
 def test_get_entry(published: Upload):
-    calc_id = list(published.calcs)[0].calc_id
-    with published.upload_files.read_archive(calc_id) as archive:
-        data = archive[calc_id]
-        assert data['section_metadata']['dft']['optimade'] is not None
+    entry_id = list(published.successful_entries)[0].entry_id
+    with published.upload_files.read_archive(entry_id) as archive:
+        data = archive[entry_id]
+        assert data['metadata']['optimade'] is not None
 
-    search_result = search.SearchRequest().search_parameter('calc_id', calc_id).execute_paginated()['results'][0]
-    assert 'dft.optimade.chemical_formula_hill' in search.flat(search_result)
+    search_result = search(owner='all', query=dict(entry_id=entry_id)).data[0]
+    assert 'optimade.chemical_formula_hill' in utils.flat(search_result)
 
 
-def test_no_optimade(mongo, elastic, raw_files, client):
-    from tests.app.flask.utils import Upload
-    upload = Upload()
-    upload.create_test_structure(1, 2, 1, [], 0)
-    upload.create_test_structure(2, 2, 1, [], 0, optimade=False)
-    upload.create_upload_files()
-    search.refresh()
+def test_no_optimade(mongo, elastic, raw_files, client, test_user):
+    example_data = ExampleData(main_author=test_user)
+    example_data.create_upload(upload_id='test_upload', published=True, embargo_length=0)
+    example_data.create_structure('test_upload', 1, 2, 1, [], 0)
+    example_data.create_structure('test_upload', 2, 2, 1, [], 0, optimade=False)
+    example_data.save()
 
     rv = client.get('/optimade/structures')
     assert rv.status_code == 200
@@ -52,18 +53,19 @@ def test_no_optimade(mongo, elastic, raw_files, client):
 
 
 @pytest.fixture(scope='module')
-def example_structures(elastic_infra, mongo_infra, raw_files_infra):
+def example_structures(elastic_infra, mongo_infra, raw_files_infra, test_user):
     clear_elastic(elastic_infra)
     mongo_infra.drop_database('test_db')
 
-    from tests.app.flask.utils import Upload
-    upload = Upload()
-    upload.create_test_structure(1, 2, 1, [], 0)
-    upload.create_test_structure(2, 2, 1, ['C'], 0)
-    upload.create_test_structure(3, 2, 1, [], 1)
-    upload.create_test_structure(4, 1, 1, [], 0, metadata=dict(upload_time='1978-04-08T10:10:00Z'))
-    upload.create_upload_files()
-    search.refresh()
+    example_data = ExampleData(main_author=test_user)
+    example_data.create_upload(
+        upload_id='test_upload', upload_create_time='1978-04-08T10:10:00Z',
+        published=True, embargo_length=0)
+    example_data.create_structure('test_upload', 1, 2, 1, [], 0)
+    example_data.create_structure('test_upload', 2, 2, 1, ['C'], 0)
+    example_data.create_structure('test_upload', 3, 2, 1, [], 1)
+    example_data.create_structure('test_upload', 4, 1, 1, [], 0, metadata=dict(comment='A comment'))
+    example_data.save()
 
     yield
     clear_elastic(elastic_infra)
@@ -87,6 +89,7 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('elements HAS ANY "H", "C"', 4),
     ('elements HAS ANY "C"', 1),
     ('elements HAS ONLY "C"', 0),
+    ('elements HAS ALL "H", "O" AND nelements = 2', 3),
     ('elements HAS ONLY "H", "O"', 3),
     ('nelements >= 2 AND elements HAS ONLY "H", "O"', 3),
     ('nelements >= 2 AND elements HAS ALL "H", "O", "C"', 1),
@@ -128,16 +131,16 @@ def example_structures(elastic_infra, mongo_infra, raw_files_infra):
     ('LENGTH nelements = 1', -1),
     ('chemical_formula_anonymous starts with "A"', -1),
     ('elements HAS ONY "H", "O"', -1),
-    ('last_modified >= "2009-02-01T20:07:00Z"', 3),
+    ('last_modified >= "2009-02-01T20:07:00Z"', 0),
     ('species_at_sites HAS "C"', 1),
-    ('_nmd_dft_system = "molecule / cluster"', 3),
-    ('_nmd_encyclopedia_material_formula = "H20"', 0)
+    ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
+    ('_nmd_results_material_chemical_formula_reduced = "H20"', 0)
 ])
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
         query = parse_filter(query)
-        result = search.SearchRequest(query=query).execute_paginated()
-        assert result['pagination']['total'] == results
+        search_result = search(query=query)
+        assert search_result.pagination.total == results
     else:
         with pytest.raises(Exception):
             query = parse_filter(query)
@@ -200,7 +203,7 @@ def test_list_endpoint_response_fields(client, example_structures):
 
 
 def test_single_endpoint_response_fields(client, example_structures):
-    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_entry_id_1')
     assert rv.status_code == 200, json.dumps(rv.json(), indent=2)
     data = rv.json()
     ref_elements = ['H', 'O']
@@ -211,7 +214,7 @@ def test_single_endpoint_response_fields(client, example_structures):
 
 
 def test_single_endpoint(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1')
     assert rv.status_code == 200
     data = rv.json()
     for key in ['type', 'id', 'attributes']:
@@ -273,7 +276,7 @@ def test_structures_endpoint(client, example_structures):
 
 
 def test_structure_endpoint(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
@@ -283,37 +286,38 @@ def test_structure_endpoint(client, example_structures):
     assert len(attr.get('dimension_types')) == 3
 
 
-def test_nmd_properties_info(client):
+def test_nmd_properties_info(client, example_structures):
     rv = client.get('/optimade/info/structures')
     assert rv.status_code == 200
     data = rv.json()
-    assert '_nmd_dft_system' in data['data']['properties']
-    assert '_nmd_encyclopedia_material_formula' in data['data']['properties']
-    assert '_nmd_atoms' in data['data']['properties']
+    assert '_nmd_results_material_structural_type' in data['data']['properties']
+    assert '_nmd_results_material_chemical_formula_reduced' in data['data']['properties']
+    assert '_nmd_results_material_elements' in data['data']['properties']
     assert '_nmd_archive_url' in data['data']['properties']
 
 
 def test_nmd_properties(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_calc_id_1?response_fields=_nmd_atoms,_nmd_dft_system,_nmd_doesnotexist,_nmd_archive_url')
+    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None
-    assert attr.get('_nmd_atoms') == ['H', 'O']
-    assert '_nmd_dft_system' in attr
+
+    assert attr.get('_nmd_results_material_elements') == ['H', 'O']
+    assert '_nmd_results_material_structural_type' in attr
     assert '_nmd_doesnotexist' not in attr
     assert '_nmd_archive_url' in attr
 
 
 def test_nmd_properties_include_all(client, example_structures):
-    all_fields = [f'_nmd_{name}' for name, _ in provider_specific_fields()]
-    rv = client.get(f'/optimade/structures/test_calc_id_1?response_fields={",".join(all_fields)}')
+    all_fields = [f'_nmd_{name}' for name in provider_specific_fields()]
+    rv = client.get(f'/optimade/structures/test_entry_id_1?response_fields={",".join(all_fields)}')
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
     attr = data['data'].get('attributes')
     assert attr is not None
-    assert attr.get('_nmd_atoms') == ['H', 'O']
-    assert '_nmd_dft_system' in attr
-    assert '_nmd_encyclopedia_material_formula' in attr
+    assert attr.get('_nmd_results_material_elements') == ['H', 'O']
+    assert '_nmd_results_material_structural_type' in attr
+    assert '_nmd_results_material_chemical_formula_reduced' in attr

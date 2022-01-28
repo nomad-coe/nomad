@@ -32,7 +32,7 @@ be easily rendered on the GUI. The information is readily available through the
 See also the `datamodel section in the introduction <introduction.html#data-model>`_.
 
 This module contains classes that allow to represent the core
-nomad data entities (entries/calculations, users, datasets) on a high level of abstraction
+nomad data entities (entries, users, datasets) on a high level of abstraction
 independent from their representation in the different modules
 :py:mod:`nomad.processing`, :py:mod:`nomad.parsing`, :py:mod:`nomad.search`, :py:mod:`nomad.app`.
 
@@ -40,7 +40,7 @@ Datamodel entities
 ------------------
 
 The entities in the datamodel are defined as NOMAD Metainfo sections. They are treated
-similarily to all Archive data. The entry/calculation datamodel data is created during
+similarily to all Archive data. The entry datamodel data is created during
 processing. It is not about representing every detail, but those parts that are directly involved in
 api, processing, mirroring, or other 'infrastructure' operations.
 
@@ -54,11 +54,6 @@ The class :class:`Dataset` is used to represent datasets and their attributes.
 .. autoclass:: nomad.datamodel.Dataset
     :members:
 
-The class :class:`MongoMetadata` is used to tag metadata stored in mongodb.
-
-.. autoclass:: nomad.datamodel.MongoMetadata
-    :members:
-
 The class :class:`EntryMetadata` is used to represent all metadata about an entry.
 
 .. autoclass:: nomad.datamodel.EntryMetadata
@@ -68,57 +63,23 @@ Domains
 ------------------
 
 The datamodel supports different *domains*. This means that most domain metadata of an
-entry/calculation is stored in domain-specific sub sections of the :class:`EntryMetadata`
+entry is stored in domain-specific sub sections of the :class:`EntryMetadata`
 section. We currently have the following domain specific metadata classes/sections:
 
-.. autoclass:: nomad.datamodel.dft.DFTMetadata
-    :members:
-
-.. autoclass:: nomad.datamodel.ems.EMSMetadata
-    :members:
-
 .. autoclass:: nomad.datamodel.OptimadeEntry
-    :members:
-
-.. automodule:: nomad.datamodel.encyclopedia
     :members:
 '''
 import sys
 
 from nomad.metainfo import Environment
 
-from .dft import DFTMetadata
-from .ems import EMSMetadata
-from .qcms import QCMSMetadata
 from .datamodel import (
-    Dataset, User, Author, EditableUserMetadata, UserProvidableMetadata, OasisMetadata,
-    MongoMetadata, EntryMetadata, EntryArchive, user_reference, author_reference)
+    Dataset, User, Author, EditableUserMetadata, AuthLevel,
+    MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
+    EntryMetadata, EntryArchive, user_reference, author_reference)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
+from .results import Results
 
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.dft'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.ems'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.qcms'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.encyclopedia'].m_package)  # type: ignore
 m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore
-
-domains = {
-    'dft': {
-        'metadata': DFTMetadata,
-        'metainfo_all_package': 'common',
-        'root_section': 'section_run'
-    },
-    'ems': {
-        'metadata': EMSMetadata,
-        'metainfo_all_package': 'common_experimental',
-        'root_section': 'section_experiment'
-    },
-    'qcms': {
-        'metadata': QCMSMetadata,
-        'metainfo_all_package': 'general_qcms',
-        'root_section': 'section_quantum_cms'
-    }
-}
-
-root_sections = [domain['root_section'] for domain in domains.values()] + ['section_entry_info', 'OptimadeEntry', 'Workflow']

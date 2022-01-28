@@ -19,22 +19,23 @@ import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useStat
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext } from './Browser'
-import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, path } from './metainfo'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName } from './Browser'
+import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button, Tooltip, Link } from '@material-ui/core'
+import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
 import * as d3 from 'd3'
-import { apiContext } from '../api'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
 import lime from '@material-ui/core/colors/lime'
 import purple from '@material-ui/core/colors/purple'
 import grey from '@material-ui/core/colors/grey'
 import Markdown from '../Markdown'
-import { JsonCodeDialogButton } from '../CodeDialogButton'
 import Histogram from '../Histogram'
 import { appBase } from '../../config'
 import { useHistory, useRouteMatch } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
+import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -67,6 +68,8 @@ If you bookmark this page, you can save the definition represented by the highli
 To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
 `
 
+const showInnerSectionDefinitions = false
+
 function defCompare(a, b) {
   return a.name.localeCompare(b.name)
 }
@@ -85,13 +88,14 @@ export function MetainfoPage() {
 }
 
 export default function MetainfoBrowser() {
+  const adaptor = useMemo(() => new MetainfoRootAdaptor(), [])
   return <Browser
-    adaptor={new MetainfoRootAdaptor()}
+    adaptor={adaptor}
     form={<MetainfoConfigForm />}
   />
 }
 
-function MetainfoConfigForm(props) {
+const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   const [config, setConfig] = useRecoilState(metainfoConfigState)
 
   const history = useHistory()
@@ -103,10 +107,20 @@ function MetainfoConfigForm(props) {
         !def.extends_base_section && def.m_def !== 'SubSection' && (
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
       ))
-      results.push(...defsForName.map(def => ({
-        path: url + '/' + metainfoPath(def),
-        label: `${def.name}${defsForName.length > 1 ? ` (${def._parentSections[0].name})` : ''} [${def.m_def.toLowerCase()}]`
-      })))
+      results.push(...defsForName.map(def => {
+        let label = def.more?.label || def.name
+        if (defsForName.length > 1) {
+          if (def._parentSections?.length) {
+            label = `${label} (${def._parentSections[0].name})`
+          } else {
+            label = `${label} (${def._qualifiedName.split(':')[0]})`
+          }
+        }
+        return {
+          path: url + '/' + metainfoPath(def),
+          label: `${label} [${def.m_def.toLowerCase()}]`
+        }
+      }))
       return results
     }, []).sort((a, b) => a.label.localeCompare(b.label))
   }, [config.packagePrefix, url])
@@ -137,13 +151,13 @@ function MetainfoConfigForm(props) {
       </FormGroup>
     </Box>
   )
-}
+})
 
 export function metainfoAdaptorFactory(obj) {
   if (obj.m_def === 'Section') {
     return new SectionDefAdaptor(obj)
   } else if (obj.m_def === 'SubSection') {
-    return new Error('SubSections are not represented in the browser')
+    return new SubSectionDefAdaptor(obj)
   } else if (obj.m_def === 'Quantity') {
     return new QuantityDefAdaptor(obj)
   } else if (obj.m_def === 'Category') {
@@ -213,7 +227,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {sectionDefs.filter(def => !def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -221,7 +235,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {sectionDefs.filter(def => def.extends_base_section).sort(defCompare).map(def => {
           const key = `section_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -229,7 +243,7 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
         {categoryDefs.sort(defCompare).map(def => {
           const key = `category_definitions@${def._qualifiedName}`
           return <Item key={key} itemKey={key}>
-            <Typography>{def.name}</Typography>
+            <Typography>{def.more?.label || def.name}</Typography>
           </Item>
         })}
       </Compartment>
@@ -237,18 +251,18 @@ export class PackagePrefixAdaptor extends MetainfoAdaptor {
   }
 }
 
-function Metainfo(props) {
+const Metainfo = React.memo(function Metainfo(props) {
   return <Content>
     <Compartment title="archive root section">
       <Item itemKey="EntryArchive">
-        <Typography>EntryArchive</Typography>
+        <Typography>Entry</Typography>
       </Item>
     </Compartment>
     <Compartment title="other root sections">
-      {rootSections.filter(def => def.name !== 'EntryArchive').map(def => (
-        <Item key={def.name} itemKey={def.name}>
+      {rootSections.filter(def => def.name !== 'EntryArchive').map((def, i) => (
+        <Item key={i} itemKey={def.name}>
           <Typography>
-            {def.name}
+            {def.more?.label || def.name}
           </Typography>
         </Item>
       ))}
@@ -259,25 +273,46 @@ function Metainfo(props) {
       </Item>)}
     </Compartment>
   </Content>
-}
+})
 
 export class SectionDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
     if (key === '_baseSection') {
       return metainfoAdaptorFactory(resolveRef(this.e.base_sections[0]))
     }
-    const property = this.e._properties[key]
-    if (!property) {
-      return super.itemAdaptor(key)
-    } else {
-      if (property.m_def === 'SubSection') {
-        return metainfoAdaptorFactory(resolveRef(property.sub_section))
+
+    if (key.includes('@')) {
+      const [type, name] = key.split('@')
+      if (type === 'innerSectionDef') {
+        const innerSectionDef = this.e.inner_section_definitions.find(def => def.name === name)
+        if (innerSectionDef) {
+          return metainfoAdaptorFactory(innerSectionDef)
+        }
       }
+    }
+
+    const property = this.e._properties[key]
+    if (property) {
       return metainfoAdaptorFactory(property)
     }
+
+    return super.itemAdaptor(key)
   }
   render() {
     return <SectionDef def={this.e} />
+  }
+}
+
+class SubSectionDefAdaptor extends MetainfoAdaptor {
+  constructor(e) {
+    super(e)
+    this.sectionDefAdaptor = new SectionDefAdaptor(resolveRef(e.sub_section))
+  }
+  itemAdaptor(key) {
+    return this.sectionDefAdaptor.itemAdaptor(key)
+  }
+  render() {
+    return <SubSectionDef def={this.e} />
   }
 }
 
@@ -296,11 +331,14 @@ class CategoryDefAdaptor extends MetainfoAdaptor {
   }
 }
 
-function SectionDef({def}) {
+function SectionDefContent({def}) {
   const config = useRecoilValue(configState)
   const metainfoConfig = useRecoilValue(metainfoConfigState)
   const filter = def.extends_base_section ? () => true : def => {
     if (def._package.name.startsWith('nomad')) {
+      return true
+    }
+    if (def._package.name.startsWith('nexus')) {
       return true
     }
     if (metainfoConfig.packagePrefix) {
@@ -311,9 +349,10 @@ function SectionDef({def}) {
     }
     return false
   }
-  return <Content style={{backgroundColor: 'grey'}}>
-    <Definition def={def} kindLabel="section definition" />
-    {def.extends_base_section &&
+
+  return <React.Fragment>
+    <DefinitionProperties def={def} />
+    {def.base_sections.length > 0 &&
       <Compartment title="base section">
         {def.base_sections.map(baseSectionRef => {
           const baseSection = resolveRef(baseSectionRef)
@@ -332,7 +371,7 @@ function SectionDef({def}) {
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
-                {subSectionDef.name}
+                {formatSubSectionName(subSectionDef.more?.label || subSectionDef.name)}
               </Box>{subSectionDef.repeats && <span>&nbsp;(repeats)</span>}
             </Typography>
           </Item>
@@ -349,7 +388,7 @@ function SectionDef({def}) {
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
-                  {quantityDef.name}
+                  {quantityDef.more?.label || quantityDef.name}
                 </Box>
               </Typography>
             </Box>
@@ -357,21 +396,90 @@ function SectionDef({def}) {
         })
       }
     </Compartment>
+    {showInnerSectionDefinitions && <Compartment title="inner section definitions">
+      {def.inner_section_definitions.filter(filter)
+        .map(innerSectionDef => {
+          const key = `innerSectionDef@${innerSectionDef.name}`
+          const categories = innerSectionDef.categories?.map(c => resolveRef(c))
+          const unused = categories?.find(c => c.name === 'Unused')
+          return <Item key={key} itemKey={key}>
+            <Box component="span" whiteSpace="nowrap">
+              <Typography component="span" color={unused && 'error'}>
+                <Box fontWeight="bold" component="span">
+                  {innerSectionDef.more?.label || innerSectionDef.name}
+                </Box>
+              </Typography>
+            </Box>
+          </Item>
+        })
+      }
+    </Compartment>}
     <DefinitionDetails def={def} />
+  </React.Fragment>
+}
+SectionDefContent.propTypes = ({
+  def: PropTypes.object
+})
+
+function SectionDef({def}) {
+  return <Content style={{backgroundColor: 'grey'}}>
+    <Definition def={def} kindLabel="section definition" />
+    <SectionDefContent def={def} />
   </Content>
 }
 SectionDef.propTypes = ({
   def: PropTypes.object
 })
 
+function SubSectionDef({def}) {
+  const sectionDef = resolveRef(def.sub_section)
+  return <React.Fragment>
+    <Content>
+      <Title def={def} useName isDefinition kindLabel="sub section definition" />
+      <DefinitionDocs def={sectionDef} />
+      <SectionDefContent def={sectionDef} />
+    </Content>
+  </React.Fragment>
+}
+SubSectionDef.propTypes = ({
+  def: PropTypes.object
+})
+
+function DefinitionProperties({def, children}) {
+  const searchAnnotations = def.m_annotations && Object.keys(def.m_annotations)
+    .filter(key => key === 'elasticsearch')
+    .map(key => def.m_annotations[key].filter(
+      value => !(value.endsWith('.suggestion') || value.endsWith('__suggestion')))
+    )
+
+  if (!(children || def.aliases?.length || def.deprecated || Object.keys(def.more).length || searchAnnotations)) {
+    return ''
+  }
+
+  return <Compartment title="properties">
+    {children}
+    {def.aliases?.length && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
+    {def.deprecated && <Typography><b>deprecated</b>: {def.deprecated}</Typography>}
+    {Object.keys(def.more).map((moreKey, i) => (
+      <Typography key={i}><b>{moreKey}</b>:&nbsp;{String(def.more[moreKey])}</Typography>
+    ))}
+    {searchAnnotations && <Typography><b>search&nbsp;keys</b>:&nbsp;{
+      searchAnnotations.join(', ')}</Typography>}
+  </Compartment>
+}
+DefinitionProperties.propTypes = ({
+  def: PropTypes.object,
+  children: PropTypes.any
+})
+
 function QuantityDef({def}) {
   return <Content>
     <Definition def={def} kindLabel="quantity definition"/>
-    <Compartment title="properties">
+    <DefinitionProperties def={def}>
       {def.type.type_kind !== 'reference'
         ? <Typography>
           <b>type</b>:&nbsp;
-          {def.type.type_data}&nbsp;
+          {Array.isArray(def.type.type_data) ? def.type.type_data.join(', ') : def.type.type_data}&nbsp;
           {def.type.type_kind !== 'data' && `(${def.type.type_kind})`}
         </Typography>
         : <Item itemKey="_reference">
@@ -385,26 +493,44 @@ function QuantityDef({def}) {
       </Typography>
       {def.unit &&
         <Typography><b>unit</b>:&nbsp;{def.unit}</Typography>}
-      {def.aliases && def.aliases !== [] && <Typography><b>aliases</b>:&nbsp;{def.aliases.map(a => `"${a}"`).join(', ')}</Typography>}
+      {def.default &&
+        <Typography><b>default</b>:&nbsp;{String(def.default)}</Typography>}
       {def.derived && <Typography><b>derived</b></Typography>}
-    </Compartment>
-    <DefinitionDetails def={def} />
+    </DefinitionProperties>
   </Content>
 }
 QuantityDef.propTypes = ({
   def: PropTypes.object
 })
 
-function Definition({def, ...props}) {
+function DefinitionDocs({def}) {
   return <React.Fragment>
-    <Title def={def} isDefinition {...props} />
     {def.description && !def.extends_base_section &&
       <Compartment title="description">
         <Box marginTop={1} marginBottom={1}>
-          <Markdown>{def.description}</Markdown>
+          {def._qualifiedName.startsWith('nexus')
+            ? <Typography>{def.description}</Typography>
+            : <Markdown>{def.description}</Markdown>}
         </Box>
       </Compartment>
     }
+    {def.links?.length &&
+      <Compartment title="links">
+        {def.links.map((link, i) => <div key={i}>
+          <Link href={link} key={i}>{link.includes('manual.nexusformat.org') ? 'nexus manual' : link}</Link>
+        </div>)}
+      </Compartment>
+    }
+  </React.Fragment>
+}
+DefinitionDocs.propTypes = {
+  def: PropTypes.object.isRequired
+}
+
+function Definition({def, ...props}) {
+  return <React.Fragment>
+    <Title def={def} useName isDefinition {...props} />
+    <DefinitionDocs def={def} />
   </React.Fragment>
 }
 Definition.propTypes = {
@@ -412,30 +538,52 @@ Definition.propTypes = {
 }
 
 function DefinitionDetails({def, ...props}) {
-  const {api} = useContext(apiContext)
+  const {api} = useApi()
+  const {raiseError} = useErrors()
   const lane = useContext(laneContext)
   const isLast = !lane.next
   const [usage, setUsage] = useState(null)
   const [showUsage, setShowUsage] = useState(false)
 
+  const quantityPath = useMemo(() => {
+    const path = lane.path.split('/')
+    const index = path.indexOf('EntryArchive')
+    if (index >= 0) {
+      return path.slice(index + 1).join('.')
+    }
+    return null
+  }, [lane])
+
   useEffect(() => {
     if (showUsage) {
-      api.quantity_search({
-        'dft.quantities': [def.name],
-        size: 100, // make sure we get all codes
-        quantity: 'dft.code_name'
-      }).then(result => {
-        setUsage(result.quantity.values)
-      })
+      api.post('/entries/query', {
+        owner: 'visible',
+        query: {
+          'quantities:any': [quantityPath]
+        },
+        aggregations: {
+          program_names: {
+            terms: {
+              quantity: 'results.method.simulation.program_name',
+              pagination: {
+                page_size: 100 // make sure we get all codes
+              }
+            }
+          }
+        }
+      }).then(response => {
+        const aggData = response.aggregations.program_names.terms.data
+        setUsage(aggData)
+      }).catch(raiseError)
     }
-  }, [api, def.name, showUsage, setUsage])
+  }, [api, raiseError, showUsage, quantityPath, setUsage])
 
   return <React.Fragment>
     {def.categories && def.categories.length > 0 && <Compartment title="Categories">
       {def.categories.map(categoryRef => {
         const categoryDef = resolveRef(categoryRef)
         return <Item key={categoryRef} itemKey={'_category:' + categoryDef.name}>
-          <Typography>{categoryDef.name}</Typography>
+          <Typography>{categoryDef.more?.label || categoryDef.name}</Typography>
         </Item>
       })}
     </Compartment>}
@@ -444,22 +592,22 @@ function DefinitionDetails({def, ...props}) {
         <VicinityGraph def={def} />
       </Compartment>
     }
-    {isLast && def.m_def !== 'Category' && def.name !== 'EntryArchive' && !def.extends_base_section &&
+    {quantityPath &&
       <Compartment title="usage">
         {!showUsage && <Button fullWidth variant="outlined" onClick={() => setShowUsage(true)}>Show usage</Button>}
         {showUsage && !usage && <Typography><i>loading ...</i></Typography>}
-        {usage && Object.keys(usage).length > 0 && (
+        {usage && usage.length > 0 && (
           <Histogram
-            data={Object.keys(usage).map(key => ({
-              key: key,
-              name: key,
-              value: usage[key].total
+            data={usage.map(use => ({
+              key: use.value,
+              name: use.value,
+              value: use.count
             }))}
             initialScale={0.5}
             title="Metadata use per code"
           />
         )}
-        {usage && Object.keys(usage).length === 0 && (
+        {usage && usage.length === 0 && (
           <Typography color="error"><i>This metadata is not used at all.</i></Typography>
         )}
       </Compartment>
@@ -476,19 +624,21 @@ const definitionLabels = {
   'SubSection': 'sub section',
   'Category': 'category'
 }
-export function Title({def, isDefinition, data, kindLabel}) {
+export function Title({def, isDefinition, data, kindLabel, useName}) {
   const color = isDefinition ? 'primary' : 'initial'
   return <Compartment>
-    <Grid container justify="space-between" wrap="nowrap" spacing={1}>
+    <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
       <Grid item>
-        <Typography color={color} variant="h6">{def.name}</Typography>
+        <Tooltip title={def._qualifiedName || def.name}>
+          <Typography color={color} variant="h6">{(!useName && def.more?.label) || def.name}</Typography>
+        </Tooltip>
         <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
       </Grid>
       <Grid item>
-        <JsonCodeDialogButton
+        <SourceJsonDialogButton
           tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
           title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
-          buttonProps={{size: 'small'}} json={data || def}
+          data={data || def}
         />
       </Grid>
     </Grid>
@@ -498,7 +648,8 @@ Title.propTypes = ({
   def: PropTypes.object.isRequired,
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
-  kindLabel: PropTypes.string
+  kindLabel: PropTypes.string,
+  useName: PropTypes.bool
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {
@@ -599,7 +750,7 @@ export function VicinityGraph({def}) {
         }))
 
     node.append('text')
-      .text(d => d.def.name)
+      .text(d => d.def.more?.label || d.def.name)
       .attr('text-anchor', 'middle')
       .attr('y', d => ((d.i % 2) === 0) ? 20 : -14)
 

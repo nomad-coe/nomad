@@ -16,69 +16,58 @@
  * limitations under the License.
  */
 import React from 'react'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 
 /**
  * Component that is used as a placeholder while loading data. Fairly simple
- * wrapper around the MUI Skeleton component.
+ * wrapper around the MUI Skeleton component that allows using an aspect ratio
+ * to determine the size.
+ *
+ * Override the 'placeholder' CSS-class to control the size of the placeholder
+ * with respect to the root component.
  */
 
-// These styles do not depend on any props: they can be created once and are
-// shared by each instance.
-const useStaticStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
+    height: '100%',
+    position: 'relative'
   },
   placeholder: {
     position: 'absolute',
-    top: theme.spacing(2),
+    top: theme.spacing(1),
     left: theme.spacing(2),
     right: theme.spacing(2),
-    bottom: theme.spacing(2)
+    bottom: theme.spacing(1)
   },
   skeleton: {
     width: '100%',
     height: '100%'
   }
 }))
-export default function Placeholder(props) {
-  // If aspect ratio is provided, use it to determine width and height
-  const {aspectRatio, className, classes, ...other} = props
-  const useStyles = makeStyles(theme => {
-    const style = {}
-    if (aspectRatio) {
-      style.containerOuter = {
-        height: 0,
-        overflow: 'hidden',
-        paddingBottom: `${100 / aspectRatio}%`,
-        position: 'relative'
-      }
-    }
-    return style
-  })
-  const theme = useTheme()
-  const styles = useStyles()
-  const staticStyles = useStaticStyles({classes: classes, theme: theme})
-  if (aspectRatio) {
-    return <div className={clsx(className, styles.root)}>
-      <div className={styles.containerOuter}>
-        <div className={staticStyles.placeholder}>
-          <Skeleton variant="rect" className={staticStyles.skeleton} {...other}/>
-        </div>
-      </div>
-    </div>
-  }
-  return <div className={clsx(className, staticStyles.root)}>
-    <div className={styles.containerInner}>
-      <Skeleton {...other} className={staticStyles.skeleton}></Skeleton>
+const Placeholder = React.memo(({
+  className,
+  classes,
+  'data-testid':
+  testID,
+  ...other
+}) => {
+  const styles = useStyles({classes: classes})
+
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <div className={styles.placeholder}>
+      <Skeleton className={styles.skeleton} {...other} />
     </div>
   </div>
-}
+})
 
 Placeholder.propTypes = {
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  'data-testid': PropTypes.string
 }
+
+export default Placeholder

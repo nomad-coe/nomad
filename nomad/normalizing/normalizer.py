@@ -39,7 +39,7 @@ class Normalizer(metaclass=ABCMeta):
     def __init__(self, entry_archive: EntryArchive) -> None:
         self.entry_archive = entry_archive
         try:
-            self.section_run = entry_archive.section_run[0]
+            self.section_run = entry_archive.run[0]
         except (AttributeError, IndexError):
             self.section_run = None
         self.logger = get_logger(__name__)
@@ -95,30 +95,12 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # Try to find workflow information and select the representative system
         # based on it
-        workflow = self.entry_archive.section_workflow
+        workflow = self.entry_archive.workflow
 
         if workflow:
             try:
                 iscc = workflow.calculation_result_ref
-                system = iscc.single_configuration_calculation_to_system_ref
-                if system is not None:
-                    scc = iscc
-            except Exception:
-                pass
-
-        # Try to find a frame sequence, only first found is considered
-        else:
-            try:
-                frame_seqs = self.section_run.section_frame_sequence
-                frame_seq = frame_seqs[0]
-                sec_sampling_method = frame_seq.frame_sequence_to_sampling_ref
-                sampling_method = sec_sampling_method.sampling_method
-                frames = frame_seq.frame_sequence_local_frames_ref
-                if sampling_method == "molecular_dynamics":
-                    iscc = frames[0]
-                else:
-                    iscc = frames[-1]
-                system = iscc.single_configuration_calculation_to_system_ref
+                system = iscc.system_ref
                 if system is not None:
                     scc = iscc
             except Exception:
@@ -128,9 +110,9 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         # available in reverse order until a valid one is found.
         if system is None:
             try:
-                sccs = self.section_run.section_single_configuration_calculation
+                sccs = self.section_run.calculation
                 for iscc in reversed(sccs):
-                    isys = iscc.single_configuration_calculation_to_system_ref
+                    isys = iscc.system_ref
                     if isys is not None:
                         system = isys
                         scc = iscc
@@ -141,23 +123,21 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             # If no sccs exist, try to find systems
             if system is None:
                 try:
-                    systems = self.section_run.section_system
-                    system = systems[-1]
+                    system = self.section_run.system[-1]
                 except Exception:
                     system = None
 
             if system is None:
-                self.logger.error('no "representative" section system found')
+                self.logger.warning('no "representative" section system found')
 
         # If the found system is referencing a subsystem, then we choose it as
         # the representative one. These smaller subsystems are much easier to
         # analyze. Currently used in phonon calculations.
         if system is not None:
             try:
-                system_ref = system.section_system_to_system_refs[0]
-                ref_kind = system_ref.system_to_system_kind
-                if ref_kind == "subsystem":
-                    system = system_ref.system_to_system_ref
+                system_ref = system.sub_system_ref
+                if system_ref is not None:
+                    system = system_ref
             except Exception:
                 pass
 
@@ -175,18 +155,17 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         except KeyError as e:
             self.logger.error(
                 'could not read a system property', normalizer=self.__class__.__name__,
-                section='section_system', g_index=system.m_parent_index, key_error=str(e), exc_info=e)
+                section='system', g_index=system.m_parent_index, key_error=str(e), exc_info=e)
             return False
 
         except Exception as e:
             self.logger.error(
                 'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                section='section_system', g_index=system.m_parent_index, exc_info=e, error=str(e))
+                section='system', g_index=system.m_parent_index, exc_info=e, error=str(e))
             raise e
 
     def normalize(self, logger=None) -> None:
         super().normalize(logger)
-
         # If no section run detected, do nothing
         if self.section_run is None:
             return
@@ -201,6 +180,6 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # All the rest if requested
         if not self.only_representatives:
-            for isys, system in enumerate(self.section_run.section_system):
+            for isys, system in enumerate(self.section_run.system):
                 if isys != repr_sys_idx:
                     self.__normalize_system(system, False, logger)

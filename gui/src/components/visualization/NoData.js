@@ -16,10 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import {
-  Box,
-  makeStyles
-} from '@material-ui/core'
+import { Typography, makeStyles } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 
@@ -31,23 +28,27 @@ import clsx from 'clsx'
 
 // These styles do not depend on any props: they can be created once and are
 // shared by each instance.
-const useStaticStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
+    height: '100%'
   },
-  container: {
-    backgroundColor: '#f3f3f3',
+  relative: {
     width: '100%',
     height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    position: 'relative'
   },
   placeholder: {
     position: 'absolute',
-    top: theme.spacing(2),
-    left: theme.spacing(2),
-    right: theme.spacing(2),
-    bottom: theme.spacing(2)
+    top: theme.spacing(0),
+    left: theme.spacing(1),
+    right: theme.spacing(1),
+    bottom: theme.spacing(0),
+    backgroundColor: theme.palette.grey[100],
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.spacing(0.5)
   },
   message: {
     color: theme.palette.primary.main,
@@ -56,34 +57,20 @@ const useStaticStyles = makeStyles(theme => ({
     userSelect: 'none'
   }
 }))
-export default function NoData({aspectRatio, className, classes}) {
-  // These styles change for each component individually
-  const useStyles = makeStyles(theme => ({
-    outerContainer: {
-      height: 0,
-      overflow: 'hidden',
-      paddingBottom: `${100 / aspectRatio}%`,
-      position: 'relative'
-    }
-  }))
-  const staticStyles = useStaticStyles({classes: classes})
-  const styles = useStyles()
-  const content = <Box className={staticStyles.container}>
-    <div className={staticStyles.message}>no data</div>
-  </Box>
-  return aspectRatio
-    ? <div className={clsx(className, staticStyles.root)}>
-      <div className={styles.outerContainer}>
-        <div className={staticStyles.placeholder}>
-          {content}
-        </div>
+export default function NoData({className, classes, 'data-testid': testID}) {
+  const styles = useStyles({classes: classes})
+
+  return <div className={clsx(className, styles.root)} data-testid={testID}>
+    <div className={styles.relative}>
+      <div className={styles.placeholder}>
+        <Typography className={styles.message}>no data</Typography>
       </div>
     </div>
-    : content
+  </div>
 }
 
 NoData.propTypes = {
-  aspectRatio: PropTypes.number,
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  'data-testid': PropTypes.string
 }

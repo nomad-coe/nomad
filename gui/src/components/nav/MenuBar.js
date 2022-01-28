@@ -16,91 +16,54 @@
  * limitations under the License.
  */
 
-import React, { useContext, useState } from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { Button, makeStyles, MenuItem as MuiMenuItem, Menu as MuiMenu, ClickAwayListener, ListItemText } from '@material-ui/core'
+import { Button, makeStyles, MenuItem, Menu, ListItemText } from '@material-ui/core'
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown'
-import { useHistory } from 'react-router-dom'
-
-const capitalize = (s) => {
-  if (typeof s !== 'string') return ''
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
-const MenuBarContext = React.createContext({})
+import { matchPath, useHistory, useLocation } from 'react-router-dom'
 
 const useMenuBarStyles = makeStyles(theme => ({
   root: {
-    margin: theme.spacing(1),
     width: '100%',
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    justifyContent: 'left'
+    justifyContent: 'left',
+    boxSizing: 'border-box'
   }
 }))
 
-export function MenuBar({children, selected}) {
+/**
+ * Reusable menubar e.g. for navigation.
+*/
+export function MenuBar({children}) {
   const classes = useMenuBarStyles()
 
-  const [openMenu, setOpenMenu] = useState(null)
-  const [openMenuAnchorEl, setOpenMenuAnchorEl] = useState(null)
-
-  const handleClickMenu = (menuName, event) => {
-    setOpenMenu(menuName)
-    setOpenMenuAnchorEl(event.currentTarget)
-  }
-
-  const handleCloseMenus = () => {
-    setOpenMenu(null)
-    setOpenMenuAnchorEl(null)
-  }
-
-  const [selectedMenu, selectedMenuItem] = (selected || '').split('/')
-
-  const context = {
-    selectedMenu: selectedMenu,
-    selectedMenuItem: selectedMenuItem,
-    openMenu: openMenu,
-    openMenuAnchorEl: openMenuAnchorEl,
-    onClickMenu: handleClickMenu,
-    onCloseMenu: handleCloseMenus
-  }
-  return <MenuBarContext.Provider value={context}>
-    <div className={classes.root}>
-      {children}
-    </div>
-  </MenuBarContext.Provider>
+  return <div className={classes.root}>
+    {children}
+  </div>
 }
 MenuBar.propTypes = {
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ]),
-  selected: PropTypes.string.isRequired
+  ])
 }
 
 const useMenuBarItemStyles = makeStyles(theme => ({
   selected: {
     color: theme.palette.primary.main
-  },
-  link: {
-    color: 'inherit',
-    textDecoration: 'none'
   }
 }))
 
-export const MenuBarItem = React.forwardRef(({name, label, tooltip, route, href, onClick}, ref) => {
+export const MenuBarItem = React.forwardRef(({label, tooltip, route, href, onClick}, ref) => {
   const classes = useMenuBarItemStyles()
-
-  label = label || capitalize(name)
-  const context = useContext(MenuBarContext)
-  const selected = context.selectedMenuItem === name
+  const {pathname} = useLocation()
+  const selected = matchPath(pathname, route) && true
 
   const history = useHistory()
 
   const handleClick = () => {
-    context.onCloseMenu(context.selectedMenu)
     if (route) {
       history.push(route)
     } else if (!href) {
@@ -108,21 +71,20 @@ export const MenuBarItem = React.forwardRef(({name, label, tooltip, route, href,
     }
   }
 
-  const item = <MuiMenuItem
-    data-testid={name}
+  return <MenuItem
+    data-testid={label}
     ref={ref}
+    component={href ? 'a' : 'li'}
+    href={href}
     dense
     classes={{root: selected ? classes.selected : undefined}}
     onClick={handleClick}
   >
     <ListItemText primary={label} secondary={tooltip} />
-  </MuiMenuItem>
-
-  return href ? <a href={href} className={classes.link}>{item}</a> : item
+  </MenuItem>
 })
 MenuBarItem.propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
   tooltip: PropTypes.string,
   icon: PropTypes.node,
   route: PropTypes.string,
@@ -145,64 +107,50 @@ const useMenuBarMenuStyles = makeStyles(theme => ({
   }
 }))
 
-export function MenuBarMenu({name, label, children}) {
+export function MenuBarMenu({label, children, route}) {
   const classes = useMenuBarMenuStyles()
-  label = label || capitalize(name)
-  const context = useContext(MenuBarContext)
+  const {pathname} = useLocation()
+  const [anchorEl, setAnchorEl] = useState(null)
+  const selected = matchPath(pathname, route) && true
 
-  const selected = context.selectedMenu === name
-  const open = context.openMenu === name
-  const aMenuIsOpen = context.openMenu !== null
-  const anchorEl = open ? context.openMenuAnchorEl : undefined
-
-  const handleClick = (event) => {
-    context.onClickMenu(name, event)
-  }
-
-  const handleMouseOver = (event) => {
-    if (aMenuIsOpen) {
-      context.onClickMenu(name, event)
-    }
+  const handleOpen = (event) => {
+    setAnchorEl(event.currentTarget)
   }
 
   const handleClose = () => {
-    if (open) {
-      context.onCloseMenu(name)
-    }
+    setAnchorEl(null)
   }
 
-  return <React.Fragment>
-    <ClickAwayListener onClickAway={handleClose}>
-      <Button
-        className={classes.root}
-        onClick={handleClick}
-        onMouseOver={handleMouseOver}
-        disableElevation
-        size="small"
-        color={selected ? 'primary' : undefined}
-        endIcon={<KeyboardArrowDownIcon />}
-      >
-        {label}
-      </Button>
-    </ClickAwayListener>
-    <MuiMenu
-      data-testid={name}
+  return <div onMouseLeave={handleClose}>
+    <Button
+      className={classes.root}
+      onMouseEnter={handleOpen}
+      disableElevation
+      size="small"
+      color={selected ? 'primary' : undefined}
+      endIcon={<KeyboardArrowDownIcon />}
+    >
+      {label}
+    </Button>
+    <Menu
+      data-testid={label}
       PopoverClasses={{root: classes.menuPopover, paper: classes.menuPaper}}
       elevation={1}
       anchorEl={anchorEl}
       getContentAnchorEl={null}
       anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
       keepMounted
-      open={open}
+      open={Boolean(anchorEl)}
       onClose={handleClose}
+      onClick={handleClose}
     >
       {children}
-    </MuiMenu>
-  </React.Fragment>
+    </Menu>
+  </div>
 }
 MenuBarMenu.propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
+  route: PropTypes.string.isRequired,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

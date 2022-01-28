@@ -22,7 +22,7 @@ from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF, RDF
 from nomad import config
 from nomad.datamodel import User
 
-from nomad.datamodel import EntryMetadata, User
+from nomad.datamodel import User
 
 from .api import url
 
@@ -32,7 +32,12 @@ HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
 
 def get_optional_entry_prop(entry, name):
     try:
-        return entry[name]
+        value = entry
+        segments = name.split('.')
+        for segment in segments:
+            value = value[segment]
+
+        return value
     except (KeyError, AttributeError):
         return 'unavailable'
 
@@ -49,7 +54,7 @@ class Mapping():
 
         self.persons = {}
 
-    def map_catalog(self, entries, after: str, modified_since, slim=True):
+    def map_catalog(self, entries, total: int, after: str, modified_since, slim=True):
         def uri_ref(after):
             kwargs = dict()
             if after is not None:
@@ -58,7 +63,7 @@ class Mapping():
                 kwargs['modified_since'] = modified_since.strftime('%Y-%m-%d')
             return URIRef(url('catalog', **kwargs))
 
-        after = after.strip()
+        after = after.strip() if after else None
 
         catalog = uri_ref(after=None)
         self.g.add((catalog, RDF.type, DCAT.Catalog))
@@ -69,42 +74,42 @@ class Mapping():
 
         hydra_collection = uri_ref(after)
         self.g.add((hydra_collection, RDF.type, HYDRA.Collection))
-        self.g.add((hydra_collection, HYDRA.totalItems, Literal(entries.total)))
+        self.g.add((hydra_collection, HYDRA.totalItems, Literal(total)))
         self.g.add((hydra_collection, HYDRA.first, uri_ref('')))
         if last_entry is not None:
-            self.g.add((hydra_collection, HYDRA.next, uri_ref(last_entry.calc_id)))
+            self.g.add((hydra_collection, HYDRA.next, uri_ref(last_entry['entry_id'])))
 
         self.g.add((hydra_collection, RDF.type, HYDRA.collection))
 
         for person in self.persons.values():
             self.g.add((catalog, DCT.creator, person))
 
-    def map_entry(self, entry: EntryMetadata, slim=False):
-        dataset = URIRef(url('datasets', entry.calc_id))
+    def map_entry(self, entry: dict, slim=False):
+        dataset = URIRef(url('datasets', entry['entry_id']))
 
         self.g.add((dataset, RDF.type, DCAT.Dataset))
-        self.g.add((dataset, DCT.identifier, Literal(entry.calc_id)))
-        self.g.add((dataset, DCT.issued, Literal(entry.upload_time)))
-        self.g.add((dataset, DCT.modified, Literal(entry.last_processing)))
-        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'formula'))))
+        self.g.add((dataset, DCT.identifier, Literal(entry['entry_id'])))
+        self.g.add((dataset, DCT.issued, Literal(entry['upload_create_time'])))
+        self.g.add((dataset, DCT.modified, Literal(entry['last_processing_time'])))
+        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'results.material.chemical_formula_descriptive'))))
         self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
 
         if slim:
             return dataset
 
         self.g.add((dataset, DCAT.landingPage, URIRef('%s/entry/id/%s/%s' % (
-            config.gui_url(), entry.upload_id, entry.calc_id))))
+            config.gui_url(), entry['upload_id'], entry['entry_id']))))
 
         self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
         self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
 
-        self.g.add((dataset, DCT.publisher, self.map_user(entry.uploader)))
+        self.g.add((dataset, DCT.publisher, self.map_user(entry['main_author']['user_id'])))
         try:
-            for author in entry.authors:
-                self.g.add((dataset, DCT.creator, self.map_user(author)))
+            for author in entry['authors']:
+                self.g.add((dataset, DCT.creator, self.map_user(author['user_id'])))
         except (KeyError, AttributeError):
             pass
-        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry.uploader)))
+        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry['main_author']['user_id'])))
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))
@@ -112,12 +117,12 @@ class Mapping():
 
         return dataset
 
-    def map_user(self, user: User):
-        person = self.persons.get(user.user_id)
+    def map_user(self, user_id: str):
+        person = self.persons.get(user_id)
         if person is not None:
             return person
 
-        user = User.get(user.user_id)
+        user = User.get(user_id)
         person = BNode()
 
         self.g.add((person, RDF.type, FOAF.Person))
@@ -130,12 +135,12 @@ class Mapping():
 
         return person
 
-    def map_contact(self, user: User):
-        person = self.persons.get(user.user_id)
+    def map_contact(self, user_id: str):
+        person = self.persons.get(user_id)
         if person is None:
-            person = self.map_user(user)
+            person = self.map_user(user_id)
 
-        user = User.get(user.user_id)
+        user = User.get(user_id)
         self.g.add((person, RDF.type, VCARD.Individual))
         self.g.add((person, VCARD.givenName, Literal(user.first_name)))
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))
@@ -153,14 +158,14 @@ class Mapping():
 
         return person
 
-    def map_distribution(self, entry, dist_kind):
+    def map_distribution(self, entry: dict, dist_kind):
         if dist_kind == 'api':
             # DataService: API
             service = BNode()
             self.g.add((service, RDF.type, DCAT.DataService))
             self.g.add((service, DCT.title, Literal('NOMAD API')))  # How to include terms from swagger document here?
             self.g.add((service, DCT.description, Literal('Official NOMAD API')))  # same question
-            self.g.add((service, DCAT.endpointURL, URIRef('https://nomad-lab.eu/prod/rae/api/')))  # config.api_url() ?
+            self.g.add((service, DCAT.endpointURL, URIRef('https://nomad-lab.eu/prod/rae/api/v1')))  # TODO config.api_url() ?
             # not sure if the following needs to be dataset specific:
             self.g.add((service, DCAT.endpointDescription, URIRef('https://nomad-lab.eu/prod/rae/api/swagger.json')))
 
@@ -177,16 +182,15 @@ class Mapping():
             self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
             self.g.add((dist, DCAT.downloadURL, URIRef(
-                'http://nomad-lab.eu/prod/rae/api/archive/download?upload_id=%s&calc_id=%s' % (entry.upload_id, entry.calc_id))))
+                f'http://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/archive/download')))
             self.g.add((dist, DCAT.accessURL, URIRef('%s/entry/id/%s/%s' % (
-                config.gui_url(), entry.upload_id, entry.calc_id))))
+                config.gui_url(), entry['upload_id'], entry['entry_id']))))
         elif dist_kind == 'raw':
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_raw')))
-            self.g.add((dist, DCAT.accessURL, URIRef('https://nomad-lab.eu/prod/rae/api/raw/calc/%s/%s' % (
-                entry.upload_id, entry.calc_id))))
+            self.g.add((dist, DCAT.accessURL, URIRef(f'https://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/raw')))
             self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
 
         return dist

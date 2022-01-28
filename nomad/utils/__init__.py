@@ -23,8 +23,8 @@
 
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
-parser, parser version, calc_id, mainfile, etc. for all events that happen during
-calculation processing. This means the :func:`get_logger` and all logger functions
+parser, parser version, entry_id, mainfile, etc. for all events that happen during
+entry processing. This means the :func:`get_logger` and all logger functions
 take keyword arguments for structured data. Otherwise :func:`get_logger` can
 be used similar to the standard *logging.getLogger*.
 
@@ -40,23 +40,42 @@ Depending on the configuration all logs will also be send to a central logstash.
 
 from typing import List, Iterable
 from collections import OrderedDict
+from functools import reduce
 import base64
 from contextlib import contextmanager
 import json
 import uuid
 import time
-import re
 import hashlib
 import sys
 from datetime import timedelta
 import collections
 import logging
 import inspect
+import orjson
+import resource
+import os
 
 from nomad import config
 
+
+def dump_json(data):
+    def default(data):
+        if isinstance(data, collections.OrderedDict):
+            return dict(data)
+
+        if data.__class__.__name__ == 'BaseList':
+            return list(data)
+
+        raise TypeError
+
+    return orjson.dumps(
+        data, default=default,
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+
+
 default_hash_len = 28
-''' Length of hashes and hash-based ids (e.g. calc, upload) in nomad. '''
+''' Length of hashes and hash-based ids (e.g. entry_id) in nomad. '''
 
 try:
     from . import structlogging
@@ -191,14 +210,14 @@ def lnr(logger, event, **kwargs):
         yield
 
     except Exception as e:
-        # ignore HTTPException as they are part of the normal flask error handling
-        if e.__class__.__name__ == 'HTTPException':
+        # ignore HTTPException as they are part of the normal app error handling
+        if e.__class__.__name__ != 'HTTPException':
             logger.error(event, exc_info=e, **kwargs)
         raise e
 
 
 @contextmanager
-def timer(logger, event, method='info', **kwargs):
+def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool = False, **kwargs):
     '''
     A context manager that takes execution time and produces a log entry with said time.
 
@@ -207,17 +226,39 @@ def timer(logger, event, method='info', **kwargs):
         event: The log message/event.
         method: The log method that should be used. Must be a valid logger method name.
             Default is 'info'.
+        log_memory: Log process memory usage before and after.
         **kwargs: Additional logger data that is passed to the log entry.
 
     Returns:
         The method yields a dictionary that can be used to add further log data.
     '''
+    def get_rss():
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+    kwargs = dict(kwargs)
     start = time.time()
+    if log_memory:
+        rss_before = get_rss()
+        kwargs['pid'] = os.getpid()
+        kwargs['exec_rss_before'] = rss_before
 
     try:
         yield kwargs
+    except Exception as e:
+        if lnr_event is not None:
+            stop = time.time()
+            if log_memory:
+                rss_after = get_rss()
+                kwargs['exec_rss_after'] = rss_after
+                kwargs['exec_rss_delta'] = rss_before - rss_after
+            logger.error(lnr_event, exc_info=e, exec_time=stop - start, **kwargs)
+        raise e
     finally:
         stop = time.time()
+        if log_memory:
+            rss_after = get_rss()
+            kwargs['exec_rss_after'] = rss_after
+            kwargs['exec_rss_delta'] = rss_before - rss_after
 
     if logger is None:
         print(event, stop - start)
@@ -232,8 +273,8 @@ def timer(logger, event, method='info', **kwargs):
 
 class archive:
     @staticmethod
-    def create(upload_id: str, calc_id: str) -> str:
-        return '%s/%s' % (upload_id, calc_id)
+    def create(upload_id: str, entry_id: str) -> str:
+        return '%s/%s' % (upload_id, entry_id)
 
     @staticmethod
     def items(archive_id: str) -> List[str]:
@@ -244,7 +285,7 @@ class archive:
         return archive.items(archive_id)[index]
 
     @staticmethod
-    def calc_id(archive_id: str) -> str:
+    def entry_id(archive_id: str) -> str:
         return archive.item(archive_id, 1)
 
     @staticmethod
@@ -440,4 +481,35 @@ class RestrictedDict(OrderedDict):
 
 def strip(docstring):
     ''' Removes any unnecessary whitespaces from a multiline doc string or description. '''
+    if docstring is None:
+        return None
     return inspect.cleandoc(docstring)
+
+
+def flat(obj, prefix=None):
+    '''
+    Helper that translates nested dict objects into flattened dicts with
+    ``key.key....`` as keys.
+    '''
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if isinstance(value, dict):
+                value = flat(value)
+                for child_key, child_value in value.items():
+                    result['%s.%s' % (key, child_key)] = child_value
+
+            else:
+                result[key] = value
+
+        return result
+    else:
+        return obj
+
+
+def deep_get(dictionary, *keys):
+    '''
+    Helper that can be used to access nested dictionary-like containers using a
+    series of paths given as arguments.
+    '''
+    return reduce(lambda d, key: d.get(key) if d else None, keys, dictionary)

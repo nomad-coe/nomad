@@ -24,7 +24,7 @@ import os.path
 import json
 
 from nomad import utils, config
-from nomad.metainfo import MSection, Quantity, Reference, SubSection
+from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
 from nomad.datamodel import EntryArchive
 from nomad.archive.storage import TOCPacker
 from nomad.archive import (
@@ -287,94 +287,142 @@ def test_read_springer():
 
 @pytest.fixture(scope='session')
 def archive():
-    return EntryArchive.m_from_dict(json.loads('''
+    archive = EntryArchive.m_from_dict(json.loads('''
         {
-            "section_metadata": {
-                "calc_id": "test_id",
-                "encyclopedia": {
-                    "properties": {
-                        "electronic_dos": "/section_run/0/section_single_configuration_calculation/1/section_dos/0"
+            "metadata": {
+                "entry_id": "test_id"
+            },
+            "results": {
+                "properties": {
+                    "electronic": {
+                        "dos_electronic": {
+                            "energies": "/run/0/calculation/1/dos_electronic/0/energies"
+                        }
                     }
                 }
             },
-            "section_run": [
+            "run": [
                 {
-                    "section_single_configuration_calculation": [
+                    "system": [
                         {
-                            "energy_total": 0.1
-                        },
-                        {
-                            "energy_total": 0.2,
-                            "section_dos": [
+                            "atoms": {
+                                "labels": [
+                                    "He"
+                                ]
+                            },
+                            "symmetry": [
                                 {
-                                    "dos_kind": "test"
+                                    "space_group_number": 221
                                 }
-                            ],
-                            "section_eigenvalues": [
-                                {
-                                    "eigenvalues_kind": "test"
-                                }
-                            ],
-                            "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/1"
+                            ]
                         },
                         {
-                            "energy_total": 0.1
-                        }
-                    ],
-                    "section_system": [
-                        {
-                            "atom_labels": ["He"]
-                        },
-                        {
-                            "atom_labels": ["H"],
-                            "section_symmetry": [
+                            "atoms": {
+                                "labels": [
+                                    "H"
+                                ]
+                            },
+                            "symmetry": [
                                 {
                                     "space_group_number": 221
                                 }
                             ]
                         }
+                    ],
+                    "calculation": [
+                        {
+                            "system_ref": "/run/0/system/1",
+                            "energy": {
+                                "total": {
+                                    "value": 0.1
+                                }
+                            }
+                        },
+                        {
+                            "system_ref": "/run/0/system/1",
+                            "energy": {
+                                "total": {
+                                    "value": 0.2
+                                }
+                            },
+                            "dos_electronic": [
+                                {
+                                    "energies": [0.0, 0.1]
+                                }
+                            ],
+                            "eigenvalues": [
+                            ]
+                        },
+                        {
+                            "system_ref": "/run/0/system/1",
+                            "energy": {
+                                "total": {
+                                    "value": 0.1
+                                }
+                            }
+                        }
                     ]
                 }
             ],
-            "section_workflow": {
-                "calculation_result_ref": "/section_run/0/section_single_configuration_calculation/1"
-            }
+            "workflow": [
+                {
+                    "calculation_result_ref": "/run/0/calculation/1"
+                }
+            ]
         }
         '''))
+    assert archive.run is not None
+    assert len(archive.run) == 1
+    return archive
 
 
 @pytest.mark.parametrize('required, error', [
     pytest.param('include', None, id='include-all'),
     pytest.param('*', None, id='include-all-alias'),
-    pytest.param({'section_metadata': '*'}, None, id='include-sub-section'),
-    pytest.param({'section_metadata': {
-        'calc_id': '*'
+    pytest.param({'metadata': '*'}, None, id='include-sub-section'),
+    pytest.param({'metadata': {
+        'entry_id': '*'
     }}, None, id='include-quantity'),
     pytest.param({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*'
+                'energy': {
+                    'total': '*'
+                }
             }
         }
     }, None, id='resolve-with-required'),
     pytest.param({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': 'include-resolved'
         }
     }, None, id='resolve-with-directive'),
     pytest.param({
-        'section_workflow': 'include-resolved'
+        'workflow':
+            'include-resolved',
+        'results': 'include-resolved'
     }, None, id='include-resolved'),
     pytest.param({
-        'section_metadata': {
-            'calc_id': {
+        'results': {
+            'properties': {
+                'electronic': {
+                    'dos_electronic': {
+                        'energies': 'include-resolved'
+                    }
+                }
+            }
+        }
+    }, None, id='resolve-quantity-ref'),
+    pytest.param({
+        'metadata': {
+            'entry_id': {
                 'doesnotexist': '*'
             }
         }
-    }, ['section_metadata', 'calc_id'], id='not-a-section'),
+    }, ['metadata', 'entry_id'], id='not-a-section'),
     pytest.param({
-        'section_metadata': 'bad-directive'
-    }, ['section_metadata'], id='bad-directive')
+        'metadata': 'bad-directive'
+    }, ['metadata'], id='bad-directive')
 ])
 @pytest.mark.parametrize('resolve_inplace', [
     pytest.param(True, id='inplace'),
@@ -418,8 +466,14 @@ def assert_required_results(
 
     # assert quantity values
     if isinstance(definition, Quantity):
-        assert current_results == current_archive_serialized
-        return
+        if current_results != current_archive_serialized:
+            if isinstance(current_archive_serialized, str):
+                # assume its a quantity reference
+                pass
+            else:
+                assert False, 'quantity values do not match'
+        else:
+            return
 
     # deal with references
     if isinstance(current_archive_serialized, str):
@@ -429,15 +483,27 @@ def assert_required_results(
             return
 
         if isinstance(current_results, str):
-            # It is an inplace resolved reference, it should be resolveable within an
+            # It is a reference string, it should be resolveable within an
             # results based archive. We should continue the assert from the resolved
             # results and resolved section in the archive.
             assert current_results == current_archive_serialized
-            resolved_results: MSection = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
-            current_results = resolved_results.m_to_dict()
+            resolved: Any = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
 
-        resolved_archive: MSection = archive.m_resolve(current_archive_serialized)
-        current_archive_serialized = resolved_archive.m_to_dict()
+            if isinstance(resolved, MSection):
+                current_results = resolved.m_to_dict()
+            else:
+                # its a quantity reference
+                # assertion only works for np typed quantities with unit
+                current_results = list(resolved.m)  # type: ignore
+
+        resolved = archive.m_resolve(current_archive_serialized)
+        if isinstance(resolved, MSection):
+            current_archive_serialized = resolved.m_to_dict()
+        else:
+            # its a quantity reference
+            # assertion only works for np typed quantities with unit
+            assert current_results == list(resolved.m)
+            return
 
     # continue recursion on directives, by extending the required with all possible
     # decends
@@ -445,8 +511,11 @@ def assert_required_results(
         prop_def = section.all_properties[prop]
         if isinstance(prop_def, SubSection):
             return prop_def.sub_section.m_resolved()
-        if isinstance(prop_def, Quantity) and isinstance(prop_def.type, Reference):
-            return prop_def.type.target_section_def.m_resolved()
+        if isinstance(prop_def, Quantity):
+            if isinstance(prop_def.type, Reference):
+                if isinstance(prop_def.type, QuantityReference):
+                    return prop_def.type.target_quantity_def.m_resolved()
+                return prop_def.type.target_section_def.m_resolved()
 
         return prop_def
 
@@ -456,14 +525,15 @@ def assert_required_results(
             key: dict(_directive=directive, _prop=key, _def=prop_def(key, definition))
             for key in current_archive_serialized}
 
-    # recurse of all required decends
+    # decend into references and subsections
     for key, value in required.items():
         if key.startswith('_'): continue
         prop = value['_prop']
         assert prop in current_results
         assert prop in current_archive_serialized
         prop_value = current_results[prop]
-        if isinstance(prop_value, list):
+        prop_definition = value['_def']
+        if isinstance(prop_value, list) and not isinstance(prop_definition, Quantity):
             for i, _ in enumerate(prop_value):
                 assert_required_results(
                     results, value, archive, prop_value[i], current_archive_serialized[prop][i])
@@ -474,15 +544,14 @@ def assert_required_results(
 
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
     # test contents
-    assert archive.section_workflow.calculation_result_ref is not None
-    assert archive.section_metadata.encyclopedia is not None
+    assert archive.workflow[0].calculation_result_ref is not None
     # test refs
-    assert archive.section_workflow.calculation_result_ref.energy_total is not None
-    assert len(archive.section_workflow.calculation_result_ref.section_eigenvalues) == 0
+    assert archive.workflow[0].calculation_result_ref.energy.total is not None
+    assert len(archive.workflow[0].calculation_result_ref.eigenvalues) == 0
     # test refs of refs
-    system = archive.section_workflow.calculation_result_ref.single_configuration_calculation_to_system_ref
-    assert system.atom_labels == ['H']
-    assert system.section_symmetry[0].space_group_number == 221
+    system = archive.workflow[0].calculation_result_ref.system_ref
+    assert system.atoms.labels == ['H']
+    assert system.symmetry[0].space_group_number == 221
 
     return archive
 
@@ -500,10 +569,10 @@ def test_parital_archive_read_write(archive, mongo):
 
 def test_partial_archive_re_write(archive, mongo):
     write_partial_archive_to_mongo(archive)
-    archive.section_metadata.comment = 'changed'
+    archive.metadata.comment = 'changed'
     write_partial_archive_to_mongo(archive)
     archive = assert_partial_archive(read_partial_archive_from_mongo('test_id'))
-    assert archive.section_metadata.comment == 'changed'
+    assert archive.metadata.comment == 'changed'
 
 
 def test_read_partial_archives(archive, mongo):
@@ -513,34 +582,40 @@ def test_read_partial_archives(archive, mongo):
 
 def test_compute_required_with_referenced(archive):
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': '*'
             }
         }
     })
 
     assert required == {
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': '*'
         },
-        'section_run': {
-            'section_single_configuration_calculation': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': '*'
+        'run': {
+            'calculation': {
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': '*'
             },
-            'section_system': '*'
+            'system': '*'
         }
     }
 
 
 def test_compute_required_incomplete(archive):
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'section_dos': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'dos_electronic': '*'
             }
         }
     })
@@ -548,11 +623,13 @@ def test_compute_required_incomplete(archive):
     assert required is None
 
     required = compute_required_with_referenced({
-        'section_workflow': {
+        'workflow': {
             'calculation_result_ref': {
-                'energy_total': '*',
-                'single_configuration_calculation_to_system_ref': {
-                    'section_symmetry': '*'
+                'energy': {
+                    'total': '*'
+                },
+                'system_ref': {
+                    'symmetry': '*'
                 }
             }
         }

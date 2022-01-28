@@ -23,48 +23,39 @@ as a final integration test.
 
 import time
 import os
-import click
+import json
 
-from .client import client
-
-
-multi_code_example_file = 'tests/data/integration/multi_code_data.zip'
-simple_example_file = 'tests/data/integration/examples_vasp.zip'
+from nomad.client import api
 
 
-@client.command(help='Runs a few example operations as a test.')
-@click.option(
-    '--skip-parsers', is_flag=True,
-    help='Skip extensive upload and parser tests.')
-@click.option(
-    '--skip-publish', is_flag=True,
-    help='Skip publish the upload. Should not be done on an production environment.')
-@click.option(
-    '--skip-doi', is_flag=True,
-    help='Skip assigning a doi to a dataset.')
-@click.option(
-    '--skip-mirror', is_flag=True,
-    help='Skip get mirror tests.')
-@click.pass_context
-def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
-    from .client import create_client
-    client = create_client()
+def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, skip_doi: bool):
+    multi_code_example_file = 'tests/data/integration/multi_code_data.zip'
+    simple_example_file = 'tests/data/integration/examples_vasp.zip'
     has_doi = False
     published = False
 
     print('get the upload command')
-    command = client.uploads.get_upload_command().response().result.upload_command_with_name
+    response = api.get('uploads/command-examples', auth=auth)
+    assert response.status_code == 200, response.text
+    command = response.json()['upload_command_with_name']
 
     def get_upload(upload):
-        upload = client.uploads.get_upload(
-            upload_id=upload.upload_id, per_page=100).response().result
-
-        while upload.tasks_running:
+        first = True
+        while first or upload['process_running']:
+            first = False
+            response = api.get(f'uploads/{upload["upload_id"]}', auth=auth)
+            if response.status_code == 404:
+                return None
+            assert response.status_code == 200, response.text
+            upload = response.json()['data']
             time.sleep(0.3)
-            upload = client.uploads.get_upload(
-                upload_id=upload.upload_id, per_page=100).response().result
 
         return upload
+
+    response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
+    assert response.status_code == 200, response.text
+    uploads = response.json()['data']
+    assert len(uploads) == 0, 'the test upload must not exist before'
 
     if not skip_parsers:
         print('upload multi code test data with curl')
@@ -73,136 +64,147 @@ def integrationtests(ctx, skip_parsers, skip_publish, skip_doi, skip_mirror):
         command += ' -k'
         code = os.system(command)
         assert code == 0, 'curl command must be successful'
-        uploads = client.uploads.get_uploads(name='integration_test_upload').response().result.results
-        assert len(uploads) == 1, 'exactly one test upload must be on the server'
-        upload = uploads[0]
+        response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
+        assert response.status_code == 200, response.text
+        response_json = response.json()
+        assert len(response_json['data']) == 1, 'exactly one test upload must be on the server'
+        upload = response_json['data'][0]
 
         print('observe the upload process to be finished')
         upload = get_upload(upload)
 
-        assert upload.tasks_status == 'SUCCESS'
-        total = upload.calcs.pagination.total
-        assert 100 > total > 0
-        assert len(upload.calcs.results) == total
+        assert upload['process_status'] == 'SUCCESS'
 
         print('delete the upload again')
-        client.uploads.delete_upload(upload_id=upload.upload_id).response()
-        while upload.process_running:
-            upload = client.uploads.get_upload(
-                upload_id=upload.upload_id).response().result
+        upload = api.delete(f'uploads/{upload["upload_id"]}', auth=auth).json()['data']
+        upload = get_upload(upload)
 
     print('upload simple data with API')
     with open(simple_example_file, 'rb') as f:
-        upload = client.uploads.upload(
-            name='integration test upload', file=f).response().result
+        response = api.post(
+            'uploads', files=dict(file=f), params=dict(upload_name='integration_test_upload'),
+            auth=auth, headers={'Accept': 'application/json'})
+        assert response.status_code == 200, response.text
+        upload = response.json()['data']
 
     print('observe the upload process to be finished')
     upload = get_upload(upload)
-    total = upload.calcs.pagination.total
-    assert total > 0
-    assert len(upload.calcs.results) == total
+    response = api.get(f'uploads/{upload["upload_id"]}/entries', auth=auth)
+    assert response.status_code == 200, response.text
+    entries = response.json()['data']
+    assert upload['entries'] == len(entries)
 
     try:
         print('get repo data')
-        for calc in upload.calcs.results:
-            repo = client.repo.get_repo_calc(
-                upload_id=upload.upload_id, calc_id=calc.calc_id).response().result
-            repo['calc_id'] == calc.calc_id
+        for entry in entries:
+            response = api.get(f'entries/{entry["entry_id"]}', auth=auth)
+            assert response.status_code == 200, response.text
+            entry_metadata = response.json()['data']
+            entry_metadata['entry_id'] == entry['entry_id']
 
         print('get archive data')
-        for calc in upload.calcs.results:
-            client.archive.get_archive_calc(
-                upload_id=upload.upload_id, calc_id=calc.calc_id).response()
+        for entry in entries:
+            api.get(f'entries/{entry["entry_id"]}/archive/download', auth=auth)
+            assert response.status_code == 200, response.text
 
         print('get archive logs')
-        for calc in upload.calcs.results:
-            client.archive.get_archive_logs(
-                upload_id=upload.upload_id, calc_id=calc.calc_id).response()
+        for entry in entries:
+            response = api.post(
+                f'entries/{entry["entry_id"]}/archive/query',
+                data=json.dumps({
+                    'required': {
+                        'processing_logs': '*'
+                    }
+                }), auth=auth)
+            assert response.status_code == 200, response.text
+            assert list(response.json()['data']['archive'].keys()) == ['processing_logs']
 
-        query = dict(owner='staging', upload_id=[upload.upload_id])
+        query_request_params = dict(
+            owner='staging',
+            query={
+                'upload_id': upload['upload_id']
+            })
 
         print('perform repo search on data')
-        search = client.repo.search(per_page=100, **query).response().result
-        assert search.pagination.total >= total
-        assert len(search.results) <= search.pagination.total
+        response = api.post('entries/query', data=json.dumps(query_request_params), auth=auth)
+        assert response.status_code == 200, response.text
+        response_json = response.json()
+        assert response_json['pagination']['total'] == 2
+        assert response_json['pagination']['total'] == len(response_json['data'])
 
         print('performing archive paginated search')
-        result = client.archive.post_archive_query(payload={
-            'pagination': {
-                'page': 1,
-                'per_page': 10
-            },
-            'query': query
-        }).response().result
-        assert len(result.results) > 0
+        response = api.post('entries/archive/query', data=json.dumps(dict(
+            pagination=dict(page_size=1, page_offset=1),
+            **query_request_params)), auth=auth)
+        assert response.status_code == 200, response.text
+        response_json = response.json()
+        assert response_json['pagination']['total'] == 2
+        assert len(response_json['data']) == 1
 
         print('performing archive scrolled search')
-        result = client.archive.post_archive_query(payload={
-            'scroll': {
-                'scroll': True
-            },
-            'query': query
-        }).response().result
-        assert len(result.results) > 0
+        response = api.post('entries/archive/query', data=json.dumps(dict(
+            pagination=dict(page_size=1),
+            **query_request_params)), auth=auth)
+        response_json = response.json()
+        response = api.post('entries/archive/query', data=json.dumps(dict(
+            pagination=dict(page_size=1, page_after_value=response_json['pagination']['next_page_after_value']),
+            **query_request_params)), auth=auth)
+        assert response.status_code == 200, response.text
+        response_json = response.json()
+        assert response_json['pagination']['total'] == 2
+        assert len(response_json['data']) == 1
 
         print('performing download')
-        client.raw.raw_files_from_query(**query)
+        response = api.get(
+            'entries/raw',
+            params=dict(upload_id=upload['upload_id'], owner='visible'), auth=auth)
+        assert response.status_code == 200, response.text
 
         if not skip_publish:
             print('publish upload')
-            client.uploads.exec_upload_operation(
-                upload_id=upload.upload_id,
-                payload=dict(operation='publish')).response()
+            api.post(f'uploads/{upload["upload_id"]}/action/publish')
 
-            while upload.process_running:
-                upload = client.uploads.get_upload(
-                    upload_id=upload.upload_id).response().result
-
-            assert upload.tasks_status == 'SUCCESS', 'publish must be successful'
+            upload = get_upload(upload)
+            assert upload['process_status'] == 'SUCCESS', 'publish must be successful'
             published = True
 
         print('editing upload')
+        response = api.get('users', params=dict(prefix='Markus Scheidgen'))
+        assert response.status_code == 200, response.text
+        user = response.json()['data'][0]
         dataset = 'test_dataset'
         actions = {
             'comment': {'value': 'Test comment'},
             'references': [{'value': 'http;//test_reference.com'}],
-            'coauthors': [{'value': 'author1-id'}, {'value': 'author2-id'}],
-            'shared_with': [{'value': 'author3-id'}],
+            'entry_coauthors': [{'value': user['user_id']}],
             'datasets': [{'value': dataset}]}
 
-        payload = dict(actions=actions, query=dict(upload_id=[upload.upload_id]))
-        result = client.repo.edit_repo(payload=payload).response().result
-        assert result.success
-        assert client.datasets.get_dataset(name=dataset).response().result['name'] == dataset
+        response = api.post(
+            'entries/edit_v0',
+            data=json.dumps(dict(actions=actions, **query_request_params)),
+            auth=auth)
+        assert response.status_code == 200, response.text
 
         print('list datasets')
-        result = client.datasets.list_datasets(page=1, per_page=10).response().result
-        results = result.results
-        assert len(results) > 0
+        response = api.get('datasets', auth=auth, params=dict(dataset_name=dataset))
+        assert response.status_code == 200, response.text
+        response_json = response.json()
+        assert len(response_json['data']) == 1, response.text
+        dataset_id = response_json['data'][0]['dataset_id']
 
         if not skip_doi and published:
             print('assigning a DOI')
-            result = client.datasets.assign_doi(name=dataset).response().result
-            doi = result.doi
-            assert doi
+            response = api.post(f'datasets/{dataset_id}/action/doi', auth=auth)
+            assert response.status_code == 200, response.text
             has_doi = True
 
-        if not has_doi or ctx.obj.user == 'admin':
+        if not has_doi or auth.user == 'admin':
             print('deleting dataset')
-            result = client.datasets.delete_dataset(name=dataset).response().result
-
-        if not skip_mirror and ctx.obj.user == 'admin':
-            print('getting upload mirror')
-            # get_upload_mirror gives 404
-            payload = dict(query=dict(upload_id=upload.upload_id))
-            result = client.mirror.get_uploads_mirror(payload=payload).response().result
-            assert len(result) == 1
-            assert len(client.mirror.get_upload_mirror(upload_id=upload.upload_id).response().result.calcs) > 0
+            response = api.delete(f'datasets/{dataset_id}', auth=auth)
+            assert response.status_code == 200, response.text
 
     finally:
-        if not published or ctx.obj.user == 'admin':
+        if not published or auth.user == 'admin':
             print('delete the upload again')
-            client.uploads.delete_upload(upload_id=upload.upload_id).response()
-            while upload.process_running:
-                upload = client.uploads.get_upload(
-                    upload_id=upload.upload_id).response().result
+            upload = api.delete(f'uploads/{upload["upload_id"]}', auth=auth).json()['data']
+            assert get_upload(upload) is None

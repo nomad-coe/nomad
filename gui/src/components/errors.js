@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { SnackbarContent, IconButton, Snackbar, withStyles, Typography, Box } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
-import { serviceWorkerRegistrationRef } from '..'
+import { serviceWorkerRegistrationRef } from '../serviceWorker'
 import Markdown from './Markdown'
 
 export class VersionMismatch extends Error {
@@ -56,7 +56,9 @@ class ErrorSnacksUnstyled extends React.Component {
   onError(error) {
     let errorStr = 'Unexpected error. Please try again and let us know, if this error keeps happening.'
     if (error instanceof Error) {
-      if (error.name === 'CannotReachApi') {
+      if (error.name === 'BadRequest') {
+        errorStr = error.message
+      } else if (error.name === 'CannotReachApi') {
         errorStr = 'Cannot reach NOMAD, please try again later.'
       } else if (error.name === 'NotAuthorized') {
         errorStr = error.message
@@ -68,6 +70,7 @@ class ErrorSnacksUnstyled extends React.Component {
         errorStr = 'The given OPTiMaDe query can not be parsed.'
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
+        console.log(error)
       }
     } else if (typeof error === 'string' || error instanceof String) {
       errorStr = `${error} Please try to reload and let us know, if this error keeps happening.`
@@ -175,3 +178,7 @@ export class ErrorBoundary extends React.Component {
 }
 
 ErrorBoundary.contextType = errorContext
+
+export function useErrors() {
+  return useContext(errorContext)
+}

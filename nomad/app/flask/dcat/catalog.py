@@ -19,8 +19,8 @@
 from flask_restplus import Resource, fields
 from elasticsearch_dsl import Q
 
-from nomad import search
-from nomad.app.flask.api.auth import authenticate
+from nomad.search import search
+from nomad.app.v1.models import MetadataPagination
 
 from .api import api, arg_parser, rdf_respose, response_types
 from .mapping import Mapping
@@ -45,27 +45,27 @@ class Catalog(Resource):
     @api.response(404, 'There is no entry with the given id.')
     @api.response(401, 'This entry is not publically accessible.')
     @api.response(200, 'Data send', headers={'Content-Type': 'application/xml'})
-    @authenticate()
     def get(self):
         ''' Returns a page of DCAT datasets. '''
         args = arg_parser.parse_args()
         modified_since = args.get('modified_since', None)
-        after = args.get('after', '')
-        if after is None:
-            after = ''
+        after = args.get('after', None)
 
-        search_request = search.SearchRequest().owner('public')
+        search_query = Q()
         if modified_since is not None:
-            modified_clause = Q('range', upload_time=dict(gte=modified_since))
-            modified_clause |= Q('range', last_edit=dict(gte=modified_since))
-            modified_clause |= Q('range', last_processing=dict(gte=modified_since))
-            search_request.q &= modified_clause
+            modified_clause = Q('range', upload_create_time=dict(gte=modified_since))
+            modified_clause |= Q('range', last_edit_time=dict(gte=modified_since))
+            modified_clause |= Q('range', last_processing_time=dict(gte=modified_since))
+            search_query &= modified_clause
 
-        es_search = search_request._search.query(search_request.q)
-        if after != '':
-            es_search = es_search.extra(search_after=[after], sort='calc_id')
-        es_response = es_search.execute()
+        pagination = MetadataPagination(page_after_value=after)
+
+        search_response = search(owner='public', query=search_query, pagination=pagination)
 
         mapping = Mapping()
-        mapping.map_catalog(es_response.hits, after, modified_since, slim=False)
+        mapping.map_catalog(
+            search_response.data,
+            total=search_response.pagination.total,
+            after=after,
+            modified_since=modified_since, slim=False)
         return rdf_respose(mapping.g)

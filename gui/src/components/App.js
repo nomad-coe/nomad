@@ -18,14 +18,18 @@
 import React from 'react'
 import { Router, Route } from 'react-router-dom'
 import { QueryParamProvider } from 'use-query-params'
+import { RecoilRoot } from 'recoil'
 import history from '../history'
+import DateFnsUtils from '@date-io/date-fns'
+import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 import { nomadTheme, keycloakBase, keycloakRealm, keycloakClientId } from '../config'
 import Keycloak from 'keycloak-js'
 import { KeycloakProvider } from 'react-keycloak'
 import { MuiThemeProvider } from '@material-ui/core/styles'
-import { ApiProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
+import GUIMenu from './GUIMenu'
+import { APIProvider, GlobalLoginRequired } from './api'
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -36,19 +40,26 @@ const keycloak = Keycloak({
 export default function App() {
   return (
     <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false }} LoadingComponent={<div />}>
-      <Router history={history}>
-        <QueryParamProvider ReactRouterRoute={Route}>
-          <MuiThemeProvider theme={nomadTheme}>
-            <ErrorSnacks>
-              <ErrorBoundary>
-                <ApiProvider>
-                  <Navigation />
-                </ApiProvider>
-              </ErrorBoundary>
-            </ErrorSnacks>
-          </MuiThemeProvider>
-        </QueryParamProvider>
-      </Router>
+      <RecoilRoot>
+        <APIProvider>
+          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <Router history={history}>
+              <QueryParamProvider ReactRouterRoute={Route}>
+                <MuiThemeProvider theme={nomadTheme}>
+                  <ErrorSnacks>
+                    <ErrorBoundary>
+                      <GlobalLoginRequired>
+                        <Navigation />
+                        <GUIMenu/>
+                      </GlobalLoginRequired>
+                    </ErrorBoundary>
+                  </ErrorSnacks>
+                </MuiThemeProvider>
+              </QueryParamProvider>
+            </Router>
+          </MuiPickersUtilsProvider>
+        </APIProvider>
+      </RecoilRoot>
     </KeycloakProvider>
   )
 }

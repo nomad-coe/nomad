@@ -13,6 +13,7 @@ sys.modules['optimade.server.logger'] = importlib.import_module('nomad.app.optim
 from nomad import config, utils  # nopep8
 from optimade.server.config import CONFIG  # nopep8
 CONFIG.root_path = '%s/optimade' % config.services.api_base_path
+CONFIG.base_url = config.api_url(api='optimade')
 
 from optimade.server import main as optimade  # nopep8
 from optimade.server.routers import structures  # nopep8

@@ -40,7 +40,7 @@ export default function About() {
       and functions programatically. For all APIs, we offer dashboards that let you use
       each API interactively, right in your browser.
 
-      ## NOMAD's new (Version 1) API
+      ## NOMAD's API
 
       - [API dashboard](${apiBase}/v1/extensions/docs)
       - [API documentation](${apiBase}/v1/extensions/redoc)
@@ -50,18 +50,15 @@ export default function About() {
       At some point, it will replace it entirely. For new users, we recommend to start
       using this API. API Dashboard and documentation contain a tutorial on how to get started.
 
-      ## NOMAD's main (Version 0) API
-
-      - [API dashboard](${apiBase}/)
-
-      This is NOMAD main REST API. This API the main interface to NOMAD and it also used
-      by this web-page to provide all functions. Therefore, everything you do here, can
-      also be done by using this API.
-
       There is a [tutorial on how to use the API with plain Python](${appBase}/docs/api_tutorial.html).
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
       The [NOMAD Analytics Toolkit](https://nomad-lab.eu/AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
+
+      You can still use NOMAD's old REST API. The data it provides might miss the most
+      recent contributions:
+
+      - [v0 API dashboard](https://nomad-lab.eu/prod/rae/api/)
 
       ## OPTIMADE
 

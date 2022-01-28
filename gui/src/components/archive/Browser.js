@@ -22,10 +22,14 @@ import { RecoilRoot } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
-import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
+
+export function formatSubSectionName(name) {
+  // return name.startsWith('section_') ? name.slice(8) : name
+  return name
+}
 
 export class Adaptor {
   constructor(e) {
@@ -67,7 +71,7 @@ const useBrowserStyles = makeStyles(theme => ({
     width: 'fit-content'
   }
 }))
-export default function Browser({adaptor, form}) {
+export const Browser = React.memo(function Browser({adaptor, form}) {
   const classes = useBrowserStyles()
   const rootRef = useRef()
   const outerRef = useRef()
@@ -96,17 +100,31 @@ export default function Browser({adaptor, form}) {
     next: null
   }), [adaptor, url])
 
-  const lanes = [root]
-  archivePath.filter(segment => segment).forEach((segment, i) => {
-    const prev = lanes[i]
-    const lane = {
-      key: segment,
-      path: `${prev.path}/${segment}`,
-      adaptor: prev.adaptor.itemAdaptor(segment)
-    }
-    lanes.push(lane)
-    prev.next = lane
-  })
+  const [render, setRender] = useState(0)
+
+  const memoedAdapters = useRef({})
+  const lanes = useMemo(() => {
+    const lanes = [root]
+    archivePath.filter(segment => segment).forEach((segment, i) => {
+      const prev = lanes[i]
+      const path = `${prev.path}/${segment}`
+      const adaptor = memoedAdapters.current[path] || prev.adaptor.itemAdaptor(segment)
+      memoedAdapters.current[path] = adaptor
+      const lane = {
+        key: segment,
+        path: path,
+        adaptor: adaptor,
+        data: root.adaptor.e,
+        update: () => {
+          memoedAdapters.current[path] = null
+          setRender(render + 1)
+        }
+      }
+      lanes.push(lane)
+      prev.next = lane
+    })
+    return lanes
+  }, [root, archivePath, memoedAdapters, render, setRender])
 
   return <RecoilRoot>
     {form}
@@ -124,11 +142,12 @@ export default function Browser({adaptor, form}) {
       </CardContent>
     </Card>
   </RecoilRoot>
-}
+})
 Browser.propTypes = ({
   adaptor: PropTypes.object.isRequired,
   form: PropTypes.node
 })
+export default Browser
 
 export const laneContext = React.createContext()
 const useLaneStyles = makeStyles(theme => ({
@@ -138,6 +157,7 @@ const useLaneStyles = makeStyles(theme => ({
     display: 'inline-block'
   },
   container: {
+    minWidth: 300,
     display: 'inline-block',
     height: '100%',
     overflowY: 'scroll'
@@ -146,26 +166,32 @@ const useLaneStyles = makeStyles(theme => ({
     margin: theme.spacing(1)
   }
 }))
-function Lane({lane}) {
+const Lane = React.memo(function Lane({lane}) {
   const classes = useLaneStyles()
-  const { adaptor } = lane
-
-  return <div className={classes.root}>
-    <div className={classes.container}>
-      <laneContext.Provider value={lane}>
-        <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
-          {adaptor.render()}
-        </ErrorHandler>
-      </laneContext.Provider>
+  const { key, selected, adaptor, next } = lane
+  const content = useMemo(() => {
+    return <div className={classes.root}>
+      <div className={classes.container}>
+        <laneContext.Provider value={lane}>
+          <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
+            {adaptor.render()}
+          </ErrorHandler>
+        </laneContext.Provider>
+      </div>
     </div>
-  </div>
-}
+    // We deliberetly break the React rules here. The goal is to only update if the
+    // lanes contents change and not the lane object.
+    // eslint-disable-next-line
+  }, [key, selected, adaptor, next?.key, classes])
+  return content
+})
 Lane.propTypes = ({
   lane: PropTypes.object.isRequired
 })
 
 const useItemStyles = makeStyles(theme => ({
   root: {
+    maxWidth: 500,
     color: theme.palette.text.primary,
     textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
@@ -221,60 +247,8 @@ Item.propTypes = ({
   disabled: PropTypes.bool
 })
 
-const useListStyles = makeStyles(theme => ({
-  title: {
-    color: theme.palette.text.primary,
-    textDecoration: 'none',
-    margin: `0 -${theme.spacing(1)}px`,
-    whiteSpace: 'nowrap',
-    display: 'flex',
-    fontWeight: 'bold'
-  },
-  selected: {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    whiteSpace: 'nowrap'
-  },
-  unSelected: {
-    '&:hover': {
-      backgroundColor: grey[300]
-    }
-  }
-}))
-export function List({title, itemKey}) {
-  const classes = useListStyles()
-  const [open, setOpen] = useState(false)
-  const lane = useContext(laneContext)
-  const selected = lane.next && lane.next.key
-  const values = lane.adaptor.e[itemKey]
-  return <div>
-    <Typography onClick={() => setOpen(!open)} className={classNames(
-      classes.title,
-      (!open && selected && selected.startsWith(itemKey + ':')) ? classes.selected : classes.unSelected
-    )}>
-      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-      <span>{title || 'list'}</span>
-    </Typography>
-    {open &&
-      <div>
-        {values.map((_, index) => (
-          <Item key={index} itemKey={`${itemKey}:${index}`}>
-            <Box component="span" marginLeft={2}>
-              <Typography component="span">{index}</Typography>
-            </Box>
-          </Item>
-        ))}
-      </div>
-    }
-  </div>
-}
-List.propTypes = ({
-  itemKey: PropTypes.string.isRequired,
-  title: PropTypes.string
-})
-
 export function Content({children}) {
-  return <Box padding={1}>
+  return <Box padding={1} maxWidth={1024}>
     {children}
   </Box>
 }
@@ -290,7 +264,7 @@ export function Compartment({title, children, color}) {
     return ''
   }
   return <React.Fragment>
-    <Box paddingTop={1}>
+    <Box paddingTop={1} whiteSpace="nowrap">
       {title && <Typography color={color} variant="overline">{title}</Typography>}
     </Box>
     {children}

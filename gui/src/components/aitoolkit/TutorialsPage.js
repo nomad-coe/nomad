@@ -186,7 +186,7 @@ export default function TutorialsPage() {
         <Grid container spacing={0}>
           <Grid item xs={4} style={{marginTop: '-100px', marginLeft: '-20px'}}>
             <IconButton
-              {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
+              {...(aitoolkitEnabled ? ({to: 'aitoolkit', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
             >
               <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>
             </IconButton>
@@ -381,7 +381,7 @@ export default function TutorialsPage() {
         <Grid item xs={4}>
           <IconButton
             component={Link}
-            {...(aitoolkitEnabled ? ({to: 'main', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
+            {...(aitoolkitEnabled ? ({to: 'aitoolkit', component: Link}) : ({href: 'https://nomad-lab.eu/AIToolkit', component: 'a'}))}
             style={{marginRight: '0px', marginTop: '20px'}}
           >
             <img alt='AI toolkit logo' src={FigureAI} style={{width: '120px'}}/>

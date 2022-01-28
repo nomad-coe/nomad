@@ -4,39 +4,30 @@ will add a nomad.json to the uploads, upload them 1 at a time, watch the process
 '''
 
 from typing import Dict, Any
-from bravado.requests_client import RequestsClient, Authenticator
-from bravado.client import SwaggerClient
-from keycloak import KeycloakOpenID
 from urllib.parse import urlparse
 import time
 import os.path
 import sys
 import zipfile
 
-from nomad.client import KeycloakAuthenticator
-from nomad import config
+import requests
 
-nomad_url = 'http://nomad-lab.eu/prod/rae/api'
+from nomad import config
+from nomad.client import Auth, upload_file
+
+nomad_url = config.client.url
 user = 'youruser'
 password = 'yourpassword'
-uploader_id = None
+main_author = None
 
 
-# create the bravado client
-http_client = RequestsClient()
-http_client.authenticator = KeycloakAuthenticator(
-    host=urlparse(nomad_url).netloc,
-    user=user,
-    password=password,
-    server_url=config.keycloak.server_url,
-    realm_name=config.keycloak.realm_name,
-    client_id=config.keycloak.client_id)
-client = SwaggerClient.from_url('%s/swagger.json' % nomad_url, http_client=http_client)
+# create an auth object
+auth = Auth(user=user, password=password)
 
 
 def upload(
         path: str, local_path: bool = False, metadata_path: str = None,
-        publish_directly: bool = False, uploader_id: str = None):
+        publish_directly: bool = False, main_author: str = None):
     '''
     Arguments:
         path: The file path to the upload file.
@@ -62,28 +53,14 @@ def upload(
     if publish_directly:
         kwargs['publish_directly'] = True
 
-    if uploader_id is not None:
-        kwargs['uploader_id'] = uploader_id
+    if main_author is not None:
+        kwargs['main_author'] = main_author
 
-    if local_path:
-        upload = client.uploads.upload(local_path=path, **kwargs).response().result
-    else:
-        with open(path, 'rb') as f:
-            upload = client.uploads.upload(file=f, **kwargs).response().result
-
-    print(f'processing {path}')
-    while upload.tasks_running:
-        upload = client.uploads.get_upload(upload_id=upload.upload_id).response().result
-        time.sleep(3)
-        print('processed: %d, failures: %d' % (upload.processed_calcs, upload.failed_calcs))
-
-    # check if processing was a success
-    if upload.tasks_status != 'SUCCESS':
+    upload_id = upload_file(path, auth, local_path=local_path)
+    if upload_id is None:
         print('something went wrong')
-        print('errors: %s' % str(upload.errors))
         # try to delete the unsuccessful upload
-        client.uploads.delete_upload(upload_id=upload.upload_id).response().result
-
+        requests.delete(f'{nomad_url}/v1/upload/{upload_id}', auth=auth)
         return False
 
     return True
@@ -100,4 +77,4 @@ if __name__ == '__main__':
     for path in paths:
         upload(
             path, metadata_path=metadata_path, local_path=True, publish_directly=True,
-            uploader_id=uploader_id)
+            main_author=main_author)

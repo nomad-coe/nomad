@@ -1,20 +1,13 @@
-from nomad import config, infrastructure, search
+from nomad import config, infrastructure
+from nomad.search import search
+from nomad.app.v1.models import MetadataPagination
 
 
 config.elastic.host = 'localhost'
 config.elastic.port = 19202
-config.elastic.index_name = 'fairdi_nomad_prod_v0_8'
+config.elastic.entries_index = 'fairdi_nomad_prod_v0_8'
 
 infrastructure.setup_elastic()
 
-
-req = search.SearchRequest()
-req.search_parameter('authors', 'Emre Ahmetcik')
-upload_id = None
-
-i = 0
-for entry in req.execute_scan(order_by='upload_id', size=1000):
-    i += 1
-    if entry['upload_id'] != upload_id:
-        upload_id = entry['upload_id']
-        print(upload_id, i)
+for entry in search(pagination=MetadataPagination(page_size=1000), query=dict(authors='Emre Ahmetcik')).data:
+    print('entry_id', entry['entry_id'])

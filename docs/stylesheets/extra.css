@@ -1,0 +1,15 @@
+
+.md-header__button.md-logo :where(img,svg) {
+    width: 4.2rem;
+    height: 2rem;
+}
+
+.md-header, .md-header__inner {
+    background-color: #fff;
+    color: #008DC3;
+    font-weight: 400;
+}
+
+.md-search__form:hover {
+    background-color: rgba(0,0,0,.13);
+}

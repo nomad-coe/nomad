@@ -15,19 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useMemo, useState, useContext } from 'react'
+import {
+  atom,
+  useSetRecoilState,
+  useRecoilValue,
+  useRecoilState
+} from 'recoil'
 import PropTypes from 'prop-types'
-import { withErrors } from './errors'
-import { UploadRequest } from '@navjobs/upload'
-import Swagger from 'swagger-client'
-import { apiBase } from '../config'
-import { Typography, withStyles } from '@material-ui/core'
+import { apiBase, globalLoginRequired } from '../config'
+import { Box, makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
-import { compose } from 'recompose'
-import { withKeycloak } from 'react-keycloak'
+import { useKeycloak } from 'react-keycloak'
+import axios from 'axios'
+import { useErrors } from './errors'
 import * as searchQuantities from '../searchQuantities.json'
-
-export const apiContext = React.createContext()
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -50,103 +52,29 @@ export class ApiError extends Error {
   }
 }
 
-const upload_to_gui_ids = {}
-let gui_upload_id_counter = 0
-
-class Upload {
-  constructor(json, api) {
-    this.api = api
-
-    // Cannot use upload_id as key in GUI, because uploads don't have an upload_id
-    // before upload is completed
-    if (json.upload_id) {
-      // instance from the API
-      this.gui_upload_id = upload_to_gui_ids[json.upload_id]
-      if (this.gui_upload_id === undefined) {
-        // never seen in the GUI, needs a GUI id
-        this.gui_upload_id = gui_upload_id_counter++
-        upload_to_gui_ids[json.upload_id] = this.gui_upload_id
-      }
-    } else {
-      // new instance, not from the API
-      this.gui_upload_id = gui_upload_id_counter++
-    }
-    Object.assign(this, json)
-  }
-
-  uploadFile(file) {
-    const uploadFileWithProgress = async () => {
-      const authHeaders = await this.api.authHeaders()
-      let uploadRequest = await UploadRequest(
-        {
-          request: {
-            url: `${apiBase}/uploads/?name=${this.name}`,
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/gzip',
-              ...authHeaders
-            }
-          },
-          files: [file],
-          progress: value => {
-            this.uploading = value
-          }
-        }
-      )
-      if (uploadRequest.error) {
-        handleApiError(uploadRequest.response ? uploadRequest.response.message : uploadRequest.error)
-      }
-      if (uploadRequest.aborted) {
-        throw Error('User abort')
-      }
-      this.uploading = 100
-      this.upload_id = uploadRequest.response.upload_id
-      upload_to_gui_ids[this.upload_id] = this.gui_upload_id
-    }
-
-    return uploadFileWithProgress()
-      .then(() => this)
-  }
-
-  get(page, perPage, orderBy, order) {
-    if (this.uploading !== null && this.uploading !== 100) {
-      return new Promise(resolve => resolve(this))
-    } else {
-      if (this.upload_id) {
-        return this.api.swagger().then(client => client.apis.uploads.get_upload({
-          upload_id: this.upload_id,
-          page: page || 1,
-          per_page: perPage || 5,
-          order_by: orderBy || 'mainfile',
-          order: order || -1
-        }))
-          .catch(handleApiError)
-          .then(response => response.body)
-          .then(uploadJson => {
-            Object.assign(this, uploadJson)
-            return this
-          })
-      } else {
-        return new Promise(resolve => resolve(this))
-      }
-    }
+export class ApiRequestError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = 'BadRequest'
   }
 }
 
 function handleApiError(e) {
-  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist') {
+  if (e.name === 'CannotReachApi' || e.name === 'NotAuthorized' || e.name === 'DoesNotExist' || e.name === 'BadRequest') {
     throw e
   }
 
   let error = null
   if (e.response) {
     const body = e.response.body
-    const message = (body && (body.message || body.description)) || e.response.statusText
+    const message = (body && (body.message || body.description)) || e.response?.data?.detail || e.response.statusText
     const errorMessage = `${message} (${e.response.status})`
     if (e.response.status === 404) {
       error = new DoesNotExist(errorMessage)
     } else if (e.response.status === 401) {
       error = new NotAuthorized(errorMessage)
+    } else if (e.response.status === 400) {
+      error = new ApiRequestError(errorMessage)
     } else if (e.response.status === 502) {
       error = new ApiError(errorMessage)
     } else {
@@ -155,7 +83,7 @@ function handleApiError(e) {
     error.status = e.response.status
     error.apiMessage = message
   } else {
-    if (e.message === 'Failed to fetch') {
+    if (e.message === 'Failed to fetch' || e.message === 'Network Error') {
       error = new ApiError(e.message)
       error.status = 400
     } else {
@@ -167,49 +95,50 @@ function handleApiError(e) {
 }
 
 class Api {
-  swagger() {
-    if (this.keycloak.token) {
-      const self = this
-      return new Promise((resolve, reject) => {
-        self.keycloak.updateToken()
-          .success(() => {
-            self._swaggerClient
-              .then(swaggerClient => {
-                swaggerClient.authorizations = {
-                  'OpenIDConnect Bearer Token': `Bearer ${self.keycloak.token}`
-                }
-                resolve(swaggerClient)
-              })
-              .catch(() => {
-                reject(new ApiError())
-              })
-          })
-          .error(() => {
-            reject(new ApiError())
-          })
-      })
-    } else {
-      const self = this
-      return new Promise((resolve, reject) => {
-        self._swaggerClient
-          .then(swaggerClient => {
-            swaggerClient.authorizations = {}
-            resolve(swaggerClient)
-          })
-          .catch(() => {
-            reject(new ApiError())
-          })
-      })
+  constructor(keycloak, setLoading) {
+    this.keycloak = keycloak
+    this.setLoading = setLoading
+    this.baseURL = `${apiBase}/v1`
+    this.axios = axios.create({
+      baseURL: this.baseURL
+    })
+
+    this.nLoading = 0
+
+    this.onFinishLoading = (show) => {
+      if (show) {
+        this.nLoading--
+        if (this.nLoading === 0) {
+          setLoading(false)
+        }
+      }
     }
+    this.onStartLoading = (show) => {
+      if (show) {
+        this.nLoading++
+        if (this.nLoading > 0) {
+          setLoading(true)
+        }
+      }
+    }
+
+    this.subscriptions = {}
   }
 
-  authHeaders() {
+  /**
+   * Fetches the up-to-date authorization headers. Performs a token update if
+   * the current token has expired.
+   * @returns Object containing the authorization header.
+   */
+  async authHeaders() {
     if (this.keycloak.token) {
       return new Promise((resolve, reject) => {
         this.keycloak.updateToken()
           .success(() => {
             resolve({
-              'Authorization': `Bearer ${this.keycloak.token}`
+              headers: {
+                'Authorization': `Bearer ${this.keycloak.token}`
+              }
             })
           })
           .error(() => {
@@ -221,255 +150,181 @@ class Api {
     }
   }
 
-  constructor(keycloak) {
-    this._swaggerClient = Swagger(`${apiBase}/swagger.json`)
-    this.keycloak = keycloak
-
-    this.loadingHandler = []
-    this.loading = 0
-
-    this.onFinishLoading = () => {
-      this.loading--
-      this.loadingHandler.forEach(handler => handler(this.loading))
+  /**
+   * Returns the data related to the specified dataset.
+   *
+   * @param {string} datasetID
+   * @returns Object containing the search index contents.
+   */
+  async datasets(datasetId) {
+    this.onStartLoading()
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.get(`/datasets/${datasetId}`, auth)
+      return entry.data.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
     }
-    this.onStartLoading = () => {
-      this.loading++
-      this.loadingHandler.forEach(handler => handler(this.loading))
+  }
+
+  /**
+   * Returns a list of suggestions for the given metainfo quantities.
+   *
+   * @param {string} quantity The quantity names for which suggestions are
+   * returned.
+   * @param {string} input Input used to filter the responses. Must be provided
+   * in order to return suggestions.
+   *
+   * @returns List of suggested values. The items are ordered by how well they
+   * match the input.
+   */
+  async suggestions(quantities, input) {
+    const auth = await this.authHeaders()
+    try {
+      const suggestions = await this.axios.post(
+        `/suggestions`,
+        {
+          input: input,
+          quantities: quantities
+        },
+        auth
+      )
+      return suggestions.data
+    } catch (errors) {
+      handleApiError(errors)
     }
-
-    Api.uploadIds = 0
   }
 
-  createUpload(name) {
-    const upload = new Upload({
-      upload_id: Api.uploadIds++,
-      name: name,
-      tasks: ['uploading', 'extract', 'parse_all', 'cleanup'],
-      current_task: 'uploading',
-      uploading: 0,
-      create_time: new Date()
-    }, this)
-
-    return upload
-  }
-
-  onLoading(handler) {
-    this.loadingHandler = [...this.loadingHandler, handler]
-  }
-
-  removeOnLoading(handler) {
-    this.loadingHandler = this.loadingHandler.filter(item => item !== handler)
-  }
-
-  async getUploads(state, page, perPage) {
-    state = state || 'all'
-    page = page || 1
-    perPage = perPage || 10
-
+  /**
+   * Return the raw file metadata for a given entry.
+   * @param {string} entryId
+   * @returns Object containing the raw file metadata.
+   */
+  async getRawFileListFromEntry(entryId) {
     this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.get_uploads({state: state, page: page, per_page: perPage}))
-      .catch(handleApiError)
-      .then(response => ({
-        ...response.body,
-        results: response.body.results.map(uploadJson => {
-          const upload = new Upload(uploadJson, this)
-          upload.uploading = 100
-          return upload
-        })
-      }))
-      .finally(this.onFinishLoading)
+    const auth = await this.authHeaders()
+    try {
+      const entry = await this.axios.get(`/entries/${entryId}/rawdir`, auth)
+      return entry.data
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading()
+    }
   }
 
-  async getUnpublishedUploads() {
-    return this.getUploads('unpublished', 1, 1000)
-  }
-
-  async getPublishedUploads(page, perPage) {
-    return this.getUploads('published', 1, 10)
-  }
-
-  async archive(uploadId, calcId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.archive.get_archive_calc({
-        upload_id: uploadId,
-        calc_id: calcId
-      }))
-      .catch(handleApiError)
-      .then(response => {
-        const result = response.body || response.text || response.data
-        if (typeof result === 'string') {
-          try {
-            return JSON.parse(result)
-          } catch (e) {
-            try {
-              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-            } catch (e) {
-              return result
-            }
-          }
-        } else {
-          return result
+  /**
+   * Executes the given entry query
+   * @param {object} search contains the search object
+   * @param {string} searchTarget The target of the search: entries or materials
+   * @returns Object containing the raw file metadata.
+   */
+  async query(searchTarget, search, config) {
+    this.onStartLoading(config?.loadingIndicator || false)
+    const auth = await this.authHeaders()
+    try {
+      const request = {
+        method: 'POST',
+        path: `${searchTarget}/query`,
+        url: `${apiBase}/${searchTarget}/query`,
+        body: {
+          exclude: ['atoms', 'only_atoms', 'files', 'quantities', 'dft.quantities', 'optimade', 'dft.labels', 'dft.geometries'],
+          ...search
         }
-      })
-      .finally(this.onFinishLoading)
+      }
+      const result = await this.axios.post(request.path, request.body, auth)
+      if (config.returnRequest) {
+        request.response = result.data
+        return request
+      } else {
+        return result.data
+      }
+    } catch (errors) {
+      handleApiError(errors)
+    } finally {
+      this.onFinishLoading(config?.loadingIndicator || false)
+    }
   }
 
-  async encyclopediaBasic(materialId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.encyclopedia.get_material({
-        material_id: materialId
-      }))
-      .catch(handleApiError)
-      .then(response => {
-        const result = response.body || response.text || response.data
-        if (typeof result === 'string') {
-          try {
-            return JSON.parse(result)
-          } catch (e) {
-            try {
-              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-            } catch (e) {
-              return result
-            }
-          }
-        } else {
-          return result
-        }
-      })
-      .finally(this.onFinishLoading)
+  async get(path, query, config) {
+    const GET = (path, body, config) => this.axios.get(path, config)
+    return this.doHttpRequest(GET, path, null, {params: query, methodName: 'GET', ...config})
   }
 
-  async encyclopediaCalculations(materialId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.encyclopedia.get_calculations({
-        material_id: materialId
-      }))
-      .catch(handleApiError)
-      .then(response => {
-        const result = response.body || response.text || response.data
-        if (typeof result === 'string') {
-          try {
-            return JSON.parse(result)
-          } catch (e) {
-            try {
-              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-            } catch (e) {
-              return result
-            }
-          }
-        } else {
-          return result
-        }
-      })
-      .finally(this.onFinishLoading)
+  async post(path, body, config) {
+    const POST = (path, body, config) => this.axios.post(path, body, config)
+    return this.doHttpRequest(POST, path, body, {methodName: 'POST', ...config})
   }
 
-  async encyclopediaCalculation(materialId, calcId, payload) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.encyclopedia.get_calculation({
-        material_id: materialId,
-        calc_id: calcId,
-        payload: payload
-      }))
-      .catch(handleApiError)
-      .then(response => {
-        const result = response.body || response.text || response.data
-        if (typeof result === 'string') {
-          try {
-            return JSON.parse(result)
-          } catch (e) {
-            try {
-              return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
-            } catch (e) {
-              return result
-            }
-          }
-        } else {
-          return result
-        }
-      })
-      .finally(this.onFinishLoading)
+  async put(path, body, config) {
+    const PUT = (path, body, config) => this.axios.put(path, body, config)
+    return this.doHttpRequest(PUT, path, body, {methodName: 'PUT', ...config})
   }
 
-  async calcProcLog(uploadId, calcId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.archive.get_archive_logs({
-        upload_id: uploadId,
-        calc_id: calcId
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
+  async delete(path, config) {
+    const DELETE = (path, body, config) => this.axios.delete(path, config)
+    return this.doHttpRequest(DELETE, path, null, {methodName: 'DELETE', ...config})
   }
 
-  async getRawFileListFromCalc(uploadId, calcId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.raw.get_file_list_from_calc({
-        upload_id: uploadId,
-        calc_id: calcId,
-        path: null
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async getRawFile(uploadId, calcId, path, kwargs) {
-    this.onStartLoading()
-    const length = (kwargs && kwargs.length) || 4096
-    return this.swagger()
-      .then(client => client.apis.raw.get_file_from_calc({
-        upload_id: uploadId,
-        calc_id: calcId,
-        path: path,
-        decompress: true,
-        ...(kwargs || {}),
-        length: length
-      }))
-      .catch(handleApiError)
-      .then(response => {
-        /* global Blob */
-        /* eslint no-undef: "error" */
-        if (response.data instanceof Blob) {
-          if (response.data.type.endsWith('empty')) {
-            return {
-              contents: '',
-              hasMore: false,
-              mimeType: 'plain/text'
-            }
-          }
-          return {
-            contents: null,
-            hasMore: false,
-            mimeType: response.data.type
-          }
-        }
+  async doHttpRequest(method, path, body, config) {
+    const noLoading = config?.noLoading
+    if (!noLoading) {
+      this.onStartLoading()
+    }
+    const auth = await this.authHeaders()
+    config = config || {}
+    config.params = config.params || {}
+    config.headers = config.headers || {
+      accept: 'application/json',
+      ...auth.headers
+    }
+    try {
+      const results = await method(path, body, config)
+      if (config.jsonResponse) {
+        results.data = repairJsonResponse(results.data)
+      }
+      if (config.returnRequest) {
         return {
-          contents: response.data,
-          hasMore: response.data.length === length,
-          mimeType: 'plain/text'
+          method: config.methodName || method.name,
+          url: `${this.baseURL}${path}`,
+          body: body,
+          response: results.data
         }
-      })
-      .finally(this.onFinishLoading)
+      }
+      return results.data
+    } catch (errors) {
+      if (config.noHandleErrors) {
+        throw errors
+      }
+      handleApiError(errors)
+    } finally {
+      if (!noLoading) {
+        this.onFinishLoading()
+      }
+    }
   }
 
-  async repo(uploadId, calcId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.repo.get_repo_calc({
-        upload_id: uploadId,
-        calc_id: calcId
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
+  async getUsers(prefix) {
+    // no loading indicator, because this is only used in the background of the edit dialog
+    return this.get('users', {prefix: prefix}, {noLoading: true}).then(response => response.data)
+  }
+
+  async inviteUser(user) {
+    return this.put('users/invite', user, {noHandleErrors: true})
+  }
+
+  async getDatasets(prefix) {
+    // no loading indicator, because this is only used in the background of the edit dialog
+    const user = await this.keycloak.loadUserInfo()
+    const query = {
+      prefix: prefix,
+      dataset_type: 'owned',
+      user_id: user.id,
+      page_size: 1000
+    }
+    return this.get('datasets', query, {noLoading: true}).then(response => response.data)
   }
 
   async edit(edit) {
@@ -485,431 +340,196 @@ class Api {
         }
       }
     })
-    return this.swagger()
-      .then(client => client.apis.repo.edit_repo({payload: edit}))
-      .catch(handleApiError)
-      .then(response => response.body)
-  }
-
-  async resolvePid(pid) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.repo.resolve_pid({pid: pid}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async resolveDoi(doi) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.datasets.resolve_doi({doi: doi}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async search(search) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.repo.search({
-        exclude: ['atoms', 'only_atoms', 'files', 'dft.quantities', 'dft.optimade', 'dft.labels', 'dft.geometries'],
-        ...search}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async getDatasets(prefix) {
-    // no loading indicator, because this is only used in the background of the edit dialog
-    return this.swagger()
-      .then(client => client.apis.datasets.list_datasets({prefix: prefix}))
-      .catch(handleApiError)
-      .then(response => response.body)
-  }
-
-  async assignDatasetDOI(datasetName) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.datasets.assign_doi({name: datasetName}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async deleteDataset(datasetName) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.datasets.delete_dataset({name: datasetName}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async getUsers(query) {
-    // no loading indicator, because this is only used in the background of the edit dialog
-    return this.swagger()
-      .then(client => client.apis.auth.get_users({query: query}))
-      .catch(handleApiError)
-      .then(response => response.body)
-  }
-
-  async inviteUser(user) {
-    return this.swagger()
-      .then(client => client.apis.auth.invite_user({payload: user}))
-      .catch(handleApiError)
-      .then(response => response.body)
-  }
-
-  async quantities_search(search) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.repo.quantities_search(search))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async quantity_search(search) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.repo.quantity_search(search))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async suggestions_search(quantity, search, include, size, noLoadingIndicator) {
-    if (!noLoadingIndicator) {
-      this.onStartLoading()
-    }
-    return this.swagger()
-      .then(client => client.apis.repo.suggestions_search({
-        size: size || 20,
-        include: include,
-        quantity: quantity,
-        ...search
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(() => {
-        if (!noLoadingIndicator) {
-          this.onFinishLoading()
-        }
-      })
-  }
-
-  async deleteUpload(uploadId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.delete_upload({upload_id: uploadId}))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async publishUpload(uploadId, embargoLength) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.exec_upload_operation({
-        upload_id: uploadId,
-        payload: {
-          operation: 'publish',
-          metadata: {
-            with_embargo: embargoLength > 0,
-            embargo_length: embargoLength
-          }
-        }
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async publishUploadToCentralNomad(uploadId) {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.exec_upload_operation({
-        upload_id: uploadId,
-        payload: {
-          operation: 'publish-to-central-nomad'
-        }
-      }))
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
-  }
-
-  async getSignatureToken() {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.auth.get_auth())
-      .catch(handleApiError)
-      .then(response => response.body.signature_token)
-      .finally(this.onFinishLoading)
-  }
-
-  _cachedInfo = null
-
-  async getInfo() {
-    if (!this._cachedInfo) {
-      this.onStartLoading()
-      this._cachedInfo = await this.swagger()
-        .then(client => {
-          return client.apis.info.get_info()
-            .then(response => response.body)
-            .catch(handleApiError)
-        })
-        .finally(this.onFinishLoading)
-    }
-    return this._cachedInfo
-  }
-
-  async getUploadCommand() {
-    this.onStartLoading()
-    return this.swagger()
-      .then(client => client.apis.uploads.get_upload_command())
-      .catch(handleApiError)
-      .then(response => response.body)
-      .finally(this.onFinishLoading)
+    return this.post('entries/edit_v0', edit)
   }
 }
 
-export class ApiProviderComponent extends React.Component {
-  static propTypes = {
-    children: PropTypes.oneOfType([
-      PropTypes.arrayOf(PropTypes.node),
-      PropTypes.node
-    ]).isRequired,
-    raiseError: PropTypes.func.isRequired,
-    keycloak: PropTypes.object.isRequired,
-    keycloakInitialized: PropTypes.bool
-  }
-
-  constructor(props) {
-    super(props)
-    this.onToken = this.onToken.bind(this)
-  }
-
-  onToken(token) {
-    // console.log(token)
-  }
-
-  update() {
-    const { keycloak } = this.props
-    this.setState({api: this.createApi(keycloak)})
-    if (keycloak.token) {
-      keycloak.loadUserInfo()
-        .success(user => {
-          this.setState({user: user})
-        })
-        .error(error => {
-          this.props.raiseError(error)
-        })
-    }
-  }
-
-  componentDidMount() {
-    this.update()
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.keycloakInitialized !== prevProps.keycloakInitialized) {
-      this.update()
-    }
-  }
-
-  createApi(keycloak) {
-    const api = new Api(keycloak)
-    api.getInfo()
-      .catch(handleApiError)
-      .then(info => {
-        if (info.parsers) {
-          info.parsers.sort()
-        }
-        this.setState({info: info})
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-      })
-
-    return api
-  }
-
-  state = {
-    api: null,
-    info: null
-  }
-
-  render() {
-    const { children } = this.props
-    return (
-      <apiContext.Provider value={this.state}>
-        {children}
-      </apiContext.Provider>
-    )
-  }
-}
-
-class LoginRequiredUnstyled extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    message: PropTypes.string
-  }
-
-  static styles = theme => ({
-    root: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: theme.spacing(2),
-      '& p': {
-        marginRight: theme.spacing(2)
+/**
+ * Custom JSON parse function that can handle NaNs that can be created by the
+ * python JSON serializer.
+ */
+function repairJsonResponse(result) {
+  if (typeof result === 'string') {
+    try {
+      return JSON.parse(result)
+    } catch (e) {
+      try {
+        return JSON.parse(result.replace(/\bNaN\b/g, '"NaN"'))
+      } catch (e) {
+        return result
       }
     }
-  })
-
-  render() {
-    const {classes, message} = this.props
-
-    let loginMessage = ''
-    if (message) {
-      loginMessage = <Typography>
-        {this.props.message}
-      </Typography>
-    }
-
-    return (
-      <div className={classes.root}>
-        <div>
-          {loginMessage}
-        </div>
-        <LoginLogout color="primary" />
-      </div>
-    )
+  } else {
+    return result
   }
 }
 
-export function DisableOnLoading({children}) {
-  const containerRef = useRef(null)
-  const {api} = useContext(apiContext)
-  const handleLoading = useCallback((loading) => {
-    const enable = loading ? 'none' : ''
-    containerRef.current.style.pointerEvents = enable
-    containerRef.current.style.userSelects = enable
-  }, [])
+/**
+ * React context that provides access to the API, user information and server
+ * information throughout the app.
+ */
+export const apiContext = React.createContext()
+export const APIProvider = React.memo(({
+  children
+}) => {
+  const [keycloak] = useKeycloak()
+  const setLoading = useSetLoading()
+  const api = useState(new Api(keycloak, setLoading))[0]
+  const [user, setUser] = useState()
+  const [info, setInfo] = useState()
+
+  // Update user whenever keycloak instance changes
+  useEffect(() => {
+    if (keycloak.authenticated) {
+      keycloak.loadUserInfo().success(setUser)
+    }
+  }, [keycloak, setUser])
+
+  // Get info only once
+  useEffect(() => {
+    api.get('/info').then(setInfo).catch(() => {})
+  }, [api])
+
+  const value = useMemo(() => ({
+    api: api,
+    user: user,
+    info: info
+  }), [api, user, info])
+
+  return <apiContext.Provider value={value}>
+    {children}
+  </apiContext.Provider>
+})
+APIProvider.propTypes = {
+  children: PropTypes.node
+}
+
+/**
+ * Hook for using the API context.
+*/
+export function useApi() {
+  return useContext(apiContext)
+}
+
+/**
+ * Hooks/state for reading/writing whether the API is loading something.
+*/
+const apiLoading = atom({
+  key: 'apiLoading',
+  default: false
+})
+export function useLoading() {
+  return useRecoilValue(apiLoading)
+}
+export function useLoadingState() {
+  return useRecoilState(apiLoading)
+}
+export function useSetLoading() {
+  return useSetRecoilState(apiLoading)
+}
+
+function VerifyGlobalLogin({children}) {
+  const {api} = useApi()
+  const [verified, setVerified] = useState(null)
 
   useEffect(() => {
-    api.onLoading(handleLoading)
-    return () => {
-      api.removeOnLoading(handleLoading)
-    }
-  }, [api, handleLoading])
+    api.get('users/me').then(() => setVerified(true)).catch(() => setVerified(false))
+  }, [api, setVerified])
 
-  return <div ref={containerRef}>{children}</div>
+  if (verified === null) {
+    return ''
+  }
+
+  if (!verified) {
+    return <Box margin={2}>
+      <LoginLogout color="primary" />
+      <Typography color="error">
+        You are not allowed to access this NOMAD installation. Please logout and try again.
+      </Typography>
+    </Box>
+  }
+
+  return <React.Fragment>
+    {children}
+  </React.Fragment>
 }
-DisableOnLoading.propTypes = {
-  children: PropTypes.any.isRequired
-}
-
-export const ApiProvider = compose(withKeycloak, withErrors)(ApiProviderComponent)
-
-const LoginRequired = withStyles(LoginRequiredUnstyled.styles)(LoginRequiredUnstyled)
-
-const __reauthorize_trigger_changes = ['api', 'calcId', 'uploadId', 'calc_id', 'upload_id']
-
-class WithApiComponent extends React.Component {
-  static propTypes = {
-    raiseError: PropTypes.func.isRequired,
-    loginRequired: PropTypes.bool,
-    showErrorPage: PropTypes.bool,
-    loginMessage: PropTypes.string,
-    api: PropTypes.object,
-    user: PropTypes.object,
-    Component: PropTypes.any
-  }
-
-  state = {
-    notAuthorized: false
-  }
-
-  constructor(props) {
-    super(props)
-    this.raiseError = this.raiseError.bind(this)
-  }
-
-  componentDidUpdate(prevProps) {
-    if (__reauthorize_trigger_changes.find(key => this.props[key] !== prevProps[key])) {
-      this.setState({notAuthorized: false})
-    }
-  }
-
-  raiseError(error) {
-    const { raiseError, showErrorPage } = this.props
-
-    console.error(error)
-
-    if (!showErrorPage) {
-      raiseError(error)
-    } else {
-      if (error.name === 'NotAuthorized') {
-        this.setState({notAuthorized: true})
-      } else {
-        raiseError(error)
-      }
-    }
-  }
-
-  render() {
-    const { raiseError, loginRequired, loginMessage, Component, ...rest } = this.props
-    const { api, keycloak } = rest
-    const { notAuthorized } = this.state
-    if (notAuthorized) {
-      if (keycloak.authenticated) {
-        return (
-          <div style={{marginTop: 24}}>
-            <Typography variant="h6">Not Authorized</Typography>
-            <Typography>
-              You are not authorized to access this information. If someone send
-              you a link to this data, ask the authors to make the data publicly available
-              or share it with you.
-            </Typography>
-          </div>
-        )
-      } else {
-        return (
-          <LoginRequired message="You need to be logged in to access this information." />
-        )
-      }
-    } else {
-      if (api) {
-        if (keycloak.authenticated || !loginRequired) {
-          return <Component {...rest} raiseError={this.raiseError} />
-        } else {
-          return <LoginRequired message={loginMessage} />
-        }
-      } else {
-        return ''
-      }
-    }
-  }
+VerifyGlobalLogin.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
 }
 
-const WithKeycloakWithApiCompnent = withKeycloak(WithApiComponent)
+export function GlobalLoginRequired({children}) {
+  if (!globalLoginRequired) {
+    return <React.Fragment>
+      {children}
+    </React.Fragment>
+  }
 
-export function withApi(loginRequired, showErrorPage, loginMessage) {
-  return function(Component) {
-    return withErrors(props => (
-      <apiContext.Consumer>
-        {apiContext => (
-          <WithKeycloakWithApiCompnent
-            loginRequired={loginRequired}
-            loginMessage={loginMessage}
-            showErrorPage={showErrorPage}
-            Component={Component}
-            {...props} {...apiContext}
-          />
-        )}
-      </apiContext.Consumer>
-    ))
+  return <LoginRequired message="You have to be logged in to use this NOMAD installation.">
+    <VerifyGlobalLogin>
+      {children}
+    </VerifyGlobalLogin>
+  </LoginRequired>
+}
+GlobalLoginRequired.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
+}
+
+const useLoginRequiredStyles = makeStyles(theme => ({
+  root: {
+    padding: theme.spacing(2),
+    display: 'flex',
+    alignItems: 'center',
+    '& p': {
+      marginRight: theme.spacing(1)
+    }
+  }
+}))
+
+export function LoginRequired({message, children}) {
+  const classes = useLoginRequiredStyles()
+  const {api} = useApi()
+  if (api.keycloak.authenticated) {
+    return <React.Fragment>
+      {children}
+    </React.Fragment>
+  } else {
+    return <div className={classes.root}>
+      <Typography>
+        {message || 'You have to login to use this functionality.'}
+      </Typography>
+      <LoginLogout color="primary" />
+    </div>
   }
 }
+LoginRequired.propTypes = {
+  message: PropTypes.string,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ]).isRequired
+}
+
+/**
+ * HOC for wrapping components that require a login. Without login will return
+ * the given message together with a login link.
+ *
+ * @param {*} Component
+ * @param {*} message The message to display
+ */
+export function withLoginRequired(Component, message) {
+  return ({...props}) => <LoginRequired message={message}>
+    <Component {...props} />
+  </LoginRequired>
+}
+
+export const withApi = (Component) => React.forwardRef((props, ref) => {
+  const apiProps = useApi()
+  const {raiseError} = useErrors()
+  return <Component ref={ref} {...apiProps} raiseError={raiseError} {...props} />
+})

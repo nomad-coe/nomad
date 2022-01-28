@@ -28,11 +28,7 @@ annotation_names = {
         'a_test': '*'
     },
     'Section': {
-        'a_elastic': 'nomad.metainfo.elastic_extension.ElasticDocument',
         'a_mongo': 'nomad.metainfo.mongoengine_extension.MongoDocument'
-    },
-    'Quantity': {
-        'a_elastic': 'nomad.metainfo.elastic_extension.Elastic'
     }
 }
 

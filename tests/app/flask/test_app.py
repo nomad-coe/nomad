@@ -18,77 +18,14 @@
 #
 
 
-import json
-import pytest
-
-from tests.utils import assert_log
-from . import resource  # pylint: disable=unused-import
-
-
-class BlueprintClient():
-    def __init__(self, app_client, blueprint_url_prefix):
-        self.app_client = app_client
-        self.blueprint_url_prefix = blueprint_url_prefix.strip('/')
-
-    def _delegate(self, method, path, *args, **kwargs):
-        app_client_function = getattr(self.app_client, method)
-        prefixed_path = '/%s/%s' % (self.blueprint_url_prefix, path.lstrip('/'))
-        return app_client_function(prefixed_path, *args, **kwargs)
-
-    def get(self, *args, **kwargs):
-        return self._delegate('get', *args, **kwargs)
-
-    def post(self, *args, **kwargs):
-        return self._delegate('post', *args, **kwargs)
-
-    def put(self, *args, **kwargs):
-        return self._delegate('put', *args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        return self._delegate('delete', *args, **kwargs)
-
-
 def test_alive(client):
     rv = client.get('/alive')
     assert rv.status_code == 200
 
 
-def test_internal_server_error_get(client, caplog):
-    rv = client.get('/api/test/ise?test_arg=value')
-    assert rv.status_code == 500
-    record = assert_log(caplog, 'error', 'internal server error')
-    data = json.loads(record.msg)
-
-    assert data['blueprint'] == 'api'
-    assert data['endpoint'] == 'api.test_internal_server_error_resource'
-    assert data['method'] == 'GET'
-    assert data['args']['test_arg'] == 'value'
-
-
-def test_internal_server_error_post(client, caplog):
-    rv = client.post(
-        '/api/test/ise',
-        content_type='application/json',
-        data=json.dumps(dict(test_arg='value')))
-    assert rv.status_code == 500
-    record = assert_log(caplog, 'error', 'internal server error')
-    data = json.loads(record.msg)
-
-    assert data['blueprint'] == 'api'
-    assert data['endpoint'] == 'api.test_internal_server_error_resource'
-    assert data['method'] == 'POST'
-    assert data['json']['test_arg'] == 'value'
-
-
-@pytest.mark.parametrize('api', ['api'])
-def test_swagger(client, api):
-    rv = client.get('/%s/swagger.json' % api)
-    assert rv.status_code == 200
-
-
 def test_docs(client):
     rv = client.get('/docs/index.html')
-    rv = client.get('/docs/introduction.html')
+    rv = client.get('/docs/oasis.html')
     assert rv.status_code == 200
 
 

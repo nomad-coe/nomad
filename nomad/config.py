@@ -40,6 +40,7 @@ import os
 import os.path
 import yaml
 import warnings
+from typing import Dict, Any
 
 try:
     from nomad import gitinfo
@@ -80,6 +81,20 @@ class NomadConfig(dict):
         else:
             raise AttributeError("No such attribute: " + name)
 
+    def customize(self, custom_settings: Dict[str, Any]) -> 'NomadConfig':
+        '''
+        Returns a new NomadConfig object, created by taking a copy of the current config and
+        updating it with the settings defined in `custom_settings`. The `custom_settings` dict
+        must not contain any new keys (keys not defined in this NomadConfig). If it does,
+        an exception will be raised.
+        '''
+        rv = NomadConfig(**self)
+        if custom_settings:
+            for k, v in custom_settings.items():
+                assert k in rv, f'Invalid setting: {k}'
+                rv[k] = v
+        return rv
+
 
 CELERY_WORKER_ROUTING = 'worker'
 CELERY_QUEUE_ROUTING = 'queue'
@@ -113,22 +128,26 @@ fs = NomadConfig(
     public='.volumes/fs/public',
     local_tmp='/tmp',
     prefix_size=2,
-    archive_version_suffix=None,
+    archive_version_suffix='v1',
     working_directory=os.getcwd()
 )
 
 elastic = NomadConfig(
     host='localhost',
     port=9200,
-    index_name='nomad_fairdi_calcs',
-    materials_index_name='nomad_fairdi_materials'
+    timeout=60,
+    bulk_timeout=600,
+    bulk_size=1000,
+    entries_per_material_cap=1000,
+    entries_index='nomad_entries_v1',
+    materials_index='nomad_materials_v1',
 )
 
 keycloak = NomadConfig(
     server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_prod',
     username='admin',
-    password='*',
+    password='password',
     client_id='nomad_public',
     client_secret=None,
     oasis=False)
@@ -136,7 +155,7 @@ keycloak = NomadConfig(
 mongo = NomadConfig(
     host='localhost',
     port=27017,
-    db_name='nomad_fairdi'
+    db_name='nomad_v1'
 )
 
 logstash = NomadConfig(
@@ -164,8 +183,8 @@ services = NomadConfig(
 )
 
 oasis = NomadConfig(
-    central_nomad_api_url='https://nomad-lab.eu/prod/rae/api',
-    central_nomad_deployment_id='nomad-lab.eu/prod/rae',
+    central_nomad_api_url='https://nomad-lab.eu/prod/v1/api',
+    central_nomad_deployment_id='nomad-lab.eu/prod/v1',
     allowed_users=None  # a list of usernames or user account emails
 )
 
@@ -175,6 +194,10 @@ tests = NomadConfig(
 
 
 def api_url(ssl: bool = True, api: str = 'api'):
+    '''
+    Returns the url of the current running nomad API. This is for server-side use.
+    This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
+    '''
     protocol = 'https' if services.https and ssl else 'http'
     host_and_port = services.api_host.strip('/')
     if services.api_port not in [80, 443]:
@@ -257,8 +280,8 @@ normalize = NomadConfig(
     # The threshold for point equality in k-space. Unit: 1/m.
     k_space_precision=150e6,
     # The energy threshold for how much a band can be on top or below the fermi
-    # level in order to detect a gap. Unit: Joule.
-    band_structure_energy_tolerance=1.6022e-20,  # 0.1 eV
+    # level in order to still detect a gap. Unit: Joule.
+    band_structure_energy_tolerance=8.01088e-21,  # 0.05 eV
     springer_db_path=os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'normalizing/data/springer.msg'
@@ -272,7 +295,7 @@ paths = NomadConfig(
 client = NomadConfig(
     user='leonard.hofstadter@nomad-fairdi.tests.de',
     password='password',
-    url='http://nomad-lab.eu/prod/rae/api'
+    url='http://nomad-lab.eu/prod/v1/api'
 )
 
 datacite = NomadConfig(
@@ -284,10 +307,10 @@ datacite = NomadConfig(
 )
 
 meta = NomadConfig(
-    version='0.10.11',
+    version='1.0.0',
     commit=gitinfo.commit,
-    release='devel',
-    deployment='standard',
+    deployment='devel',
+    label=None,
     default_domain='dft',
     service='unknown nomad service',
     name='novel materials discovery (NOMAD)',
@@ -295,12 +318,63 @@ meta = NomadConfig(
     homepage='https://nomad-lab.eu',
     source_url='https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR',
     maintainer_email='markus.scheidgen@physik.hu-berlin.de',
-    deployment_id='nomad-lab.eu/prod/rae',
+    deployment_id='nomad-lab.eu/prod/v1',
     beta=None
 )
 
 gitlab = NomadConfig(
     private_token='not set'
+)
+
+reprocess = NomadConfig(
+    # Configures standard behaviour when reprocessing.
+    # Note, the settings only matter for published uploads and entries. For uploads in
+    # staging, we always reparse, add newfound entries, and delete unmatched entries.
+    rematch_published=True,
+    reprocess_existing_entries=True,
+    use_original_parser=False,
+    add_matched_entries_to_published=True,
+    delete_unmatched_published_entries=False,
+    index_invidiual_entries=False
+)
+
+process = NomadConfig(
+    index_materials=True,
+    reuse_parser=True,
+    metadata_file_name='nomad',
+    metadata_file_extensions=('json', 'yaml', 'yml')
+)
+
+bundle_import = NomadConfig(
+    # Basic settings
+    allow_bundles_from_oasis=True,  # If oasis admins can "push" bundles to this NOMAD deployment
+    allow_unpublished_bundles_from_oasis=False,  # If oasis admins can "push" bundles of unpublished uploads
+    required_nomad_version='1.0.0',  # Minimum  nomad version of bundles required for import
+
+    default_settings=NomadConfig(
+        # Default settings for the import_bundle process.
+        # Note, admins, and only admins, can override these settings when importing a bundle.
+        # This means that if oasis admins pushes bundles to this NOMAD deployment, these
+        # default settings will be applied.
+        include_raw_files=True,
+        include_archive_files=False,
+        include_datasets=True,
+        include_bundle_info=True,  # Keeps the bundle_info.json file (not necessary but nice to have)
+        keep_original_timestamps=False,  # If all time stamps (create time, publish time etc) should be imported from the bundle
+        set_from_oasis=True,  # If the from_oasis flag and oasis_deployment_id should be set
+        delete_upload_on_fail=False,  # If False, it is just removed from the ES index on failure
+        delete_bundle_when_done=True,  # Deletes the source bundle when done (regardless of success)
+        also_delete_bundle_parent_folder=True,  # Also deletes the parent folder, if it is empty.
+        trigger_processing=True,  # If the upload should be processed when the import is done.
+
+        # When importing with trigger_processing=True, the settings below control the
+        # initial processing behaviour (see the config for `reprocess` for more info).
+        rematch_published=True,
+        reprocess_existing_entries=True,
+        use_original_parser=False,
+        add_matched_entries_to_published=True,
+        delete_unmatched_published_entries=False
+    )
 )
 
 auxfile_cutoff = 100
@@ -309,16 +383,9 @@ console_log_level = logging.WARNING
 max_upload_size = 32 * (1024 ** 3)
 raw_file_strip_cutoff = 1000
 max_entry_download = 500000
-use_empty_parsers = False
-reprocess_match = False
-reprocess_unmatched = True
-reprocess_rematch = True
-process_reuse_parser = True
-metadata_file_name = 'nomad'
-metadata_file_extensions = ('json', 'yaml', 'yml')
-enable_lazy_import = True
-encyclopedia_enabled = True
+encyclopedia_base = "https://nomad-lab.eu/prod/rae/encyclopedia/#"
 aitoolkit_enabled = False
+use_empty_parsers = False
 
 
 def normalize_loglevel(value, default_level=logging.INFO):
@@ -410,6 +477,9 @@ def _apply_nomad_yaml():
         except yaml.YAMLError as e:
             logger.error(f'cannot read nomad config: {e}')
             return
+
+    if not config_data:
+        return
 
     for key, value in config_data.items():
         if isinstance(value, dict):

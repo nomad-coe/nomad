@@ -1,0 +1,40 @@
+# Calculated electronic DOS band gap as a function of pressure
+# Derivative of pressure-band gap at zero pressure = 0.00564445 eV/GPa
+# Derivative of pressure-DOS(EF) at zero pressure = 0 (states/(cell*eV))/GPa
+# Minimum value of electronic band gap = 0.912 eV
+# Maximum value of electronic band gap = 1.745 eV
+# Minimum value of electronic band gap is at pressure = -24.656 GPa
+# Maximum value of electronic band gap is at pressure = 150.641 GPa
+# Minimum value of electronic DOS at Fermi energy = 0 eV
+# Maximum value of electronic DOS at Fermi energy = 0 eV
+# Minimum value of electronic DOS at Fermi energy is at pressure = 208.241 GPa
+# Maximum value of electronic DOS at Fermi energy is at pressure = 208.241 GPa
+# Pressure (GPa)          Electronic Band Gap (eV)          DOS at EF (states/(cell*eV))          Electronic Band Gap Polynomial Fit (eV)          DOS at EF Polynomial Fit (states/(cell*eV))
+         208.241	                     1.743	                               0	                                  1.57817	                                             0
+         177.586	                     1.676	                               0	                                  1.70282	                                             0
+         150.641	                     1.745	                               0	                                  1.77333	                                             0
+         126.964	                     1.658	                               0	                                  1.80512	                                             0
+          106.19	                     1.703	                               0	                                  1.80977	                                             0
+          87.826	                     1.664	                               0	                                  1.79579	                                             0
+          71.847	                     1.727	                               0	                                  1.76982	                                             0
+          57.919	                     1.644	                               0	                                  1.73669	                                             0
+          45.705	                     1.689	                               0	                                  1.69961	                                             0
+          35.055	                      1.67	                               0	                                  1.66114	                                             0
+          25.788	                     1.696	                               0	                                  1.62302	                                             0
+          17.744	                     1.689	                               0	                                  1.58643	                                             0
+          10.778	                     1.669	                               0	                                  1.55212	                                             0
+           4.743	                     1.663	                               0	                                  1.52041	                                             0
+          -0.442	                     1.651	                               0	                                   1.4917	                                             0
+           -4.87	                     1.701	                               0	                                  1.46612	                                             0
+          -8.696	                     1.673	                               0	                                  1.44322	                                             0
+         -11.963	                      1.65	                               0	                                  1.42308	                                             0
+         -14.592	                     1.597	                               0	                                  1.40648	                                             0
+         -16.886	                     1.571	                               0	                                  1.39171	                                             0
+           -18.8	                     1.532	                               0	                                  1.37919	                                             0
+         -20.354	                     1.444	                               0	                                  1.36889	                                             0
+         -21.607	                     1.365	                               0	                                  1.36049	                                             0
+         -22.617	                     1.223	                               0	                                  1.35367	                                             0
+         -23.385	                     1.132	                               0	                                  1.34844	                                             0
+          -23.97	                     1.053	                               0	                                  1.34444	                                             0
+         -24.387	                     0.933	                               0	                                  1.34158	                                             0
+         -24.656	                     0.912	                               0	                                  1.33973	                                             0

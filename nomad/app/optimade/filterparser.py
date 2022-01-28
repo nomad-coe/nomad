@@ -17,13 +17,12 @@
 #
 
 from typing import Dict
-from elasticsearch_dsl import Q, Date
+from elasticsearch_dsl import Q
 from cachetools import cached
 
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import (
-    Quantity, ElasticTransformer as OPTElasticTransformer)
-from optimade.models import CHEMICAL_SYMBOLS, ATOMIC_NUMBERS
+    Quantity, ElasticTransformer as OPTElasticTransformer, _cmp_operators)
 
 from .common import provider_specific_fields
 
@@ -37,55 +36,53 @@ class FilterException(Exception):
 
 
 @cached(cache={})
-def _get_transformer(nomad_properties, without_prefix):
+def _get_transformer(without_prefix):
     from nomad.datamodel import OptimadeEntry
     quantities: Dict[str, Quantity] = {
         q.name: Quantity(
-            q.name, es_field='dft.optimade.%s' % q.name,
-            elastic_mapping_type=q.a_search.mapping.__class__)
+            q.name, es_field='optimade.%s' % q.name,
+            elastic_mapping_type=q.a_elasticsearch.mapping['type'])
 
         for q in OptimadeEntry.m_def.all_quantities.values()
-        if 'search' in q.m_annotations}
+        if 'elasticsearch' in q.m_annotations}
 
-    quantities['id'] = Quantity('id', es_field='calc_id')
-    quantities['immutable_id'] = Quantity('immutable_id', es_field='calc_id')
+    quantities['id'] = Quantity('id', es_field='entry_id', elastic_mapping_type='keyword')
+    quantities['immutable_id'] = Quantity('immutable_id', es_field='entry_id', elastic_mapping_type='keyword')
     quantities['last_modified'] = Quantity(
-        'last_modified', es_field='upload_time', elastic_mapping_type=Date)
+        'last_modified', es_field='upload_create_time', elastic_mapping_type='date')
 
     quantities['elements'].length_quantity = quantities['nelements']
-    quantities['elements'].has_only_quantity = Quantity(name='only_atoms')
     quantities['elements'].nested_quantity = quantities['elements_ratios']
     quantities['elements_ratios'].nested_quantity = quantities['elements_ratios']
 
-    if nomad_properties is not None:
-        for name, search_quantity in provider_specific_fields():
-            names = ['_nmd_' + name]
-            if without_prefix:
-                names.append(name)
+    for name, search_quantity in provider_specific_fields().items():
+        names = ['_nmd_' + name]
+        if without_prefix:
+            names.append(name)
 
-            for name in names:
-                if name not in quantities:
-                    quantities[name] = Quantity(
-                        name,
-                        es_field=search_quantity.search_field,
-                        elastic_mapping_type=search_quantity.mapping.__class__)
+        for name in names:
+            if name not in quantities:
+                quantities[name] = Quantity(
+                    name,
+                    es_field=search_quantity.search_field,
+                    elastic_mapping_type=search_quantity.mapping['type'])
 
     return ElasticTransformer(quantities=quantities.values())
 
 
-def parse_filter(filter_str: str, nomad_properties='dft', without_prefix=False) -> Q:
+def parse_filter(filter_str: str, without_prefix=False) -> Q:
     ''' Parses the given optimade filter str and returns a suitable elastic search query.
 
     Arguments:
         filter_str: Can be direct user input with no prior processing.
-        nomad_properties: Also include the nomad proprietary properties of the given domain.
+        nomad_properties: Also include the nomad proprietary properties.
         without_prefix: Do not prefix the nomad proprietary properties with _nmd_.
 
     Raises:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
     '''
-    transformer = _get_transformer(nomad_properties, without_prefix)
+    transformer = _get_transformer(without_prefix)
 
     try:
         parse_tree = _parser.parse(filter_str)
@@ -101,41 +98,46 @@ def parse_filter(filter_str: str, nomad_properties='dft', without_prefix=False) 
 
 
 class ElasticTransformer(OPTElasticTransformer):
+    def _query_op(self, quantity, op, value, nested=None):
+        """
+        Return a range, match, or term query for the given quantity, comparison
+        operator, and value
+        """
+        field = self._field(quantity, nested=nested)
+        if op in _cmp_operators:
+            return Q("range", **{field: {_cmp_operators[op]: value}})
+
+        if quantity.elastic_mapping_type == 'text':
+            query_type = "match"
+        elif quantity.elastic_mapping_type in ['keyword', 'integer', 'float', 'bool']:
+            query_type = "term"
+        else:
+            raise NotImplementedError("Quantity has unsupported ES field type")
+
+        if op in ["=", ""]:
+            return Q(query_type, **{field: value})
+
+        if op == "!=":
+            return ~Q(  # pylint: disable=invalid-unary-operand-type
+                query_type, **{field: value}
+            )
+
     def _has_query_op(self, quantities, op, predicate_zip_list):
         # We override this to add 'HAS ONLY' support.
         if op == 'HAS ONLY':
-            # HAS ONLY comes with heavy limitations, because there is no such thing
-            # in elastic search. Only supported for elements, where we can construct
-            # an anonymous 'formula' based on elements sorted by order number and
-            # can do a = comparision to check if all elements are contained
+            # HAS ONLY can be achieved by rewriting to a combination of HAS ALL and
+            # length = n_values. Therefore, it is only support for quantities with a
+            # length quantity.
             if len(quantities) > 1:
                 raise Exception('HAS ONLY is not supported with zip')
             quantity = quantities[0]
 
-            if quantity.has_only_quantity is None:
+            if quantity.length_quantity is None:
                 raise Exception('HAS ONLY is not supported by %s' % quantity.name)
 
-            def values():
-                for predicates in predicate_zip_list:
-                    if len(predicates) != 1:
-                        raise Exception('Tuples not supported in HAS ONLY')
-                    op, value = predicates[0]
-                    if op != '=':
-                        raise Exception('Predicated not supported in HAS ONLY')
-                    if not isinstance(value, str):
-                        raise Exception('Only strings supported in HAS ONLY')
-                    yield value
-
-            try:
-                order_numbers = list([ATOMIC_NUMBERS[element] for element in values()])
-                order_numbers.sort()
-                value = ''.join(
-                    [CHEMICAL_SYMBOLS[number - 1] for number in order_numbers]
-                )
-            except KeyError:
-                raise NotImplementedError('HAS ONLY is only supported for chemical symbols')
-
-            return Q('term', **{quantity.has_only_quantity.name: value})
+            has_all = super()._has_query_op(quantities, 'HAS ALL', predicate_zip_list)
+            has_length = Q('term', **{quantity.length_quantity.es_field: len(predicate_zip_list)})
+            return has_all & has_length
 
         else:
             return super()._has_query_op(quantities, op, predicate_zip_list)

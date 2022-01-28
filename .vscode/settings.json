@@ -1,0 +1,116 @@
+{
+    "python.pythonPath": ".pyenv/bin/python",
+    "editor.rulers": [
+        90
+    ],
+    "editor.renderWhitespace": "all",
+    "editor.tabSize": 4,
+    "[javascript]": {
+        "editor.tabSize": 2
+    },
+    "files.trimTrailingWhitespace": true,
+    "python.linting.pylintArgs": [
+        "--load-plugins=pylint_mongoengine",
+    ],
+    "python.linting.pycodestylePath": "pycodestyle",
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.pycodestyleArgs": [
+        "--ignore=E501,E701,E731"
+    ],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--ignore-missing-imports",
+        "--follow-imports=silent",
+        "--no-strict-optional"
+    ],
+    "python.linting.pylintEnabled": true,
+    "files.watcherExclude": {
+      "${workspaceFolder}/.pyenv/**": true,
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "gui",
+                "type": "chrome",
+                "request": "launch",
+                "url": "http://localhost:3000",
+                "webRoot": "${workspaceFolder}/gui"
+            },
+            {
+                "name": "app",
+                "type": "python",
+                "request": "launch",
+                "justMyCode": false,
+                "program": "${workspaceFolder}/.pyenv/bin/nomad",
+                "args": [
+                    "admin",
+                    "run",
+                    "api"
+                ]
+            },
+            {
+                "name": "hub",
+                "type": "python",
+                "request": "launch",
+                "justMyCode": false,
+                "program": "${workspaceFolder}/.pyenv/bin/nomad",
+                "args": [
+                    "admin",
+                    "run",
+                    "hub"
+                ]
+            },
+            {
+                "name": "tests",
+                "type": "python",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "program": "${workspaceFolder}/.pyenv/bin/pytest",
+                "justMyCode": false,
+                "args": [
+                    "-sv",
+                    "tests"
+                ]
+            },
+            {
+                "name": "nomad parse",
+                "type": "python",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "program": "${workspaceFolder}/.env/bin/nomad",
+                "justMyCode": false,
+                "args": [
+                    "parse",
+                    "--show-archive",
+                    "tests/data/parsers/vasp/vasp.xml"
+                ]
+            },
+            {
+                "name": "Python: Current File",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}"
+            },
+            {
+                "name": "Python: Attach",
+                "type": "python",
+                "request": "attach",
+                "localRoot": "${workspaceFolder}",
+                "remoteRoot": "${workspaceFolder}",
+                "port": 3000,
+                "secret": "my_secret",
+                "host": "localhost"
+            }
+        ]
+    },
+    "files.exclude": {
+        "\"**/*.pyc\": {\"when\": \"$(basename).py\"}": true,
+        "**/__pycache__": true
+    },
+    "eslint.workingDirectories": [
+        {
+            "directory": "gui"
+        }
+    ]
+}

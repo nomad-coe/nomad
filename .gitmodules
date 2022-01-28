@@ -182,11 +182,8 @@
     path = dependencies/parsers/tinker
 	url = https://github.com/nomad-coe/nomad-parser-tinker.git
 	branch = master
-[submodule "dependencies/encyclopedia-gui"]
-	path = dependencies/encyclopedia-gui
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/encyclopedia-gui.git
 [submodule "dependencies/materia"]
-	path = dependencies/materia
+	path = gui/materia
 	url = https://github.com/nomad-coe/materia
 [submodule "dependencies/nomad-dos-fingerprints"]
 	path = dependencies/nomad-dos-fingerprints
@@ -204,6 +201,21 @@
 [submodule "dependencies/parsers/lobster"]
 	path = dependencies/parsers/lobster
 	url = https://github.com/ondracka/nomad_parser_lobster.git
-[submodule "dependencies/parsers/openmx"]
-	path = dependencies/parsers/openmx
-	url = https://github.com/ondracka/nomad-parser-openmx.git
+[submodule "dependencies/parsers/xps"]
+	path = dependencies/parsers/xps
+	url = https://github.com/nomad-coe/nomad-parser-xps.git
+[submodule "dependencies/parsers/aflow"]
+	path = dependencies/parsers/aflow
+	url = https://github.com/nomad-coe/nomad-parser-aflow.git
+[submodule "dependencies/parsers/mp"]
+	path = dependencies/parsers/mp
+	url = https://github.com/nomad-coe/nomad-parser-mp.git
+[submodule "dependencies/parsers/asr"]
+	path = dependencies/parsers/asr
+	url = https://github.com/nomad-coe/nomad-parser-asr.git
+[submodule "dependencies/parsers/psi4"]
+	path = dependencies/parsers/psi4
+	url = https://github.com/nomad-coe/nomad-parser-psi4.git
+[submodule "dependencies/parsers/yambo"]
+	path = dependencies/parsers/yambo
+	url = https://github.com/nomad-coe/nomad-parser-yambo.git

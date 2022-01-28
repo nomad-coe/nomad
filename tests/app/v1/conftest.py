@@ -17,11 +17,8 @@
 #
 
 import pytest
-from fastapi.testclient import TestClient
-
-from nomad.app.main import app
 
 
 @pytest.fixture(scope='session')
-def client():
-    return TestClient(app, base_url='http://testserver/api/v1/')
+def client(api_v1):
+    return api_v1

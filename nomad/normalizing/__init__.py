@@ -17,7 +17,7 @@
 #
 
 '''
-After parsing calculations have to be normalized with a set of *normalizers*.
+After parsing entries have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
 Currently the normalizers are:
@@ -25,7 +25,6 @@ Currently the normalizers are:
 - optimade.py
 - fhiaims.py
 - dos.py
-- encyclopedia.py (used to create the data in NOMAD-coe Encyclopedia)
 
 The normalizers are available via
 
@@ -41,19 +40,17 @@ from typing import List, Any, Iterable, Type
 
 from .system import SystemNormalizer
 from .optimade import OptimadeNormalizer
-from .fhiaims import FhiAimsBaseNormalizer
 from .dos import DosNormalizer
 from .normalizer import Normalizer
 from .band_structure import BandStructureNormalizer
-from .encyclopedia.encyclopedia import EncyclopediaNormalizer
 from .workflow import WorkflowNormalizer
+from .results import ResultsNormalizer
 
 normalizers: Iterable[Type[Normalizer]] = [
     SystemNormalizer,
     OptimadeNormalizer,
-    # FhiAimsBaseNormalizer,
     DosNormalizer,
     BandStructureNormalizer,
     WorkflowNormalizer,
-    EncyclopediaNormalizer,
+    ResultsNormalizer
 ]

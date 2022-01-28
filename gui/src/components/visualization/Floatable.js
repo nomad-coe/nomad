@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { useResizeDetector } from 'react-resize-detector'
 import { makeStyles } from '@material-ui/core/styles'
 import {
-  Box,
   Button,
   Dialog,
   DialogContent,
@@ -32,9 +32,46 @@ import clsx from 'clsx'
  * i.e. displayed on an html element that is positioned relative to the
  * viewport and is above all other elements.
  */
-export default function Floatable({className, classes, float, children, aspectRatio, onFloat}) {
-  // Styles
-  const useStyles = makeStyles((theme) => {
+const useStyles = makeStyles((theme) => {
+  const actionsHeight = 52.5 // Size of the actions element that is shown when floating
+  const padding = 20 // Padding arount the floating object
+  return {
+    root: {
+      width: '100%',
+      height: '100%'
+    },
+    dialogContent: {
+      boxSizing: 'border-box',
+      padding: padding
+    },
+    'dialogContent:first-child': {
+      paddingTop: `${padding} !important`
+    },
+    dialogActions: {
+      height: actionsHeight,
+      boxSizing: 'border-box'
+    }
+  }
+})
+export default function Floatable({
+  className,
+  classes,
+  style,
+  float,
+  children,
+  onFloat,
+  onChangeRatio
+}) {
+  // The ratio is calculated dynamically from the final size
+  const { height, width, ref } = useResizeDetector()
+  const ratio = useMemo(() => { return width / height }, [width, height])
+
+  useEffect(() => {
+    onChangeRatio && onChangeRatio(ratio)
+  }, [onChangeRatio, ratio])
+
+  // Dynamic styles
+  const useDynamicStyles = makeStyles((theme) => {
     // Calculate the fullscreen size
     const actionsHeight = 52.5 // Size of the actions element that is shown when floating
     const padding = 20 // Padding arount the floating object
@@ -45,45 +82,15 @@ export default function Floatable({className, classes, float, children, aspectRa
     const windowRatio = windowWidth / windowHeight
     let width
     let height
-    if (windowRatio > aspectRatio) {
-      width = (windowHeight) * aspectRatio + 2 * padding + 'px'
+    if (windowRatio > ratio) {
+      width = (windowHeight) * ratio + 2 * padding + 'px'
       height = windowHeight + actionsHeight + 2 * padding
     } else {
       width = windowWidth + 2 * padding
-      height = (windowWidth) / aspectRatio + actionsHeight + 2 * padding + 'px'
+      height = (windowWidth) / ratio + actionsHeight + 2 * padding + 'px'
     }
 
     return {
-      root: {
-      },
-      containerOuter: {
-        width: '100%',
-        height: 0,
-        paddingBottom: `${100 / aspectRatio}%`, // CSS hack for fixed aspect ratio
-        position: 'relative',
-        boxSizing: 'border-box'
-      },
-      containerInner: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box'
-      },
-      dialogContent: {
-        boxSizing: 'border-box',
-        padding: padding
-      },
-      'dialogContent:first-child': {
-        paddingTop: `${padding} !important`
-      },
-      dialogActions: {
-        height: actionsHeight,
-        boxSizing: 'border-box'
-      },
       dialogRoot: {
         width: width,
         height: height,
@@ -95,62 +102,42 @@ export default function Floatable({className, classes, float, children, aspectRa
       }
     }
   })
-  const style = useStyles(classes)
+  const styles = useStyles({classes: classes})
+  const dynamicStyles = useDynamicStyles({classes: classes})
 
-  return (
-    <Box className={clsx(style.root, className)}>
-      <Box className={style.containerOuter}>
-        <Box className={style.containerInner}>
-          {float ? '' : children}
-        </Box>
-      </Box>
-      <Dialog fullWidth={false} maxWidth={false} open={float}
-        classes={{paper: style.dialogRoot}}
-      >
-        <DialogContent className={[style.dialogContent, style['dialogContent:first-child']].join('_')}>
-          <Box className={style.containerOuter}>
-            <Box className={style.containerInner}>
-              {float ? children : ''}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions className={style.dialogActions}>
-          <Button onClick={() => onFloat(float)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  )
+  return <div ref={ref} className={clsx(styles.root, className)} style={style}>
+    {float ? '' : children}
+    <Dialog fullWidth={false} maxWidth={false} open={float}
+      classes={{paper: dynamicStyles.dialogRoot}}
+    >
+      <DialogContent className={[styles.dialogContent, styles['dialogContent:first-child']].join('_')}>
+        {float ? children : ''}
+      </DialogContent>
+      <DialogActions className={styles.dialogActions}>
+        <Button onClick={() => onFloat(float)}>
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </div>
 }
 
 Floatable.propTypes = {
-  float: PropTypes.bool.isRequired,
   /**
-   * Fixed aspect ratio that is enforced for this component.
+   * Whether this component should be in floating mode or not.
    */
-  aspectRatio: PropTypes.number.isRequired,
+  float: PropTypes.bool.isRequired,
   /**
    * Callback that is called whenever this component requests a change in the
    * float property. The callback accepts one parameter: 'float' that is a
    * boolean indicating the current float status.
    */
-  onFloat: PropTypes.any,
-  /**
-   * Child components
-   */
-  children: PropTypes.any,
-  /**
-   * CSS class for the root element.
-   */
+  onFloat: PropTypes.func,
+  onChangeRatio: PropTypes.func,
+  children: PropTypes.node,
   className: PropTypes.string,
-  /**
-   * CSS classes for this component.
-   */
-  classes: PropTypes.object
-  /**
-   * Controls the float status.
-   */
+  classes: PropTypes.object,
+  style: PropTypes.object
 }
 Floatable.defaultProps = {
   float: false

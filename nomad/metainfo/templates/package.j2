@@ -4,7 +4,6 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     MSection, MCategory, Category, Package, Quantity, Section, SubSection, SectionProxy,
     Reference, MEnum)
 from nomad.metainfo.legacy import LegacyDefinition
-from nomad.metainfo.search_extension import Search
 {% for dependency in pkg.dependencies %}
 {{ fromat_package_import(dependency) }}
 {%- endfor %}
@@ -67,9 +66,6 @@ class {{ section.name }}({%- if section.extends_base_section -%}{{ format_defini
         {%- if quantity.categories | length > 0 -%},
         categories=[{{ format_definition_refs(pkg, quantity.categories) }}]
         {%- endif -%},
-        {%- if quantity.a_search is defined %}
-        a_search=Search(),
-        {%- endif -%}
         {%- if quantity.a_legacy is defined %}
         a_legacy=LegacyDefinition(name='{{quantity.a_legacy.name}}')
         {%- endif -%})

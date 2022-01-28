@@ -24,7 +24,6 @@ import inspect
 import re
 import json
 import itertools
-
 import numpy as np
 import pint
 import pint.unit
@@ -34,13 +33,14 @@ from datetime import datetime
 import pytz
 import docstring_parser
 import jmespath
+import base64
 
 from nomad.units import ureg as units
-
 
 m_package: 'Package' = None
 
 is_bootstrapping = True
+Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
 T = TypeVar('T')
 
@@ -50,7 +50,18 @@ _placeholder_quantity: 'Quantity' = property()  # type: ignore
 if True:
     _placeholder_quantity: 'Quantity' = None  # type: ignore
 
-_primitive_types = {str: str, int: int, float: float, bool: bool, np.bool_: bool}
+_primitive_types = {
+    str: lambda v: None if v is None else str(v),
+    # TODO it is more complicated than that, because bytes cannot be naturally serialized to JSON
+    # bytes: lambda v: None if v is None else bytes(v),
+    int: int,
+    float: lambda v: None if v is None else float(v),
+    bool: bool,
+    np.bool_: bool}
+
+
+_primitive_type_names = {
+    primitive_type.__name__: primitive_type for primitive_type in _primitive_types}
 
 
 # Metainfo errors
@@ -102,10 +113,49 @@ class MEnum(Sequence):
 
 
 class MProxy():
-    ''' A placeholder object that acts as reference to a value that is not yet resolved.
+    '''
+    A placeholder object that acts as reference to a value that is not yet resolved.
+
+    A proxy is a replacement for an actual section (or quantity) that the proxy represents.
+    The replaced section (or quantity) is identified by a reference. References
+    are URL strings that identify a section (or quantity).
+
+    If a proxy is accessed (i.e. like its proxies counterpart would be accessed), it
+    tries to resolve its reference and access the proxied element. If the reference
+    cannot be resolved an exception is raised.
+
+    There are different kinds of reference urls. Here are a few examples:
+
+    .. code-block::
+        /run/0/calculation/1  # same archive (legacy version)
+        #/run/0/calculation/1  # same archive
+        ../upload/archive/mainfile/{mainfile}#/run/0  # same upload
+        /entries/{entry_id}/archive#/run/0/calculation/1  # same NOMAD
+        /uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1  # same NOMAD
+        https://my-oasis.de/api/v1/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1  # global
+
+    A URL can have 3 relevant path. The archive path as anchor string (after the `#`).
+    The API part (more or less the URL's path). The oasis part (more or less the domain).
+
+    The archive path starts at the `EntryArchive` root and uses property names and indices
+    to navigate. The API and oasis parts correspond to NOMAD's v1 api. A path starting
+    with `../upload` replaces `.../api/v1/uploads/{upload_id}` and allows to access the
+    upload of the archive that contains the reference.
+
+    The actual algorithm for resolving proxies is in `MSection.m_resolve()`.
 
     Attributes:
-        url: The reference represented as an URL string.
+        m_proxy_value: The reference represented as an URL string.
+        m_proxy_section:
+            The section context, i.e. the section that this proxy is contained in. This
+            section will provide the context for resolving the reference. For example,
+            if the reference only has an archive part, this archive part is resolved
+            starting with the root of `m_proxy_section`.
+        m_proxy_value:
+            The quantity difintion. Typically MProxy is used for proxy-ing sections. With
+            this set, the proxy will still act as a normal section proxy, but it will
+            be used by quantities of type `QuantityReference` to resolve and return
+            a quantity value.
     '''
 
     def __init__(
@@ -116,36 +166,71 @@ class MProxy():
         self.m_proxy_resolved = None
         self.m_proxy_quantity = m_proxy_quantity
 
-    def m_proxy_resolve(self):
-        if self.m_proxy_section and self.m_proxy_quantity and not self.m_proxy_resolved:
-            self.m_proxy_resolved = self.m_proxy_quantity.type.resolve(self)
+    def _set_resolved(self, resolved):
+        self.m_proxy_resolved = resolved
 
         if self.m_proxy_resolved is not None and isinstance(self, MProxy):
             setattr(self, '__class__', self.m_proxy_resolved.__class__)
             self.__dict__.update(**self.m_proxy_resolved.__dict__)
 
+    def m_proxy_resolve(self):
+        if self.m_proxy_section and self.m_proxy_quantity and not self.m_proxy_resolved:
+            self._set_resolved(self.m_proxy_quantity.type.resolve(self))
         return self.m_proxy_resolved
 
     def __getattr__(self, key):
         if self.m_proxy_resolve() is not None:
             return getattr(self.m_proxy_resolved, key)
 
-        raise ReferenceError('could not resolve %s' % self.m_proxy_value)
+        raise MetainfoReferenceError('could not resolve %s' % self.m_proxy_value)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.m_proxy_value})'
 
 
 class SectionProxy(MProxy):
+    # TODO recursive proxy stuff
+    def _resolve_name(self, name: str, context: 'Definition') -> 'Definition':
+        if context is None:
+            return None
+
+        if context.name == name and context != self.m_proxy_section:
+            return context
+
+        if isinstance(context, Section):
+            resolved = context.all_aliases.get(name)
+            if resolved and resolved != self.m_proxy_section:
+                return resolved
+
+            resolved = context.all_inner_section_definitions.get(name)
+            if resolved and resolved != self.m_proxy_section:
+                return resolved
+
+        if isinstance(context, Package):
+            resolved = context.all_definitions.get(name)
+            if resolved and resolved != self.m_proxy_section:
+                return resolved
+
+        parent = context.m_parent
+        if isinstance(parent, Definition):
+            return self._resolve_name(name, cast(Definition, parent))
+
+        return None
+
     def m_proxy_resolve(self):
-        if self.m_proxy_section and not self.m_proxy_resolved:
-            root = self.m_proxy_section
-            while root.m_parent is not None and not isinstance(root, Package):
-                root = root.m_parent
+        if not self.m_proxy_section or self.m_proxy_resolved:
+            return self.m_proxy_resolved
 
-            if isinstance(root, Package):
-                self.m_proxy_resolved = root.all_definitions.get(self.m_proxy_value)
+        name_segments = self.m_proxy_value.split('.')
+        current = self.m_proxy_section
+        for name in name_segments:
+            current = self._resolve_name(name, current)
 
-            if self.m_proxy_resolved is None:
-                raise ReferenceError('could not resolve %s' % self.m_proxy_value)
+        if current is None:
+            raise MetainfoReferenceError(
+                f'could not resolve {self.m_proxy_value} from scope {self.m_proxy_section}')
 
+        self._set_resolved(current)
         return self.m_proxy_resolved
 
 
@@ -334,6 +419,27 @@ class _QuantityType(DataType):
             'Type %s of %s is not a valid metainfo quantity type' %
             (value, quantity_def))
 
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if value in _primitive_type_names:
+            return _primitive_type_names[value]
+
+        if isinstance(value, str):
+            if value.startswith('np.'):
+                resolved = getattr(np, value[3:])
+                if resolved:
+                    return resolved
+
+            if value in predefined_datatypes:
+                return predefined_datatypes[value]
+
+            return Reference(SectionProxy(
+                value, m_proxy_section=section, m_proxy_quantity=quantity_def))
+
+        if isinstance(value, list):
+            return MEnum(*value)
+
+        return super().deserialize(section, quantity_def, value)
+
 
 class Reference(DataType):
     ''' Datatype used for reference quantities. '''
@@ -348,11 +454,15 @@ class Reference(DataType):
         '''
         return proxy.m_proxy_section.m_resolve(proxy.m_proxy_value)
 
+    def serialize_proxy_value(self, proxy):
+        return proxy.m_proxy_value
+
     def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         if isinstance(self.target_section_def, MProxy):
+            # TODO? This assumes that the type Reference is only used for Quantity.type
             proxy = self.target_section_def
-            proxy.m_proxy_section = section.m_def
-            proxy.m_proxy_quantity = quantity_def
+            proxy.m_proxy_section = quantity_def
+            proxy.m_proxy_quantity = Quantity.type
             self.target_section_def = proxy.m_proxy_resolve()
 
         if self.target_section_def.m_follows(Definition.m_def):
@@ -365,6 +475,9 @@ class Reference(DataType):
                     return definition
 
         if isinstance(value, (str, int, dict)):
+            context = cast(MSection, section.m_root()).m_context
+            if context and isinstance(value, str):
+                value = context.normalize_reference(value)
             return MProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
         if isinstance(value, MProxy):
@@ -384,18 +497,41 @@ class Reference(DataType):
         return value
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        context = cast(MSection, section.m_root()).m_context
+        if context is not None:
+            return context.get_reference(section, quantity_def, value)
+
         return value.m_path()
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         return MProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
 
+class SectionReference(Reference):
+    value_re = re.compile(r'^\w*(\.\w*)*$')
+
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if isinstance(value, str) and SectionReference.value_re.match(value):
+            return SectionProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
+
+        return super().set_normalize(section, quantity_def, value)
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if isinstance(value, str) and SectionReference.value_re.match(value):
+            return SectionProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
+
+        return super().deserialize(section, quantity_def, value)
+
+
 class QuantityReference(Reference):
     ''' Datatype used for reference quantities that reference other quantities. '''
 
-    def __init__(self, quantity_def: Union['Quantity']):
+    def __init__(self, quantity_def: 'Quantity'):
         super().__init__(cast(Section, quantity_def.m_parent))
         self.target_quantity_def = quantity_def
+
+    def serialize_proxy_value(self, proxy):
+        return f'{proxy.m_proxy_value}/{self.target_quantity_def.name}'
 
     def get_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section = super().get_normalize(section, quantity_def, value)
@@ -408,6 +544,18 @@ class QuantityReference(Reference):
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         section_path = value.rsplit('/', 1)[0]
         return MProxy(section_path, m_proxy_section=section, m_proxy_quantity=quantity_def)
+
+
+class _File(DataType):
+    def set_normalize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if not isinstance(value, str):
+            raise TypeError('Files need to be given as URL strings')
+
+        context = cast(MSection, section.m_root()).m_context
+        if context:
+            return context.normalize_reference(value)
+
+        return value
 
 
 class _Datetime(DataType):
@@ -493,6 +641,14 @@ class _Capitalized(DataType):
         return value
 
 
+class _Bytes(DataType):
+    def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return base64.b64encode(value).decode('ascii')
+
+    def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        return base64.b64decode(value)
+
+
 Dimension = _Dimension()
 Unit = _Unit()
 QuantityType = _QuantityType()
@@ -500,6 +656,12 @@ Callable = _Callable()
 Datetime = _Datetime()
 JSON = _JSON()
 Capitalized = _Capitalized()
+Bytes = _Bytes()
+File = _File()
+
+predefined_datatypes = {
+    'Dimension': Dimension, 'Unit': Unit, 'Datetime': Datetime,
+    'JSON': JSON, 'Capitalized': Capitalized, 'bytes': Bytes, 'File': File}
 
 
 # Metainfo data storage and reflection interface
@@ -551,86 +713,55 @@ def constraint(warning):
         return decorator(f)
 
 
-class MResource():
+class Context():
     '''
-    Represents a collection of related metainfo data, i.e. a set of :class:`MSection` instances.
+    The root of a metainfo section hiearchy can have a Context. Contexts allow to customize
+    the resolution of references based on how and in what context an metainfo-based
+    archive (or otherwise top-level section is used). This allows to logically combine
+    multiple hiearchies (e.g. archives) with references.
     '''
 
-    def __init__(self, logger=None):
-        self.__data: Dict['Section', List['MSection']] = dict()
-        self.contents: List['MSection'] = []
-        self.logger = logger
+    def split_url(self, url):
+        ''' Splits the given reference url into the archive url and the archive ref.'''
+        parts = url.split('#')
+        if len(parts) == 1:
+            return parts[0], None
 
-    def create(self, section_cls: Type[MSectionBound], *args, **kwargs) -> MSectionBound:
+        return parts
+
+    def warning(self, event, **kwargs):
         '''
-        Create an instance of the given section class and adds it to this resource as
-        a root section. The m_parent_index will be set sequentially among root sections of
-        the same section definition starting with 0.
+        Used to log (or otherwise handle) warning that are issued, e.g. while serializaton,
+        reference resolution, etc.
         '''
-        index = 0
-        for content in self.contents:
-            if content.m_follows(section_cls.m_def):
-                index = max(index, content.m_parent_index + 1)
+        pass
 
-        result = section_cls(*args, **kwargs)
-        result.m_parent_index = index
-
-        self.add(result)
-        return cast(MSectionBound, result)
-
-    def add(self, section):
+    def get_reference(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> str:
         '''
-        Add the given section to this resource. Will also add all its contents to the
-        resource and make all contest available for :func:`all`. Will also remove
-        all contents from possible other resources. A section can only be contained in
-        one resource at a time.
+        Returns a reference for the given value based on the given context. Allows
+        sub-classes to build references across resources, if necessary.
 
-        This is potentially expensive. Do not add a section that already has a deep tree
-        of sub-sections. Ideally, add the root section first. If you create sub sections
-        afterwards, they will be automatically added to this resource.
+        Raises: MetainfoReferenceError
         '''
-        if section.m_resource is not None:
-            section.m_resource.remove(section)
+        return value.m_path()
 
-        for content in section.m_all_contents(include_self=True):
-            content.m_resource = self
-            self.__data.setdefault(content.m_def, []).append(content)
+    def normalize_reference(self, url: str) -> str:
+        '''
+        Rewrites the url into a normlaized form. E.g., it replaces `..` with absolute paths,
+        or replaces mainfiles with ids, etc.
 
-        if section.m_parent is None:
-            self.contents.append(section)
+        Raises: MetainfoReferenceError
+        '''
+        return url
 
-    def remove(self, section):
-        assert section.m_resource == self, 'Can only remove section from the resource that contains it.'
-        section.m_resource = None
-        self.__data.get(section.m_def).remove(section)
-        if section.m_parent is None:
-            self.contents.remove(section)
+    def resolve_archive(self, url: str) -> 'MSection':
+        '''
+        Resolves the archive part of the given URL and returns the root section of the
+        referenced archive.
 
-    def all(self, section_cls: Type[MSectionBound]) -> List[MSectionBound]:
-        ''' Returns all instances of the given section class in this resource. '''
-        return cast(List[MSectionBound], self.__data.get(section_cls.m_def, []))
-
-    def unload(self):
-        ''' Breaks all references among the contain metainfo sections to allow GC. '''
-        for collections in self.__data.values():
-            for section in collections:
-                section.m_parent = None
-                section.__dict__.clear()
-            collections.clear()
-
-    def m_to_dict(self, filter: TypingCallable[['MSection'], bool] = None):
-        if filter is None:
-            def filter(_):  # pylint: disable=function-redefined
-                return True
-
-        return {
-            section.m_def.name: section.m_to_dict()
-            for section in self.contents
-            if filter(section)}
-
-    def warning(self, *args, **kwargs):
-        if self.logger is not None:
-            self.logger.warn(*args, **kwargs)
+        Raises: MetainfoReferenceError
+        '''
+        raise NotImplementedError()
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -685,7 +816,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             For repeatable sections, parent keep a list of sub-sections. This is the index
             of this section in the respective parent sub-section list.
 
-        m_resource: The :class:`MResource` that contains and manages this section.
+        m_context: The :class:`MContext` that manages this (root-)section.
 
     Often some general tasks have to be performed on a whole tree of sections without
     knowing about the definitions in advance. The following methods allow to access
@@ -710,13 +841,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     m_def: 'Section' = None
 
     def __init__(
-            self, m_def: 'Section' = None, m_resource: MResource = None, **kwargs):
+            self, m_def: 'Section' = None, m_context: Context = None, **kwargs):
 
         self.m_def: 'Section' = m_def
         self.m_parent: 'MSection' = None
         self.m_parent_sub_section: 'SubSection' = None
         self.m_parent_index = -1
-        self.m_resource = m_resource
+        self.m_context = m_context
         self.m_mod_count = 0
         self.m_cache: dict = {}  # Dictionary for caching temporary values that are not persisted to the Archive
 
@@ -811,6 +942,11 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     m_def.m_add_sub_section(Section.sub_sections, attr)
                 else:
                     raise NotImplementedError('Unknown property kind.')
+
+            if inspect.isclass(attr):
+                inner_section_def = getattr(attr, 'm_def', None)
+                if isinstance(inner_section_def, Section):
+                    m_def.m_add_sub_section(Section.inner_section_definitions, inner_section_def)
 
             if inspect.isfunction(attr):
                 method_name = attr.__name__
@@ -1031,46 +1167,53 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         # TODO
         raise NotImplementedError()
 
-    def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
-        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+    def _get_sub_sections(self, sub_section_def: 'SubSection'):
+        sub_section_lst = self.__dict__.get(sub_section_def.name)
+        if sub_section_lst is None:
+            sub_section_lst = MSubSectionList(self, sub_section_def)
+            self.__dict__[sub_section_def.name] = sub_section_lst
+        return sub_section_lst
 
+    def _on_add_sub_section(
+            self, sub_section_def: 'SubSection', sub_section: 'MSection', parent_index: int) -> None:
         self.m_mod_count += 1
-        parent_index = -1
-        if sub_section_def.repeats:
-            parent_index = self.m_sub_section_count(sub_section_def)
 
-        else:
-            old_sub_section = self.__dict__.get(sub_section_def.name)
-            if old_sub_section is not None:
-                old_sub_section.m_parent = None
-                old_sub_section.m_parent_sub_section = None
-                old_sub_section.m_parent_index = -1
-                if self.m_resource is not None:
-                    self.m_resource.remove(sub_section)
-
-        if sub_section is not None:
-            sub_section.m_parent = self
-            sub_section.m_parent_sub_section = sub_section_def
-            sub_section.m_parent_index = parent_index
-            if sub_section.m_resource is not None:
-                sub_section.m_resource.remove(sub_section)
-            if self.m_resource is not None:
-                self.m_resource.add(sub_section)
-
-        sub_section_name = sub_section_def.name
-        if sub_section_def.repeats:
-            sub_section_lst = self.__dict__.get(sub_section_name)
-            if sub_section_lst is None:
-                sub_section_lst = self.__dict__.setdefault(sub_section_name, [])
-
-            sub_section_lst.append(sub_section)
-
-        else:
-            self.__dict__[sub_section_name] = sub_section
+        sub_section.m_parent = self
+        sub_section.m_parent_sub_section = sub_section_def
+        sub_section.m_parent_index = parent_index
 
         for handler in self.m_def.event_handlers:
             if handler.__name__.startswith('on_add_sub_section'):
                 handler(self, sub_section_def, sub_section)
+
+    def _on_remove_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection') -> None:
+        self.m_mod_count += 1
+
+        sub_section.m_parent = None
+        sub_section.m_parent_index = -1
+
+    def m_add_sub_section(self, sub_section_def: 'SubSection', sub_section: 'MSection', index: int = -1) -> None:
+        ''' Adds the given section instance as a sub section of the given sub section definition. '''
+
+        sub_section_name = sub_section_def.name
+        if sub_section_def.repeats:
+            sub_section_lst = self._get_sub_sections(sub_section_def)
+            if index == -1:
+                sub_section_lst.append(sub_section)
+            else:
+                raise NotImplementedError('You can only append sub sections.')
+
+            if sub_section_lst.__class__ != MSubSectionList:
+                self._on_add_sub_section(
+                    sub_section_def, sub_section, len(sub_section_lst) - 1)
+
+        else:
+            old_sub_section = self.__dict__.get(sub_section_name, None)
+            self.__dict__[sub_section_name] = sub_section
+            if sub_section is not None:
+                self._on_add_sub_section(sub_section_def, sub_section, -1)
+            if old_sub_section is not None:
+                self._on_remove_sub_section(sub_section_def, old_sub_section)
 
     def m_remove_sub_section(self, sub_section_def: 'SubSection', index: int) -> None:
         ''' Removes the exiting section for a non repeatable sub section '''
@@ -1083,9 +1226,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         elif sub_section_def.name in self.__dict__:
             sub_section = self.__dict__[sub_section_def.name]
             del(self.__dict__[sub_section_def.name])
-
-        if sub_section.m_resource is not None:
-            sub_section.m_resource.remove(sub_section)
+            self._on_remove_sub_section(sub_section_def, sub_section)
 
     def m_get_sub_section(self, sub_section_def: 'SubSection', index: int) -> 'MSection':
         ''' Retrieves a single sub section of the given sub section definition. '''
@@ -1097,13 +1238,13 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
     def m_get_sub_sections(self, sub_section_def: 'SubSection') -> List['MSection']:
         ''' Retrieves  all sub sections of the given sub section definition. '''
-        try:
-            if sub_section_def.repeats:
-                return self.__dict__[sub_section_def.name]
-            else:
+        if sub_section_def.repeats:
+            return self._get_sub_sections(sub_section_def)
+        else:
+            try:
                 return [self.__dict__[sub_section_def.name]]
-        except KeyError:
-            return []
+            except KeyError:
+                return []
 
     def m_sub_section_count(self, sub_section_def: 'SubSection') -> int:
         ''' Returns the number of sub sections for the given sub section definition. '''
@@ -1157,7 +1298,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         self.m_mod_count += 1
         if safe:
             for name, value in kwargs.items():
-                prop = self.m_def.all_properties.get(name, None)
+                prop = self.m_def.all_aliases.get(name, None)
                 if prop is None:
                     raise KeyError('%s is not an attribute of this section %s' % (name, self))
 
@@ -1191,76 +1332,115 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             self, with_meta: bool = False,
             include_defaults: bool = False,
             include_derived: bool = False,
+            resolve_references: bool = False,
             categories: List[Union['Category', Type['MCategory']]] = None,
-            partial: TypingCallable[['Definition', 'MSection'], bool] = None) -> Dict[str, Any]:
+            include: TypingCallable[['Definition', 'MSection'], bool] = None,
+            exclude: TypingCallable[['Definition', 'MSection'], bool] = None,
+            transform: TypingCallable[['Definition', 'MSection', Any, str], Any] = None) -> Dict[str, Any]:
         '''
-        Returns the data of this section as a json serializeable dictionary.
+        Returns the data of this section as a (json serializeable) dictionary.
+
+        With its default configuration, it is the opposite to :func:`MSection.m_from_dict`.
+
+        There are a lot of ways to customize the behavior, e.g. to generate JSON for
+        databases, searchengines, etc.
 
         Arguments:
             with_meta: Include information about the section definition and the sections
                 position in its parent.
             include_defaults: Include default values of unset quantities.
             include_derived: Include values of derived quantities.
+            resolve_references:
+                Treat references as the sections and values they represent. References
+                must not create circles; there is no check and danger of endless looping.
             categories: A list of category classes or category definitions that is used
                 to filter the included quantities and sub sections. Only applied to
                 properties of this section, not on sub-sections. Is overwritten
                 by partial.
-            partial: A function that determines if a definition should be included in
-                the output dictionary. Takes a definition and the containing section
-                as arguments. Two default functions can be used by providing a
-                string instead:
-
-                - 'mongo': Only include quantities that have an a_mongo
-                  annotation.
-                - 'es': Only include quantities that have an a_elastic or
-                  an an a_search annotation.
-
-                Partial is applied recursively on sub-sections. Overrides
-                categories.
+            include: A function that determines if a property (quantity or sub-section) will
+                be included in the results. It takes the property definition and the current
+                section as arguments. The function returns true for including and false for
+                excluding the property. Include is applied recursively on sub-sections.
+                Overrides categories.
+            exclude: A function that determines if a property (quantity or sub-section) will
+                be excluded from the results. It takes the property definition and the current
+                section as arguments. The function returns true for excluding and false for
+                including the property. Exclude is applied recursively on sub-sections.
+                Overrides categories.
+            transform: A function that determines serialized quantity values.
+                It takes the quantity definition, current section, the default
+                serialized value and the metainfo path with respect to the
+                document root as arguments. Depending where this is used, you
+                might have to ensure that the result is JSON-serializable.  By
+                default values are serialized to JSON according to the quantity
+                type.
         '''
-        # determine partial for sub-sections and partial based on categories
-        if partial is not None:
-            if partial == "es":
-                partial = lambda d, s: hasattr(d, "a_search") or hasattr(d, "a_search")
-            if partial == "mongo":
-                partial = lambda d, s: hasattr(d, "a_mongo")
-            child_partial = partial
-        else:
+        kwargs: Dict[str, Any] = dict(
+            with_meta=with_meta,
+            include_defaults=include_defaults,
+            include_derived=include_derived,
+            resolve_references=resolve_references,
+            exclude=exclude,
+            transform=transform)
+
+        assert not (include is not None and exclude is not None), 'You can only include or exclude, not both.'
+
+        if include is not None:
+            def exclude(*args, **kwargs):  # pylint: disable=function-redefined
+                return not include(*args, **kwargs)
+
+            kwargs['exclude'] = exclude
+
+        elif exclude is None:
             if categories is None:
-                partial = lambda *args, **kwargs: True
-                child_partial = lambda *args, **kwargs: True
+                def exclude(prop, section):  # pylint: disable=function-redefined
+                    return False
+
+                kwargs['exclude'] = exclude
 
             else:
-                category_defs: List[Category] = None
-                if categories is not None:
-                    category_defs = []
-                    for category in categories:
-                        if issubclass(category, MCategory):  # type: ignore
-                            category_defs.append(category.m_def)  # type: ignore
-                        elif isinstance(category, Category):
-                            category_defs.append(category)
-                        else:
-                            raise TypeError('%s is not a category' % category)
+                category_defs: List[Category] = []
+                for category in categories:
+                    if issubclass(category, MCategory):  # type: ignore
+                        category_defs.append(category.m_def)  # type: ignore
+                    elif isinstance(category, Category):
+                        category_defs.append(category)
+                    else:
+                        raise TypeError('%s is not a category' % category)
 
-                partial = lambda definition, *args, **kwargs: any(
-                    definition in category.get_all_definitions()
-                    for category in category_defs)
-                child_partial = lambda *args, **kwargs: True
+                def exclude(prop, section):  # pylint: disable=function-redefined
+                    return not any(
+                        prop in category.get_all_definitions()
+                        for category in category_defs)
 
-        def serialize_quantity(quantity, is_set, is_derived):
+        def serialize_quantity(quantity, is_set, is_derived, path):
             quantity_type = quantity.type
 
             serialize: TypingCallable[[Any], Any] = str
-            if isinstance(quantity_type, Reference):
+            if resolve_references and isinstance(quantity_type, QuantityReference):
+                quantity_type = quantity_type.target_quantity_def.type
 
-                def reference_serialize(value):
-                    if isinstance(value, MProxy):
+            is_ref = False
+            if isinstance(quantity_type, Reference):
+                is_ref = True
+
+                def reference_serialize(value, path_override):
+                    if resolve_references:
+                        assert not isinstance(quantity_type, QuantityReference)
+                        value = value.m_resolved()
+                        ref_kwargs = dict(kwargs)
+                        if kwargs["transform"]:
+                            ref_kwargs["transform"] = lambda q, s, v, p: kwargs["transform"](q, s, v, path_override)
+                        return value.m_to_dict(**ref_kwargs)
+
+                    elif isinstance(value, MProxy):
                         if value.m_proxy_resolved is not None:
                             return quantity_type.serialize(self, quantity, value)
                         else:
-                            return value.m_proxy_value
-                    else:
-                        return quantity_type.serialize(self, quantity, value)
+                            return quantity_type.serialize_proxy_value(value)
+
+                    return quantity_type.serialize(self, quantity, value)
+
                 serialize = reference_serialize
 
             elif isinstance(quantity_type, DataType):
@@ -1292,7 +1472,10 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 serialize = serialize_dtype
 
             elif isinstance(quantity_type, MEnum):
-                serialize = str
+                def serialize_enum(value):
+                    return None if value is None else str(value)
+
+                serialize = serialize_enum
 
             elif quantity_type == Any:
                 def _serialize(value: Any):
@@ -1311,21 +1494,58 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     'Do not know how to serialize data with type %s for quantity %s' %
                     (quantity_type, quantity))
 
+            quantity_type = quantity.type
+            if resolve_references and isinstance(quantity_type, QuantityReference):
+                serialize_before_reference_resolution = serialize
+
+                def serialize_reference(value: Any):
+                    value = getattr(value.m_resolved(), quantity_type.target_quantity_def.name)
+
+                    return serialize_before_reference_resolution(value)
+
+                serialize = serialize_reference
+
             if is_set:
                 value = self.__dict__[quantity.name]
             elif is_derived:
-                value = quantity.derived(self)
+                try:
+                    value = quantity.derived(self)
+                except Exception:
+                    value = quantity.default
             else:
                 value = quantity.default
+
+            if transform is not None:
+                serialize_before_transform = serialize
+
+                def serialize_and_transform(value: Any, path_override=None):
+                    if is_ref:
+                        return transform(quantity, self, serialize_before_transform(value, path_override), path_override)
+                    else:
+                        return transform(quantity, self, serialize_before_transform(value), path_override)
+
+                serialize = serialize_and_transform
 
             if isinstance(quantity_type, np.dtype):
                 return serialize(value)
             elif len(quantity.shape) == 0:
-                return serialize(value)
+                if is_ref:
+                    return serialize(value, path)
+                else:
+                    return serialize(value)
             elif len(quantity.shape) == 1:
-                return [serialize(i) for i in value]
+                if is_ref:
+                    return [serialize(item, f"{path}/{index}") for index, item in enumerate(value)]
+                else:
+                    return [serialize(item) for item in value]
             else:
                 raise NotImplementedError('Higher shapes (%s) not supported: %s' % (quantity.shape, quantity))
+
+        def serialize_annotation(annotation):
+            if isinstance(annotation, Annotation):
+                return annotation.m_to_dict()
+            else:
+                return str(annotation)
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
@@ -1336,15 +1556,27 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
 
+                annotations = {}
+                for annotation_name, annotation in self.m_annotations.items():
+                    if isinstance(annotation, list):
+                        annotation_value = [serialize_annotation(item) for item in annotation]
+                    else:
+                        annotation_value = [serialize_annotation(annotation)]
+                    annotations[annotation_name] = annotation_value
+                if len(annotations) > 0:
+                    yield 'm_annotations', annotations
+
             # quantities
+            sec_path = self.m_path()
             for name, quantity in self.m_def.all_quantities.items():
-                if not partial(quantity, self):
+                path = f"{sec_path}/{name}"
+                if exclude(quantity, self):
                     continue
 
                 try:
                     if quantity.virtual:
                         if include_derived and quantity.derived is not None:
-                            yield name, serialize_quantity(quantity, False, True)
+                            yield name, serialize_quantity(quantity, False, True, path)
                         continue
 
                     is_set = self.m_is_set(quantity)
@@ -1352,35 +1584,25 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         if not include_defaults or not quantity.m_is_set(Quantity.default):
                             continue
 
-                    yield name, serialize_quantity(quantity, is_set, False)
+                    yield name, serialize_quantity(quantity, is_set, False, path)
 
                 except ValueError as e:
-                    import traceback
-                    traceback.print_exc()
                     raise ValueError('Value error (%s) for %s' % (str(e), quantity))
 
             # sub sections
             for name, sub_section_def in self.m_def.all_sub_sections.items():
-                if not partial(sub_section_def, self):
+                if exclude(sub_section_def, self):
                     continue
 
                 if sub_section_def.repeats:
                     if self.m_sub_section_count(sub_section_def) > 0:
                         yield name, [
-                            None if item is None else item.m_to_dict(
-                                with_meta=with_meta,
-                                include_defaults=include_defaults,
-                                include_derived=include_derived,
-                                partial=child_partial)
+                            None if item is None else item.m_to_dict(**kwargs)
                             for item in self.m_get_sub_sections(sub_section_def)]
                 else:
                     sub_section = self.m_get_sub_section(sub_section_def, -1)
                     if sub_section is not None:
-                        yield name, sub_section.m_to_dict(
-                            with_meta=with_meta,
-                            include_defaults=include_defaults,
-                            include_derived=include_derived,
-                            partial=child_partial)
+                        yield name, sub_section.m_to_dict(**kwargs)
 
         return {key: value for key, value in items()}
 
@@ -1392,8 +1614,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         section_def = self.m_def
         section = self
 
-        for name, sub_section_def in section_def.all_sub_sections.items():
-            if name in dct:
+        for name, property_def in section_def.all_aliases.items():
+            if name not in dct:
+                continue
+
+            if isinstance(property_def, SubSection):
+                sub_section_def = property_def
                 sub_section_value = dct.get(name)
                 if sub_section_def.repeats:
                     for sub_section_dct in sub_section_value:
@@ -1407,8 +1633,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     sub_section = sub_section_def.sub_section.section_cls.m_from_dict(sub_section_value)
                     section.m_add_sub_section(sub_section_def, sub_section)
 
-        for name, quantity_def in section_def.all_quantities.items():
-            if name in dct:
+            if isinstance(property_def, Quantity):
+                quantity_def = property_def
                 quantity_value = dct[name]
 
                 if isinstance(quantity_def.type, np.dtype):
@@ -1563,65 +1789,89 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         return getattr(self, 'm_proxy_resolved', self)
 
-    def m_resolve(self, path: str, cls: Type[MSectionBound] = None) -> MSectionBound:
+    def m_resolve(self, url: str, cls: Type[MSectionBound] = None) -> MSectionBound:
         '''
         Resolves the given path or dotted quantity name using this section as context and
         returns the sub_section or value.
+
+        Arguments:
+            path: The reference URL. See `MProxy` for details on reference URLs.
         '''
-        if path.startswith('/'):
-            context: 'MSection' = self.m_root()
+        section: 'MSection' = self
+
+        parts = url.split('#', maxsplit=1)
+        if len(parts) == 1:
+            path = parts[0]
         else:
-            context = self
+            api, path = parts
+            if not path.startswith('/'):
+                path = f'/{path}'
+
+            if api != '':
+                context = cast(MSection, section.m_root()).m_context
+                if context is None:
+                    raise MetainfoReferenceError(
+                        f'There is no resource to resolve references with api part')
+
+                try:
+                    section = context.resolve_archive(api)
+                except NotImplementedError:
+                    raise MetainfoReferenceError(
+                        f'The attached resource does not support references with api part')
+
+        if path.startswith('/'):
+            section = section.m_root()
 
         path_stack = path.strip('/').split('/')
         path_stack.reverse()
         while len(path_stack) > 0:
             prop_name = path_stack.pop()
-            prop_def = context.m_def.all_properties.get(prop_name, None)
+            prop_def = section.m_def.all_properties.get(prop_name, None)
 
             if prop_def is None:
-                raise ReferenceError(
-                    'Could not resolve %s, property %s does not exist in %s' %
-                    (path, prop_name, context.m_def))
+                prop_def = section.m_def.all_aliases.get(prop_name, None)
+
+            if prop_def is None:
+                raise MetainfoReferenceError(
+                    f'Could not resolve {url}, property {prop_name} does not exist')
 
             if isinstance(prop_def, SubSection):
                 if prop_def.repeats:
                     if len(path_stack) == 0:
-                        return context.m_get_sub_sections(prop_def)  # type: ignore
+                        return section.m_get_sub_sections(prop_def)  # type: ignore
 
                     try:
                         index = int(path_stack.pop())
                     except ValueError:
-                        raise ReferenceError(
-                            'Could not resolve %s, %s repeats but there is no index in the path' %
-                            (path, prop_name))
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, {prop_name} repeats but there is no '
+                            'index in the path')
 
                     try:
-                        context = context.m_get_sub_section(prop_def, index)
+                        section = section.m_get_sub_section(prop_def, index)
                     except Exception:
-                        raise ReferenceError(
-                            'Could not resolve %s, there is no sub section for %s at %d' %
-                            (path, prop_name, index))
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, there is no sub section for '
+                            '{prop_name} at {index}')
 
                 else:
-                    context = context.m_get_sub_section(prop_def, -1)
-                    if context is None:
-                        raise ReferenceError(
-                            'Could not resolve %s, there is no sub section for %s' %
-                            (path, prop_name))
+                    section = section.m_get_sub_section(prop_def, -1)
+                    if section is None:
+                        raise MetainfoReferenceError(
+                            f'Could not resolve {url}, there is no sub section {prop_name}')
 
             elif isinstance(prop_def, Quantity):
                 if len(path_stack) > 0:
-                    raise ReferenceError(
-                        'Could not resolve %s, %s is not a property' % (path, prop_name))
+                    raise MetainfoReferenceError(
+                        f'Could not resolve {url}, no property {prop_name}')
 
-                if not context.m_is_set(prop_def):
-                    raise ReferenceError(
-                        'Could not resolve %s, %s is not set on %s' % (path, prop_name, context))
+                if not section.m_is_set(prop_def):
+                    raise MetainfoReferenceError(
+                        f'Could not resolve {url}, {prop_name} is not set in {section}')
 
-                return context.m_get(prop_def)
+                return section.m_get(prop_def)
 
-        return cast(MSectionBound, context)
+        return cast(MSectionBound, section)
 
     def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''
@@ -1715,14 +1965,22 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         return errors, warnings
 
-    def m_copy(self: MSectionBound, deep=False, parent=None) -> MSectionBound:
+    def m_copy(
+            self: MSectionBound,
+            deep=False,
+            parent=None,
+            es_annotation: List[Elasticsearch] = None) -> MSectionBound:
+        '''
+            es_annotation: Optional annotation for ElasticSearch. Will override
+                any existing annotation.
+        '''
         # TODO this a shallow copy, but should be a deep copy
         copy = self.m_def.section_cls()
         copy.__dict__.update(**self.__dict__)
         copy.m_parent = parent
         copy.m_parent_index = -1 if parent is None else self.m_parent_index
         copy.m_parent_sub_section = None if parent is None else self.m_parent_sub_section
-        copy.m_resource = None
+        copy.m_context = self.m_context
 
         if deep:
             for sub_section_def in self.m_def.all_sub_sections.values():
@@ -1738,6 +1996,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     else:
                         copy.__dict__[sub_section_def.name] = None
 
+        if es_annotation:
+            copy.m_annotations["elasticsearch"] = es_annotation
         return cast(MSectionBound, copy)
 
     def m_all_validate(self):
@@ -1752,8 +2012,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return errors, warnings
 
     def m_warning(self, *args, **kwargs):
-        if self.m_resource is not None:
-            self.m_resource.warning(*args, **kwargs)
+        if self.m_context is not None:
+            self.m_context.warning(*args, **kwargs)
 
     def __repr__(self):
         m_section_name = self.m_def.name
@@ -1781,7 +2041,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         try:
             key = key.replace('.', '/')
             return self.m_resolve(key)
-        except ReferenceError:
+        except MetainfoReferenceError:
             raise KeyError(key)
 
     def __iter__(self):
@@ -1825,6 +2085,64 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         result = jmespath.search(expression, self)
         return to_dict(result)
+
+
+# TODO implement and test the NotImplementErrors
+class MSubSectionList(list):
+    def __init__(self, section: 'MSection', sub_section_def: 'SubSection'):
+        self.section = section
+        self.sub_section_def = sub_section_def
+        super().__init__()
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def __delitem__(self, key):
+        old_value = self[key]
+        list.__delitem__(self, key)
+        for index in range(key, len(self)):
+            self[index].m_parent_index = index
+
+        self.section._on_remove_sub_section(self.sub_section_def, old_value)
+
+    def __setslice__(self, i, j, sequence):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def __delslice__(self, i, j):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def append(self, value):
+        list.append(self, value)
+        if value is not None:
+            self.section._on_add_sub_section(self.sub_section_def, value, len(self) - 1)
+
+    def pop(self):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def extend(self, newvalue):
+        start_index = len(self)
+        list.extend(self, newvalue)
+        for index, value in enumerate(newvalue):
+            self.section._on_add_sub_section(
+                self.sub_section_def, value, start_index + index)
+
+    def insert(self, i, element):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def remove(self, element):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def reverse(self):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def sort(self, cmpfunc=None):
+        raise NotImplementedError('You can only append sub-sections.')
+
+    def clear(self):
+        old_values = list(self)
+        list.clear(self)
+        for old_value in old_values:
+            self.section._on_remove_sub_section(self.sub_section_def, old_value)
 
 
 class MCategory(metaclass=MObjectMeta):
@@ -1900,6 +2218,10 @@ class Definition(MSection):
             sections, which organize the data (e.g. quantity values) and not the definitions
             of data (e.g. quantities definitions). See :ref:`metainfo-categories` for more
             details.
+
+        more: A dictionary that contains additional definition properties that are not
+            part of the metainfo. Those can be passed as additional kwargs to definition
+            constructors. The values must be JSON serializable.
     '''
 
     name: 'Quantity' = _placeholder_quantity
@@ -1908,6 +2230,25 @@ class Definition(MSection):
     categories: 'Quantity' = _placeholder_quantity
     deprecated: 'Quantity' = _placeholder_quantity
     aliases: 'Quantity' = _placeholder_quantity
+    more: 'Quantity' = _placeholder_quantity
+
+    def __init__(self, *args, **kwargs):
+        if is_bootstrapping:
+            super().__init__(*args, **kwargs)
+            return
+
+        # We add all kwargs that are not meta props, annotations, or metainfo properties
+        # to the more property.
+        more = {}
+        new_kwargs = {}
+        for key, value in kwargs.items():
+            if key.startswith('m_') or key.startswith('a_') or key in self.__class__.m_def.all_aliases:
+                new_kwargs[key] = value
+            else:
+                more[key] = value
+
+        super().__init__(*args, **new_kwargs)
+        self.more = more
 
     def __init_metainfo__(self):
         '''
@@ -1927,14 +2268,28 @@ class Definition(MSection):
         package, section was created without corresponding python classes
         packages, etc.
         '''
+        self.__init_metainfo__()
         for content in self.m_all_contents(depth_first=True):
             content.__init_metainfo__()
+
+    def __getattr__(self, name):
+        if self.more and name in self.more:
+            return self.more[name]
+
+        return super().__getattr__(name)
+
+    def m_is_set(self, quantity_def: 'Quantity') -> bool:
+        if quantity_def == Definition.more:
+            return len(self.more) > 0
+
+        return super().m_is_set(quantity_def)
 
     def qualified_name(self):
         names = []
         current = self
         while current is not None and current.m_follows(Definition.m_def):
-            names.append(current.name)
+            name = current.name
+            names.append(name if name else '*')
             current = current.m_parent
 
         return '.'.join(reversed(names))
@@ -1949,8 +2304,23 @@ class Definition(MSection):
 
 
 class Property(Definition):
-    ''' A common base-class for section properties: sub sections and quantities. '''
-    pass
+    '''
+    A common base-class for section properties: sub sections and quantities.
+
+    Attributes:
+        type:
+            A boolean that indicates this property as a *template* property. Template properties
+            can be accessed under a custom, instance-level name. To assign values
+            use `obj.my_template = (<name>, <value>)` tuples. To read values simply
+            use the choosen `<name>`: `obj.name`. If you use the schema-level name, you'll
+            get a dictionary witht the names values: `obj.my_template == {<name>: <value}`.
+            Choosen names must not collide with names defined in the metainfo, e.g.
+            `obj.my_template = ('my_template', <value>)` is not allowed.
+
+            This is not functional in this version of the metainfo.
+    '''
+
+    template: 'Quantity' = _placeholder_quantity
 
 
 class Quantity(Property):
@@ -2283,6 +2653,8 @@ class SubSection(Property):
             times in the parent section.
     '''
 
+    _used_sections: Dict['Section', Set['SubSection']] = {}
+
     sub_section: 'Quantity' = _placeholder_quantity
     repeats: 'Quantity' = _placeholder_quantity
 
@@ -2303,10 +2675,14 @@ class SubSection(Property):
             raise NotImplementedError()
 
         if self.repeats:
-            raise NotImplementedError('Cannot set a repeating sub section use m_create or m_add_sub_section.')
+            if value is not None:
+                raise NotImplementedError('Cannot set a repeating sub section directly, modify the list, e.a. via append.')
 
-        if value is None:
+            obj.m_get_sub_sections(self).clear()
+
+        elif value is None:
             obj.m_remove_sub_section(self, -1)
+
         else:
             obj.m_add_sub_section(self, value)
 
@@ -2462,6 +2838,13 @@ class Section(Definition):
             inherited properties and properties form extending sections as a
             dictionary with aliases and the definitions.
 
+        all_inner_section_definitions:
+            A helper attribute that gives all inner_section_definitions including
+            their aliases by name.
+
+        path: Shortest path from a root section to this section. This is not the path
+            in the metainfo schema (`m_path`) but a archive path in potential data.
+
         event_handlers:
             Event handler are functions that get called when the section data is changed.
             There are two types of events: ``set`` and ``add_sub_section``. The handler type
@@ -2481,6 +2864,7 @@ class Section(Definition):
 
     quantities: 'SubSection' = None
     sub_sections: 'SubSection' = None
+    inner_section_definitions: 'SubSection' = None
 
     base_sections: 'Quantity' = _placeholder_quantity
     extending_sections: 'Quantity' = _placeholder_quantity
@@ -2495,6 +2879,8 @@ class Section(Definition):
     all_sub_sections: 'Quantity' = _placeholder_quantity
     all_sub_sections_by_section: 'Quantity' = _placeholder_quantity
     all_aliases: 'Quantity' = _placeholder_quantity
+    all_inner_section_definitions: 'Quantity' = _placeholder_quantity
+    path: 'Quantity' = _placeholder_quantity
 
     def __init__(self, *args, validate: bool = True, **kwargs):
         self._section_cls: Type[MSection] = None
@@ -2507,19 +2893,31 @@ class Section(Definition):
     @property
     def section_cls(self) -> Type[MSection]:
         if self._section_cls is None:
+            # set a temporary to avoid endless recursion
+            self._section_cls = type(self.name, (MSection,), dict(do_init=False))
+
             # Create a section class if this does not exist. This happens if the section
             # is not created through a class definition.
             attrs = {
                 prop.name: prop
                 for prop in self.quantities + self.sub_sections}
+
+            for name, inner_section_def in self.all_inner_section_definitions.items():
+                attrs[name] = inner_section_def.section_cls
+
             attrs.update(m_def=self, do_init=False)
-            self._section_cls = type(self.name, (MSection,), attrs)
+            if len(self.base_sections) > 0:
+                bases = tuple(base_section.section_cls for base_section in self.base_sections)
+            else:
+                bases = (MSection,)
+            self._section_cls = type(self.name, bases, attrs)
 
         return self._section_cls
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
+        # Init extending_sections
         if self.extends_base_section:
             base_sections_count = len(self.base_sections)
             if base_sections_count == 0:
@@ -2536,6 +2934,21 @@ class Section(Definition):
                     setattr(base_section.section_cls, name, attr)
 
             base_section.extending_sections = base_section.extending_sections + [self]
+
+        # Transfer properties of inherited and overwriten property definitions that
+        # have not been overwritten
+        inherited_properties: Dict[str, Property] = dict()
+        for base_section in self.all_base_sections:
+            inherited_properties.update(**base_section.all_properties)
+
+        for property in self.quantities + self.sub_sections:
+            inherited_property = inherited_properties.get(property.name)
+            if inherited_property is None:
+                continue
+
+            for m_quantity in property.m_def.all_quantities.values():
+                if not property.m_is_set(m_quantity) and inherited_property.m_is_set(m_quantity):
+                    property.m_set(m_quantity, inherited_property.m_get(m_quantity))
 
         # validate
         def validate(definition):
@@ -2558,9 +2971,8 @@ class Section(Definition):
 
     @constraint
     def unique_names(self):
-        # start with the names of all base_sections
         names: Set[str] = set()
-        for base in list(self.all_base_sections) + self.extending_sections:
+        for base in self.extending_sections:
             for quantity in base.quantities + base.sub_sections:
                 for alias in quantity.aliases:
                     names.add(alias)
@@ -2599,8 +3011,8 @@ class Package(Definition):
         category_definitions: All `category definitions` in this package as :class:`Category`
             objects.
 
-        all_definitions: A helper attribute that provides all section definitions
-            by name.
+        all_definitions: A helper attribute that provides all section and category definitions
+            by name and aliases.
     '''
 
     section_definitions: 'SubSection' = None
@@ -2626,8 +3038,14 @@ class Package(Definition):
                 if isinstance(content.type, MProxy):
                     content.type.m_proxy_resolve()
             elif isinstance(content, SubSection):
-                if isinstance(content.sub_section, MProxy):
-                    content.sub_section.m_proxy_resolve()
+                target = content.sub_section
+                if isinstance(target, MProxy):
+                    target = target.m_proxy_resolve()
+                SubSection._used_sections.setdefault(target, []).append(content)
+            elif isinstance(content, Section):
+                for base_section in content.base_sections:
+                    if isinstance(base_section, MProxy):
+                        base_section.m_proxy_resolve()
 
     @staticmethod
     def from_module(module_name: str):
@@ -2685,7 +3103,13 @@ class Category(Definition):
 
 class Annotation:
     ''' Base class for annotations. '''
-    pass
+
+    def m_to_dict(self):
+        '''
+        Returns a JSON serializable representation that is used for exporting the
+        annotation to JSON.
+        '''
+        return str(self.__class__.__name__)
 
 
 class DefinitionAnnotation(Annotation):
@@ -2726,16 +3150,20 @@ Definition.categories = Quantity(
     type=Reference(Category.m_def), shape=['0..*'], default=[], name='categories')
 Definition.deprecated = Quantity(type=str, name='deprecated')
 Definition.aliases = Quantity(type=str, shape=['0..*'], default=[], name='aliases')
+Definition.more = Quantity(type=JSON, name='more', default={})
 
 Section.quantities = SubSection(
     sub_section=Quantity.m_def, name='quantities', repeats=True)
-
 Section.sub_sections = SubSection(
     sub_section=SubSection.m_def, name='sub_sections', repeats=True)
+Section.inner_section_definitions = SubSection(
+    sub_section=Section.m_def, name='inner_section_definitions', repeats=True,
+    aliases=['inner_section_defs', 'section_defs'])
+
 Section.base_sections = Quantity(
-    type=Reference(Section.m_def), shape=['0..*'], default=[], name='base_sections')
+    type=SectionReference(Section.m_def), shape=['0..*'], default=[], name='base_sections')
 Section.extending_sections = Quantity(
-    type=Reference(Section.m_def), shape=['0..*'], default=[], name='extending_sections')
+    type=SectionReference(Section.m_def), shape=['0..*'], default=[], name='extending_sections')
 Section.extends_base_section = Quantity(type=bool, default=False, name='extends_base_section')
 Section.constraints = Quantity(type=str, shape=['0..*'], default=[], name='constraints')
 Section.event_handlers = Quantity(
@@ -2743,25 +3171,27 @@ Section.event_handlers = Quantity(
 
 
 @derived(cached=True)
-def inherited_sections(self) -> Set[Section]:
-    result: Set[Section] = set()
-    result.add(self)
-    for base_section in self.base_sections:
-        result.add(base_section)
-        for base_base_section in base_section.all_base_sections:
-            result.add(base_base_section)
+def inherited_sections(self) -> List[Section]:
+    result: List[Section] = []
+    for base_section in self.all_base_sections:
+        result.append(base_section)
     for extending_section in self.extending_sections:
-        result.add(extending_section)
+        result.append(extending_section)
+    result.append(self)
     return result
 
 
 @derived(cached=True)
-def all_base_sections(self) -> Set[Section]:
-    result: Set[Section] = set()
+def all_base_sections(self) -> List[Section]:
+    result: List[Section] = []
     for base_section in self.base_sections:
-        result.add(base_section)
+        if isinstance(base_section, SectionProxy):
+            continue
         for base_base_section in base_section.all_base_sections:
-            result.add(base_base_section)
+            if isinstance(base_base_section, SectionProxy):
+                continue
+            result.append(base_base_section)
+        result.append(base_section)
     return result
 
 
@@ -2814,6 +3244,43 @@ def all_aliases(self) -> Dict[str, Union[SubSection, Quantity]]:
     return result
 
 
+@derived(cached=True)
+def all_inner_section_definitions(self) -> Dict[str, Section]:
+    result: Dict[str, Section] = dict()
+    for base_section_or_self in self.all_base_sections + [self]:  # pylint: disable=not-an-iterable
+        for section in base_section_or_self.inner_section_definitions:  # pylint: disable=not-an-iterable
+            if section.name:
+                result[section.name] = section
+            for alias in section.aliases:
+                result[alias] = section
+
+    return result
+
+
+@derived(cached=True)
+def section_path(self) -> str:
+    used_in_sub_sections: List[SubSection] = SubSection._used_sections.get(self, [])  # type: ignore
+    if len(used_in_sub_sections) == 0:
+        if self.name == 'EntryArchive':
+            return None
+        else:
+            return '__no_archive_path__'
+
+    if len(used_in_sub_sections) > 1:
+        return '__ambiguous__'
+
+    parent_section = used_in_sub_sections[0].m_parent
+    parent_path = parent_section.path
+
+    if parent_path is None:
+        return used_in_sub_sections[0].name
+
+    if parent_path.startswith('__'):
+        return parent_path
+
+    return f'{parent_path}.{used_in_sub_sections[0].name}'
+
+
 Section.inherited_sections = inherited_sections
 Section.all_base_sections = all_base_sections
 Section.all_properties = all_properties
@@ -2821,11 +3288,17 @@ Section.all_quantities = all_quantities
 Section.all_sub_sections = all_sub_sections
 Section.all_sub_sections_by_section = all_sub_sections_by_section
 Section.all_aliases = all_aliases
+Section.all_inner_section_definitions = all_inner_section_definitions
+Section.path = section_path
 
+
+Property.template = Quantity(type=bool, name='template', default=False)
 
 SubSection.repeats = Quantity(type=bool, name='repeats', default=False)
 
-SubSection.sub_section = Quantity(type=Reference(Section.m_def), name='sub_section')
+SubSection.sub_section = Quantity(
+    type=SectionReference(Section.m_def), name='sub_section',
+    aliases=['section_definition', 'section_def'])
 
 Quantity.m_def._section_cls = Quantity
 Quantity.type = DirectQuantity(type=QuantityType, name='type')
@@ -2839,10 +3312,12 @@ Quantity.is_scalar = Quantity(
 Quantity.cached = Quantity(type=bool, name='cached', default=False)
 
 Package.section_definitions = SubSection(
-    sub_section=Section.m_def, name='section_definitions', repeats=True)
+    sub_section=Section.m_def, name='section_definitions', repeats=True,
+    aliases=['section_defs'])
 
 Package.category_definitions = SubSection(
-    sub_section=Category.m_def, name='category_definitions', repeats=True)
+    sub_section=Category.m_def, name='category_definitions', repeats=True,
+    aliases=['category_defs'])
 
 
 @derived(cached=True)
@@ -2940,7 +3415,7 @@ class Environment(MSection):
 
         return [
             definition
-            for definition in self.all_definitions_by_name.get(name, [])
+            for definition in self.all_definitions_by_name.get(name, [])  # pylint: disable=no-member
             if isinstance(definition, section_cls)
             if not (isinstance(definition, Section) and definition.extends_base_section)
             if filter is None or filter(definition)]

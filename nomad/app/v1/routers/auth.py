@@ -25,6 +25,8 @@ from functools import wraps
 from fastapi import APIRouter, Depends, Query as FastApiQuery, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+import jwt
+import datetime
 
 from nomad import utils, infrastructure, config, datamodel
 from nomad.utils import get_logger, strip
@@ -44,6 +46,10 @@ class Token(BaseModel):
     token_type: str
 
 
+class SignatureToken(BaseModel):
+    signature_token: str
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{root_path}/auth/token', auto_error=False)
 
 
@@ -51,7 +57,8 @@ def create_user_dependency(
         required: bool = False,
         basic_auth_allowed: bool = False,
         bearer_token_auth_allowed: bool = True,
-        upload_token_auth_allowed: bool = False) -> Callable:
+        upload_token_auth_allowed: bool = False,
+        signature_token_auth_allowed: bool = False) -> Callable:
     '''
     Creates a dependency for getting the authenticated user. The parameters define if
     the authentication is required or not, and which authentication methods are allowed.
@@ -65,6 +72,8 @@ def create_user_dependency(
             user = _get_user_bearer_token_auth(kwargs.get('bearer_token'))
         if not user and upload_token_auth_allowed:
             user = _get_user_upload_token_auth(kwargs.get('token'))
+        if not user and signature_token_auth_allowed:
+            user = _get_user_signature_token_auth(kwargs.get('signature_token'))
 
         if required and not user:
             raise HTTPException(
@@ -78,7 +87,7 @@ def create_user_dependency(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='Authentication is required for this Oasis',
                     headers={'WWW-Authenticate': 'Bearer'})
-            if user.email not in config.oasis.allowed_users:
+            if user.email not in config.oasis.allowed_users and user.username not in config.oasis.allowed_users:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='You are not authorized to access this Oasis',
@@ -109,6 +118,15 @@ def create_user_dependency(
                 default=FastApiQuery(
                     None,
                     description='Token for simplified authorization for uploading.'),
+                kind=Parameter.KEYWORD_ONLY))
+    if signature_token_auth_allowed:
+        new_parameters.append(
+            Parameter(
+                name='signature_token',
+                annotation=str,
+                default=FastApiQuery(
+                    None,
+                    description='Signature token used to sign download urls.'),
                 kind=Parameter.KEYWORD_ONLY))
 
     # Create a wrapper around user_dependency, and set the signature on it
@@ -185,6 +203,31 @@ def _get_user_upload_token_auth(upload_token: str) -> User:
     return None
 
 
+def _get_user_signature_token_auth(signature_token: str) -> User:
+    '''
+    Verifies the signature token (throwing exception if illegal value provided) and returns the
+    corresponding user object, or None, if no upload_token provided.
+    '''
+    if signature_token:
+        try:
+            decoded = jwt.decode(signature_token, config.services.api_secret, algorithms=['HS256'])
+            return datamodel.User.get(user_id=decoded['user'])
+        except KeyError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Token with invalid/unexpected payload.')
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Expired token.')
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Invalid token.')
+
+    return None
+
+
 _bad_credentials_response = status.HTTP_401_UNAUTHORIZED, {
     'model': HTTPExceptionModel,
     'description': strip('''
@@ -245,6 +288,25 @@ async def get_token_via_query(username: str, password: str):
             headers={'WWW-Authenticate': 'Bearer'})
 
     return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+@router.get(
+    '/signature_token',
+    tags=[default_tag],
+    summary='Get a signature token',
+    response_model=SignatureToken)
+async def get_signature_token(user: User = Depends(create_user_dependency())):
+    '''
+    Generates and returns a signature token for the authenticated user. Authentication
+    has to be provided with another method, e.g. access token.
+    '''
+
+    expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
+    signature_token = jwt.encode(
+        dict(user=user.user_id, exp=expires_at),
+        config.services.api_secret, 'HS256').decode('utf-8')
+
+    return {'signature_token': signature_token}
 
 
 def generate_upload_token(user):

@@ -1,0 +1,136 @@
+AFLOW VERSION 3.2.9:  [aflow.org consortium - 2003-2021] 
+REAL LATTICE
+ Real space lattice:
+   1.4531e+00 -2.5169e+00  0.0000e+00
+   1.4531e+00  2.5169e+00  0.0000e+00
+   0.0000e+00  0.0000e+00  1.2439e+01
+ Real space a b c alpha beta gamma: 2.906291526 2.906291526 12.43855103 90 90 120
+ Real space a b c alpha beta gamma: 5.492094627 5.492094627 23.50545315 90 90 120   Bohrs/Degs 
+ Real space Volume: 90.99
+ Real space c/a = 4.28
+BRAVAIS LATTICE OF THE CRYSTAL (pgroup_xtal)
+ Real space Bravais Lattice Primitive        = HEX
+ Real space Lattice Variation                = HEX
+ Real space Lattice System                   = hexagonal
+ Real space Pearson Symbol                   = hP8
+POINT GROUP CRYSTAL
+ Real space Crystal Family                   = hexagonal
+ Real space Crystal System                   = hexagonal
+ Real space Crystal Class                    = dihexagonal-dipyramidal
+ Real space Point Group (Hermann Mauguin)    = 6/mmm
+ Real space Point Group (Schoenflies)        = D_6h
+ Real space Point Group Orbifold             = *622
+ Real space Point Group Type                 = centrosymmetric
+ Real space Point Group Order                = 24
+ Real space Point Group Structure            = 2 x dihedral
+SPACE GROUP OF THE CRYSTAL
+ Space group number                           = 194
+ Space group label (Hermann Mauguin)          = P6_{3}/mmc
+ Space group label (Hall)                     = -P 6c 2c
+ Space group label (Schoenflies)              = D_{6h}^{4}
+ Laue class                                   = 6/mmm
+ Crystal class                                = 6/mmm
+ITC REPRESENTATION OF THE CRYSTAL
+ Setting                                      = 1
+ Origin                                       = -6.4903e-05 -3.2452e-05  0.0000e+00
+ General Wyckoff position
+  1 x,y,z
+  2 -y,x-y,z
+  3 -x+y,-x,z
+  4 -x,-y,z+1/2
+  5 y,-x+y,z+1/2
+  6 x-y,x,z+1/2
+  7 y,x,-z
+  8 x-y,-y,-z
+  9 -x,-x+y,-z
+  10 -y,-x,-z+1/2
+  11 -x+y,y,-z+1/2
+  12 x,x-y,-z+1/2
+  13 -x,-y,-z
+  14 y,-x+y,-z
+  15 x-y,x,-z
+  16 x,y,-z+1/2
+  17 -y,x-y,-z+1/2
+  18 -x+y,-x,-z+1/2
+  19 -y,-x,z
+  20 -x+y,y,z
+  21 x,x-y,z
+  22 y,x,z+1/2
+  23 x-y,-y,z+1/2
+  24 -x,-x+y,z+1/2
+ Representative Wyckoff positions
+   0.33333333333333   0.66666666666667   0.25000000000000   A 2 c -6m2 
+   0.99993509671425   0.99996754835712   -0.00000000000000   B 2 a -3m. 
+   0.33329196821616   0.66664598410807   0.07753958915729   C 4 f 3m. 
+WYCCAR
+Ag1Co1O2   [HEX,HEX,hP8] (STD_PRIM doi:1| SG: P6_{3}/mmc 194 PG: 6/mmm BL: P | sym_eps: 0.0193534 (WYCKOFF P6_{3}./mmc #194)
+1.000000
+   2.9063000000  2.9063000000 12.4386000000 90.0000 90.0000 120.0000  194
+2 2 4 
+Direct(8) [A2B2C4] 
+   0.33333333333333   0.66666666666667   0.25000000000000  A     
+   0.66666666666667   0.33333333333333   0.75000000000000  A     
+   0.99993509671425   0.99996754835712   0.00000000000000  B     
+   0.00006490328575   0.00003245164288   0.50000000000000  B     
+   0.33329196821616   0.66664598410807   0.07753958915729  C     
+   0.66670803178384   0.33335401589193   0.57753958915729  C     
+   0.66664598410807   0.33329196821616   0.92246041084271  C     
+   0.33335401589193   0.66670803178384   0.42246041084271  C     
+BRAVAIS LATTICE OF THE LATTICE (pgroup)
+ Real space Bravais Lattice Primitive        = HEX
+ Real space Lattice Variation                = HEX
+ Real space Lattice System                   = hexagonal
+SUPERLATTICE (equally decorated)
+ Superlattice lattice:
+   1.4531e+00 -2.5169e+00  0.0000e+00
+   1.4531e+00  2.5169e+00  0.0000e+00
+   0.0000e+00  0.0000e+00  1.2439e+01
+ Real space a b c alpha beta gamma: 2.906291526 2.906291526 12.43855103 90 90 120
+ Real space a b c alpha beta gamma: 5.492094627 5.492094627 23.50545315 90 90 120   Bohrs/Degs 
+ Real space Volume: 90.99
+ Real space c/a = 4.28
+ Real space Bravais Superlattice Primitive   = HEX
+ Real space Superlattice Variation           = HEX
+ Real space Superlattice System              = hexagonal
+ Real space Pearson Symbol Superlattice      = hP8
+RECIPROCAL LATTICE
+ Reciprocal space lattice:
+   2.1619e+00 -1.2482e+00  0.0000e+00
+   2.1619e+00  1.2482e+00  0.0000e+00
+   0.0000e+00  0.0000e+00  5.0514e-01
+ Reciprocal space a b c alpha beta gamma: 2.496376359 2.496376359 0.5051380415 90 90 60
+ Reciprocal space Volume: 2.726
+ Reciprocal lattice primitive            = HEX
+ Reciprocal lattice variation            = HEX
+SPRIM
+Ag1Co1O2   [HEX,HEX,hP8] (STD_PRIM doi:1  [HEX,HEX,hP8] (STD_PRIM doi:10.1016/j.commatsci.2010.05.010)
+1.000000
+   1.45314576290864  -2.51692229216121   0.00000000000000
+   1.45314576290864   2.51692229216121   0.00000000000000
+   0.00000000000000   0.00000000000000  12.43855103258665
+2 2 4 
+Direct(8) [A2B2C4] 
+   0.33339823661908   0.66669911830954   0.25000000000000 
+   0.66660176338092   0.33330088169046   0.75000000000000 
+   0.00000000000000   0.00000000000000   0.00000000000000 
+   0.00000000000000   0.00000000000000   0.50000000000000 
+   0.33335687150191   0.66667843575095   0.07753958915729 
+   0.66664312849809   0.33332156424905   0.57753958915729 
+   0.66664312849809   0.33332156424905   0.92246041084271 
+   0.33335687150191   0.66667843575095   0.42246041084271 
+SCONV
+Ag1Co1O2   [HEX,HEX,hP8] (STD_PRIM doi:1  [HEX,HEX,hP8] (STD_CONV doi:10.1016/j.commatsci.2010.05.010)
+1.000000
+   1.45314576290864  -2.51692229216121   0.00000000000000
+   1.45314576290864   2.51692229216121   0.00000000000000
+   0.00000000000000   0.00000000000000  12.43855103258665
+2 2 4 
+Direct(8) [A2B2C4] 
+   0.33339823661908   0.66669911830954   0.25000000000000 
+   0.66660176338092   0.33330088169046   0.75000000000000 
+   0.00000000000000   0.00000000000000   0.00000000000000 
+   0.00000000000000   0.00000000000000   0.50000000000000 
+   0.33335687150191   0.66667843575095   0.07753958915729 
+   0.66664312849809   0.33332156424905   0.57753958915729 
+   0.66664312849809   0.33332156424905   0.92246041084271 
+   0.33335687150191   0.66667843575095   0.42246041084271 

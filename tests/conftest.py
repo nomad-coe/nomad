@@ -17,6 +17,7 @@
 #
 
 from typing import Tuple, List
+import math
 import pytest
 import logging
 from collections import namedtuple
@@ -24,33 +25,37 @@ from smtpd import SMTPServer
 from threading import Lock, Thread
 import asyncore
 import time
+from datetime import datetime
 import shutil
 import os.path
-import datetime
-from flask import request, g
 import elasticsearch.exceptions
 from typing import List
 import json
 import logging
 import warnings
-import zipfile
 import os.path
+from fastapi.testclient import TestClient
 
-from nomad import config, infrastructure, processing, utils
-from nomad.datamodel import EntryArchive
+from nomad import config, infrastructure, processing, utils, datamodel, files
+from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
-from nomad.datamodel import User
+from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo
+from nomad.processing import ProcessStatus
+from nomad.processing.data import generate_entry_id
+from nomad.app.main import app
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file
+from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url, ExampleData
 
 test_log_level = logging.CRITICAL
 
-elastic_test_calc_index = 'nomad_fairdi_calcs_test'
-elastic_test_material_index = 'nomad_fairdi_materials_test'
+elastic_test_entries_index = 'nomad_entries_v1_test'
+elastic_test_materials_index = 'nomad_materials_v1_test'
+
+indices = [elastic_test_entries_index, elastic_test_materials_index]
 
 warnings.simplefilter("ignore")
 
@@ -205,44 +210,41 @@ def mongo(mongo_infra):
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
     ''' Provides elastic infrastructure to the session '''
-    monkeysession.setattr('nomad.config.elastic.index_name', elastic_test_calc_index)
-    monkeysession.setattr('nomad.config.elastic.materials_index_name', elastic_test_material_index)
-    try:
-        return infrastructure.setup_elastic()
-    except Exception:
-        # try to delete index, error might be caused by changed mapping
-        return clear_elastic_infra()
+    monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
+    monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
+
+    # attempt to remove and recreate all indices
+    return clear_elastic_infra()
 
 
 def clear_elastic_infra():
+    '''
+    Removes and re-creates all indices and mappings.
+    '''
     from elasticsearch_dsl import connections
     connection = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
 
-    try:
-        connection.indices.delete(index=elastic_test_calc_index)
-    except Exception:
-        pass
-
-    try:
-        connection.indices.delete(index=elastic_test_material_index)
-    except Exception:
-        pass
+    for index in indices:
+        try:
+            connection.indices.delete(index=index)
+        except Exception:
+            pass
 
     return infrastructure.setup_elastic()
 
 
 def clear_elastic(elastic_infra):
+    '''
+    Removes all contents from the existing indices.
+    '''
     try:
-        elastic_infra.delete_by_query(
-            index=elastic_test_calc_index, body=dict(query=dict(match_all={})),
-            wait_for_completion=True, refresh=True)
-        elastic_infra.delete_by_query(
-            index=elastic_test_material_index, body=dict(query=dict(match_all={})),
-            wait_for_completion=True, refresh=True)
+        for index in indices:
+            elastic_infra.delete_by_query(
+                index=index, body=dict(query=dict(match_all={})),
+                wait_for_completion=True, refresh=True)
     except elasticsearch.exceptions.NotFoundError:
-        # it is unclear why this happens, but it happens at least once, when all tests
-        # are executed
+        # Happens if a test removed indices without recreating them.
         clear_elastic_infra()
 
     assert infrastructure.elastic_client is not None
@@ -276,8 +278,13 @@ admin_user_id = test_user_uuid(0)
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
     test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1), is_oasis_admin=True),
-    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-coe.eu', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
+    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-fairdi.tests.de', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
 }
+
+
+@pytest.fixture(scope='session', autouse=True)
+def configure_admin_user_id(monkeysession):
+    monkeysession.setattr('nomad.config.services.admin_user_id', admin_user_id)
 
 
 class KeycloakMock:
@@ -291,13 +298,6 @@ class KeycloakMock:
         else:
             raise infrastructure.KeycloakError('user does not exist')
 
-    def auth(self, headers, **kwargs):
-        if 'Authorization' in headers and headers['Authorization'].startswith('Bearer '):
-            user_id = request.headers['Authorization'].split(None, 1)[1].strip()
-            return User(**self.users[user_id]), user_id
-
-        return None, None
-
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
         user.user_id = test_user_uuid(self.id_counter)
@@ -307,7 +307,7 @@ class KeycloakMock:
             last_name=user.last_name, user_id=user.user_id)
         return None
 
-    def get_user(self, user_id=None, username=None):
+    def get_user(self, user_id=None, username=None, email=None):
         if user_id is not None:
             return User(**self.users[user_id])
         elif username is not None:
@@ -315,6 +315,11 @@ class KeycloakMock:
                 if user_values['username'] == username:
                     return User(**user_values)
             raise KeyError('Only test user usernames are recognized')
+        elif email is not None:
+            for user_id, user_values in self.users.items():
+                if user_values['email'] == email:
+                    return User(**user_values)
+            raise KeyError('Only test user emails are recognized')
         else:
             assert False, 'no token based get_user during tests'
 
@@ -325,14 +330,10 @@ class KeycloakMock:
 
     def basicauth(self, username: str, password: str) -> str:
         for user in self.users.values():
-            if user['username'] == username:
+            if user['username'] == username or user['email'] == username:
                 return user['user_id']
 
         raise infrastructure.KeycloakError()
-
-    @property
-    def access_token(self):
-        return g.oidc_access_token
 
 
 config.keycloak.realm_name = 'fairdi_nomad_test'
@@ -361,7 +362,6 @@ def keycloak(monkeypatch):
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
     ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
-    processing.Upload.metadata_file_cached.cache_clear()
     return dict(elastic=elastic)
 
 
@@ -380,13 +380,24 @@ def admin_user():
     return User(**test_users[test_user_uuid(0)])
 
 
+@pytest.fixture(scope='module')
+def test_users_dict(test_user, other_test_user, admin_user):
+    return {
+        'test_user': test_user,
+        'other_test_user': other_test_user,
+        'admin_user': admin_user}
+
+
 @pytest.fixture(scope='function')
 def no_warn(caplog):
     caplog.handler.formatter = structlogging.ConsoleFormatter()
     yield caplog
     for record in caplog.get_records(when='call'):
         if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
+            try:
+                msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
+            except Exception:
+                msg = record.msg
             assert False, msg
 
 
@@ -522,7 +533,7 @@ def mails(smtpd, monkeypatch):
 
 @pytest.fixture(scope='session')
 def example_mainfile() -> Tuple[str, str]:
-    return ('parsers/template', 'tests/data/parsers/template.json')
+    return ('parsers/template', 'tests/data/templates/template.json')
 
 
 @pytest.fixture(scope='function', params=['empty_file', 'example_file'])
@@ -554,12 +565,8 @@ def empty_upload():
 def example_user_metadata(other_test_user, test_user) -> dict:
     return {
         'comment': 'test comment',
-        'with_embargo': True,
-        'embargo_length': 12,
         'references': ['http://external.ref/one', 'http://external.ref/two'],
-        '_uploader': other_test_user.user_id,
-        'coauthors': [test_user.user_id],
-        '_upload_time': datetime.datetime.utcnow(),
+        'entry_coauthors': [other_test_user.user_id],
         '_pid': '256',
         'external_id': 'external_test_id'
     }
@@ -574,7 +581,7 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 
 @pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
-    ''' Provides a parsed calculation in the form of an EntryArchive. '''
+    ''' Provides a parsed entry in the form of an EntryArchive. '''
     parser, mainfile = example_mainfile
     return test_parsing.run_parser(parser, mainfile)
 
@@ -587,7 +594,7 @@ def parsed_ems() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def normalized(parsed: EntryArchive) -> EntryArchive:
-    ''' Provides a normalized calculation in the form of a EntryArchive. '''
+    ''' Provides a normalized entry in the form of a EntryArchive. '''
     return run_normalize(parsed)
 
 
@@ -608,48 +615,79 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 
 
 @pytest.fixture(scope='function')
-def oasis_example_upload(non_empty_example_upload: str, test_user, raw_files) -> str:
-    processing.Upload.metadata_file_cached.cache_clear()
+def oasis_publishable_upload(
+        api_v1, proc_infra, non_empty_processed: processing.Upload, internal_example_user_metadata,
+        monkeypatch, test_user):
+    '''
+    Creates a published upload which can be used with Upload.publish_externally. Some monkeypatching
+    is done which replaces IDs when importing.
+    '''
+    # Create a published upload
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    non_empty_processed.publish_upload()
+    non_empty_processed.block_until_complete(interval=.01)
 
-    uploaded_path = non_empty_example_upload
-    uploaded_path_modified = os.path.join(
-        config.fs.tmp,
-        os.path.basename(non_empty_example_upload))
-    shutil.copyfile(uploaded_path, uploaded_path_modified)
+    suffix = '_2'  # Will be added to all IDs in the mirrored upload
+    upload_id = non_empty_processed.upload_id
 
-    metadata = {
-        'upload_time': '2020-01-01 00:00:00',
-        'published': True,
-        'entries': {
-            'examples_template/template.json': {
-                'calc_id': 'test_calc_id',
-                'datasets': ['oasis_dataset_1', 'oasis_dataset_2']
-            }
-        },
-        'oasis_datasets': {
-            'dataset_1_name': {
-                'dataset_id': 'oasis_dataset_1',
-                'user_id': test_user.user_id,
-                'name': 'dataset_1_name'
-            },
-            'dataset_2_name': {
-                'dataset_id': 'oasis_dataset_2',
-                'user_id': test_user.user_id,
-                'name': 'dataset_2_name'
-            }
-        }
-    }
+    # Do some tricks to add suffix to the ID fields
+    old_bundle_init = files.UploadBundle.__init__
 
-    with zipfile.ZipFile(uploaded_path_modified, 'a') as zf:
-        with zf.open('nomad.json', 'w') as f:
-            f.write(json.dumps(metadata).encode())
+    def new_bundle_init(self, *args, **kwargs):
+        old_bundle_init(self, *args, **kwargs)
+        # Change the id's in the bundle_info dict behind the scenes when loading the bundle
+        bundle_info = self.bundle_info
+        bundle_info['upload_id'] += suffix
+        bundle_info['upload']['_id'] += suffix
+        for entry_dict in bundle_info['entries']:
+            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
+            entry_dict['upload_id'] += suffix
 
-    return uploaded_path_modified
+    old_bundle_import_files = files.UploadBundle.import_upload_files
 
+    def new_bundle_import_files(self, *args, **kwargs):
+        upload_files = old_bundle_import_files(self, *args, **kwargs)
+        # Overwrite the archive files with files containing the updated IDs
+        archive_path = upload_files.os_path
+        for file_name in os.listdir(archive_path):
+            if file_name.endswith('.msg'):
+                full_path = os.path.join(archive_path, file_name)
+                data = read_archive(full_path)
+                new_data = []
+                for entry_id in data.keys():
+                    archive_dict = data[entry_id].to_dict()
+                    section_metadata = archive_dict['metadata']
+                    section_metadata['upload_id'] += suffix
+                    new_entry_id = generate_entry_id(
+                        section_metadata['upload_id'], section_metadata['mainfile'])
+                    section_metadata['entry_id'] = new_entry_id
+                    new_data.append((new_entry_id, archive_dict))
+                write_archive(full_path, len(new_data), new_data)
+        return upload_files
 
-@pytest.fixture(scope='function')
-def oasis_example_uploaded(oasis_example_upload: str) -> Tuple[str, str]:
-    return 'oasis_upload_id', oasis_example_upload
+    monkeypatch.setattr('nomad.files.UploadBundle.__init__', new_bundle_init)
+    monkeypatch.setattr('nomad.files.UploadBundle.import_upload_files', new_bundle_import_files)
+
+    # Further monkey patching
+    def new_post(url, data, params={}, **kwargs):
+        return api_v1.post(
+            build_url(url.lstrip('/api/v1/'), params),
+            data=data.read(), **kwargs)
+
+    monkeypatch.setattr('requests.post', new_post)
+    monkeypatch.setattr('nomad.config.keycloak.oasis', True)
+    monkeypatch.setattr('nomad.config.keycloak.username', test_user.username)
+
+    monkeypatch.setattr('nomad.config.oasis.central_nomad_api_url', '/api')
+
+    # create a dataset to also test this aspect of oasis uploads
+    entry = non_empty_processed.successful_entries[0]
+    datamodel.Dataset(
+        dataset_id='dataset_id', dataset_name='dataset_name',
+        user_id=test_user.user_id).a_mongo.save()
+    entry.datasets = ['dataset_id']
+    entry.save()
+    return non_empty_processed.upload_id, suffix
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -686,10 +724,10 @@ def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: User, pr
 @pytest.fixture(scope='function')
 def published(non_empty_processed: processing.Upload, internal_example_user_metadata) -> processing.Upload:
     '''
-    Provides a processed upload. Upload was uploaded with test_user.
+    Provides a processed published upload. Upload was uploaded with test_user and is embargoed.
     '''
-    non_empty_processed.compress_and_set_metadata(internal_example_user_metadata)
-    non_empty_processed.publish_upload()
+    set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
+    non_empty_processed.publish_upload(embargo_length=12)
     try:
         non_empty_processed.block_until_complete(interval=.01)
     except Exception:
@@ -713,6 +751,175 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
     return non_empty_processed
 
 
+@pytest.fixture(scope='module')
+def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+    '''
+    Provides a couple of uploads and entries including metadata, raw-data, and
+    archive files.
+
+    id_embargo:
+        1 entry, 1 material, published with embargo
+    id_embargo_w_coauthor:
+        1 entry, 1 material, published with embargo and coauthor
+    id_embargo_w_reviewer:
+        1 entry, 1 material, published with embargo and reviewer
+    id_unpublished:
+        1 entry, 1 material, unpublished
+    id_unpublished_w_coauthor:
+        1 entry, 1 material, unpublished with coauthor
+    id_unpublished_w_reviewer:
+        1 entry, 1 material, unpublished with reviewer
+    id_published:
+        23 entries, 6 materials published without embargo
+        partial archive exists only for id_01
+        raw files and archive file for id_02 are missing
+        id_10, id_11 reside in the same directory
+    id_processing:
+        unpublished upload without any entries, in status processing
+    id_empty:
+        unpublished upload without any entries
+    '''
+    data = ExampleData(main_author=test_user)
+
+    # 6 uploads with different combinations of main_type and sub_type
+    for main_type in ('embargo', 'unpublished'):
+        for sub_type in ('', 'w_coauthor', 'w_reviewer'):
+            upload_id = 'id_' + main_type + ('_' if sub_type else '') + sub_type
+            if main_type == 'embargo':
+                published = True
+                embargo_length = 12
+                upload_name = 'name_' + upload_id[3:]
+            else:
+                published = False
+                embargo_length = 0
+                upload_name = None
+            entry_id = upload_id + '_1'
+            coauthors = [other_test_user.user_id] if sub_type == 'w_coauthor' else None
+            reviewers = [other_test_user.user_id] if sub_type == 'w_reviewer' else None
+            data.create_upload(
+                upload_id=upload_id,
+                upload_name=upload_name,
+                coauthors=coauthors,
+                reviewers=reviewers,
+                published=published,
+                embargo_length=embargo_length)
+            data.create_entry(
+                upload_id=upload_id,
+                entry_id=entry_id,
+                material_id=upload_id,
+                mainfile=f'test_content/{entry_id}/mainfile.json')
+
+    # one upload with 23 entries, published, no embargo
+    data.create_upload(
+        upload_id='id_published',
+        upload_name='name_published',
+        published=True)
+    for i in range(1, 24):
+        entry_id = 'id_%02d' % i
+        material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
+        mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
+        kwargs = dict(optimade=OptimadeEntry(nelements=2, elements=['H', 'O']))
+        if i == 11:
+            mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
+        if i == 1:
+            kwargs['pid'] = '123'
+        data.create_entry(
+            upload_id='id_published',
+            entry_id=entry_id,
+            material_id=material_id,
+            mainfile=mainfile,
+            **kwargs)
+
+        if i == 1:
+            archive = data.archives[entry_id]
+            write_partial_archive_to_mongo(archive)
+
+    # one upload, no entries, still processing
+    data.create_upload(
+        upload_id='id_processing',
+        published=False,
+        process_status=ProcessStatus.RUNNING)
+
+    # one upload, no entries, unpublished
+    data.create_upload(
+        upload_id='id_empty',
+        published=False)
+
+    data.save(with_files=False)
+    del(data.archives['id_02'])
+    data.save(with_files=True, with_es=False, with_mongo=False)
+
+
+@pytest.fixture(scope='function')
+def example_data_writeable(mongo, test_user, normalized):
+    data = ExampleData(main_author=test_user)
+
+    # one upload with one entry, published
+    data.create_upload(
+        upload_id='id_published_w',
+        published=True,
+        embargo_length=12)
+    data.create_entry(
+        upload_id='id_published_w',
+        entry_id='id_published_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    # one upload with one entry, unpublished
+    data.create_upload(
+        upload_id='id_unpublished_w',
+        published=False,
+        embargo_length=12)
+    data.create_entry(
+        upload_id='id_unpublished_w',
+        entry_id='id_unpublished_w_entry',
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    # one upload, no entries, running a blocking processing
+    data.create_upload(
+        upload_id='id_processing_w',
+        published=False,
+        process_status=ProcessStatus.RUNNING,
+        current_process='publish_upload')
+
+    # one upload, no entries, unpublished
+    data.create_upload(
+        upload_id='id_empty_w',
+        published=False)
+
+    data.save()
+
+    yield
+
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def example_datasets(mongo, test_user, other_test_user):
+    dataset_specs = (
+        ('test_dataset_1', test_user, None),
+        ('test_dataset_2', test_user, 'test_doi_2'),
+        ('test_dataset_3', other_test_user, None)
+    )
+    datasets = []
+    for dataset_name, user, doi in dataset_specs:
+        now = datetime.utcnow()
+        dataset = datamodel.Dataset(
+            dataset_id=utils.create_uuid(),
+            dataset_name=dataset_name,
+            doi=doi,
+            user_id=user.user_id,
+            dataset_create_time=now,
+            dataset_modified_time=now,
+            dataset_type='owned')
+        dataset.a_mongo.create()
+        datasets.append(dataset)
+
+    yield datasets
+
+    while datasets:
+        datasets.pop().a_mongo.delete()
+
+
 @pytest.fixture
 def reset_config():
     ''' Fixture that resets configuration. '''
@@ -726,3 +933,42 @@ def reset_config():
 def reset_infra(mongo, elastic):
     ''' Fixture that resets infrastructure after deleting db or search index. '''
     yield None
+
+
+@pytest.fixture(scope='session')
+def api_v1(monkeysession):
+    '''
+    This fixture provides an HTTP client with Python requests interface that accesses
+    the fast api. The have to provide URLs that start with out leading '/' after '.../api/v1.
+    This fixture also patches the actual requests. If some code is using requests to
+    connect to the NOMAD v1 at ``nomad.config.client.url``, the patch will redirect to the
+    fast api under test.
+    '''
+    test_client = TestClient(app, base_url='http://testserver/api/v1/')
+
+    def call_test_client(method, url, *args, **kwargs):
+        url = url.replace(f'{config.client.url}/v1/', '')
+        return getattr(test_client, method)(url, *args, **kwargs)
+
+    monkeysession.setattr('requests.get', lambda *args, **kwargs: call_test_client('get', *args, **kwargs))
+    monkeysession.setattr('requests.put', lambda *args, **kwargs: call_test_client('put', *args, **kwargs))
+    monkeysession.setattr('requests.post', lambda *args, **kwargs: call_test_client('post', *args, **kwargs))
+    monkeysession.setattr('requests.delete', lambda *args, **kwargs: call_test_client('delete', *args, **kwargs))
+
+    def __call__(self, request):
+        for user in test_users.values():
+            if user['username'] == self.user or user['email'] == self.user:
+                request.headers['Authorization'] = f'Bearer {user["user_id"]}'
+        return request
+
+    monkeysession.setattr('nomad.client.api.Auth.__call__', __call__)
+
+    return test_client
+
+
+@pytest.fixture(scope='session')
+def client_with_api_v1(api_v1, monkeysession):
+    def call_requests(method, path, *args, **kwargs):
+        return getattr(api_v1, method)(path, *args, **kwargs)
+
+    monkeysession.setattr('nomad.client.api._call_requests', call_requests)

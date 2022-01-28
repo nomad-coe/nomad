@@ -1,5 +1,5 @@
 version:
-  label: "v0.10.9"
+  label: "v1.0.0"
   isBeta: true
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
@@ -37,7 +37,7 @@ mongo:
 logstash:
   host: logstash.elk.svc.cluster.local
 
-dbname: fairdi_nomad_prod_v0_8
+dbname: nomad_prod_v1
 
 uploadurl: 'http://nomad-lab.eu/prod/rae/beta/api/uploads'
 
@@ -58,5 +58,4 @@ volumes:
   staging: /nomad/fairdi/prod/fs/staging
   tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
-
-reprocess_match: true
+  archiveVersionSuffix: v1

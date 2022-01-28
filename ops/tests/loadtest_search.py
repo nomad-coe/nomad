@@ -50,12 +50,12 @@ chemical_symbols = [
 
 # These are the API requests from the search UI with various tabs and statistics
 query_params = [
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&atoms=Co&statistics=atoms&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=dft.labels_springer_compound_class&statistics=dft.system&statistics=dft.crystal_system&statistics=dft.compound_type&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=dft.code_name&statistics=dft.basis_set&statistics=dft.xc_functional&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=dft.searchable_quantities&statistics=dft.labels_springer_classification&statistics=dft.workflow.workflow_type&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries',
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&statistics=dft.searchable_quantities&statistics=dft.labels_springer_classification&statistics=dft.workflow.workflow_type&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries&datasets_grouped=true',
-    'page=1&per_page=10&order_by=upload_time&order=-1&domain=dft&owner=public&metrics=dft.calculations&statistics=atoms&exclude=atoms,only_atoms,dft.files,dft.quantities,dft.optimade,dft.labels,dft.geometries&datasets_grouped=true'
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&atoms=Co&statistics=atoms&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries',
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&statistics=dft.labels_springer_compound_class&statistics=dft.system&statistics=dft.crystal_system&statistics=dft.compound_type&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries',
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&statistics=dft.code_name&statistics=dft.basis_set&statistics=dft.xc_functional&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries',
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&statistics=dft.searchable_quantities&statistics=dft.labels_springer_classification&statistics=dft.workflow.workflow_type&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries',
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&statistics=dft.searchable_quantities&statistics=dft.labels_springer_classification&statistics=dft.workflow.workflow_type&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries&datasets_grouped=true',
+    'page=1&per_page=10&order_by=upload_create_time&order=-1&domain=dft&owner=public&metrics=dft.calculations&statistics=atoms&exclude=atoms,only_atoms,dft.files,quantities,optimade,dft.labels,dft.geometries&datasets_grouped=true'
 ]
 
 
@@ -83,12 +83,12 @@ class QuickstartUser(HttpUser):
             return
 
         entry = data['results'][0]
-        calc_id = entry['calc_id']
+        entry_id = entry['entry_id']
         upload_id = entry['upload_id']
         mainfile = entry['mainfile']
 
         self.client.get("/prod/rae/beta/api/raw/calc/%s/%s/%s?length=16384&decompress=true" % (
-            upload_id, calc_id, os.path.basename(mainfile)))
+            upload_id, entry_id, os.path.basename(mainfile)))
 
     @task(1)
     def archive_access(self):
@@ -98,10 +98,10 @@ class QuickstartUser(HttpUser):
             return
 
         entry = data['results'][0]
-        calc_id = entry['calc_id']
+        entry_id = entry['entry_id']
         upload_id = entry['upload_id']
 
-        self.client.get("/prod/rae/beta/api/archive/%s/%s" % (upload_id, calc_id))
+        self.client.get("/prod/rae/beta/api/archive/%s/%s" % (upload_id, entry_id))
 
     def on_start(self):
         pass

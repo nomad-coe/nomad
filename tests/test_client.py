@@ -18,27 +18,24 @@
 from typing import List, Tuple
 import pytest
 
-from nomad.client import query_archive
+from nomad.client import query_archive, Auth
 from nomad.metainfo import MSection, SubSection
 from nomad.datamodel import EntryArchive, User
-from nomad.datamodel.metainfo.public import section_run
+from nomad.datamodel.metainfo.simulation.run import Run
 
-from tests.app.flask.conftest import client, session_client  # pylint: disable=unused-import
 from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
-from tests.app.flask.test_app import BlueprintClient
 from tests.processing import test_data as test_processing
+
+# TODO most nomad.client functionality is only tested indirectly via its use in nomad.cli
+
+
+def test_requests_auth(api_v1):
+    rv = api_v1.get('users/me', auth=Auth(from_api=True))
+    assert rv.status_code == 200
 
 
 # TODO with the existing published_wo_user_metadata fixture there is only one entry
 # that does not allow to properly test pagination and scrolling
-
-@pytest.fixture(scope='function')
-def api(client, monkeypatch):
-    monkeypatch.setattr('nomad.config.client.url', '')
-    api = BlueprintClient(client, '/api')
-    monkeypatch.setattr('nomad.client.requests', api)
-    return api
-
 
 def assert_results(
         results: List[MSection],
@@ -59,33 +56,29 @@ def assert_results(
                 current = sub_sections[0]
 
 
-def test_query(api, published_wo_user_metadata):
+def test_query(api_v1, published_wo_user_metadata):
     assert_results(query_archive())
 
 
-def test_query_query(api, published_wo_user_metadata):
+def test_query_query(api_v1, published_wo_user_metadata):
     assert_results(query_archive(query=dict(upload_id=[published_wo_user_metadata.upload_id])))
 
 
 @pytest.mark.parametrize('q_schema,sub_sections', [
-    ({'section_run': '*'}, [EntryArchive.section_run]),
-    ({'section_run': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system]),
-    ({'section_run[0]': {'section_system': '*'}}, [EntryArchive.section_run, section_run.section_system])
+    ({'run': '*'}, [EntryArchive.run]),
+    ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
+    ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system])
 ])
-def test_query_schema(api, published_wo_user_metadata, q_schema, sub_sections):
+def test_query_required(api_v1, published_wo_user_metadata, q_schema, sub_sections):
     assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
 
 
-def test_query_authentication(api, published, other_test_user_auth, test_user_auth, other_test_user):
-    # The published test uploads uploader in calc and upload's user id do not match
+def test_query_authentication(api_v1, published, other_test_user, test_user):
+    # The published test uploads uploader in entry and upload's user id do not match
     # due to testing the uploader change via publish metadata.
-    # TODO this is a workarround and should be changed in conftest, especially since we do not need this
-    # feature anymore.
-    published.user_id = other_test_user.user_id
-    published.save()
 
-    assert_results(query_archive(authentication=other_test_user_auth), total=1)
-    assert_results(query_archive(authentication=test_user_auth), total=0)
+    assert_results(query_archive(authentication=Auth(other_test_user.username, 'password', from_api=True)), total=0)
+    assert_results(query_archive(authentication=Auth(test_user.username, 'password', from_api=True)), total=1)
 
 
 @pytest.fixture(scope='function')
@@ -117,19 +110,17 @@ def patch_multiprocessing_and_api(monkeypatch):
             pass
 
     monkeypatch.setattr('multiprocessing.Pool', TestPool)
-    monkeypatch.setattr('nomad.client.get_json', lambda response: response.json)
-    monkeypatch.setattr('nomad.client.get_length', lambda response: int(response.headers['Content-Length']))
 
 
-def test_parallel_query(api, many_uploads, monkeypatch):
-    result = query_archive(required=dict(section_run='*'), parallel=2)
+def test_parallel_query(api_v1, many_uploads, monkeypatch):
+    result = query_archive(required=dict(run='*'), parallel=2)
     assert_results(result, total=4)
     assert result._statistics.nentries == 4
     assert result._statistics.loaded_nentries == 4
     assert result._statistics.last_response_nentries == 4
     assert result._statistics.napi_calls == 1
 
-    result = query_archive(required=dict(section_run='*'), parallel=2, per_page=1)
+    result = query_archive(required=dict(run='*'), parallel=2, per_page=1)
     assert_results(result, total=4)
     assert result._statistics.nentries == 4
     assert result._statistics.loaded_nentries == 4

@@ -17,105 +17,23 @@
  */
 
 import React from 'react'
-import { useRoute } from './Routes'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
-import { appBase, oasis, aitoolkitEnabled, encyclopediaEnabled } from '../../config'
+import { routes } from './Routes'
 
-import BackupIcon from '@material-ui/icons/Backup'
-import SearchIcon from '@material-ui/icons/Search'
-import UserDataIcon from '@material-ui/icons/AccountCircle'
-import AboutIcon from '@material-ui/icons/Home'
-import ForumIcon from '@material-ui/icons/QuestionAnswer'
-import FAQIcon from '@material-ui/icons/LiveHelp'
-import EncyclopediaIcon from '@material-ui/icons/Language'
-import MetainfoIcon from '@material-ui/icons/Info'
-import DocIcon from '@material-ui/icons/Help'
-import CodeIcon from '@material-ui/icons/Code'
-import TermsIcon from '@material-ui/icons/Assignment'
-import AnalyticsIcon from '@material-ui/icons/ShowChart'
-
-export default function MainMenu() {
-  const route = useRoute()
-  const selected = (route?.navPath) || 'publish/uploads'
-
-  return <MenuBar selected={selected}>
-    <MenuBarMenu name="publish" label="Publish" route="/uploads" icon={<BackupIcon/>}>
-      <MenuBarItem
-        name="uploads" label="Upload" route="/uploads" isDefault
-        tooltip="Upload and publish new data" icon={<SearchIcon />}
-      />
-      <MenuBarItem
-        label="Your data" name="userdata" route="/userdata"
-        tooltip="Manage your uploaded data" icon={<UserDataIcon />}
-      />
-    </MenuBarMenu>
-    <MenuBarMenu name="explore" route="/search" icon={<SearchIcon/>}>
-      <MenuBarItem
-        name="search" route="/search"
-        tooltip="Find and download data"
-      />
-      {encyclopediaEnabled && <MenuBarItem
-        name="encyclopedia"
-        href={`${appBase}/encyclopedia/#/search`}
-        tooltip="Visit the NOMAD Materials Encyclopedia"
-        icon={<EncyclopediaIcon/>}
-      />}
-    </MenuBarMenu>
-    <MenuBarMenu name="analyze" route="/metainfo" icon={<AnalyticsIcon/>}>
-      {(!oasis && aitoolkitEnabled)
-        ? <MenuBarItem
-          label="AI Toolkit" name="aitoolkit" route="/aitoolkit/main"
-          tooltip="NOMAD's Artificial Intelligence Toolkit tutorial Jupyter notebooks"
-          icon={<MetainfoIcon />}
-        />
-        : <MenuBarItem
-          label="AI Toolkit" name="aitoolkit"
-          href="https://nomad-lab.eu/AIToolkit"
-          tooltip="Visit the NOMAD Artificial Intelligence Analytics Toolkit"
-        />
-      }
-      <MenuBarItem
-        name="metainfo" route="/metainfo" tooltip="Browse the NOMAD Archive schema"
-      />
-      <MenuBarItem
-        name="apis" label="APIs" route="/apis" tooltip="The list of APIs offered by NOMAD"
-      />
-    </MenuBarMenu>
-    <MenuBarMenu name="about" route="/" icon={<AboutIcon/>}>
-      <MenuBarItem
-        label="Information" name="info" route="/"
-        tooltip="About the NOMAD Repository and Archive"
-      />
-      <MenuBarItem
-        name="forum"
-        href="https://matsci.org/c/nomad/"
-        tooltip="The NOMAD user/developer forum on matsci.org"
-        icon={<ForumIcon/>}
-      />
-      <MenuBarItem
-        label="FAQ" name="faq"
-        href="https://nomad-lab.eu/repository-archive-faqs"
-        tooltip="Frequently Asked Questions (FAQ)"
-        icon={<FAQIcon/>}
-      />
-      <MenuBarItem
-        name="Docs"
-        href={`${appBase}/docs/index.html`}
-        tooltip="The full user and developer documentation"
-        icon={<DocIcon/>}
-      />
-      <MenuBarItem
-        name="Sources"
-        href="https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-        tooltip="NOMAD's main Gitlab project"
-        icon={<CodeIcon/>}
-      />
-      <MenuBarItem
-        name="terms"
-        href="https://nomad-lab.eu/terms"
-        tooltip="The terms of service"
-        icon={<TermsIcon/>}
-      />
-    </MenuBarMenu>
+const MainMenu = React.memo(function MainMenu() {
+  return <MenuBar>
+    {routes.filter(route => route.menu).map((menuRoute, i) => (
+      <MenuBarMenu key={i} label={menuRoute.menu} route={'/' + menuRoute.path}>
+        {menuRoute.routes.filter(route => route.menu).map((itemRoute, i) => (
+          <MenuBarItem
+            key={i} label={itemRoute.menu} tooltip={itemRoute.tooltip}
+            route={itemRoute.path && `/${menuRoute.path}/${itemRoute.path}`}
+            href={itemRoute.href}
+          />
+        ))}
+      </MenuBarMenu>
+    ))}
   </MenuBar>
-}
+})
+
+export default MainMenu

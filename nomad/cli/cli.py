@@ -20,53 +20,7 @@ import click
 import logging
 import os
 
-from nomad import config as nomad_config, utils
-
-
-class LazyCommand(click.Command):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.orig_callback = self.callback
-        self.callback = self.lazy_callback
-
-    def lazy_callback(self, *args, **kwargs):
-        for group_callback, group_args, group_kwargs in self.ctx.obj.group_invocations:
-            group_callback(*group_args, **group_kwargs)
-        return self.orig_callback(*args, **kwargs)
-
-    def invoke(self, ctx):
-        self.ctx = ctx
-        return super().invoke(ctx)
-
-
-class LazyGroup(click.Group):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.orig_callback = self.callback
-
-        self.callback = self.lazy_callback
-        self.ctx = None
-
-    def lazy_callback(self, *args, **kwargs):
-        self.ctx.obj.group_invocations.append((self.orig_callback, args, kwargs))
-        return None
-
-    def command(self, *args, **kwargs):
-        kwargs.setdefault('cls', LazyCommand)
-        return super().command(*args, **kwargs)
-
-    def group(self, *args, **kwargs):
-        kwargs.setdefault('cls', LazyGroup)
-        return super().group(*args, **kwargs)
-
-    def invoke(self, ctx):
-        if ctx.obj is None:
-            ctx.obj = POPO()
-            ctx.obj.group_invocations = []
-
-        self.ctx = ctx
-        return super().invoke(ctx)
+from nomad import config, utils
 
 
 class POPO(dict):
@@ -92,27 +46,29 @@ class POPO(dict):
             raise AttributeError("No such attribute: " + name)
 
 
-@click.group(
-    cls=LazyGroup,
-    help='''This is the entry point to nomad\'s command line interface CLI.
-                     It uses a sub-command structure similar to the git command.''')
+@click.group(help=(
+    'This is the entry point to nomad\'s command line interface CLI. '
+    'It uses a sub-command structure similar to the git command.'))
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
+@click.option('--log-label', type=str, help='Label applied to logg entries.')
 @click.pass_context
-def cli(ctx, verbose: bool, debug: bool):
-    nomad_config.meta.service = os.environ.get('NOMAD_SERVICE', 'cli')
+def cli(ctx, verbose: bool, debug: bool, log_label: str):
+    config.meta.service = os.environ.get('NOMAD_SERVICE', 'cli')
+    config.meta.label = log_label
 
     if debug:
-        utils.set_console_log_level(logging.DEBUG)
+        config.console_log_level = logging.DEBUG
     elif verbose:
-        utils.set_console_log_level(logging.INFO)
+        config.console_log_level = logging.INFO
     else:
-        utils.set_console_log_level(logging.WARNING)
+        config.console_log_level = logging.WARNING
+    utils.set_console_log_level(config.console_log_level)
 
 
 def run_cli():
     try:
-        return cli()  # pylint: disable=E1120,E1123
+        return cli(obj=POPO())  # pylint: disable=E1120,E1123
     except ImportError:
         import sys
 

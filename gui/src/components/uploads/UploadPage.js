@@ -15,370 +15,597 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import PropTypes, { instanceOf } from 'prop-types'
-import Markdown from '../Markdown'
-import { withStyles, Paper, IconButton, FormGroup, FormLabel, Tooltip, Typography, Link } from '@material-ui/core'
-import UploadIcon from '@material-ui/icons/CloudUpload'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import PropTypes from 'prop-types'
+import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
+  TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
+  Input, DialogTitle, DialogContent, Dialog, LinearProgress, Paper, Slide, CircularProgress, IconButton} from '@material-ui/core'
 import Dropzone from 'react-dropzone'
-import Upload from './Upload'
-import { compose } from 'recompose'
-import ReloadIcon from '@material-ui/icons/Cached'
-import MoreIcon from '@material-ui/icons/MoreHoriz'
-import ClipboardIcon from '@material-ui/icons/Assignment'
-import HelpDialog from '../Help'
-import { withApi } from '../api'
-import { withCookies, Cookies } from 'react-cookie'
-import Pagination from 'material-ui-flat-pagination'
-import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { guiBase, appBase } from '../../config'
-import qs from 'qs'
+import UploadIcon from '@material-ui/icons/CloudUpload'
+import { appBase } from '../../config'
 import { CodeList } from '../About'
+import { DoesNotExist, useApi } from '../api'
+import { useParams } from 'react-router'
+import { useHistory, useLocation } from 'react-router-dom'
+import FilesBrower from './FilesBrowser'
+import { useErrors } from '../errors'
+import ProcessingTable from './ProcessingTable'
+import EditIcon from '@material-ui/icons/Edit'
+import DeleteIcon from '@material-ui/icons/Delete'
+import ReprocessIcon from '@material-ui/icons/Autorenew'
+import WithButton from '../utils/WithButton'
+import PublishedIcon from '@material-ui/icons/Public'
+import UnPublishedIcon from '@material-ui/icons/AccountCircle'
+import Markdown from '../Markdown'
+import EditMembersDialog from './EditMembersDialog'
+import EditMetaDataDialog from './EditMetaDataDialog'
+import Page from '../Page'
+import { getUrl } from '../nav/Routes'
+import { combinePagination } from '../datatable/Datatable'
+import UploadDownloadButton from '../entry/UploadDownloadButton'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 
-export const help = `
-NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
-identify the main output files of supported codes.
-and then it will parse these files. The result will be a list of entries (one per each identified mainfile).
-Each entry is associated with metadata. This is data that NOMAD acquired from your files and that
-describe your calculations (e.g. chemical formula, used code, system type and symmetry, etc.).
-Furthermore, you can provide your own metadata (comments, references, co-authors, etc.).
-At first, uploaded data is only visible to you. Before others can actually see and download
-your data, you need to publish your upload.
+export const uploadPageContext = React.createContext()
 
-#### Prepare and upload files
-
-Please put all the relevant files of all the calculations
-you want to upload into a single \`*.zip\` or \`*.tar.gz\` archive.
-We encourage you to add all code input and
-output files, as well as any other auxiliary files that you might have created.
-You can put data from multiple calculations into one file using as many directories as
-you like. NOMAD will consider all files on a single directory to form a single entry.
-Ideally, you put only files related to a single code run into each directory. If users
-want to download an entry, they can download all files in the respective directory.
-The directory structure can be nested.
-
-Drop your archive file(s) on the dropbox. You can also click the dropbox to select the file from
-your hard drive. Alternatively, you can upload files via the given shell command.
-Replace \`<local_file>\` with your archive file. After executing the command,
-return here and press the reload button below).
-
-There is a limit of 10 unpublished uploads per user. Please accumulate all data into as
-few uploads as possible. But, there is a also an upper limit of 32 GB per upload.
-Please upload multiple archives, if you have more than 32 GB of data to upload.
-
-#### The staging area
-
-Uploaded data will not be public immediately. Below you will find all your unpublished and
-published uploads. The unpublished uploads are only visible to you. You can see the
-progress on the processing, you can review your uploads, and publish or delete them again.
-
-Click on an upload to see more details about its contents. Click on processed calculations
-to see their metadata, archive data, and a processing log. In the details view, you also
-find buttons for editing user metadata, deleting uploads, and publishing uploads. Only
-full uploads can be deleted or published.
-
-#### Publishing and embargo
-
-If you press publish, a dialog will appear that allows you to set an
-*embargo* or publish your data as *Open Access* right away. The *embargo* allows you to share
-data with selected users, create a DOI for your data, and later publish the data.
-The *embargo* might last up to 36 month before data becomes public automatically.
-During an *embargo* the data (and datasets created from this data) are already visible and
-findable, but only you and users you share the data with (i.e. users you added under
-*share with* when editing entries) can view and download the raw-data and archive.
-
-#### Processing errors
-
-We distinguish between uploads that fail processing completely and uploads that contain
-entries that could not be processed. The former might be caused by issues during the
-upload, bad file formats, etc. The latter (far more common) case means that not all of the provided
-code output files could be parsed by our parsers. The processing logs of the failed entries might provide some insight.
-
-You cannot publish uploads that failed processing completely. Frankly, in most
-cases there won't be any data to publish anyways. In the case of failed processing of
-some entries however, the data can still be published. You will be able to share it and create
-DOIs for it, etc. The only shortcomings will be missing metadata (labeled *not processed*
-or *unavailable*) and missing archive data. We continuously improve our parsers and
-the now missing information might become available in the future automatically.
-
-#### Co-Authors, References, Comments, Datasets, DOIs
-
-You can edit additional *user metadata*. This data is assigned to individual entries, but
-you can select and edit many entries at once. Edit buttons for user metadata are available
-in many views on this web-page. For example, you can edit user metadata when you click on
-an upload to open its details, and press the edit button there. User metadata can also
-be changed after publishing data. The documentation on the [user data page](${guiBase}/userdata)
-contains more information.
-`
-
-class UploadPage extends React.Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-    api: PropTypes.object.isRequired,
-    raiseError: PropTypes.func.isRequired,
-    cookies: instanceOf(Cookies).isRequired,
-    location: PropTypes.object
-  }
-
-  static styles = theme => ({
-    root: {
-      padding: theme.spacing(3)
-    },
-    dropzoneContainer: {
-      height: 192,
-      marginTop: theme.spacing(2),
-      marginBottom: theme.spacing(2)
-    },
-    dropzone: {
-      textAlign: 'center',
-      color: theme.palette.grey[500],
-      fontSize: 24,
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      '& p': {
-        marginTop: 0,
-        marginBottom: theme.spacing(1)
-      },
-      '& svg': {
-        marginLeft: 'auto',
-        marginRight: 'auto'
-      },
-      marginTop: theme.spacing(3)
-    },
-    dropzoneAccept: {
+const useDropButtonStyles = makeStyles(theme => ({
+  dropzone: {
+    width: '100%'
+  },
+  dropzoneAccept: {
+    '& button': {
       background: theme.palette.primary.main,
       color: theme.palette.common.white
-    },
-    dropzoneReject: {
-      background: 'red !important',
+    }
+  },
+  dropzoneReject: {
+    '& button': {
+      background: theme.palette.error.main,
       color: theme.palette.common.white
-    },
-    commandContainer: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center'
-    },
-    commandMarkup: {
-      flexGrow: 1,
-      marginRight: theme.spacing(1),
-      overflow: 'hidden'
-    },
-    formGroup: {
-      paddingLeft: 0
-    },
-    uploadsLabel: {
-      flexGrow: 1,
-      paddingLeft: 0,
-      padding: theme.spacing(2)
-    },
-    uploads: {
-      marginTop: theme.spacing(4)
-    },
-    pagination: {
-      textAlign: 'center'
-    }
-  })
-
-  defaultData = {
-    results: [],
-    pagination: {
-      total: 0,
-      per_page: 10,
-      page: 1
     }
   }
+}))
 
-  state = {
-    uploadCommand: {
-      upload_command: 'loading ...',
-      upload_tar_command: 'loading ...',
-      upload_progress_command: 'loading ...'
-    },
-    data: {...this.defaultData},
-    uploading: []
-  }
-
-  componentDidMount() {
-    this.update()
-    this.props.api.getUploadCommand()
-      .then(command => {
-        this.setState({uploadCommand: command})
-      })
-      .catch(error => {
-        this.props.raiseError(error)
-      })
-  }
-
-  update(newPage) {
-    const {data: {pagination: {page, per_page}}} = this.state
-    this.props.api.getUploads('all', newPage || page, per_page)
-      .then(uploads => {
-        this.setState({
-          data: uploads,
-          uploading: this.state.uploading.filter(upload => upload.current_task === 'uploading')})
-      })
-      .catch(error => {
-        this.setState({data: {...this.defaultData}})
-        this.props.raiseError(error)
-      })
-  }
-
-  handleDoesNotExist(removedUpload) {
-    const { uploading } = this.state
-    this.setState({uploading: uploading.filter(upload => upload !== removedUpload)})
-    this.update()
-  }
-
-  onDrop(files, rejectedFiles) {
-    const upload = file => {
-      const upload = this.props.api.createUpload(file.name)
-      this.setState({uploading: [upload, ...this.state.uploading]})
-      upload.uploadFile(file).catch(this.props.raiseError)
-    }
-
-    files.forEach(upload)
-    rejectedFiles
-      .filter(file => file.name.match(/(\.zip)|(\.bz)|(\.tgz)|(\.gz)|(\.bz2)$/i))
-      .forEach(upload)
-  }
-
-  renderUploads(openUpload) {
-    const {classes} = this.props
-    const {data: {results, pagination: {total, per_page, page}}, uploading} = this.state
-
-    const renderUpload = upload => <Upload
-      open={openUpload === upload.upload_id}
-      key={upload.gui_upload_id} upload={upload}
-      onDoesNotExist={() => this.handleDoesNotExist(upload)}
-    />
-
-    return (<div className={classes.uploads}>
-      <FormGroup className={classes.formGroup} row>
-        <FormLabel className={classes.uploadsLabel}>Your uploads: </FormLabel>
-        <Tooltip title="Reload uploads, e.g. after using the curl upload" >
-          <IconButton onClick={() => this.update()}><ReloadIcon /></IconButton>
-        </Tooltip>
-      </FormGroup>
-      {uploading.map(renderUpload)}
-      {results.map(renderUpload)}
-      {(total > per_page)
-        ? <Pagination classes={{root: classes.pagination}}
-          limit={per_page}
-          offset={(page - 1) * per_page}
-          total={total}
-          onClick={(_, offset) => this.update((offset / per_page) + 1)}
-          previousPageLabel={'prev'}
-          nextPageLabel={'next'}
-        /> : ''}
-    </div>)
-  }
-
-  render() {
-    const { classes, location } = this.props
-    const { uploadCommand } = this.state
-
-    let openUpload = null
-    if (location && location.search) {
-      openUpload = (qs.parse(location.search.substring(1)) || {}).open
-    }
-
-    return (
-      <div className={classes.root}>
-        <Typography>
-          To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
-          all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
-          NOMAD will search through all files and identify the relevant files automatically.
-          Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
-          uploads</b> simultaneously. Your uploaded data is not published right away.
-          Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
-          our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
-          The following codes are supported: <CodeList withUploadInstructions />. Click
-          the code to get more specific information about how to prepare your files.
-        </Typography>
-        <Paper className={classes.dropzoneContainer}>
-          <Dropzone
-            accept={[
-              'application/zip',
-              'application/gzip',
-              'application/bz2',
-              'application/x-gzip',
-              'application/x-bz2',
-              'application/x-gtar',
-              'application/x-tgz',
-              'application/tar+gzip',
-              'application/x-tar',
-              'application/tar+bz2',
-              'application/x-zip-compressed',
-              'application/x-compressed',
-              'application/x-zip']}
-            className={classes.dropzone}
-            activeClassName={classes.dropzoneAccept}
-            rejectClassName={classes.dropzoneReject}
-            onDrop={this.onDrop.bind(this)}
-          >
-            <p>click or drop .tar.gz/.zip files here</p>
-            <UploadIcon style={{fontSize: 36}}/>
-          </Dropzone>
-        </Paper>
-
-        <div className={classes.commandContainer}>
-          <div className={classes.commandMarkup}>
-            <Markdown>{`
-              \`\`\`
-                ${uploadCommand.upload_command}
-              \`\`\`
-            `}</Markdown>
-          </div>
-          <CopyToClipboard text={uploadCommand.upload_command} onCopy={() => null}>
-            <Tooltip title="Copy command to clipboard">
-              <IconButton>
-                <ClipboardIcon />
-              </IconButton>
-            </Tooltip>
-            {/* <button>Copy to clipboard with button</button> */}
-          </CopyToClipboard>
-          <HelpDialog icon={<MoreIcon/>} maxWidth="md" title="Alternative shell commands" content={`
-            As an experienced shell and *curl* user, you can modify the commands to
-            your liking.
-
-            The given command can be modified. To see progress on large files, use
-            \`\`\`
-              ${uploadCommand.upload_progress_command}
-            \`\`\`
-            To \`tar\` and upload multiple folders in one command, use
-            \`\`\`
-            ${uploadCommand.upload_tar_command}
-            \`\`\`
-
-            ### Form data vs. streaming
-            NOMAD accepts stream data \`-T <local_file>\` (like in the
-            examples above) or multi-part form data \`-X PUT -F file=@<local_file>\`:
-            \`\`\`
-            ${uploadCommand.upload_command_form}
-            \`\`\`
-            We generally recommend to use streaming, because form data can produce very
-            large HTTP request on large files. Form data has the advantage of carrying
-            more information (e.g. the file name) to our servers (see below).
-
-            #### Upload names
-            With multi-part form data \`-X PUT -F file=@<local_file>\`, your upload will
-            be named after the file by default. With stream data \`-T <local_file>\`
-            there will be no default name. To set a custom name, you can use the URL
-            parameter \`name\`:
-            \`\`\`
-            ${uploadCommand.upload_command_with_name}
-            \`\`\`
-            Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
-            and shell encoding, if your name contains spaces or other special characters.
-          `}/>
-        </div>
-
-        {this.renderUploads(openUpload)}
-      </div>
-    )
-  }
+function DropButton({onDrop, ...buttonProps}) {
+  const classes = useDropButtonStyles()
+  return <Dropzone
+    // accept={[
+    //   'application/zip',
+    //   'application/gzip',
+    //   'application/bz2',
+    //   'application/x-gzip',
+    //   'application/x-bz2',
+    //   'application/x-gtar',
+    //   'application/x-tgz',
+    //   'application/tar+gzip',
+    //   'application/x-tar',
+    //   'application/tar+bz2',
+    //   'application/x-zip-compressed',
+    //   'application/x-compressed',
+    //   'application/x-zip']}
+    className={classes.dropzone}
+    activeClassName={classes.dropzoneAccept}
+    rejectClassName={classes.dropzoneReject}
+    onDrop={onDrop}
+  >
+    <Button
+      variant="contained"
+      color="default"
+      startIcon={<UploadIcon/>}
+      {...buttonProps}
+    >
+      click or drop files
+    </Button>
+  </Dropzone>
+}
+DropButton.propTypes = {
+  onDrop: PropTypes.func
 }
 
-export default compose(withApi(true, false, 'To upload data, you must have a Nomad Repository account and you must be logged in.'), withCookies, withStyles(UploadPage.styles))(UploadPage)
+function UploadStatus({upload, ...props}) {
+  if (!upload) {
+    return <UnPublishedIcon color="default" {...props} />
+  }
+  if (upload.published) {
+    return <Tooltip title="This upload is published and visible to everybody.">
+      <PublishedIcon color="primary" {...props} />
+    </Tooltip>
+  }
+  // TODO published with embargo
+  if (!upload.published) {
+    return <Tooltip title="This upload is not yet published and only visible to you.">
+      <UnPublishedIcon color="error" {...props} />
+    </Tooltip>
+  }
+}
+UploadStatus.propTypes = {
+  upload: PropTypes.object
+}
+
+const useUploadNameStyles = makeStyles(theme => ({
+  edit: {
+    display: 'flex',
+    alignItems: 'center',
+    '& button': {
+      marginLeft: theme.spacing(2)
+    }
+  }
+}))
+
+function UploadName({upload_name, onChange}) {
+  const [edit, setEdit] = useState(false)
+  const [value, setValue] = useState(null)
+  const classes = useUploadNameStyles()
+
+  const handleSave = () => {
+    setEdit(false)
+    if (onChange) {
+      onChange(value)
+    }
+  }
+
+  if (edit) {
+    return <div className={classes.edit}>
+      <TextField value={value} onChange={event => setValue(event.target.value)} fullWidth />
+      <Button size="small" variant="contained" onClick={handleSave}>save</Button>
+    </div>
+  }
+
+  return <WithButton size="small"
+    icon={<EditIcon style={{fontSize: 24}} />} onClick={() => { setEdit(true); setValue(upload_name) }}
+  >
+    <Typography variant="h6">
+      {upload_name || <i>unnamed upload</i>}
+    </Typography>
+  </WithButton>
+}
+UploadName.propTypes = {
+  upload_name: PropTypes.string,
+  onChange: PropTypes.func
+}
+
+function PublishUpload({upload, onPublish}) {
+  const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const handlePublish = () => {
+    onPublish({embargo_length: embargo})
+  }
+
+  if (upload.published) {
+    return <Markdown>{`
+      This upload has already been published.
+    `}</Markdown>
+  }
+
+  const buttonLabel = embargo > 0 ? 'Publish with embargo' : 'Publish'
+
+  return <React.Fragment>
+    <Dialog
+      open={openConfirmDialog}
+      onClose={() => setOpenConfirmDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to publish the upload</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You are about the publish this upload. The upload cannot be removed and
+          the files and entries in this upload cannot be changed after publication.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handlePublish}>{buttonLabel}</Button>
+      </DialogActions>
+    </Dialog>
+    <Markdown>{`
+      If you agree this upload will be published and move out of your private staging
+      area into the public NOMAD. This step is final. All public data will be made available under the Creative
+      Commons Attribution license ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
+
+      If you wish, you can put an embargo on your data. This makes some metadata (e.g.
+      chemical formula, system type, spacegroup, etc.) public, but the raw-file
+      and archive contents remain hidden (except to you, and users you explicitly
+      share the data with).
+      You can already create datasets and assign DOIs for data with embargo, e.g.
+      to put it into your unpublished paper.
+      The embargo will last up to 36 month. Afterwards, your data will be made publicly
+      available. You can also lift the embargo sooner if you wish.
+    `}</Markdown>
+    <Box marginTop={2}>
+      <Grid container direction="row" spacing={2}>
+        <Grid item style={{width: 300}}>
+          <FormControl style={{width: '100%'}}>
+            <InputLabel shrink htmlFor="embargo-label-placeholder">
+              Embargo period
+            </InputLabel>
+            <Select
+              value={embargo}
+              onChange={event => setEmbargo(event.target.value)}
+              input={<Input name="embargo" id="embargo-label-placeholder" />}
+              displayEmpty
+              name="embargo"
+              // className={classes.selectEmpty}
+            >
+              <MenuItem value={0}>
+                <em>No embargo</em>
+              </MenuItem>
+              <MenuItem value={3}>3</MenuItem>
+              <MenuItem value={6}>6</MenuItem>
+              <MenuItem value={12}>12</MenuItem>
+              <MenuItem value={24}>24</MenuItem>
+              <MenuItem value={36}>36</MenuItem>
+            </Select>
+            <FormHelperText>{embargo > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
+          </FormControl>
+        </Grid>
+        <Grid item>
+          <Box marginTop={2} >
+            <Button
+              style={{height: 32, minWith: 100}}
+              size="small" variant="contained"
+              onClick={() => setOpenConfirmDialog(true)} color="primary"
+              disabled={upload.process_running}
+            >
+              {buttonLabel}
+            </Button>
+          </Box>
+        </Grid>
+      </Grid>
+    </Box>
+  </React.Fragment>
+}
+PublishUpload.propTypes = {
+  upload: PropTypes.object,
+  onPublish: PropTypes.func
+}
+
+function LinearProgressWithLabel(props) {
+  return (
+    <Box display="flex" alignItems="center">
+      <Box width="100%" mr={1}>
+        <LinearProgress variant="determinate" {...props} />
+      </Box>
+      <Typography variant="body2" color="textSecondary">{`${Math.round(
+        props.value
+      )}%`}</Typography>
+    </Box>
+  )
+}
+LinearProgressWithLabel.propTypes = {
+  value: PropTypes.number.isRequired
+}
+
+function ProcessingStatus({data}) {
+  const {pagination, upload, processing_successful, processing_failed} = data
+  let mainMessage = null
+  if (upload.process_running) {
+    mainMessage = 'Processing ...'
+  } else {
+    if (upload.process_status === 'SUCCESS') {
+      mainMessage = 'Processing completed'
+    } else if (upload.process_status === 'FAILURE') {
+      mainMessage = 'Processing failed ' + upload.errors.join(', ')
+    } else {
+      mainMessage = 'Waiting for processing ...'
+    }
+  }
+  return <Box marginTop={1} marginBottom={2}>
+    <Typography>
+      {mainMessage}, {processing_successful}/{pagination?.total} entries processed{(processing_failed > 0) && `, ${processing_failed} failed`}
+    </Typography>
+  </Box>
+}
+ProcessingStatus.propTypes = {
+  data: PropTypes.object
+}
+
+const useStyles = makeStyles(theme => ({
+  stepper: {
+    backgroundColor: 'inherit',
+    paddingLeft: 0,
+    paddingRight: 0
+  },
+  stepContent: {
+    marginBottom: theme.spacing(2)
+  },
+  status: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    marginTop: -20,
+    margin: -10,
+    padding: 10,
+    paddingTop: 20,
+    zIndex: 1000
+  }
+}))
+
+function UploadPage() {
+  const classes = useStyles()
+  const { uploadId } = useParams()
+  const {api, user} = useApi()
+  const errors = useErrors()
+  const history = useHistory()
+  const location = useLocation()
+
+  const [pagination, setPagination] = useState({
+    page_size: 5, page: 1, order: 'asc', order_by: 'process_status'
+  })
+  const [deleteClicked, setDeleteClicked] = useState(false)
+  const [data, setData] = useState(null)
+  const [apiData, setApiData] = useState(null)
+  const [uploading, setUploading] = useState(null)
+  const [err, setErr] = useState(null)
+  const upload = data?.upload
+  const setUpload = useMemo(() => (upload) => {
+    setData(data => ({...data, upload: upload}))
+  }, [setData])
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
+
+  const isProcessing = upload?.process_running
+
+  const fetchData = useCallback(() => () => {
+    api.get(`/uploads/${uploadId}/entries`, pagination, {returnRequest: true})
+      .then(apiData => {
+        setApiData(apiData)
+        setData(apiData.response)
+      })
+      .catch((error) => {
+        if (!(error instanceof DoesNotExist && deleteClicked)) {
+          (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
+        }
+      })
+  }, [api, uploadId, pagination, deleteClicked, errors, setData, setApiData])
+
+  // constant fetching of upload data when necessary
+  useEffect(() => {
+    if (isProcessing) {
+      const interval = setInterval(fetchData(), 1000)
+      return () => clearInterval(interval)
+    } else if (deleteClicked) {
+      history.push(getUrl('uploads', location))
+    }
+  }, [fetchData, isProcessing, deleteClicked, history, location])
+
+  // initial fetching of upload data
+  useEffect(fetchData(), [fetchData])
+
+  const handleDrop = (files) => {
+    const formData = new FormData() // eslint-disable-line no-undef
+    formData.append('file', files[0])
+    setUploading(0)
+    api.put(`/uploads/${uploadId}/raw/`, formData, {
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        setUploading(percentCompleted)
+      }
+    })
+      .then(results => setUpload(results.data))
+      .catch(errors.raiseError)
+      .finally(() => {
+        setUploading(null)
+      })
+  }
+
+  const handleNameChange = (upload_name) => {
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
+      .then(fetchData())
+      .catch(errors.raiseError)
+  }
+
+  const handlePublish = ({embargo_length}) => {
+    api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
+      .then(results => setUpload(results.data))
+      .catch(errors.raiseError)
+  }
+
+  const handleLiftEmbargo = () => {
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
+      .then(fetchData())
+      .catch(errors.raiseError)
+    setOpenEmbargoConfirmDialog(false)
+  }
+
+  const handleReprocess = () => {
+    api.post(`/uploads/${uploadId}/action/process`)
+      .then(results => setUpload(results.data))
+      .catch(errors.raiseError)
+  }
+
+  const handleDelete = () => {
+    setDeleteClicked(true)
+    api.delete(`/uploads/${uploadId}`)
+      .then(results => setUpload(results.data))
+      .catch(errors.raiseError)
+  }
+
+  const viewers = upload?.viewers
+  const writers = upload?.writers
+  const isViewer = user && viewers?.includes(user.sub)
+  const isWriter = user && writers?.includes(user.sub)
+
+  const contextValue = useMemo(() => ({
+    upload: upload,
+    setUpload: setUpload,
+    data: data,
+    isViewer: isViewer,
+    isWriter: isWriter
+  }), [upload, setUpload, data, isViewer, isWriter])
+
+  if (!upload) {
+    return <Page limitedWidth>
+      {(err ? <Typography> {err} </Typography> : <Typography>loading ...</Typography>)}
+    </Page>
+  }
+
+  const isAuthenticated = api.keycloak.authenticated
+  const isPublished = upload.published
+  const isEmpty = upload.entries === 0
+
+  const onConfirm = () => {
+    if (isEmpty) {
+      handleDelete()
+    } else {
+      setOpenConfirmDialog(true)
+    }
+  }
+
+  return <uploadPageContext.Provider value={contextValue}>
+    <Page limitedWidth>
+      {(uploading || uploading === 0) && <Dialog open>
+        <DialogTitle>Uploading file ...</DialogTitle>
+        <DialogContent>
+          <Box width={300}>
+            <LinearProgressWithLabel value={uploading} />
+          </Box>
+        </DialogContent>
+      </Dialog>}
+      <Slide direction="down" in={isProcessing} mountOnEnter unmountOnExit>
+        <Paper className={classes.status}>
+          <Page limitedWidth>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item>
+                <CircularProgress />
+              </Grid>
+              <Grid item style={{flexGrow: 1}}>
+                <Typography>Upload is processing ...</Typography>
+                <Typography>{data.upload.last_status_message}</Typography>
+              </Grid>
+            </Grid>
+          </Page>
+        </Paper>
+      </Slide>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item>
+          <UploadStatus upload={upload} fontSize="large" />
+        </Grid>
+        <Grid item style={{flexGrow: 1}}>
+          <UploadName upload_name={upload?.upload_name} onChange={handleNameChange} />
+          <WithButton clipboard={uploadId}>
+            <Typography>upload id: {uploadId}</Typography>
+          </WithButton>
+        </Grid>
+        <Grid>
+          <EditMembersDialog/>
+          <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
+          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
+            <Tooltip title="Reprocess">
+              <ReprocessIcon />
+            </Tooltip>
+          </IconButton>
+          <SourceApiDialogButton maxWidth="lg" fullWidth>
+            <SourceApiCall {...apiData} />
+          </SourceApiDialogButton>
+          <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
+            <Tooltip title="Delete the upload">
+              <DeleteIcon />
+            </Tooltip>
+          </IconButton>
+          <Dialog
+            open={openConfirmDialog}
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogContent>
+              <DialogContentText id="alert-dialog-description">
+                The upload is not empty. Are you sure you want to delete this upload?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+              <Button onClick={handleDelete}>Delete</Button>
+            </DialogActions>
+          </Dialog>
+        </Grid>
+      </Grid>
+      <Stepper classes={{root: classes.stepper}} orientation="vertical" >
+        <Step expanded active={false}>
+          <StepLabel>Prepare and upload your files</StepLabel>
+          <StepContent>
+            {isPublished && <Typography className={classes.stepContent}>
+              This upload is published and it&apos;s files can&apos;t be modified anymore.
+            </Typography>}
+            {!isPublished && (
+              <React.Fragment>
+                <Typography className={classes.stepContent}>
+                  To prepare your data, simply use <b>zip</b> or <b>tar</b> to create a single file that contains
+                  all your files as they are. These .zip/.tar files can contain subdirectories and additional files.
+                  NOMAD will search through all files and identify the relevant files automatically.
+                  Each uploaded file can be <b>up to 32GB</b> in size, you can have <b>up to 10 unpublished
+                  uploads</b> simultaneously. Your uploaded data is not published right away.
+                  Find more details about uploading data in our <Link href={`${appBase}/docs/upload.html`}>documentation</Link> or visit
+                  our <Link href="https://nomad-lab.eu/repository-archive-faqs">FAQs</Link>.
+                  The following codes are supported: <CodeList withUploadInstructions />. Click
+                  the code to get more specific information about how to prepare your files.
+                </Typography>
+                <DropButton
+                  className={classes.stepContent}
+                  size="large"
+                  fullWidth onDrop={handleDrop}
+                  disabled={isProcessing} />
+              </React.Fragment>
+            )}
+            <FilesBrower className={classes.stepContent} uploadId={uploadId} disabled={isProcessing || deleteClicked} />
+          </StepContent>
+        </Step>
+        <Step expanded={!isEmpty} active={false}>
+          <StepLabel>Process data</StepLabel>
+          <StepContent>
+            <ProcessingStatus data={data} />
+            <ProcessingTable
+              data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
+              pagination={combinePagination(pagination, data.pagination)}
+              customTitle='entry'
+              onPaginationChanged={setPagination}/>
+          </StepContent>
+        </Step>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
+          <StepLabel>Edit author metadata</StepLabel>
+          <StepContent>
+            <Typography className={classes.stepContent}>
+              You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
+              to publications), you can create <i>datasets</i> from your entries, or <i>share</i> private data
+              with others (e.g. before publishing or after publishing with an embargo.).
+              Please note that <b>we require you to list the <i>co-authors</i></b> before publishing.
+            </Typography>
+            <Typography className={classes.stepContent}>
+              You can either select and edit individual entries from the list above, or
+              edit all entries at once.
+            </Typography>
+            {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
+          </StepContent>
+        </Step>}
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
+          <StepLabel>Publish</StepLabel>
+          <StepContent>
+            {isPublished && <Typography className={classes.stepContent}>
+              {upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${new Date(upload?.publish_time).toLocaleString()}.`
+                : `This upload has already been published.`}
+            </Typography>}
+            {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
+            {isPublished && upload?.with_embargo && upload?.embargo_length > 0 &&
+              <Button onClick={() => setOpenEmbargoConfirmDialog(true)} variant='contained' color='primary' disabled={isProcessing}>
+                Lift Embargo
+              </Button>}
+            <Dialog
+              open={openEmbargoConfirmDialog}
+              aria-describedby="alert-dialog-description"
+            >
+              <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                  You are about lifting the embargo. The data will be publicly accessible.
+                </DialogContentText>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenEmbargoConfirmDialog(false)} autoFocus>Cancel</Button>
+                <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
+              </DialogActions>
+            </Dialog>
+          </StepContent>
+        </Step>}
+      </Stepper>
+    </Page>
+  </uploadPageContext.Provider>
+}
+
+export default UploadPage

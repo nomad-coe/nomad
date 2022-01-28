@@ -19,7 +19,7 @@ import React, { useState, useLayoutEffect, useMemo, useRef, useCallback } from '
 import PropTypes from 'prop-types'
 import { cloneDeep } from 'lodash'
 import { useHistory } from 'react-router-dom'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
   Typography,
   Box,
@@ -36,19 +36,70 @@ import {
 import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import NoData from './NoData'
-import Actions from '../Actions'
+import { Actions, Action } from '../Actions'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import clsx from 'clsx'
 import { mergeObjects } from '../../utils'
 
-export default function Plot({
+/**
+ * Component that produces a highly customized Plotly.js graph. We are using the
+ * vanilla JS Plotly library to achieve the most customizability.
+ */
+const useStyles = makeStyles((theme) => {
+  return {
+    footer: {
+      paddingRight: theme.spacing(1),
+      display: 'flex',
+      flexDirection: 'row',
+      zIndex: 1
+    },
+    root: {
+      width: '100%',
+      height: '100%',
+      position: 'relative'
+    },
+    column: {
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    canvasContainer: {
+      flex: 1,
+      minHeight: 0 // added min-height: 0 to allow the item to shrink to fit inside the container.
+    },
+    placeholderRoot: {
+      left: 0,
+      right: 0,
+      position: 'absolute'
+    },
+    floatable: {
+      width: '100%',
+      height: '100%'
+    },
+    spacer: {
+      flex: 1
+    },
+    warning: {
+      color: theme.palette.warning.main,
+      position: 'absolute',
+      zIndex: 1,
+      left: '2px',
+      top: '20px'
+    },
+    iconButton: {
+      backgroundColor: 'white',
+      marginLeft: theme.spacing(1)
+    }
+  }
+})
+const Plot = React.memo(({
   data,
   layout,
   config,
   floatTitle,
   metaInfoLink,
   capture,
-  aspectRatio,
   fixedMargins,
   className,
   classes,
@@ -60,64 +111,47 @@ export default function Plot({
   onRelayouting,
   onHover,
   onReset,
-  layoutSubject
-}) {
-  // States
+  layoutSubject,
+  'data-testid': testID
+}) => {
   const [float, setFloat] = useState(false)
+  const theme = useTheme()
   const firstRender = useRef(true)
+  const [ratio, setRatio] = useState(1)
   const [canvasNode, setCanvasNode] = useState()
   const [margins, setMargins] = useState()
   const attach = useRef()
   const [loading, setLoading] = useState(true)
   const history = useHistory()
 
+  // The image capture settings
   const captureSettings = useMemo(() => {
+    const maxSize = 1280
+    let width, height
+    if (ratio > 1) {
+      width = maxSize
+      height = maxSize / ratio
+    } else {
+      width = maxSize * ratio
+      height = maxSize
+    }
     let defaultCapture = {
       format: 'png',
-      width: 1024,
-      height: 960 / aspectRatio,
+      width: width,
+      height: height,
       filename: 'plot'
     }
     let settings = mergeObjects(capture, defaultCapture)
     return settings
-  }, [capture, aspectRatio])
+  }, [capture, ratio])
 
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      footer: {
-        paddingRight: theme.spacing(1),
-        display: 'flex',
-        flexDirection: 'row',
-        zIndex: 1
-      },
-      root: {
-      },
-      placeHolder: {
-        left: 0,
-        right: 0,
-        position: 'absolute'
-      },
-      floatable: {
-        visibility: loading ? 'hidden' : 'visible'
-      },
-      spacer: {
-        flex: 1
-      },
-      warning: {
-        color: theme.palette.warning.main,
-        position: 'absolute',
-        zIndex: 1,
-        left: '2px',
-        top: '20px'
-      },
-      iconButton: {
-        backgroundColor: 'white',
-        marginLeft: theme.spacing(1)
-      }
-    }
-  })
-  const styles = useStyles({classes: classes})
+  let styles = useStyles({classes: classes})
+  if (noDataStyle) {
+    styles.nodata = noDataStyle
+  }
+  if (placeHolderStyle) {
+    styles.placeholder = placeHolderStyle
+  }
 
   // Set the final layout
   const finalLayout = useMemo(() => {
@@ -129,20 +163,20 @@ export default function Plot({
       // There is extra space reserved for the top and bottom margins so that
       // automargin does not make the plot jump around too much.
       margin: {
-        l: 30,
-        r: 20,
-        t: 20,
-        b: 50
+        l: theme.spacing(4),
+        r: theme.spacing(1.5),
+        t: theme.spacing(1),
+        b: theme.spacing(6)
       },
       title: {
         font: {
-          family: 'Titillium Web,sans-serif'
+          family: theme.typography.fontFamily
         }
       },
       legend: {
         bgcolor: 'rgba(255, 255, 255, 0.9)',
         font: {
-          family: 'Titillium Web,sans-serif',
+          family: theme.typography.fontFamily,
           size: 14
         }
       },
@@ -158,12 +192,12 @@ export default function Plot({
         title: {
           standoff: 10,
           font: {
-            family: 'Titillium Web,sans-serif',
+            family: theme.typography.fontFamily,
             size: 16,
             color: '#333'
           },
           tickfont: {
-            family: 'Titillium Web,sans-serif',
+            family: theme.typography.fontFamily,
             size: 14,
             color: '#333'
           }
@@ -180,7 +214,7 @@ export default function Plot({
         title: {
           standoff: 10,
           font: {
-            family: 'Titillium Web,sans-serif',
+            family: theme.typography.fontFamily,
             size: 16,
             color: '#333'
           }
@@ -200,7 +234,7 @@ export default function Plot({
         ticks: 'outside',
         showline: true,
         title: {
-          standoff: 10,
+          standoff: 8,
           font: {
             family: 'Titillium Web,sans-serif',
             size: 16,
@@ -216,7 +250,7 @@ export default function Plot({
     }
     const finalLayoutResult = mergeObjects(layout, defaultLayout)
     return finalLayoutResult
-  }, [layout])
+  }, [layout, theme])
 
   // Save the initial layout as reset
   const finalResetLayout = useMemo(() => {
@@ -287,7 +321,9 @@ export default function Plot({
           let oldLayout = canvasRef.current.layout
           // The updates are throttled by using requestAnimationFrame: there is
           // no sense in trying to update beyond what the browser can render
-          window.requestAnimationFrame(() => { Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout)) })
+          window.requestAnimationFrame(() => {
+            Plotly.relayout(canvasRef.current, mergeObjects(layout, oldLayout))
+          })
         })
       }
       setLoading(false)
@@ -315,19 +351,22 @@ export default function Plot({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutSubject, canvasNode, firstRender, data, finalConfig])
 
-  // Captures the first margin value from the plot and performs
+  // Captures the first margin value from the plot and performs an update
   useLayoutEffect(() => {
-    if (fixedMargins && canvasRef.current) {
+    if (fixedMargins && canvasRef.current && data) {
       try {
         // Get the element which explicitly stores the computed margin and
         // perform a relayout with these values.
         const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
         const currentLayout = canvasRef.current.layout
         currentLayout.yaxis.automargin = false
+        if (!currentLayout.yaxis2) currentLayout.yaxis2 = {}
         currentLayout.yaxis2.automargin = false
         currentLayout.xaxis.automargin = false
+        if (!currentLayout.margin) currentLayout.margin = {}
         currentLayout.margin.l = parseInt(group.getAttribute('x'))
-        currentLayout.margin.t = parseInt(group.getAttribute('y'))
+        currentLayout.margin.t = finalLayout.margin.t
+        currentLayout.margin.b = finalLayout.margin.b
         const totalWidth = canvasRef.current.clientWidth
         const plotAreaWidth = parseInt(group.getAttribute('width'))
         currentLayout.margin.r = totalWidth - plotAreaWidth - currentLayout.margin.l
@@ -336,10 +375,10 @@ export default function Plot({
         // Save the margins so that they can also be updated on the reset config
         setMargins({l: currentLayout.margin.l, t: currentLayout.margin.t, r: currentLayout.margin.r})
       } catch (e) {
-        console.log('Could not determine the margin values.')
+        console.log('Could not determine the margin values.', e)
       }
     }
-  }, [canvasRef, data, fixedMargins])
+  }, [canvasRef, data, fixedMargins, finalLayout])
 
   // For resetting the view.
   const handleReset = useCallback(() => {
@@ -356,48 +395,71 @@ export default function Plot({
     Plotly.downloadImage(canvasRef.current, captureSettings)
   }, [canvasRef, captureSettings])
 
-  // List of actionable buttons for the plot
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: () => setFloat(!float), content: float ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: handleCapture, content: <CameraAlt/>}
-  ]
-  if (metaInfoLink) {
-    actions.push({tooltip: 'View data in the archive', onClick: () => { history.push(metaInfoLink) }, content: <ViewList/>})
-  }
-
   // If data is set explicitly to False, we show the NoData component.
   if (data === false) {
-    return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-      <NoData aspectRatio={aspectRatio} classes={{placeholder: noDataStyle}}/>
+    return <Box className={clsx(className, styles.root)} position='relative' width='100%' data-testid={testID}>
+      <NoData classes={{placeholder: styles.nodata}} data-testid={`${testID}-nodata`}/>
     </Box>
   }
   // Even if the plots are still loading, all the html elements need to be
   // placed in the DOM. During loading, they are placed underneath the
   // placeholder with visibility=hidden. This way Plotly still has access to
   // these HTML nodes and their sizes when the plots are loading.
-  return <Box className={clsx(className, styles.root)} position='relative' width='100%'>
-    {loading && <Placeholder className={styles.placeHolder} classes={{placeholder: placeHolderStyle}} variant="rect" aspectRatio={aspectRatio}></Placeholder>}
-    <Floatable className={styles.floatable} float={float} onFloat={() => setFloat(!float)} aspectRatio={aspectRatio}>
-      {float && <Typography variant="h6">{floatTitle}</Typography>}
-      <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}}>
-        {warning && <Tooltip title={warning}>
-          <Warning className={styles.warning}></Warning>
-        </Tooltip>}
-      </div>
-      <div className={styles.footer}>
-        <Actions actions={actions}></Actions>
+  return <Box
+    className={clsx(styles.root, className)}
+    data-testid={testID}
+  >
+    {loading && <Placeholder
+      className={styles.placeholderRoot}
+      classes={{placeholder: placeHolderStyle}}
+      variant="rect"
+      data-testid={`${testID}-placeholder`}
+    ></Placeholder>}
+    <Floatable
+      className={styles.floatable}
+      style={{visibility: loading ? 'hidden' : 'visible'}}
+      float={float}
+      onFloat={() => setFloat(!float)}
+      onChangeRatio={setRatio}
+    >
+      <div className={styles.column}>
+        {float && <Typography variant="h6">{floatTitle}</Typography>}
+        <div className={styles.canvasContainer}>
+          {/* Note that we need to apply "style" to the canvas instead of "className" */}
+          <div ref={canvasRef} style={{width: '100%', height: '100%', position: 'relative'}}>
+            {warning && <Tooltip title={warning}>
+              <Warning className={styles.warning}></Warning>
+            </Tooltip>}
+          </div>
+        </div>
+        <div className={styles.footer}>
+          <Actions>
+            <Action tooltip='Reset view' onClick={handleReset}>
+              <Replay/>
+            </Action>
+            <Action tooltip='Toggle fullscreen' onClick={() => setFloat(!float)}>
+              {float ? <FullscreenExit/> : <Fullscreen/>}
+            </Action>
+            <Action tooltip='Capture image' onClick={handleCapture}>
+              <CameraAlt/>
+            </Action>
+            {metaInfoLink &&
+              <Action tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
+                <ViewList/>
+              </Action>
+            }
+          </Actions>
+        </div>
       </div>
     </Floatable>
   </Box>
-}
+})
 
 Plot.propTypes = {
   data: PropTypes.any, // Plotly.js data object: Set to null to show Placeholder, set to false to show NoData.
   layout: PropTypes.object, // Plotly.js layout object
   config: PropTypes.object, // Plotly.js config object
   capture: PropTypes.object, // Capture settings
-  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   fixedMargins: PropTypes.bool, // Whether to automatically update margins beyond the first render.
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -416,10 +478,12 @@ Plot.propTypes = {
    * rendering of the component. Should send messages that contain the new
    * layout object.
   */
-  layoutSubject: PropTypes.any
+  layoutSubject: PropTypes.any,
+  'data-testid': PropTypes.string
 }
 Plot.defaultProps = {
-  aspectRatio: 9 / 16,
   floatTitle: '',
   fixedMargins: true
 }
+
+export default Plot

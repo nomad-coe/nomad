@@ -16,9 +16,7 @@
 # limitations under the License.
 #
 
-from io import StringIO
 import json
-import numpy as np
 import pytest
 import os
 from shutil import copyfile
@@ -27,14 +25,11 @@ from nomad import utils, files, datamodel
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.parsing import BrokenParser
 from nomad.parsing.parsers import parser_dict, match_parser
-from nomad.app.flask import dump_json
+from nomad.utils import dump_json
 
 parser_examples = [
     ('parsers/random', 'test/data/parsers/random_0'),
-    ('parsers/template', 'tests/data/parsers/template.json'),
-    ('parsers/eels', 'tests/data/parsers/eels.json'),
-    ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
-    ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
+    ('parsers/template', 'tests/data/templates/template.json'),
     ('parsers/exciting', 'tests/data/parsers/exciting/Ag/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/GW/INFO.OUT'),
     ('parsers/exciting', 'tests/data/parsers/exciting/nitrogen/INFO.OUT_nitrogen'),
@@ -73,8 +68,17 @@ parser_examples = [
     ('parser/fleur', 'tests/data/parsers/fleur/out'),
     ('parser/molcas', 'tests/data/parsers/molcas/test000.input.out'),
     ('parsers/qbox', 'tests/data/parsers/qbox/01_h2ogs.r'),
-    ('parser/onetep', 'tests/data/parsers/onetep/single_point_2.out'),
-    ('parsers/openmx', 'tests/data/parsers/openmx/AlN_ionic_optimization/AlN.out'),
+    ('parser/onetep', 'tests/data/parsers/onetep/fluor/12-difluoroethane.out'),
+    ('parsers/eels', 'tests/data/parsers/eels.json'),
+    ('parsers/xps', 'tests/data/parsers/xps/multiple_channels.xy'),
+    ('parsers/lobster', 'tests/data/parsers/lobster/NaCl/lobsterout'),
+    ('parsers/aflow', 'tests/data/parsers/aflow/Ag1Co1O2_ICSD_246157/aflowlib.json'),
+    ('parsers/mp', 'tests/data/parsers/mp/mp-149_materials.json'),
+    ('parsers/asr', 'tests/data/parsers/asr/archive_ccdc26c4f32546c5a00ad03a093b73dc.json'),
+    ('parsers/psi4', 'tests/data/parsers/psi4/adc1/output.ref'),
+    ('parsers/yambo', 'tests/data/parsers/yambo/hBN/r-10b_1Ry_HF_and_locXC_gw0_em1d_ppa'),
+    # ('parsers/aptfim', 'tests/data/parsers/aptfim.aptfim'),
+    # ('parsers/mpes', 'tests/data/parsers/mpes.meta'),
     ('parsers/archive', 'tests/data/parsers/archive.json')
 ]
 
@@ -86,8 +90,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-
-correct_num_output_files = 119
+correct_num_output_files = 123
 
 
 def create_reference(data, pretty):
@@ -109,7 +112,7 @@ def assert_parser_result(caplog):
                 warnings_exist = True
         assert has_errors == errors_exist
         if has_warnings is not None:
-            assert has_warnings == has_warnings
+            assert has_warnings == warnings_exist
 
     return _assert
 
@@ -127,7 +130,7 @@ def run_parser(parser_name, mainfile):
     if metadata.domain is None:
         metadata.domain = parser.domain
 
-    return add_calculation_info(entry_archive, parser_name=parser_name)
+    return add_metadata(entry_archive, parser_name=parser_name)
 
 
 @pytest.fixture
@@ -139,13 +142,7 @@ def parsed_vasp_example() -> EntryArchive:
 @pytest.fixture
 def parsed_template_example() -> EntryArchive:
     return run_parser(
-        'parsers/template', 'tests/data/parsers/template.json')
-
-
-@pytest.fixture(scope="session")
-def parsed_template_no_system() -> EntryArchive:
-    return run_parser(
-        'parsers/template', 'tests/data/parsers/template_no_system.json')
+        'parsers/template', 'tests/data/templates/template.json')
 
 
 def parse_file(parser_name_and_mainfile) -> EntryArchive:
@@ -160,11 +157,11 @@ def parsed_example(request) -> EntryArchive:
     return result
 
 
-def add_calculation_info(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
-    entry_metadata = entry_archive.section_metadata
+def add_metadata(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
+    entry_metadata = entry_archive.metadata
     entry_metadata.upload_id = 'test_upload_id'
-    entry_metadata.calc_id = 'test_calc_id'
-    entry_metadata.calc_hash = 'test_calc_hash'
+    entry_metadata.entry_id = 'test_entry_id'
+    entry_metadata.entry_hash = 'test_entry_hash'
     entry_metadata.mainfile = 'test/mainfile.txt'
     entry_metadata.m_update(**kwargs)
     return entry_archive
@@ -197,11 +194,12 @@ def with_latin_1_file(raw_files):
 
 def test_match(raw_files, with_latin_1_file, no_warn):
     example_upload_id = 'example_upload_id'
-    upload_files = files.StagingUploadFiles(example_upload_id, create=True, is_authorized=lambda: True)
+    upload_files = files.StagingUploadFiles(example_upload_id, create=True)
     upload_files.add_rawfiles('tests/data/parsers')
 
     matched_mainfiles = {}
-    for mainfile in upload_files.raw_file_manifest():
+    for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+        mainfile = path_info.path
         parser = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser

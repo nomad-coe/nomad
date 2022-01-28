@@ -13,9 +13,9 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner
 
 stages:
   - build
+  - prepare
   - test
   - release
-
 
 variables:
   TEST_IMAGE: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:${CI_COMMIT_REF_NAME}
@@ -58,7 +58,14 @@ python linting:
 
 gui linting:
   stage: test
-  image: node
+  before_script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
   script:
     - cd gui
     - yarn --network-timeout 1200000
@@ -76,11 +83,13 @@ python tests:
   services:
     - name: rabbitmq:3.7.17
       alias: rabbitmq
-    - name: docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+    - name: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
       alias: elastic
       # fix issue with running elastic in gitlab ci runner:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
+    - name: mongo:4
+      alias: mongo
   variables:
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
     RABBITMQ_DEFAULT_USER: rabbitmq
@@ -104,7 +113,14 @@ python tests:
 
 gui tests:
   stage: test
-  image: node
+  before_script:
+    - git submodule sync
+    - git submodule update --init -- gui/materia
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
   script:
     - cd gui
     - yarn --network-timeout 1200000
@@ -134,8 +150,9 @@ install tests:
     - python -c "import nomad.datamodel, nomad.datamodel.metainfo, nomad.client"
     - pip install `echo dist/nomad-lab-*.tar.gz`[parsing]
     - python -m nomad.cli parse tests/data/parsers/vasp/vasp.xml
-    - git clone https://github.com/nomad-coe/nomad-parser-example.git example-parser
-    - python example-parser/exampleparser/__main__.py example-parser/tests/data/example.out
+    - git clone --branch v1.0.0 https://github.com/nomad-coe/nomad-parser-example.git example-parser
+    - cd example-parser
+    - python exampleparser/__main__.py tests/data/example.out
   except:
     refs:
       - tags
@@ -165,7 +182,7 @@ deploy dev:
     - mkdir -p /etc/deploy
     - echo ${CI_K8S_CONFIG} | base64 -d > ${KUBECONFIG}
   script:
-    - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g'`
+    - RELEASE_NAME=`echo ${CI_COMMIT_REF_NAME} | sed -e 's/[^A-Za-z0-9\-]/-/g' | sed -e 's/^[0-9-]*//g'`
     - helm dependency update ops/helm/nomad
     - helm upgrade --namespace nomad --install $RELEASE_NAME ops/helm/nomad -f ops/helm/nomad/deployments/dev-values.yaml --set proxy.external.path=/dev/rae/$RELEASE_NAME,image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
@@ -174,19 +191,33 @@ deploy dev:
     - /^dev-.*$/
   when: manual
 
-deploy prod beta:
+deploy prod:
   stage: release
   before_script:
     - mkdir -p /etc/deploy
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-beta ops/helm/nomad -f ops/helm/nomad/deployments/prod-beta-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-prod-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-v1-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/rae/beta/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
     - /^dev-.*$/
   when: manual
+
+# deploy prod beta:
+#   stage: release
+#   before_script:
+#     - mkdir -p /etc/deploy
+#     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+#   script:
+#     - helm dependency update ops/helm/nomad
+#     - helm upgrade --install nomad-beta ops/helm/nomad -f ops/helm/nomad/deployments/prod-beta-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+#     - docker pull $TEST_IMAGE
+#     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/rae/beta/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+#   except:
+#     - /^dev-.*$/
+#   when: manual
 
 deploy prod test:
   stage: release
@@ -195,9 +226,9 @@ deploy prod test:
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
   script:
     - helm dependency update ops/helm/nomad
-    - helm upgrade --install nomad-test ops/helm/nomad -f ops/helm/nomad/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - helm upgrade --install nomad-test-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-test-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
     - docker pull $TEST_IMAGE
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/rae/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
   except:
     - /^dev-.*$/
   when: manual
@@ -231,7 +262,7 @@ python package:
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab-registry.mpcdf.mpg.de
     - docker pull $TEST_IMAGE
-    - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab.tar.gz
+    - docker run --rm $TEST_IMAGE python -m twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
   except:
     - /^dev-.*$/
   when: manual

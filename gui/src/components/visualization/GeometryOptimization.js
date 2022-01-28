@@ -15,51 +15,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import {
-  Box,
-  Typography,
-  useTheme
-} from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
+import { QuantityTable, QuantityRow, QuantityCell } from '../Quantity'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
+import { diffTotal } from '../../utils'
+import { toUnitSystem, Unit } from '../../units'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
-const useStyles = makeStyles((theme) => {
-  return {
-    root: {
-      display: 'flex',
-      width: '100%'
-    },
-    energies: {
-      flex: '1 1 66.6%'
-    },
-    structure: {
-      flex: '1 1 33.3%'
-    }
-  }
-})
-
-function GeometryOptimization({data, className, classes}) {
-  // Styles
-  const style = useStyles(classes)
+const energyUnit = new Unit('joule')
+/**
+ * Component for visualizing the results of a geometry optimization workflow.
+ */
+const GeometryOptimization = React.memo(({energies, convergence, className, classes, units}) => {
+  const [finalData, setFinalData] = useState(energies)
   const theme = useTheme()
 
-  const plotData = useMemo(() => {
-    if (!data) {
-      return null
+  // Side effect that runs when the data that is displayed should change. By
+  // running all this heavy stuff within useEffect (instead of e.g. useMemo),
+  // the first render containing the placeholders etc. can be done as fast as
+  // possible.
+  useEffect(() => {
+    if (!energies) {
+      return
     }
-    let steps = [...Array(data.energies.length).keys()]
-    let energies = data.energies
-    const diff = []
-    for (let i = 0; i < energies.length - 1; ++i) {
-      diff.push(Math.abs(energies[i + 1] - energies[i]))
+
+    // Convert energies into the correct units and calculate the total difference
+    let energyDiffTotal = toUnitSystem(diffTotal(energies), energyUnit, units)
+    let convergenceCriteria = toUnitSystem(convergence?.convergence_tolerance_energy_difference, energyUnit, units)
+
+    let steps = [...Array(energies.length).keys()]
+    const energyDiff = []
+    for (let i = 0; i < energyDiffTotal.length - 1; ++i) {
+      energyDiff.push(Math.abs(energyDiffTotal[i + 1] - energyDiffTotal[i]))
     }
     const traces = [
       {
         x: steps,
-        y: energies,
+        y: energyDiffTotal,
         name: 'Total change',
         type: 'scatter',
         showlegend: false,
@@ -70,7 +65,7 @@ function GeometryOptimization({data, className, classes}) {
       },
       {
         x: steps.slice(1, steps.length),
-        y: diff,
+        y: energyDiff,
         yaxis: 'y2',
         name: 'Abs. change per step',
         type: 'scatter',
@@ -81,10 +76,13 @@ function GeometryOptimization({data, className, classes}) {
         }
       }
     ]
-    if (data?.energy_change_criteria) {
+    if (convergenceCriteria) {
       traces.push({
         x: [steps[0], steps[steps.length - 1]],
-        y: [data?.energy_change_criteria, data?.energy_change_criteria],
+        y: [
+          convergenceCriteria,
+          convergenceCriteria
+        ],
         yaxis: 'y2',
         name: 'Convergence criteria',
         showlegend: true,
@@ -97,20 +95,14 @@ function GeometryOptimization({data, className, classes}) {
         }
       })
     }
-    return traces
-  }, [data, theme])
+    setFinalData(traces)
+  }, [energies, convergence, units, theme])
 
   const plotLayout = useMemo(() => {
-    if (!data) {
+    if (!energies) {
       return null
     }
     return {
-      margin: {
-        l: 30,
-        r: 80,
-        t: 20,
-        b: 50
-      },
       showlegend: true,
       legend: {
         x: 0,
@@ -125,7 +117,7 @@ function GeometryOptimization({data, className, classes}) {
         tickmode: 'auto',
         tickformat: ',d',
         autorange: false,
-        range: [0, data.energies.length - 1],
+        range: [0, energies.length - 1],
         zeroline: false,
         showspikes: true,
         spikethickness: 2,
@@ -134,7 +126,7 @@ function GeometryOptimization({data, className, classes}) {
         spikemode: 'across' },
       yaxis: {
         title: {
-          text: 'Total change (eV)'
+          text: `Total change (${energyUnit.label(units)})`
         },
         tickfont: {
           color: theme.palette.primary.dark
@@ -144,7 +136,7 @@ function GeometryOptimization({data, className, classes}) {
       },
       yaxis2: {
         title: {
-          text: 'Abs. change per step (eV)'
+          text: `Abs. change per step (${energyUnit.label(units)})`
         },
         tickfont: {
           color: theme.palette.secondary.dark
@@ -156,30 +148,58 @@ function GeometryOptimization({data, className, classes}) {
         side: 'right'
       }
     }
-  }, [data, theme])
+  }, [energies, theme, units])
 
-  return (
-    <Box className={style.root}>
-      <Box className={style.energies}>
-        <Typography variant="subtitle1" align='center'>Energy convergence</Typography>
-        <ErrorHandler message='Could not load energies.'>
-          <Plot
-            data={plotData}
-            layout={plotLayout}
-            aspectRatio={2}
-            floatTitle="Energy convergence"
-          >
-          </Plot>
-        </ErrorHandler>
-      </Box>
-    </Box>
-  )
-}
+  return <PropertyGrid>
+    <PropertyItem title="Energy convergence" xs={12}>
+      <ErrorHandler message='Could not load energies.'>
+        <Plot
+          data={finalData}
+          layout={plotLayout}
+          aspectRatio={2}
+          floatTitle="Energy convergence"
+        />
+      </ErrorHandler>
+    </PropertyItem>
+    <PropertyItem title="Convergence results" xs={12} height="auto">
+      <QuantityTable>
+        <QuantityRow>
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_energy_difference'
+            value={convergence?.final_energy_difference}
+          />
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_displacement_maximum'
+            value={convergence?.final_displacement_maximum}
+          />
+          <QuantityCell
+            quantity='results.properties.geometry_optimization.final_force_maximum'
+            value={convergence?.final_force_maximum}
+          />
+        </QuantityRow>
+      </QuantityTable>
+    </PropertyItem>
+  </PropertyGrid>
+})
 
 GeometryOptimization.propTypes = {
-  data: PropTypes.any,
+  energies: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.oneOf([undefined]),
+    PropTypes.arrayOf(PropTypes.number)
+  ]),
+  convergence: PropTypes.oneOfType([
+    PropTypes.bool,
+    PropTypes.oneOf([undefined]),
+    PropTypes.shape({
+      final_energy_difference: PropTypes.number,
+      final_displacement_maximum: PropTypes.number,
+      final_force_maximum: PropTypes.number
+    })
+  ]),
   className: PropTypes.string,
-  classes: PropTypes.object
+  classes: PropTypes.object,
+  units: PropTypes.object
 }
 
 export default withErrorHandler(GeometryOptimization, 'Could not load geometry optimization data.')

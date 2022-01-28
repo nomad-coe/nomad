@@ -17,63 +17,156 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Tooltip, IconButton, Button, Box, makeStyles } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
+import { Tooltip, IconButton, Button } from '@material-ui/core'
 import clsx from 'clsx'
 
-export default function Actions({actions, color, variant, size, justifyContent, className, classes}) {
-  const actionsStyles = makeStyles((theme) => ({
+const useActionsStyles = makeStyles((theme) => ({
+  root: {
+    display: 'flex',
+    width: '100%',
+    boxSizing: 'border-box',
+    alignItems: 'center'
+  }
+}))
+export const Actions = React.memo(({
+  justifyContent,
+  className,
+  classes,
+  children
+}) => {
+  const useDynamicStyles = makeStyles((theme) => ({
     root: {
-      display: 'flex',
-      width: '100%',
       justifyContent: justifyContent
-    },
-    iconButton: {
-      marginRight: theme.spacing(1)
     }
   }))
-  const styles = actionsStyles(classes)
-  const buttonList = actions.map((value, idx) => {
-    return <Tooltip key={idx} title={value.tooltip}>
-      {variant === 'icon'
-        ? <IconButton
-          color={color}
-          size={size}
-          className={styles.iconButton}
-          onClick={value.onClick}
-          disabled={value.disabled}
-          href={value.href}>
-          {value.content}
-        </IconButton>
-        : <Button
-          color={color}
-          variant={variant}
-          size={size}
-          className={styles.iconButton}
-          onClick={value.onClick}
-          disabled={value.disabled}
-          href={value.href}>
-          {value.content}
-        </Button>
-      }
-    </Tooltip>
-  })
-  return <Box className={clsx(className, styles.root)}>
-    {buttonList}
-  </Box>
-}
+  const styles = useActionsStyles({classes: classes})
+  const dynamicStyles = useDynamicStyles()
+
+  return <div className={clsx(className, styles.root, dynamicStyles.root)}>
+    {children}
+  </div>
+})
 
 Actions.propTypes = {
-  actions: PropTypes.array,
-  color: PropTypes.string,
-  variant: PropTypes.string,
-  size: PropTypes.string,
-  justifyContent: PropTypes.string,
+  justifyContent: PropTypes.string, // The flexbox justification of buttons
   className: PropTypes.string,
-  classes: PropTypes.string
+  classes: PropTypes.object,
+  children: PropTypes.node
 }
 
 Actions.defaultProps = {
-  size: 'small',
-  variant: 'icon',
   justifyContent: 'flex-end'
+}
+
+const useActionHeaderStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0
+  },
+  spacer: {
+    flexGrow: 1,
+    minWidth: 0
+  }
+}))
+export const ActionHeader = React.memo(({
+  disableSpacer,
+  className,
+  classes,
+  children
+}) => {
+  const styles = useActionHeaderStyles({classes: classes})
+  return <div className={clsx(className, styles.root)}>
+    {children}
+    {!disableSpacer && <div className={styles.spacer}></div>}
+  </div>
+})
+
+ActionHeader.propTypes = {
+  disableSpacer: PropTypes.bool, // Used to disable flexbox spacer
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.node
+}
+
+const useActionStyles = makeStyles((theme) => ({
+  root: {
+    marginRight: theme.spacing(1),
+    '&:last-child': {
+      marginRight: 0
+    }
+  }
+}))
+export const Action = React.memo(({
+  variant,
+  color,
+  size,
+  href,
+  disabled,
+  onClick,
+  onMouseDown,
+  onMouseUp,
+  tooltip,
+  TooltipProps,
+  className,
+  classes,
+  children
+}) => {
+  const styles = useActionStyles({classes: classes})
+
+  return <Tooltip title={tooltip} {...TooltipProps}>
+    {variant === 'icon'
+      ? <IconButton
+        color={color}
+        size={size}
+        className={clsx(className, styles.root)}
+        onClick={onClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        disabled={disabled}
+        href={href}
+        aria-label={tooltip}
+      >
+        {children}
+      </IconButton>
+      : <Button
+        color={color}
+        variant={variant}
+        size={size}
+        className={clsx(className, styles.root)}
+        onClick={onClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        disabled={disabled}
+        href={href}
+        aria-label={tooltip}
+      >
+        {children}
+      </Button>
+    }
+  </Tooltip>
+})
+
+Action.propTypes = {
+  variant: PropTypes.string, // The variant of the MUI buttons
+  color: PropTypes.string, // The color of the MUI buttons
+  size: PropTypes.string, // Size of the MUI buttons
+  href: PropTypes.string,
+  disabled: PropTypes.bool,
+  onClick: PropTypes.func,
+  onMouseDown: PropTypes.func,
+  onMouseUp: PropTypes.func,
+  tooltip: PropTypes.string,
+  TooltipProps: PropTypes.object,
+  className: PropTypes.string,
+  classes: PropTypes.object,
+  children: PropTypes.node
+}
+
+Action.defaultProps = {
+  size: 'small',
+  variant: 'icon'
 }

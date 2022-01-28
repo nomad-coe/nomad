@@ -18,206 +18,94 @@
 import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Subject } from 'rxjs'
-import {
-  Box,
-  Typography,
-  useTheme
-} from '@material-ui/core'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
-import { useRecoilValue, RecoilRoot } from 'recoil'
-import { convertSI } from '../../utils'
-import { unitsState } from '../archive/ArchiveBrowser'
-import { makeStyles } from '@material-ui/core/styles'
-import { ErrorHandler } from '../ErrorHandler'
-import Plot from './Plot'
+import HeatCapacity from './HeatCapacity'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
+import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
+import { toUnitSystem } from '../../units'
 
-const useStyles = makeStyles((theme) => {
-  return {
-    row: {
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      width: '100%',
-      height: '100%'
-    },
-    free_energy: {
-      flex: '0 1 50%'
-    },
-    heat_capacity: {
-      flex: '0 1 50%'
-    },
-    bs: {
-      flex: '0 0 66.6%'
-    },
-    dos: {
-      flex: '0 0 33.3%'
-    }
-  }
-})
-
-export default function VibrationalProperties({bs, dos, freeEnergy, heatCapacity, className, classes, raiseError}) {
+const VibrationalProperties = React.memo(({
+  bs,
+  dos,
+  freeEnergy,
+  heatCapacity,
+  units
+}) => {
   // Find minimum and maximum from DOS/BS. Use this range for both plots.
-  const units = useRecoilValue(unitsState)
   const range = useMemo(() => {
-    let min
-    let max
-    const energies = dos?.section_dos?.dos_energies
-    if (energies) {
-      min = Math.min(...energies)
-      max = Math.max(...energies)
+    let range = [undefined, undefined]
+    if (dos?.energies) {
+      const min = Math.min(...dos.energies)
+      const max = Math.max(...dos.energies)
+      range = toUnitSystem([min, max], 'joule', units, false)
     }
-    return convertSI([min, max], 'joule', units, false)
+    return range
   }, [dos, units])
 
   // RxJS subject for efficiently propagating y axis changes between DOS and BS
   const bsYSubject = useMemo(() => new Subject(), [])
   const dosYSubject = useMemo(() => new Subject(), [])
-  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range, zeroline: true}}), [range])
-  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range, zeroline: true}}), [range])
-
-  // Styles
-  const styles = useStyles(classes)
+  const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
+  const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
   // Synchronize panning between BS/DOS plots
-  const handleDOSRelayouting = useCallback((event) => {
-    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
-    dosYSubject.next(update)
-  }, [dosYSubject])
   const handleBSRelayouting = useCallback((event) => {
     let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
     bsYSubject.next(update)
   }, [bsYSubject])
+  const handleDOSRelayouting = useCallback((event) => {
+    let update = {yaxis: {range: [event['yaxis.range[0]'], event['yaxis.range[1]']]}}
+    dosYSubject.next(update)
+  }, [dosYSubject])
 
-  const theme = useTheme()
-  const heatCapacityData = useMemo(() => {
-    if (!heatCapacity) {
-      return
-    }
-    return [{
-      x: heatCapacity.temperature,
-      y: heatCapacity.thermodynamical_property_heat_capacity_C_v,
-      type: 'scatter',
-      mode: 'lines',
-      line: {
-        color: theme.palette.primary.main,
-        width: 2
-      }
-    }]
-  }, [heatCapacity, theme])
-
-  const heatCapacityLayout = useMemo(() => {
-    return {
-      xaxis: {
-        title: {
-          text: 'Temperature (K)'
-        },
-        zeroline: false
-      },
-      yaxis: {
-        title: {
-          text: 'Heat capacity (J/K)'
-        },
-        zeroline: false
-      }
-    }
-  }, [])
-  const freeEnergyData = useMemo(() => {
-    if (!freeEnergy) {
-      return
-    }
-    return [{
-      x: freeEnergy.temperature,
-      y: freeEnergy.vibrational_free_energy_at_constant_volume,
-      type: 'scatter',
-      mode: 'lines',
-      line: {
-        color: theme.palette.primary.main,
-        width: 2
-      }
-    }]
-  }, [freeEnergy, theme])
-
-  const freeEnergyLayout = useMemo(() => {
-    return {
-      xaxis: {
-        title: {
-          text: 'Temperature (K)'
-        },
-        zeroline: false
-      },
-      yaxis: {
-        title: {
-          text: 'Helmholtz free energy (J)'
-        },
-        zeroline: false
-      }
-    }
-  }, [])
-
-  return (
-    <RecoilRoot>
-      <Box className={styles.row}>
-        <Box className={styles.bs}>
-          <Typography variant="subtitle1" align='center'>Phonon dispersion</Typography>
-          <BandStructure
-            data={bs === false ? false : bs?.section_k_band}
-            layout={bsLayout}
-            aspectRatio={1.2}
-            unitsState={unitsState}
-            onRelayouting={handleBSRelayouting}
-            onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
-            layoutSubject={dosYSubject}
-            metaInfoLink={bs?.path}
-            type='vibrational'
-          ></BandStructure>
-        </Box>
-        <Box className={styles.dos}>
-          <Typography variant="subtitle1" align='center'>Phonon density of states</Typography>
-          <DOS
-            data={dos === false ? false : dos?.section_dos}
-            layout={dosLayout}
-            aspectRatio={0.6}
-            unitsState={unitsState}
-            onRelayouting={handleDOSRelayouting}
-            onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
-            layoutSubject={bsYSubject}
-            metaInfoLink={dos?.path}
-            type='vibrational'
-          ></DOS>
-        </Box>
-        <Box className={styles.heat_capacity}>
-          <Typography variant="subtitle1" align='center'>Heat capacity</Typography>
-          <ErrorHandler message='Could not load heat capacity.'>
-            <Plot
-              data={heatCapacity && heatCapacityData}
-              layout={heatCapacityLayout}
-              aspectRatio={1}
-              floatTitle="Heat capacity"
-              metaInfoLink={heatCapacity?.path}
-            >
-            </Plot>
-          </ErrorHandler>
-        </Box>
-        <Box className={styles.free_energy}>
-          <Typography variant="subtitle1" align='center'>Helmholtz free energy</Typography>
-          <ErrorHandler message='Could not load Helmholtz free energy.'>
-            <Plot
-              data={freeEnergy && freeEnergyData}
-              layout={freeEnergyLayout}
-              aspectRatio={1}
-              floatTitle="Helmholtz free energy"
-              metaInfoLink={freeEnergy?.path}
-            >
-            </Plot>
-          </ErrorHandler>
-        </Box>
-      </Box>
-    </RecoilRoot>
-  )
-}
+  return <PropertyGrid>
+    <PropertyItem title="Phonon dispersion" xs={8}>
+      <BandStructure
+        data={bs}
+        layout={bsLayout}
+        aspectRatio={1.2}
+        units={units}
+        onRelayouting={handleBSRelayouting}
+        onReset={() => { bsYSubject.next({yaxis: {range: range}}) }}
+        layoutSubject={dosYSubject}
+        metaInfoLink={bs?.m_path}
+        type="vibrational"
+        data-testid="bs-phonon"
+      />
+    </PropertyItem>
+    <PropertyItem title="Phonon density of states" xs={4}>
+      <DOS
+        data={dos}
+        layout={dosLayout}
+        aspectRatio={0.6}
+        onRelayouting={handleDOSRelayouting}
+        onReset={() => { dosYSubject.next({yaxis: {range: range}}) }}
+        units={units}
+        layoutSubject={bsYSubject}
+        metaInfoLink={dos?.m_path}
+        type="vibrational"
+        data-testid="dos-phonon"
+      />
+    </PropertyItem>
+    <PropertyItem title="Heat capacity" xs={6}>
+      <HeatCapacity
+        data={heatCapacity}
+        aspectRatio={1}
+        units={{...units, 'energy': 'joule'}}
+        data-testid="heat-capacity"
+      />
+    </PropertyItem>
+    <PropertyItem title="Helmholtz free energy" xs={6}>
+      <HelmholtzFreeEnergy
+        data={freeEnergy}
+        aspectRatio={1}
+        units={{...units, 'energy': 'joule'}}
+        data-testid="energy-free"
+      />
+    </PropertyItem>
+  </PropertyGrid>
+})
 
 VibrationalProperties.propTypes = {
   dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
@@ -225,7 +113,7 @@ VibrationalProperties.propTypes = {
   freeEnergy: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   heatCapacity: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
   range: PropTypes.array,
-  className: PropTypes.string,
-  classes: PropTypes.object,
-  raiseError: PropTypes.func
+  units: PropTypes.object // Contains the unit configuration
 }
+
+export default VibrationalProperties

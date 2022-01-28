@@ -109,7 +109,8 @@ class RequiredReader:
         Validates the required specification of this instance. It will replace all
         string directives with dicts. Those will have keys `_def` and `_directive`. It
         will add a key `_def` to all dicts. The `_def` will be the respective metainfo
-        definition.
+        definition. If will also add key `_ref`. It will be None or contain a
+        Reference instance, if the definition is a reference target.
 
         This method will raise an exception (:class:`RequiredValidationError`) to denote
         any mismatches between the required specification and the metainfo. Also to denote
@@ -131,13 +132,15 @@ class RequiredReader:
         if loc is None:
             loc = []
 
+        # replace definition with the target definition, if its reference or subsection
+        reference = None
         if isinstance(definition, Quantity):
             if isinstance(definition.type, Reference):
-                # TODO support quantity references
+                reference = definition.type
                 if isinstance(definition.type, QuantityReference):
-                    raise RequiredValidationError(
-                        'quantity references are not supported yet', loc)
-                definition = definition.type.target_section_def.m_resolved()
+                    definition = definition.type.target_quantity_def.m_resolved()
+                else:
+                    definition = definition.type.target_section_def.m_resolved()
         elif isinstance(definition, SubSection):
             definition = definition.sub_section.m_resolved()
 
@@ -152,9 +155,9 @@ class RequiredReader:
                 raise RequiredValidationError('exclude is not supported yet', loc)
             if required not in ['*', 'include', 'exclude', 'include-resolved']:
                 raise RequiredValidationError(f'{required} is not a valid directive', loc)
-            return dict(_def=definition, _directive=required)
+            return dict(_def=definition, _directive=required, _ref=reference)
 
-        result: Dict[str, Any] = dict(_def=definition)
+        result: Dict[str, Any] = dict(_def=definition, _ref=reference)
         for key, value in cast(dict, required).items():
             if key == 'resolve-inplace':
                 continue
@@ -225,8 +228,14 @@ class RequiredReader:
 
         return key, index
 
-    def __resolve_refs(self, archive: dict, section_def: Section) -> dict:
+    def __resolve_refs(self, archive: dict, definition: Definition) -> dict:
         ''' Resolves all references in archive. '''
+        if isinstance(definition, Quantity):
+            # it's a quantity ref, the archive is already resolved
+            return self.__to_son(archive[definition.name])
+
+        # it's a section ref
+        section_def = cast(Section, definition)
         archive = self.__to_son(archive)
         result = {}
         for prop in archive:
@@ -235,9 +244,14 @@ class RequiredReader:
             handle_item: Callable[[Any], Any] = None
             if isinstance(prop_def, SubSection):
                 handle_item = lambda value: self.__resolve_refs(value, prop_def.sub_section.m_resolved())
-            elif isinstance(prop_def.type, Reference) and not isinstance(prop_def.type, QuantityReference):
-                target_section_def = prop_def.type.target_section_def.m_resolved()
-                required = dict(_directive='include-resolved', _def=target_section_def)
+            elif isinstance(prop_def.type, Reference):
+                if isinstance(prop_def.type, QuantityReference):
+                    target_def = prop_def.type.target_quantity_def.m_resolved()
+                else:
+                    target_def = prop_def.type.target_section_def.m_resolved()
+
+                required = dict(
+                    _directive='include-resolved', _def=target_def, _ref=prop_def.type)
                 handle_item = lambda value: self.__resolve_ref(required, value)
             else:
                 handle_item = lambda value: value
@@ -268,14 +282,17 @@ class RequiredReader:
             while len(path_stack) > 0:
                 prop = path_stack.pop()
                 resolved = resolved[prop]
-                if path_stack[-1].isdigit():
+                if len(path_stack) > 0 and path_stack[-1].isdigit():
                     resolved = resolved[int(path_stack.pop())]
 
         except Exception:
             raise ArchiveError('could not resolve reference')
 
         # apply required to resolved archive_item
-        resolved_result = self.__apply_required(required, resolved)
+        if isinstance(required['_def'], Quantity):
+            resolved_result = self.__to_son(resolved)
+        else:
+            resolved_result = self.__apply_required(required, resolved)
 
         # return or add to root depending on self.resolve_inplace
         if self.resolve_inplace:
@@ -301,7 +318,7 @@ class RequiredReader:
                 target_container = _setdefault(target_container, prop_or_index, dict)
 
             prop_or_index = path_stack.pop()
-            if path_stack[-1].isdigit():
+            if len(path_stack) > 0 and path_stack[-1].isdigit():
                 target_list = _setdefault(target_container, prop_or_index, list)
                 index = int(path_stack.pop())
                 for _ in range(len(target_list), index + 1):

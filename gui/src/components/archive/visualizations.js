@@ -21,7 +21,7 @@ import { FixedSizeGrid as Grid } from 'react-window'
 import { Typography, makeStyles, Button, Grid as MuiGrid, Box } from '@material-ui/core'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-export function Number({value, exp, variant, ...props}) {
+export function Number({value, exp, variant, unit, ...props}) {
   variant = variant || 'body2'
   exp = exp || 2
   const fixed = 5
@@ -39,12 +39,13 @@ export function Number({value, exp, variant, ...props}) {
       html = value.toString()
     }
   }
-  return <Typography {...props} variant={variant} >{html}</Typography>
+  return <Typography {...props} variant={variant} >{html}{unit && <span>&nbsp;{unit}</span>}</Typography>
 }
 Number.propTypes = ({
   value: PropTypes.any,
   variant: PropTypes.string,
-  exp: PropTypes.number
+  exp: PropTypes.number,
+  unit: PropTypes.string
 })
 
 function MatrixPagination({length, page, onChange}) {
@@ -100,7 +101,7 @@ const useMatrixStyles = makeStyles(theme => ({
     marginLeft: -theme.spacing(1)
   }
 }))
-export function Matrix({values, shape, invert}) {
+export function Matrix({values, shape, invert, type}) {
   const rootRef = useRef()
   const matrixRef = useRef()
   const [pages, setPages] = useState(new Array(Math.max(0, shape.length - 2)).fill(0))
@@ -117,11 +118,15 @@ export function Matrix({values, shape, invert}) {
   const rowHeight = 24
   const rowCount = invert ? values.length : shape.length > 1 ? values[0].length : 1
   const columnCount = invert ? shape.length > 1 ? values[0].length : 1 : values.length
-  const height = Math.min(300, rowCount * rowHeight)
+  const height = Math.min(300, (rowCount - 1) * rowHeight + 24)
 
   useLayoutEffect(() => {
-    matrixRef.current.style.width = Math.min(
-      rootRef.current.clientWidth - 4, columnCount * columnWidth) + 'px'
+    if (type === 'str') {
+      matrixRef.current.style.width = '100%'
+    } else {
+      matrixRef.current.style.width = Math.min(
+        rootRef.current.clientWidth - 4, columnCount * columnWidth) + 'px'
+    }
   })
 
   let value = shape.length > 1 ? ({rowIndex, columnIndex}) => values[columnIndex][rowIndex] : ({columnIndex}) => values[columnIndex]
@@ -143,7 +148,7 @@ export function Matrix({values, shape, invert}) {
               rowHeight={rowHeight}
               width={width}
             >
-              {({style, ...props}) => <Number style={style} value={value(props)} />}
+              {({style, ...props}) => <Number style={{whiteSpace: 'nowrap', ...style}} value={value(props)} />}
             </Grid>
           )}
         </AutoSizer>
@@ -161,5 +166,6 @@ export function Matrix({values, shape, invert}) {
 Matrix.propTypes = ({
   values: PropTypes.array.isRequired,
   shape: PropTypes.arrayOf(PropTypes.any).isRequired,
-  invert: PropTypes.bool
+  invert: PropTypes.bool,
+  type: PropTypes.string
 })

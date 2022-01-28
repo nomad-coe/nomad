@@ -18,48 +18,26 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import {
-  Box,
-  Typography
-} from '@material-ui/core'
-import { useRecoilValue, RecoilRoot } from 'recoil'
-import { convertSI } from '../../utils'
+import { toUnitSystem } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
-import { unitsState } from '../archive/ArchiveBrowser'
+import { SectionTable } from '../Quantity'
 import { makeStyles } from '@material-ui/core/styles'
 import { electronicRange } from '../../config'
+import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
 // Styles
 const useStyles = makeStyles((theme) => {
   return {
-    row: {
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      alignItems: 'flex-start',
-      width: '100%',
-      height: '100%',
-      flexWrap: 'wrap'
-    },
-    bz: {
-      flex: '0 0 66.6%'
-    },
-    bs: {
-      flex: '0 0 66.6%'
-    },
-    dos: {
-      flex: '0 0 33.3%'
-    },
-    noData: {
-      top: '1.43rem',
+    nodata: {
+      top: theme.spacing(0.7),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: '3.55rem'
     },
-    placeHolder: {
-      top: '1.43rem',
+    placeholder: {
+      top: theme.spacing(0.7),
       left: theme.spacing(2),
       right: theme.spacing(2),
       bottom: theme.spacing(2)
@@ -67,9 +45,20 @@ const useStyles = makeStyles((theme) => {
   }
 })
 
-function ElectronicProperties({bs, dos, className, classes}) {
-  const units = useRecoilValue(unitsState)
-  const range = useMemo(() => convertSI(electronicRange, 'electron_volt', units, false), [units])
+// Band gap quantities to show. Saved as const object to prevent re-renders
+const bandGapQuantities = {
+  index: {label: 'Ch.', align: 'left'},
+  value: {label: 'Value'},
+  type: {label: 'Type', placeholder: 'no gap'}
+}
+
+const ElectronicProperties = React.memo(({
+  bs,
+  dos,
+  classes,
+  units
+}) => {
+  const range = useMemo(() => toUnitSystem(electronicRange, 'electron_volt', units), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 
@@ -90,59 +79,58 @@ function ElectronicProperties({bs, dos, className, classes}) {
     dosYSubject.next(update)
   }, [dosYSubject])
 
-  return (
-    <RecoilRoot>
-      <Box className={styles.row}>
-        <Box className={styles.bs}>
-          <Typography variant="subtitle1" align='center'>Band structure</Typography>
-          <BandStructure
-            data={bs === false ? false : bs?.section_k_band}
-            layout={bsLayout}
-            aspectRatio={1.2}
-            placeHolderStyle={styles.placeHolder}
-            noDataStyle={styles.noData}
-            unitsState={unitsState}
-            onRelayouting={handleBSRelayouting}
-            onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
-            layoutSubject={dosYSubject}
-            metaInfoLink={bs?.path}
-          ></BandStructure>
-        </Box>
-        <Box className={styles.dos}>
-          <Typography variant="subtitle1" align='center'>Density of states</Typography>
-          <DOS
-            data={dos === false ? false : dos?.section_dos}
-            layout={dosLayout}
-            aspectRatio={0.6}
-            placeHolderStyle={styles.placeHolder}
-            noDataStyle={styles.noData}
-            onRelayouting={handleDOSRelayouting}
-            onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
-            unitsState={unitsState}
-            layoutSubject={bsYSubject}
-            metaInfoLink={dos?.path}
-          ></DOS>
-        </Box>
-        {bs !== false
-          ? <Box className={styles.bz}>
-            <Typography variant="subtitle1" align='center'>Brillouin zone</Typography>
-            <BrillouinZone
-              data={bs?.section_k_band}
-              aspectRatio={1.2}
-            ></BrillouinZone>
-          </Box>
-          : null
-        }
-      </Box>
-    </RecoilRoot>
-  )
-}
+  return <PropertyGrid>
+    <PropertyItem title="Band structure" xs={8}>
+      <BandStructure
+        data={bs}
+        layout={bsLayout}
+        placeHolderStyle={styles.placeholder}
+        noDataStyle={styles.nodata}
+        units={units}
+        onRelayouting={handleBSRelayouting}
+        onReset={() => { bsYSubject.next({yaxis: {range: electronicRange}}) }}
+        layoutSubject={dosYSubject}
+        data-testid="bs-electronic"
+      />
+    </PropertyItem>
+    <PropertyItem title="Density of states" xs={4}>
+      <DOS
+        data={dos}
+        layout={dosLayout}
+        placeHolderStyle={styles.placeholder}
+        noDataStyle={styles.nodata}
+        onRelayouting={handleDOSRelayouting}
+        onReset={() => { dosYSubject.next({yaxis: {range: electronicRange}}) }}
+        units={units}
+        layoutSubject={bsYSubject}
+        data-testid="dos-electronic"
+      />
+    </PropertyItem>
+    {bs !== false && <>
+      <PropertyItem title="Brillouin zone" xs={8}>
+        <BrillouinZone
+          data={bs}
+          data-testid="bz-electronic"
+        />
+      </PropertyItem>
+      <PropertyItem title="Band gaps" xs={4}>
+        <SectionTable
+          horizontal
+          section="results.properties.electronic.band_structure_electronic.band_gap"
+          quantities={bandGapQuantities}
+          data={bs === false ? false : bs?.band_gap && {data: bs.band_gap}}
+          units={units}
+        />
+      </PropertyItem>
+    </>}
+  </PropertyGrid>
+})
 
 ElectronicProperties.propTypes = {
-  dos: PropTypes.any, // Data for DOS. Set false if no data is available, set to some other falsy value to enable placeholder.
-  bs: PropTypes.any, // Data for BS. Set false if no data is available, set to some other falsy value to enable placeholder.
-  className: PropTypes.string,
-  classes: PropTypes.object
+  dos: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
+  bs: PropTypes.any, // Set to false if not available, set to other falsy value to show placeholder.
+  classes: PropTypes.object,
+  units: PropTypes.object // Contains the unit configuration
 }
 
 export default ElectronicProperties

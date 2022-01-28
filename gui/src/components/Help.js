@@ -16,25 +16,20 @@
  * limitations under the License.
  */
 import React from 'react'
-import { withStyles, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@material-ui/core'
+import { Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@material-ui/core'
 import Markdown from './Markdown'
 import PropTypes from 'prop-types'
 import HelpIcon from '@material-ui/icons/Help'
 
 export const HelpContext = React.createContext()
 
-class HelpDialogUnstyled extends React.Component {
+class HelpDialog extends React.Component {
   static propTypes = {
-    classes: PropTypes.object.isRequired,
     title: PropTypes.string,
     content: PropTypes.string.isRequired,
-    icon: PropTypes.node,
+    children: PropTypes.node,
     maxWidth: PropTypes.string
   }
-
-  static styles = theme => ({
-    root: {}
-  })
 
   state = {
     isOpen: false
@@ -55,12 +50,12 @@ class HelpDialogUnstyled extends React.Component {
   }
 
   render() {
-    const {classes, title, content, icon, maxWidth, ...rest} = this.props
+    const {title, content, children, maxWidth, ...rest} = this.props
     return (
-      <div className={classes.root}>
+      <React.Fragment>
         <Tooltip title={title}>
           <IconButton {...rest} onClick={this.handleOpen}>
-            {icon || <HelpIcon/>}
+            {children || <HelpIcon/>}
           </IconButton>
         </Tooltip>
         <Dialog
@@ -78,9 +73,9 @@ class HelpDialogUnstyled extends React.Component {
             </Button>
           </DialogActions>
         </Dialog>
-      </div>
+      </React.Fragment>
     )
   }
 }
 
-export default withStyles(HelpDialogUnstyled.styles)(HelpDialogUnstyled)
+export default HelpDialog

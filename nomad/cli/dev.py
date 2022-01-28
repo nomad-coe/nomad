@@ -1,4 +1,4 @@
-#
+
 # Copyright The NOMAD Authors.
 #
 # This file is part of NOMAD. See https://nomad-lab.eu for further info.
@@ -20,7 +20,7 @@ import sys
 import os
 import click
 
-from nomad.cli.cli import cli
+from .cli import cli
 
 
 @cli.group(help='Commands related to the nomad source code.')
@@ -66,93 +66,106 @@ def gui_qa(skip_tests: bool):
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
     import json
-    print(json.dumps(metainfo_undecorated(), indent=2))
+    export = _all_metainfo_packages()
+    metainfo_data = export.m_to_dict(with_meta=True)
+    print(json.dumps(metainfo_data, indent=2))
 
 
-def metainfo_undecorated():
+def _all_metainfo_packages():
     from nomad.metainfo import Package, Environment
-
-    # TODO the __init_metainfo__() should not be necessary and automatically performed
-    # Also load and initialize the datamodel definitions
-    import nomad.metainfo.metainfo
-    import nomad.datamodel.datamodel
-    import nomad.datamodel.dft
-    import nomad.datamodel.ems
-    import nomad.datamodel.optimade
-    import nomad.datamodel.encyclopedia
-    nomad.metainfo.metainfo.m_package.__init_metainfo__()
-    nomad.datamodel.datamodel.m_package.__init_metainfo__()
-    nomad.datamodel.dft.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.ems.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.optimade.m_package.__init_metainfo__()  # pylint: disable=no-member
-    nomad.datamodel.encyclopedia.m_package.__init_metainfo__()
+    from nomad.datamodel import EntryArchive
 
     # TODO similar to before, due to lazyloading, we need to explicily access parsers
     # to actually import all parsers and indirectly all metainfo packages
     from nomad.parsing import parsers
     parsers.parsers
 
+    # Create the ES mapping to populate ES annoations with search keys.
+    from nomad.search import entry_type
+    entry_type.create_mapping(EntryArchive.m_def)
+
+    # TODO we call __init_metainfo__() for all packages where this has been forgotten
+    # by the package author. Ideally this would not be necessary and we fix the
+    # actual package definitions.
+    for module_key in list(sys.modules):
+        pkg: Package = getattr(sys.modules[module_key], 'm_package', None)
+        if pkg is not None and isinstance(pkg, Package):
+            if (pkg.name not in Package.registry):
+                pkg.__init_metainfo__()
+
     export = Environment()
     for package in Package.registry.values():
         export.m_add_sub_section(Environment.packages, package)
-
-    return export.m_to_dict(with_meta=True)
+    return export
 
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
-    from nomad import search
-    # Due to this import, the parsing module will register all code_names based on parser
-    # implementations.
-    from nomad.parsing.parsers import parser_dict  # pylint: disable=unused-import
+    _all_metainfo_packages()
     import json
 
-    def to_dict(search_quantity):
-        result = {
-            'name': search_quantity.qualified_name,
-            'description': search_quantity.description,
-            'many': search_quantity.many,
-        }
+    # Currently only quantities with "entry_type" are included.
+    from nomad.metainfo.elasticsearch_extension import entry_type, Elasticsearch
+    from nomad.datamodel import EntryArchive
 
-        if search_quantity.statistic_fixed_size is not None:
-            result['statistic_size'] = search_quantity.statistic_fixed_size
-        if search_quantity.statistic_values is not None:
-            result['statistic_values'] = search_quantity.statistic_values
-
+    def to_dict(search_quantity, section=False):
+        if section:
+            keys = ["name", "description", "nested"]
+            metadict = search_quantity.sub_section.m_to_dict(with_meta=True)
+            metadict["name"] = search_quantity.m_to_dict(with_meta=True)["name"]
+            es_annotations = search_quantity.m_get_annotations(Elasticsearch, as_list=True)
+            nested = any([x.nested for x in es_annotations])
+            metadict["nested"] = nested
+        else:
+            keys = ["name", "description", "type", "unit"]
+            metadict = search_quantity.definition.m_to_dict(with_meta=True)
+        result = {}
+        for key in keys:
+            val = metadict.get(key)
+            if val is not None:
+                result[key] = val
         return result
 
-    export = {
-        search_quantity.qualified_name: to_dict(search_quantity)
-        for search_quantity in search.search_quantities.values()
-    }
+    export = {}
+
+    # Add quantities
+    for search_quantity in entry_type.quantities.values():
+        isSuggestion = search_quantity.annotation.suggestion
+        if not isSuggestion:
+            export[search_quantity.qualified_name] = to_dict(search_quantity)
+
+    # Add suggestion flag
+    for suggestion in entry_type.suggestions.keys():
+        export[suggestion]["suggestion"] = True
+
+    # Add section definitions
+    def get_sections(m_def, prefix=None):
+        for sub_section_def in m_def.all_sub_sections.values():
+            name = sub_section_def.name
+            full_name = f"{prefix}.{name}" if prefix else name
+            export[full_name] = to_dict(sub_section_def, True)
+            get_sections(sub_section_def.sub_section, full_name)
+    get_sections(EntryArchive.results.sub_section, "results")
+
     print(json.dumps(export, indent=2))
 
 
 @dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
 def parser_metadata():
-    import inspect
-    import re
     import json
     import yaml
-
-    from nomad.parsing import Parser
-    from nomad.parsing.parsers import parser_dict
+    import os
+    import os.path
 
     parsers_metadata = {}
-    for parser in parser_dict.values():
-        if isinstance(parser, Parser):
-            parser_class = parser.__class__
-        else:
-            continue
-        parser_code_file = inspect.getfile(parser_class)
-
-        path_match = re.match(r'(.*/dependencies/parsers/[^/]+)/.*', parser_code_file)
-        if path_match:
-            parser_metadata_file = os.path.join(path_match.group(1), 'metadata.yaml')
-            if os.path.exists(parser_metadata_file):
-                with open(parser_metadata_file) as f:
-                    parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
-                parsers_metadata[parser.code_name] = parser_metadata
+    parsers_path = 'dependencies/parsers'
+    for parser_dir in os.listdir(parsers_path):
+        parser_path = os.path.join(parsers_path, parser_dir)
+        parser_metadata_file = os.path.join(parser_path, 'metadata.yaml')
+        if os.path.exists(parser_metadata_file):
+            with open(parser_metadata_file) as f:
+                parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+            parsers_metadata[parser_dir] = parser_metadata
 
     parsers_metadata = {
         key: parsers_metadata[key]
@@ -265,6 +278,34 @@ def update_parser_readmes(parser):
             local.truncate()
 
 
+@dev.command(help='Adds a few pieces of data to NOMAD.')
+@click.option('--username', '-u', type=str, help='The main author username.')
+def example_data(username: str):
+    from nomad import infrastructure, utils
+    from tests.utils import ExampleData
+
+    infrastructure.setup()
+
+    main_author = infrastructure.keycloak.get_user(username=username)
+    if main_author is None:
+        print(f'The user {username} does not exist.')
+        sys.exit(1)
+
+    data = ExampleData(main_author=main_author)
+
+    # one upload with two entries published with embargo, one shared
+    upload_id = utils.create_uuid()
+    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
+    data.create_entry(
+        entry_id=utils.create_uuid(),
+        upload_id=upload_id,
+        mainfile='test_content/test_embargo_entry/mainfile.json')
+
+    data.save(with_files=True, with_es=True, with_mongo=True)
+
+    return data
+
+
 @dev.command(help='Creates a Javascript source file containing the required unit conversion factors.')
 @click.pass_context
 def units(ctx):
@@ -283,7 +324,7 @@ def units(ctx):
         "atomic_unit_of_time": {
             "dimension": "time",
             "label": "Atomic unit of time",
-            "abbreviation": "atomic_unit_of_time",
+            "abbreviation": "a_u_time",
         },
         # Length
         "meter": {
@@ -326,7 +367,7 @@ def units(ctx):
         "atomic_unit_of_current": {
             "dimension": "current",
             "label": "Atomic unit of current",
-            "abbreviation": "atomic_unit_of_current",
+            "abbreviation": "a_u_current",
         },
         # Substance
         "mole": {
@@ -359,7 +400,7 @@ def units(ctx):
         "atomic_unit_of_temperature": {
             "dimension": "temperature",
             "label": "Atomic unit of temperature",
-            "abbreviation": "atomic_unit_of_temperature",
+            "abbreviation": "a_u_temperature",
         },
         # Force
         "newton": {
@@ -370,13 +411,23 @@ def units(ctx):
         "atomic_unit_of_force": {
             "dimension": "force",
             "label": "Atomic unit of force",
-            "abbreviation": "atomic_unit_of_force",
+            "abbreviation": "a_u_force",
         },
         # Pressure
         "pascal": {
             "dimension": "pressure",
             "label": "Pascal",
             "abbreviation": "Pa"
+        },
+        "gigapascal": {
+            "dimension": "pressure",
+            "label": "Gigapascal",
+            "abbreviation": "GPa"
+        },
+        "atomic_unit_of_pressure": {
+            "dimension": "pressure",
+            "label": "Atomic unit of pressure",
+            "abbreviation": "a_u_pressure"
         },
         # Energy
         "joule": {
@@ -441,11 +492,28 @@ def units(ctx):
             "label": "Weber",
             "abbreviation": "Wb",
         },
+        # Magnetic dipole
+        "bohr_magneton": {
+            "dimension": "magnetic_dipole",
+            "label": "Bohr magneton",
+            "abbreviation": "Bm",
+        },
         # Inductance
         "henry": {
             "dimension": "inductance",
             "label": "Henry",
             "abbreviation": "H",
+        },
+        # angle
+        "radian": {
+            "dimension": "angle",
+            "label": "Radian",
+            "abbreviation": "rad",
+        },
+        "degree": {
+            "dimension": "angle",
+            "label": "Degree",
+            "abbreviation": "°",
         },
         # dimensionless
         "dimensionless": {
@@ -521,6 +589,8 @@ def units(ctx):
         "pressure": {
             "units": [
                 "pascal",
+                "gigapascal",
+                "atomic_unit_of_pressure",
             ],
             "multipliers": {},
         },
@@ -575,10 +645,24 @@ def units(ctx):
             ],
             "multipliers": {},
         },
+        "magnetic_dipole": {
+            "units": [
+                "bohr_magneton",
+            ],
+            "multipliers": {},
+        },
         "inductance": {
             "dimension": "inductance",
             "units": [
                 "henry",
+            ],
+            "multipliers": {},
+        },
+        "angle": {
+            "dimension": "angle",
+            "units": [
+                "radian",
+                "degree",
             ],
             "multipliers": {},
         },
@@ -611,6 +695,7 @@ def units(ctx):
                 "frequency": "hertz",
                 "electric_potential": "volt",
                 "charge": "coulomb",
+                "angle": "radian",
             },
         },
         "AU": {
@@ -624,6 +709,8 @@ def units(ctx):
                 "temperature": "atomic_unit_of_temperature",
                 "force": "atomic_unit_of_force",
                 "energy": "hartree",
+                "pressure": "atomic_unit_of_pressure",
+                "angle": "radian",
             }
         }
     }
@@ -677,11 +764,11 @@ def units(ctx):
             assert dimension == info["dimension"]
 
     # Go through the metainfo and check that all units are defined
-    all_metainfo = metainfo_undecorated()
+    all_metainfo = _all_metainfo_packages()
     units = set()
-    packages = all_metainfo["packages"]
+    packages = all_metainfo.m_to_dict(with_meta=True)['packages']
     for package in packages:
-        sections = package["section_definitions"]
+        sections = package.get("section_definitions", [])
         for section in sections:
             quantities = section.get("quantities", [])
             for quantity in quantities:
@@ -698,6 +785,9 @@ def units(ctx):
                         if not is_operator and not is_number:
                             units.add(part)
     for unit in units:
+        if unit == 'byte':
+            continue
+
         assert unit in unit_map, "The unit '{}' is not defined in the unit definitions.".format(unit)
 
     # Print unit conversion table and unit systems as a Javascript source file

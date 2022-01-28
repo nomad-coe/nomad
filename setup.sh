@@ -14,8 +14,4 @@ git submodule update --init --jobs=4
 # Install nomad
 pip install -e .[all]
 
-# Generate GUI artifacts
-nomad dev metainfo > gui/src/metainfo.json
-nomad dev search-quantities > gui/src/searchQuantities.json
-nomad dev units > gui/src/units.js
-./gitinfo.sh
+./generate_gui_artifacts.sh

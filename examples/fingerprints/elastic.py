@@ -77,7 +77,7 @@ while True:
                                 },
                             },
                             "_source": {
-                                "includes": ['upload_id', 'calc_id', 'dft.code_name', 'dft.xc_functional']
+                                "includes": ['upload_id', 'entry_id', 'dft.code_name', 'dft.xc_functional']
                             },
                             "size": 1
                         }
@@ -89,7 +89,7 @@ while True:
 
     if after is not None:
         request['aggs']['results']['composite']['after'] = after
-    res = infrastructure.elastic_client.search(index=config.elastic.index_name, body=request)
+    res = infrastructure.elastic_client.search(index=config.elastic.entries_index, body=request)
 
     if len(res['aggregations']['results']['buckets']) == 0:
         break
@@ -99,8 +99,8 @@ while True:
         material_id = material_bucket['key']['materials']
         entry = material_bucket['calcs']['hits']['hits'][0]['_source']
         upload_id = entry['upload_id']
-        calc_id = entry['calc_id']
-        results.append(dict(material_id=material_id, upload_id=upload_id, calc_id=calc_id))
+        entry_id = entry['entry_id']
+        results.append(dict(material_id=material_id, upload_id=upload_id, entry_id=entry_id))
         count += 1
 
     print(count)

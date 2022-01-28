@@ -35,6 +35,3 @@ from nomad import config
 
 # For convinience we test the api without path prefix.
 config.services.api_base_path = ''
-
-# We use a mocked in memory mongo version.
-config.mongo.host = 'mongomock://localhost'

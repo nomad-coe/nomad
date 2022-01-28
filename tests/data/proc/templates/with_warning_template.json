@@ -1,143 +1,151 @@
 {
-    "section_run": [
-      {
-        "program_name": "VASP",
-        "program_version": "4.6.35  3Apr08 complex  parallel LinuxIFC",
-        "program_basis_set_type": "plane waves",
-        "program_compilation_datetime": 63536.0,
-        "section_basis_set_cell_dependent": [
-          {
-            "basis_set_planewave_cutoff": 5.81433707960672e-17
-          }
-        ],
-        "section_method": [
-          {
-            "electronic_structure_method": "DFT",
-            "section_XC_functionals": [
-              {
-                "XC_functional_name": "GGA_X_PBE"
-              },
-              {
-                "XC_functional_name": "GGA_C_PBE"
-              }
+    "run": [
+        {
+            "program": {
+                "name": "VASP",
+                "version": "4.6.35  3Apr08 complex  parallel LinuxIFC"
+            },
+            "method": [
+                {
+                    "dft": {
+                        "xc_functional": {
+                            "exchange": [
+                                {
+                                    "name": "GGA_X_PBE"
+                                }
+                            ]
+                        }
+                    },
+                    "electronic": {
+                        "method": "DFT"
+                    },
+                    "atom_parameters": [
+                        {
+                            "atom_number": 35,
+                            "n_valence_electrons": 7.0,
+                            "label": "Br",
+                            "mass": 1.326837135776064e-25,
+                            "pseudopotential_name": " PAW_PBE Br 06Sep2000                   "
+                        },
+                        {
+                            "atom_number": 19,
+                            "n_valence_electrons": 9.0,
+                            "label": "K",
+                            "mass": 6.49237564259268e-26,
+                            "pseudopotential_name": " PAW_PBE K_sv 06Sep2000                 "
+                        },
+                        {
+                            "atom_number": 14,
+                            "n_valence_electrons": 4.0,
+                            "label": "Si",
+                            "mass": 4.6636239685461e-26,
+                            "pseudopotential_name": " PAW_PBE Si 05Jan2001                   "
+                        }
+                    ],
+                    "basis_set": [
+                        {
+                            "type": "plane waves",
+                            "cell_dependent": [
+                                {
+                                    "kind": "plane waves",
+                                    "planewave_cutoff": 5.81433707960672e-17
+                                }
+                            ]
+                        }
+                    ]
+                }
             ],
-            "section_method_basis_set": [
-              {
-                "mapping_section_method_basis_set_cell_associated": 0
-              }
+            "system": [
+                {
+                    "type": "Bulk",
+                    "configuration_raw_gid": "sX4Re16Q_-KSbCvIYPvikfbaxKxMe",
+                    "atoms": {
+                        "species": [
+                            35,
+                            19,
+                            14,
+                            14
+                        ],
+                        "labels": [
+                            "Br",
+                            "K",
+                            "Si",
+                            "Si"
+                        ],
+                        "positions": [
+                            [
+                                2.88186311e-10,
+                                0.0,
+                                2.0377849449999999e-10
+                            ],
+                            [
+                                0.0,
+                                2.88186311e-10,
+                                2.0377849449999999e-10
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                2.88186311e-10,
+                                2.88186311e-10,
+                                0.0
+                            ]
+                        ],
+                        "lattice_vectors": [
+                            [
+                                5.76372622e-10,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                5.76372622e-10,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                4.0755698899999997e-10
+                            ]
+                        ],
+                        "periodic": [
+                            true,
+                            true,
+                            true
+                        ]
+                    },
+                    "chemical_composition": {
+                        "value": "BrKSiSi",
+                        "value_reduced": "BrKSi2",
+                        "value_bulk_reduced": "BrKSi2"
+                    }
+                }
             ],
-            "section_method_atom_kind": [
-              {
-                "method_atom_kind_atom_number": 35,
-                "method_atom_kind_label": "Br",
-                "method_atom_kind_mass": 79.904,
-                "method_atom_kind_explicit_electrons": 7.0,
-                "method_atom_kind_pseudopotential_name": " PAW_PBE Br 06Sep2000                   "
-              },
-              {
-                "method_atom_kind_atom_number": 19,
-                "method_atom_kind_label": "K",
-                "method_atom_kind_mass": 39.098,
-                "method_atom_kind_explicit_electrons": 9.0,
-                "method_atom_kind_pseudopotential_name": " PAW_PBE K_sv 06Sep2000                 "
-              },
-              {
-                "method_atom_kind_atom_number": 14,
-                "method_atom_kind_label": "Si",
-                "method_atom_kind_mass": 28.085,
-                "method_atom_kind_explicit_electrons": 4.0,
-                "method_atom_kind_pseudopotential_name": " PAW_PBE Si 05Jan2001                   "
-              }
+            "calculation": [
+                {
+                    "system_ref": "/run/0/system/0",
+                    "method_ref": "/run/0/method/0",
+                    "energy": {
+                        "total": {
+                            "value": -1.5935696296699573e-18
+                        },
+                        "free": {
+                            "value": -1.5936767191492225e-18
+                        },
+                        "total_t0": {
+                            "value": -3.2126683561907e-22
+                        }
+                    }
+                }
             ]
-          }
-        ],
-        "section_system": [
-          {
-            "configuration_raw_gid": "sX4Re16Q_-KSbCvIYPvikfbaxKxMe",
-            "atom_species": [
-              35,
-              19,
-              14,
-              14
-            ],
-            "chemical_composition": "BrKSiSi",
-            "chemical_composition_reduced": "BrKSi2",
-            "chemical_composition_bulk_reduced": "BrKSi2",
-            "system_type": "Bulk",
-            "simulation_cell": [
-              [
-                5.76372622e-10,
-                0.0,
-                0.0
-              ],
-              [
-                0.0,
-                5.76372622e-10,
-                0.0
-              ],
-              [
-                0.0,
-                0.0,
-                4.0755698899999997e-10
-              ]
-            ],
-            "configuration_periodic_dimensions": [
-              true,
-              true,
-              true
-            ],
-            "atom_positions": [
-              [
-                2.88186311e-10,
-                0.0,
-                2.0377849449999999e-10
-              ],
-              [
-                0.0,
-                2.88186311e-10,
-                2.0377849449999999e-10
-              ],
-              [
-                0.0,
-                0.0,
-                0.0
-              ],
-              [
-                2.88186311e-10,
-                2.88186311e-10,
-                0.0
-              ]
-            ],
-            "atom_labels": [
-              "Br",
-              "K",
-              "Si",
-              "Si"
-            ]
-          }
-        ],
-        "section_single_configuration_calculation": [
-          {
-            "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/0",
-            "single_configuration_to_calculation_method_ref": "/section_run/0/section_method/0",
-            "energy_free": -1.5936767191492225e-18,
-            "energy_total": -1.5935696296699573e-18,
-            "energy_total_T0": -3.2126683561907e-22
-          }
-        ],
-        "section_sampling_method": [
-          {
-            "sampling_method": "geometry_optimization"
-          }
-        ],
-        "section_frame_sequence": [
-          {
-            "frame_sequence_to_sampling_ref": "/section_run/0/section_sampling_method/0",
-            "frame_sequence_local_frames_ref": [
-              0
-            ]
-          }
-        ]
-      }
+        }
+    ],
+    "workflow": [
+        {
+            "type": "geometry_optimization"
+        }
     ]
-  }
+}

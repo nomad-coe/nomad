@@ -1,179 +1,229 @@
 {
-    "section_run": [
-      {
-        "program_name": "VASP",
-        "program_version": "4.6.35  3Apr08 complex  parallel LinuxIFC",
-        "program_basis_set_type": "plane waves",
-        "section_method": [
-          {
-            "electronic_structure_method": "DFT",
-            "section_XC_functionals": [
-              {
-                "XC_functional_name": "GGA_X_PBE"
-              }
-            ]
-          }
-        ],
-        "section_system": [
-          {
-            "configuration_periodic_dimensions": [
+  "run": [
+    {
+      "program": {
+        "name": "VASP",
+        "version": "4.6.35  3Apr08 complex  parallel LinuxIFC"
+      },
+      "method": [
+        {
+          "dft": {
+            "xc_functional": {
+              "exchange": [
+                {
+                  "name": "GGA_X_PBE"
+                }
+              ]
+            }
+          },
+          "electronic": {
+            "method": "DFT"
+          },
+          "basis_set": [
+            {
+              "type": "plane waves"
+            }
+          ]
+        }
+      ],
+      "system": [
+        {
+          "atoms": {
+            "labels": [
+              "C",
+              "O",
+              "H",
+              "H",
+              "C",
+              "O",
+              "H",
+              "H",
+              "C",
+              "O",
+              "H",
+              "H",
+              "C",
+              "O",
+              "H",
+              "H",
+              "C",
+              "O",
+              "H",
+              "H",
+              "C",
+              "O",
+              "H",
+              "H"
+            ],
+            "positions": [
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "lattice_vectors": [
+              [
+                0.0,
+                0.5,
+                0.5
+              ],
+              [
+                0.5,
+                0.0,
+                0.5
+              ],
+              [
+                0.5,
+                0.5,
+                0.0
+              ]
+            ],
+            "periodic": [
               true,
               true,
               true
-            ],
-            "atom_positions": [
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ],
-              [
-                0,
-                0,
-                0
-              ]
-            ],
-            "atom_labels": [
-              "C", "O", "H", "H", "C", "O", "H", "H",
-              "C", "O", "H", "H", "C", "O", "H", "H",
-              "C", "O", "H", "H", "C", "O", "H", "H"
-            ],
-            "lattice_vectors": [
-              [0, 0.5, 0.5],[0.5, 0 , 0.5],[0.5, 0.5, 0]]
-          }
-        ],
-        "section_single_configuration_calculation": [
-          {
-            "single_configuration_calculation_to_system_ref": "/section_run/0/section_system/0",
-            "single_configuration_to_calculation_method_ref": "/section_run/0/section_method/0",
-            "energy_free": -1.5936767191492225e-18,
-            "energy_total": -1.5935696296699573e-18,
-            "energy_total_T0": -3.2126683561907e-22
-          }
-        ],
-        "section_sampling_method": [
-          {
-            "sampling_method": "geometry_optimization"
-          }
-        ],
-        "section_frame_sequence": [
-          {
-            "frame_sequence_to_sampling_ref": "/section_run/0/section_sampling_method/0",
-            "frame_sequence_local_frames_ref": [
-              0
             ]
           }
-        ]
-      }
-    ]
-  }
+        }
+      ],
+      "calculation": [
+        {
+          "system_ref": "/run/0/system/0",
+          "method_ref": "/run/0/method/0",
+          "energy": {
+            "total": {
+              "value": -1.5935696296699573e-18
+            },
+            "free": {
+              "value": -1.5936767191492225e-18
+            },
+            "total_t0": {
+              "value": -3.2126683561907e-22
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "workflow": [
+    {
+      "type": "geometry_optimization"
+    }
+  ]
+}

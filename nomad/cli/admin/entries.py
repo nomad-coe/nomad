@@ -18,26 +18,29 @@
 
 import click
 
-from nomad import processing as proc, infrastructure, search
 from .admin import admin
 
 
 @admin.group(help='Entry related commands')
 def entries():
-    infrastructure.setup_mongo()
-    infrastructure.setup_elastic()
+    pass
 
 
 @entries.command(help='Delete selected entries from mongo and elastic')
 @click.argument('ENTRIES', nargs=-1)
 @click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
-@click.option('--skip-mongo', help='Keep uploads and calcs in mongo.', is_flag=True)
+@click.option('--skip-mongo', help='Keep uploads and entries in mongo.', is_flag=True)
 def rm(entries, skip_es, skip_mongo):
+    from nomad import processing as proc, infrastructure, search
+
+    infrastructure.setup_mongo()
+    infrastructure.setup_elastic()
+
     print('%d entries selected, deleting ...' % len(entries))
 
     if not skip_es:
         for entry in entries:
-            search.delete_entry(calc_id=entry)
+            search.delete_entry(entry_id=entry, refresh=True, update_materials=True)
 
     if not skip_mongo:
-        proc.Calc.objects(calc_id__in=entries).delete()
+        proc.Entry.objects(entry_id__in=entries).delete()

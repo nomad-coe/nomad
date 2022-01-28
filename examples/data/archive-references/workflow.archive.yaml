@@ -1,0 +1,11 @@
+workflow:
+  - type: 'just an example for references'
+    calculation_result_ref: '#/run/0/calculation/1'
+    calculations_ref:
+      - '#/run/0/calculation/0'
+      - '#/run/0/calculation/1'
+      - '../upload/archive/mainfile/other.archive.yaml#/run/0/calculation/0'
+run:
+  - calculation:
+    - calculation_converged: false
+    - calculation_converged: true

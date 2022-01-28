@@ -1,0 +1,78 @@
+version:
+  label: "v1.0.0"
+  isBeta: true
+  usesBetaData: false
+  officialUrl: "https://nomad-lab.eu/prod/rae/gui"
+
+image:
+    tag: "v1.0.0"
+    pullPolicy: "Always"
+
+proxy:
+  nodePort: 30015
+  nodeIP: '130.183.207.81'
+  external:
+    host: "nomad-lab.eu"
+    path: "/prod/v1"
+
+gui:
+  debug: true
+  matomoEnabled: false
+  matomoSiteId: 2
+  encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
+  aitoolkitEnabled: false
+
+app:
+  replicas: 2
+  worker: 4
+  threads: 4
+  workerClass: "gthread"
+  nomadNodeType: "public"
+
+worker:
+  replicas: 2
+  routing: "queue"
+  processes: 12
+  nomadNodeType: "worker"
+
+elastic:
+  host: elasticsearch.elasticsearch.svc.cluster.local
+  port: 9200
+
+mongo:
+  host: rs0/mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local
+
+logstash:
+  host: logstash.elk.svc.cluster.local
+
+dbname: nomad_prod_v1
+
+uploadurl: 'https://nomad-lab.eu/prod/v1/gui/uploads'
+client:
+  passwordSecret: 'nomad-keycloak-password'
+
+keycloak:
+  serverUrl: 'https://nomad-lab.eu/fairdi/keycloak/auth/'
+  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+  passwordSecret: 'nomad-keycloak-password'
+  realmName: 'fairdi_nomad_prod'
+  clientId: 'nomad_public'
+  admin_user_id: '82efac55-6187-408c-8027-b98580c0e1c5'
+
+volumes:
+  prefixSize: 1
+  public: /nomad/fairdi/prod/fs/public
+  staging: /nomad/fairdi/prod/fs/staging
+  tmp: /nomad/fairdi/prod/fs/tmp
+  nomad: /nomad
+  archiveVersionSuffix: v1
+
+mail:
+  enabled: true
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'support@nomad-lab.eu'
+
+datacite:
+  secret: 'nomad-datacite'
+  enabled: true

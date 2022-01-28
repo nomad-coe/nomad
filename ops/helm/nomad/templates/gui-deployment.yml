@@ -16,6 +16,8 @@ data:
 
       proxy_connect_timeout {{ .Values.proxy.timeout }};
       proxy_read_timeout {{ .Values.proxy.timeout }};
+      proxy_pass_request_headers      on;
+      underscores_in_headers          on;
 
       {{ if .Values.gui.gzip }}
       gzip_min_length     1000;
@@ -65,17 +67,6 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location {{ .Values.proxy.external.path }}/encyclopedia/ {
-        proxy_intercept_errors on;
-        error_page 404 = @redirect_to_encyclopedia_index;
-        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-      }
-
-      location @redirect_to_encyclopedia_index {
-        rewrite ^ {{ .Values.proxy.external.path }}/encyclopedia/index.html break;
-        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-      }
-
       location ~ \/gui\/(service-worker\.js|meta\.json)$ {
         add_header Last-Modified $date_gmt;
         add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
@@ -85,24 +76,18 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/uploads\/?$ {
+      location ~ /api/v1/uploads(/?$|.*/raw|.*/bundle?$)  {
         client_max_body_size 35g;
         proxy_request_buffering off;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/(raw|archive) {
+      location ~ /api/v1/.*/download {
         proxy_buffering off;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ \/api\/mirror {
-        proxy_buffering off;
-        proxy_read_timeout {{ .Values.proxy.mirrorTimeout }};
-        proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
-      }
-
-      location ~ \/api\/repo\/edit {
+      location ~ /api/v1/entries/edit {
         proxy_buffering off;
         proxy_read_timeout {{ .Values.proxy.editTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;

@@ -17,78 +17,61 @@
 #
 import os
 import io
+import shutil
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Tuple, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
+from mongoengine.queryset.visitor import Q
 from fastapi import (
     APIRouter, Request, File, UploadFile, status, Depends, Path, Query as FastApiQuery,
     HTTPException)
+from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
 
-from nomad import utils, config, files, datamodel
-from nomad.processing import Upload, Calc, ProcessAlreadyRunning, FAILURE
-from nomad.processing.base import PROCESS_COMPLETED
+from nomad import utils, config, files
+from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
+from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
+from nomad.search import search
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
-    BaseModel, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel)
-from ..utils import parameter_dependency_from_model, create_responses
+    MetadataPagination, User, Direction, Pagination, PaginationResponse, HTTPExceptionModel,
+    Files, files_parameters, WithQuery, MetadataEditRequest)
+from .entries import EntryArchiveResponse, answer_entry_archive_request
+from ..utils import (
+    parameter_dependency_from_model, create_responses, DownloadItem,
+    create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
 
 router = APIRouter()
 default_tag = 'uploads'
+metadata_tag = 'uploads/metadata'
+raw_tag = 'uploads/raw'
+archive_tag = 'uploads/archive'
+action_tag = 'uploads/action'
+bundle_tag = 'uploads/bundle'
 
 logger = utils.get_logger(__name__)
 
 
-_not_authorized = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
-
-_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload.''')}
-
-_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Unauthorized. No credentials provided, or you do not have permissions to the
-        specified upload or entry.''')}
-
-_bad_request = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. The request could not be processed because of some error/invalid argument.''')}
-
-_bad_pagination = status.HTTP_400_BAD_REQUEST, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Bad request. Invalid pagination arguments supplied.''')}
-
-_upload_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload could not be found.''')}
-
-_entry_not_found = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The specified upload or entry could not be found.''')}
-
-
 class ProcData(BaseModel):
-    tasks: List[str] = Field()
-    tasks_running: bool = Field()
-    tasks_status: str = Field()
-    current_task: Optional[str] = Field()
-    process_running: bool = Field()
-    current_process: Optional[str] = Field()
-    errors: List[str] = Field()
-    warnings: List[str] = Field()
-    create_time: datetime = Field()
-    complete_time: Optional[datetime] = Field()
+    process_running: bool = Field(
+        description='If a process is running')
+    current_process: Optional[str] = Field(
+        description='Name of the current or last completed process')
+    process_status: str = Field(
+        description='The status of the current or last completed process')
+    last_status_message: Optional[str] = Field(
+        description='A short, human readable message from the current process, with '
+                    'information about what the current process is doing, or information '
+                    'about the completion (successful or not) of the last process, if no '
+                    'process is currently running.')
+    errors: List[str] = Field(
+        descriptions='A list of error messages that occurred during the last processing')
+    warnings: List[str] = Field(
+        description='A list of warning messages that occurred during the last processing')
+    complete_time: Optional[datetime] = Field(
+        description='Date and time of the completion of the last process')
 
     class Config:
         orm_mode = True
@@ -98,38 +81,61 @@ class UploadProcData(ProcData):
     upload_id: str = Field(
         None,
         description='The unique id for the upload.')
-    name: Optional[str] = Field(
+    upload_name: Optional[str] = Field(
         description='The name of the upload. This can be provided during upload '
-                    'using the name query parameter.')
-    upload_time: datetime = Field(
+                    'using the `upload_name` query parameter.')
+    upload_create_time: datetime = Field(
         None,
-        description='The time of upload.')
-    upload_path: Optional[str] = Field(
-        description='Path to the uploaded file on the server.')
+        description='Date and time of the creation of the upload.')
+    main_author: str = Field(
+        None,
+        description=strip('The main author of the upload.'))
+    coauthors: List[str] = Field(
+        None,
+        description=strip('A list of upload coauthors.'))
+    reviewers: List[str] = Field(
+        None,
+        description=strip('A user provided list of reviewers.'))
+    viewers: List[str] = Field(
+        None,
+        description=strip('All viewers (main author, upload coauthors, and reviewers)'))
+    writers: List[str] = Field(
+        None,
+        description=strip('All writers (main author, upload coauthors)'))
     published: bool = Field(
         False,
         description='If this upload is already published.')
     published_to: List[str] = Field(
         None,
         description='A list of other NOMAD deployments that this upload was uploaded to already.')
-    last_status_message: Optional[str] = Field(
-        None,
-        description='The last informative message that the processing saved about this uploads status.')
+    publish_time: Optional[datetime] = Field(
+        'Date and time of publication, if the upload has been published.')
+    with_embargo: bool = Field(
+        description='If the upload has an embargo set (embargo_length not equal to zero).')
+    embargo_length: int = Field(
+        description='The length of the requested embargo, in months. 0 if no embargo is requested.')
+    license: str = Field(
+        description='The license under which this upload is distributed.')
+    entries: int = Field(
+        0,
+        description='The number of identified entries in this upload.')
 
 
 class EntryProcData(ProcData):
     entry_id: str = Field()
+    entry_create_time: datetime = Field()
     mainfile: str = Field()
     upload_id: str = Field()
-    parser: str = Field()
+    parser_name: str = Field()
+    entry_metadata: Optional[dict] = Field()
 
 
 class UploadProcDataPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
-            return 'create_time'  # Default value
-        assert order_by in ('create_time', 'published'), 'order_by must be a valid attribute'
+            return 'upload_create_time'  # Default value
+        assert order_by in ('upload_create_time', 'publish_time', 'upload_name', 'last_status_message'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -147,7 +153,7 @@ class EntryProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'mainfile'  # Default value
-        assert order_by in ('mainfile', 'parser', 'tasks_status', 'current_task'), 'order_by must be a valid attribute'
+        assert order_by in ('mainfile', 'parser_name', 'process_status', 'current_process'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
@@ -172,7 +178,7 @@ class UploadProcDataQuery(BaseModel):
     upload_id: Optional[List[str]] = Field(
         description='Search for uploads matching the given id. Multiple values can be specified.')
     upload_name: Optional[List[str]] = Field(
-        description='Search for uploads matching the given name. Multiple values can be specified.')
+        description='Search for uploads matching the given upload_name. Multiple values can be specified.')
     is_processing: Optional[bool] = Field(
         description=strip('''
             If True, only include currently processing uploads.
@@ -213,10 +219,63 @@ class EntryProcDataQueryResponse(BaseModel):
         None, description=strip('''
         Number of entries that failed to process.
         '''))
+    upload: UploadProcData = Field(
+        None, description=strip('''
+        The upload processing data of the upload.
+        '''))
     data: List[EntryProcData] = Field(
         None, description=strip('''
         The entries data as a list. Each item is a dictionary with the data for one entry.
         '''))
+
+
+class RawDirPagination(Pagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        assert not order_by, 'Cannot specify `order_by` for rawdir calls'
+        return None
+
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
+
+rawdir_pagination_parameters = parameter_dependency_from_model(
+    'rawdir_pagination_parameters', RawDirPagination, exclude=['order', 'order_by'])
+
+
+class RawDirFileMetadata(BaseModel):
+    ''' Metadata about a file '''
+    name: str = Field()
+    size: Optional[int] = Field()
+    entry_id: Optional[str] = Field(description=strip('''
+        If this is a mainfile: the ID of the corresponding entry.'''))
+    parser_name: Optional[str] = Field(description=strip('''
+        If this is a mainfile: the name of the matched parser.'''))
+
+
+class RawDirElementMetadata(RawDirFileMetadata):
+    ''' Metadata about an directory *element*, i.e. a file or a directory '''
+    is_file: bool = Field()
+
+
+class RawDirDirectoryMetadata(BaseModel):
+    ''' Metadata about a directory '''
+    name: str = Field()
+    size: Optional[int] = Field()
+    content: List[RawDirElementMetadata] = Field(
+        example=[
+            {'name': 'a_directory', 'is_file': False, 'size': 456},
+            {'name': 'a_file.json', 'is_file': True, 'size': 123, 'entry_id': 'XYZ', 'parser_name': 'parsers/vasp'}])
+
+
+class RawDirResponse(BaseModel):
+    path: str = Field(example='The/requested/path')
+    access: str = Field()
+    file_metadata: Optional[RawDirFileMetadata] = Field()
+    directory_metadata: Optional[RawDirDirectoryMetadata] = Field()
+    pagination: Optional[PaginationResponse] = Field()
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -226,6 +285,81 @@ class UploadCommandExamplesResponse(BaseModel):
     upload_progress_command: str = Field()
     upload_command_form: str = Field()
     upload_tar_command: str = Field()
+
+
+_not_authorized = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. Authorization is required, but no or bad authentication credentials provided.''')}
+
+_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload.''')}
+
+_not_authorized_to_entry = status.HTTP_401_UNAUTHORIZED, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Unauthorized. No credentials provided, or you do not have permissions to the
+        specified upload or entry.''')}
+
+_bad_request = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. The request could not be processed because of some error/invalid argument.''')}
+
+_bad_pagination = status.HTTP_400_BAD_REQUEST, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Bad request. Invalid pagination arguments supplied.''')}
+
+_upload_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload could not be found.''')}
+
+_entry_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload or entry could not be found.''')}
+
+_upload_or_path_not_found = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        The specified upload, or a resource with the specified path within the upload,
+        could not be found.''')}
+
+_upload_response = 200, {
+    'model': UploadProcDataResponse,
+    'content': {
+        'application/json': {},
+        'text/plain': {'example': 'Thanks for uploading your data to nomad.'}
+    },
+    'description': strip('''
+        A json structure with upload data, if the request headers specifies
+        `Accept = application/json`, otherwise a plain text information string.''')}
+
+_raw_path_response = 200, {
+    'content': {
+        'application/octet-stream': {'example': 'file data'},
+        'application/zip': {'example': '<zipped file or directory content>'}},
+    'description': strip('''
+        If `path` denotes a file: a stream with the file content, zipped if `compress = true`.
+        If `path` denotes a directory, and `compress = true`, the directory content, zipped.''')}
+
+_upload_bundle_response = 200, {
+    'content': {
+        'application/zip': {'example': '<zipped bundle data>'}}}
+
+
+_no_name = 'NO NAME'
+
+_thank_you_message = f'''
+Thanks for uploading your data to nomad.
+Go back to {config.gui_url()} and press
+reload to see the progress on your upload
+and publish your data.'''
 
 
 @router.get(
@@ -240,7 +374,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
     token = generate_upload_token(user)
     api_url = config.api_url(ssl=config.services.https_upload, api='api/v1')
     upload_url = f'{api_url}/uploads?token={token}'
-    upload_url_with_name = upload_url + '&name=<name>'
+    upload_url_with_name = upload_url + '&upload_name=<name>'
     # Upload via streaming data tends to work much easier, e.g. no mime type issues, etc.
     # It is also easier for the user to unterstand IMHO.
     upload_command = f"curl -X POST '{upload_url}' -T <local_file>"
@@ -256,7 +390,7 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
 
 
 @router.get(
-    '', tags=[default_tag],
+    '', tags=[metadata_tag],
     summary='List uploads of authenticated user.',
     response_model=UploadProcDataQueryResponse,
     responses=create_responses(_not_authorized, _bad_pagination),
@@ -271,37 +405,38 @@ async def get_uploads(
     Retrieves metadata about all uploads that match the given query criteria.
     '''
     # Build query
-    query_kwargs: Dict[str, Any] = {}
-    query_kwargs.update(user_id=str(user.user_id))
+    mongo_query = Q()
+    user_id = str(user.user_id)
+    mongo_query &= Q(main_author=user_id) | Q(reviewers=user_id) | Q(coauthors=user_id)
 
     if query.upload_id:
-        query_kwargs.update(upload_id__in=query.upload_id)
+        mongo_query &= Q(upload_id__in=query.upload_id)
 
     if query.upload_name:
-        query_kwargs.update(name__in=query.upload_name)
+        mongo_query &= Q(upload_name__in=query.upload_name)
 
     if query.is_processing is True:
-        query_kwargs.update(process_status__ne=PROCESS_COMPLETED)
+        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
     elif query.is_processing is False:
-        query_kwargs.update(process_status=PROCESS_COMPLETED)
+        mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
 
     if query.is_published is True:
-        query_kwargs.update(published=True)
+        mongo_query &= Q(publish_time__ne=None)
     elif query.is_published is False:
-        query_kwargs.update(published=False)
+        mongo_query &= Q(publish_time=None)
 
     # Fetch data from DB
-    mongodb_query = _query_mongodb(**query_kwargs)
+    mongodb_query = Upload.objects.filter(mongo_query)
     # Create response
     start = pagination.get_simple_index()
     end = start + pagination.page_size
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    if order_by == 'create_time':
+    if order_by == 'upload_create_time':
         order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    elif order_by == 'published':
-        order_by_args = [order_by_with_sign, 'create_time', 'upload_id']
+    else:
+        order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
 
     mongodb_query = mongodb_query.order_by(*order_by_args)
 
@@ -317,7 +452,7 @@ async def get_uploads(
 
 
 @router.get(
-    '/{upload_id}', tags=[default_tag],
+    '/{upload_id}', tags=[metadata_tag],
     summary='Get a specific upload',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload),
@@ -340,7 +475,7 @@ async def get_upload(
 
 
 @router.get(
-    '/{upload_id}/entries', tags=[default_tag],
+    '/{upload_id}/entries', tags=[metadata_tag],
     summary='Get the entries of the specific upload as a list',
     response_model=EntryProcDataQueryResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_pagination),
@@ -352,12 +487,12 @@ async def get_upload_entries(
             ...,
             description='The unique id of the upload to retrieve entries for.'),
         pagination: EntryProcDataPagination = Depends(entry_proc_data_pagination_parameters),
-        user: User = Depends(create_user_dependency(required=True))):
+        user: User = Depends(create_user_dependency())):
     '''
     Fetches the entries of a specific upload. Pagination is used to browse through the
     results.
     '''
-    upload = _get_upload_with_read_access(upload_id, user)
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
 
     order_by = pagination.order_by
     order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
@@ -365,21 +500,44 @@ async def get_upload_entries(
     start = pagination.get_simple_index()
     end = start + pagination.page_size
 
-    # load upload's calcs. Use calc_id as tie breaker for ordering.
-    entries = list(upload.all_calcs(start, end, order_by=(order_by_with_sign, 'calc_id')))
-    failed_calcs = upload.failed_calcs
+    # load upload's entries. Use entry_id as tie breaker for ordering.
+    entries = list(upload.entries_sublist(start, end, order_by=(order_by_with_sign, 'entry_id')))
+    failed_entries_count = upload.failed_entries_count
 
-    pagination_response = PaginationResponse(total=upload.total_calcs, **pagination.dict())
+    # load entries's metadata from search
+    metadata_entries_query = WithQuery(
+        query={
+            'entry_id:any': list([entry.entry_id for entry in entries])
+        }).query
+    metadata_entries = search(
+        pagination=MetadataPagination(page_size=len(entries)),
+        owner='admin' if user and user.is_admin else 'visible',
+        user_id=user.user_id if user else None,
+        query=metadata_entries_query)
+    metadata_entries_map = {
+        metadata_entry['entry_id']: metadata_entry
+        for metadata_entry in metadata_entries.data}
+
+    # convert data to pydantic
+    data = []
+    for entry in entries:
+        pydantic_entry = _entry_to_pydantic(entry)
+        pydantic_entry.entry_metadata = metadata_entries_map.get(entry.entry_id)
+        data.append(pydantic_entry)
+
+    pagination_response = PaginationResponse(total=upload.total_entries_count, **pagination.dict())
     pagination_response.populate_simple_index_and_urls(request)
+
     return EntryProcDataQueryResponse(
         pagination=pagination_response,
-        processing_successful=upload.processed_calcs - failed_calcs,
-        processing_failed=failed_calcs,
-        data=[_entry_to_pydantic(entry) for entry in entries])
+        processing_successful=upload.processed_entries_count - failed_entries_count,
+        processing_failed=failed_entries_count,
+        upload=_upload_to_pydantic(upload),
+        data=data)
 
 
 @router.get(
-    '/{upload_id}/entries/{entry_id}', tags=[default_tag],
+    '/{upload_id}/entries/{entry_id}', tags=[metadata_tag],
     summary='Get a specific entry for a specific upload',
     response_model=EntryProcDataResponse,
     responses=create_responses(_entry_not_found, _not_authorized_to_entry),
@@ -397,55 +555,448 @@ async def get_upload_entry(
     Fetches a specific entry for a specific upload.
     '''
     upload = _get_upload_with_read_access(upload_id, user)
-    entry = upload.get_calc(entry_id)
+    entry = upload.get_entry(entry_id)
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             An entry by that id could not be found in the specified upload.'''))
-    return EntryProcDataResponse(
-        entry_id=entry_id,
-        data=_entry_to_pydantic(entry))
+
+    # load entries's metadata from search
+    metadata_entries = search(
+        pagination=MetadataPagination(page_size=1),
+        owner='admin' if user.is_admin else 'visible',
+        user_id=user.user_id,
+        query=dict(entry_id=entry.entry_id))
+    data = _entry_to_pydantic(entry)
+    if len(metadata_entries.data) == 1:
+        data.entry_metadata = metadata_entries.data[0]
+
+    return EntryProcDataResponse(entry_id=entry_id, data=data)
+
+
+@router.get(
+    '/{upload_id}/rawdir/{path:path}', tags=[raw_tag],
+    summary='Get the raw files and folders metadata for a given upload and path.',
+    response_model=RawDirResponse,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_rawdir_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        pagination: RawDirPagination = Depends(rawdir_pagination_parameters),
+        include_entry_info: bool = FastApiQuery(
+            False,
+            description=strip('''
+                If the fields `entry_id` and `parser_name` should be populated for all
+                encountered mainfiles.''')),
+        user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
+    '''
+    For the upload specified by `upload_id`, gets the raw file or directory metadata
+    located at the given `path`. The response will either contain a `file_metadata` or
+    `directory_metadata` key. For files, basic data about the file is returned, such as its
+    name and size. For directories, the response includes a list of elements
+    (files and folders) in the directory. For directories, the result is paginated.
+    '''
+    # Get upload
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    try:
+        # Get upload files
+        upload_files = upload.upload_files
+        if not upload_files.raw_path_exists(path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+                Not found. Invalid path?'''))
+
+        response = RawDirResponse(
+            path=path.rstrip('/'),
+            access='unpublished' if not upload.published else (
+                'embargoed' if upload.embargo_length else 'public'))
+
+        if upload_files.raw_path_is_file(path):
+            response.file_metadata = RawDirFileMetadata(
+                name=os.path.basename(path),
+                size=upload_files.raw_file_size(path))
+            if include_entry_info:
+                entry: Entry = Entry.objects(upload_id=upload_id, mainfile=path).first()
+                if entry:
+                    response.file_metadata.entry_id = entry.entry_id
+                    response.file_metadata.parser_name = entry.parser_name
+        else:
+            start = pagination.get_simple_index()
+            end = start + pagination.page_size
+            directory_list = upload_files.raw_directory_list(path)
+            upload_files.close()
+            content = []
+            path_to_element: Dict[str, RawDirElementMetadata] = {}
+            total = 0
+            total_size = 0
+            for i, path_info in enumerate(directory_list):
+                total += 1
+                total_size += path_info.size
+                if start <= i < end:
+                    element = RawDirElementMetadata(
+                        name=os.path.basename(path_info.path),
+                        is_file=path_info.is_file,
+                        size=path_info.size)
+                    content.append(element)
+                    if include_entry_info:
+                        path_to_element[path_info.path] = element
+
+            if include_entry_info and content:
+                for entry in Entry.objects(upload_id=upload_id, mainfile__in=path_to_element.keys()):
+                    element = path_to_element[entry.mainfile]
+                    element.entry_id = entry.entry_id
+                    element.parser_name = entry.parser_name
+
+            response.directory_metadata = RawDirDirectoryMetadata(
+                name=os.path.basename(path),
+                size=total_size,
+                content=content)
+
+            pagination_response = PaginationResponse(total=total, **pagination.dict())
+            pagination_response.populate_simple_index_and_urls(request)
+            response.pagination = pagination_response
+
+        return response
+    except Exception:
+        upload_files.close()
+        raise
+
+
+@router.get(
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
+    summary='Get the raw files and folders for a given upload and path.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _raw_path_response, _upload_or_path_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_raw_path(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        files_params: Files = Depends(files_parameters),
+        offset: Optional[int] = FastApiQuery(
+            0,
+            description=strip('''
+                When dowloading individual files with `compress = false`, this can be
+                used to seek to a specified position within the file in question. Default
+                is 0, i.e. the start of the file.''')),
+        length: Optional[int] = FastApiQuery(
+            -1,
+            description=strip('''
+                When dowloading individual files with `compress = false`, this can be
+                used to specify the number of bytes to read. By default, the value is -1,
+                which means that the remainder of the file is streamed.''')),
+        decompress: bool = FastApiQuery(
+            False,
+            description=strip('''
+                Set if compressed files should be decompressed before streaming the
+                content (that is: if there are compressed files *within* the raw files).
+                Note, only some compression formats are supported.''')),
+        user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
+    '''
+    For the upload specified by `upload_id`, gets the raw file or directory content located
+    at the given `path`. The data is zipped if `compress = true`.
+
+    It is possible to download both individual files and directories, but directories can
+    only be downloaded if `compress = true`. When downloading a directory, it is also
+    possible to specify `re_pattern`, `glob_pattern` or `include_files` to filter the files
+    based on the file names.
+
+    When downloading a file, you can specify `decompress` to attempt to decompress the data
+    if the file is compressed before streaming it. You can also specify `offset` and `length`
+    to download only a segment of the file (*Note:* `offset` and `length` does not work if
+    `compress` is set to true).
+    '''
+    if files_params.compress and (offset != 0 or length != -1):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Cannot specify `offset` or `length` when `compress` is true'''))
+    # Get upload
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    # Get upload files
+    upload_files = upload.upload_files
+    try:
+        if not upload_files.raw_path_exists(path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+                Not found. Invalid path?'''))
+        if upload_files.raw_path_is_file(path):
+            # File
+            if files_params.compress:
+                media_type = 'application/zip'
+                download_item = DownloadItem(
+                    upload_id=upload_id,
+                    raw_path=path,
+                    zip_path=os.path.basename(path))
+                content = create_download_stream_zipped(
+                    download_item, upload_files, compress=True)
+            else:
+                if offset < 0:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                        Invalid offset provided.'''))
+                if length <= 0 and length != -1:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                        Invalid length provided. Should be greater than 0, or -1 if the remainder
+                        of the file should be read.'''))
+                media_type = upload_files.raw_file_mime_type(path)
+                content = create_download_stream_raw_file(
+                    upload_files, path, offset, length, decompress)
+            return StreamingResponse(content, media_type=media_type)
+        else:
+            # Directory
+            if not files_params.compress:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                    Path is a directory, `compress` must be set to true'''))
+            # Stream directory content, compressed.
+            download_item = DownloadItem(
+                upload_id=upload_id, raw_path=path, zip_path='')
+            content = create_download_stream_zipped(
+                download_item, upload_files,
+                re_pattern=files_params.re_pattern, recursive=True,
+                create_manifest_file=False, compress=True)
+            return StreamingResponse(content, media_type='application/zip')
+    except Exception as e:
+        logger.error('exception while streaming download', exc_info=e)
+        upload_files.close()
+        raise
+
+
+@router.put(
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
+    summary='Put (add or replace) files to an upload at the specified path.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def put_upload_raw_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        file: UploadFile = File(None),
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        file_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            Specifies the name of the file, when using method 2.''')),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Upload files to an already existing upload (identified by upload_id). The files are
+    *merged* with the existing files, i.e. new files are added, if there is a collision
+    (an old file with the same path and name as one of the new files), the old file will
+    be overwritten, but the rest of the old files will remain untouched.
+
+    The `path` is interpreted as a directory. The empty string gives the "root" directory.
+
+    If the file is a zip or tar archive, it will first be extracted, then merged.
+
+    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. Note, however, that the second method
+    does not transfer a filename. If a transfer is made using method 2, you can specify
+    the query argument `file_name` to name it. This *needs* to be specified when using
+    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
+    matter since they are extracted). See the POST `uploads` endpoint for examples of curl
+    commands for uploading files.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    if not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+
+    upload_path, method = await _get_file_if_provided(
+        upload_id, request, file, local_path, file_name, user)
+
+    if not upload_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='No upload file provided.')
+
+    if files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path):
+        # Uploading an compressed file -> reprocess the entire target directory
+        path_filter = path
+    else:
+        # Uploading a single file -> reprocess only the file
+        path_filter = os.path.join(path, os.path.basename(upload_path))
+
+    try:
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
+            path_filter=path_filter)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
+
+    if request.headers.get('Accept') == 'application/json':
+        upload_proc_data_response = UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+        response_text = upload_proc_data_response.json()
+        media_type = 'application/json'
+    else:
+        response_text = _thank_you_message
+        media_type = 'text/plain'
+
+    return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
+@router.delete(
+    '/{upload_id}/raw/{path:path}', tags=[raw_tag],
+    summary='Delete file or folder located at the specified path in the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def delete_upload_raw_path(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Delete file or folder located at the specified path in the specified upload. The upload
+    must not be published. This also automatically triggers a reprocessing of the upload.
+    Choosing the empty string as `path` deletes all files.
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    if not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+
+    upload_files = StagingUploadFiles(upload_id)
+
+    if not upload_files.raw_path_exists(path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='No file or folder with that path found.')
+
+    try:
+        upload.process_upload(file_operation=dict(op='DELETE', path=path), path_filter=path)
+    except ProcessAlreadyRunning:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently blocked by another process.')
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.get(
+    '/{upload_id}/archive/mainfile/{mainfile:path}', tags=[archive_tag],
+    summary='Get the full archive for the given upload and mainfile path.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive_mainfile(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        mainfile: str = Path(
+            ...,
+            description='The mainfile path within the upload\'s raw files.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `mainfile`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, mainfile=mainfile),
+        required='*', user=user)
+
+
+@router.get(
+    '/{upload_id}/archive/{entry_id}', tags=[archive_tag],
+    summary='Get the full archive for the given upload and entry.',
+    response_model=EntryArchiveResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload))
+async def get_upload_entry_archive(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        entry_id: str = Path(
+            ...,
+            description='The unique entry id.'),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    For the upload specified by `upload_id`, gets the full archive of a single entry that
+    is identified by the given `entry_id`.
+    '''
+    _get_upload_with_read_access(upload_id, user, include_others=True)
+    return answer_entry_archive_request(
+        dict(upload_id=upload_id, entry_id=entry_id),
+        required='*', user=user)
 
 
 @router.post(
     '', tags=[default_tag],
     summary='Submit a new upload',
-    response_model=UploadProcDataResponse,
-    responses=create_responses(_not_authorized, _bad_request),
+    response_class=StreamingResponse,
+    responses=create_responses(_upload_response, _not_authorized, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def post_upload(
         request: Request,
         file: UploadFile = File(None),
-        local_path: str = None,  # Internal use/admins only
-        name: str = FastApiQuery(
+        local_path: str = FastApiQuery(
             None,
             description=strip('''
-            Specifies the name of the upload.''')),
+            Internal/Admin use only.''')),
+        file_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            Specifies the name of the file, when using method 2.''')),
+        upload_name: str = FastApiQuery(
+            None,
+            description=strip('''
+            A human readable name for the upload.''')),
+        embargo_length: int = FastApiQuery(
+            0,
+            description=strip('''
+            The requested embargo length, in months, if any (0-36).''')),
         publish_directly: bool = FastApiQuery(
             None,
             description=strip('''
             If the upload should be published directly. False by default.''')),
-        oasis_upload_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the upload id of the oasis system.''')),
-        oasis_uploader_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the id of the user in the oasis system who made the upload
-            originally. The user must also be registered in NOMAD.''')),
-        oasis_deployment_id: str = FastApiQuery(
-            None,
-            description=strip('''
-            For oasis uploads: the deployment id.''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Upload a file to the repository. Can be used to upload files via browser or other
-    http clients like curl. This will also start the processing of the upload.
+    Creates a new, empty upload and, optionally, uploads a first file to it. If a file is
+    provided, and it is a zip or tar file, it will first be extracted, then added.
+
+    It is recommended to give the upload itself a descriptive `upload_name`. If not specified,
+    it will be set to the file name (if provided). The `upload_name` can be edited afterwards (as
+    long as the upload is not published).
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
-    file data in the http body. Both are supported. The second method does not transfer a
-    filename, so it is recommended to supply the parameter `name` in this case.
+    file data in the http body. Both are supported. Note, however, that the second method
+    does not transfer a filename. If a transfer is made using method 2, you can specify
+    the query argument `file_name` to name it. This *needs* to be specified when using
+    method 2, unless you are uploading a zip/tar file (for zip/tar files the names don't
+    matter since they are extracted).
+
+    Example curl commands for creating an upload and uploading a file:
 
     Method 1: multipart-formdata
 
@@ -455,139 +1006,110 @@ async def post_upload(
 
         curl -X 'POST' "url" -T local_file
 
-    Authentication is required to perform an upload. This can either be done using the
-    regular bearer token, or using the simplified upload token. To use the simplified
-    upload token, just specify it as a query parameter in the url, i.e.
+    Authentication is required. This can either be done using the regular bearer token,
+    or using the simplified upload token. To use the simplified upload token, just
+    specify it as a query parameter in the url, i.e.
 
-        curl -X 'POST' ".../uploads?token=ABC.XYZ" ...
+        curl -X 'POST' "baseurl?token=ABC.XYZ" ...
 
     Note, there is a limit on how many unpublished uploads a user can have. If exceeded,
     error code 400 will be returned.
     '''
-    # Determine the source data stream
-    src_stream = None
-    if local_path:
-        # Method 0: Local file - only for admins
-        if not user.is_admin:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-                You need to be admin to use local_path as method of upload.'''))
-        if not os.path.exists(local_path) or not os.path.isfile(local_path):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                The specified local_path cannot be found or is not a file.'''))
-        if not name:
-            name = os.path.basename(local_path)
-        src_stream = _asyncronous_file_reader(open(local_path, 'rb'))
-    elif file:
-        # Method 1: Data provided as formdata
-        if not name:
-            name = file.filename
-        src_stream = _asyncronous_file_reader(file)
-    else:
-        # Method 2: Data has to be sent streamed in the body
-        src_stream = request.stream()
-
     if not user.is_admin:
         # Check upload limit
-        if _query_mongodb(user_id=str(user.user_id), published=False).count() >= config.services.upload_limit:  # type: ignore
+        if _query_mongodb(main_author=str(user.user_id), publish_time=None).count() >= config.services.upload_limit:  # type: ignore
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                 Limit of unpublished uploads exceeded for user.'''))
 
-    # check if allowed to perform oasis upload
-    from_oasis = oasis_upload_id is not None
-    if from_oasis:
-        if not user.is_oasis_admin:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Only an oasis admin can perform an oasis upload.')
-        if oasis_uploader_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You must provide the original uploader for an oasis upload.')
-        if oasis_deployment_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You must provide the oasis deployment id for an oasis upload.')
-        if publish_directly is False:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Oasis uploads are always published directly.')
-        # Switch user!
-        user = datamodel.User.get(user_id=oasis_uploader_id)
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='The given original uploader does not exist.')
-    elif oasis_uploader_id is not None or oasis_deployment_id is not None:
+    if not 0 <= embargo_length <= 36:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='For an oasis upload you must provide an oasis_upload_id.')
+            detail='`embargo_length` must be between 0 and 36 months.')
 
-    # Get upload_id and path
-    if from_oasis:
-        upload_id = oasis_upload_id
-        try:
-            Upload.get(upload_id)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='An oasis upload with the given upload_id already exists.')
-        except KeyError:
-            pass
-    else:
-        upload_id = utils.create_uuid()
+    upload_id = utils.create_uuid()
 
-    logger.info('upload created', upload_id=upload_id)
+    if upload_name and not file_name and files.is_safe_basename(upload_name):
+        # Try to default the file_name using name
+        file_name = upload_name
 
-    # Read the stream and save to file
-    if local_path:
-        upload_path = local_path  # Use the provided path
-        uploaded_bytes = os.path.getsize(local_path)
-    else:
-        upload_path = files.PathObject(config.fs.tmp, upload_id).os_path
-        try:
-            with open(upload_path, 'wb') as f:
-                uploaded_bytes = 0
-                log_interval = 1e9
-                log_unit = 'GB'
-                next_log_at = log_interval
-                async for chunk in src_stream:
-                    if not chunk:
-                        # End of data stream
-                        break
-                    uploaded_bytes += len(chunk)
-                    f.write(chunk)
-                    if uploaded_bytes > next_log_at:
-                        logger.info('Large upload in progress - uploaded: '
-                                    f'{uploaded_bytes // log_interval} {log_unit}')
-                        next_log_at += log_interval
-                logger.info(f'Uploaded {uploaded_bytes} bytes')
-        except Exception:
-            if os.path.isfile(upload_path):
-                os.remove(upload_path)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                    Some IO went wrong, download probably aborted/disrupted.'''))
+    upload_path, method = await _get_file_if_provided(
+        upload_id, request, file, local_path, file_name, user)
 
-    if not uploaded_bytes:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
-                Empty upload - not allowed.'''))
-
-    logger.info('received uploaded file')
+    if not upload_name:
+        # Try to default upload_name
+        if method == 2:
+            upload_name = file_name or None
+        elif upload_path:
+            upload_name = os.path.basename(upload_path)
 
     upload = Upload.create(
         upload_id=upload_id,
-        user=user,
-        name=name,
-        upload_time=datetime.utcnow(),
-        upload_path=upload_path,
-        temporary=local_path != upload_path,
-        publish_directly=publish_directly or from_oasis,
-        from_oasis=from_oasis,
-        oasis_deployment_id=oasis_deployment_id)
+        main_author=user,
+        upload_name=upload_name,
+        upload_create_time=datetime.utcnow(),
+        embargo_length=embargo_length,
+        publish_directly=publish_directly)
 
-    upload.process_upload()
+    # Create staging files
+    files.StagingUploadFiles(upload_id=upload_id, create=True)
 
-    return UploadProcDataResponse(
-        upload_id=upload_id,
-        data=_upload_to_pydantic(upload))
+    logger.info('upload created', upload_id=upload_id)
+
+    if upload_path:
+        upload.process_upload(
+            file_operation=dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0)))
+
+    if request.headers.get('Accept') == 'application/json':
+        upload_proc_data_response = UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+        response_text = upload_proc_data_response.json()
+        media_type = 'application/json'
+    else:
+        response_text = _thank_you_message
+        media_type = 'text/plain'
+
+    return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+
+
+@router.post(
+    '/{upload_id}/edit', tags=[metadata_tag],
+    summary='Updates the metadata of the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_edit(
+        request: Request,
+        data: MetadataEditRequest,
+        upload_id: str = Path(..., description='The unique id of the upload.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    '''
+    Updates the metadata of the specified upload and entries. An optional `query` can be
+    specified to select only some of the entries of the upload (the query results are
+    automatically restricted to the specified upload).
+
+    **Note:**
+      - Only admins can edit some of the fields.
+      - The embargo of a published upload is lifted by setting the `embargo_length` attribute
+        to 0.
+      - If the upload is published, the only operations permitted using this endpoint is to
+        lift the embargo, i.e. set `embargo_length` to 0, and to edit the entries in datasets
+        that where created by the current user.
+      - If a query is specified, it is not possible to edit upload level metadata (like
+        `upload_name`, `coauthors`, etc.), as the purpose of queries is to select only a
+        subset of the upload entries to edit, but changing upload level metadata would affect
+        **all** entries of the upload.
+    '''
+    edit_request_json = await request.json()
+    try:
+        MetadataEditRequestHandler.edit_metadata(edit_request_json, upload_id, user)
+        return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(Upload.get(upload_id)))
+    except RequestValidationError as e:
+        raise  # A problem which we have handled explicitly. Fastapi does json conversion.
+    except Exception as e:
+        # The upload is processing or some kind of unexpected error has occured
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
@@ -608,11 +1130,8 @@ async def delete_upload(
     Only uploads that are sill in staging, not already deleted, not still uploaded, and
     not currently processed, can be deleted.
     '''
-    upload = _get_upload_with_write_access(upload_id, user)
-
-    if upload.tasks_running:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            The upload is not processed yet.'''))
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=True)
 
     try:
         upload.delete_upload()
@@ -629,7 +1148,7 @@ async def delete_upload(
 
 
 @router.post(
-    '/{upload_id}/action/publish', tags=[default_tag],
+    '/{upload_id}/action/publish', tags=[action_tag],
     summary='Publish an upload',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -640,14 +1159,11 @@ async def post_upload_action_publish(
             ...,
             description=strip('''
                 The unique id of the upload to publish.''')),
-        with_embargo: bool = FastApiQuery(
-            True,
-            description=strip('''
-                If the data is published with an embargo.''')),
         embargo_length: int = FastApiQuery(
-            36,
+            None,
             description=strip('''
-                Length of the requested embargo in months.''')),
+                If provided, updates the embargo length of the upload. The value should
+                be between 0 and 36 months. 0 means no embargo.''')),
         to_central_nomad: bool = FastApiQuery(
             False,
             description=strip('''
@@ -656,23 +1172,33 @@ async def post_upload_action_publish(
                 on the OASIS.''')),
         user: User = Depends(create_user_dependency(required=True))):
     '''
-    Publishes an upload. The upload cannot be modified after this point, and after the
-    embargo period (if any) is expired, the generated archive entries will be publicly visible.
+    Publishes an upload. The upload cannot be modified after this point (except for special
+    cases, like when lifting the embargo prematurely, and by admins). After the upload is
+    published and the embargo period (if any) is expired, the generated archive entries
+    will be publicly visible.
     '''
-    upload = _get_upload_with_write_access(upload_id, user)
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=False)
 
-    if upload.tasks_running or upload.process_running:
+    if upload.published and not user.is_admin and not to_central_nomad:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is not finished processing yet.')
-    if upload.tasks_status == FAILURE:
+            detail='Upload already published.')
+
+    _check_upload_not_processing(upload)
+
+    if upload.process_status == ProcessStatus.FAILURE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload that failed processing.')
-    if upload.processed_calcs == 0:
+    if upload.processed_entries_count == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Cannot publish an upload without any resulting entries.')
+    if embargo_length is not None and not 0 <= embargo_length <= 36:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid embargo_length. Must be between 0 and 36 months.')
 
     if to_central_nomad:
         # Publish from an OASIS to the central repository
@@ -685,23 +1211,15 @@ async def post_upload_action_publish(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload must be published on the OASIS first.')
         # Everything looks ok, try to publish it to the central NOMAD!
-        upload.publish_from_oasis()
+        upload.publish_externally(embargo_length=embargo_length)
     else:
         # Publish to this repository
         if upload.published:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload is already published.')
-        metadata_dict: Dict[str, Any] = {'with_embargo': with_embargo}
-        if with_embargo:
-            if not embargo_length or not 0 < embargo_length <= 36:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='embargo_length needs to be between 1 and 36 months.')
-            metadata_dict.update(embargo_length=embargo_length)
         try:
-            upload.compress_and_set_metadata(metadata_dict)
-            upload.publish_upload()
+            upload.publish_upload(embargo_length=embargo_length)
         except ProcessAlreadyRunning:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -713,41 +1231,329 @@ async def post_upload_action_publish(
 
 
 @router.post(
-    '/{upload_id}/action/re-process', tags=[default_tag],
-    summary='Re-process a published upload',
+    '/{upload_id}/action/process', tags=[action_tag],
+    summary='Manually triggers processing of an upload.',
     response_model=UploadProcDataResponse,
     responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
-async def post_upload_action_reprocess(
+async def post_upload_action_process(
         upload_id: str = Path(
             ...,
-            description='The unique id of the upload to re-process.'),
+            description='The unique id of the upload to process.'),
         user: User = Depends(create_user_dependency(required=True))):
     '''
-    Re-processes an upload. The upload must be published, have at least one outdated
-    caclulation, and not be processing at the moment.
+    Processes an upload, i.e. parses the files and updates the NOMAD archive. Only admins
+    can process an already published upload.
     '''
-    upload = _get_upload_with_write_access(upload_id, user, published_requires_admin=False)
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=True)
 
-    if upload.tasks_running or upload.process_running:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The upload is currently being processed.')
-    if not upload.published:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Only published uploads can be re-processed.')
-    if len(upload.outdated_calcs) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='You can only re-process uploads with at least one outdated calculation')
+    _check_upload_not_processing(upload)
 
-    upload.reset()
-    upload.re_process_upload()
+    upload.process_upload()
     return UploadProcDataResponse(
         upload_id=upload_id,
         data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/action/lift-embargo', tags=[action_tag],
+    summary='Lifts the embargo of an upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_action_lift_embargo(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload to lift the embargo for.'),
+        user: User = Depends(create_user_dependency(required=True))):
+    ''' Lifts the embargo of an upload. '''
+    upload = _get_upload_with_write_access(
+        upload_id, user, include_published=True, published_requires_admin=False)
+    _check_upload_not_processing(upload)
+    if not upload.published:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Upload is not published, no embargo to lift.'''))
+    if not upload.with_embargo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Upload has no embargo.'''))
+    # Lift the embargo using MetadataEditRequestHandler.edit_metadata
+    try:
+        MetadataEditRequestHandler.edit_metadata({'metadata': {'embargo_length': 0}}, upload_id, user)
+        upload.reload()
+        return UploadProcDataResponse(
+            upload_id=upload_id,
+            data=_upload_to_pydantic(upload))
+    except Exception as e:
+        # Should only happen if the upload just started processing or something unexpected happens
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get(
+    '/{upload_id}/bundle', tags=[bundle_tag],
+    summary='Gets an *upload bundle* for the specified upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _upload_bundle_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_bundle(
+        upload_id: str = Path(
+        ...,
+        description='The unique id of the upload.'),
+        include_raw_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If raw files should be included in the bundle (true by default).''')),
+        include_archive_files: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If archive files (i.e. parsed entries data) should be included in the bundle
+                (true by default).''')),
+        include_datasets: Optional[bool] = FastApiQuery(
+            True,
+            description=strip('''
+                If datasets references to this upload should be included in the bundle
+                (true by default).''')),
+        user: User = Depends(create_user_dependency(required=False))):
+    '''
+    Get an *upload bundle* for the specified upload. An upload bundle is a file bundle which
+    can be used to export and import uploads between different NOMAD deployments.
+    '''
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    _check_upload_not_processing(upload)
+
+    try:
+        stream = upload.export_bundle(
+            export_as_stream=True, export_path=None, zipped=True, move_files=False, overwrite=False,
+            include_raw_files=include_raw_files, include_archive_files=include_archive_files,
+            include_datasets=include_datasets)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Could not export due to error: ''' + str(e)))
+
+    return StreamingResponse(stream, media_type='application/zip')
+
+
+@router.post(
+    '/bundle', tags=[bundle_tag],
+    summary='Posts an *upload bundle* to this NOMAD deployment.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(_not_authorized, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_bundle(
+        request: Request,
+        file: UploadFile = File(None),
+        local_path: str = FastApiQuery(
+            None,
+            description=strip('''
+            Internal/Admin use only.''')),
+        embargo_length: Optional[int] = FastApiQuery(
+            None,
+            description=strip('''
+                Specifies the embargo length in months to set on the upload. If omitted,
+                the value specified in the bundle will be used. A value of 0 means no
+                embargo.''')),
+        include_raw_files: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If raw files should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        include_archive_files: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If archive files (i.e. parsed entries data) should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        include_datasets: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If dataset references to this upload should be imported from the bundle
+                *(only admins can change this setting)*.''')),
+        include_bundle_info: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If the bundle_info.json file should be kept
+                *(only admins can change this setting)*.''')),
+        keep_original_timestamps: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If all original timestamps, including `upload_create_time`, `entry_create_time`
+                and `publish_time`, should be kept
+                *(only admins can change this setting)*.''')),
+        set_from_oasis: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If the `from_oasis` flag and `oasis_deployment_id` should be set
+                *(only admins can change this setting)*.''')),
+        trigger_processing: Optional[bool] = FastApiQuery(
+            None,
+            description=strip('''
+                If processing should be triggered after the bundle has been imported
+                *(only admins can change this setting)*.''')),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Posts an *upload bundle* to this NOMAD deployment. An upload bundle is a file bundle which
+    can be used to export and import uploads between different NOMAD installations. The
+    endpoint expects an upload bundle attached as a zipfile.
+
+    **NOTE:** This endpoint is restricted to admin users and oasis admins. Further, all
+    settings except `embargo_length` requires an admin user to change (these settings
+    have default values specified by the system configuration).
+
+    There are two basic ways to upload a file: in the multipart-formdata or streaming the
+    file data in the http body. Both are supported. See the POST `uploads` endpoint for
+    examples of curl commands for uploading files.
+    '''
+    is_admin = user.is_admin
+    is_oasis = not is_admin and user.is_oasis_admin and config.bundle_import.allow_bundles_from_oasis
+
+    if not is_admin and not is_oasis:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='User not authorized to upload bundles')
+
+    bundle_path, method = await _get_file_if_provided(
+        tmp_dir_prefix='bundle', request=request, file=file, local_path=local_path, file_name=None, user=user)
+
+    if not bundle_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail='No bundle file provided')
+
+    try:
+        bundle: UploadBundle = None
+        bundle = UploadBundle(bundle_path)
+
+        if is_oasis and not config.bundle_import.allow_unpublished_bundles_from_oasis:
+            bundle_info = bundle.bundle_info
+            if not bundle_info.get('upload', {}).get('publish_time'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Bundles uploaded from an oasis must be published in the oasis first.')
+
+        settings_dict: Dict[str, Any] = dict(
+            include_raw_files=include_raw_files,
+            include_archive_files=include_archive_files,
+            include_datasets=include_datasets,
+            include_bundle_info=include_bundle_info,
+            keep_original_timestamps=keep_original_timestamps,
+            set_from_oasis=set_from_oasis,
+            trigger_processing=trigger_processing)
+
+        for k, v in settings_dict.copy().items():
+            if v is None:
+                del settings_dict[k]
+            elif v is not None and not is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Specifying setting {k} requires an admin user')
+
+        upload = Upload.create_skeleton_from_bundle(bundle)
+        bundle.close()
+        upload.import_bundle(
+            bundle_path, move_files=False, embargo_length=embargo_length,
+            settings=settings_dict)
+
+        return UploadProcDataResponse(
+            upload_id=upload.upload_id,
+            data=_upload_to_pydantic(upload))
+
+    except Exception as e:
+        if bundle:
+            bundle.close()
+        if method != 0:
+            bundle.delete(include_parent_folder=True)
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail='Failed to import bundle: ' + str(e))
+
+
+async def _get_file_if_provided(
+        tmp_dir_prefix: str, request: Request, file: UploadFile, local_path: str, file_name: str,
+        user: User) -> Tuple[str, int]:
+    '''
+    If the user provides a file with the api call, load it and save it to a temporary
+    folder (or, if method 0 is used, forward the file). The method thus needs to identify
+    which file transfer method was used (0 - 2), and save the data (if method is 1 or 2).
+
+    Returns the os path to the resulting file and method (0-2), or (None, None) if no file
+    data was provided with the api call.
+    '''
+    # Determine the source data stream
+    file_name_argument_not_given = not file_name
+    src_stream = None
+    if local_path:
+        # Method 0: Local file - only for admins
+        if not user.is_admin:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You need to be admin to use local_path as method of upload.'''))
+        if not os.path.exists(local_path) or not os.path.isfile(local_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                The specified local_path cannot be found or is not a file.'''))
+        method = 0
+        file_name = os.path.basename(local_path)
+    elif file:
+        # Method 1: Data provided as formdata
+        method = 1
+        file_name = file.filename or _no_name
+        src_stream = _asyncronous_file_reader(file)
+    else:
+        # Method 2: Data has to be sent streamed in the body
+        method = 2
+        file_name = file_name or _no_name
+        src_stream = request.stream()
+
+    if not files.is_safe_basename(file_name):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Bad file name provided.'''))
+
+    # Read the stream and save to file
+    if method == 0:
+        upload_path = local_path  # Use the provided path
+        uploaded_bytes = os.path.getsize(local_path)
+    else:
+        tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
+        upload_path = os.path.join(tmp_dir, file_name)
+        try:
+            with open(upload_path, 'wb') as f:
+                uploaded_bytes = 0
+                log_interval = 1e9
+                log_unit = 'GB'
+                next_log_at = log_interval
+                async for chunk in src_stream:
+                    if not chunk:
+                        # End of data stream
+                        break
+                    uploaded_bytes += len(chunk)
+                    f.write(chunk)
+                    if uploaded_bytes > next_log_at:
+                        logger.info('Large upload in progress - uploaded: '
+                                    f'{uploaded_bytes // log_interval} {log_unit}')
+                        next_log_at += log_interval
+                logger.info(f'Uploaded {uploaded_bytes} bytes')
+        except Exception as e:
+            if not (isinstance(e, RuntimeError) and 'Stream consumed' in str(e)):
+                if os.path.exists(tmp_dir):
+                    shutil.rmtree(tmp_dir)
+                logger.warn('IO error receiving upload data', exc_info=e)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Some IO went wrong, upload probably aborted/disrupted.')
+
+    if not uploaded_bytes and method == 2:
+        # No data was provided
+        shutil.rmtree(tmp_dir)
+        return None, None
+
+    logger.info('received uploaded file')
+    if method == 2 and file_name_argument_not_given:
+        if not files.zipfile.is_zipfile(upload_path) and not files.tarfile.is_tarfile(upload_path):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                Using method 2 and file does not look like a zip or tar file - must specify `file_name`.'''))
+
+    return upload_path, method
 
 
 async def _asyncronous_file_reader(f):
@@ -768,29 +1574,47 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def _get_upload_with_read_access(upload_id, user) -> Upload:
+def _get_upload_with_read_access(upload_id: str, user: User, include_others: bool = False) -> Upload:
     '''
     Determines if the specified user has read access to the specified upload. If so, the
     corresponding Upload object is returned. If the upload does not exist, or the user has
     no read access to it, a HTTPException is raised.
+
+    Arguments:
+        upload_id: The id of the requested upload.
+        user: The authenticated user, if any.
+        include_others: If uploads owned by others should be included. Access to the uploads
+            of other users is only granted if the upload is published and not under embargo.
     '''
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            User authentication required to access uploads.'''))
     mongodb_query = _query_mongodb(upload_id=upload_id)
-    if not mongodb_query.count():
+    upload = mongodb_query.first()
+    if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
-    upload = mongodb_query.first()
-    if user.is_admin or upload.user_id == str(user.user_id):
-        # Ok, it exists and belongs to user
+    if user and (user.is_admin or (str(user.user_id) in upload.viewers)):
+        # Ok, the user a viewer, or we have an admin user
+        return upload
+    elif include_others:
+        if not upload.published:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - not published yet.'''))
+        if upload.published and upload.with_embargo:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have access to the specified upload - published with embargo.'''))
         return upload
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             You do not have access to the specified upload.'''))
 
 
-def _get_upload_with_write_access(upload_id, user, published_requires_admin=True) -> Upload:
+def _get_upload_with_write_access(
+        upload_id: str, user: User, include_published: bool = False,
+        published_requires_admin: bool = True) -> Upload:
+    '''
+    Determines if the specified user has write access to the specified upload. If so, the
+    corresponding Upload object is returned. If the upload does not exist, or the user has
+    no write access to it, a HTTPException is raised.
+    '''
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
             User authentication required to access uploads.'''))
@@ -799,20 +1623,37 @@ def _get_upload_with_write_access(upload_id, user, published_requires_admin=True
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
             The specified upload_id was not found.'''))
     upload = mongodb_query.first()
-    if upload.user_id != str(user.user_id) and not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            You do not have write access to the specified upload.'''))
-    if published_requires_admin and upload.published and not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
-            Only admins can change uploads that are published.'''))
+    if not user.is_admin and upload.main_author != str(user.user_id):
+        if not upload.coauthors or str(user.user_id) not in upload.coauthors:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                You do not have write access to the specified upload.'''))
+    if upload.published:
+        if not include_published:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                Upload is already published, operation not possible.'''))
+        if published_requires_admin and not user.is_admin:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+                Upload is already published, only admins can perform this operation.'''))
     return upload
 
 
 def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
-    return UploadProcData.from_orm(upload)
+    pydantic_upload = UploadProcData.from_orm(upload)
+    pydantic_upload.entries = upload.total_entries_count
+    return pydantic_upload
 
 
-def _entry_to_pydantic(entry: Calc) -> EntryProcData:
+def _entry_to_pydantic(entry: Entry) -> EntryProcData:
     ''' Converts the mongo db object to an EntryProcData object'''
     return EntryProcData.from_orm(entry)
+
+
+def _check_upload_not_processing(upload: Upload):
+    '''
+    Checks if the upload is processing, and raises a HTTPException (err code 400) if so.
+    '''
+    if upload.process_running:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The upload is currently being processed, operation not allowed.')

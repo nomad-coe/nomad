@@ -15,379 +15,435 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef, useState, useContext, useCallback, useMemo } from 'react'
-import {searchContext} from './SearchContext'
+import React, { useCallback, useState, useMemo } from 'react'
+import PropTypes from 'prop-types'
+import clsx from 'clsx'
+import { isNil } from 'lodash'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import TextField from '@material-ui/core/TextField'
-import { CircularProgress, InputAdornment, Button, Tooltip } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
+import SearchIcon from '@material-ui/icons/Search'
+import CloseIcon from '@material-ui/icons/Close'
+import {
+  TextField,
+  CircularProgress,
+  Paper,
+  Tooltip
+} from '@material-ui/core'
+import IconButton from '@material-ui/core/IconButton'
+import { useUnits } from '../../units'
+import { DType, getDatatype } from '../../utils'
+import { useSuggestions } from '../../hooks'
+import { useSearchContext, toGUIFilterSingle } from './SearchContext'
 import searchQuantities from '../../searchQuantities'
-import { apiContext } from '../api'
-import { defsByName as metainfoDefs } from '../archive/metainfo'
-import { domains } from '../domains'
+import {
+  filterFullnames,
+  filterAbbreviations
+} from './FilterRegistry'
 
-const metainfoOptions = []
+const opMap = {
+  '<=': 'lte',
+  '>=': 'gte',
+  '>': 'gt',
+  '<': 'lt'
+}
+const opMapReverse = {
+  '<=': 'gte',
+  '>=': 'lte',
+  '>': 'lt',
+  '<': 'gt'
+}
 
-const quantitiesWithAlternativeOptions = {
-  calc_id: () => [],
-  upload_id: () => [],
-  calc_hash: () => [],
-  'dft.quantities': () => {
-    if (metainfoOptions.length === 0) {
-      metainfoOptions.push(...Object.keys(metainfoDefs)
-        .filter(name => !name.startsWith('x_'))
-        .map(name => ({
-          domain: 'dft',
-          quantity: 'dft.quantities',
-          value: name
-        })))
+// Decides which options are shown
+const filterOptions = (options, {inputValue}) => {
+  const trimmed = inputValue.trim().toLowerCase()
+  return options.filter(option => {
+    // ES results do not need to be filtered at all
+    const category = option.category
+    if (category !== 'quantity name') {
+      return true
     }
-    return metainfoOptions
-  }
+    // Underscore can be replaced by a whitespace
+    const optionClean = option.value.trim().toLowerCase()
+    const matchUnderscore = optionClean.includes(trimmed)
+    const matchNoUnderscore = optionClean.replace(/_/g, ' ').includes(trimmed)
+    return matchUnderscore || matchNoUnderscore
+  })
 }
 
-// We need to treat dft. and encyclopedia. special. Usually all dft domain pieces
-// are prefixed dft., but the encycloepdia is top-level and also a dft. specific
-// quantity. These to functions remove and add the dft./encyclopedia. prefixes accordingly.
-function getDomainOfQuantity(quantity) {
-  if (!quantity.includes('.')) {
-    return null
-  }
-  const firstSegment = quantity.split('.')[0]
-  if (firstSegment === 'encyclopedia') {
-    return 'dft'
-  }
-  return firstSegment
+// Customized paper component for the autocompletion options
+const CustomPaper = (props) => {
+  return <Paper elevation={3} {...props} />
 }
 
-function addDomainToQuantity(shortenedQuantityName, domainKey) {
-  if (!searchQuantities[shortenedQuantityName]) {
-    shortenedQuantityName = domainKey + '.' + shortenedQuantityName
-    if (!searchQuantities[shortenedQuantityName]) {
-      shortenedQuantityName = 'encyclopedia.' + shortenedQuantityName.slice(4)
-    }
+const useStyles = makeStyles(theme => ({
+  root: {
+    display: 'flex',
+    alignItems: 'center',
+    position: 'relative'
+  },
+  notchedOutline: {
+    borderColor: 'rgba(0, 0, 0, 0.0)'
+  },
+  iconButton: {
+    padding: 10
+  },
+  divider: {
+    height: '2rem'
+  },
+  endAdornment: {
+    position: 'static'
+  },
+  examples: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 'calc(100% + 4px)',
+    padding: theme.spacing(2),
+    fontStyle: 'italic'
   }
-  return shortenedQuantityName
-}
+}))
 
 /**
- * This searchbar component shows a searchbar with autocomplete functionality. The
- * searchbar also includes a status line about the current results. It uses the
- * search context to manipulate the current query and display results. It does its on
- * API calls to provide autocomplete suggestion options.
+ * This component shows a searchbar with autocomplete functionality. It does its
+ * on API calls to provide autocomplete suggestion options.
  */
-export default function SearchBar() {
-  const currentLoadOptionsConfigRef = useRef({
-    timer: null,
-    latestOption: null,
-    requestedOption: null
-  })
-  const {response: {statistics, pagination, error}, domain, query, apiQuery, setQuery} = useContext(searchContext)
-  const defaultOptions = useMemo(() => {
-    return Object.keys(searchQuantities)
-      .map(quantity => ({
-        quantity: quantity,
-        domain: getDomainOfQuantity(quantity)
-      }))
-      .filter(option => !option.domain || option.domain === domain.key)
-  }, [domain.key])
-
-  const [open, setOpen] = useState(false)
-  const [options, setOptions] = useState(defaultOptions)
-  const [loading, setLoading] = useState(false)
+const SearchBar = React.memo(({
+  className
+}) => {
+  const styles = useStyles()
+  const units = useUnits()
+  const {
+    filters,
+    filterData,
+    useSetFilters,
+    useFiltersLocked
+  } = useSearchContext()
   const [inputValue, setInputValue] = useState('')
-  const [searchType, setSearchType] = useState('nomad')
-
-  const {api} = useContext(apiContext)
-
-  const autocompleteValue = Object.keys(query).map(quantity => ({
-    quantity: quantity,
-    domain: quantity.includes('.') ? quantity.split('.')[0] : null,
-    value: query[quantity]
-  }))
-
-  const handleSearchTypeClicked = useCallback(() => {
-    if (searchType === 'nomad') {
-      setSearchType('optimade')
-    } else {
-      setSearchType('nomad')
+  const [suggestionInput, setSuggestionInput] = useState('')
+  const [highlighted, setHighlighted] = useState({value: ''})
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState(false)
+  const filtersLocked = useFiltersLocked()
+  const setFilter = useSetFilters()
+  const quantitySetSuggestable = useMemo(
+    () => new Set([...filters].filter(q => searchQuantities[q]?.suggestion)),
+    [filters]
+  )
+  const [quantityList, setQuantityList] = useState([...quantitySetSuggestable])
+  const [suggestions, loading] = useSuggestions(quantityList, suggestionInput)
+  const quantitySuggestions = useMemo(() => {
+    const suggestions = []
+    for (let q of filters) {
+      if (!filterData[q].section) {
+        suggestions.push({
+          value: filterAbbreviations[q] || q,
+          category: 'quantity name'
+        })
+      }
     }
-  }, [searchType, setSearchType])
+    return suggestions
+  }, [filterData, filters])
 
-  const handleOptimadeEntered = useCallback(query => {
-    setQuery({'dft.optimade': query})
-  }, [setQuery])
-
-  let helperText = ''
-  if (error) {
-    helperText = '' + (error.apiMessage || error)
-  } else if (pagination && statistics) {
-    if (pagination.total === 0) {
-      helperText = <span>There are no more entries matching your criteria.</span>
-    } else {
-      helperText = <span>
-        There {pagination.total === 1 ? 'is' : 'are'} {
-          Object.keys(domain.searchMetrics).filter(key => statistics.total.all[key]).map(key => {
-            return <span key={key}>
-              {domain.searchMetrics[key].renderResultString(statistics.total.all[key])}
-            </span>
-          })
-        }{Object.keys(query).length ? ' left' : ''}.
-      </span>
+  // Used to check the validity of the given quantity name
+  const checkMetainfo = useCallback((name) => {
+    const fullName = filterFullnames[name] || name
+    if (!filters.has(fullName)) {
+      return [undefined, `Unknown quantity name`]
     }
-  }
-
-  const loadOptions = useCallback(option => {
-    const config = currentLoadOptionsConfigRef.current
-    config.latestOption = option
-
-    if (config.timer !== null) {
-      clearTimeout(config.timer)
+    if (filterData[fullName].section) {
+      return [fullName, `Cannot target metainfo sections`]
     }
-    if (loading) {
+    return [fullName, undefined]
+  }, [filters, filterData])
+
+  // Triggered when a value is submitted by pressing enter or clicking the
+  // search icon.
+  const handleSubmit = useCallback(() => {
+    if (inputValue.trim().length === 0) {
       return
     }
-    config.timer = setTimeout(() => {
-      config.requestedOption = option
+    const reString = '[^\\s=<>](?:[^=<>]*[^\\s=<>])?'
+    const op = '(?:<|>)=?'
+    let valid = false
+    let quantityFullname
+    let queryValue
 
-      const alternativeOptions = quantitiesWithAlternativeOptions[option.quantity]
-      if (alternativeOptions) {
-        setOptions(alternativeOptions())
+    // Equality query
+    const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
+    if (equals) {
+      const quantityName = equals[1]
+      const [fullName, error] = checkMetainfo(quantityName)
+      quantityFullname = fullName
+      if (error) {
+        setError(error)
         return
       }
+      try {
+        queryValue = toGUIFilterSingle(quantityFullname, equals[2], units)
+      } catch (error) {
+        setError(`Invalid value for this metainfo. Please check your syntax.`)
+        return
+      }
+      valid = true
+    }
 
-      const size = searchQuantities[option.quantity].statistic_size
-      setLoading(true)
-      api.suggestions_search(option.quantity, apiQuery, size ? null : option.value, size || 20, true)
-        .then(response => {
-          setLoading(false)
-          if (!config.latestOption || config.requestedOption.quantity !== config.latestOption.quantity) {
-            // don't do anything if quantity has changed in the meantime
-            return
+    // Simple LTE/GTE query
+    if (!valid) {
+      const ltegte = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
+      if (ltegte) {
+        const a = ltegte[1]
+        const op = ltegte[2]
+        const b = ltegte[3]
+        const [aFullname, aError] = checkMetainfo(a)
+        const [bFullname, bError] = checkMetainfo(b)
+        if (aError && bError) {
+          if (!aFullname && !bFullname) {
+            setError(`Unknown quantity name`)
+          } else {
+            setError(aError || bError)
           }
-          const options = response.suggestions.map(value => ({
-            quantity: option.quantity,
-            domain: option.domain,
-            value: value
-          }))
-          setOptions(options)
-          setOpen(true)
-        })
-        .catch(() => {
-          setLoading(false)
-        })
-    }, 200)
-  }, [api, currentLoadOptionsConfigRef, apiQuery, loading, setLoading])
-
-  const getOptionLabel = useCallback(option => {
-    if (option.quantity === 'from_time' || option.quantity === 'until_time') {
-      if (option.value) {
-        return `${option.quantity.replace('_time', '')}=${option.value.substring(0, 10)}`
+          return
+        }
+        quantityFullname = aError ? bFullname : aFullname
+        const value = aError ? a : b
+        const dtype = getDatatype(quantityFullname)
+        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
+          setError(`Cannot perform range query for a non-numeric quantity`)
+          return
+        }
+        let quantityValue
+        try {
+          quantityValue = toGUIFilterSingle(quantityFullname, value, units)
+        } catch (error) {
+          console.log(error)
+          setError(`Invalid value for this metainfo. Please check your syntax.`)
+          return
+        }
+        queryValue = {}
+        queryValue[opMap[op]] = quantityValue
+        valid = true
       }
     }
 
-    let label = option.quantity + '='
-    if (option.value) {
-      if (Array.isArray(option.value)) {
-        label += option.value.join(',')
-      } else {
-        label += option.value
+    // Sandwiched LTE/GTE query
+    if (!valid) {
+      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
+      if (ltegteSandwich) {
+        const a = ltegteSandwich[1]
+        const op1 = ltegteSandwich[2]
+        const b = ltegteSandwich[3]
+        const op2 = ltegteSandwich[4]
+        const c = ltegteSandwich[5]
+        const [fullName, error] = checkMetainfo(b)
+        if (error) {
+          setError(error)
+          return
+        }
+        quantityFullname = fullName
+        const dtype = getDatatype(quantityFullname)
+        if (dtype !== DType.Number && dtype !== DType.Timestamp) {
+          setError(`Cannot perform range query for a non-numeric quantity.`)
+          return
+        }
+        queryValue = {}
+        try {
+          queryValue[opMapReverse[op1]] = toGUIFilterSingle(quantityFullname, a, units)
+          queryValue[opMap[op2]] = toGUIFilterSingle(quantityFullname, c, units)
+        } catch (error) {
+          setError(`Invalid value for this metainfo. Please check your syntax.`)
+          return
+        }
+        valid = true
       }
     }
-    return label.substring(label.indexOf('.') + 1)
+
+    // Check if filter is locked
+    if (filtersLocked[quantityFullname]) {
+      setError(`Cannot change the filter as it is locked in the current search context.`)
+      return
+    }
+
+    if (valid) {
+      // Submit to search context on successful validation.
+      setFilter([quantityFullname, old => {
+        const multiple = filterData[quantityFullname].multiple
+        return (isNil(old) || !multiple) ? queryValue : new Set([...old, ...queryValue])
+      }])
+      setInputValue('')
+      setOpen(false)
+    } else {
+      setError(`Invalid query`)
+    }
+  }, [inputValue, filtersLocked, checkMetainfo, units, setFilter, filterData])
+
+  // Handle clear button
+  const handleClose = useCallback(() => {
+    setInputValue('')
+    setOpen(false)
   }, [])
 
-  const parseOption = useCallback(input => {
-    const [inputQuantity, inputValue] = input.split('=')
+  const handleHighlight = useCallback((event, value, reason) => {
+    setHighlighted(value)
+  }, [])
 
-    const quantity = addDomainToQuantity(inputQuantity, domain.key)
-    let value = inputValue
-    if (value && searchQuantities[quantity] && searchQuantities[quantity].many) {
-      value = value.split(',').map(item => item.trim())
-    }
-    return {
-      inputQuantity: inputQuantity,
-      inputValue: inputValue,
-      domain: inputQuantity.includes('.') ? inputQuantity.split('.')[0] : null,
-      quantity: searchQuantities[quantity] ? quantity : null,
-      value: value
-    }
-  }, [domain.key])
-
-  const filterOptions = useCallback((options, params) => {
-    const inputOption = parseOption(params.inputValue)
-    const filteredOptions = options.filter(option => {
-      if (!inputOption.quantity) {
-        return option.quantity.includes(
-          inputOption.inputQuantity) && (option.domain === domain.key || !option.domain)
-      }
-      if (option.quantity !== inputOption.quantity) {
-        return false
-      }
-
-      if (!inputOption.value) {
-        return true
-      }
-
-      const matches = option.value &&
-        inputOption.inputValue &&
-        option.value.toLowerCase().includes(inputOption.inputValue.toLowerCase())
-      if (matches) {
-        if (option.value === inputOption.inputValue) {
-          inputOption.exists |= true
-        }
-        return true
-      }
-
-      return false
-    })
-
-    // Add the value as option, even if it does not exist to allow search for missing,
-    // faulty, or not yet loaded options
-    if (inputOption.quantity && !inputOption.exists) {
-      filteredOptions.push(inputOption)
-    }
-
-    return filteredOptions
-  }, [domain.key, parseOption])
-
-  const handleInputChange = useCallback((event, value, reason) => {
-    if (reason === 'input') {
-      setInputValue(value)
-      const inputOption = parseOption(value)
-      if (inputOption.quantity) {
-        loadOptions(inputOption)
-      } else {
-        setOptions(defaultOptions)
-      }
-    }
-  }, [loadOptions, defaultOptions, parseOption])
-
-  const handleChange = (event, entries) => {
-    currentLoadOptionsConfigRef.current.latestOption = null
-
-    entries = entries.map(entry => {
-      if (typeof entry === 'string') {
-        return parseOption(entry)
-      } else {
-        return entry
-      }
-    })
-
-    const newQuery = entries.reduce((query, entry) => {
-      if (entry) {
-        if (query[entry.quantity]) {
-          if (searchQuantities[entry.quantity].many) {
-            if (Array.isArray(query[entry.quantity])) {
-              query[entry.quantity].push(entry.value)
-            } else {
-              query[entry.quantity] = [query[entry.quantity], entry.value]
-            }
-          } else {
-            query[entry.quantity] = entry.value
-          }
-        } else {
-          query[entry.quantity] = entry.value
-        }
-      }
-      return query
-    }, {})
-    setQuery(newQuery, true)
-
-    if (entries.length !== 0) {
-      const entry = entries[entries.length - 1]
-      if (entry.value) {
-        setInputValue('')
-      } else {
-        setInputValue(getOptionLabel(entry))
-        loadOptions(entry)
-      }
-    }
-  }
-
-  React.useEffect(() => {
-    if (!open) {
-      setOptions(defaultOptions)
-    }
-  }, [open, defaultOptions])
-
-  const commonTextFieldProps = params => ({
-    error: !!error,
-    helperText: helperText,
-    variant: 'outlined',
-    fullWidth: true,
-    ...params
-  })
-
-  const commonInputProps = (params) => ({
-    ...params,
-    startAdornment: (
-      <React.Fragment>
-        {domain === domains.dft &&
-        <InputAdornment position="start">
-          <Tooltip title="Switch between NOMAD's quantity=value search and the Optimade filter language.">
-            <Button onClick={handleSearchTypeClicked}size="small">{searchType}</Button>
-          </Tooltip>
-        </InputAdornment>}
-        {params.startAdornment}
-      </React.Fragment>
-    )
-  })
-
-  if (searchType === 'nomad') {
-    return <Autocomplete
-      multiple
-      freeSolo
-      inputValue={inputValue}
-      value={autocompleteValue}
-      limitTags={4}
-      id='search-bar'
-      open={open}
-      onOpen={() => {
-        setOpen(true)
-      }}
-      onClose={() => {
+  // When enter is pressed, select currently highlighted value and close menu,
+  // or if menu is not open submit the value.
+  const handleEnter = useCallback((event) => {
+    if (event.key === 'Enter') {
+      if (open && highlighted?.value) {
+        setInputValue(highlighted.value)
         setOpen(false)
-      }}
-      onChange={handleChange}
-      onInputChange={handleInputChange}
-      getOptionSelected={(option, inputOption) => {
-        return inputOption.quantity === option.quantity && inputOption.value === option.value
-      }}
-      getOptionLabel={getOptionLabel}
-      options={options}
-      loading={loading}
+      } else {
+        handleSubmit()
+      }
+      event.stopPropagation()
+      event.preventDefault()
+    }
+  }, [open, highlighted, handleSubmit])
+
+  // Handle typing events. After a debounce time has expired, a list of
+  // suggestion will be retrieved if they are available for this metainfo and
+  // the input is deemed meaningful.
+  const handleInputChange = useCallback((event, value, reason) => {
+    setError(error => error ? undefined : null)
+    setInputValue(value)
+    value = value?.trim()
+    if (!value) {
+      setSuggestionInput('')
+      setOpen(false)
+      return
+    } else {
+      setOpen(true)
+    }
+    if (reason !== 'input') {
+      setSuggestionInput('')
+      setOpen(false)
+    }
+
+    // If some input is given, and the quantity supports suggestions, we use
+    // input suggester to suggest values. If the input is prefixed with a proper
+    // quantity name and an equals-sign, we extract the quantity name and the
+    // typed input
+    const split = value.split('=', 2)
+    let quantityList = [...quantitySetSuggestable]
+    if (split.length === 2) {
+      const quantityName = split[0].trim()
+      const quantityFullname = filterFullnames[quantityName]
+      if (quantitySetSuggestable.has(quantityName)) {
+        quantityList = [quantityName]
+        value = split[1].trim()
+      } else if (quantitySetSuggestable.has(quantityFullname)) {
+        quantityList = [quantityFullname]
+        value = split[1].trim()
+      }
+    }
+    setQuantityList(quantityList)
+    setSuggestionInput(value)
+  }, [quantitySetSuggestable])
+
+  // This function determines the order of the suggestions. Certain categories
+  // are manually pulled to the top, other categories that come from the
+  // suggestions API are placed after these in alphabetic order (the suggestions
+  // API already orders them alphabetically) and finally the quantity names are
+  // placed last. Notice that items should be sorted by group first in order for
+  // the grouping for MUI Autocomplete to work correctly.
+  const options = useMemo(() => {
+    const categoryMap = {}
+    const categoriesAuto = new Set()
+    const categoriesManual = new Set([
+      'results.material.elements',
+      'results.material.chemical_formula_hill',
+      'results.material.chemical_formula_anonymous',
+      'results.material.structural_type',
+      'results.material.symmetry.structure_name',
+      'results.method.simulation.program_name',
+      'authors.name'
+    ])
+    for (let suggestion of suggestions) {
+      const category = suggestion.category
+      suggestion.value = `${category}=${suggestion.value}`
+      if (!categoriesManual.has(category)) {
+        categoriesAuto.add(category)
+      }
+      const categoryList = categoryMap[category] || []
+      categoryList.push(suggestion)
+      categoryMap[category] = categoryList
+    }
+    let options = []
+    for (let category of categoriesManual) {
+      const manualOptions = categoryMap[category]
+      if (manualOptions) {
+        options = options.concat(manualOptions)
+      }
+    }
+    for (let category of categoriesAuto) {
+      options = options.concat(categoryMap[category])
+    }
+    options = options.concat(quantitySuggestions)
+
+    return options
+  }, [quantitySuggestions, suggestions])
+
+  return <Paper className={clsx(className, styles.root)}>
+    <Autocomplete
+      className={styles.input}
+      freeSolo
+      clearOnBlur={false}
+      inputValue={inputValue}
+      value={null}
+      open={open}
+      onOpen={() => { if (inputValue.trim() !== '') { setOpen(true) } }}
+      onClose={() => setOpen(false)}
+      fullWidth
+      disableClearable
+      PaperComponent={CustomPaper}
+      classes={{endAdornment: styles.endAdornment}}
+      groupBy={(option) => option.category}
       filterOptions={filterOptions}
-      // handleHomeEndKeys
+      options={options}
+      onInputChange={handleInputChange}
+      onHighlightChange={handleHighlight}
+      getOptionLabel={option => option.value}
+      getOptionSelected={(option, value) => false}
       renderInput={(params) => (
         <TextField
-          {...commonTextFieldProps(params)}
-          label={searchType === 'nomad' ? 'Search with quantity=value' : 'Search with Optimade filter language'}
+          {...params}
+          className={styles.textField}
+          variant="outlined"
+          placeholder="Type your query or keyword here"
+          label={error || undefined}
+          error={!!error}
+          onKeyDown={handleEnter}
+          InputLabelProps={{ shrink: true }}
           InputProps={{
-            ...commonInputProps(params.InputProps),
-            endAdornment: (
-              <React.Fragment>
-                {loading ? <CircularProgress color='inherit' size={20} /> : null}
-                {params.InputProps.endAdornment}
-              </React.Fragment>
-            )
+            ...params.InputProps,
+            classes: {
+              notchedOutline: styles.notchedOutline
+            },
+            startAdornment: <Tooltip title="Add filter">
+              <IconButton onClick={handleSubmit} className={styles.iconButton} aria-label="search">
+                <SearchIcon />
+              </IconButton>
+            </Tooltip>,
+            endAdornment: (<>
+              {loading ? <CircularProgress color="inherit" size={20} /> : null}
+              {(inputValue?.length || null) && <>
+                <Tooltip title="Clear">
+                  <IconButton onClick={handleClose} className={styles.iconButton} aria-label="clear">
+                    <CloseIcon />
+                  </IconButton>
+                </Tooltip>
+              </>}
+            </>)
           }}
         />
       )}
     />
-  } else {
-    return <TextField
-      {...commonTextFieldProps({})}
-      label={searchType === 'nomad' ? 'Search with quantity=value' : 'Search with Optimade filter language'}
-      InputProps={{
-        ...commonInputProps({})
-      }}
-      defaultValue={query['dft.optimade'] || ''}
-      onKeyPress={(ev) => {
-        if (ev.key === 'Enter') {
-          handleOptimadeEntered(ev.target.value)
-          ev.preventDefault()
-        }
-      }}
-    />
-  }
+  </Paper>
+})
+
+SearchBar.propTypes = {
+  className: PropTypes.string
 }
+
+export default SearchBar

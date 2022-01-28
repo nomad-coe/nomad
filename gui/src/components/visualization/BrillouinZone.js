@@ -17,11 +17,9 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
+import clsx from 'clsx'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import {
-  Box,
-  Typography
-} from '@material-ui/core'
+import { Typography } from '@material-ui/core'
 import {
   Fullscreen,
   FullscreenExit,
@@ -33,58 +31,47 @@ import Floatable from './Floatable'
 import Placeholder from '../visualization/Placeholder'
 import { scale, distance } from '../../utils'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
-import Actions from '../Actions'
-import clsx from 'clsx'
+import { Actions, Action } from '../Actions'
 
 /**
  * Interactive 3D Brillouin zone viewer based on the 'materia'-library.
  */
-function BrillouinZone({className, classes, options, viewer, data, captureName, aspectRatio}) {
-  // States
+const useStyles = makeStyles((theme) => {
+  return {
+    root: {},
+    column: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      flexDirection: 'column'
+    },
+    header: {
+      paddingRight: theme.spacing(1),
+      display: 'flex',
+      flexDirection: 'row',
+      zIndex: 1
+    },
+    canvas: {
+      flex: 1,
+      zIndex: 0,
+      minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
+      marginBottom: theme.spacing(2)
+    }
+  }
+})
+const BrillouinZone = React.memo(({
+  className,
+  classes,
+  options,
+  viewer,
+  data,
+  captureName,
+  'data-testid': testID
+}) => {
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  // Refs
   const refViewer = useRef(null)
-
-  // Styles
-  const useStyles = makeStyles((theme) => {
-    return {
-      root: {
-      },
-      container: {
-        display: 'flex',
-        width: '100%',
-        height: '100%',
-        flexDirection: 'column',
-        backgroundColor: 'white'
-      },
-      header: {
-        paddingRight: theme.spacing(1),
-        display: 'flex',
-        flexDirection: 'row',
-        zIndex: 1
-      },
-      spacer: {
-        flex: 1
-      },
-      viewerCanvas: {
-        flex: 1,
-        zIndex: 0,
-        minHeight: 0, // added min-height: 0 to allow the item to shrink to fit inside the container.
-        marginBottom: theme.spacing(2)
-      },
-      errorMessage: {
-        flex: '0 0 70%',
-        color: '#aaa',
-        textAlign: 'center'
-      },
-      iconButton: {
-        backgroundColor: 'white'
-      }
-    }
-  })
-  let style = useStyles(classes)
+  const styles = useStyles(classes)
 
   // In order to properly detect changes in a reference, a reference callback is
   // used. This is the recommended way to monitor reference changes as a simple
@@ -112,7 +99,7 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
         view: {
           autoResize: false,
           autoFit: true,
-          fitMargin: 0.05
+          fitMargin: 0.06
         },
         layout: {
           viewRotation: {
@@ -187,10 +174,10 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
     }
     let previousPoint
     let segment = []
-    for (let seg of data.section_k_band_segment) {
-      let labels = seg.band_segm_labels
-      const start = seg.band_k_points[0]
-      const end = seg.band_k_points.slice(-1)[0]
+    for (let seg of data.segment) {
+      let labels = seg.endpoints_labels
+      const start = seg.kpoints[0]
+      const end = seg.kpoints.slice(-1)[0]
       if (!previousPoint || (previousPoint && distance(start, previousPoint) >= 1e-8)) {
         // Push old segment
         if (segment.length > 0) {
@@ -235,42 +222,51 @@ function BrillouinZone({className, classes, options, viewer, data, captureName, 
   }, [])
 
   if (loading) {
-    return <Placeholder variant="rect" aspectRatio={aspectRatio}></Placeholder>
+    return <Placeholder
+      variant="rect"
+      data-testid={`${testID}-placeholder`}
+    />
   }
 
-  // List of actionable buttons for the viewer
-  const actions = [
-    {tooltip: 'Reset view', onClick: handleReset, content: <Replay/>},
-    {tooltip: 'Toggle fullscreen', onClick: toggleFullscreen, content: fullscreen ? <FullscreenExit/> : <Fullscreen/>},
-    {tooltip: 'Capture image', onClick: takeScreencapture, content: <CameraAlt/>}
-  ]
-
-  const content = <Box className={style.container}>
-    {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
-    <div className={style.viewerCanvas} ref={refCanvas}></div>
-    <div className={style.header}>
-      <Actions actions={actions}></Actions>
+  return <Floatable
+    data-testid={testID}
+    className={clsx(styles.root, className)}
+    float={fullscreen}
+    onFloat={toggleFullscreen}
+  >
+    <div className={styles.column}>
+      {fullscreen && <Typography variant="h6">Brillouin zone</Typography>}
+      <div className={styles.canvas} ref={refCanvas}/>
+      <div className={styles.header}>
+        <Actions>
+          <Action tooltip='Reset view' onClick={handleReset}>
+            <Replay/>
+          </Action>
+          <Action tooltip='Toggle fullscreen' onClick={toggleFullscreen}>
+            {fullscreen ? <FullscreenExit/> : <Fullscreen/>}
+          </Action>
+          <Action tooltip='Capture image' onClick={takeScreencapture}>
+            <CameraAlt/>
+          </Action>
+        </Actions>
+      </div>
     </div>
-  </Box>
-
-  return <Box className={clsx(style.root, className)} >
-    <Floatable float={fullscreen} onFloat={toggleFullscreen} aspectRatio={aspectRatio}>
-      {content}
-    </Floatable>
-  </Box>
-}
+  </Floatable>
+})
 
 BrillouinZone.propTypes = {
   viewer: PropTypes.object, // Optional shared viewer instance.
-  data: PropTypes.object, // section_k_band
+  data: PropTypes.shape({
+    reciprocal_cell: PropTypes.array.isRequired, // Reciprocal cell in SI units
+    segment: PropTypes.array.isRequired // Array of section_k_band_segments in SI units
+  }),
   options: PropTypes.object, // Viewer options
   captureName: PropTypes.string, // Name of the file that the user can download
-  aspectRatio: PropTypes.number, // Fixed aspect ratio for the viewer canvas
   classes: PropTypes.object,
-  className: PropTypes.string
+  className: PropTypes.string,
+  'data-testid': PropTypes.string
 }
 BrillouinZone.defaultProps = {
-  aspectRatio: 4 / 3,
   captureName: 'brillouin_zone'
 }
 

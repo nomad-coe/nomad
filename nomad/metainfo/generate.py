@@ -128,7 +128,7 @@ def generate_metainfo_code(metainfo_pkg: Package, python_package_path: str):
 
 
 if __name__ == '__main__':
-    # Simple use case that re-generates the common_dft package
-    from nomad.datamodel.metainfo.common_dft import m_package
+    # Simple use case that re-generates the run run package
+    from nomad.datamodel.metainfo.simulation.run import m_package
 
-    generate_metainfo_code(m_package, 'nomad/datamodel/metainfo/common_dft.py')
+    generate_metainfo_code(m_package, 'nomad/datamodel/metainfo/run.run.py')

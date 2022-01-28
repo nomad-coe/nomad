@@ -18,31 +18,39 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { toHaveStyle, toBeVisible } from '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { toHaveStyle } from '@testing-library/jest-dom'
+import { render, screen, fireEvent, waitFor } from '../../testSetup'
 import { MenuBar, MenuBarItem, MenuBarMenu } from './MenuBar'
-import { MemoryRouter } from 'react-router-dom'
+import { Router } from 'react-router-dom'
+import {createMemoryHistory} from 'history'
 
 function toBePrimaryColored(htmlElement) {
   return toHaveStyle(htmlElement, 'color: rgb(63, 81, 181)')
 }
 
-expect.extend({ toHaveStyle, toBeVisible, toBePrimaryColored })
+expect.extend({toBePrimaryColored})
 
 describe('<NestedTopNav />', () => {
-  const createExampleMenu = () => <MemoryRouter>
-    <MenuBar selected="foo/foo-two">
-      <MenuBarMenu name="foo">
-        <MenuBarItem name="foo-one" route="/route" />
-        <MenuBarItem name="foo-two" route="/route" />
+  const history = createMemoryHistory()
+  history.push('/foo/foo-two')
+  const createExampleMenu = () => <Router history={history}>
+    <MenuBar>
+      <MenuBarMenu label="Foo" route="/foo">
+        <MenuBarItem label="Foo-one" route="/foo/foo-one" />
+        <MenuBarItem label="Foo-two" route="/foo/foo-two" />
       </MenuBarMenu>
-      <MenuBarMenu name="bar" >
-        <MenuBarItem name="bar-one" route="/route" />
-        <MenuBarItem name="bar-two" route="/route" />
+      <MenuBarMenu label="Bar" route="/bar" >
+        <MenuBarItem label="Bar-one" route="/bar/bar-one" />
+        <MenuBarItem label="Bar-two" route="/bar/bar-two" />
       </MenuBarMenu>
     </MenuBar>
     <div data-testid="content" />
-  </MemoryRouter>
+  </Router>
+
+  it('testid', () => {
+    render(<div data-testid="myid">Hello</div>)
+    expect(screen.getByTestId('myid')).toBeInTheDocument()
+  })
 
   it('renders', () => {
     render(createExampleMenu())
@@ -59,13 +67,12 @@ describe('<NestedTopNav />', () => {
     expect(screen.getByText('Bar').parentElement).not.toBePrimaryColored()
   })
 
-  it('opens menu on button click', async () => {
+  it('opens menu on mouse enter', async () => {
     render(createExampleMenu())
-
     expect(screen.getAllByRole('button').length).toBe(2)
     expect(screen.getByText('Foo-one')).not.toBeVisible()
     expect(screen.getByText('Bar-one')).not.toBeVisible()
-    fireEvent.click(screen.getByText('Foo'))
+    fireEvent.mouseEnter(screen.getByText('Foo'))
     await waitFor(() =>
       expect(screen.getByRole('menu')).toBeVisible()
     )
@@ -74,14 +81,15 @@ describe('<NestedTopNav />', () => {
     expect(screen.getByText('Bar-one')).not.toBeVisible()
   })
 
-  it('changes open menu on hover', async () => {
+  it('changes open menu when move from one to another', async () => {
     render(createExampleMenu())
 
-    fireEvent.click(screen.getByText('Foo'))
+    fireEvent.mouseEnter(screen.getByText('Foo'))
     await waitFor(() =>
       expect(screen.getByRole('menu')).toBeVisible()
     )
-    fireEvent.mouseOver(screen.getByText('Bar'))
+    fireEvent.mouseLeave(screen.getByText('Foo'))
+    fireEvent.mouseEnter(screen.getByText('Bar'))
     await waitFor(() =>
       expect(screen.getByRole('menu')).toBeVisible()
     )
@@ -93,7 +101,7 @@ describe('<NestedTopNav />', () => {
   it('closes menu on item click', async () => {
     render(createExampleMenu())
 
-    fireEvent.click(screen.getByText('Foo'))
+    fireEvent.mouseEnter(screen.getByText('Foo'))
     await waitFor(() =>
       expect(screen.getByRole('menu')).toBeVisible()
     )
@@ -103,14 +111,14 @@ describe('<NestedTopNav />', () => {
     )
   })
 
-  it('closes menu on click somewhere', async () => {
+  it('closes menu on mouse leave', async () => {
     render(createExampleMenu())
 
-    fireEvent.click(screen.getByText('Foo'))
+    fireEvent.mouseEnter(screen.getByText('Foo'))
     await waitFor(() =>
       expect(screen.getByRole('menu')).toBeVisible()
     )
-    fireEvent.click(screen.getByTestId('content'))
+    fireEvent.mouseLeave(screen.getByText('Foo'))
     await waitFor(() =>
       expect(screen.getByText('Foo-one')).not.toBeVisible()
     )
