@@ -26,7 +26,6 @@ import {
   ButtonBase,
   Tooltip
 } from '@material-ui/core'
-import InputCheckbox from './InputCheckbox'
 import InputHeader from './InputHeader'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
@@ -367,13 +366,13 @@ const InputPeriodicTable = React.memo(({
           </tbody>
         </table>
       </AspectRatio>
-      <div className={styles.formContainer}>
+      {/* <div className={styles.formContainer}>
         <InputCheckbox
           quantity="exclusive"
           label="only composition that exclusively contain these atoms"
           description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
         ></InputCheckbox>
-      </div>
+      </div> */}
     </div>
   </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps
