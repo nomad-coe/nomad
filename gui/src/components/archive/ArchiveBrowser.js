@@ -413,7 +413,7 @@ function Section({section, def, parent, units}) {
 
   let isEmpty
   if (!section) {
-    if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
+    if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument') {
       isEmpty = true
     } else {
       console.error('section is not available')
@@ -431,7 +431,7 @@ function Section({section, def, parent, units}) {
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
 
   let contents
-  if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement') {
+  if (def.name === 'Sample' || def.name === 'Experiment' || def.name === 'Measurement' || def.name === 'Instrument' || def.name === 'EELSMeasurement' || def.name === 'XpsMeasurement' || def.name === 'Spectrum' || def.name === 'Author' || def.name === 'EELSInstrument') {
     contents = <Compartment title={(!isEmpty && 'edit')}>
       {!isEmpty && <SectionEditor sectionDef={def} section={section} parent={parent}/>}
     </Compartment>
