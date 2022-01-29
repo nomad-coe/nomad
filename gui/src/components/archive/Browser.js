@@ -18,8 +18,7 @@
 
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef } from 'react'
 import PropTypes from 'prop-types'
-import { RecoilRoot } from 'recoil'
-import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
+import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import classNames from 'classnames'
@@ -158,7 +157,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
   })
 
-  return <RecoilRoot>
+  return <React.Fragment>
     {form}
     <Card>
       <CardContent>
@@ -173,7 +172,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         </div>
       </CardContent>
     </Card>
-  </RecoilRoot>
+  </React.Fragment>
 })
 Browser.propTypes = ({
   adaptor: PropTypes.object.isRequired,
@@ -198,7 +197,7 @@ const useLaneStyles = makeStyles(theme => ({
     margin: theme.spacing(1)
   }
 }))
-const Lane = function({lane}) {
+function Lane({lane}) {
   const classes = useLaneStyles()
   const containerRef = createRef()
   const { key, adaptor, next } = lane
@@ -228,18 +227,23 @@ Lane.propTypes = ({
 
 const useItemStyles = makeStyles(theme => ({
   root: {
-    maxWidth: 500,
     color: theme.palette.text.primary,
     textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
     padding: `0 0 0 ${theme.spacing(1)}px`,
     whiteSpace: 'nowrap',
-    display: 'flex'
+    display: 'flex',
+    '& $icon': {
+      color: theme.palette.grey[700]
+    }
   },
   rootSelected: {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.primary.contrastText,
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    '& $icon': {
+      color: theme.palette.primary.contrastText
+    }
   },
   rootUnSelected: {
     '&:hover': {
@@ -254,24 +258,44 @@ const useItemStyles = makeStyles(theme => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
+  },
+  icon: {
+    fontSize: 16,
+    marginTop: 4
   }
 }))
 
-export function Item({children, itemKey, disabled}) {
+export function Item({children, itemKey, disabled, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
+  const isSelected = selected === itemKey
   if (disabled) {
     return <div className={classNames(classes.childContainer, classes.disabled)}>{children}</div>
   }
   return <Link
     className={classNames(
       classes.root,
-      selected === itemKey ? classes.rootSelected : classes.rootUnSelected
+      isSelected ? classes.rootSelected : classes.rootUnSelected
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
-    <span className={classes.childContainer}>{children}</span>
+    <Grid container spacing={2} alignItems="center">
+      {icon && <Grid item>
+        {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
+      </Grid>}
+      <Grid item className={classes.childContainer}>
+        <Typography>{children}</Typography>
+      </Grid>
+      {chip && (
+        <Grid item>
+          <Chip size="small" color={isSelected ? 'primary' : 'default'} label={chip} />
+        </Grid>
+      )}
+      {actions && <Grid item>
+        {actions}
+      </Grid>}
+    </Grid>
     <ArrowRightIcon/>
   </Link>
 }
@@ -281,20 +305,18 @@ Item.propTypes = ({
     PropTypes.node
   ]).isRequired,
   itemKey: PropTypes.string.isRequired,
-  disabled: PropTypes.bool
-})
-
-export function Content({children}) {
-  return <Box padding={1} maxWidth={1024}>
-    {children}
-  </Box>
-}
-Content.propTypes = ({
-  children: PropTypes.oneOfType([
+  disabled: PropTypes.bool,
+  icon: PropTypes.elementType,
+  chip: PropTypes.string,
+  actions: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ]).isRequired
+  ])
 })
+
+export function Content(props) {
+  return <Box maxWidth={1024} padding={1} {...props} />
+}
 
 export function Compartment({title, children, color}) {
   if (!React.Children.count(children)) {
@@ -314,4 +336,41 @@ Compartment.propTypes = ({
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]).isRequired
+})
+
+export function Title({title, label, tooltip, actions, ...moreProps}) {
+  return <Compartment>
+    <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+      <Grid item>
+        {tooltip ? (
+          <Tooltip title={tooltip}>
+            <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
+              <Typography variant="h6" {...moreProps}>{title}</Typography>
+            </div>
+          </Tooltip>
+        ) : (
+          <Typography variant="h6" {...moreProps}>{title}</Typography>
+        )}
+        {label && (
+          <Typography variant="caption" color={moreProps.color}>
+            {label}
+          </Typography>
+        )}
+      </Grid>
+      {actions && (
+        <Grid item>
+          {actions}
+        </Grid>
+      )}
+    </Grid>
+  </Compartment>
+}
+Title.propTypes = ({
+  title: PropTypes.string.isRequired,
+  label: PropTypes.string,
+  tooltip: PropTypes.string,
+  actions: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 })

@@ -15,32 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useContext, useState, useCallback } from 'react'
+import React, { useEffect, useContext, useState, useCallback} from 'react'
 import PropTypes from 'prop-types'
-import { Typography, Box, Grid, Chip, IconButton, Tooltip, makeStyles, useTheme } from '@material-ui/core'
+import { Typography, IconButton, makeStyles, Button, Box } from '@material-ui/core'
 import { useErrors } from '../errors'
-import Browser, { Item, Content, Adaptor, laneContext } from './Browser'
-import ViewIcon from '@material-ui/icons/Search'
+import Browser, { Item, Content, Adaptor, laneContext, Title, Compartment } from './Browser'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import FolderIcon from '@material-ui/icons/Folder'
-import FileIcon from '@material-ui/icons/AssignmentOutlined'
+import FolderIcon from '@material-ui/icons/FolderOutlined'
+import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
+import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
-
-const useStyles = makeStyles(theme => ({
-  fileContents: {
-    width: 600,
-    overflowX: 'auto',
-    color: theme.palette.primary.contrastText,
-    backgroundColor: theme.palette.primary.dark,
-    marginTop: theme.spacing(1),
-    padding: '0px 6px',
-    fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
-    fontSize: 12
-  }
-}))
+import { archiveAdaptorFactory } from './ArchiveBrowser'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle)
@@ -115,51 +103,37 @@ function RawDirectoryContent({uploadId, path, title}) {
     const downloadFilename = `${uploadId}${lastSegment ? ' - ' + lastSegment : ''}.zip`
     return (
       <Content key={path}>
-        <Grid container justifyContent="flex-end" wrap="nowrap" alignItems="center" style={{maxWidth: 500}}>
-          <Grid item style={{flexGrow: 1, overflow: 'hidden'}}>
-            <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-              <Typography variant="h6" noWrap>{title}</Typography>
-            </div>
-          </Grid>
-          <Grid item>
-            <Download component={IconButton} disabled={false}
-              color="secondary"
+        <Title
+          title={title}
+          label="folder"
+          actions={(
+            <Download
+              component={IconButton} disabled={false}
+              size="small"
               tooltip="download this folder"
               url={downloadurl}
               fileName={downloadFilename}>
               <DownloadIcon />
             </Download>
-          </Grid>
-        </Grid>
-        {
-          lane.adaptor.data.response.directory_metadata.content.map(element => (
-            <Item itemKey={element.name} key={path ? path + '/' + element.name : element.name}>
-              {
-                element.is_file
-                  ? <Box display="flex" flexDirection="row" alignItems="start">
-                    <FileIcon/>
-                    {
-                      element.parser_name
-                        ? <React.Fragment>
-                          <Typography><b>{element.name}&nbsp;</b></Typography>
-                          <Chip
-                            size="small" padding="30px" color="secondary"
-                            label={element.parser_name.replace('parsers/', '')} />
-                        </React.Fragment>
-                        : <Typography>{element.name}</Typography>
-                    }
-                  </Box>
-                  : <Box display="flex" flexDirection="row" alignItems="start">
-                    <FolderIcon/>
-                    <Typography><b>{element.name}</b></Typography>
-                  </Box>
-              }
-            </Item>))
-        }
-        {
-          lane.adaptor.data.response.pagination.total > 500 &&
-            <Typography color="error">Only showing the first 500 rows</Typography>
-        }
+          )}
+        />
+        <Compartment>
+          {
+            lane.adaptor.data.response.directory_metadata.content.map(element => (
+              <Item
+                icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
+                itemKey={element.name} key={path ? path + '/' + element.name : element.name}
+                chip={element.parser_name && element.parser_name.replace('parsers/', '')}
+              >
+                {element.name}
+              </Item>
+            ))
+          }
+          {
+            lane.adaptor.data.response.pagination.total > 500 &&
+              <Typography color="error">Only showing the first 500 rows</Typography>
+          }
+        </Compartment>
       </Content>)
   }
 }
@@ -176,20 +150,57 @@ class RawFileAdaptor extends Adaptor {
     this.path = path
     this.data = data
     this.previewing = false
-    this.hasMore = true
-    this.fileContents = null
+  }
+  itemAdaptor(key) {
+    console.log('new', this.data)
+    if (key === 'archive') {
+      if (this.data.archive) {
+        return archiveAdaptorFactory(this.data.archive)
+      } else {
+        return new ArchiveAdaptor(this.data.entry_id, this.data)
+      }
+    }
   }
   render() {
     return <RawFileContent uploadId={this.uploadId} path={this.path} data={this.data} key={this.path}/>
   }
 }
 
+class ArchiveAdaptor extends Adaptor {
+  constructor(entryId, data) {
+    super()
+    this.entryId = entryId
+    this.data = data
+  }
+  render() {
+    return <ArchiveLoader entryId={this.entryId} />
+  }
+}
+
+function ArchiveLoader({entryId}) {
+  const {api} = useApi()
+  const {raiseError} = useErrors()
+  const {adaptor, update} = useContext(laneContext)
+  useEffect(() => {
+    api
+      .get(`entries/${entryId}/archive`)
+      .then(response => {
+        adaptor.data.archive = response.data.archive
+        // TODO somehow the update is not doing the necessary update
+        update()
+      })
+      .catch(raiseError)
+  }, [entryId, api, raiseError, adaptor, update])
+  return <Content>
+    <Typography>Loading ... {entryId}</Typography>
+  </Content>
+}
+ArchiveLoader.propTypes = {
+  entryId: PropTypes.string.isRequired
+}
+
 function RawFileContent({uploadId, path, data}) {
-  const lane = useContext(laneContext)
-  const [, setRender] = useState(0)
-  const update = useCallback(() => {
-    setRender(current => current + 1)
-  }, [setRender])
+  const previewContainerRef = React.createRef()
 
   // A nicer, human-readable size string
   let niceSize, unit, factor
@@ -215,40 +226,42 @@ function RawFileContent({uploadId, path, data}) {
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
   return (
-    <Content key={path}>
-      <Grid container justifyContent="flex-end" alignItems="center">
-        <Grid item style={{flexGrow: 1}}>
-          <Typography variant="h6">Raw file</Typography>
-        </Grid>
-        <Grid item>
-          <Tooltip title='Show contents'>
-            <IconButton
-              onClick={() => {
-                lane.adaptor.previewing = !lane.adaptor.previewing
-                update()
-              }}
-              color={lane.adaptor.previewing ? 'default' : 'secondary'}
-            >
-              <ViewIcon />
-            </IconButton>
-          </Tooltip>
-        </Grid>
-        <Grid item>
-          <Download component={IconButton} disabled={false}
-            color="secondary"
-            tooltip="download this file"
-            url={downloadUrl}
-            fileName={data.name}>
-            <DownloadIcon />
-          </Download>
-        </Grid>
-      </Grid>
-      <Quantity quantity="filename" data={{filename: data.name}} label="file name" noWrap ellipsisFront withClipboard />
-      <Quantity quantity="path" data={{path: path}} label="full path" noWrap ellipsisFront withClipboard />
-      <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
-      { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
-      { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
-      { lane.adaptor.previewing && <FilePreviewText uploadId={uploadId} path={path} scrollParent={lane.containerRef}/>}
+    <Content
+      key={path}
+      display="flex" flexDirection="column" height="100%"
+      paddingTop={0} paddingBottom={0} width={600}
+    >
+      <Box paddingTop={1}>
+        <Title
+          title={data.name}
+          label="file"
+          tooltip={path}
+          actions={(
+            <Download component={IconButton} disabled={false}
+              size="small"
+              tooltip="download this file"
+              url={downloadUrl}
+              fileName={data.name}>
+              <DownloadIcon />
+            </Download>
+          )}
+        />
+      </Box>
+      <Compartment>
+        {/* <Quantity quantity="filename" data={{filename: data.name}} label="file name" noWrap ellipsisFront withClipboard />
+        <Quantity quantity="path" data={{path: path}} label="full path" noWrap ellipsisFront withClipboard /> */}
+        <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
+        { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
+        { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
+      </Compartment>
+      {data.entry_id && <Compartment>
+        <Item itemKey="archive">processed data</Item>
+      </Compartment>}
+      <Box marginTop={2}/>
+      <Box ref={previewContainerRef} flexGrow={1} overflow="scroll">
+        <FilePreviewText uploadId={uploadId} path={path} scrollParent={previewContainerRef}/>
+      </Box>
+      <Box paddingBottom={1}/>
     </Content>)
 }
 RawFileContent.propTypes = {
@@ -257,34 +270,57 @@ RawFileContent.propTypes = {
   data: PropTypes.object.isRequired
 }
 
+const useFilePreviewTextStyles = makeStyles(theme => ({
+  fileContents: {
+    width: '100%',
+    overflowX: 'auto',
+    color: theme.palette.primary.contrastText,
+    backgroundColor: theme.palette.primary.dark,
+    marginTop: theme.spacing(1),
+    padding: '0px 6px',
+    fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
+    fontSize: 12
+  }
+}))
 function FilePreviewText({uploadId, path, scrollParent}) {
-  const theme = useTheme()
-  const classes = useStyles(theme)
-  const {raiseError} = useErrors()
+  const classes = useFilePreviewTextStyles()
   const {api} = useApi()
-  const lane = useContext(laneContext)
-  const [, setRender] = useState(0)
-  const update = useCallback(() => {
-    setRender(current => current + 1)
-  }, [setRender])
+  const {raiseError} = useErrors()
+  const [contents, setContents] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
+  const loadMore = useCallback(() => {
+    setLoading(true)
+    api.get(
+      `/uploads/${uploadId}/raw/${encodedPath}`,
+      {
+        offset: contents?.length || 0,
+        length: 16 * 1024,
+        decompress: true,
+        ignore_mime_type: true
+      },
+      {transformResponse: []})
+      .then(contents => {
+        setContents(old => (old || '') + (contents || ''))
+        setHasMore(contents?.length === 16 * 1024)
+      })
+      .catch(raiseError)
+      .finally(() => setLoading(false))
+  }, [uploadId, encodedPath, setHasMore, setContents, api, raiseError, contents])
+
   useEffect(() => {
-    if (lane.adaptor.hasMore && !lane.adaptor.fileContents) {
+    if (!loading && !contents && hasMore) {
       // Load the first chunk of the file
-      api.get(
-        `/uploads/${uploadId}/raw/${encodedPath}`,
-        {length: 16 * 1024, decompress: true, ignore_mime_type: true},
-        {transformResponse: []})
-        .then(fileContents => {
-          lane.adaptor.fileContents = fileContents || ''
-          lane.adaptor.hasMore = fileContents?.length === 16 * 1024
-          update()
-        })
-        .catch(raiseError)
+      loadMore()
     }
-  }, [uploadId, encodedPath, lane, update, api, raiseError])
+  }, [loadMore, loading, contents, hasMore])
+
+  const handleLoadPreview = useCallback(() => {
+    setHasMore(true)
+  }, [setHasMore])
 
   const handleLoadMore = useCallback(() => {
     // The infinite scroll component has the issue if calling load more whenever it
@@ -292,45 +328,41 @@ function FilePreviewText({uploadId, path, scrollParent}) {
     // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
     // Therefore, we have to set hasMore to false first and set it to true again after
     // receiving actual results.
-    if (lane.adaptor.hasMore) {
-      lane.adaptor.hasMore = false
-      api.get(
-        `/uploads/${uploadId}/raw/${encodedPath}`,
-        {offset: lane.adaptor.fileContents?.length || 0, length: 16 * 1024, decompress: true, ignore_mime_type: true},
-        {transformResponse: []})
-        .then(fileContents => {
-          // Note, changing tabs or using the webbrowser back/forward buttons to navigate
-          // might cause a scroll event, and trigger to load more
-          lane.adaptor.fileContents = (lane.adaptor.fileContents || '') + (fileContents || '')
-          lane.adaptor.hasMore = fileContents?.length === 16 * 1024
-          update()
-        })
-        .catch(error => {
-          lane.adaptor.fileContents = null
-          raiseError(error)
-        })
+    if (hasMore && !loading) {
+      loadMore()
     }
-  }, [api, uploadId, encodedPath, lane, update, raiseError])
+  }, [loadMore, loading, hasMore])
 
-  if (lane.adaptor.fileContents === null) {
+  if (!loading && !contents && !hasMore) {
+    return (
+      <Box margin={2} textAlign="center">
+        <Button
+          onClick={handleLoadPreview} variant="contained"
+          size="small" color="primary"
+        >
+          Load preview
+        </Button>
+      </Box>
+    )
+  }
+  if (loading && !contents) {
     return <Typography>Loading ...</Typography>
   }
-  return <React.Fragment>
-    <Typography variant="h6">File contents</Typography>
+  return (
     <InfiniteScroll
       className={classes.fileContents}
       pageStart={0}
       loadMore={handleLoadMore}
-      hasMore={lane.adaptor.hasMore}
+      hasMore={hasMore}
       useWindow={false}
       getScrollParent={() => scrollParent.current}
     >
       <pre style={{margin: 0}}>
-        {lane.adaptor.fileContents}
+        {contents}
         &nbsp;
       </pre>
     </InfiniteScroll>
-  </React.Fragment>
+  )
 }
 FilePreviewText.propTypes = {
   uploadId: PropTypes.string.isRequired,
