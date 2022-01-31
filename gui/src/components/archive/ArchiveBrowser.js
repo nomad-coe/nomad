@@ -353,7 +353,6 @@ QuantityItemPreview.propTypes = ({
 
 const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const units = useRecoilValue(unitsState)
-  console.log('###', units)
   const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
     ? toUnitSystem(val, def.unit, units, true)

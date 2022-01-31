@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef } from 'react'
+import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
@@ -24,6 +24,8 @@ import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
+import { useApi } from '../api'
+import { useErrors } from '../errors'
 
 function escapeBadPathChars(s) {
   return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replaceAll('%', '$3').replaceAll('\\', '$4')
@@ -38,6 +40,11 @@ export function formatSubSectionName(name) {
   return name
 }
 
+/**
+ * Browsers are made out of lanes. Each lane uses an adaptor that determines how to render
+ * the lane contents and what adaptor is used for the next lane (depending on what is
+ * selected in this lane).
+ */
 export class Adaptor {
   constructor(e) {
     this.e = e
@@ -47,18 +54,25 @@ export class Adaptor {
     }
   }
 
-  isLoaded() {
-    // Return false to signal to the Browser component that this adaptor needs to load some
-    // data before we can call itemAdaptor. Adaptors that need to load data should call
-    // lane.update() when they are done, to trigger rendering.
-    return true
+  /**
+   * A potentially asynchronous method that is called once when the adaptor was created
+   * and is assigned to a lane.
+   */
+  initialize(api) {
   }
 
-  itemAdaptor(key) {
-    // Gets the adaptor for the next lane. Will only be called if isLoaded returns true.
+  /**
+   * A potentially asynchronous method that is used to determine the adaptor for the
+   * next lane depending on the given key/url segment.
+   * @returns An adaptor that is used to render the next lane.
+   */
+  itemAdaptor(key, api) {
     return null
   }
 
+  /**
+   * Renders the contents of the current lane (the lane that this adaptor represents).
+   */
   render() {
     return ''
   }
@@ -94,6 +108,9 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const { pathname } = useLocation()
   const { url } = useRouteMatch()
 
+  const { api } = useApi()
+  const { raiseError } = useErrors()
+
   useLayoutEffect(() => {
     function update() {
       const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
@@ -112,50 +129,54 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const update = useCallback(() => {
     setRender(current => current + 1)
   }, [setRender])
+  const lanes = useRef(null)
 
-  const lanes = useRef([])
+  useEffect(() => {
+    if (!url) {
+      return
+    }
+
+    const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
+    const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
+
+    async function computeLanes() {
+      lanes.current = lanes.current || []
+      for (let index = 0; index < segments.length; index++) {
+        const segment = unescapeBadPathChars(segments[index])
+        if (lanes.current.length > index) {
+          if (lanes.current[index].segment === segment) {
+            // reuse the existing lane (incl. its adaptor and data)
+            continue
+          } else {
+            // the path diverges, start to use new lanes from now on
+            lanes.current = lanes.current.slice(0, index)
+          }
+        }
+        const prev = index === 0 ? null : lanes.current[index - 1]
+        const lane = {
+          key: segment,
+          path: prev ? prev.path + '/' + encodeURI(segment) : rootPath,
+          adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
+          next: null,
+          update: update
+        }
+        if (prev) {
+          prev.next = lane
+        }
+        if (lane.adaptor.initialize) {
+          await lane.adaptor.initialize(api)
+        }
+        lanes.current.push(lane)
+      }
+    }
+    computeLanes().then(() => update())
+  }, [lanes, url, pathname, adaptor, update, api, raiseError])
 
   if (url === undefined) {
     // Can happen when navigating to another tab, possibly with the browser's back/forward buttons
     // We want to keep the cached lanes, in case the user goes back to this tab, so return immediately.
     return
   }
-
-  // Update the lanes
-  const oldLanesByPath = {}
-  lanes.current.forEach(lane => { oldLanesByPath[lane.path] = lane })
-
-  const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
-  const root = oldLanesByPath[rootPath] || {
-    key: 'root',
-    path: rootPath,
-    adaptor: adaptor,
-    next: null,
-    update: update
-  }
-
-  lanes.current = [root]
-  root.next = null
-  const segments = pathname.substring(url.length).split('/').filter(segment => segment)
-  segments.forEach(segment => {
-    const prev = lanes.current[lanes.current.length - 1]
-    if (prev.adaptor) {
-      const path = prev.path + '/' + encodeURI(segment)
-      segment = unescapeBadPathChars(segment)
-      const curr = oldLanesByPath[path] || {
-        key: segment,
-        path: path,
-        data: root.adaptor.e,
-        update: update
-      }
-      curr.next = undefined
-      prev.next = curr
-      if (!curr.adaptor && prev.adaptor.isLoaded()) {
-        curr.adaptor = prev.adaptor.itemAdaptor(segment)
-      }
-      lanes.current.push(curr)
-    }
-  })
 
   return <React.Fragment>
     {form}
@@ -164,7 +185,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         <div className={classes.root} ref={rootRef} >
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
-              {lanes.current.map((lane, index) => (
+              {lanes.current && lanes.current.map((lane, index) => (
                 <Lane key={index} lane={lane} />
               ))}
             </div>

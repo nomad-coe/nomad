@@ -52,6 +52,15 @@ class RawDirectoryAdaptor extends Adaptor {
   isLoaded() {
     return this.data !== undefined
   }
+  async initialize(api) {
+    if (this.data === undefined) {
+      const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
+      const elementsByName = {}
+      response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
+      this.data = {response, elementsByName}
+    }
+  }
   itemAdaptor(key) {
     const ext_path = this.path ? this.path + '/' + key : key
     const element = this.data.elementsByName[key]
@@ -70,28 +79,8 @@ class RawDirectoryAdaptor extends Adaptor {
 }
 
 function RawDirectoryContent({uploadId, path, title}) {
-  const {api} = useApi()
-  const {raiseError} = useErrors()
   const lane = useContext(laneContext)
-  const [, setLoadedPath] = useState()
-
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-
-  useEffect(() => {
-    if (lane.adaptor.data === undefined) {
-      api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
-        .then(response => {
-          const elementsByName = {}
-          response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
-          lane.adaptor.data = {response, elementsByName}
-          lane.update()
-          setLoadedPath(path)
-        })
-        .catch(error => {
-          raiseError(error)
-        })
-    }
-  }, [uploadId, path, encodedPath, setLoadedPath, lane, api, raiseError])
 
   if (lane.adaptor.data === undefined) {
     return <Content key={path}><Typography>loading ...</Typography></Content>
@@ -149,54 +138,20 @@ class RawFileAdaptor extends Adaptor {
     this.uploadId = uploadId
     this.path = path
     this.data = data
-    this.previewing = false
   }
-  itemAdaptor(key) {
-    console.log('new', this.data)
+  async itemAdaptor(key, api) {
     if (key === 'archive') {
-      if (this.data.archive) {
-        return archiveAdaptorFactory(this.data.archive)
-      } else {
-        return new ArchiveAdaptor(this.data.entry_id, this.data)
+      if (!this.data.archive) {
+        const response = await api.get(`entries/${this.data.entry_id}/archive`)
+        this.data.archive = response.data.archive
       }
+
+      return archiveAdaptorFactory(this.data.archive)
     }
   }
   render() {
     return <RawFileContent uploadId={this.uploadId} path={this.path} data={this.data} key={this.path}/>
   }
-}
-
-class ArchiveAdaptor extends Adaptor {
-  constructor(entryId, data) {
-    super()
-    this.entryId = entryId
-    this.data = data
-  }
-  render() {
-    return <ArchiveLoader entryId={this.entryId} />
-  }
-}
-
-function ArchiveLoader({entryId}) {
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-  const {adaptor, update} = useContext(laneContext)
-  useEffect(() => {
-    api
-      .get(`entries/${entryId}/archive`)
-      .then(response => {
-        adaptor.data.archive = response.data.archive
-        // TODO somehow the update is not doing the necessary update
-        update()
-      })
-      .catch(raiseError)
-  }, [entryId, api, raiseError, adaptor, update])
-  return <Content>
-    <Typography>Loading ... {entryId}</Typography>
-  </Content>
-}
-ArchiveLoader.propTypes = {
-  entryId: PropTypes.string.isRequired
 }
 
 function RawFileContent({uploadId, path, data}) {
