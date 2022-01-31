@@ -46,6 +46,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     if (onChange) {
       let isNameKey = property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined
       onChange((property.repeats ? (isNameKey ? [{name: `new ${property.name}`}] : [{}]) : (isNameKey ? {name: `unnamed`} : {})))
+      lane.update()
     }
   }, [onChange])
 
@@ -53,6 +54,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     if (onChange) {
       let isNameKey = property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined
       onChange(section[property.name].concat((isNameKey ? [{name: `new ${property.name}`}] : [{}])))
+      lane.update()
     }
   }, [onChange])
 
@@ -65,6 +67,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     } else {
       onChange(undefined)
     }
+    lane.update()
   }, [onChange])
 
   if (!lane) return ''
@@ -240,6 +243,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
     }
     setOpenConfirmDialog(false)
     handleSave()
+    lane.update()
   }
 
   const handleSave = useCallback(() => {
