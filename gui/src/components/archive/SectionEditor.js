@@ -34,7 +34,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
 
-  let selected = lane.next && lane.next.key
+  let selected = lane && lane.next && lane.next.key
 
   const handleChange = useCallback((value) => {
     if (onChange) {
