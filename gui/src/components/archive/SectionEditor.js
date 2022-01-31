@@ -34,6 +34,8 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
 
+  let selected = lane.next && lane.next.key
+
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value)
@@ -56,11 +58,16 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   const handleDelete = useCallback(() => {
     if (property.repeats) {
-
+      let index = parseInt(selected.split(':').at(-1))
+      let newValue = [...value]
+      newValue.splice(index, 1)
+      onChange(newValue)
     } else {
       onChange(undefined)
     }
   }, [onChange])
+
+  if (!lane) return ''
 
   function isFloat(str) {
     const num = Number(str)
@@ -88,8 +95,6 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const handleUIntegerValidator = (event) => {
     (isUInteger(event.target.value) || event.target.value === '' ? setValidationError('') : setValidationError('Please enter an unsigned integer number!'))
   }
-
-  if (!lane) return ''
 
   if (property.m_def === 'SubSection') {
     // let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
@@ -205,7 +210,10 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
   const [savedVersion, setSavedVersion] = useState(0)
   const {metadata, archive, reload} = useEntryContext()
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const lane = useContext(laneContext)
   const hasChanges = version > savedVersion
+
+  let selected = lane && lane.key
 
   const handleChange = useCallback((property, value) => {
     let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
@@ -221,7 +229,15 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, pa
   }
 
   const handleDelete = () => {
-    _.set(parent, sectionDef.name.toLowerCase(), undefined)
+    let sectionKey = selected.split(':')
+    if (sectionKey.length === 1) {
+      _.set(parent, sectionKey[0], undefined)
+    } else {
+      let index = parseInt(selected.split(':').at(-1))
+      let newValue = _.get(parent, sectionKey[0])
+      newValue.splice(index, 1)
+      _.set(parent, sectionKey[0], newValue)
+    }
     setOpenConfirmDialog(false)
     handleSave()
   }
