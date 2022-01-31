@@ -33,7 +33,6 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
   const lane = useContext(laneContext)
   const classes = useStyles()
   const [validationError, setValidationError] = useState('')
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
 
   const handleChange = useCallback((value) => {
     if (onChange) {
@@ -43,13 +42,23 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   const handleCreate = useCallback(() => {
     if (onChange) {
-      onChange((property.repeats ? (property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined ? [{name: `new ${property.name}`}] : [{}]) : {}))
+      let isNameKey = property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined
+      onChange((property.repeats ? (isNameKey ? [{name: `new ${property.name}`}] : [{}]) : (isNameKey ? {name: `unnamed`} : {})))
     }
   }, [onChange])
 
   const handleAdd = useCallback(() => {
     if (onChange) {
-      onChange(section[property.name].concat((property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined ? [{name: `new ${property.name}`}] : [{}])))
+      let isNameKey = property?._subSection?._allProperties?.map(quantity => quantity?.name)?.includes('name') !== undefined
+      onChange(section[property.name].concat((isNameKey ? [{name: `new ${property.name}`}] : [{}])))
+    }
+  }, [onChange])
+
+  const handleDelete = useCallback(() => {
+    if (property.repeats) {
+
+    } else {
+      onChange(undefined)
     }
   }, [onChange])
 
@@ -82,29 +91,6 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
 
   if (!lane) return ''
 
-  const handleConfirm = () => {
-    setOpenConfirmDialog(true)
-  }
-
-  const handleDelete = () => {
-    setOpenConfirmDialog(false)
-  }
-
-  let confirmDialog = <Dialog
-    open={openConfirmDialog}
-    aria-describedby="alert-dialog-description"
-  >
-    <DialogContent>
-      <DialogContentText id="alert-dialog-description">
-        Are you sure you want to delete the item?
-      </DialogContentText>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
-      <Button onClick={handleDelete}>Delete and save the changes</Button>
-    </DialogActions>
-  </Dialog>
-
   if (property.m_def === 'SubSection') {
     // let currentPath = (nestedPath ? `${nestedPath}.${property.name}` : property.name)
     const key = property.name
@@ -123,7 +109,7 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
     }
     if (property.repeats) {
       let deleteButton = <Item disabled={true}>
-        <IconButton size="small" onClick={handleConfirm}>
+        <IconButton size="small" onClick={() => handleDelete()}>
           <DeleteIcon fontSize="inherit" />
         </IconButton>
       </Item>
@@ -141,16 +127,23 @@ const PropertyEditor = React.memo(function PropertyEditor({property, section, va
           addButton={addButton}
           deleteButton={deleteButton}
         />
-        {confirmDialog}
       </React.Fragment>
     } else {
-      return <Item key={key} itemKey={key}>
-        <Typography component="span">
-          <Box fontWeight="bold" component="span">
-            {formatSubSectionName(property.name)}
-          </Box>
-        </Typography>
+      let deleteButton = <Item disabled={true}>
+        <IconButton size="small" onClick={() => handleDelete()}>
+          <DeleteIcon fontSize="inherit" />
+        </IconButton>
       </Item>
+      return <React.Fragment>
+        <Item key={key} itemKey={key}>
+          <Typography component="span">
+            <Box fontWeight="bold" component="span" display='flex'>
+              {formatSubSectionName(property.name)}
+              {deleteButton}
+            </Box>
+          </Typography>
+        </Item>
+      </React.Fragment>
     }
   } else if (property.type?.type_kind === 'python') {
     if (property.type?.type_data === 'str' && property.shape?.length === 0) {

@@ -588,10 +588,8 @@ function PropertyValuesList({label, values, addButton, deleteButton}) {
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
             <Box display='flex' component="span" marginLeft={2}>
-              <Box flexGrow='unset'>
-                {deleteButton}
-              </Box>
               <Typography component="span">{item || index}</Typography>
+              {(deleteButton || '')}
             </Box>
           </Item>
         )).concat((addButton || []))}
