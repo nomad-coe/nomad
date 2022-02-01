@@ -307,7 +307,7 @@ const InputField = React.memo(({
       aggComp = <>
         {items}
         <div className={styles.actions}>
-          {showMore && <Tooltip title={noMore ? 'No more values available' : ''}>
+          {showMore && <Tooltip title={loading ? 'Loading...' : noMore ? 'No more values available' : ''}>
             <span>
               <LoadingButton
                 size="small"

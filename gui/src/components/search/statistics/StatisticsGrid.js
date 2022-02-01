@@ -62,7 +62,8 @@ const useStyles = makeStyles(theme => {
       top: theme.spacing(1),
       right: theme.spacing(1),
       bottom: theme.spacing(1),
-      padding: theme.spacing(1),
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(1),
       paddingLeft: theme.spacing(1.5),
       paddingRight: theme.spacing(1.5)
     }

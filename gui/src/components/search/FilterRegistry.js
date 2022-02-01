@@ -537,3 +537,84 @@ for (const name of Object.keys(searchQuantities)) {
   materialNames[name] = materialName
   entryNames[materialName] = name
 }
+
+/**
+ * Function for creating static suggestions. Mimics the suggestion logic used by
+ * the suggestions API endpoint.
+ *
+ * @param {str} category Category for the suggestions
+ * @param {array} values Array of available values
+ * @param {number} minLength Minimum input length before suggestions are considered.
+ * @param {func} text Function that maps the value into the suggested text input
+ *
+ * @return {object} Object containing a list of options and a function for
+ *   filtering them based on the input.
+ */
+function getSuggestions(
+  category, values, minLength = 2, text = (value) => value) {
+  const options = values
+    .map(value => {
+      const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
+      const matches = [...optionCleaned.matchAll(/[ .]/g)]
+      let tokens = [optionCleaned]
+      tokens = tokens.concat(matches.map(match => optionCleaned.slice(match.index + 1)))
+      return {
+        value: value,
+        category: category,
+        text: text && text(value),
+        tokens: tokens
+      }
+    })
+  const filter = (input) => {
+    // Minimum input length
+    if (input.length < minLength) {
+      return []
+    }
+    // Gather all matches
+    const inputCleaned = input.trim().replace(/_/g, ' ').toLowerCase()
+    let suggestions = options.filter(option => option.tokens.some(token => token.startsWith(inputCleaned)))
+
+    // Sort matches based on value length (the more the input covers from the
+    // value, the better the match)
+    suggestions = suggestions.sort((a, b) => a.value.length - b.value.length)
+    return suggestions
+  }
+
+  return {options, filter}
+}
+
+/**
+ * Creates static suggestion for all metainfo quantities that have an enum
+ * value. Also provides suggestions for quantity names.
+ */
+function getStaticSuggestions() {
+  const suggestions = {}
+  const filters = Object.keys(filterData)
+
+  // Add suggestions from metainfo
+  for (const quantity of filters) {
+    const data = searchQuantities[quantity]
+    const isEnum = data?.type?.type_kind === 'Enum'
+    if (isEnum) {
+      const options = data.type.type_data
+      const maxLength = Math.max(...options.map(option => option.length))
+      const minLength = maxLength <= 2 ? 1 : 2
+      suggestions[quantity] = getSuggestions(
+        quantity,
+        options,
+        minLength,
+        (value) => `${quantity}=${value}`
+      )
+    }
+  }
+
+  // Add suggestions for quantity names
+  suggestions['quantity name'] = getSuggestions(
+    'quantity name',
+    filters.filter(value => !filterData[value].section),
+    2
+  )
+  return suggestions
+}
+
+export const staticSuggestions = getStaticSuggestions()

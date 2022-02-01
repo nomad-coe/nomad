@@ -23,7 +23,8 @@ import { Button } from '@material-ui/core'
  * Button that has a loading status and cannot be used while loading.
  */
 export default function LoadingButton({loading, children, ...buttonProps}) {
-  return <Button disabled={loading} {...buttonProps}>
+  buttonProps.disabled = buttonProps.disabled || loading
+  return <Button {...buttonProps}>
     {children}
   </Button>
 }
