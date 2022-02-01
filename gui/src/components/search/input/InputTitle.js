@@ -20,8 +20,6 @@ import { makeStyles } from '@material-ui/core/styles'
 import { Typography, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { startCase } from 'lodash'
-import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 import { inputSectionContext } from './InputSection'
 import { useUnits, Unit } from '../../../units'
@@ -42,8 +40,6 @@ const InputTitle = React.memo(({
   quantity,
   description,
   variant,
-  underscores,
-  capitalize,
   TooltipProps,
   onMouseDown,
   onMouseUp,
@@ -59,22 +55,15 @@ const InputTitle = React.memo(({
   // Remove underscores from name
   const finalLabel = useMemo(() => {
     let label = filterData[quantity]?.label
-    if (!label) {
-      label = searchQuantities[quantity]?.name || quantity
-      label = !underscores ? label.replace(/_/g, ' ') : label
-      if (capitalize) {
-        label = startCase(label)
-      }
-    }
     const unit = filterData[quantity]?.unit
     if (unit) {
       const unitDef = new Unit(unit)
       label = `${label} (${unitDef.label(units)})`
     }
     return label
-  }, [capitalize, filterData, quantity, underscores, units])
+  }, [filterData, quantity, units])
 
-  const finalDescription = description || filterData[quantity].description || searchQuantities[quantity]?.description
+  const finalDescription = description || filterData[quantity].description
 
   return <Tooltip title={finalDescription || ''} placement="bottom" {...(TooltipProps || {})}>
     <Typography
@@ -94,18 +83,15 @@ InputTitle.propTypes = {
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
   variant: PropTypes.string,
-  underscores: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   style: PropTypes.object,
-  capitalize: PropTypes.bool,
   TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
   onMouseDown: PropTypes.func,
   onMouseUp: PropTypes.func
 }
 
 InputTitle.defaultProps = {
-  capitalize: true,
   variant: 'body2'
 }
 

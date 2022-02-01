@@ -697,22 +697,22 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
         entry_1 = dict(
             comment='Entry 1 of 3',
-            references='http://test1',
+            references='http://test1.com',
             external_id='external_id_1')
         with zf.open('examples/entry_1/nomad.yaml', 'w') as f: f.write(yaml.dump(entry_1).encode())
         entry_2 = dict(
             comment='Entry 2 of 3',
-            references=['http://test2'],
+            references=['http://test2.com'],
             external_id='external_id_2')
         with zf.open('examples/entry_2/nomad.json', 'w') as f: f.write(json.dumps(entry_2).encode())
         metadata = {
             'upload_name': 'my name',
             'coauthors': other_test_user.user_id,
-            'references': ['http://test0'],
+            'references': ['http://test0.com'],
             'entries': {
                 'examples/entry_3/template.json': {
                     'comment': 'Entry 3 of 3',
-                    'references': 'http://test3',
+                    'references': 'http://test3.com',
                     'external_id': 'external_id_3'
                 },
                 'examples/entry_1/template.json': {
@@ -729,7 +729,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['root entries comment 1', 'Entry 2 of 3', 'Entry 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test1'], ['http://test2'], ['http://test3'], ['http://test0']]
+    references = [['http://test1.com'], ['http://test2.com'], ['http://test3.com'], ['http://test0.com']]
     expected_coauthors = [other_test_user]
 
     for i in range(len(entries)):

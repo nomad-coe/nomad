@@ -52,7 +52,7 @@ def perform_entries_metadata_test(*args, **kwargs):
     return perform_metadata_test(*args, **kwargs)
 
 
-def perform_entries_raw_download_test(
+def perform_entries_raw_test(
         client, headers={}, query={}, owner=None, files={}, total=-1, files_per_entry=5,
         status_code=200, http_method='get'):
 
@@ -64,14 +64,14 @@ def perform_entries_raw_download_test(
         body = {'query': query, 'files': files}
         if owner is not None:
             body['owner'] = owner
-        response = client.post('entries/raw/download/query', headers=headers, json=body)
+        response = client.post('entries/raw/query', headers=headers, json=body)
 
     elif http_method == 'get':
         params = dict(**query)
         params.update(**files)
         if owner is not None:
             params['owner'] = owner
-        response = client.get('entries/raw/download?%s' % urlencode(params, doseq=True), headers=headers)
+        response = client.get('entries/raw?%s' % urlencode(params, doseq=True), headers=headers)
 
     else:
         assert False
@@ -83,7 +83,7 @@ def perform_entries_raw_download_test(
             compressed=files.get('compress', False))
 
 
-def perform_entries_raw_test(
+def perform_entries_rawdir_test(
         client, owner=None, headers={}, status_code=200,
         total=None, http_method='get', files_per_entry=-1, **kwargs):
 
@@ -98,13 +98,13 @@ def perform_entries_raw_test(
         for value in kwargs.values():
             params.update(**value)
         response = client.get(
-            'entries/raw?%s' % urlencode(params, doseq=True), headers=headers)
+            'entries/rawdir?%s' % urlencode(params, doseq=True), headers=headers)
 
     elif http_method == 'post':
         body = dict(**kwargs)
         if owner is not None:
             body['owner'] = owner
-        response = client.post('entries/raw/query', headers=headers, json=body)
+        response = client.post('entries/rawdir/query', headers=headers, json=body)
 
     else:
         assert False
@@ -118,7 +118,7 @@ def perform_entries_raw_test(
     if total is not None:
         assert response_json['pagination']['total'] == total
 
-    assert_entries_raw_response(response_json, files_per_entry=files_per_entry)
+    assert_entries_rawdir_response(response_json, files_per_entry=files_per_entry)
 
     return response_json
 
@@ -228,19 +228,19 @@ def assert_raw_zip_file(
                 assert all(key in manifest_keys for key in entry)
 
 
-def assert_entries_raw_response(response_json, files_per_entry: int = -1):
+def assert_entries_rawdir_response(response_json, files_per_entry: int = -1):
     assert 'data' in response_json
     for entry in response_json['data']:
-        assert_entry_raw(entry, files_per_entry)
+        assert_entry_rawdir(entry, files_per_entry)
 
 
-def assert_entry_raw_response(response_json, files_per_entry: int = -1):
+def assert_entry_rawdir_response(response_json, files_per_entry: int = -1):
     for key in ['entry_id', 'data']:
         assert key in response_json
-    assert_entry_raw(response_json['data'], files_per_entry=files_per_entry)
+    assert_entry_rawdir(response_json['data'], files_per_entry=files_per_entry)
 
 
-def assert_entry_raw(data, files_per_entry: int = -1):
+def assert_entry_rawdir(data, files_per_entry: int = -1):
     for key in ['upload_id', 'entry_id', 'files']:
         assert key in data
     files = data['files']
@@ -341,10 +341,10 @@ def test_entries_all_metrics(client, data):
             },
             7, 7, 200, 'test_user', id='entries-exclude'),
         pytest.param(
-            {'terms': {'quantity': 'entry_id', 'value_filter': '_0'}},
+            {'terms': {'quantity': 'entry_id', 'include': '_0'}},
             9, 9, 200, None, id='filter'),
         pytest.param(
-            {'terms': {'quantity': 'entry_id', 'value_filter': '.*_0.*'}},
+            {'terms': {'quantity': 'entry_id', 'include': '.*_0.*'}},
             -1, -1, 422, None, id='bad-filter')
     ])
 def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):
@@ -432,8 +432,8 @@ def test_entry_metadata(client, data, entry_id, required, status_code):
     pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
-    perform_entries_raw_test(
+def test_entries_rawdir(client, data, query, files, total, files_per_entry, status_code, http_method):
+    perform_entries_rawdir_test(
         client, status_code=status_code, query=query, files=files, total=total,
         files_per_entry=files_per_entry, http_method=http_method)
 
@@ -452,15 +452,15 @@ def test_entries_raw(client, data, query, files, total, files_per_entry, status_
     pytest.param({}, {'include_files': ['1.aux', '2.aux']}, 23, 2, 200, id='files')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_download_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
-    perform_entries_raw_download_test(
+def test_entries_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
+    perform_entries_raw_test(
         client, status_code=status_code, query=query, files=files, total=total,
         files_per_entry=files_per_entry, http_method=http_method)
 
 
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
-    pytest.param(perform_entries_raw_download_test, id='raw-download'),
+    pytest.param(perform_entries_raw_test, id='raw'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_download_max(monkeypatch, client, data, test_method, http_method):
     monkeypatch.setattr('nomad.config.max_entry_download', 20)
@@ -472,11 +472,11 @@ def test_entries_download_max(monkeypatch, client, data, test_method, http_metho
     pytest.param('id_01', 5, 200, id='id'),
     pytest.param('id_embargo', -1, 404, id='404'),
     pytest.param('doesnotexist', -1, 404, id='404')])
-def test_entry_raw(client, data, entry_id, files_per_entry, status_code):
-    response = client.get('entries/%s/raw' % entry_id)
+def test_entry_rawdir(client, data, entry_id, files_per_entry, status_code):
+    response = client.get('entries/%s/rawdir' % entry_id)
     assert_response(response, status_code)
     if status_code == 200:
-        assert_entry_raw_response(response.json(), files_per_entry=files_per_entry)
+        assert_entry_rawdir_response(response.json(), files_per_entry=files_per_entry)
 
 
 @pytest.mark.parametrize('entry_id, files, files_per_entry, status_code', [
@@ -489,8 +489,8 @@ def test_entry_raw(client, data, entry_id, files_per_entry, status_code):
     pytest.param('id_01', {'include_files': ['1.aux']}, 1, 200, id='file'),
     pytest.param('id_01', {'include_files': ['1.aux', '2.aux']}, 2, 200, id='files')
 ])
-def test_entry_raw_download(client, data, entry_id, files, files_per_entry, status_code):
-    response = client.get('entries/%s/raw/download?%s' % (entry_id, urlencode(files, doseq=True)))
+def test_entry_raw(client, data, entry_id, files, files_per_entry, status_code):
+    response = client.get('entries/%s/raw?%s' % (entry_id, urlencode(files, doseq=True)))
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
@@ -560,7 +560,7 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     pytest.param('id_embargo_w_coauthor_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-coauthor'),
     pytest.param('id_embargo_w_reviewer_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-reviewer')
 ])
-def test_entry_raw_download_file(
+def test_entry_raw_file(
         client, data, example_data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
         entry_id, path, params, status_code):
 
@@ -575,7 +575,7 @@ def test_entry_raw_download_file(
         headers = {}
 
     response = client.get(
-        f'entries/{entry_id}/raw/download/{path}?{urlencode(params, doseq=True)}',
+        f'entries/{entry_id}/raw/{path}?{urlencode(params, doseq=True)}',
         headers=headers)
 
     assert_response(response, status_code)
@@ -670,8 +670,8 @@ n_elements = 'results.material.n_elements'
 ])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
-    pytest.param(perform_entries_raw_download_test, id='raw-download'),
     pytest.param(perform_entries_raw_test, id='raw'),
+    pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_post_query(client, data, query, status_code, total, test_method):
@@ -699,8 +699,8 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
         pytest.param({'q': 'domain__dft'}, 200, 23, id='enum')])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
-    pytest.param(perform_entries_raw_download_test, id='raw-download'),
     pytest.param(perform_entries_raw_test, id='raw'),
+    pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_get_query(client, data, query, status_code, total, test_method):
@@ -732,8 +732,8 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
-    pytest.param(perform_entries_raw_download_test, id='raw-download'),
     pytest.param(perform_entries_raw_test, id='raw'),
+    pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_owner(
@@ -753,7 +753,7 @@ def test_entries_owner(
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
-    pytest.param(perform_entries_raw_test, id='raw'),
+    pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive')])
 def test_entries_pagination(client, data, pagination, response_pagination, status_code, http_method, test_method):
     response_json = test_method(

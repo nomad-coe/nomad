@@ -33,7 +33,7 @@ import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
 import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
-import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
+// import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
 import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
@@ -87,6 +87,11 @@ const entryRoutes = [
             path: 'raw',
             exact: true,
             breadcrumb: 'Raw data files'
+          },
+          {
+            path: 'browse',
+            exact: true,
+            breadcrumb: 'Browse files'
           },
           {
             path: 'archive',
@@ -244,18 +249,23 @@ export const routes = [
         routes: entryRoutes
       },
       {
-        path: 'materials',
-        exact: true,
-        cache: 'always',
-        component: SearchPageMaterials,
         menu: 'Material Encyclopedia',
-        tooltip: 'Search materials',
-        breadcrumb: 'Materials search',
-        help: {
-          title: 'Searching for materials',
-          content: searchMaterialsHelp
-        }
+        href: 'https://nomad-lab.eu/prod/rae/encyclopedia',
+        tooltip: 'Search materials in the NOMAD Encyclopedia'
       }
+      // {
+      //   path: 'materials',
+      //   exact: true,
+      //   cache: 'always',
+      //   component: SearchPageMaterials,
+      //   menu: 'Material Encyclopedia',
+      //   tooltip: 'Search materials',
+      //   breadcrumb: 'Materials search',
+      //   help: {
+      //     title: 'Searching for materials',
+      //     content: searchMaterialsHelp
+      //   }
+      // }
     ]
   },
   {

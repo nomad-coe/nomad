@@ -25,13 +25,12 @@ import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { InputTextField } from './InputText'
-import { Quantity, Unit, toUnitSystem, toSI } from '../../../units'
+import { Quantity, Unit, toUnitSystem, toSI, getDimension } from '../../../units'
 import { formatNumber } from '../../../utils'
-import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 
 function format(value) {
-  return formatNumber(value, 'float', 6, true)
+  return formatNumber(value, 'float', 3, true)
 }
 
 const useStyles = makeStyles(theme => ({
@@ -45,9 +44,12 @@ const useStyles = makeStyles(theme => ({
   },
   textField: {
     marginTop: 0,
-    marginBotton: 0,
+    marginBottom: 0,
     flexGrow: 1,
-    width: '10rem'
+    width: '16rem'
+  },
+  textInput: {
+    textOverflow: 'ellipsis'
   },
   container: {
     width: '100%'
@@ -77,6 +79,7 @@ const InputSlider = React.memo(({
   quantity,
   description,
   step,
+  nSteps,
   visible,
   className,
   classes,
@@ -100,10 +103,10 @@ const InputSlider = React.memo(({
   const [error, setError] = useState()
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
+  const def = filterData[quantity]
   const desc = description || def?.description || ''
   const name = label || def?.name
-  const unitSI = filterData[quantity].unit || def?.unit || 'dimensionless'
+  const unitSI = def?.unit || 'dimensionless'
   const unit = useMemo(() => {
     return unitSI && new Unit(unitSI, units)
   }, [unitSI, units])
@@ -112,15 +115,6 @@ const InputSlider = React.memo(({
   const stepSI = step instanceof Quantity ? step.toSI() : step
   const unavailable = (minGlobalSI === null || maxGlobalSI === null || range === undefined)
   const disabled = locked || unavailable
-
-  // The slider minimum and maximum are set according to global min/max of the
-  // field.
-  useEffect(() => {
-    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
-      setMinLocal(minGlobalSI)
-      setMaxLocal(maxGlobalSI)
-    }
-  }, [minGlobalSI, maxGlobalSI])
 
   // When units change or the slider is used to set a value, update the min/max
   // text
@@ -137,34 +131,36 @@ const InputSlider = React.memo(({
     let gte
     let min
     let max
-    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+    const minGlobal = def.minOverride ? Math.max(minGlobalSI, def.minOverride.toSI()) : minGlobalSI
+    const maxGlobal = def.maxOverride ? Math.min(maxGlobalSI, def.maxOverride.toSI()) : maxGlobalSI
+    if (!isNil(minGlobal) && !isNil(maxGlobal)) {
       // When no filter is set, use the whole available range
       if (isNil(filter)) {
-        gte = minGlobalSI
-        lte = maxGlobalSI
-        min = minGlobalSI
-        max = maxGlobalSI
+        gte = minGlobal
+        lte = maxGlobal
+        min = minGlobal
+        max = maxGlobal
       // A single specific value is given
       } else if (filter instanceof Quantity) {
         gte = filter.toSI()
         lte = filter.toSI()
-        min = Math.min(minGlobalSI, gte)
-        max = Math.max(maxGlobalSI, lte)
+        min = Math.min(minGlobal, gte)
+        max = Math.max(maxGlobal, lte)
       // A range is given
       } else {
         gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
         lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
         if (isNil(gte)) {
-          min = Math.min(minGlobalSI, lte)
-          gte = Math.min(minGlobalSI, lte)
+          min = Math.min(minGlobal, lte)
+          gte = Math.min(minGlobal, lte)
         } else {
-          min = Math.min(minGlobalSI, gte)
+          min = Math.min(minGlobal, gte)
         }
         if (isNil(lte)) {
-          max = Math.max(maxGlobalSI, gte)
-          lte = Math.max(maxGlobalSI, gte)
+          max = Math.max(maxGlobal, gte)
+          lte = Math.max(maxGlobal, gte)
         } else {
-          max = Math.max(maxGlobalSI, lte)
+          max = Math.max(maxGlobal, lte)
         }
       }
       setMinLocal(min)
@@ -173,7 +169,7 @@ const InputSlider = React.memo(({
       setMinText(format(toUnitSystem(gte, unitSI, units)))
       setMaxText(format(toUnitSystem(lte, unitSI, units)))
     }
-  }, [minGlobalSI, maxGlobalSI, filter, unitSI, units])
+  }, [minGlobalSI, maxGlobalSI, filter, unitSI, units, def])
 
   // Function for converting search values and sending them to the search
   // context.
@@ -248,6 +244,15 @@ const InputSlider = React.memo(({
     setError()
   }, [])
 
+  // The final step value. If an explicit step is given, it is used. Otherwise
+  // the available range is broken down into a number of steps, and the closest
+  // power of ten (in the current unit system) is used.
+  const rangeSI = maxLocal - minLocal
+  const rangeCustom = toUnitSystem(rangeSI, unitSI, units)
+  const stepFinalCustom = Math.pow(10, (Math.ceil(Math.log10(rangeCustom / nSteps))))
+  const stepFinalSI = toSI(stepFinalCustom, units[getDimension(unitSI)])
+  const stepFinal = stepSI || stepFinalSI || undefined
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
     <InputHeader
       quantity={quantity}
@@ -263,6 +268,7 @@ const InputSlider = React.memo(({
             disabled={disabled}
             label="min"
             className={styles.textField}
+            inputProps={{className: styles.textInput}}
             value={minText}
             margin="normal"
             onChange={handleChange(startChanged, setMinText)}
@@ -275,7 +281,7 @@ const InputSlider = React.memo(({
               color="secondary"
               min={minLocal}
               max={maxLocal}
-              step={stepSI}
+              step={stepFinal}
               value={[range.gte, range.lte]}
               onChange={handleRangeChange}
               onChangeCommitted={handleRangeCommit}
@@ -306,12 +312,17 @@ InputSlider.propTypes = {
   label: PropTypes.string,
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
-  step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]).isRequired,
+  step: PropTypes.oneOfType([PropTypes.number, PropTypes.object]),
+  nSteps: PropTypes.number,
   visible: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   units: PropTypes.object,
   'data-testid': PropTypes.string
+}
+
+InputSlider.defaultProps = {
+  nSteps: 20
 }
 
 export default InputSlider

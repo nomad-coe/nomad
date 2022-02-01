@@ -326,7 +326,7 @@ class Keycloak():
             self.__user_from_keycloak_user(keycloak_user)
             for keycloak_user in keycloak_results]
 
-    def get_user(self, user_id: str = None, username: str = None, user=None):
+    def get_user(self, user_id: str = None, username: str = None, email: str = None, user=None):
         '''
         Retrives all available information about a user from the keycloak admin
         interface. This must be used to retrieve complete user information, because
@@ -342,6 +342,16 @@ class Keycloak():
 
             if user_id is None:
                 raise KeyError('User with username %s does not exist' % username)
+
+        if email is not None and user_id is None:
+            with utils.lnr(logger, 'Could not use keycloak admin client'):
+                users = self._admin_client.get_users(query=dict(email=email))
+
+            if len(users) > 0:
+                user_id = users[0]['id']
+
+            if user_id is None:
+                raise KeyError('User with email %s does not exist' % email)
 
         assert user_id is not None, 'Could not determine user from given kwargs'
 

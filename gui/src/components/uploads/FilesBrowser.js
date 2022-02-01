@@ -146,13 +146,14 @@ export default function FilesBrower({uploadId, disabled}) {
 
   const fetchData = useMemo(() => (path, open) => {
     async function fetchData() {
-      const results = await api.get(`/uploads/${uploadId}/raw/${path}`)
+      const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
+      const results = await api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?page_size=500`)
       allData.current[path] = {
         open: open,
         ...results
       }
       const resultsByPath = {}
-      results.content
+      results.directory_metadata.content
         .filter(item => item.is_file)
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
@@ -212,7 +213,7 @@ export default function FilesBrower({uploadId, disabled}) {
       key: path,
       hasChildren: !is_file,
       open: data?.open,
-      children: data?.content?.map(mapContent),
+      children: data?.directory_metadata?.content?.map(mapContent),
       onToggle: is_file ? null : () => handleToggle(path),
       // TODO
       // info: !is_file && data?.content?.length === 0 && <Typography variant="caption">

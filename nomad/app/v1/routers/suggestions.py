@@ -89,7 +89,7 @@ async def get_suggestions(
             'field': f'{quantity}{postfix}',
             'size': 5,
             'skip_duplicates': True,
-            # 'fuzzy': {}, # Fuzzy search is disabled for now
+            # 'fuzzy': {},
         })
     search = search.extra(_source=quantities)
 
@@ -104,12 +104,13 @@ async def get_suggestions(
     # We return the original field in the source document.
     response: Dict[str, List[Suggestion]] = defaultdict(list)
     for quantity, quantity_es in zip(quantities, quantities_es):
+        variants = entry_type.suggestions[quantity].variants
         for option in es_response.suggest[quantity_es][0].options:
             weight = option._score
 
             # We use the original input text to do the matching. This works
             # better than the text returned by the completion suggester
-            # (option.text), since it can match several items of there are
+            # (option.text), since it can match several items if there are
             # multiple values per quantity.
             text = data.input.lower().strip()
 
@@ -142,12 +143,22 @@ async def get_suggestions(
             parts = quantity_path.split('.')
             gather_options(option._source, parts, options)
 
-            # If the data is a single string, we simply return it. In the case
-            # of a list of strings we have to linearly look for a match. The
-            # completion suggester does not have a mechanism for saving which
-            # item in a list was matched.
+            # There may be multiple options and we have to look which options
+            # were actually matched (the completion suggester does not have a
+            # mechanism for saving which item in a list was matched.). If the
+            # value has several variants, we have to expand the original source
+            # value and return only the best match.
             for option in options:
-                if text in option.lower().strip():
+                if variants:
+                    best_match = float("Inf")
+                    best_option = option
+                    for variant in variants(option):
+                        match_start = variant.lower().strip().find(text)
+                        if match_start >= 0 and match_start < best_match:
+                            best_match = match_start
+                            best_option = variant
+                    response[quantity].append(Suggestion(value=best_option, weight=weight))
+                elif text in option.lower().strip():
                     response[quantity].append(Suggestion(value=option, weight=weight))
 
     return response

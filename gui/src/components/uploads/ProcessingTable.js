@@ -28,6 +28,7 @@ import EntryDownloadButton from '../entry/EntryDownloadButton'
 import Quantity from '../Quantity'
 import {uploadPageContext} from './UploadPage'
 import EditMetaDataDialog from './EditMetaDataDialog'
+import {pluralize} from '../../utils'
 
 const columns = [
   {
@@ -88,7 +89,7 @@ const defaultSelectedColumns = [
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
-  const {pagination} = props
+  const {pagination, customTitle} = props
   const {upload, isWriter} = useContext(uploadPageContext)
 
   const selectedQuery = useMemo(() => {
@@ -104,7 +105,7 @@ export default function ProcessingTable(props) {
       columns={columns} shownColumns={defaultSelectedColumns} {...props}
       selected={selected} onSelectedChanged={setSelected}
     >
-      <DatatableToolbar title={`${pagination.total} search results`}>
+      <DatatableToolbar title={pluralize((customTitle || 'search result'), pagination.total, true)}>
         <DatatableToolbarActions selection>
           <EntryDownloadButton tooltip="Download files" query={selectedQuery} />
           {isWriter && <EditMetaDataDialog isIcon selectedEntries={selectedQuery}/>}
@@ -119,5 +120,6 @@ export default function ProcessingTable(props) {
 ProcessingTable.propTypes = {
   data: PropTypes.arrayOf(PropTypes.object).isRequired,
   pagination: PropTypes.object.isRequired,
-  onPaginationChanged: PropTypes.func.isRequired
+  onPaginationChanged: PropTypes.func.isRequired,
+  customTitle: PropTypes.string
 }

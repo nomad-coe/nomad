@@ -226,7 +226,7 @@ function PublishUpload({upload, onPublish}) {
             <Button
               style={{height: 32, minWith: 100}}
               size="small" variant="contained"
-              onClick={() => handlePublish()} color="primary" autoFocus
+              onClick={() => handlePublish()} color="primary"
               disabled={upload.process_running}
             >
               {embargo > 0 ? 'Publish with embargo' : 'Publish'}
@@ -501,7 +501,7 @@ function UploadPage() {
           </Dialog>
         </Grid>
       </Grid>
-      <Stepper classes={{root: classes.stepper}} orientation="vertical" nonLinear>
+      <Stepper classes={{root: classes.stepper}} orientation="vertical" >
         <Step expanded active={false}>
           <StepLabel>Prepare and upload your files</StepLabel>
           <StepContent>
@@ -545,17 +545,18 @@ function UploadPage() {
             </React.Fragment>
           </StepContent>
         </Step>
-        <Step expanded={!isEmpty}>
+        <Step expanded={!isEmpty} active={false}>
           <StepLabel>Process data</StepLabel>
           <StepContent>
             <ProcessingStatus data={data} />
             <ProcessingTable
               data={data.data.map(entry => ({...entry.entry_metadata, ...entry}))}
               pagination={combinePagination(pagination, data.pagination)}
+              customTitle='entry'
               onPaginationChanged={setPagination}/>
           </StepContent>
         </Step>
-        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Edit author metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
@@ -571,7 +572,7 @@ function UploadPage() {
             {!isEmpty && <EditMetaDataDialog selectedEntries={{'upload_id': upload.upload_id}}/>}
           </StepContent>
         </Step>}
-        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty}>
+        {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Publish</StepLabel>
           <StepContent>
             {isPublished && <Typography className={classes.stepContent}>

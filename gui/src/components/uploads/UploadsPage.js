@@ -253,7 +253,7 @@ function UploadsPage() {
     page_size: 10,
     page: 1,
     order_by: 'upload_create_time',
-    order: 'asc'
+    order: 'desc'
   })
 
   const fetchData = useCallback(() => {

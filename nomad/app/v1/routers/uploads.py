@@ -29,7 +29,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, config, files
-from nomad.files import UploadFiles, StagingUploadFiles, UploadBundle, is_safe_relative_path
+from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
 from nomad.search import search
@@ -229,19 +229,53 @@ class EntryProcDataQueryResponse(BaseModel):
         '''))
 
 
-class DirectoryListLine(BaseModel):
+class RawDirPagination(Pagination):
+    @validator('order_by')
+    def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        assert not order_by, 'Cannot specify `order_by` for rawdir calls'
+        return None
+
+    @validator('page_after_value')
+    def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
+        # Validation handled elsewhere
+        return page_after_value
+
+
+rawdir_pagination_parameters = parameter_dependency_from_model(
+    'rawdir_pagination_parameters', RawDirPagination, exclude=['order', 'order_by'])
+
+
+class RawDirFileMetadata(BaseModel):
+    ''' Metadata about a file '''
     name: str = Field()
-    is_file: bool = Field()
     size: Optional[int] = Field()
-    access: str = Field()
+    entry_id: Optional[str] = Field(description=strip('''
+        If this is a mainfile: the ID of the corresponding entry.'''))
+    parser_name: Optional[str] = Field(description=strip('''
+        If this is a mainfile: the name of the matched parser.'''))
 
 
-class DirectoryListResponse(BaseModel):
-    path: str = Field(example='The/requested/path')
-    content: List[DirectoryListLine] = Field(
+class RawDirElementMetadata(RawDirFileMetadata):
+    ''' Metadata about an directory *element*, i.e. a file or a directory '''
+    is_file: bool = Field()
+
+
+class RawDirDirectoryMetadata(BaseModel):
+    ''' Metadata about a directory '''
+    name: str = Field()
+    size: Optional[int] = Field()
+    content: List[RawDirElementMetadata] = Field(
         example=[
-            {'name': 'a_directory', 'is_file': False, 'size': 456, 'access': 'public'},
-            {'name': 'a_file.json', 'is_file': True, 'size': 123, 'access': 'restricted'}])
+            {'name': 'a_directory', 'is_file': False, 'size': 456},
+            {'name': 'a_file.json', 'is_file': True, 'size': 123, 'entry_id': 'XYZ', 'parser_name': 'parsers/vasp'}])
+
+
+class RawDirResponse(BaseModel):
+    path: str = Field(example='The/requested/path')
+    access: str = Field()
+    file_metadata: Optional[RawDirFileMetadata] = Field()
+    directory_metadata: Optional[RawDirDirectoryMetadata] = Field()
+    pagination: Optional[PaginationResponse] = Field()
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -307,18 +341,12 @@ _upload_response = 200, {
         `Accept = application/json`, otherwise a plain text information string.''')}
 
 _raw_path_response = 200, {
-    'model': DirectoryListResponse,
     'content': {
-        'application/json': {},
-        'text/html': {'example': '<html defining a list of directory content>'},
         'application/octet-stream': {'example': 'file data'},
         'application/zip': {'example': '<zipped file or directory content>'}},
     'description': strip('''
         If `path` denotes a file: a stream with the file content, zipped if `compress = true`.
-        If `path` denotes a directory, and `compress = true`, the directory content, zipped.
-        If `path` denotes a directory, and `compress = false`, a list of the directory
-        content, either encoded as json or html, depending on the request headers (json if
-        `Accept = application/json`, html otherwise).''')}
+        If `path` denotes a directory, and `compress = true`, the directory content, zipped.''')}
 
 _upload_bundle_response = 200, {
     'content': {
@@ -546,6 +574,100 @@ async def get_upload_entry(
 
 
 @router.get(
+    '/{upload_id}/rawdir/{path:path}', tags=[raw_tag],
+    summary='Get the raw files and folders metadata for a given upload and path.',
+    response_model=RawDirResponse,
+    responses=create_responses(_upload_or_path_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def get_upload_rawdir_path(
+        request: Request,
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        pagination: RawDirPagination = Depends(rawdir_pagination_parameters),
+        include_entry_info: bool = FastApiQuery(
+            False,
+            description=strip('''
+                If the fields `entry_id` and `parser_name` should be populated for all
+                encountered mainfiles.''')),
+        user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
+    '''
+    For the upload specified by `upload_id`, gets the raw file or directory metadata
+    located at the given `path`. The response will either contain a `file_metadata` or
+    `directory_metadata` key. For files, basic data about the file is returned, such as its
+    name and size. For directories, the response includes a list of elements
+    (files and folders) in the directory. For directories, the result is paginated.
+    '''
+    # Get upload
+    upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    try:
+        # Get upload files
+        upload_files = upload.upload_files
+        if not upload_files.raw_path_exists(path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
+                Not found. Invalid path?'''))
+
+        response = RawDirResponse(
+            path=path.rstrip('/'),
+            access='unpublished' if not upload.published else (
+                'embargoed' if upload.embargo_length else 'public'))
+
+        if upload_files.raw_path_is_file(path):
+            response.file_metadata = RawDirFileMetadata(
+                name=os.path.basename(path),
+                size=upload_files.raw_file_size(path))
+            if include_entry_info:
+                entry: Entry = Entry.objects(upload_id=upload_id, mainfile=path).first()
+                if entry:
+                    response.file_metadata.entry_id = entry.entry_id
+                    response.file_metadata.parser_name = entry.parser_name
+        else:
+            start = pagination.get_simple_index()
+            end = start + pagination.page_size
+            directory_list = upload_files.raw_directory_list(path)
+            upload_files.close()
+            content = []
+            path_to_element: Dict[str, RawDirElementMetadata] = {}
+            total = 0
+            total_size = 0
+            for i, path_info in enumerate(directory_list):
+                total += 1
+                total_size += path_info.size
+                if start <= i < end:
+                    element = RawDirElementMetadata(
+                        name=os.path.basename(path_info.path),
+                        is_file=path_info.is_file,
+                        size=path_info.size)
+                    content.append(element)
+                    if include_entry_info:
+                        path_to_element[path_info.path] = element
+
+            if include_entry_info and content:
+                for entry in Entry.objects(upload_id=upload_id, mainfile__in=path_to_element.keys()):
+                    element = path_to_element[entry.mainfile]
+                    element.entry_id = entry.entry_id
+                    element.parser_name = entry.parser_name
+
+            response.directory_metadata = RawDirDirectoryMetadata(
+                name=os.path.basename(path),
+                size=total_size,
+                content=content)
+
+            pagination_response = PaginationResponse(total=total, **pagination.dict())
+            pagination_response.populate_simple_index_and_urls(request)
+            response.pagination = pagination_response
+
+        return response
+    except Exception:
+        upload_files.close()
+        raise
+
+
+@router.get(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
     summary='Get the raw files and folders for a given upload and path.',
     response_class=StreamingResponse,
@@ -554,7 +676,6 @@ async def get_upload_entry(
     response_model_exclude_unset=True,
     response_model_exclude_none=True)
 async def get_upload_raw_path(
-        request: Request,
         upload_id: str = Path(
             ...,
             description='The unique id of the upload.'),
@@ -580,25 +701,33 @@ async def get_upload_raw_path(
                 Set if compressed files should be decompressed before streaming the
                 content (that is: if there are compressed files *within* the raw files).
                 Note, only some compression formats are supported.''')),
+        ignore_mime_type: bool = FastApiQuery(
+            False,
+            description=strip('''
+                Sets the mime type specified in the response headers to `application/octet-stream`
+                instead of trying to determine the actual mime type.''')),
         user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
     at the given `path`. The data is zipped if `compress = true`.
 
     It is possible to download both individual files and directories, but directories can
-    only be downloaded if `compress = true`. If the path points to a directory, but
-    `compress = false`, a list of the directory contents is returned instead. The list is
-    encoded as a json structure (if the request headers has `Accept = application/json`),
-    otherwise as html.
+    only be downloaded if `compress = true`. When downloading a directory, it is also
+    possible to specify `re_pattern`, `glob_pattern` or `include_files` to filter the files
+    based on the file names.
 
-    When downloading a directory (i.e. with `compress = true`), it is also possible to
-    specify `re_pattern` or `glob_pattern` to filter the files based on the file names.
+    When downloading a file, you can specify `decompress` to attempt to decompress the data
+    if the file is compressed before streaming it. You can also specify `offset` and `length`
+    to download only a segment of the file (*Note:* `offset` and `length` does not work if
+    `compress` is set to true).
     '''
+    if files_params.compress and (offset != 0 or length != -1):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+            Cannot specify `offset` or `length` when `compress` is true'''))
     # Get upload
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
-    _check_upload_not_processing(upload)
     # Get upload files
-    upload_files = UploadFiles.get(upload_id)
+    upload_files = upload.upload_files
     try:
         if not upload_files.raw_path_exists(path):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=strip('''
@@ -621,56 +750,26 @@ async def get_upload_raw_path(
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                         Invalid length provided. Should be greater than 0, or -1 if the remainder
                         of the file should be read.'''))
-                media_type = upload_files.raw_file_mime_type(path)
+                if ignore_mime_type or not (offset == 0 and length == -1):
+                    media_type = 'application/octet-stream'
+                else:
+                    media_type = upload_files.raw_file_mime_type(path)
                 content = create_download_stream_raw_file(
                     upload_files, path, offset, length, decompress)
             return StreamingResponse(content, media_type=media_type)
         else:
             # Directory
-            if files_params.compress:
-                # Stream directory content, compressed.
-                download_item = DownloadItem(
-                    upload_id=upload_id, raw_path=path, zip_path='')
-                content = create_download_stream_zipped(
-                    download_item, upload_files,
-                    re_pattern=files_params.re_pattern, recursive=True,
-                    create_manifest_file=False, compress=True)
-                return StreamingResponse(content, media_type='application/zip')
-            else:
-                # compress = False -> return list of directory contents
-                directory_list = upload_files.raw_directory_list(path)
-                upload_files.close()
-                if request.headers.get('Accept') == 'application/json':
-                    # json response
-                    response = DirectoryListResponse(path=path.rstrip('/'), content=[])
-                    for path_info in directory_list:
-                        response.content.append(DirectoryListLine(
-                            name=os.path.basename(path_info.path),
-                            is_file=path_info.is_file,
-                            size=path_info.size,
-                            access=path_info.access))
-                    response_text = response.json()
-                    media_type = 'application/json'
-                else:
-                    # html response
-                    response_text = ''
-                    scheme, netloc, url_path, _query, _fragment = request.url.components
-                    base_url = f'{scheme}://{netloc}{url_path}'
-                    if not base_url.endswith('/'):
-                        base_url += '/'
-                    for path_info in directory_list:
-                        # TODO: How should the html look? Need html escaping?
-                        name = os.path.basename(path_info.path)
-                        if not path_info.is_file:
-                            name += '/'
-                        info = f'{path_info.size} bytes'
-                        if not path_info.is_file:
-                            info += ' (Directory)'
-                        info += f' [{path_info.access}]'
-                        response_text += f'<p><a href="{base_url + name}">{name}</a> {info}</p>\n'
-                    media_type = 'text/html'
-
-                return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
+            if not files_params.compress:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
+                    Path is a directory, `compress` must be set to true'''))
+            # Stream directory content, compressed.
+            download_item = DownloadItem(
+                upload_id=upload_id, raw_path=path, zip_path='')
+            content = create_download_stream_zipped(
+                download_item, upload_files,
+                re_pattern=files_params.re_pattern, recursive=True,
+                create_manifest_file=False, compress=True)
+            return StreamingResponse(content, media_type='application/zip')
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
         upload_files.close()

@@ -23,11 +23,11 @@ import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
-import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
+import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { toUnitSystem, useUnits } from '../../units'
+import { toUnitSystem, unitsState, useUnits } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
@@ -48,25 +48,25 @@ export const configState = atom({
   }
 })
 
-export default function ArchiveBrowser({data}) {
+const ArchiveBrowser = React.memo(({data}) => {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
 
   // For some reason, this hook does not work in all of the components used in
   // the Browser (notably: Quantity, QuantityItemPreview). In order to pass the
   // up-to-date unit information, we pass the hook value down the component
   // hierarchy.
-  const units = useUnits()
   data.resources = data.resources || {}
   return (
     <Browser
-      adaptor={archiveAdaptorFactory(data, undefined, units)}
+      adaptor={archiveAdaptorFactory(data, undefined)}
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
-}
+})
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
+export default ArchiveBrowser
 
 function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
@@ -161,8 +161,8 @@ ArchiveConfigForm.propTypes = ({
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
-function archiveAdaptorFactory(data, sectionDef, units) {
-  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data}, units)
+export function archiveAdaptorFactory(data, sectionDef) {
+  return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
 }
 
 function archiveSearchOptions(data) {
@@ -213,22 +213,21 @@ function archiveSearchOptions(data) {
 }
 
 class ArchiveAdaptor extends Adaptor {
-  constructor(obj, def, parent, context, units) {
+  constructor(obj, def, parent, context) {
     super(obj)
     this.def = def
     this.parent = parent
     this.context = context
-    this.units = units
   }
 
   adaptorFactory(obj, def, parent, context) {
     if (def.m_def === 'Section') {
-      return new SectionAdaptor(obj, def, parent, context || this.context, this.units)
+      return new SectionAdaptor(obj, def, parent, context || this.context)
     } else if (def.m_def === 'Quantity') {
       if (def.type.type_kind === 'reference') {
-        return new ReferenceAdaptor(obj, def, parent, context || this.context, this.units)
+        return new ReferenceAdaptor(obj, def, parent, context || this.context)
       } else {
-        return new QuantityAdaptor(obj, def, parent, context || this.context, this.units)
+        return new QuantityAdaptor(obj, def, parent, context || this.context)
       }
     }
   }
@@ -286,23 +285,24 @@ class SectionAdaptor extends ArchiveAdaptor {
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} parent={this.parent} units={this.units}/>
+    return <Section section={this.e} def={this.def} parent={this.parent} />
   }
 }
 
 class ReferenceAdaptor extends ArchiveAdaptor {
   render() {
-    return <Reference value={this.e} def={this.def} units={this.units}/>
+    return <Reference value={this.e} def={this.def} />
   }
 }
 
 class QuantityAdaptor extends ArchiveAdaptor {
   render() {
-    return <Quantity value={this.e} def={this.def} units={this.units}/>
+    return <Quantity value={this.e} def={this.def} />
   }
 }
 
-function QuantityItemPreview({value, def, units}) {
+function QuantityItemPreview({value, def}) {
+  const units = useUnits()
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -349,11 +349,11 @@ function QuantityItemPreview({value, def, units}) {
 }
 QuantityItemPreview.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired,
-  units: PropTypes.object
+  def: PropTypes.object.isRequired
 })
 
-function QuantityValue({value, def, units}) {
+const QuantityValue = React.memo(function QuantityValue({value, def}) {
+  const units = useRecoilValue(unitsState)
   const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
     ? toUnitSystem(val, def.unit, units, true)
@@ -390,14 +390,13 @@ function QuantityValue({value, def, units}) {
       return <Typography>{finalValue}</Typography>
     }
   }
-}
+})
 QuantityValue.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired,
-  units: PropTypes.object
+  def: PropTypes.object.isRequired
 })
 
-function Section({section, def, parent, units}) {
+function Section({section, def, parent}) {
   const config = useRecoilValue(configState)
 
   if (!section) {
@@ -468,7 +467,6 @@ function Section({section, def, parent, units}) {
                       <QuantityItemPreview
                         value={section[quantityDef.name]}
                         def={quantityDef}
-                        units={units}
                       />
                     </span>
                   }
@@ -481,8 +479,8 @@ function Section({section, def, parent, units}) {
     </React.Fragment>
   }
   return <Content>
-    <Title def={def} data={section} kindLabel="section" />
-    <Overview section={section} def={def} units={units}/>
+    <ArchiveTitle def={def} data={section} kindLabel="section" />
+    <Overview section={section} def={def}/>
     {contents}
     <Meta def={def} />
   </Content>
@@ -490,8 +488,7 @@ function Section({section, def, parent, units}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.any,
-  units: PropTypes.object
+  parent: PropTypes.any
 })
 
 function SubSectionList({subSectionDef}) {
@@ -583,14 +580,13 @@ PropertyValuesList.propTypes = ({
   values: PropTypes.arrayOf(PropTypes.string).isRequired
 })
 
-function Quantity({value, def, units}) {
+function Quantity({value, def}) {
   return <Content>
-    <Title def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value" />
     <Compartment title="value">
       <QuantityValue
         value={value}
         def={def}
-        units={units}
       />
     </Compartment>
     <Meta def={def} />
@@ -598,11 +594,10 @@ function Quantity({value, def, units}) {
 }
 Quantity.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired,
-  units: PropTypes.object
+  def: PropTypes.object.isRequired
 })
 
-function Reference({value, def, units}) {
+function Reference({value, def}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [loading, setLoading] = useState(true)
@@ -635,7 +630,7 @@ function Reference({value, def, units}) {
   }
 
   return <Content>
-    <Title def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value" />
     <Compartment title="reference">
       <Typography color="error">Cannot resolve reference.</Typography>
       <Typography>{value}</Typography>
@@ -645,8 +640,7 @@ function Reference({value, def, units}) {
 }
 Reference.propTypes = ({
   value: PropTypes.any,
-  def: PropTypes.object.isRequired,
-  units: PropTypes.object
+  def: PropTypes.object.isRequired
 })
 
 const useMetaStyles = makeStyles(theme => ({

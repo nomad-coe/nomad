@@ -35,12 +35,13 @@ import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from './dataset/DOI'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { get } from 'lodash'
+import { get, isNil } from 'lodash'
 import searchQuantities from '../searchQuantities'
 import Placeholder from './visualization/Placeholder'
 import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Unit, toUnitSystem, useUnits } from '../units'
+import { filterData } from './search/FilterRegistry'
 
 /**
  * Component for showing a metainfo quantity value together with a name and
@@ -117,6 +118,7 @@ const Quantity = React.memo((props) => {
     quantity,
     label,
     description,
+    value,
     loading,
     placeholder,
     typography,
@@ -142,43 +144,46 @@ const Quantity = React.memo((props) => {
   }
 
   // Determine the final value to show.
-  let value
   if (!loading) {
-    if (typeof quantity === 'string') {
-      value = data && quantity && get(data, quantity)
-      if (format) {
-        value = serializeMetainfo(quantity, value, units)
+    let finalValue = value
+    if (isNil(value)) {
+      if (typeof quantity === 'string') {
+        finalValue = data && quantity && get(data, quantity)
+      } else if (children) {
+      } else {
+        try {
+          finalValue = quantity(data)
+        } catch {
+          finalValue = undefined
+        }
       }
-    } else if (children) {
-    } else {
-      try {
-        value = quantity(data)
-      } catch {
-        value = undefined
-      }
     }
 
-    if (value === 'not processed') {
-      value = 'unavailable'
+    if (finalValue === 'not processed') {
+      finalValue = 'unavailable'
     }
 
-    if (value === 'unavailable') {
-      value = ''
+    if (finalValue === 'unavailable') {
+      finalValue = ''
     }
 
-    if ((!value && !children) && hideIfUnavailable) {
+    if (format) {
+      finalValue = serializeMetainfo(quantity, finalValue, units)
+    }
+
+    if ((!finalValue && !children) && hideIfUnavailable) {
       return null
     }
 
     if (children && children.length !== 0) {
       content = children
-    } else if (value || value === 0) {
-      if (Array.isArray(value)) {
-        value = value.join(', ')
+    } else if (finalValue || finalValue === 0) {
+      if (Array.isArray(finalValue)) {
+        finalValue = finalValue.join(', ')
       }
-      clipboardContent = clipboardContent || value
+      clipboardContent = clipboardContent || finalValue
       content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-        {value}
+        {finalValue}
       </Typography>
     } else {
       content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
@@ -223,11 +228,12 @@ const Quantity = React.memo((props) => {
             ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
               <i>loading ...</i>
             </Typography>
-            // The portal is disabled for this tooltip because the contents may
-            // contain links that cause a navigation that otherwise leaves the
-            // popup opened (the Tooltip state does not get updated since the
-            // page may be cached and a new page is shown immediately).
-            : <Tooltip title={tooltip} PopperProps={{disablePortal: true}}>
+            // The tooltip portal is disabled for custom contents that may
+            // contain links. Pressing a link while the tooltip is shown will
+            // cause a navigation that leaves the popup opened (the Tooltip
+            // state does not get updated since the page may be cached and a new
+            // page is shown immediately).
+            : <Tooltip title={tooltip} PopperProps={children ? {disablePortal: true} : undefined}>
               {content}
             </Tooltip>
           }
@@ -268,6 +274,7 @@ Quantity.propTypes = {
   column: PropTypes.bool,
   flex: PropTypes.bool,
   data: PropTypes.object,
+  value: PropTypes.any,
   quantity: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.func
@@ -432,6 +439,8 @@ QuantityRow.propTypes = {
  */
 export const QuantityCell = React.memo(({
   quantity,
+  value,
+  data,
   label,
   description,
   classes,
@@ -439,22 +448,26 @@ export const QuantityCell = React.memo(({
   children,
   ...other
 }) => {
-  const data = useContext(quantityTableContext)
+  const contextData = useContext(quantityTableContext)
+  const finalData = data || contextData
 
   return <TableCell align="left" {...other}>
     {children || <Quantity
       quantity={quantity}
+      value={value}
       label={label}
       description={description}
       format
       noWrap
-      data={data}
+      data={finalData}
     />}
   </TableCell>
 })
 
 QuantityCell.propTypes = {
   quantity: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
+  value: PropTypes.any,
+  data: PropTypes.object,
   label: PropTypes.string,
   description: PropTypes.string,
   options: PropTypes.object,
@@ -509,12 +522,13 @@ export const SectionTable = React.memo(({
             </TableCell>}
             {Object.keys(quantities).map((key, index) => {
               const defCustom = quantities[key]
-              const def = searchQuantities[`${section}.${key}`]
+              const def = filterData[`${section}.${key}`]
               const unitName = defCustom.unit || def?.unit
               const unit = unitName && new Unit(unitName)
               const unitLabel = unit && unit.label(units)
+              const label = defCustom.label || def?.label
               const description = defCustom.description || def?.description || ''
-              const content = unit ? `${defCustom.label} (${unitLabel})` : defCustom.label
+              const content = unit ? `${label} (${unitLabel})` : defCustom.label
               const align = defCustom.align || 'right'
               return <TableCell key={index} align={align}>
                 <Tooltip title={description}>
@@ -558,13 +572,14 @@ export const SectionTable = React.memo(({
             <TableRow key={i}>
               {data.data.map((row, j) => {
                 const defCustom = quantities[key]
-                const def = searchQuantities[`${section}.${key}`]
+                const def = filterData[`${section}.${key}`]
                 const unitName = defCustom.unit || def?.unit
                 const unit = unitName && new Unit(unitName)
                 const unitLabel = unit ? ` ${unit.label(units)}` : ''
-                const description = defCustom.description || def.description || ''
+                const description = defCustom.description || def?.description || ''
                 const dtype = defCustom?.type?.type_data || def?.type?.type_data
                 const align = defCustom.align || 'right'
+                const label = defCustom.label || def?.label
                 let value = row[key]
                 if (value !== undefined) {
                   if (!isNaN(value)) {
@@ -580,7 +595,7 @@ export const SectionTable = React.memo(({
                   <TableCell key={j} align={align}>
                     <Tooltip title={description}>
                       <span>
-                        {defCustom.label}
+                        {label}
                       </span>
                     </Tooltip>
                   </TableCell>

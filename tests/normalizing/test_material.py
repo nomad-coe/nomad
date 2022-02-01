@@ -247,8 +247,6 @@ def test_material_bulk(bulk):
 
 
 def test_material_eels(eels):
-    import json
-    print(json.dumps(eels.m_to_dict(), indent=2))
     material = eels.results.material
     assert material.n_elements == 2
     assert material.elements == ["Si", "O"]

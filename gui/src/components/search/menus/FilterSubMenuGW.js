@@ -34,7 +34,6 @@ const FilterSubMenuGW = React.memo(({
     actions={<InputCheckboxValue
       quantity="results.method.method_name"
       value="GW"
-      label=""
       description="Search GW entries"
     />}
     {...rest}>

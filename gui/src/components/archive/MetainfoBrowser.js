@@ -19,8 +19,8 @@ import React, { useMemo, useEffect, useRef, useLayoutEffect, useContext, useStat
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName } from './Browser'
-import { Typography, Box, makeStyles, Grid, FormGroup, TextField, Button, Tooltip, Link } from '@material-ui/core'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title } from './Browser'
+import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
 import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
@@ -422,7 +422,7 @@ SectionDefContent.propTypes = ({
 })
 
 function SectionDef({def}) {
-  return <Content style={{backgroundColor: 'grey'}}>
+  return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
   </Content>
@@ -435,7 +435,7 @@ function SubSectionDef({def}) {
   const sectionDef = resolveRef(def.sub_section)
   return <React.Fragment>
     <Content>
-      <Title def={def} useName isDefinition kindLabel="sub section definition" />
+      <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
       <DefinitionDocs def={sectionDef} />
       <SectionDefContent def={sectionDef} />
     </Content>
@@ -529,7 +529,7 @@ DefinitionDocs.propTypes = {
 
 function Definition({def, ...props}) {
   return <React.Fragment>
-    <Title def={def} useName isDefinition {...props} />
+    <ArchiveTitle def={def} useName isDefinition {...props} />
     <DefinitionDocs def={def} />
   </React.Fragment>
 }
@@ -624,27 +624,28 @@ const definitionLabels = {
   'SubSection': 'sub section',
   'Category': 'category'
 }
-export function Title({def, isDefinition, data, kindLabel, useName}) {
+
+export function ArchiveTitle({def, isDefinition, data, kindLabel, useName}) {
   const color = isDefinition ? 'primary' : 'initial'
-  return <Compartment>
-    <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item>
-        <Tooltip title={def._qualifiedName || def.name}>
-          <Typography color={color} variant="h6">{(!useName && def.more?.label) || def.name}</Typography>
-        </Tooltip>
-        <DefinitionLabel def={def} isDefinition={isDefinition} variant="caption" color={color} />
-      </Grid>
-      <Grid item>
-        <SourceJsonDialogButton
-          tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
-          title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
-          data={data || def}
-        />
-      </Grid>
-    </Grid>
-  </Compartment>
+  let label = definitionLabels[def.m_def]
+  if (def.extends_base_section) {
+    label += ' extension'
+  }
+  return <Title
+    title={(!useName && def.more?.label) || def.name}
+    tooltip={def._qualifiedName || def.name}
+    label={`${label}${isDefinition ? ' definition' : ''}`}
+    color={color}
+    actions={(
+      <SourceJsonDialogButton
+        tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
+        title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
+        data={data || def}
+      />
+    )}
+  />
 }
-Title.propTypes = ({
+ArchiveTitle.propTypes = ({
   def: PropTypes.object.isRequired,
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
@@ -681,6 +682,7 @@ const useVicinityGraphStyles = makeStyles(theme => ({
     }
   }
 }))
+
 export function VicinityGraph({def}) {
   const linkColors = {
     'Quantity': purple[500],

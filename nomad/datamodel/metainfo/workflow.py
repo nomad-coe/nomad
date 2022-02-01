@@ -2,7 +2,7 @@ import numpy as np            # pylint: disable=unused-import
 import typing                 # pylint: disable=unused-import
 from nptyping import NDArray
 from nomad.metainfo import (  # pylint: disable=unused-import
-    MSection, Quantity, Section, SubSection, SectionProxy,
+    MSection, MEnum, Quantity, Section, SubSection, SectionProxy,
     Reference, derived)
 from nomad.datamodel.metainfo.simulation.calculation import Calculation
 from nomad.datamodel.metainfo.simulation.run import Run
@@ -1463,13 +1463,25 @@ class Workflow(MSection):
         validate=False)
 
     type = Quantity(
-        type=str,
+        type=MEnum([
+            "single_point",
+            "geometry_optimization",
+            "phonon",
+            "elastic",
+            "molecular_dynamics",
+            "debye_model",
+            "equation_of_state",
+            "nudged_elastic_band",
+            "convex_hull",
+            "adsorption",
+            "magnetic_ordering",
+            "raman",
+            "interface",
+            "thermodynamics"
+        ]),
         shape=[],
         description='''
-        The type of calculation workflow. Can be one of the following
-        single_point, geometry_optimization, elastic, phonon, molecular_dynamics,
-        debye_model, equation_of_state, nudged_elastic_band, adsorption, raman,
-        thermodyanamics, magnetic_ordering
+        The workflow type.
         ''')
 
     initial_structure = Quantity(

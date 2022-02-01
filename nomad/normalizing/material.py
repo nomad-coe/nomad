@@ -63,11 +63,11 @@ class MaterialNormalizer():
             material.chemical_formula_reduced_fragments = [
                 "{}{}".format(n, int(c) if c != 1 else "") for n, c in zip(symbols, reduced_counts)
             ]
+            material.chemical_formula_hill = self.repr_system.chemical_composition_hill
+            material.chemical_formula_descriptive = material.chemical_formula_hill
         if self.optimade:
             material.elements = self.optimade.elements
-            material.chemical_formula_descriptive = self.optimade.chemical_formula_descriptive
             material.chemical_formula_reduced = self.optimade.chemical_formula_reduced
-            material.chemical_formula_hill = self.optimade.chemical_formula_hill
             material.chemical_formula_anonymous = self.optimade.chemical_formula_anonymous
 
         material.symmetry = self.symmetry()

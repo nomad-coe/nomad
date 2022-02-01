@@ -26,7 +26,6 @@ import {
 import PropTypes from 'prop-types'
 import { isNil } from 'lodash'
 import clsx from 'clsx'
-import searchQuantities from '../../../searchQuantities'
 import { useSearchContext } from '../SearchContext'
 
 const useStyles = makeStyles(theme => ({
@@ -50,14 +49,14 @@ const InputCheckbox = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useStyles({classes: classes, theme: theme})
-  const { filterData, useFilterState, useFilterLocked } = useSearchContext()
+  const {filterData, useFilterState, useFilterLocked} = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
-  const desc = isNil(description) ? (def?.description || '') : description
-  const title = isNil(label) ? def?.name : label
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
+  const labelFinal = label || def?.label
   const disabled = locked
 
   const handleChange = useCallback((event, value) => {
@@ -65,7 +64,7 @@ const InputCheckbox = React.memo(({
   }, [setFilter])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <Tooltip title={desc}>
+    <Tooltip title={descFinal}>
       <FormControlLabel
         control={<Checkbox
           color="primary"
@@ -73,7 +72,7 @@ const InputCheckbox = React.memo(({
           checked={isNil(filter) ? (isNil(initialValue) ? filterData[quantity].default : initialValue) : filter}
           onChange={handleChange}
         />}
-        label={<Typography>{title}</Typography>}
+        label={<Typography>{labelFinal}</Typography>}
       />
     </Tooltip>
   </div>
@@ -103,7 +102,6 @@ const useInputCheckboxValueStyles = makeStyles(theme => ({
 }))
 export const InputCheckboxValue = React.memo(({
   quantity,
-  label,
   description,
   value,
   className,
@@ -112,13 +110,13 @@ export const InputCheckboxValue = React.memo(({
 }) => {
   const theme = useTheme()
   const styles = useInputCheckboxValueStyles({classes: classes, theme: theme})
-  const { useFilterState, useFilterLocked } = useSearchContext()
+  const {filterData, useFilterState, useFilterLocked} = useSearchContext()
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
 
   // Determine the description and units
-  const def = searchQuantities[quantity]
-  const desc = isNil(description) ? (def?.description || '') : description
+  const def = filterData[quantity]
+  const descFinal = description || def?.description || ''
   const disabled = locked
 
   const handleChange = useCallback(() => {
@@ -130,7 +128,7 @@ export const InputCheckboxValue = React.memo(({
   }, [setFilter, value])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <Tooltip title={desc}>
+    <Tooltip title={descFinal}>
       <Checkbox
         disabled={disabled}
         color="primary"
@@ -145,7 +143,6 @@ export const InputCheckboxValue = React.memo(({
 
 InputCheckboxValue.propTypes = {
   quantity: PropTypes.string.isRequired,
-  label: PropTypes.string,
   description: PropTypes.string,
   value: PropTypes.any,
   className: PropTypes.string,

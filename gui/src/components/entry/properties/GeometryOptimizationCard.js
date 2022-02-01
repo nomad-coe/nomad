@@ -24,27 +24,41 @@ import GeometryOptimization from '../../visualization/GeometryOptimization'
 
 export default function GeometryOptimizationCard({index, archive, properties}) {
   const units = useUnits()
+  const geoOptProps = index?.results?.properties?.geometry_optimization
 
-  // Find out which properties are present
-  const hasGeometryOptimization = properties.has('geometry_optimization')
+  // Find out which properties are present. If only one step is calculated
+  // (n_calculations == 1 and none of the convergence criteria are available),
+  // the card will not be displayed.
+  const hasEnergies = properties.has('geometry_optimization') &&
+    index?.results?.properties?.n_calculations > 1
+  const hasConvergence = properties.has('geometry_optimization') &&
+    (
+      index?.results?.properties?.geometry_optimization?.final_energy_difference ||
+      index?.results?.properties?.geometry_optimization?.final_displacement_maximum ||
+      index?.results?.properties?.geometry_optimization?.final_force_maximum
+    )
 
   // Do not show the card if none of the properties are available
-  if (!hasGeometryOptimization) {
+  if (!hasEnergies && !hasConvergence) {
     return null
   }
 
-  // Resolve geometry optimization data
-  let geometryOptimization = hasGeometryOptimization ? null : false
-  const geoOptProps = archive?.results?.properties?.geometry_optimization
-  const geoOptMethod = index.results.method?.simulation?.geometry_optimization
-  if (geoOptProps) {
-    geometryOptimization = {}
-    geometryOptimization.energies = resolveRef(geoOptProps.energies, archive)
-    geometryOptimization.convergence_tolerance_energy_difference = geoOptMethod?.convergence_tolerance_energy_difference
+  // Resolve energies
+  let energies = hasEnergies ? null : false
+  const energiesArchive = archive?.results?.properties?.geometry_optimization?.energies
+  if (hasEnergies && energiesArchive) {
+    energies = resolveRef(energiesArchive, archive)
   }
 
+  // Resolve convergence properties
+  let convergence = hasConvergence ? geoOptProps : false
+
   return <PropertyCard title="Geometry optimization">
-    <GeometryOptimization data={geometryOptimization} units={units} />
+    <GeometryOptimization
+      energies={energies}
+      convergence={convergence}
+      units={units}
+    />
   </PropertyCard>
 }
 
