@@ -141,10 +141,15 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
     async function computeLanes() {
       lanes.current = lanes.current || []
+      if (lanes.current.length > segments.length) {
+        // New path is shorter than the old path
+        lanes.current = lanes.current.slice(0, segments.length)
+        lanes.current[lanes.current.length - 1].next = null
+      }
       for (let index = 0; index < segments.length; index++) {
         const segment = unescapeBadPathChars(segments[index])
         if (lanes.current.length > index) {
-          if (lanes.current[index].segment === segment) {
+          if (lanes.current[index].key === segment) {
             // reuse the existing lane (incl. its adaptor and data)
             continue
           } else {
@@ -155,7 +160,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         const prev = index === 0 ? null : lanes.current[index - 1]
         const lane = {
           key: segment,
-          path: prev ? prev.path + '/' + encodeURI(segment) : rootPath,
+          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
           next: null,
           update: update
@@ -301,7 +306,7 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
-    <Grid container spacing={2} alignItems="center">
+    <Grid container spacing={2} alignItems="center" wrap="nowrap">
       {icon && <Grid item>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
