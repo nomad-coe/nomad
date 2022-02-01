@@ -107,11 +107,7 @@ const InputField = React.memo(({
     if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
       const opt = {}
       for (const name of metainfoOptions) {
-        // We do not display the option for 'not processed': it is more of a
-        // debug value
-        if (name !== 'not processed') {
-          opt[name] = {label: name}
-        }
+        opt[name] = {label: name}
       }
       return opt
     }
@@ -150,7 +146,10 @@ const InputField = React.memo(({
   // Form the final list of options. If no fixed options are available, the
   // options are gathered from the aggregation.
   const finalOptions = useMemo(() => {
+    // We do not display the option for 'not processed': it is more of a
+    // debug value
     if (fixedOptions) {
+      delete fixedOptions['not processed']
       return fixedOptions
     }
     if (agg?.data) {
