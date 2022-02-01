@@ -25,12 +25,25 @@ import {
 
 /**
  * For displaying a grid of input properties.
+ *
+ * Notice that we have to use a workaround for the MUI grid item in order to
+ * prevent horizontal overflow. A padding is applied to the parent element as
+ * described in https://v4.mui.com/components/grid/#negative-margin
  */
 const inputGridSpacing = 2
+const useInputGridStyles = makeStyles(theme => ({
+  root: {
+    paddingLeft: theme.spacing(inputGridSpacing / 2),
+    paddingRight: theme.spacing(inputGridSpacing / 2)
+  }
+}))
 export function InputGrid({children}) {
-  return <Grid container spacing={inputGridSpacing} style={{marginTop: 0}}>
-    {children}
-  </Grid>
+  const styles = useInputGridStyles()
+  return <div className={styles.root}>
+    <Grid container spacing={inputGridSpacing} style={{marginTop: 0}}>
+      {children}
+    </Grid>
+  </div>
 }
 
 InputGrid.propTypes = {
@@ -44,11 +57,15 @@ const useInputGridItemStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(inputGridSpacing / 2)
   },
+  content: {
+    paddingLeft: theme.spacing(inputGridSpacing / 4),
+    paddingRight: theme.spacing(inputGridSpacing / 4)
+  },
   divider: {
-    marginLeft: theme.spacing(-inputGridSpacing),
-    marginRight: theme.spacing(-inputGridSpacing),
+    marginLeft: theme.spacing(-inputGridSpacing / 2),
+    marginRight: theme.spacing(-inputGridSpacing / 2),
     marginTop: theme.spacing(-inputGridSpacing / 2),
-    marginBottom: theme.spacing(inputGridSpacing / 2),
+    marginBottom: theme.spacing(inputGridSpacing / 4),
     backgroundColor: theme.palette.grey[300]
   }
 }))
@@ -56,7 +73,9 @@ export function InputGridItem({classes, children, ...other}) {
   const styles = useInputGridItemStyles({classes: classes})
   return <Grid item {...other} className={styles.root}>
     <Divider className={styles.divider}/>
-    {children}
+    <div className={styles.content}>
+      {children}
+    </div>
   </Grid>
 }
 

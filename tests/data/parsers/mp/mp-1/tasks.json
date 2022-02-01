@@ -1,0 +1,2413 @@
+{
+    "tags": [
+        "mp_2018",
+        "mp_production_old",
+        "prod"
+    ],
+    "calcs_reversed": [
+        {
+            "output": {
+                "ionic_steps": [
+                    {
+                        "e_fr_energy": -0.85408944,
+                        "e_wo_entrp": -0.85459793,
+                        "e_0_energy": 0.00152548,
+                        "forces": [
+                            [
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        ],
+                        "stress": [
+                            [
+                                0.02590451,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.02590451,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                0.02590451
+                            ]
+                        ],
+                        "electronic_steps": [
+                            {
+                                "alphaZ": 15.47467114,
+                                "ewald": -345.2371438,
+                                "hartreedc": -135.92448553,
+                                "XCdc": 9.93435335,
+                                "pawpsdc": 290.89853529,
+                                "pawaedc": -283.9441585,
+                                "eentropy": 0.00152547,
+                                "bandstr": -107.73931622,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85408933,
+                                "e_wo_entrp": -0.8556148,
+                                "e_0_energy": -0.85459782
+                            },
+                            {
+                                "e_fr_energy": -0.8540894,
+                                "e_wo_entrp": -0.85561488,
+                                "e_0_energy": -0.8545979
+                            },
+                            {
+                                "alphaZ": 15.47467114,
+                                "ewald": -345.2371438,
+                                "hartreedc": -135.9252678,
+                                "XCdc": 9.93439515,
+                                "pawpsdc": 290.90998516,
+                                "pawaedc": -283.95568576,
+                                "eentropy": 0.00152548,
+                                "bandstr": -107.73849849,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85408944,
+                                "e_wo_entrp": -0.85561492,
+                                "e_0_energy": -0.85459793
+                            }
+                        ],
+                        "structure": {
+                            "@module": "pymatgen.core.structure",
+                            "@class": "Structure",
+                            "lattice": {
+                                "matrix": [
+                                    [
+                                        5.01947005,
+                                        0.0,
+                                        -1.77465066
+                                    ],
+                                    [
+                                        -2.50973503,
+                                        4.34698858,
+                                        -1.77465066
+                                    ],
+                                    [
+                                        0.0,
+                                        0.0,
+                                        5.32395197
+                                    ]
+                                ],
+                                "a": 5.323951967090371,
+                                "b": 5.3239519720314865,
+                                "c": 5.32395197,
+                                "alpha": 109.4712206648101,
+                                "beta": 109.47122068361057,
+                                "gamma": 109.4712206203798,
+                                "volume": 116.16639052177214
+                            },
+                            "sites": [
+                                {
+                                    "species": [
+                                        {
+                                            "element": "Cs",
+                                            "occu": 1
+                                        }
+                                    ],
+                                    "abc": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "xyz": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "label": "Cs"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "efermi": null,
+                "bandgap": 0.017100000000000004,
+                "cbm": 0.6976,
+                "vbm": 0.6805,
+                "is_gap_direct": false,
+                "epsilon_static": [],
+                "epsilon_static_wolfe": [],
+                "epsilon_ionic": [],
+                "structure": {
+                    "@module": "pymatgen.core.structure",
+                    "@class": "Structure",
+                    "lattice": {
+                        "matrix": [
+                            [
+                                5.01947005,
+                                0.0,
+                                -1.77465066
+                            ],
+                            [
+                                -2.50973503,
+                                4.34698858,
+                                -1.77465066
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                5.32395197
+                            ]
+                        ],
+                        "a": 5.323951967090371,
+                        "b": 5.3239519720314865,
+                        "c": 5.32395197,
+                        "alpha": 109.4712206648101,
+                        "beta": 109.47122068361057,
+                        "gamma": 109.4712206203798,
+                        "volume": 116.16639052177214
+                    },
+                    "sites": [
+                        {
+                            "species": [
+                                {
+                                    "element": "Cs",
+                                    "occu": 1
+                                }
+                            ],
+                            "abc": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "xyz": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "label": "Cs"
+                        }
+                    ]
+                },
+                "energy": -0.85459793,
+                "energy_per_atom": -0.85459793,
+                "outcar": {
+                    "@module": "pymatgen.io.vasp.outputs",
+                    "@class": "Outcar",
+                    "efermi": 0.5219,
+                    "magnetization": [],
+                    "charge": [],
+                    "total_magnetization": -7.4e-06,
+                    "nelect": 9.0000002,
+                    "is_stopped": false
+                }
+            },
+            "input": {
+                "incar": {
+                    "SYSTEM": "RubyVaspy :: Cs",
+                    "PREC": "accurate",
+                    "ALGO": "FAST",
+                    "ISPIN": 2,
+                    "ICHARG": 1,
+                    "NELM": 100,
+                    "NELMIN": 3,
+                    "IBRION": 1,
+                    "EDIFF": 2e-06,
+                    "NSW": 200,
+                    "ISIF": 3,
+                    "ENCUT": 520.0,
+                    "MAGMOM": [
+                        0.6
+                    ],
+                    "LREAL": "AUTO",
+                    "ISMEAR": 1,
+                    "SIGMA": 0.2,
+                    "LWAVE": true,
+                    "LPEAD": false,
+                    "LCALCPOL": false,
+                    "LCALCEPS": false,
+                    "EFIELD_PEAD": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LEFG": false
+                },
+                "kpoints": {
+                    "comment": "Kpoints from vasprun.xml",
+                    "nkpoints": 0,
+                    "generation_style": "Monkhorst",
+                    "kpoints": [
+                        [
+                            10,
+                            10,
+                            10
+                        ]
+                    ],
+                    "usershift": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "kpts_weights": null,
+                    "coord_type": null,
+                    "labels": null,
+                    "tet_number": 0,
+                    "tet_weight": 0,
+                    "tet_connections": null,
+                    "genvec1": [
+                        0.1,
+                        0.0,
+                        0.0
+                    ],
+                    "genvec2": [
+                        0.0,
+                        0.1,
+                        0.0
+                    ],
+                    "genvec3": [
+                        0.0,
+                        0.0,
+                        0.1
+                    ],
+                    "shift": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "@module": "pymatgen.io.vasp.inputs",
+                    "@class": "Kpoints",
+                    "actual_points": [
+                        {
+                            "abc": [
+                                0.05,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.45,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.012
+                        },
+                        {
+                            "abc": [
+                                -0.05,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.35,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.45,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.35,
+                                0.05
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.012
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.35,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.15
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.25
+                            ],
+                            "weight": 0.002
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.25
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.35
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.35
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.35
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.45
+                            ],
+                            "weight": 0.006
+                        }
+                    ]
+                },
+                "potcar": [
+                    "Cs_sv"
+                ],
+                "potcar_spec": [
+                    {
+                        "titel": "PAW_PBE Cs_sv 08Apr2002",
+                        "hash": "096b53a7d80cc0086976bcda50d536e5"
+                    }
+                ],
+                "potcar_type": [
+                    "PAW_PBE"
+                ],
+                "parameters": {
+                    "SYSTEM": "RubyVaspy :: Cs",
+                    "LCOMPAT": false,
+                    "PREC": "accura",
+                    "ENMAX": 520.0,
+                    "ENAUG": 407.933,
+                    "EDIFF": 2e-06,
+                    "IALGO": 68,
+                    "IWAVPR": 11,
+                    "NBANDS": 8,
+                    "NELECT": 9.0,
+                    "ISMEAR": 1,
+                    "SIGMA": 0.2,
+                    "LREAL": true,
+                    "ROPT": [
+                        -0.00025
+                    ],
+                    "LMAXPAW": -100,
+                    "LMAXMIX": 2,
+                    "ISTART": 1,
+                    "ICHARG": 1,
+                    "INIWAV": 1,
+                    "ISPIN": 2,
+                    "LNONCOLLINEAR": false,
+                    "MAGMOM": [
+                        0.6
+                    ],
+                    "NUPDOWN": -1.0,
+                    "LSORBIT": false,
+                    "SAXIS": [
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "LSPIRAL": false,
+                    "QSPIRAL": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LZEROZ": false,
+                    "LASPH": false,
+                    "LMETAGGA": false,
+                    "NELM": 100,
+                    "NELMDL": 0,
+                    "NELMIN": 3,
+                    "ENINI": 520.0,
+                    "LDIAG": true,
+                    "WEIMIN": 0.001,
+                    "EBREAK": 6e-08,
+                    "DEPER": 0.3,
+                    "NRMM": 4,
+                    "TIME": 0.4,
+                    "AMIX": 0.4,
+                    "BMIX": 1.0,
+                    "AMIN": 0.1,
+                    "AMIX_MAG": 1.6,
+                    "BMIX_MAG": 1.0,
+                    "IMIX": 4,
+                    "MAXMIX": -45,
+                    "WC": 100.0,
+                    "INIMIX": 1,
+                    "MIXPRE": 1,
+                    "MREMOVE": 5,
+                    "LDIPOL": false,
+                    "LMONO": false,
+                    "IDIPOL": 0,
+                    "EPSILON": 1.0,
+                    "DIPOL": [
+                        -100.0,
+                        -100.0,
+                        -100.0
+                    ],
+                    "EFIELD": 0.0,
+                    "NGX": 40,
+                    "NGY": 40,
+                    "NGZ": 40,
+                    "NGXF": 80,
+                    "NGYF": 80,
+                    "NGZF": 80,
+                    "ADDGRID": false,
+                    "NSW": 200,
+                    "IBRION": 1,
+                    "ISIF": 3,
+                    "PSTRESS": 0.0,
+                    "EDIFFG": 2e-05,
+                    "NFREE": 0,
+                    "POTIM": 0.5,
+                    "SMASS": -3.0,
+                    "TEBEG": 0.0001,
+                    "TEEND": 0.0001,
+                    "NBLOCK": 1,
+                    "KBLOCK": 200,
+                    "NPACO": 256,
+                    "APACO": 16.0,
+                    "ISYM": 2,
+                    "SYMPREC": 1e-05,
+                    "LORBIT": false,
+                    "RWIGS": [
+                        -1.0
+                    ],
+                    "NEDOS": 301,
+                    "EMIN": 10.0,
+                    "EMAX": -10.0,
+                    "EFERMI": 0.0,
+                    "NWRITE": 2,
+                    "LWAVE": true,
+                    "LCHARG": true,
+                    "LPARD": false,
+                    "LVTOT": false,
+                    "LELF": false,
+                    "LOPTICS": false,
+                    "STM": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "NPAR": 1,
+                    "NSIM": 4,
+                    "NBLK": 32,
+                    "LPLANE": true,
+                    "LSCALAPACK": false,
+                    "LSCAAWARE": false,
+                    "LSCALU": false,
+                    "LASYNC": false,
+                    "IDIOT": 3,
+                    "LMUSIC": false,
+                    "POMASS": [
+                        132.9
+                    ],
+                    "LCORR": true,
+                    "LREAL_COMPAT": false,
+                    "GGA_COMPAT": true,
+                    "LBERRY": false,
+                    "ICORELEVEL": 0,
+                    "LDAU": false,
+                    "I_CONSTRAINED_M": 0,
+                    "GGA": "--",
+                    "VOSKOWN": 0,
+                    "LHFCALC": false,
+                    "LHFONE": false,
+                    "LRHFCALC": false,
+                    "LTHOMAS": false,
+                    "LMODELHF": false,
+                    "ENCUTFOCK": 0.0,
+                    "ENCUT4O": -1.0,
+                    "EXXOEP": 0,
+                    "FOURORBIT": 0,
+                    "AEXX": 0.0,
+                    "HFALPHA": 0.0,
+                    "ALDAX": 1.0,
+                    "AGGAX": 1.0,
+                    "ALDAC": 1.0,
+                    "AGGAC": 1.0,
+                    "NKREDX": 1,
+                    "NKREDY": 1,
+                    "NKREDZ": 1,
+                    "SHIFTRED": false,
+                    "ODDONLY": false,
+                    "EVENONLY": false,
+                    "LMAXFOCK": 0,
+                    "NMAXFOCKAE": 0,
+                    "HFSCREEN": 0.0,
+                    "HFSCREENC": 0.0,
+                    "MODEL_GW": 0,
+                    "MODEL_EPS0": 69.69983428,
+                    "MODEL_ALPHA": 1.0,
+                    "LEPSILON": false,
+                    "LRPA": false,
+                    "LNABLA": false,
+                    "LVEL": false,
+                    "KINTER": 0,
+                    "CSHIFT": 0.1,
+                    "OMEGAMAX": -1.0,
+                    "ORBITALMAG": false,
+                    "LMAGBLOCH": false,
+                    "LCHIMAG": false,
+                    "LGAUGE": true,
+                    "MAGATOM": 0,
+                    "MAGDIPOL": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "AVECCONST": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LTCTE": false,
+                    "LTETE": false,
+                    "L2ORDER": false,
+                    "LGWLF": false,
+                    "ENCUTGW": 346.66666667,
+                    "ENCUTGWSOFT": -2.0,
+                    "ENCUTLF": -1.0,
+                    "LMAXMP2": -1,
+                    "SCISSOR": 0.0,
+                    "NOMEGA": 0,
+                    "NOMEGAR": 0,
+                    "NBANDSGW": -1,
+                    "NBANDSLF": -1,
+                    "DIM": 3,
+                    "ANTIRES": 0,
+                    "LUSEW": false,
+                    "OMEGATL": -200.0,
+                    "OMEGAGRID": 0,
+                    "SELFENERGY": false,
+                    "LSPECTRAL": false,
+                    "ODDONLYGW": false,
+                    "EVENONLYGW": false,
+                    "NKREDLFX": 1,
+                    "NKREDLFY": 1,
+                    "NKREDLFZ": 1,
+                    "MAXMEM": 1024,
+                    "TELESCOPE": 0
+                },
+                "lattice_rec": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            1.2517626850228116,
+                            0.722705524073083,
+                            0.0
+                        ],
+                        [
+                            0.0,
+                            1.4454110452665572,
+                            0.0
+                        ],
+                        [
+                            0.41725422912466736,
+                            0.7227055244706739,
+                            1.1801731763518493
+                        ]
+                    ]
+                },
+                "structure": {
+                    "@module": "pymatgen.core.structure",
+                    "@class": "Structure",
+                    "lattice": {
+                        "matrix": [
+                            [
+                                5.01947005,
+                                0.0,
+                                -1.77465066
+                            ],
+                            [
+                                -2.50973503,
+                                4.34698858,
+                                -1.77465066
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                5.32395197
+                            ]
+                        ],
+                        "a": 5.323951967090371,
+                        "b": 5.3239519720314865,
+                        "c": 5.32395197,
+                        "alpha": 109.4712206648101,
+                        "beta": 109.47122068361057,
+                        "gamma": 109.4712206203798,
+                        "volume": 116.16639052177214
+                    },
+                    "sites": [
+                        {
+                            "species": [
+                                {
+                                    "element": "Cs",
+                                    "occu": 1
+                                }
+                            ],
+                            "abc": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "xyz": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "label": "Cs"
+                        }
+                    ]
+                }
+            },
+            "vasp_version": "5.2.2"
+        },
+        {
+            "output": {
+                "ionic_steps": [
+                    {
+                        "e_fr_energy": -0.85405904,
+                        "e_wo_entrp": -0.85457129,
+                        "e_0_energy": 0.00153673,
+                        "forces": [
+                            [
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        ],
+                        "stress": [
+                            [
+                                0.11110302,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.11110302,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                0.11110302
+                            ]
+                        ],
+                        "electronic_steps": [
+                            {
+                                "alphaZ": 15.52439295,
+                                "ewald": -345.60651005,
+                                "hartreedc": -136.78111712,
+                                "XCdc": 10.0203891,
+                                "pawpsdc": 290.42545742,
+                                "pawaedc": -283.46030559,
+                                "eentropy": -0.0021154,
+                                "bandstr": -52.13254491,
+                                "atom": 555.68192948,
+                                "e_fr_energy": 53.66957588,
+                                "e_wo_entrp": 53.67169128,
+                                "e_0_energy": 53.67028101
+                            },
+                            {
+                                "e_fr_energy": 3.98276034,
+                                "e_wo_entrp": 3.98263921,
+                                "e_0_energy": 3.98271997
+                            },
+                            {
+                                "e_fr_energy": -0.74256726,
+                                "e_wo_entrp": -0.74353143,
+                                "e_0_energy": -0.74288865
+                            },
+                            {
+                                "e_fr_energy": -0.8053192,
+                                "e_wo_entrp": -0.80622221,
+                                "e_0_energy": -0.8056202
+                            },
+                            {
+                                "e_fr_energy": -0.80536384,
+                                "e_wo_entrp": -0.80626545,
+                                "e_0_energy": -0.80566437
+                            },
+                            {
+                                "e_fr_energy": -0.849397,
+                                "e_wo_entrp": -0.85091192,
+                                "e_0_energy": -0.84990197
+                            },
+                            {
+                                "e_fr_energy": -0.85320869,
+                                "e_wo_entrp": -0.85471827,
+                                "e_0_energy": -0.85371189
+                            },
+                            {
+                                "e_fr_energy": -0.85390219,
+                                "e_wo_entrp": -0.85543366,
+                                "e_0_energy": -0.85441268
+                            },
+                            {
+                                "e_fr_energy": -0.85403962,
+                                "e_wo_entrp": -0.85557328,
+                                "e_0_energy": -0.85455084
+                            },
+                            {
+                                "e_fr_energy": -0.85405549,
+                                "e_wo_entrp": -0.85559047,
+                                "e_0_energy": -0.85456715
+                            },
+                            {
+                                "e_fr_energy": -0.85405773,
+                                "e_wo_entrp": -0.85559404,
+                                "e_0_energy": -0.85456984
+                            },
+                            {
+                                "alphaZ": 15.52439295,
+                                "ewald": -345.60651005,
+                                "hartreedc": -135.69300997,
+                                "XCdc": 9.93568451,
+                                "pawpsdc": 290.91164597,
+                                "pawaedc": -283.9578849,
+                                "eentropy": 0.00153673,
+                                "bandstr": -107.65184377,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85405904,
+                                "e_wo_entrp": -0.85559578,
+                                "e_0_energy": -0.85457129
+                            }
+                        ],
+                        "structure": {
+                            "@module": "pymatgen.core.structure",
+                            "@class": "Structure",
+                            "lattice": {
+                                "matrix": [
+                                    [
+                                        5.0141055,
+                                        0.0,
+                                        -1.772754
+                                    ],
+                                    [
+                                        -2.50705275,
+                                        4.34234274,
+                                        -1.772754
+                                    ],
+                                    [
+                                        0.0,
+                                        0.0,
+                                        5.318262
+                                    ]
+                                ],
+                                "a": 5.318262000846353,
+                                "b": 5.318262000637922,
+                                "c": 5.318262,
+                                "alpha": 109.47122063206088,
+                                "beta": 109.47122063126697,
+                                "gamma": 109.47122063850833,
+                                "volume": 115.7943303420597
+                            },
+                            "sites": [
+                                {
+                                    "species": [
+                                        {
+                                            "element": "Cs",
+                                            "occu": 1
+                                        }
+                                    ],
+                                    "abc": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "xyz": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "label": "Cs"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "e_fr_energy": -0.8540662,
+                        "e_wo_entrp": -0.85457715,
+                        "e_0_energy": 0.00153286,
+                        "forces": [
+                            [
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        ],
+                        "stress": [
+                            [
+                                0.0707935,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0707935,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                0.0707935
+                            ]
+                        ],
+                        "electronic_steps": [
+                            {
+                                "alphaZ": 15.50636554,
+                                "ewald": -345.4726819,
+                                "hartreedc": -135.6416547,
+                                "XCdc": 9.93028187,
+                                "pawpsdc": 290.91704873,
+                                "pawaedc": -283.9630763,
+                                "eentropy": 0.0015304,
+                                "bandstr": -107.81387901,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85413589,
+                                "e_wo_entrp": -0.85566628,
+                                "e_0_energy": -0.85464602
+                            },
+                            {
+                                "e_fr_energy": -0.85408401,
+                                "e_wo_entrp": -0.8556156,
+                                "e_0_energy": -0.85459454
+                            },
+                            {
+                                "e_fr_energy": -0.8540668,
+                                "e_wo_entrp": -0.85559964,
+                                "e_0_energy": -0.85457775
+                            },
+                            {
+                                "alphaZ": 15.50636554,
+                                "ewald": -345.4726819,
+                                "hartreedc": -135.77694363,
+                                "XCdc": 9.93534807,
+                                "pawpsdc": 290.91676722,
+                                "pawaedc": -283.96329167,
+                                "eentropy": 0.00153286,
+                                "bandstr": -107.68309218,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.8540662,
+                                "e_wo_entrp": -0.85559906,
+                                "e_0_energy": -0.85457715
+                            }
+                        ],
+                        "structure": {
+                            "@module": "pymatgen.core.structure",
+                            "@class": "Structure",
+                            "lattice": {
+                                "matrix": [
+                                    [
+                                        5.01604785,
+                                        0.0,
+                                        -1.77344073
+                                    ],
+                                    [
+                                        -2.50802393,
+                                        4.34402487,
+                                        -1.77344073
+                                    ],
+                                    [
+                                        0.0,
+                                        0.0,
+                                        5.32032218
+                                    ]
+                                ],
+                                "a": 5.320322175988269,
+                                "b": 5.3203221826741,
+                                "c": 5.32032218,
+                                "alpha": 109.47122066238406,
+                                "beta": 109.47122068784033,
+                                "gamma": 109.47122060953093,
+                                "volume": 115.9289510121522
+                            },
+                            "sites": [
+                                {
+                                    "species": [
+                                        {
+                                            "element": "Cs",
+                                            "occu": 1
+                                        }
+                                    ],
+                                    "abc": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "xyz": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "label": "Cs"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "e_fr_energy": -0.85407234,
+                        "e_wo_entrp": -0.85458084,
+                        "e_0_energy": 0.0015255,
+                        "forces": [
+                            [
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        ],
+                        "stress": [
+                            [
+                                0.02478185,
+                                0.0,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.02478185,
+                                0.0
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                0.02478185
+                            ]
+                        ],
+                        "electronic_steps": [
+                            {
+                                "alphaZ": 15.47467114,
+                                "ewald": -345.2371438,
+                                "hartreedc": -135.68488666,
+                                "XCdc": 9.92559996,
+                                "pawpsdc": 290.90779692,
+                                "pawaedc": -283.953541,
+                                "eentropy": 0.00152152,
+                                "bandstr": -107.97023848,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85429091,
+                                "e_wo_entrp": -0.85581243,
+                                "e_0_energy": -0.85479808
+                            },
+                            {
+                                "e_fr_energy": -0.85412773,
+                                "e_wo_entrp": -0.85565127,
+                                "e_0_energy": -0.85463558
+                            },
+                            {
+                                "e_fr_energy": -0.85407372,
+                                "e_wo_entrp": -0.85559927,
+                                "e_0_energy": -0.85458223
+                            },
+                            {
+                                "alphaZ": 15.47467114,
+                                "ewald": -345.2371438,
+                                "hartreedc": -135.9234113,
+                                "XCdc": 9.93429284,
+                                "pawpsdc": 290.90998869,
+                                "pawaedc": -283.95678128,
+                                "eentropy": 0.0015255,
+                                "bandstr": -107.73914361,
+                                "atom": 555.68192948,
+                                "e_fr_energy": -0.85407234,
+                                "e_wo_entrp": -0.85559784,
+                                "e_0_energy": -0.85458084
+                            }
+                        ],
+                        "structure": {
+                            "@module": "pymatgen.core.structure",
+                            "@class": "Structure",
+                            "lattice": {
+                                "matrix": [
+                                    [
+                                        5.01947005,
+                                        0.0,
+                                        -1.77465066
+                                    ],
+                                    [
+                                        -2.50973503,
+                                        4.34698858,
+                                        -1.77465066
+                                    ],
+                                    [
+                                        0.0,
+                                        0.0,
+                                        5.32395197
+                                    ]
+                                ],
+                                "a": 5.323951967090371,
+                                "b": 5.3239519720314865,
+                                "c": 5.32395197,
+                                "alpha": 109.4712206648101,
+                                "beta": 109.47122068361057,
+                                "gamma": 109.4712206203798,
+                                "volume": 116.16639052177214
+                            },
+                            "sites": [
+                                {
+                                    "species": [
+                                        {
+                                            "element": "Cs",
+                                            "occu": 1
+                                        }
+                                    ],
+                                    "abc": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "xyz": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "label": "Cs"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "efermi": 0.52176924,
+                "bandgap": 0.0,
+                "cbm": null,
+                "vbm": null,
+                "is_gap_direct": false,
+                "epsilon_static": [],
+                "epsilon_static_wolfe": [],
+                "epsilon_ionic": [],
+                "structure": {
+                    "@module": "pymatgen.core.structure",
+                    "@class": "Structure",
+                    "lattice": {
+                        "matrix": [
+                            [
+                                5.01947005,
+                                0.0,
+                                -1.77465066
+                            ],
+                            [
+                                -2.50973503,
+                                4.34698858,
+                                -1.77465066
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                5.32395197
+                            ]
+                        ],
+                        "a": 5.323951967090371,
+                        "b": 5.3239519720314865,
+                        "c": 5.32395197,
+                        "alpha": 109.4712206648101,
+                        "beta": 109.47122068361057,
+                        "gamma": 109.4712206203798,
+                        "volume": 116.16639052177214
+                    },
+                    "sites": [
+                        {
+                            "species": [
+                                {
+                                    "element": "Cs",
+                                    "occu": 1
+                                }
+                            ],
+                            "abc": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "xyz": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "label": "Cs"
+                        }
+                    ]
+                },
+                "energy": -0.85458084,
+                "energy_per_atom": -0.85458084,
+                "is_metal": true,
+                "outcar": {
+                    "@module": "pymatgen.io.vasp.outputs",
+                    "@class": "Outcar",
+                    "efermi": 0.5218,
+                    "magnetization": [],
+                    "charge": [],
+                    "total_magnetization": 8.8e-06,
+                    "nelect": 9.0000002,
+                    "is_stopped": false
+                }
+            },
+            "input": {
+                "incar": {
+                    "SYSTEM": "RubyVaspy :: Cs",
+                    "PREC": "accurate",
+                    "ALGO": "FAST",
+                    "ISPIN": 2,
+                    "ICHARG": 1,
+                    "NELM": 100,
+                    "NELMIN": 3,
+                    "IBRION": 2,
+                    "EDIFF": 2e-06,
+                    "NSW": 200,
+                    "ISIF": 3,
+                    "ENCUT": 520.0,
+                    "MAGMOM": [
+                        0.6
+                    ],
+                    "LREAL": "AUTO",
+                    "ISMEAR": 1,
+                    "SIGMA": 0.2,
+                    "LWAVE": true,
+                    "LPEAD": false,
+                    "LCALCPOL": false,
+                    "LCALCEPS": false,
+                    "EFIELD_PEAD": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LEFG": false
+                },
+                "kpoints": {
+                    "comment": "Kpoints from vasprun.xml",
+                    "nkpoints": 0,
+                    "generation_style": "Monkhorst",
+                    "kpoints": [
+                        [
+                            10,
+                            10,
+                            10
+                        ]
+                    ],
+                    "usershift": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "kpts_weights": null,
+                    "coord_type": null,
+                    "labels": null,
+                    "tet_number": 0,
+                    "tet_weight": 0,
+                    "tet_connections": null,
+                    "genvec1": [
+                        0.1,
+                        0.0,
+                        0.0
+                    ],
+                    "genvec2": [
+                        0.0,
+                        0.1,
+                        0.0
+                    ],
+                    "genvec3": [
+                        0.0,
+                        0.0,
+                        0.1
+                    ],
+                    "shift": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "@module": "pymatgen.io.vasp.inputs",
+                    "@class": "Kpoints",
+                    "actual_points": [
+                        {
+                            "abc": [
+                                0.05,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.45,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.012
+                        },
+                        {
+                            "abc": [
+                                -0.05,
+                                0.05,
+                                0.05
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.15,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.25,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.35,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.05
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.45,
+                                0.05
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.35,
+                                0.05
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.15,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.35,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.012
+                        },
+                        {
+                            "abc": [
+                                -0.15,
+                                0.15,
+                                0.15
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.35,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.15
+                            ],
+                            "weight": 0.048
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                -0.45,
+                                0.15
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                0.25,
+                                0.25,
+                                0.25
+                            ],
+                            "weight": 0.002
+                        },
+                        {
+                            "abc": [
+                                -0.25,
+                                0.25,
+                                0.25
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.25
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.35,
+                                0.35,
+                                0.35
+                            ],
+                            "weight": 0.006
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.35
+                            ],
+                            "weight": 0.024
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                -0.45,
+                                0.35
+                            ],
+                            "weight": 0.008
+                        },
+                        {
+                            "abc": [
+                                -0.45,
+                                0.45,
+                                0.45
+                            ],
+                            "weight": 0.006
+                        }
+                    ]
+                },
+                "potcar": [
+                    "Cs_sv"
+                ],
+                "potcar_spec": [
+                    {
+                        "titel": "PAW_PBE Cs_sv 08Apr2002",
+                        "hash": "096b53a7d80cc0086976bcda50d536e5"
+                    }
+                ],
+                "potcar_type": [
+                    "PAW_PBE"
+                ],
+                "parameters": {
+                    "SYSTEM": "RubyVaspy :: Cs",
+                    "LCOMPAT": false,
+                    "PREC": "accura",
+                    "ENMAX": 520.0,
+                    "ENAUG": 407.933,
+                    "EDIFF": 2e-06,
+                    "IALGO": 68,
+                    "IWAVPR": 11,
+                    "NBANDS": 8,
+                    "NELECT": 9.0,
+                    "ISMEAR": 1,
+                    "SIGMA": 0.2,
+                    "LREAL": true,
+                    "ROPT": [
+                        -0.00025
+                    ],
+                    "LMAXPAW": -100,
+                    "LMAXMIX": 2,
+                    "ISTART": 0,
+                    "ICHARG": 1,
+                    "INIWAV": 1,
+                    "ISPIN": 2,
+                    "LNONCOLLINEAR": false,
+                    "MAGMOM": [
+                        0.6
+                    ],
+                    "NUPDOWN": -1.0,
+                    "LSORBIT": false,
+                    "SAXIS": [
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "LSPIRAL": false,
+                    "QSPIRAL": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LZEROZ": false,
+                    "LASPH": false,
+                    "LMETAGGA": false,
+                    "NELM": 100,
+                    "NELMDL": -5,
+                    "NELMIN": 3,
+                    "ENINI": 520.0,
+                    "LDIAG": true,
+                    "WEIMIN": 0.001,
+                    "EBREAK": 6e-08,
+                    "DEPER": 0.3,
+                    "NRMM": 4,
+                    "TIME": 0.4,
+                    "AMIX": 0.4,
+                    "BMIX": 1.0,
+                    "AMIN": 0.1,
+                    "AMIX_MAG": 1.6,
+                    "BMIX_MAG": 1.0,
+                    "IMIX": 4,
+                    "MAXMIX": -45,
+                    "WC": 100.0,
+                    "INIMIX": 1,
+                    "MIXPRE": 1,
+                    "MREMOVE": 5,
+                    "LDIPOL": false,
+                    "LMONO": false,
+                    "IDIPOL": 0,
+                    "EPSILON": 1.0,
+                    "DIPOL": [
+                        -100.0,
+                        -100.0,
+                        -100.0
+                    ],
+                    "EFIELD": 0.0,
+                    "NGX": 40,
+                    "NGY": 40,
+                    "NGZ": 40,
+                    "NGXF": 80,
+                    "NGYF": 80,
+                    "NGZF": 80,
+                    "ADDGRID": false,
+                    "NSW": 200,
+                    "IBRION": 2,
+                    "ISIF": 3,
+                    "PSTRESS": 0.0,
+                    "EDIFFG": 2e-05,
+                    "NFREE": 1,
+                    "POTIM": 0.5,
+                    "SMASS": -3.0,
+                    "TEBEG": 0.0001,
+                    "TEEND": 0.0001,
+                    "NBLOCK": 1,
+                    "KBLOCK": 200,
+                    "NPACO": 256,
+                    "APACO": 16.0,
+                    "ISYM": 2,
+                    "SYMPREC": 1e-05,
+                    "LORBIT": false,
+                    "RWIGS": [
+                        -1.0
+                    ],
+                    "NEDOS": 301,
+                    "EMIN": 10.0,
+                    "EMAX": -10.0,
+                    "EFERMI": 0.0,
+                    "NWRITE": 2,
+                    "LWAVE": true,
+                    "LCHARG": true,
+                    "LPARD": false,
+                    "LVTOT": false,
+                    "LELF": false,
+                    "LOPTICS": false,
+                    "STM": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "NPAR": 1,
+                    "NSIM": 4,
+                    "NBLK": 32,
+                    "LPLANE": true,
+                    "LSCALAPACK": false,
+                    "LSCAAWARE": false,
+                    "LSCALU": false,
+                    "LASYNC": false,
+                    "IDIOT": 3,
+                    "LMUSIC": false,
+                    "POMASS": [
+                        132.9
+                    ],
+                    "LCORR": true,
+                    "LREAL_COMPAT": false,
+                    "GGA_COMPAT": true,
+                    "LBERRY": false,
+                    "ICORELEVEL": 0,
+                    "LDAU": false,
+                    "I_CONSTRAINED_M": 0,
+                    "GGA": "--",
+                    "VOSKOWN": 0,
+                    "LHFCALC": false,
+                    "LHFONE": false,
+                    "LRHFCALC": false,
+                    "LTHOMAS": false,
+                    "LMODELHF": false,
+                    "ENCUTFOCK": 0.0,
+                    "ENCUT4O": -1.0,
+                    "EXXOEP": 0,
+                    "FOURORBIT": 0,
+                    "AEXX": 0.0,
+                    "HFALPHA": 0.0,
+                    "ALDAX": 1.0,
+                    "AGGAX": 1.0,
+                    "ALDAC": 1.0,
+                    "AGGAC": 1.0,
+                    "NKREDX": 1,
+                    "NKREDY": 1,
+                    "NKREDZ": 1,
+                    "SHIFTRED": false,
+                    "ODDONLY": false,
+                    "EVENONLY": false,
+                    "LMAXFOCK": 0,
+                    "NMAXFOCKAE": 0,
+                    "HFSCREEN": 0.0,
+                    "HFSCREENC": 0.0,
+                    "MODEL_GW": 0,
+                    "MODEL_EPS0": 69.47659837,
+                    "MODEL_ALPHA": 1.0,
+                    "LEPSILON": false,
+                    "LRPA": false,
+                    "LNABLA": false,
+                    "LVEL": false,
+                    "KINTER": 0,
+                    "CSHIFT": 0.1,
+                    "OMEGAMAX": -1.0,
+                    "ORBITALMAG": false,
+                    "LMAGBLOCH": false,
+                    "LCHIMAG": false,
+                    "LGAUGE": true,
+                    "MAGATOM": 0,
+                    "MAGDIPOL": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "AVECCONST": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "LTCTE": false,
+                    "LTETE": false,
+                    "L2ORDER": false,
+                    "LGWLF": false,
+                    "ENCUTGW": 346.66666667,
+                    "ENCUTGWSOFT": -2.0,
+                    "ENCUTLF": -1.0,
+                    "LMAXMP2": -1,
+                    "SCISSOR": 0.0,
+                    "NOMEGA": 0,
+                    "NOMEGAR": 0,
+                    "NBANDSGW": -1,
+                    "NBANDSLF": -1,
+                    "DIM": 3,
+                    "ANTIRES": 0,
+                    "LUSEW": false,
+                    "OMEGATL": -200.0,
+                    "OMEGAGRID": 0,
+                    "SELFENERGY": false,
+                    "LSPECTRAL": false,
+                    "ODDONLYGW": false,
+                    "EVENONLYGW": false,
+                    "NKREDLFX": 1,
+                    "NKREDLFY": 1,
+                    "NKREDLFZ": 1,
+                    "MAXMEM": 1024,
+                    "TELESCOPE": 0
+                },
+                "lattice_rec": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            1.2517626850228116,
+                            0.722705524073083,
+                            0.0
+                        ],
+                        [
+                            0.0,
+                            1.4454110452665572,
+                            0.0
+                        ],
+                        [
+                            0.41725422912466736,
+                            0.7227055244706739,
+                            1.1801731763518493
+                        ]
+                    ]
+                },
+                "structure": {
+                    "@module": "pymatgen.core.structure",
+                    "@class": "Structure",
+                    "lattice": {
+                        "matrix": [
+                            [
+                                5.0141055,
+                                0.0,
+                                -1.772754
+                            ],
+                            [
+                                -2.50705275,
+                                4.34234274,
+                                -1.772754
+                            ],
+                            [
+                                0.0,
+                                0.0,
+                                5.318262
+                            ]
+                        ],
+                        "a": 5.318262000846353,
+                        "b": 5.318262000637922,
+                        "c": 5.318262,
+                        "alpha": 109.47122063206088,
+                        "beta": 109.47122063126697,
+                        "gamma": 109.47122063850833,
+                        "volume": 115.7943303420597
+                    },
+                    "sites": [
+                        {
+                            "species": [
+                                {
+                                    "element": "Cs",
+                                    "occu": 1
+                                }
+                            ],
+                            "abc": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "xyz": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "label": "Cs"
+                        }
+                    ]
+                }
+            },
+            "vasp_version": "5.2.2"
+        }
+    ],
+    "task_type": "GGA Structure Optimization",
+    "task_id": "mp-1",
+    "nsites": 1,
+    "elements": [
+        "Cs"
+    ],
+    "nelements": 1,
+    "composition_reduced": {
+        "Cs": 1.0
+    },
+    "formula_pretty": "Cs",
+    "formula_anonymous": "A",
+    "chemsys": "Cs",
+    "orig_inputs": {
+        "incar": {
+            "ISIF": 3,
+            "IBRION": 2,
+            "NSW": 200,
+            "NELM": 100,
+            "ISPIN": 2,
+            "ALGO": "Fast",
+            "SYSTEM": "Rubyvaspy :: cs",
+            "ENCUT": 520,
+            "LREAL": "Auto",
+            "EDIFF": 2e-06,
+            "PREC": "Accurate",
+            "NELMIN": 3,
+            "ISMEAR": 1,
+            "SIGMA": 0.2,
+            "LWAVE": true,
+            "ICHARG": 1,
+            "NPAR": 1,
+            "MAGMOM": [
+                0.6
+            ],
+            "@module": "pymatgen.io.vasp.inputs",
+            "@class": "Incar"
+        },
+        "poscar": {
+            "@module": "pymatgen.io.vasp.inputs",
+            "@class": "Poscar",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Structure",
+                "lattice": {
+                    "matrix": [
+                        [
+                            5.0141055035,
+                            0.0,
+                            -1.7727540015
+                        ],
+                        [
+                            -2.5070527517,
+                            4.3423427433,
+                            -1.7727540015
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            5.3182620046
+                        ]
+                    ],
+                    "a": 5.318262004646185,
+                    "b": 5.318262004633748,
+                    "c": 5.3182620046,
+                    "alpha": 109.47122063398125,
+                    "beta": 109.4712206339339,
+                    "gamma": 109.47122063455619,
+                    "volume": 115.7943306110422
+                },
+                "sites": [
+                    {
+                        "species": [
+                            {
+                                "element": "Cs",
+                                "occu": 1
+                            }
+                        ],
+                        "abc": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "xyz": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "label": "Cs"
+                    }
+                ]
+            },
+            "true_names": true,
+            "selective_dynamics": null,
+            "velocities": null,
+            "predictor_corrector": null,
+            "comment": "Poscar v1.1 :: 1 :: Cs"
+        },
+        "kpoints": {
+            "comment": "Automatic kpoint scheme",
+            "nkpoints": 0,
+            "generation_style": "Monkhorst",
+            "kpoints": [
+                [
+                    10,
+                    10,
+                    10
+                ]
+            ],
+            "usershift": [
+                0,
+                0,
+                0
+            ],
+            "kpts_weights": null,
+            "coord_type": null,
+            "labels": null,
+            "tet_number": 0,
+            "tet_weight": 0,
+            "tet_connections": null,
+            "@module": "pymatgen.io.vasp.inputs",
+            "@class": "Kpoints"
+        }
+    },
+    "input": {
+        "structure": {
+            "@module": "pymatgen.core.structure",
+            "@class": "Structure",
+            "lattice": {
+                "matrix": [
+                    [
+                        5.0141055,
+                        0.0,
+                        -1.772754
+                    ],
+                    [
+                        -2.50705275,
+                        4.34234274,
+                        -1.772754
+                    ],
+                    [
+                        0.0,
+                        0.0,
+                        5.318262
+                    ]
+                ],
+                "a": 5.318262000846353,
+                "b": 5.318262000637922,
+                "c": 5.318262,
+                "alpha": 109.47122063206088,
+                "beta": 109.47122063126697,
+                "gamma": 109.47122063850833,
+                "volume": 115.7943303420597
+            },
+            "sites": [
+                {
+                    "species": [
+                        {
+                            "element": "Cs",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "xyz": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "label": "Cs"
+                }
+            ]
+        }
+    },
+    "output": {
+        "structure": {
+            "@module": "pymatgen.core.structure",
+            "@class": "Structure",
+            "lattice": {
+                "matrix": [
+                    [
+                        5.01947005,
+                        0.0,
+                        -1.77465066
+                    ],
+                    [
+                        -2.50973503,
+                        4.34698858,
+                        -1.77465066
+                    ],
+                    [
+                        0.0,
+                        0.0,
+                        5.32395197
+                    ]
+                ],
+                "a": 5.323951967090371,
+                "b": 5.3239519720314865,
+                "c": 5.32395197,
+                "alpha": 109.4712206648101,
+                "beta": 109.47122068361057,
+                "gamma": 109.4712206203798,
+                "volume": 116.16639052177214
+            },
+            "sites": [
+                {
+                    "species": [
+                        {
+                            "element": "Cs",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "xyz": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "label": "Cs"
+                }
+            ]
+        },
+        "density": 1.8998153469133492,
+        "energy": -0.85459793,
+        "forces": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "stress": [
+            [
+                0.02590451,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.02590451,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.02590451
+            ]
+        ]
+    },
+    "analysis": {
+        "delta_volume": 0.37206017971244876,
+        "delta_volume_percent": 0.00321311223626729,
+        "max_force": 0.0,
+        "warnings": [],
+        "errors": []
+    },
+    "last_updated": "2011-05-12T17:08:43"
+}

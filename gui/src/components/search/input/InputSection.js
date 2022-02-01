@@ -35,7 +35,7 @@ const useStyles = makeStyles(theme => ({
     boxSizing: 'border-box'
   },
   label: {
-    marginBottom: theme.spacing(-0.5)
+    marginBottom: `${theme.spacing(-0.5)}px !important`
   }
 }))
 const InputSection = React.memo(({

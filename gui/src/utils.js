@@ -21,7 +21,6 @@ import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import { scale as chromaScale } from 'chroma-js'
 import searchQuantities from './searchQuantities.json'
-// import { filterData } from './components/search/FilterRegistry'
 
 export const isEquivalent = (a, b) => {
   // Create arrays of property names
@@ -673,7 +672,8 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'search result': 'search results',
     'entry': 'entries',
     'material': 'materials',
-    'dataset': 'datasets'
+    'dataset': 'datasets',
+    'item': 'items'
   }
   const plural = dictionary[word]
   if (isNil(plural)) {
@@ -686,7 +686,11 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
   const number = inclusive
     ? format ? formatNumber(count, 'int', 0, false, true) : count
     : ''
-  return `${isNil(number) ? '' : `${number} `}${isNil(prefix) ? '' : `${prefix} `}${form}`
+  return `${isNil(number)
+    ? ''
+    : `${number} `}${isNil(prefix)
+    ? ''
+    : `${prefix} `}${form}`
 }
 
 /**

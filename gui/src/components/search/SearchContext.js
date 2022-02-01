@@ -79,15 +79,20 @@ let indexContext = 0
 let indexFilters = 0
 let indexLocked = 0
 
+/**
+ * Used to turn empty containers into undefined which is used to indicate that a
+ * search filter has not been specified.
+ */
 function clearEmpty(value) {
-  if (isPlainObject(value)) {
-    if (size(value) === 0 || !Object.values(value).map(size).some(value => value > 0)) {
-      return undefined
+  function isEmpty(value) {
+    if (isPlainObject(value)) {
+      return Object.values(value).every(isEmpty)
+    } else if ((isSet(value) || isArray(value)) && size(value) === 0) {
+      return true
     }
-  } else if (size(value) === 0) {
-    return undefined
+    return false
   }
-  return value
+  return isEmpty(value) ? undefined : value
 }
 
 export const searchContext = React.createContext()
