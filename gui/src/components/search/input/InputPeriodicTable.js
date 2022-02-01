@@ -354,7 +354,14 @@ const InputPeriodicTable = React.memo(({
                         disabled={!availableValues[element.symbol]}
                         onClick={() => onElementClicked(element.symbol)}
                         selected={localFilter.current.has(element.symbol)}
-                        max={agg ? Math.max(...agg.data.map(option => option.count)) : 0}
+                        // The colors are normalized with respect to the maximum
+                        // aggregation size for an unselected element.
+                        max={agg
+                          ? Math.max(...agg.data
+                            .filter(option => !localFilter.current.has(option.value))
+                            .map(option => option.count))
+                          : 0
+                        }
                         count={availableValues[element.symbol]}
                         localFilter={localFilter.current}
                         scale={scale}
