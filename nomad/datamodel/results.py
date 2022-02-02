@@ -132,8 +132,14 @@ def variants_formula(value):
     return list(set(formulas))
 
 
+_tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
+
+
 # Tokenizes a formula by splitting it by formula fragments.
-tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
+def tokenizer_formula(value):
+    return [
+        item if item != '' else 'empty'
+        for item in _tokenizer_formula(value)]
 
 
 class BandGap(MSection):
