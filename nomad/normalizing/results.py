@@ -168,9 +168,10 @@ class ResultsNormalizer(Normalizer):
                 atoms = ase.Atoms(''.join(material.elements))
 
             formula = atoms.get_chemical_formula()
-            results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
-            results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
-            results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            if formula:
+                results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
+                results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
+                results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
         except Exception as e:
             logger.warn('could not normalize material', exc_info=e)
 
