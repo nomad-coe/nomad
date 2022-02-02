@@ -1367,7 +1367,7 @@ function toAPIAgg(aggs, updatedFilters, resource) {
           for (const [type, options] of Object.entries(data)) {
             const exclude = options.exclude
               ? options.exclude(updatedFilters)
-              : updatedFilters.has(key) && filterDataGlobal[key].exclusive
+              : filterDataGlobal[key].exclusive
             const name = resource === 'materials' ? materialNames[quantity.split(':')[0]] : quantity
             const apiAgg = apiAggs[name] || {}
             apiAgg[type] = {
