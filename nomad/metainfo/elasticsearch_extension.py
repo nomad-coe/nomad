@@ -530,17 +530,19 @@ def get_tokenizer(regex):
     regular epression.
     '''
     def tokenizer(value):
-        tokens = [value]
-        for match in re.finditer(regex, value):
-            if (match):
-                token = value[match.end():]
-                if token != '':
-                    # Notice how we artificially extend the token by taking the
-                    # prefix and adding it at the end. This way the token
-                    # remains unique so that it will be returned by
-                    # ElasticSearch when "skip_duplicates" is used in the
-                    # query.
-                    tokens.append(f'{token} {value[:match.end()]}')
+        tokens = []
+        if value:
+            tokens.append(value)
+            for match in re.finditer(regex, value):
+                if (match):
+                    token = value[match.end():]
+                    if token != '':
+                        # Notice how we artificially extend the token by taking the
+                        # prefix and adding it at the end. This way the token
+                        # remains unique so that it will be returned by
+                        # ElasticSearch when "skip_duplicates" is used in the
+                        # query.
+                        tokens.append(f'{token} {value[:match.end()]}')
         return tokens
 
     return tokenizer
