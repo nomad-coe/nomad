@@ -32,18 +32,19 @@ import {pluralize} from '../../utils'
 
 const columns = [
   {
-    key: 'entry_id',
-    align: 'left',
-    render: entry => <Quantity quantity={'entry_id'} noLabel noWrap withClipboard data={entry}/>
-  },
-  {
     key: 'mainfile',
     align: 'left',
-    style: {maxWidth: '150px', width: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}
+    render: entry => <Quantity quantity={'mainfile'} noLabel noWrap withClipboard data={entry}/>
+  },
+  {
+    key: 'entry_id',
+    align: 'left',
+    sortable: false,
+    render: entry => <Quantity quantity={'entry_id'} noLabel noWrap withClipboard data={entry}/>
   },
   {key: 'parser_name', align: 'left'},
   {key: 'process_status', align: 'left'},
-  {key: 'complete_time', align: 'left'},
+  {key: 'complete_time', align: 'left', sortable: false},
   {key: 'comment', sortable: false, align: 'left'},
   {
     key: 'references',
@@ -67,6 +68,7 @@ const columns = [
   {
     key: 'datasets',
     align: 'left',
+    sortable: false,
     render: entry => {
       const datasets = entry.datasets || []
       if (datasets.length > 0) {
@@ -81,9 +83,9 @@ const columns = [
 addColumnDefaults(columns)
 
 const defaultSelectedColumns = [
-  'entry_id',
   'mainfile',
-  'parser_name']
+  'parser_name',
+  'process_status']
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
