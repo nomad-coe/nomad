@@ -169,6 +169,7 @@ function PublishUpload({upload, onPublish}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
+    setOpenConfirmDialog(false)
     onPublish({embargo_length: embargo})
   }
 
@@ -340,7 +341,7 @@ function UploadPage() {
   const setUpload = useMemo(() => (upload) => {
     setData(data => ({...data, upload: upload}))
   }, [setData])
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
 
   const isProcessing = upload?.process_running
@@ -401,10 +402,10 @@ function UploadPage() {
   }
 
   const handleLiftEmbargo = () => {
+    setOpenEmbargoConfirmDialog(false)
     api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
       .then(fetchData())
       .catch(errors.raiseError)
-    setOpenEmbargoConfirmDialog(false)
   }
 
   const handleReprocess = () => {
@@ -414,6 +415,7 @@ function UploadPage() {
   }
 
   const handleDelete = () => {
+    setOpenDeleteConfirmDialog(false)
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
       .then(results => setUpload(results.data))
@@ -443,11 +445,11 @@ function UploadPage() {
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
 
-  const onConfirm = () => {
+  const handleDeleteButtonClicked = () => {
     if (isEmpty) {
       handleDelete()
     } else {
-      setOpenConfirmDialog(true)
+      setOpenDeleteConfirmDialog(true)
     }
   }
 
@@ -497,13 +499,13 @@ function UploadPage() {
           <SourceApiDialogButton maxWidth="lg" fullWidth>
             <SourceApiCall {...apiData} />
           </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
           </IconButton>
           <Dialog
-            open={openConfirmDialog}
+            open={openDeleteConfirmDialog}
             aria-describedby="alert-dialog-description"
           >
             <DialogContent>
@@ -512,7 +514,7 @@ function UploadPage() {
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+              <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
               <Button onClick={handleDelete}>Delete</Button>
             </DialogActions>
           </Dialog>
