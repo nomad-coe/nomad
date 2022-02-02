@@ -68,6 +68,9 @@ class ErrorSnacksUnstyled extends React.Component {
         errorStr = 'There is a new GUI version available. Please press "shift" and reload the page.'
       } else if (error.message.startsWith('could not parse optimade')) {
         errorStr = 'The given OPTiMaDe query can not be parsed.'
+      } else if (error.status === 422) {
+        errorStr = `Unexpected api error: ${error.apiMessage[0].msg}. Please try again and let us know, if this error keeps happening.`
+        console.log(error)
       } else if (error.message) {
         errorStr = `Unexpected error: "${error.message}". Please try again and let us know, if this error keeps happening.`
         console.log(error)
