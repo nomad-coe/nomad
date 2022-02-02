@@ -153,8 +153,9 @@ class ResultsNormalizer(Normalizer):
             if material.elements is None or len(material.elements) == 0:
                 material.elements = atoms.get_chemical_symbols()
 
-            results.material.chemical_formula_descriptive = atoms.get_chemical_formula(mode='hill')
+            results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
             results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
         except Exception as e:
             self.logger.warn('could not normalize material', exc_info=e)
 
