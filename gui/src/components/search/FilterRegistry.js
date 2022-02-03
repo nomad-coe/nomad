@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isNil } from 'lodash'
+import { isNil, isArray } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { getDimension, Quantity } from '../../units'
@@ -50,6 +50,26 @@ export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
 export const labelArchive = 'Archive'
+
+/**
+ * Used to gather a list of fixed filter options from the metainfo.
+ * @param {*} quantity Metainfo name
+ * @returns Dictionary containing the available options and their labels.
+ */
+function getEnumOptions(quantity) {
+  const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
+  if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
+    const opt = {}
+    for (const name of metainfoOptions) {
+      opt[name] = {label: name}
+    }
+
+    // We do not display the option for 'not processed': it is more of a
+    // debug value
+    delete opt['not processed']
+    return opt
+  }
+}
 
 /**
  * This function is used to register a new filter within the SearchContext.
@@ -118,21 +138,34 @@ function saveFilter(name, group, config) {
   }
 
   const data = filterData[name] || {}
+  data.options = config.options || getEnumOptions(name)
   const agg = config.agg
   if (agg) {
     // Notice how here we have to introduce another inner function in order to
     // get the value of "name" and "type" at the time this function is created.
     data.aggGet = agg.get || ((name, type) => (aggs) => aggs[name][type].data)(name, agg)
     data.aggSet = agg.set || {[name]: {[agg]: {}}}
+
+    // If a list of explicit options is given we will only include them in the
+    // aggregations. This ensures that the GUI is not messed up due to
+    // unexpected aggregation values.
+    if (agg.set) {
+      data.aggSet = agg.set
+    } else {
+      if (data.options && agg === 'terms') {
+        data.aggSet = {[name]: {[agg]: {include: Object.keys(data.options)}}}
+      } else {
+        data.aggSet = {[name]: {[agg]: {}}}
+      }
+    }
   }
   if (config.value) {
     data.valueSet = config.value.set
   }
-  data.aggDefaultSize = config.aggDefaultSize
+  data.aggDefaultSize = config.aggDefaultSize || (config.options && Object.keys(config.options).length)
   data.multiple = config.multiple === undefined ? true : config.multiple
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
   data.stats = config.stats
-  data.options = config.options
   data.unit = config.unit || searchQuantities[name]?.unit
   data.minOverride = config.minOverride
   data.maxOverride = config.maxOverride
@@ -155,7 +188,8 @@ function saveFilter(name, group, config) {
   data.dimension = getDimension(data.unit)
   data.deserializer = getDeserializer(data.dtype, data.dimension)
   data.label = config.label || getLabel(name)
-  data.section = !isNil(searchQuantities[name]?.nested)
+  data.nested = searchQuantities[name]?.nested
+  data.section = !isNil(data.nested)
   data.description = config.description || searchQuantities[name]?.description
   data.scale = config.scale || 1
   if (data.queryMode && !data.multiple) {
@@ -211,6 +245,7 @@ function registerFilterOptions(name, group, target, label, description, options)
       },
       multiple: true,
       exclusive: false,
+      queryMode: 'all',
       options: options,
       label: label,
       description: description
@@ -277,8 +312,8 @@ registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {..
 registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: 1 / 2, label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
-registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
-registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
+registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: 1 / 4})
+registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
 registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})
 registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
@@ -299,16 +334,8 @@ registerFilter(
       stats: listStatConfig,
       agg: {
         set: {
-          'results.properties.spectroscopy.eels.min_energy': {
-            min_max: {
-              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
-            }
-          },
-          'results.properties.spectroscopy.eels.max_energy': {
-            min_max: {
-              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
-            }
-          }
+          'results.properties.spectroscopy.eels.min_energy': {min_max: {}},
+          'results.properties.spectroscopy.eels.max_energy': {min_max: {}}
         },
         get: (aggs) => {
           const min = aggs['results.properties.spectroscopy.eels.min_energy']
@@ -383,7 +410,7 @@ registerFilter(
 registerFilter(
   'results.properties.available_properties',
   labelProperties,
-  noAggQuantity
+  {noAggQuantity, multiple: true, exclusive: false, queryMode: 'all'}
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',

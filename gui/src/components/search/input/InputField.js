@@ -21,14 +21,13 @@ import { Button, Tooltip } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useRecoilValue } from 'recoil'
-import searchQuantities from '../../../searchQuantities'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import InputItem, { inputItemHeight } from './InputItem'
 import InputUnavailable from './InputUnavailable'
 import Placeholder from '../../visualization/Placeholder'
 import { useSearchContext } from '../SearchContext'
-import { isNil, isArray } from 'lodash'
+import { isNil } from 'lodash'
 import LoadingButton from '../../buttons/LoadingButton'
 import { guiState } from '../../GUIMenu'
 import { InputTextQuantity } from './InputText'
@@ -100,39 +99,21 @@ const InputField = React.memo(({
   const aggCollapse = useRecoilValue(guiState('aggCollapse'))
   const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
 
-  // Check if the metainfo defines the available options and if so, what is the
-  // maximum number of options.
-  const metainfoOptions = useMemo(() => {
-    const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
-    if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
-      const opt = {}
-      for (const name of metainfoOptions) {
-        opt[name] = {label: name}
-      }
-      return opt
-    }
-  }, [quantity])
-
   // See if the filter has a fixed amount of options. These may have been
   // explicitly provided or defined in the metainfo. If you explicitly specify
   // an initialSize, any fixed options are ignored and the data is retrieved
-  // through and aggregation (this is done because the top aggregations may not
+  // through an aggregation (this is done because the top aggregations may not
   // match the list of explicit options).
   const fixedOptions = useMemo(() => {
-    if (!isNil(initialSize)) {
-      return
-    }
-    const registryOptions = filterData[quantity].options
-    if (registryOptions) {
-      return registryOptions
-    }
-    return metainfoOptions
-  }, [initialSize, filterData, quantity, metainfoOptions])
+    return isNil(initialSize)
+      ? filterData[quantity]?.options
+      : undefined
+  }, [initialSize, filterData, quantity])
   const nFixedOptions = fixedOptions && Object.keys(fixedOptions).length
 
   const minSize = disableOptions ? 0 : initialSize || nFixedOptions || filterData[quantity]?.aggDefaultSize
   const [requestedAggSize, setRequestedAggSize] = useState(minSize)
-  const nMaxOptions = metainfoOptions && Object.keys(metainfoOptions).length
+  const nMaxOptions = fixedOptions && Object.keys(fixedOptions).length
   const incr = useState(increment || minSize)[0]
   const [loading, setLoading] = useState(false)
   const agg = useAgg(quantity, visible && !disableOptions, minSize)
@@ -146,10 +127,7 @@ const InputField = React.memo(({
   // Form the final list of options. If no fixed options are available, the
   // options are gathered from the aggregation.
   const finalOptions = useMemo(() => {
-    // We do not display the option for 'not processed': it is more of a
-    // debug value
     if (fixedOptions) {
-      delete fixedOptions['not processed']
       return fixedOptions
     }
     if (agg?.data) {
@@ -194,7 +172,7 @@ const InputField = React.memo(({
   const handleShowMore = useCallback(() => {
     setLoading(true)
     let newSize = requestedAggSize + incr
-    aggCall(newSize, 'scroll', true, (response, error) => {
+    aggCall(newSize, 'scroll', (response, error) => {
       if (response?.data?.length === requestedAggSize) {
         newSize = requestedAggSize
       }
@@ -207,7 +185,7 @@ const InputField = React.memo(({
   const handleShowLess = useCallback(() => {
     setRequestedAggSize(old => {
       const newSize = Math.max(old - incr, minSize)
-      aggCall(newSize, 'scroll', true, () => {})
+      aggCall(newSize, 'scroll', () => {})
       return newSize
     })
   }, [aggCall, incr, minSize])
