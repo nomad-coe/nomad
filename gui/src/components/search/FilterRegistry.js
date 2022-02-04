@@ -53,7 +53,7 @@ export const labelArchive = 'Archive'
 
 /**
  * Used to gather a list of fixed filter options from the metainfo.
- * @param {*} quantity Metainfo name
+ * @param {string} quantity Metainfo name
  * @returns Dictionary containing the available options and their labels.
  */
 function getEnumOptions(quantity) {
@@ -281,7 +281,7 @@ const termQuantityBool = {
   }
 }
 const termQuantityNonExclusive = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig, exclusive: false}
-const noAggQuantity = {stats: listStatConfig}
+const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
 const rangeQuantity = {agg: 'min_max', multiple: false}
@@ -316,12 +316,12 @@ registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Da
 registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
 registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})
-registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
-registerFilter('entry_id', labelIDs, noAggQuantity)
-registerFilter('upload_id', labelIDs, noAggQuantity)
+registerFilter('datasets.doi', labelDataset, {...termQuantity, label: 'Dataset DOI'})
+registerFilter('entry_id', labelIDs, termQuantity)
+registerFilter('upload_id', labelIDs, termQuantity)
 registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('results.material.material_id', labelIDs, noAggQuantity)
-registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
+registerFilter('results.material.material_id', labelIDs, termQuantity)
+registerFilter('datasets.dataset_id', labelIDs, termQuantity)
 registerFilter(
   'results.properties.spectroscopy.eels',
   labelSpectroscopy,
@@ -410,7 +410,7 @@ registerFilter(
 registerFilter(
   'results.properties.available_properties',
   labelProperties,
-  {noAggQuantity, multiple: true, exclusive: false, queryMode: 'all'}
+  {termQuantity, multiple: true, exclusive: false, queryMode: 'all'}
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',
