@@ -188,6 +188,7 @@ export const SearchContext = React.memo(({
     useSetStatistic,
     useStatisticState,
     useStatisticsValue,
+    useStatisticsState,
     useResults,
     useApiData,
     useAgg,
@@ -290,11 +291,7 @@ export const SearchContext = React.memo(({
     const statisticsState = selector({
       key: `statisticsState_${indexContext}`,
       set: ({set}, stats) => {
-        if (stats) {
-          for (let [key, value] of Object.entries(stats)) {
-            set(statisticFamily(key), value)
-          }
-        }
+        stats && Object.entries(stats).forEach(([key, value]) => set(statisticFamily(key), value))
       },
       get: ({get}) => {
         const stats = {}
@@ -324,7 +321,7 @@ export const SearchContext = React.memo(({
      * not interested in reading it.
      *
      * @param {string} name Name of the quantity to set.
-     * @returns function for setting the value
+     * @returns Function for setting the value
      */
     function useSetStatistic(name) {
       return useSetRecoilState(statisticFamily(name))
@@ -336,7 +333,7 @@ export const SearchContext = React.memo(({
      * filter value.
      *
      * @param {string} name Name of the filter.
-     * @returns Array containing the value and setter function for it.
+     * @returns Array containing the value and a function for setting it.
      */
     function useStatisticState(name) {
       return useRecoilState(statisticFamily(name))
@@ -349,6 +346,16 @@ export const SearchContext = React.memo(({
      */
     function useStatisticsValue() {
       return useRecoilValue(statisticsState)
+    }
+
+    /**
+     * This hook will expose a function for reading and writing the object
+     * containing all the current statistics.
+     *
+     * @returns Array containing the value and a function for setting it.
+     */
+    function useStatisticsState() {
+      return useRecoilState(statisticsState)
     }
 
     const resultsState = atom({
@@ -678,6 +685,7 @@ export const SearchContext = React.memo(({
       useSetStatistic,
       useStatisticState,
       useStatisticsValue,
+      useStatisticsState,
       useResults,
       useApiData,
       useAgg,
@@ -947,6 +955,7 @@ export const SearchContext = React.memo(({
     useSetStatistic: useSetStatistic,
     useStatisticState: useStatisticState,
     useStatisticsValue: useStatisticsValue,
+    useStatisticsState: useStatisticsState,
     useUpdateQueryString: useUpdateQueryString,
     useResults: useResults,
     useApiData: useApiData,
@@ -969,6 +978,7 @@ export const SearchContext = React.memo(({
     useSetStatistic,
     useStatisticState,
     useStatisticsValue,
+    useStatisticsState,
     useUpdateQueryString,
     useRefresh,
     useResults,
@@ -1016,13 +1026,8 @@ function qsToSearch(queryString) {
   let statistics = {}
   const stats = queryObj.statistics
   if (stats) {
-    if (isArray(stats)) {
-      for (const stat of stats) {
-        statistics[stat] = true
-      }
-    } else {
-      statistics[stats] = true
-    }
+    const statsArray = isArray(stats) ? stats : [stats]
+    statsArray.forEach((name, i) => { statistics[name] = {index: i} })
     delete queryObj.statistics
   }
 
@@ -1093,9 +1098,13 @@ export function searchToQsData(search) {
       }
     }
   }
-  // The shown statistics are serialized here: the order is preserved
+  // The shown statistics are serialized here: currently we only store a simple
+  // ordered list in the query string. If more properties are needed in the
+  // future, the whole object should be stored.
   if (!isEmpty(statistics)) {
-    queryStringQuery.statistics = Object.keys(statistics)
+    queryStringQuery.statistics = Object.entries(statistics)
+      .sort((a, b) => a[1].index - b[1].index)
+      .map(([key, value]) => key)
   }
 
   return queryStringQuery
