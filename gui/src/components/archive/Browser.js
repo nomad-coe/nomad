@@ -18,7 +18,6 @@
 
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
-import { RecoilRoot } from 'recoil'
 import { makeStyles, Card, CardContent, Box, Typography } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
@@ -126,7 +125,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     return lanes
   }, [root, archivePath, memoedAdapters, render, setRender])
 
-  return <RecoilRoot>
+  return <React.Fragment>
     {form}
     <Card>
       <CardContent>
@@ -141,7 +140,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         </div>
       </CardContent>
     </Card>
-  </RecoilRoot>
+  </React.Fragment>
 })
 Browser.propTypes = ({
   adaptor: PropTypes.object.isRequired,
