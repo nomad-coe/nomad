@@ -41,6 +41,8 @@ nomad_dos_fingerprints
 lxml==4.6.3
 xarray==0.19.0
 phonopy==2.11.0
+pymatgen==2022.0.17
+asr==0.4.1
 
 # [infrastructure]
 optimade[mongo]==0.14.0
