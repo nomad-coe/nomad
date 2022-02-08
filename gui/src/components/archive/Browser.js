@@ -28,11 +28,11 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 
 function escapeBadPathChars(s) {
-  return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replaceAll('%', '$3').replaceAll('\\', '$4')
+  return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
 }
 
 function unescapeBadPathChars(s) {
-  return s.replaceAll('$4', '\\').replaceAll('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
+  return s.replace(/!4/g, '\\').replace(/!3/g, '%').replace(/!2/g, '#').replace(/!1/g, '?').replace(/!0/g, '!')
 }
 
 export function formatSubSectionName(name) {
@@ -159,6 +159,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         }
         const prev = index === 0 ? null : lanes.current[index - 1]
         const lane = {
+          index: index,
           key: segment,
           path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
@@ -232,7 +233,7 @@ function Lane({lane}) {
     if (!adaptor) {
       return ''
     }
-    return <div className={classes.root}>
+    return <div className={classes.root} data-testid={`lane${lane.index}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>

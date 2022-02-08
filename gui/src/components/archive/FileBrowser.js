@@ -49,9 +49,6 @@ class RawDirectoryAdaptor extends Adaptor {
     this.title = title
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
-  isLoaded() {
-    return this.data !== undefined
-  }
   async initialize(api) {
     if (this.data === undefined) {
       const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
