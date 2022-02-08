@@ -49,7 +49,7 @@ export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
-export const labelArchive = 'Archive'
+export const labelArchive = 'Processed data quantities'
 
 /**
  * Used to gather a list of fixed filter options from the metainfo.
