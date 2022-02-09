@@ -103,6 +103,13 @@ async def get_suggestions(
 
     # We return the original field in the source document.
     response: Dict[str, List[Suggestion]] = defaultdict(list)
+    suggestions: Dict[str, Dict[str, float]] = defaultdict(dict)
+
+    def add_suggestion(quantity, value, weight):
+        values = suggestions[quantity]
+        if value not in values or values[value] < weight:
+            suggestions[quantity][value] = weight
+
     for quantity, quantity_es in zip(quantities, quantities_es):
         variants = entry_type.suggestions[quantity].variants
         for option in es_response.suggest[quantity_es][0].options:
@@ -157,8 +164,12 @@ async def get_suggestions(
                         if match_start >= 0 and match_start < best_match:
                             best_match = match_start
                             best_option = variant
-                    response[quantity].append(Suggestion(value=best_option, weight=weight))
+                    add_suggestion(quantity, best_option, weight)
                 elif text in option.lower().strip():
-                    response[quantity].append(Suggestion(value=option, weight=weight))
+                    add_suggestion(quantity, option, weight)
+
+    for name, suggestion in suggestions.items():
+        for value, weight in suggestion.items():
+            response[name].append(Suggestion(value=value, weight=weight))
 
     return response

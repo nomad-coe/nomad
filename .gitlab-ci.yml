@@ -205,19 +205,19 @@ deploy prod:
     - /^dev-.*$/
   when: manual
 
-# deploy prod beta:
-#   stage: release
-#   before_script:
-#     - mkdir -p /etc/deploy
-#     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
-#   script:
-#     - helm dependency update ops/helm/nomad
-#     - helm upgrade --install nomad-beta ops/helm/nomad -f ops/helm/nomad/deployments/prod-beta-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
-#     - docker pull $TEST_IMAGE
-#     - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/rae/beta/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
-#   except:
-#     - /^dev-.*$/
-#   when: manual
+deploy prod staging:
+  stage: release
+  before_script:
+    - mkdir -p /etc/deploy
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ${KUBECONFIG}
+  script:
+    - helm dependency update ops/helm/nomad
+    - helm upgrade --install nomad-staging-v1 ops/helm/nomad -f ops/helm/nomad/deployments/prod-staging-values.yaml --set image.tag=$CI_COMMIT_REF_NAME,roll=true --wait
+    - docker pull $TEST_IMAGE
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod $TEST_IMAGE python -m nomad.cli client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests  --skip-publish --skip-doi
+  except:
+    - /^dev-.*$/
+  when: manual
 
 deploy prod test:
   stage: release

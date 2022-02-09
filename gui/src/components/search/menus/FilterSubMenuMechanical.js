@@ -68,7 +68,6 @@ const FilterSubMenuMechanical = React.memo(({
           <InputField
             quantity="results.properties.mechanical.shear_modulus.type"
             visible={visible}
-            initialSize={3}
             disableSearch
           />
           <InputSlider

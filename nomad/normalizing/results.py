@@ -140,6 +140,18 @@ class ResultsNormalizer(Normalizer):
             sample = measurement.sample[0]
             if len(sample.elements) > 0:
                 material.elements = sample.elements
+            else:
+                # Try to guess elements from sample formula or name
+                if sample.chemical_formula:
+                    try:
+                        material.elements = ase.Atoms(sample.chemical_formula).get_chemical_symbols()
+                    except Exception:
+                        if sample.name:
+                            try:
+                                material.elements = ase.Atoms(sample.name).get_chemical_symbols()
+                            except Exception:
+                                pass
+
             if sample.chemical_formula:
                 material.chemical_formula_descriptive = sample.chemical_formula
 
@@ -156,9 +168,10 @@ class ResultsNormalizer(Normalizer):
                 atoms = ase.Atoms(''.join(material.elements))
 
             formula = atoms.get_chemical_formula()
-            results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
-            results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
-            results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            if formula:
+                results.material.chemical_formula_hill = atomutils.get_formula_hill(formula)
+                results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
+                results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
         except Exception as e:
             logger.warn('could not normalize material', exc_info=e)
 

@@ -42,12 +42,24 @@ very similar to labels, albums, or tags on other platforms.
 `
 
 const columns = [
+  {key: 'dataset_name'},
+  {
+    key: 'doi',
+    label: 'Digital object identifier (DOI)',
+    render: dataset => {
+      if (dataset.doi) {
+        return <Quantity
+          quantity={'datasets.doi'} noLabel noWrap withClipboard
+          data={{datasets: dataset}}
+        />
+      }
+      return ''
+    }
+  },
   {
     key: 'dataset_id',
     render: dataset => <Quantity quantity={'datasets.dataset_id'} noLabel noWrap withClipboard data={{datasets: dataset}}/>
   },
-  {key: 'dataset_name'},
-  {key: 'doi', label: 'Digital object identifier (DOI)'},
   {
     key: 'dataset_create_time',
     label: 'Create time',

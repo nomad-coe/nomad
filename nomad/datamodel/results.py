@@ -132,7 +132,6 @@ def variants_formula(value):
     return list(set(formulas))
 
 
-# Tokenizes a formula by splitting it by formula fragments.
 tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
 
 

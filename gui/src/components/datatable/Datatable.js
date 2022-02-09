@@ -255,6 +255,14 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     }
   }
 
+  const sortableColumns = useMemo(() => {
+    if (sortingColumns) {
+      return sortingColumns
+    } else {
+      return columns.filter(column => column.sortable).map(column => column.key)
+    }
+  }, [sortingColumns, columns])
+
   return <TableHead>
     <TableRow>
       {withSelectionFeature && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
@@ -271,7 +279,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           align={column.align || 'right'}
           sortDirection={order_by === column.key ? order : false}
         >
-          {withSorting && sortingColumns?.includes(column.key) ? <TableSortLabel
+          {withSorting && sortableColumns.includes(column.key) ? <TableSortLabel
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}

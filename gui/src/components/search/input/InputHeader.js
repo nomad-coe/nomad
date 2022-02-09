@@ -46,10 +46,9 @@ import { useBoolState } from '../../../hooks'
 /**
  * The quantity label and actions shown by all filter components.
  */
-const useStaticStyles = makeStyles(theme => ({
+const useStyles = makeStyles(theme => ({
   root: {
     marginBottom: theme.spacing(0.5),
-    marginTop: theme.spacing(-0.5),
     height: '2.5rem',
     width: '100%'
   },
@@ -92,7 +91,7 @@ const InputHeader = React.memo(({
   classes
 }) => {
   const { useStatisticState } = useSearchContext()
-  const styles = useStaticStyles({classes: classes})
+  const styles = useStyles({classes: classes})
   const [statistic, setStatistic] = useStatisticState(quantity)
   const [anchorEl, setAnchorEl] = React.useState(null)
   const isSettingsOpen = Boolean(anchorEl)
@@ -192,7 +191,7 @@ const InputHeader = React.memo(({
       </Select>
     </Action>
 
-  return <Actions className={clsx(className, styles.root)}>
+  return <Actions className={clsx(styles.root, className)}>
     {align === 'left' && !disableStatistics && control}
     <ActionHeader disableSpacer>
       <div
