@@ -215,7 +215,6 @@ const useLaneStyles = makeStyles(theme => ({
     display: 'inline-block'
   },
   container: {
-    minWidth: 300,
     display: 'inline-block',
     height: '100%',
     overflowY: 'scroll'
@@ -280,6 +279,9 @@ const useItemStyles = makeStyles(theme => ({
   disabled: {
     color: 'grey'
   },
+  rightPaddedItem: {
+    padding: `0 ${theme.spacing(1)}px 0 0`
+  },
   childContainer: {
     flexGrow: 1,
     overflow: 'hidden',
@@ -307,23 +309,25 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
-    <Grid container spacing={2} alignItems="center" wrap="nowrap">
-      {icon && <Grid item>
+    <Grid container spacing={0} alignItems="center" wrap="nowrap" style={{padding: 0, margin: 0}}>
+      {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
-      <Grid item className={classes.childContainer}>
-        <Typography>{children}</Typography>
+      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
+        <Typography noWrap>{children}</Typography>
       </Grid>
       {chip && (
-        <Grid item>
+        <Grid item className={classes.rightPaddedItem}>
           <Chip size="small" color={isSelected ? 'primary' : 'default'} label={chip} />
         </Grid>
       )}
-      {actions && <Grid item>
+      {actions && <Grid item className={classes.rightPaddedItem}>
         {actions}
       </Grid>}
+      <Grid item style={{padding: 0}}>
+        <ArrowRightIcon padding="0"/>
+      </Grid>
     </Grid>
-    <ArrowRightIcon/>
   </Link>
 }
 Item.propTypes = ({
@@ -342,7 +346,7 @@ Item.propTypes = ({
 })
 
 export function Content(props) {
-  return <Box maxWidth={1024} padding={1} {...props} />
+  return <Box minWidth={300} maxWidth={600} padding={1} {...props} />
 }
 
 export function Compartment({title, children, color}) {
@@ -365,18 +369,25 @@ Compartment.propTypes = ({
   ]).isRequired
 })
 
+const useTitleStyles = makeStyles(theme => ({
+  titleGridItem: {
+    flexGrow: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  }
+}))
+
 export function Title({title, label, tooltip, actions, ...moreProps}) {
+  const classes = useTitleStyles()
   return <Compartment>
     <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item>
+      <Grid item className={classes.titleGridItem}>
         {tooltip ? (
           <Tooltip title={tooltip}>
-            <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-              <Typography variant="h6" {...moreProps}>{title}</Typography>
-            </div>
+            <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
           </Tooltip>
         ) : (
-          <Typography variant="h6" {...moreProps}>{title}</Typography>
+          <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
         )}
         {label && (
           <Typography variant="caption" color={moreProps.color}>

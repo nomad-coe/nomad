@@ -92,6 +92,7 @@ function RawDirectoryContent({uploadId, path, title}) {
         <Title
           title={title}
           label="folder"
+          tooltip={path}
           actions={(
             <Download
               component={IconButton} disabled={false}
@@ -181,7 +182,7 @@ function RawFileContent({uploadId, path, data}) {
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} width={600}
+      paddingTop={0} paddingBottom={0} maxWidth={600} minWidth={600}
     >
       <Box paddingTop={1}>
         <Title
