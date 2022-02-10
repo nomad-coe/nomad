@@ -382,7 +382,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     if (Array.isArray(finalValue)) {
       return <Typography>
         <ul style={{margin: 0}}>
-          {finalValue.map((value, index) => <li key={index}>{value}</li>)}
+          {finalValue.map((value, index) =>
+            <li key={index}>{typeof value === 'object' ? JSON.stringify(value) : value}</li>)}
         </ul>
       </Typography>
     } else {
