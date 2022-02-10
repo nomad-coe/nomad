@@ -422,7 +422,7 @@ SectionDefContent.propTypes = ({
 })
 
 function SectionDef({def}) {
-  return <Content style={{backgroundColor: 'grey'}}>
+  return <Content>
     <Definition def={def} kindLabel="section definition" />
     <SectionDefContent def={def} />
   </Content>
