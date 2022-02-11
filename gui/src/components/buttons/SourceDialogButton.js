@@ -228,7 +228,7 @@ export const SourceJsonDialogButton = React.memo(function SourceJsonDialogButton
 })
 SourceJsonDialogButton.propTypes = {
   description: PropTypes.string,
-  data: PropTypes.object
+  data: PropTypes.any
 }
 
 export const SourceJson = React.memo(function SourceJson({data, ...props}) {
@@ -250,7 +250,7 @@ export const SourceJson = React.memo(function SourceJson({data, ...props}) {
   </Box>
 })
 SourceJson.propTypes = {
-  data: PropTypes.object
+  data: PropTypes.any
 }
 
 export const SourceJsonCode = React.memo(function SourceJsonCode({data}) {

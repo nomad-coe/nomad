@@ -666,6 +666,10 @@ def test_get_upload_entry(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
     pytest.param(dict(
+        user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux',
+        ignore_mime_type=True),
+        200, 'application/octet-stream', 'content', id='unpublished-file-ignore_mime_type'),
+    pytest.param(dict(
         user='other_test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
     pytest.param(dict(
@@ -673,7 +677,11 @@ def test_get_upload_entry(
         200, 'text/plain; charset=utf-8', 'content', id='unpublished-file-admin-auth'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json'),
-        200, 'text/plain; charset=utf-8', 'content', id='published-file'),
+        200, 'text/plain; charset=utf-8', 'method', id='published-file'),
+    pytest.param(dict(
+        user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json',
+        ignore_mime_type=True),
+        200, 'application/octet-stream', 'method', id='published-file-ignore_mime_type'),
     pytest.param(dict(
         user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
@@ -715,19 +723,19 @@ def test_get_upload_entry(
     pytest.param(dict(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux',
         offset=2),
-        200, 'text/plain; charset=utf-8', 'ntent\n', id='unpublished-file-offset'),
+        200, 'application/octet-stream', 'ntent\n', id='unpublished-file-offset'),
     pytest.param(dict(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux',
         offset=2, length=4),
-        200, 'text/plain; charset=utf-8', 'nten', id='unpublished-file-offset-and-length'),
+        200, 'application/octet-stream', 'nten', id='unpublished-file-offset-and-length'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
         offset=2),
-        200, 'text/plain; charset=utf-8', 'ntent\n', id='published-file-offset'),
+        200, 'application/octet-stream', 'ntent\n', id='published-file-offset'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
         offset=2, length=4),
-        200, 'text/plain; charset=utf-8', 'nten', id='published-file-offset-and-length'),
+        200, 'application/octet-stream', 'nten', id='published-file-offset-and-length'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux',
         offset=-3),
@@ -759,8 +767,10 @@ def test_get_upload_raw_path(
     re_pattern = args.get('re_pattern', None)
     offset = args.get('offset', None)
     length = args.get('length', None)
+    ignore_mime_type = args.get('ignore_mime_type', None)
     user_auth, __token = test_auth_dict[user]
     query_args = dict(
+        ignore_mime_type=ignore_mime_type,
         compress=compress,
         re_pattern=re_pattern,
         offset=offset,
@@ -774,13 +784,7 @@ def test_get_upload_raw_path(
     if expected_status_code == 200:
         mime_type = response.headers.get('content-type')
         assert mime_type == expected_mime_type
-        if mime_type == 'application/octet-stream':
-            if expected_content:
-                if offset is not None:
-                    assert response.text == expected_content, 'Wrong content (offset and length)'
-                else:
-                    assert expected_content in response.text, 'Expected content not found'
-        elif mime_type == 'application/zip':
+        if mime_type == 'application/zip':
             if expected_content:
                 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
                     if type(expected_content) == str:
@@ -804,6 +808,12 @@ def test_get_upload_raw_path(
                                     found = True
                                     break
                             assert found, f'Missing expected path in zip file: {expected_path}'
+        else:
+            if expected_content:
+                if offset is not None:
+                    assert response.text == expected_content, 'Wrong content (offset and length)'
+                else:
+                    assert expected_content in response.text, 'Expected content not found'
 
 
 @pytest.mark.parametrize('user, upload_id, path, query_args, expected_status_code, expected_content, expected_file_metadata, expected_pagination', [

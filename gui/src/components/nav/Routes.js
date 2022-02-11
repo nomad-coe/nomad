@@ -89,6 +89,11 @@ const entryRoutes = [
             breadcrumb: 'Raw data files'
           },
           {
+            path: 'browse',
+            exact: true,
+            breadcrumb: 'Browse files'
+          },
+          {
             path: 'archive',
             exact: true,
             breadcrumb: 'Processed data'

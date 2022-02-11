@@ -23,7 +23,7 @@ import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
 import { resolveRef, rootSections } from './metainfo'
-import { Title, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
+import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
@@ -47,7 +47,7 @@ export const configState = atom({
   }
 })
 
-export default function ArchiveBrowser({data}) {
+const ArchiveBrowser = React.memo(({data}) => {
   const searchOptions = useMemo(() => archiveSearchOptions(data), [data])
 
   // For some reason, this hook does not work in all of the components used in
@@ -61,10 +61,11 @@ export default function ArchiveBrowser({data}) {
       form={<ArchiveConfigForm searchOptions={searchOptions} data={data}/>}
     />
   )
-}
+})
 ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
+export default ArchiveBrowser
 
 function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
@@ -159,7 +160,7 @@ ArchiveConfigForm.propTypes = ({
   searchOptions: PropTypes.arrayOf(PropTypes.object).isRequired
 })
 
-function archiveAdaptorFactory(data, sectionDef) {
+export function archiveAdaptorFactory(data, sectionDef) {
   return new SectionAdaptor(data, sectionDef || rootSections.find(def => def.name === 'EntryArchive'), undefined, {archive: data})
 }
 
@@ -350,7 +351,7 @@ QuantityItemPreview.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-function QuantityValue({value, def}) {
+const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const units = useUnits()
   const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
@@ -381,14 +382,15 @@ function QuantityValue({value, def}) {
     if (Array.isArray(finalValue)) {
       return <Typography>
         <ul style={{margin: 0}}>
-          {finalValue.map((value, index) => <li key={index}>{value}</li>)}
+          {finalValue.map((value, index) =>
+            <li key={index}>{typeof value === 'object' ? JSON.stringify(value) : value}</li>)}
         </ul>
       </Typography>
     } else {
       return <Typography>{finalValue}</Typography>
     }
   }
-}
+})
 QuantityValue.propTypes = ({
   value: PropTypes.any,
   def: PropTypes.object.isRequired
@@ -411,8 +413,8 @@ function Section({section, def, parent}) {
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
   return <Content>
-    <Title def={def} data={section} kindLabel="section" />
-    <Overview section={section} def={def} />
+    <ArchiveTitle def={def} data={section} kindLabel="section" />
+    <Overview section={section} def={def}/>
     <Compartment title="sub sections">
       {sub_sections
         .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
@@ -569,7 +571,7 @@ PropertyValuesList.propTypes = ({
 
 function Quantity({value, def}) {
   return <Content>
-    <Title def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value" />
     <Compartment title="value">
       <QuantityValue
         value={value}
@@ -617,7 +619,7 @@ function Reference({value, def}) {
   }
 
   return <Content>
-    <Title def={def} data={value} kindLabel="value" />
+    <ArchiveTitle def={def} data={value} kindLabel="value" />
     <Compartment title="reference">
       <Typography color="error">Cannot resolve reference.</Typography>
       <Typography>{value}</Typography>
