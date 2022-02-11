@@ -1,11 +1,11 @@
 version:
-  label: "v1.0.0"
+  label: "v1.0.3"
   isBeta: true
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
 
 image:
-    tag: "v1.0.0"
+    tag: "latest"
     pullPolicy: "Always"
 
 proxy:
@@ -17,13 +17,13 @@ proxy:
 
 gui:
   debug: true
-  matomoEnabled: false
+  matomoEnabled: true
   matomoSiteId: 2
   encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
   aitoolkitEnabled: false
 
 app:
-  replicas: 2
+  replicas: 8
   worker: 4
   threads: 4
   workerClass: "gthread"
@@ -33,7 +33,7 @@ worker:
   replicas: 2
   routing: "queue"
   processes: 12
-  nomadNodeType: "worker"
+  nomadNodeType: "prod-worker"
 
 elastic:
   host: elasticsearch.elasticsearch.svc.cluster.local

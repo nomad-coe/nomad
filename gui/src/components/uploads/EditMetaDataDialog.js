@@ -526,7 +526,7 @@ function EditMetaDataDialog({...props}) {
     let promises = []
     let newDatasets = datasets.filter(_dataset => _dataset.dataset_id === _dataset.dataset_name).map(_dataset => _dataset.dataset_name)
     newDatasets.forEach(dataset_name => {
-      promises.push(api.post(`/datasets`, {dataset_name: dataset_name}))
+      promises.push(api.post(`/datasets/`, {dataset_name: dataset_name}))
     })
     return Promise.all(promises)
   }, [api, datasets])

@@ -95,6 +95,20 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
+### Install nomad
+Finally, you can add nomad to the environment itself (including all extras).
+The `-e` option will install the NOMAD with symbolic links allowing you
+to change the code without having to reinstall after each change.
+```sh
+pip install -e .[all]
+```
+
+If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+
+```sh
+pip install -e .[all] --prefer-binary
+```
+
 ### Install sub-modules
 Nomad is based on python modules from the NOMAD-coe project.
 This includes parsers, python-common and the meta-info. These modules are maintained as
@@ -117,18 +131,6 @@ to install set packages manually.
 
 The `-e` option will install the NOMAD-coe dependencies with symbolic links allowing you
 to change the downloaded dependency code without having to reinstall after.
-
-### Install nomad
-Finally, you can add nomad to the environment itself (including all extras)
-```sh
-pip install -e .[all]
-```
-
-If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
-
-```sh
-pip install -e .[all] --prefer-binary
-```
 
 ### Generate GUI artifacts
 The NOMAD GUI requires static artifacts that are generated from the NOMAD Python codes.

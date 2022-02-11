@@ -1,0 +1,240 @@
+{
+    "_id": "619ee5bc2c86325a028e4a62",
+    "builder_meta": {
+        "emmet_version": "0.18.0",
+        "pymatgen_version": "2022.0.16",
+        "pull_request": 644,
+        "database_version": "2021.11.10",
+        "build_date": "2021-11-25T01:22:25.374000"
+    },
+    "nsites": 1,
+    "elements": [
+        "Cs"
+    ],
+    "nelements": 1,
+    "composition": {
+        "Cs": 1.0
+    },
+    "composition_reduced": {
+        "Cs": 1.0
+    },
+    "formula_pretty": "Cs",
+    "formula_anonymous": "A",
+    "chemsys": "Cs",
+    "volume": 114.05180544066401,
+    "density": 1.9350390306525629,
+    "density_atomic": 114.05180544066401,
+    "symmetry": {
+        "crystal_system": "Cubic",
+        "symbol": "Im-3m",
+        "number": 229,
+        "point_group": "m-3m",
+        "symprec": 0.1,
+        "version": "1.16.2"
+    },
+    "material_id": "mp-1",
+    "structure": {
+        "@module": "pymatgen.core.structure",
+        "@class": "Structure",
+        "charge": null,
+        "lattice": {
+            "matrix": [
+                [
+                    -3.05502,
+                    3.05502,
+                    3.05502
+                ],
+                [
+                    3.05502,
+                    -3.05502,
+                    3.05502
+                ],
+                [
+                    3.05502,
+                    3.05502,
+                    -3.05502
+                ]
+            ],
+            "a": 5.291449858139071,
+            "b": 5.291449858139071,
+            "c": 5.291449858139071,
+            "alpha": 109.47122063449069,
+            "beta": 109.47122063449069,
+            "gamma": 109.47122063449069,
+            "volume": 114.05180544066401
+        },
+        "sites": [
+            {
+                "species": [
+                    {
+                        "element": "Cs",
+                        "occu": 1
+                    }
+                ],
+                "abc": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "xyz": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "label": "Cs",
+                "properties": {
+                    "magmom": 0.001
+                }
+            }
+        ]
+    },
+    "deprecated": false,
+    "deprecation_reasons": null,
+    "initial_structures": [
+        {
+            "@module": "pymatgen.core.structure",
+            "@class": "Structure",
+            "charge": null,
+            "lattice": {
+                "matrix": [
+                    [
+                        -3.073785,
+                        3.073785,
+                        3.073785
+                    ],
+                    [
+                        3.073785,
+                        -3.073785,
+                        3.073785
+                    ],
+                    [
+                        3.073785,
+                        3.073785,
+                        -3.073785
+                    ]
+                ],
+                "a": 5.323951791543101,
+                "b": 5.323951791543101,
+                "c": 5.323951791543101,
+                "alpha": 109.47122063449069,
+                "beta": 109.47122063449069,
+                "gamma": 109.47122063449069,
+                "volume": 116.16637895302804
+            },
+            "sites": [
+                {
+                    "species": [
+                        {
+                            "element": "Cs",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "xyz": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "label": "Cs",
+                    "properties": {}
+                }
+            ]
+        },
+        {
+            "@module": "pymatgen.core.structure",
+            "@class": "Structure",
+            "charge": null,
+            "lattice": {
+                "matrix": [
+                    [
+                        -3.042498,
+                        -3.080617,
+                        3.026682
+                    ],
+                    [
+                        -3.041899,
+                        3.064812,
+                        -3.04187
+                    ],
+                    [
+                        3.026712,
+                        -3.080631,
+                        -3.042485
+                    ]
+                ],
+                "a": 5.282783273031083,
+                "b": 5.281968877080307,
+                "c": 5.282801138063972,
+                "alpha": 109.6727287584959,
+                "beta": 108.65562156547749,
+                "gamma": 109.67203543096008,
+                "volume": 114.04133836875384
+            },
+            "sites": [
+                {
+                    "species": [
+                        {
+                            "element": "Cs",
+                            "occu": 1
+                        }
+                    ],
+                    "abc": [
+                        2.5e-05,
+                        6e-06,
+                        0.999997
+                    ],
+                    "xyz": [
+                        3.02660860602,
+                        -3.08068038466,
+                        -3.042418456715
+                    ],
+                    "label": "Cs",
+                    "properties": {}
+                }
+            ]
+        }
+    ],
+    "task_ids": [
+        "mp-1056837",
+        "mp-1056840",
+        "mp-1",
+        "mp-1439955",
+        "mp-1686392",
+        "mp-1588651",
+        "mp-990461",
+        "mp-1804625",
+        "mp-990457",
+        "mp-1056804",
+        "mp-1056825",
+        "mp-990456"
+    ],
+    "deprecated_tasks": [],
+    "calc_types": {
+        "mp-990461": "GGA NSCF Line",
+        "mp-990456": "GGA Static",
+        "mp-990457": "GGA NSCF Uniform",
+        "mp-1": "GGA Structure Optimization",
+        "mp-1056804": "GGA Structure Optimization",
+        "mp-1056825": "GGA Static",
+        "mp-1056840": "GGA NSCF Uniform",
+        "mp-1439955": "GGA Static",
+        "mp-1686392": "GGA NSCF Uniform",
+        "mp-1804625": "GGA Static",
+        "mp-1588651": "GGA NSCF Line",
+        "mp-1056837": "GGA NSCF Line"
+    },
+    "last_updated": "2021-03-07T13:12:48.460000",
+    "created_at": "2011-05-12T17:08:43",
+    "origins": [
+        {
+            "name": "structure",
+            "task_id": "mp-1439955",
+            "last_updated": "2020-05-03T04:27:58.252000"
+        }
+    ],
+    "warnings": []
+}

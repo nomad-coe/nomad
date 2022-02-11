@@ -85,7 +85,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
       onClose={handleClose}
     >
       <MenuItem onClick={() => handleSelect('raw')}>Raw uploaded files</MenuItem>
-      <MenuItem onClick={() => handleSelect('archive')}>NOMAD Archive files</MenuItem>
+      <MenuItem onClick={() => handleSelect('archive')}>Processed data</MenuItem>
     </Menu>
   </React.Fragment>
 })

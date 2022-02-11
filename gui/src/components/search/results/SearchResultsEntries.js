@@ -46,7 +46,7 @@ const columns = [
       ? formatTimestamp(row.upload_create_time)
       : <i>no upload time</i>
   },
-  {key: 'authors', render: row => authorList(row), align: 'left'},
+  {key: 'authors', render: row => authorList(row), align: 'left', sortable: false},
   {key: 'comment', sortable: false, align: 'left'},
   {
     key: 'references',
@@ -70,6 +70,7 @@ const columns = [
   {
     key: 'datasets',
     align: 'left',
+    sortable: false,
     render: entry => {
       const datasets = entry.datasets || []
       if (datasets.length > 0) {

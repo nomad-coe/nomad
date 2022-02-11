@@ -91,7 +91,7 @@ const entryRoutes = [
           {
             path: 'archive',
             exact: true,
-            breadcrumb: 'Archive'
+            breadcrumb: 'Processed data'
           },
           {
             path: 'logs',
@@ -234,7 +234,7 @@ export const routes = [
         exact: true,
         cache: 'always',
         component: SearchPageEntries,
-        menu: 'Entries Repository',
+        menu: 'Entries',
         tooltip: 'Search individual database entries',
         breadcrumb: 'Entries search',
         help: {
@@ -310,7 +310,7 @@ export const routes = [
         menu: 'Information',
         component: About,
         breadcrumb: 'About NOMAD',
-        tooltip: 'Overview of the NOMAD Repository and Archive'
+        tooltip: 'Overview of the NOMAD'
       },
       {
         menu: 'Forum',

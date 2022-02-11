@@ -1,5 +1,5 @@
 version:
-  label: "v1.0.0"
+  label: "v1.0.3"
   isBeta: true
   usesBetaData: false
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
@@ -13,18 +13,26 @@ proxy:
   nodeIP: '130.183.207.81'
   external:
     host: "nomad-lab.eu"
-    path: "/prod/rae/beta"
+    path: "/prod/v1/staging"
 
 gui:
   debug: true
+  matomoEnabled: false
+  matomoSiteId: 2
+  encyclopediaBase: 'https://nomad-lab.eu/prod/rae/encyclopedia/#'
+  aitoolkitEnabled: false
 
 app:
   replicas: 2
+  worker: 4
+  threads: 4
+  workerClass: "gthread"
+  nomadNodeType: "public"
 
 worker:
   replicas: 1
   routing: "queue"
-  processes: 10
+  processes: 12
   nomadNodeType: "prod-worker"
 
 elastic:
@@ -39,7 +47,7 @@ logstash:
 
 dbname: nomad_prod_v1
 
-uploadurl: 'http://nomad-lab.eu/prod/rae/beta/api/uploads'
+uploadurl: 'https://nomad-lab.eu/prod/v1/staging/api/uploads'
 
 client:
   passwordSecret: 'nomad-keycloak-password'
@@ -59,3 +67,13 @@ volumes:
   tmp: /nomad/fairdi/prod/fs/tmp
   nomad: /nomad
   archiveVersionSuffix: v1
+
+mail:
+  enabled: true
+  host: 'mailrelay.mpcdf.mpg.de'
+  port: 25
+  from: 'support@nomad-lab.eu'
+
+datacite:
+  secret: 'nomad-datacite'
+  enabled: true

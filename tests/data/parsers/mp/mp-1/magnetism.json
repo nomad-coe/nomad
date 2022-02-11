@@ -1,0 +1,60 @@
+{
+    "_id": "61a0382a2c86325a02bbf297",
+    "builder_meta": {
+        "emmet_version": "0.18.0",
+        "pymatgen_version": "2022.0.16",
+        "pull_request": 644,
+        "database_version": "2021.11.10",
+        "build_date": "2021-11-26T01:26:32.156000"
+    },
+    "nsites": 1,
+    "elements": [
+        "Cs"
+    ],
+    "nelements": 1,
+    "composition": {
+        "Cs": 1.0
+    },
+    "composition_reduced": {
+        "Cs": 1.0
+    },
+    "formula_pretty": "Cs",
+    "formula_anonymous": "A",
+    "chemsys": "Cs",
+    "volume": 114.05180544066401,
+    "density": 1.9350390306525629,
+    "density_atomic": 114.05180544066401,
+    "symmetry": {
+        "crystal_system": "Cubic",
+        "symbol": "Im-3m",
+        "number": 229,
+        "point_group": "m-3m",
+        "symprec": 0.1,
+        "version": "1.16.2"
+    },
+    "property_name": "magnetism",
+    "material_id": "mp-1",
+    "deprecated": false,
+    "deprecation_reasons": null,
+    "last_updated": "2021-03-07T13:12:48.460000",
+    "origins": [
+        {
+            "name": "magnetism",
+            "task_id": "mp-1439955",
+            "last_updated": "2020-05-03T04:27:58.252000"
+        }
+    ],
+    "warnings": [],
+    "ordering": "NM",
+    "is_magnetic": false,
+    "exchange_symmetry": 229,
+    "num_magnetic_sites": 0,
+    "num_unique_magnetic_sites": 0,
+    "types_of_magnetic_species": [],
+    "magmoms": [
+        0.0
+    ],
+    "total_magnetization": 0.0023078,
+    "total_magnetization_normalized_vol": 2.0234664335942e-05,
+    "total_magnetization_normalized_formula_units": 0.0023078
+}

@@ -27,6 +27,7 @@ import {
   Tooltip
 } from '@material-ui/core'
 import InputHeader from './InputHeader'
+import InputCheckbox from './InputCheckbox'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
@@ -147,7 +148,7 @@ const Element = React.memo(({
   const scaler = useMemo(() => scalePow()
     .exponent(scale)
     .domain([0, 1])
-    .range([0.1, 1]) // Note that the range should not start from 0
+    .range([0.2, 1]) // Note that the range should not start from 0
   , [scale])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
   const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
@@ -353,7 +354,14 @@ const InputPeriodicTable = React.memo(({
                         disabled={!availableValues[element.symbol]}
                         onClick={() => onElementClicked(element.symbol)}
                         selected={localFilter.current.has(element.symbol)}
-                        max={agg ? Math.max(...agg.data.map(option => option.count)) : 0}
+                        // The colors are normalized with respect to the maximum
+                        // aggregation size for an unselected element.
+                        max={agg
+                          ? Math.max(...agg.data
+                            .filter(option => !localFilter.current.has(option.value))
+                            .map(option => option.count))
+                          : 0
+                        }
                         count={availableValues[element.symbol]}
                         localFilter={localFilter.current}
                         scale={scale}
@@ -366,13 +374,13 @@ const InputPeriodicTable = React.memo(({
           </tbody>
         </table>
       </AspectRatio>
-      {/* <div className={styles.formContainer}>
+      <div className={styles.formContainer}>
         <InputCheckbox
           quantity="exclusive"
-          label="only composition that exclusively contain these atoms"
+          label="only compositions that exclusively contain these atoms"
           description="Search for entries with compositions that only (exclusively) contain the selected atoms. The default is to return all entries that have at least (inclusively) the selected atoms."
         ></InputCheckbox>
-      </div> */}
+      </div>
     </div>
   </div>
   // eslint-disable-next-line react-hooks/exhaustive-deps

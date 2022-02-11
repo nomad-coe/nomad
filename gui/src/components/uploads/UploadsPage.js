@@ -123,14 +123,14 @@ const uploadsPageContext = React.createContext()
 
 const columns = [
   {
-    key: 'upload_id',
-    render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
-  },
-  {
     key: 'upload_create_time',
     render: upload => new Date(upload.upload_create_time).toLocaleString()
   },
   {key: 'upload_name'},
+  {
+    key: 'upload_id',
+    render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
+  },
   {key: 'last_status_message', label: 'Status'},
   {key: 'entries', render: upload => upload.entries, align: 'center'},
   {key: 'published', render: upload => <Published upload={upload} />, align: 'center'}

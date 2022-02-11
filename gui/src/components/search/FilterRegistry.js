@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isNil } from 'lodash'
+import { isNil, isArray } from 'lodash'
 import { setToArray, getDatatype, getSerializer, getDeserializer, getLabel } from '../../utils'
 import searchQuantities from '../../searchQuantities'
 import { getDimension, Quantity } from '../../units'
@@ -49,7 +49,27 @@ export const labelAuthor = 'Author / Origin'
 export const labelAccess = 'Access'
 export const labelDataset = 'Dataset'
 export const labelIDs = 'IDs'
-export const labelArchive = 'Archive'
+export const labelArchive = 'Processed data quantities'
+
+/**
+ * Used to gather a list of fixed filter options from the metainfo.
+ * @param {string} quantity Metainfo name
+ * @returns Dictionary containing the available options and their labels.
+ */
+function getEnumOptions(quantity) {
+  const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
+  if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
+    const opt = {}
+    for (const name of metainfoOptions) {
+      opt[name] = {label: name}
+    }
+
+    // We do not display the option for 'not processed': it is more of a
+    // debug value
+    delete opt['not processed']
+    return opt
+  }
+}
 
 /**
  * This function is used to register a new filter within the SearchContext.
@@ -118,21 +138,34 @@ function saveFilter(name, group, config) {
   }
 
   const data = filterData[name] || {}
+  data.options = config.options || getEnumOptions(name)
   const agg = config.agg
   if (agg) {
     // Notice how here we have to introduce another inner function in order to
     // get the value of "name" and "type" at the time this function is created.
     data.aggGet = agg.get || ((name, type) => (aggs) => aggs[name][type].data)(name, agg)
     data.aggSet = agg.set || {[name]: {[agg]: {}}}
+
+    // If a list of explicit options is given we will only include them in the
+    // aggregations. This ensures that the GUI is not messed up due to
+    // unexpected aggregation values.
+    if (agg.set) {
+      data.aggSet = agg.set
+    } else {
+      if (data.options && agg === 'terms') {
+        data.aggSet = {[name]: {[agg]: {include: Object.keys(data.options)}}}
+      } else {
+        data.aggSet = {[name]: {[agg]: {}}}
+      }
+    }
   }
   if (config.value) {
     data.valueSet = config.value.set
   }
-  data.aggDefaultSize = config.aggDefaultSize
+  data.aggDefaultSize = config.aggDefaultSize || (config.options && Object.keys(config.options).length)
   data.multiple = config.multiple === undefined ? true : config.multiple
   data.exclusive = config.exclusive === undefined ? true : config.exclusive
   data.stats = config.stats
-  data.options = config.options
   data.unit = config.unit || searchQuantities[name]?.unit
   data.minOverride = config.minOverride
   data.maxOverride = config.maxOverride
@@ -155,7 +188,8 @@ function saveFilter(name, group, config) {
   data.dimension = getDimension(data.unit)
   data.deserializer = getDeserializer(data.dtype, data.dimension)
   data.label = config.label || getLabel(name)
-  data.section = !isNil(searchQuantities[name]?.nested)
+  data.nested = searchQuantities[name]?.nested
+  data.section = !isNil(data.nested)
   data.description = config.description || searchQuantities[name]?.description
   data.scale = config.scale || 1
   if (data.queryMode && !data.multiple) {
@@ -211,6 +245,7 @@ function registerFilterOptions(name, group, target, label, description, options)
       },
       multiple: true,
       exclusive: false,
+      queryMode: 'all',
       options: options,
       label: label,
       description: description
@@ -246,7 +281,7 @@ const termQuantityBool = {
   }
 }
 const termQuantityNonExclusive = {agg: 'terms', aggDefaultSize: 5, stats: listStatConfig, exclusive: false}
-const noAggQuantity = {stats: listStatConfig}
+const noAggQuantity = {}
 const nestedQuantity = {}
 const noQueryQuantity = {guiOnly: true, multiple: false}
 const rangeQuantity = {agg: 'min_max', multiple: false}
@@ -277,16 +312,16 @@ registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {..
 registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: 1 / 2, label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
-registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database'})
-registerFilter('authors.name', labelAuthor, {...termQuantity, label: 'Author Name'})
+registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: 1 / 4})
+registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
 registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})
-registerFilter('datasets.doi', labelDataset, {...noAggQuantity, label: 'Dataset DOI'})
-registerFilter('entry_id', labelIDs, noAggQuantity)
-registerFilter('upload_id', labelIDs, noAggQuantity)
+registerFilter('datasets.doi', labelDataset, {...termQuantity, label: 'Dataset DOI'})
+registerFilter('entry_id', labelIDs, termQuantity)
+registerFilter('upload_id', labelIDs, termQuantity)
 registerFilter('quantities', labelArchive, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
-registerFilter('results.material.material_id', labelIDs, noAggQuantity)
-registerFilter('datasets.dataset_id', labelIDs, noAggQuantity)
+registerFilter('results.material.material_id', labelIDs, termQuantity)
+registerFilter('datasets.dataset_id', labelIDs, termQuantity)
 registerFilter(
   'results.properties.spectroscopy.eels',
   labelSpectroscopy,
@@ -299,16 +334,8 @@ registerFilter(
       stats: listStatConfig,
       agg: {
         set: {
-          'results.properties.spectroscopy.eels.min_energy': {
-            min_max: {
-              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
-            }
-          },
-          'results.properties.spectroscopy.eels.max_energy': {
-            min_max: {
-              exclude: (updated) => updated?.has('results.properties.spectroscopy.eels.energy_window')
-            }
-          }
+          'results.properties.spectroscopy.eels.min_energy': {min_max: {}},
+          'results.properties.spectroscopy.eels.max_energy': {min_max: {}}
         },
         get: (aggs) => {
           const min = aggs['results.properties.spectroscopy.eels.min_energy']
@@ -383,7 +410,7 @@ registerFilter(
 registerFilter(
   'results.properties.available_properties',
   labelProperties,
-  noAggQuantity
+  {termQuantity, multiple: true, exclusive: false, queryMode: 'all'}
 )
 registerFilter(
   'results.properties.mechanical.energy_volume_curve',
@@ -537,3 +564,84 @@ for (const name of Object.keys(searchQuantities)) {
   materialNames[name] = materialName
   entryNames[materialName] = name
 }
+
+/**
+ * Function for creating static suggestions. Mimics the suggestion logic used by
+ * the suggestions API endpoint.
+ *
+ * @param {str} category Category for the suggestions
+ * @param {array} values Array of available values
+ * @param {number} minLength Minimum input length before suggestions are considered.
+ * @param {func} text Function that maps the value into the suggested text input
+ *
+ * @return {object} Object containing a list of options and a function for
+ *   filtering them based on the input.
+ */
+function getSuggestions(
+  category, values, minLength = 2, text = (value) => value) {
+  const options = values
+    .map(value => {
+      const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
+      const matches = [...optionCleaned.matchAll(/[ .]/g)]
+      let tokens = [optionCleaned]
+      tokens = tokens.concat(matches.map(match => optionCleaned.slice(match.index + 1)))
+      return {
+        value: value,
+        category: category,
+        text: text && text(value),
+        tokens: tokens
+      }
+    })
+  const filter = (input) => {
+    // Minimum input length
+    if (input.length < minLength) {
+      return []
+    }
+    // Gather all matches
+    const inputCleaned = input.trim().replace(/_/g, ' ').toLowerCase()
+    let suggestions = options.filter(option => option.tokens.some(token => token.startsWith(inputCleaned)))
+
+    // Sort matches based on value length (the more the input covers from the
+    // value, the better the match)
+    suggestions = suggestions.sort((a, b) => a.value.length - b.value.length)
+    return suggestions
+  }
+
+  return {options, filter}
+}
+
+/**
+ * Creates static suggestion for all metainfo quantities that have an enum
+ * value. Also provides suggestions for quantity names.
+ */
+function getStaticSuggestions() {
+  const suggestions = {}
+  const filters = Object.keys(filterData)
+
+  // Add suggestions from metainfo
+  for (const quantity of filters) {
+    const data = searchQuantities[quantity]
+    const isEnum = data?.type?.type_kind === 'Enum'
+    if (isEnum) {
+      const options = data.type.type_data
+      const maxLength = Math.max(...options.map(option => option.length))
+      const minLength = maxLength <= 2 ? 1 : 2
+      suggestions[quantity] = getSuggestions(
+        quantity,
+        options,
+        minLength,
+        (value) => `${quantity}=${value}`
+      )
+    }
+  }
+
+  // Add suggestions for quantity names
+  suggestions['quantity name'] = getSuggestions(
+    'quantity name',
+    filters.filter(value => !filterData[value].section),
+    2
+  )
+  return suggestions
+}
+
+export const staticSuggestions = getStaticSuggestions()
