@@ -31,7 +31,7 @@ const useStyles = makeStyles(theme => ({
 
 export const StringEditQantity = React.memo((props) => {
   const classes = useStyles()
-  const {quantityDef, section, multiline, onChange} = props
+  const {quantityDef, section, multiline, onChange, minRows} = props
   const [value, setValue] = useState()
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export const StringEditQantity = React.memo((props) => {
   }, [onChange, quantityDef, section])
 
   return <TextField
-    fullWidth variant="filled" size='small' value={value || ''} label={quantityDef?.name} multiline={multiline} minRows={4}
+    fullWidth variant="filled" size='small' value={value || ''} label={quantityDef?.name} multiline={multiline} minRows={minRows}
     InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{quantityDef?.unit}</InputAdornment>}}
     placeholder={quantityDef?.description}
     onChange={event => handleChange(event.target.value)} style={{pointerEvents: 'auto'}}>
@@ -56,5 +56,10 @@ StringEditQantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func,
-  multiline: PropTypes.bool
+  multiline: PropTypes.bool,
+  minRows: PropTypes.number
+}
+StringEditQantity.defaultProps = {
+  multiline: false,
+  minRows: 4
 }
