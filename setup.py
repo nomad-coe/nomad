@@ -260,10 +260,12 @@ def setup_kwargs():
         extras_require=extras_require,
         include_package_data=True,
         python_requires='>=3.6',
-        entry_points='''
-            [console_scripts]
-            nomad=nomad.cli:run_cli
-        ''')
+        entry_points={
+            'console_scripts': [
+                'nomad = nomad.cli:run_cli'
+            ]
+        }
+    )
 
 
 if __name__ == '__main__':
