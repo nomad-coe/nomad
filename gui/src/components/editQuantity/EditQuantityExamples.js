@@ -26,7 +26,7 @@ const defs = {
   },
   quantityDef2: {
     name: 'Description',
-    description: 'A description on the whole card',
+    description: 'It is a description that explains the whole section',
     key: 'description'
   },
   quantityDef3: {

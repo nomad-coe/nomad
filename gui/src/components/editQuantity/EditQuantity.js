@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useMemo} from 'react'
-import {TextField, makeStyles, InputAdornment, Tooltip} from '@material-ui/core'
+import React, {useCallback, useEffect, useState} from 'react'
+import {TextField, makeStyles, InputAdornment} from '@material-ui/core'
 import PropTypes from 'prop-types'
 
 const useStyles = makeStyles(theme => ({
@@ -32,25 +32,25 @@ const useStyles = makeStyles(theme => ({
 export const StringEditQantity = React.memo((props) => {
   const classes = useStyles()
   const {quantityDef, section, multiline, onChange} = props
+  const [value, setValue] = useState()
 
-  const getValue = useCallback((qantityDef, section) => {
-    return section[qantityDef.key]
-  }, [])
-
-  const value = useMemo(() => getValue(quantityDef, section), [getValue, quantityDef, section])
+  useEffect(() => {
+    setValue(section[quantityDef.key])
+  }, [quantityDef.key, section])
 
   const handleChange = useCallback((value) => {
+    setValue(value)
     if (onChange) {
       onChange(value, section, quantityDef)
     }
   }, [onChange, quantityDef, section])
 
-  return <Tooltip title={quantityDef?.description}>
-    <TextField
-      fullWidth variant="filled" size='small' value={value || ''} label={quantityDef?.name} multiline={multiline} minRows={4}
-      InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{quantityDef?.unit}</InputAdornment>}}
-      onChange={event => handleChange(event.target.value)}/>
-  </Tooltip>
+  return <TextField
+    fullWidth variant="filled" size='small' value={value || ''} label={quantityDef?.name} multiline={multiline} minRows={4}
+    InputProps={{endAdornment: <InputAdornment className={classes.adornment} position='end'>{quantityDef?.unit}</InputAdornment>}}
+    placeholder={quantityDef?.description}
+    onChange={event => handleChange(event.target.value)} style={{pointerEvents: 'auto'}}>
+  </TextField>
 })
 StringEditQantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
