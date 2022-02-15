@@ -15,30 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
+import React, {useCallback} from 'react'
 import {Card, makeStyles, Box} from '@material-ui/core'
-import {StringEditQantity} from './EditQuantity'
+import {FloatEditQantity, StringEditQantity} from './EditQuantity'
+import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
 
 const defs = {
-  quantityDef1: {
+  ShortStringQuantityDef: {
     name: 'Name',
     key: 'name'
   },
-  quantityDef2: {
+  LongStringQuantityDef: {
     name: 'Description',
     description: 'It is a description that explains the whole section',
     key: 'description'
   },
-  quantityDef3: {
+  floatQuantityDef: {
     name: 'Height',
     unit: 'meter',
     description: 'The value of height in meter',
     key: 'height'
+  },
+  limitedFloatQuantityDef: {
+    name: 'Mass',
+    unit: 'kilogram',
+    description: 'The mass in Kg',
+    key: 'mass'
   }
 }
 
 let section = {
   height: 100,
+  mass: 100,
   name: 'unnamed',
   description: 'This is a section'
 }
@@ -58,16 +66,24 @@ const useStyles = makeStyles(theme => ({
 export function EditQuantityExamples() {
   const styles = useStyles()
 
+  const handleChange = useCallback((value, section, quantityDef) => {
+    section[quantityDef.key] = value
+  }, [])
+
   return <div className={styles.root}>
     <Card className={styles.card}>
+      <SourceJsonDialogButton title={`Section`} data={section}/>
       <Box margin={1}>
-        <StringEditQantity quantityDef={defs.quantityDef1} section={section}/>
+        <StringEditQantity quantityDef={defs.ShortStringQuantityDef} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
-        <StringEditQantity quantityDef={defs.quantityDef2} section={section} multiline/>
+        <StringEditQantity quantityDef={defs.LongStringQuantityDef} section={section} onChange={handleChange} multiline/>
       </Box>
       <Box margin={1}>
-        <StringEditQantity quantityDef={defs.quantityDef3} section={section}/>
+        <FloatEditQantity quantityDef={defs.floatQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <FloatEditQantity quantityDef={defs.limitedFloatQuantityDef} section={section} onChange={handleChange} minValue={0} defaultValue={0}/>
       </Box>
     </Card>
   </div>
