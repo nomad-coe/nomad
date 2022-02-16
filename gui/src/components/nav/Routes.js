@@ -41,6 +41,7 @@ import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
 import DatasetsPage, { help as datasetsHelp } from '../dataset/DatasetsPage'
 import ResolveDOI from '../dataset/ResolveDOI'
 import { DatatableExamples } from '../datatable/DatatableExamples'
+import {EditQuantityExamples} from '../editQuantity/EditQuantityExamples'
 
 /**
  * Each route is an object with possible nested sub routes. Therefore, each object only
@@ -350,6 +351,10 @@ export const routes = [
   {
     path: 'dev/datatable',
     render: () => <DatatableExamples />
+  },
+  {
+    path: 'dev/editquantity',
+    render: () => <EditQuantityExamples />
   }
 ]
 

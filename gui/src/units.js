@@ -165,7 +165,7 @@ export class Quantity {
  * @param {*} value The values to convert. Can be scalar or multi-dimensional.
  * @param {*} unit Current unit as a string or an Unit object
  * @param {object} system The target unit system
- * @param {bool} returnlabel Whether also the converted unit label should be
+ * @param {bool} returnLabel Whether also the converted unit label should be
  * returned
  * @returns
  */

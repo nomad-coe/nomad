@@ -32,7 +32,7 @@ const FilesCard = React.memo((props) => {
         {mockupFiles.map((url, index) => (
           <Grid item key={index}>
             <Box display="flex" flexDirection="column" alignItems="center" width={150}>
-              <img src={url} width={150} height={150} />
+              <img src={url} width={150} height={150} alt="mocked example image" />
               <Typography variant="caption">
                 example-{index}.png
               </Typography>

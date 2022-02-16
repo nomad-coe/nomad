@@ -279,7 +279,7 @@ function AddMember({...props}) {
         The selected user is already in the members list
       </Typography>
     </Box>
-    <FormControl variant="filled" fullWidth>
+    <FormControl variant='filled' size='small' fullWidth>
       <InputLabel htmlFor="role">Select the member&apos;s role</InputLabel>
       <Select
         native
@@ -390,7 +390,7 @@ function EditMembersDialog({...props}) {
     }
   }
 
-  const onConfirm = () => {
+  const handleConfirm = () => {
     if (isChanged) {
       setOpenConfirmDialog(true)
     } else {
@@ -427,7 +427,7 @@ function EditMembersDialog({...props}) {
         <DialogActions>
           <InviteUserDialog />
           <span style={{flexGrow: 1}} />
-          <Button onClick={onConfirm} color="secondary">
+          <Button onClick={handleConfirm} color="secondary">
             Cancel
           </Button>
           <Button onClick={handleSubmitChanges} disabled={!isChanged} color="secondary">
