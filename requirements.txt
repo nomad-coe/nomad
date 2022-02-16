@@ -37,7 +37,6 @@ panedr==0.2
 parmed==3.0.0
 mdtraj==1.9.6
 mdanalysis
-nomad_dos_fingerprints
 lxml==4.6.3
 xarray==0.19.0
 phonopy==2.11.0
