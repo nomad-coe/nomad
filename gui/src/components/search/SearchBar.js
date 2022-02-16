@@ -35,10 +35,7 @@ import { DType, getDatatype } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext, toGUIFilterSingle } from './SearchContext'
 import searchQuantities from '../../searchQuantities'
-import {
-  filterFullnames,
-  filterAbbreviations
-} from './FilterRegistry'
+import { filterFullnames } from './FilterRegistry'
 
 const opMap = {
   '<=': 'lte',
@@ -51,23 +48,6 @@ const opMapReverse = {
   '>=': 'lte',
   '>': 'lt',
   '<': 'gt'
-}
-
-// Decides which options are shown
-const filterOptions = (options, {inputValue}) => {
-  const trimmed = inputValue.trim().toLowerCase()
-  return options.filter(option => {
-    // ES results do not need to be filtered at all
-    const category = option.category
-    if (category !== 'quantity name') {
-      return true
-    }
-    // Underscore can be replaced by a whitespace
-    const optionClean = option.value.trim().toLowerCase()
-    const matchUnderscore = optionClean.includes(trimmed)
-    const matchNoUnderscore = optionClean.replace(/_/g, ' ').includes(trimmed)
-    return matchUnderscore || matchNoUnderscore
-  })
 }
 
 // Customized paper component for the autocompletion options
@@ -125,24 +105,31 @@ const SearchBar = React.memo(({
   const [error, setError] = useState(false)
   const filtersLocked = useFiltersLocked()
   const setFilter = useSetFilters()
-  const quantitySetSuggestable = useMemo(
-    () => new Set([...filters].filter(q => searchQuantities[q]?.suggestion)),
-    [filters]
-  )
+  const filterList = useMemo(() => [...filters], [filters])
+
+  // Create a list of values for which suggestions are enabled. Notice that the
+  // list has a specific order because we want to prioritize certain items.
+  const quantitySetSuggestable = useMemo(() => {
+    // Prioritized items
+    let quantities = new Set([
+      'results.material.elements',
+      'results.material.chemical_formula_hill',
+      'results.material.chemical_formula_anonymous',
+      'results.material.structural_type',
+      'results.material.symmetry.structure_name',
+      'results.method.simulation.program_name',
+      'authors.name'
+    ])
+    // Rest of suggestable items
+    filterList
+      .filter(q => !quantities.has(q) && searchQuantities[q]?.suggestion)
+      .forEach(q => quantities.add(q))
+    // Quantity names at the very end
+    quantities.add('quantity name')
+    return quantities
+  }, [filterList])
   const [quantityList, setQuantityList] = useState([...quantitySetSuggestable])
   const [suggestions, loading] = useSuggestions(quantityList, suggestionInput)
-  const quantitySuggestions = useMemo(() => {
-    const suggestions = []
-    for (let q of filters) {
-      if (!filterData[q].section) {
-        suggestions.push({
-          value: filterAbbreviations[q] || q,
-          category: 'quantity name'
-        })
-      }
-    }
-    return suggestions
-  }, [filterData, filters])
 
   // Used to check the validity of the given quantity name
   const checkMetainfo = useCallback((name) => {
@@ -290,8 +277,8 @@ const SearchBar = React.memo(({
   // or if menu is not open submit the value.
   const handleEnter = useCallback((event) => {
     if (event.key === 'Enter') {
-      if (open && highlighted?.value) {
-        setInputValue(highlighted.value)
+      if (open && highlighted?.text) {
+        setInputValue(highlighted.text)
         setOpen(false)
       } else {
         handleSubmit()
@@ -341,49 +328,6 @@ const SearchBar = React.memo(({
     setSuggestionInput(value)
   }, [quantitySetSuggestable])
 
-  // This function determines the order of the suggestions. Certain categories
-  // are manually pulled to the top, other categories that come from the
-  // suggestions API are placed after these in alphabetic order (the suggestions
-  // API already orders them alphabetically) and finally the quantity names are
-  // placed last. Notice that items should be sorted by group first in order for
-  // the grouping for MUI Autocomplete to work correctly.
-  const options = useMemo(() => {
-    const categoryMap = {}
-    const categoriesAuto = new Set()
-    const categoriesManual = new Set([
-      'results.material.elements',
-      'results.material.chemical_formula_hill',
-      'results.material.chemical_formula_anonymous',
-      'results.material.structural_type',
-      'results.material.symmetry.structure_name',
-      'results.method.simulation.program_name',
-      'authors.name'
-    ])
-    for (let suggestion of suggestions) {
-      const category = suggestion.category
-      suggestion.value = `${category}=${suggestion.value}`
-      if (!categoriesManual.has(category)) {
-        categoriesAuto.add(category)
-      }
-      const categoryList = categoryMap[category] || []
-      categoryList.push(suggestion)
-      categoryMap[category] = categoryList
-    }
-    let options = []
-    for (let category of categoriesManual) {
-      const manualOptions = categoryMap[category]
-      if (manualOptions) {
-        options = options.concat(manualOptions)
-      }
-    }
-    for (let category of categoriesAuto) {
-      options = options.concat(categoryMap[category])
-    }
-    options = options.concat(quantitySuggestions)
-
-    return options
-  }, [quantitySuggestions, suggestions])
-
   return <Paper className={clsx(className, styles.root)}>
     <Autocomplete
       className={styles.input}
@@ -399,12 +343,13 @@ const SearchBar = React.memo(({
       PaperComponent={CustomPaper}
       classes={{endAdornment: styles.endAdornment}}
       groupBy={(option) => option.category}
-      filterOptions={filterOptions}
-      options={options}
+      options={suggestions}
       onInputChange={handleInputChange}
       onHighlightChange={handleHighlight}
-      getOptionLabel={option => option.value}
-      getOptionSelected={(option, value) => false}
+      getOptionLabel={option => option.text}
+      // Notice that we need to override the default filterOptions as it is
+      // performing unwanted filtering.
+      filterOptions={(options) => options}
       renderInput={(params) => (
         <TextField
           {...params}

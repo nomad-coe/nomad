@@ -26,7 +26,8 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import DOIIcon from '@material-ui/icons/Bookmark'
 import { DatasetButton } from '../nav/Routes'
 import {
-  addColumnDefaults, combinePagination, Datatable, DatatableLoadMorePagination,
+  addColumnDefaults, combinePagination, Datatable,
+  DatatablePagePagination,
   DatatableTable, DatatableToolbar } from '../datatable/Datatable'
 import Quantity from '../Quantity'
 import DialogContentText from '@material-ui/core/DialogContentText'
@@ -41,12 +42,24 @@ very similar to labels, albums, or tags on other platforms.
 `
 
 const columns = [
+  {key: 'dataset_name'},
+  {
+    key: 'doi',
+    label: 'Digital object identifier (DOI)',
+    render: dataset => {
+      if (dataset.doi) {
+        return <Quantity
+          quantity={'datasets.doi'} noLabel noWrap withClipboard
+          data={{datasets: dataset}}
+        />
+      }
+      return ''
+    }
+  },
   {
     key: 'dataset_id',
     render: dataset => <Quantity quantity={'datasets.dataset_id'} noLabel noWrap withClipboard data={{datasets: dataset}}/>
   },
-  {key: 'dataset_name'},
-  {key: 'doi', label: 'Digital object identifier (DOI)'},
   {
     key: 'dataset_create_time',
     label: 'Create time',
@@ -105,7 +118,6 @@ const DatasetActions = React.memo(function VisitDatasetAction({data}) {
     </Tooltip>
     <Dialog
       open={openConfirmDeleteDialog}
-      aria-describedby="alert-dialog-description"
     >
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
@@ -140,7 +152,7 @@ DatasetActions.propTypes = {
 }
 
 function DatasetsPage() {
-  const {api} = useApi()
+  const {api, user} = useApi()
   const errors = useErrors()
   const [apiData, setApiData] = useState(null)
   const data = useMemo(() => apiData?.response, [apiData])
@@ -148,16 +160,19 @@ function DatasetsPage() {
     page_size: 10,
     page: 1,
     order_by: 'dataset_create_time',
-    order: 'asc'
+    order: 'desc'
   })
 
   const load = useCallback(() => {
+    if (!user) {
+      return
+    }
     const {page_size, page, order_by, order} = pagination
-    const url = `/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}`
+    const url = `/datasets/?page_size=${page_size}&page=${page}&order_by=${order_by}&order=${order}&user_id=${user.sub}`
     api.get(url, null, {returnRequest: true})
       .then(setApiData)
       .catch(errors.raiseError)
-  }, [pagination, setApiData, errors, api])
+  }, [pagination, setApiData, errors, api, user])
 
   useEffect(() => {
     load()
@@ -180,7 +195,7 @@ function DatasetsPage() {
               </SourceApiDialogButton>
             </DatatableToolbar>
             <DatatableTable actions={DatasetActions}>
-              <DatatableLoadMorePagination />
+              <DatatablePagePagination />
             </DatatableTable>
           </Datatable>
         </Paper>

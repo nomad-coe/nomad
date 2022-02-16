@@ -28,11 +28,11 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 
 function escapeBadPathChars(s) {
-  return s.replaceAll('$', '$0').replaceAll('?', '$1').replaceAll('#', '$2').replaceAll('%', '$3').replaceAll('\\', '$4')
+  return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
 }
 
 function unescapeBadPathChars(s) {
-  return s.replaceAll('$4', '\\').replaceAll('$3', '%').replaceAll('$2', '#').replaceAll('$1', '?').replaceAll('$0', '$')
+  return s.replace(/!4/g, '\\').replace(/!3/g, '%').replace(/!2/g, '#').replace(/!1/g, '?').replace(/!0/g, '!')
 }
 
 export function formatSubSectionName(name) {
@@ -141,10 +141,15 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
     async function computeLanes() {
       lanes.current = lanes.current || []
+      if (lanes.current.length > segments.length) {
+        // New path is shorter than the old path
+        lanes.current = lanes.current.slice(0, segments.length)
+        lanes.current[lanes.current.length - 1].next = null
+      }
       for (let index = 0; index < segments.length; index++) {
         const segment = unescapeBadPathChars(segments[index])
         if (lanes.current.length > index) {
-          if (lanes.current[index].segment === segment) {
+          if (lanes.current[index].key === segment) {
             // reuse the existing lane (incl. its adaptor and data)
             continue
           } else {
@@ -154,8 +159,9 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         }
         const prev = index === 0 ? null : lanes.current[index - 1]
         const lane = {
+          index: index,
           key: segment,
-          path: prev ? prev.path + '/' + encodeURI(segment) : rootPath,
+          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
           next: null,
           update: update
@@ -209,7 +215,6 @@ const useLaneStyles = makeStyles(theme => ({
     display: 'inline-block'
   },
   container: {
-    minWidth: 300,
     display: 'inline-block',
     height: '100%',
     overflowY: 'scroll'
@@ -227,7 +232,7 @@ function Lane({lane}) {
     if (!adaptor) {
       return ''
     }
-    return <div className={classes.root}>
+    return <div className={classes.root} data-testid={`lane${lane.index}`}>
       <div className={classes.container} ref={containerRef}>
         <laneContext.Provider value={lane}>
           <ErrorHandler message='This section could not be rendered, due to an unexpected error.' className={classes.error}>
@@ -274,6 +279,9 @@ const useItemStyles = makeStyles(theme => ({
   disabled: {
     color: 'grey'
   },
+  rightPaddedItem: {
+    padding: `0 ${theme.spacing(1)}px 0 0`
+  },
   childContainer: {
     flexGrow: 1,
     overflow: 'hidden',
@@ -301,23 +309,25 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
-    <Grid container spacing={2} alignItems="center">
-      {icon && <Grid item>
+    <Grid container spacing={0} alignItems="center" wrap="nowrap" style={{padding: 0, margin: 0}}>
+      {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
-      <Grid item className={classes.childContainer}>
-        <Typography>{children}</Typography>
+      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
+        <Typography noWrap>{children}</Typography>
       </Grid>
       {chip && (
-        <Grid item>
+        <Grid item className={classes.rightPaddedItem}>
           <Chip size="small" color={isSelected ? 'primary' : 'default'} label={chip} />
         </Grid>
       )}
-      {actions && <Grid item>
+      {actions && <Grid item className={classes.rightPaddedItem}>
         {actions}
       </Grid>}
+      <Grid item style={{padding: 0}}>
+        <ArrowRightIcon padding="0"/>
+      </Grid>
     </Grid>
-    <ArrowRightIcon/>
   </Link>
 }
 Item.propTypes = ({
@@ -336,7 +346,7 @@ Item.propTypes = ({
 })
 
 export function Content(props) {
-  return <Box maxWidth={1024} padding={1} {...props} />
+  return <Box minWidth={300} maxWidth={600} padding={1} {...props} />
 }
 
 export function Compartment({title, children, color}) {
@@ -359,18 +369,25 @@ Compartment.propTypes = ({
   ]).isRequired
 })
 
+const useTitleStyles = makeStyles(theme => ({
+  titleGridItem: {
+    flexGrow: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  }
+}))
+
 export function Title({title, label, tooltip, actions, ...moreProps}) {
+  const classes = useTitleStyles()
   return <Compartment>
     <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item>
+      <Grid item className={classes.titleGridItem}>
         {tooltip ? (
           <Tooltip title={tooltip}>
-            <div style={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
-              <Typography variant="h6" {...moreProps}>{title}</Typography>
-            </div>
+            <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
           </Tooltip>
         ) : (
-          <Typography variant="h6" {...moreProps}>{title}</Typography>
+          <Typography variant="h6" noWrap {...moreProps}>{title}</Typography>
         )}
         {label && (
           <Typography variant="caption" color={moreProps.color}>

@@ -27,7 +27,7 @@ import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './Metainf
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { toUnitSystem, unitsState, useUnits } from '../../units'
+import { toUnitSystem, useUnits } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
@@ -353,7 +353,7 @@ QuantityItemPreview.propTypes = ({
 })
 
 const QuantityValue = React.memo(function QuantityValue({value, def}) {
-  const units = useRecoilValue(unitsState)
+  const units = useUnits()
   const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
   const [finalValue, finalUnit] = def.unit
     ? toUnitSystem(val, def.unit, units, true)
@@ -383,7 +383,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     if (Array.isArray(finalValue)) {
       return <Typography>
         <ul style={{margin: 0}}>
-          {finalValue.map((value, index) => <li key={index}>{value}</li>)}
+          {finalValue.map((value, index) =>
+            <li key={index}>{typeof value === 'object' ? JSON.stringify(value) : value}</li>)}
         </ul>
       </Typography>
     } else {

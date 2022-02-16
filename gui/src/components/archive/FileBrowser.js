@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useContext, useState, useCallback} from 'react'
+import React, { useContext, useState, useCallback} from 'react'
 import PropTypes from 'prop-types'
 import { Typography, IconButton, makeStyles, Button, Box } from '@material-ui/core'
 import { useErrors } from '../errors'
@@ -48,9 +48,6 @@ class RawDirectoryAdaptor extends Adaptor {
     this.path = path
     this.title = title
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
-  }
-  isLoaded() {
-    return this.data !== undefined
   }
   async initialize(api) {
     if (this.data === undefined) {
@@ -95,6 +92,7 @@ function RawDirectoryContent({uploadId, path, title}) {
         <Title
           title={title}
           label="folder"
+          tooltip={path}
           actions={(
             <Download
               component={IconButton} disabled={false}
@@ -184,7 +182,7 @@ function RawFileContent({uploadId, path, data}) {
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} width={600}
+      paddingTop={0} paddingBottom={0} maxWidth={600} minWidth={600}
     >
       <Box paddingTop={1}>
         <Title
@@ -227,14 +225,17 @@ RawFileContent.propTypes = {
 
 const useFilePreviewTextStyles = makeStyles(theme => ({
   fileContents: {
-    width: '100%',
-    overflowX: 'auto',
+    marginTop: theme.spacing(1),
+    padding: '0px 6px'
+  },
+  fileContentsText: {
+    margin: 0,
+    display: 'inline-block',
     color: theme.palette.primary.contrastText,
     backgroundColor: theme.palette.primary.dark,
-    marginTop: theme.spacing(1),
-    padding: '0px 6px',
     fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
-    fontSize: 12
+    fontSize: 12,
+    minWidth: '100%'
   }
 }))
 function FilePreviewText({uploadId, path, scrollParent}) {
@@ -242,7 +243,7 @@ function FilePreviewText({uploadId, path, scrollParent}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [contents, setContents] = useState(null)
-  const [hasMore, setHasMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
@@ -266,17 +267,6 @@ function FilePreviewText({uploadId, path, scrollParent}) {
       .finally(() => setLoading(false))
   }, [uploadId, encodedPath, setHasMore, setContents, api, raiseError, contents])
 
-  useEffect(() => {
-    if (!loading && !contents && hasMore) {
-      // Load the first chunk of the file
-      loadMore()
-    }
-  }, [loadMore, loading, contents, hasMore])
-
-  const handleLoadPreview = useCallback(() => {
-    setHasMore(true)
-  }, [setHasMore])
-
   const handleLoadMore = useCallback(() => {
     // The infinite scroll component has the issue if calling load more whenever it
     // gets updates, therefore calling this infinitely before it gets any chances of
@@ -288,11 +278,11 @@ function FilePreviewText({uploadId, path, scrollParent}) {
     }
   }, [loadMore, loading, hasMore])
 
-  if (!loading && !contents && !hasMore) {
+  if (!loading && !contents) {
     return (
       <Box margin={2} textAlign="center">
         <Button
-          onClick={handleLoadPreview} variant="contained"
+          onClick={handleLoadMore} variant="contained"
           size="small" color="primary"
         >
           Load preview
@@ -312,7 +302,7 @@ function FilePreviewText({uploadId, path, scrollParent}) {
       useWindow={false}
       getScrollParent={() => scrollParent.current}
     >
-      <pre style={{margin: 0}}>
+      <pre className={classes.fileContentsText}>
         {contents}
         &nbsp;
       </pre>

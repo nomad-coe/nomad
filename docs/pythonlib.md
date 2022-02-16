@@ -21,8 +21,8 @@ pip install nomad-lab --extra-index-url https://gitlab.mpcdf.mpg.de/api/v4/proje
 ```
 
 There are different layers of dependencies that you have to install, in order to use certain functions of NOMAD.
-The base install above, will only install the necessary packages for
-accessing the NOMAD Archive and use the NOMAD metainfo (see access the archive).
+The base install above, only installs the necessary packages for
+accessing the NOMAD Archive and using the NOMAD metainfo (see access the archive).
 
 Other functions, e.g. using the NOMAD parsers to parse your code output, require additional dependencies.
 You can use the [extra] notation to install these extra requirements:
@@ -47,7 +47,7 @@ The various extras have the following meaning:
 
 The `ArchiveQuery` allows you to search for entries and access their parsed *archive* data
 at the same time. Furthermore, all data is accessible through a convenient Python interface
-based on the [NOMAD metainfo](metainfo.md) rather than plain JSON.
+based on the [NOMAD metainfo](archive.md) rather than plain JSON.
 
 Here is an example:
 ```py
@@ -79,9 +79,10 @@ This instantiates an `ArchiveQuery`. You can print some details about the query:
 print(query)
 ```
 
-This gives you a general overview about the query. For example what search is used on
-the NOMAD API. How many entries were found. What was already downloaded, etc.
-```
+This gives you a general overview of the query. For example which search was performed on
+the NOMAD API, how many entries were found or what has already been downloaded, etc.
+
+```py
 Query: {
   "and": [
     {
@@ -114,8 +115,8 @@ Number of downloaded entries: 70
 Number of made api calls: 1
 ```
 
-This `ArchiveQuery` is not downloaded all archive data immediately. More and more data
-will be downloaded as you iterate through the query:
+This `ArchiveQuery` does not download all archive data immediately. More and more data will be
+downloaded as you iterate through the query:
 ```py
 for result in query:
     calc = result.workflow[0].calculation_result_ref
@@ -136,12 +137,12 @@ O8Ca2Ti4: -116.52240913000001 electron_volt
 Let's discuss the used `ArchiveQuery` parameters:
 
 - `query`, this is an arbitrary API query as discussed in the under [Queries in the API section](api.md#queries).
-- `required`, this optional parameter allows you to specify what parts of an archive you need. This is also
-described in under [Access archives in API section](api.md#access-archives).
-- `per_page`, with this optional parameter you can determine, how many results are downloaded at a time. For bulk downloading many results, we recommend ~100. If you are just interested in the first results a lower number might increase performance.
-- `max`, with this optional parameter, we limit the maximum amount of entries that are downloaded, just to avoid accidentally iterating through a result set of unknown and potentially large size.
-- `owner` and `auth`, allows you to access private data or specify you only want to
-query your data. See also [owner](api.md#owner) and [auth](api.md#authentication) in the API section. Her is an example with authentication:
+- `required`, this optional parameter allows you to specify which parts of an archive you require. This is also
+described under [Access archives in API section](api.md#access-archives).
+- `per_page`, this optional parameter allows you to specify how many results should be downloaded at once. For mass download of many results, we recommend ~100. If you are only interested in the first results a lower number may increase performance.
+- `max`, with this optional parameter, we limit the maximum number of entries that are downloaded to avoid accidentally iterating through a result set of unknown and potentially large size.
+- `owner` and `auth`, allow you to access private data or to specify you only want to
+query your own data. See also [owner](api.md#owner) and [auth](api.md#authentication) in the API section. Her is an example with authentication:
 ```py
 from nomad.client import ArchiveQuery, Auth
 
@@ -155,8 +156,8 @@ query = ArchiveQuery(
     authentication=Auth(user='yourusername', password='yourpassword'))
 ```
 
-The archive query object can be treated as a Python list-like. You use indices and ranges to select results. Each result is a Python object. The attributes of these objects are
-determined by NOMAD's schema, [the metainfo and it's Python interface](metainfo).
+The archive query object can be treated as Python list-like. You use indices and ranges to select results. Each result is a Python object. The attributes of these objects are
+determined by NOMAD's schema, [the metainfo](archive.md).
 This energy value is a number with an attached unit (Joule), which can be converted to something else (e.g. eV). {{ metainfo_data() }}
 
 The create query object keeps all results in memory. Keep this in mind, when you are accessing a large amount of query results.
@@ -164,13 +165,13 @@ The create query object keeps all results in memory. Keep this in mind, when you
 ## Use NOMAD parser locally
 
 If you install `nomad-lab[parsers]`, you can use the NOMAD parsers locally on your computer.
-To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a JSON representation of the basic metadata), `--show-archive` (a JSON representation of the full parse results).
+To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a JSON representation of the basic metadata) and `--show-archive` (a JSON representation of the full parse results).
 
 ```sh
 nomad parser --show-archive <path-to-your-mainfile-code-output-file>
 ```
 
-You can also use the NOMAD parsers from within Python. This will give you the parse results as metainfo objects to conveniently analyse the results in Python. See metainfo for more details on how to use the metainfo in Python.
+You can also use the NOMAD parsers within Python, as shown below. This will give you the parse results as metainfo objects to conveniently analyze the results in Python. See metainfo for more details on how to use the metainfo in Python.
 
 ```python
 import sys
@@ -189,7 +190,7 @@ python_dict = section_run.m_to_dict()
 ```
 
 
-You can also clone a parser project and use this to debug or fix a parser:
+You can also clone a parser project to debug or fix a parser:
 ```sh
 git clone https://github.com/nomad-coe/nomad-parser-vasp.git
 cd nomad-parser-vasp

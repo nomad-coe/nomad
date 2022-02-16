@@ -1,0 +1,151 @@
+{
+    "_id": "619f034c2c86325a0292d698",
+    "builder_meta": {
+        "emmet_version": "0.18.0",
+        "pymatgen_version": "2022.0.16",
+        "pull_request": 644,
+        "database_version": "2021.11.10",
+        "build_date": "2021-11-25T03:27:41.438000"
+    },
+    "nsites": 1,
+    "elements": [
+        "Cs"
+    ],
+    "nelements": 1,
+    "composition": {
+        "Cs": 1.0
+    },
+    "composition_reduced": {
+        "Cs": 1.0
+    },
+    "formula_pretty": "Cs",
+    "formula_anonymous": "A",
+    "chemsys": "Cs",
+    "volume": 114.05180544066401,
+    "density": 1.9350390306525629,
+    "density_atomic": 114.05180544066401,
+    "symmetry": {
+        "crystal_system": "Cubic",
+        "symbol": "Im-3m",
+        "number": 229,
+        "point_group": "m-3m",
+        "symprec": 0.1,
+        "version": "1.16.2"
+    },
+    "property_name": "thermo",
+    "material_id": "mp-1",
+    "deprecated": false,
+    "deprecation_reasons": null,
+    "last_updated": "2020-05-03T04:27:58.252000",
+    "origins": [],
+    "warnings": [],
+    "uncorrected_energy_per_atom": -0.85663276,
+    "energy_per_atom": -0.85663276,
+    "energy_uncertainy_per_atom": null,
+    "formation_energy_per_atom": 0.038769612068965564,
+    "energy_above_hull": 0.038769612068965564,
+    "is_stable": false,
+    "equilibrium_reaction_energy_per_atom": null,
+    "decomposes_to": [
+        {
+            "material_id": "mp-1184151",
+            "formula": "Cs29",
+            "amount": 1.0
+        }
+    ],
+    "energy_type": "GGA",
+    "entry_types": [
+        "GGA"
+    ],
+    "entries": {
+        "GGA": {
+            "@module": "pymatgen.entries.computed_entries",
+            "@class": "ComputedStructureEntry",
+            "energy": -0.85663276,
+            "composition": {
+                "Cs": 1.0
+            },
+            "entry_id": "mp-1",
+            "correction": 0.0,
+            "energy_adjustments": [],
+            "parameters": {
+                "potcar_spec": [
+                    {
+                        "titel": "PAW_PBE Cs_sv 08Apr2002",
+                        "hash": "096b53a7d80cc0086976bcda50d536e5"
+                    }
+                ],
+                "is_hubbard": false,
+                "hubbards": {},
+                "run_type": "GGA"
+            },
+            "data": {
+                "oxide_type": "None",
+                "aspherical": true,
+                "last_updated": {
+                    "@module": "datetime",
+                    "@class": "datetime",
+                    "string": "2020-05-03 04:27:58.252000"
+                },
+                "task_id": "mp-1439955",
+                "oxidation_states": {},
+                "run_type": "GGA"
+            },
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Structure",
+                "charge": null,
+                "lattice": {
+                    "matrix": [
+                        [
+                            -3.05502,
+                            3.05502,
+                            3.05502
+                        ],
+                        [
+                            3.05502,
+                            -3.05502,
+                            3.05502
+                        ],
+                        [
+                            3.05502,
+                            3.05502,
+                            -3.05502
+                        ]
+                    ],
+                    "a": 5.291449858139071,
+                    "b": 5.291449858139071,
+                    "c": 5.291449858139071,
+                    "alpha": 109.47122063449069,
+                    "beta": 109.47122063449069,
+                    "gamma": 109.47122063449069,
+                    "volume": 114.05180544066401
+                },
+                "sites": [
+                    {
+                        "species": [
+                            {
+                                "element": "Cs",
+                                "occu": 1
+                            }
+                        ],
+                        "abc": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "xyz": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "label": "Cs",
+                        "properties": {
+                            "magmom": 0.001
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

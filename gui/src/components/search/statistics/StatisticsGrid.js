@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
@@ -62,7 +62,8 @@ const useStyles = makeStyles(theme => {
       top: theme.spacing(1),
       right: theme.spacing(1),
       bottom: theme.spacing(1),
-      padding: theme.spacing(1),
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(1),
       paddingLeft: theme.spacing(1.5),
       paddingRight: theme.spacing(1.5)
     }
@@ -73,9 +74,9 @@ const StatisticsGrid = React.memo(({
   classes
 }) => {
   const styles = useStyles(classes)
-  const { useStatisticsValue, filterData } = useSearchContext()
+  const { useStatisticsState, filterData } = useSearchContext()
   const { width, ref } = useResizeDetector()
-  const statistics = useStatisticsValue()
+  const [statistics, setStatistics] = useStatisticsState()
   const gridRef = useRef()
   let size
   if (width > 1450) {
@@ -88,6 +89,16 @@ const StatisticsGrid = React.memo(({
     size = 'sm'
   }
 
+  // Store the order when items have been rearranged.
+  const handleReorder = useCallback((item) => {
+    const grid = item.getGrid()
+    const items = grid.getItems()
+    const keys = items.map((item) => item.getKey())
+    const stats = {}
+    keys.forEach((name, i) => { stats[name] = {index: i} })
+    setStatistics(stats)
+  }, [setStatistics])
+
   // When the container size changes, the layout needs to be updated.
   useEffect(() => {
     if (gridRef.current) {
@@ -97,7 +108,8 @@ const StatisticsGrid = React.memo(({
   }, [width])
 
   // Memoize the grid so that it gets rendered only when the contents or size
-  // changes.
+  // changes. Re-ordering the items still causes a new re-render: but for now
+  // this seems to not be a problem.
   const content = useMemo(() => {
     return (!isEmpty(statistics))
       ? <div className={styles.container}>
@@ -105,32 +117,35 @@ const StatisticsGrid = React.memo(({
           ref={gridRef}
           dragEnabled
           layoutOnResize={false}
+          onDragEnd={handleReorder}
           dragHandle=".dragHandle"
           showDuration={0}
           hideDuration={0}
         >
-          {Object.keys(statistics).map((filter) => {
-            const config = filterData[filter].stats
-            const layout = config.layout
-            const muuriOuterItem = getResponsiveStyle({
-              columns: widthMapping[layout.width][size] / 12,
-              ratio: layout.ratio
-            })
-            return <div key={filter} style={muuriOuterItem}>
-              <Paper className={styles.muuriInnerItem}>
-                <config.component
-                  quantity={filter}
-                  visible
-                  draggable
-                  aggId="statistics"
-                />
-              </Paper>
-            </div>
-          })}
+          {Object.entries(statistics)
+            .sort((a, b) => a[1].index - b[1].index)
+            .map(([filter, value]) => {
+              const config = filterData[filter].stats
+              const layout = config.layout
+              const muuriOuterItem = getResponsiveStyle({
+                columns: widthMapping[layout.width][size] / 12,
+                ratio: layout.ratio
+              })
+              return <div key={filter} style={muuriOuterItem}>
+                <Paper className={styles.muuriInnerItem}>
+                  <config.component
+                    quantity={filter}
+                    visible
+                    draggable
+                    aggId="statistics"
+                  />
+                </Paper>
+              </div>
+            })}
         </MuuriComponent>
       </div>
       : null
-  }, [statistics, filterData, styles, size])
+  }, [statistics, filterData, styles, handleReorder, size])
 
   return <div ref={ref} className={clsx(className, styles.root)}>
     {content}

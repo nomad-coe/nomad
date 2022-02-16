@@ -44,24 +44,7 @@ export const commentContext = React.createContext()
 export const referencesContext = React.createContext()
 export const datasetsContext = React.createContext()
 
-const useStyles = makeStyles(theme => ({
-  dialog: {
-    width: '100%'
-  },
-  comment: {
-    width: '100%'
-  },
-  datasets: {
-    display: 'flex',
-    justifyContent: 'left',
-    flexWrap: 'wrap',
-    listStyle: 'none',
-    padding: 'initial'
-  }
-}))
-
 function EditComments() {
-  const classes = useStyles()
   const {data, setComment, setIsCommentChanged} = useContext(editMetaDataDialogContext)
   const [newComment, setNewComment] = useState('')
   const [defaultComment, setDefaultComment] = useState('')
@@ -88,7 +71,7 @@ function EditComments() {
         Comments
       </Typography>
     </Box>
-    <TextField className={classes.comment} id='outlined-multiline-static' label='Comment'
+    <TextField fullWidth id='outlined-multiline-static' label='Comment'
       multiline rows={6} value={newComment} variant='filled' size='small'
       onChange={handleTextFieldChange}
     />
@@ -293,12 +276,13 @@ const ReferencesActions = React.memo((props) => {
   </Box>
 })
 ReferencesActions.propTypes = {
-  data: PropTypes.object.isRequired
+  data: PropTypes.string.isRequired
 }
 
 function EditDatasets() {
-  const {data, api, raiseError, setIsDatasetChanged, setDatasets, defaultDatasets, setDefaultDatasets} = useContext(editMetaDataDialogContext)
-  const [suggestions, setSuggestions] = useState([])
+  const {data, setIsDatasetChanged, setDatasets, defaultDatasets, setDefaultDatasets} = useContext(editMetaDataDialogContext)
+  const {api, user} = useApi()
+  const {raiseError} = useErrors()
   const [validation, setValidation] = useState('')
   const [allDatasets, setAllDatasets] = useState([])
   const [newDataset, setNewDataset] = useState({dataset_id: '', dataset_name: ''})
@@ -312,7 +296,7 @@ function EditDatasets() {
   ]), [])
 
   useEffect(() => {
-    api.get(`/datasets?page_size=${1000}&page=${1}`)
+    api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
       .then(datasets => {
         setAllDatasets(datasets?.data)
       })
@@ -320,19 +304,13 @@ function EditDatasets() {
         setAllDatasets([])
         raiseError(err)
       })
-  }, [api, raiseError])
+  }, [api, user, raiseError, setAllDatasets])
 
   const checkChanges = useCallback((_datasets) => {
     let isSame = defaultDatasets.length === _datasets.length &&
         defaultDatasets.map(dataset => dataset.dataset_id).every(id => _datasets.map(dataset => dataset.dataset_id).includes(id))
     setIsDatasetChanged(!isSame)
   }, [defaultDatasets, setIsDatasetChanged])
-
-  const handleInputChange = useCallback((event, value) => {
-    const query = value.toLowerCase()
-    const withQueryInName = (allDatasets ? allDatasets.filter(dataset => dataset.dataset_name.toLowerCase().indexOf(query) !== -1) : [])
-    setSuggestions(withQueryInName.slice(0, 5))
-  }, [allDatasets])
 
   useEffect(() => {
     if (data?.data?.length > 0) {
@@ -448,15 +426,16 @@ function EditDatasets() {
       </Box>
       <AutoComplete
         style={{width: '100%'}}
-        options={suggestions}
+        options={allDatasets}
         getOptionLabel={option => option.dataset_name}
-        onInputChange={handleInputChange}
         onChange={handleAutoCompleteChange}
         renderInput={params => (
           <TextField
             {...params}
-            variant='filled' label='Search for an existing dataset' placeholder='Dataset name' argin='normal' fullWidth size='small'
-            error={isDuplicated || apiValidation} helperText={(isDuplicated ? 'The data is already in the selected dataset' : apiValidation)}
+            variant='filled' label='Search for an existing dataset'
+            placeholder='Dataset name' margin='normal' fullWidth size='small'
+            error={isDuplicated || apiValidation !== ''}
+            helperText={(isDuplicated ? 'The data is already in the selected dataset' : apiValidation)}
           />
         )}
       />
@@ -505,9 +484,15 @@ DatasetsActions.propTypes = {
   data: PropTypes.object.isRequired
 }
 
+const useEditMetaDataDialogStyles = makeStyles(theme => ({
+  dialog: {
+    width: '100%'
+  }
+}))
+
 function EditMetaDataDialog({...props}) {
   const {isIcon, selectedEntries} = props
-  const classes = useStyles()
+  const classes = useEditMetaDataDialogStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {upload, setUpload, data} = useContext(uploadPageContext)
@@ -541,7 +526,7 @@ function EditMetaDataDialog({...props}) {
     let promises = []
     let newDatasets = datasets.filter(_dataset => _dataset.dataset_id === _dataset.dataset_name).map(_dataset => _dataset.dataset_name)
     newDatasets.forEach(dataset_name => {
-      promises.push(api.post(`/datasets`, {dataset_name: dataset_name}))
+      promises.push(api.post(`/datasets/`, {dataset_name: dataset_name}))
     })
     return Promise.all(promises)
   }, [api, datasets])
@@ -626,8 +611,8 @@ function EditMetaDataDialog({...props}) {
       {!isIcon && <Button onClick={handleOpenDialog} variant='contained' color='primary' disabled={isProcessing}>
         {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
       </Button>}
-      {open && <Dialog classes={{paper: classes.dialog}} open={open} on disableBackdropClick disableEscapeKeyDown>
-        <DialogTitle>Manage upload meta data</DialogTitle>
+      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
+        <DialogTitle>Edit upload meta data</DialogTitle>
         <DialogContent>
           <DialogContentText>
             You can add, remove or edit the meta data for the selected entries.
@@ -670,7 +655,7 @@ function EditMetaDataDialog({...props}) {
 }
 EditMetaDataDialog.propTypes = {
   isIcon: PropTypes.bool,
-  selectedEntries: PropTypes.arrayOf(PropTypes.object)
+  selectedEntries: PropTypes.object
 }
 
 export default EditMetaDataDialog

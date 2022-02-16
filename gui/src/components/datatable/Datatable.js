@@ -121,7 +121,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     rowsPerPage={pagination.page_size}
     page={pagination.page - 1}
     onPageChange={handleChangePage}
-    onChangeRowsPerPage={handleChangeRowsPerPage}
+    onRowsPerPageChange={handleChangeRowsPerPage}
   />
 })
 DatatablePagePagination.propTypes = {
@@ -255,6 +255,14 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     }
   }
 
+  const sortableColumns = useMemo(() => {
+    if (sortingColumns) {
+      return sortingColumns
+    } else {
+      return columns.filter(column => column.sortable).map(column => column.key)
+    }
+  }, [sortingColumns, columns])
+
   return <TableHead>
     <TableRow>
       {withSelectionFeature && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
@@ -271,7 +279,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           align={column.align || 'right'}
           sortDirection={order_by === column.key ? order : false}
         >
-          {withSorting && sortingColumns?.includes(column.key) ? <TableSortLabel
+          {withSorting && sortableColumns.includes(column.key) ? <TableSortLabel
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}
@@ -392,7 +400,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
   </>
 })
 DatatableRow.propTypes = {
-  data: PropTypes.object.isRequired,
+  data: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
   selected: PropTypes.bool,
   uncollapsed: PropTypes.bool,
   onRowUncollapsed: PropTypes.func.isRequired,
@@ -701,7 +709,7 @@ Datatable.propTypes = {
   shownColumns: PropTypes.arrayOf(PropTypes.string),
   sortingColumns: PropTypes.arrayOf(PropTypes.string),
   /** Optional table data as array of objects. Default is empty table. */
-  data: PropTypes.arrayOf(PropTypes.object),
+  data: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.object, PropTypes.string])),
   /** Optional pagination object (e.g. from NOMAD API). Used to display current pagination
    * and ordering information. Either based on page (if using DatatablePagePagination) or
    * page_after_value (if using DatatableScrollPagination). */

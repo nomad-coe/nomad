@@ -1,7 +1,7 @@
 version:
   label: "v1.0.0"
   isBeta: true
-  usesBetaData: false
+  usesBetaData: true
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
 
 image:
@@ -9,20 +9,20 @@ image:
     pullPolicy: "Always"
 
 proxy:
-  nodePort: 30007
+  nodePort: 30008
   nodeIP: '130.183.207.81'
   external:
     host: "nomad-lab.eu"
-    path: "/prod/rae/test"
+    path: "/prod/v1/test"
 
 gui:
   debug: true
 
 app:
-  replicas: 1
+  replicas: 2
 
 worker:
-  replicas: 1
+  replicas: 2
   routing: "queue"
   processes: 10
   nomadNodeType: "prod-worker"

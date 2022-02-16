@@ -144,7 +144,7 @@ async def get_datasets(
         request: Request,
         dataset_id: str = FastApiQuery(None),
         dataset_name: str = FastApiQuery(None),
-        user_id: str = FastApiQuery(None),
+        user_id: List[str] = FastApiQuery(None),
         dataset_type: str = FastApiQuery(None),
         doi: str = FastApiQuery(None),
         prefix: str = FastApiQuery(None),
@@ -152,8 +152,9 @@ async def get_datasets(
     '''
     Retrieves all datasets that match the given criteria.
     '''
+
     mongodb_objects = DatasetDefinitionCls.m_def.a_mongo.objects
-    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id=user_id, dataset_type=dataset_type, doi=doi)
+    query_params = dict(dataset_id=dataset_id, dataset_name=dataset_name, user_id__in=user_id, dataset_type=dataset_type, doi=doi)
     if prefix is not None and prefix != '':
         query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}

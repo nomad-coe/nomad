@@ -169,7 +169,9 @@ UploadName.propTypes = {
 
 function PublishUpload({upload, onPublish}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
+    setOpenConfirmDialog(false)
     onPublish({embargo_length: embargo})
   }
 
@@ -179,7 +181,25 @@ function PublishUpload({upload, onPublish}) {
     `}</Markdown>
   }
 
+  const buttonLabel = embargo > 0 ? 'Publish with embargo' : 'Publish'
+
   return <React.Fragment>
+    <Dialog
+      open={openConfirmDialog}
+      onClose={() => setOpenConfirmDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to publish the upload</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You are about the publish this upload. The upload cannot be removed and
+          the files and entries in this upload cannot be changed after publication.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handlePublish}>{buttonLabel}</Button>
+      </DialogActions>
+    </Dialog>
     <Markdown>{`
       If you agree this upload will be published and move out of your private staging
       area into the public NOMAD. This step is final. All public data will be made available under the Creative
@@ -226,10 +246,10 @@ function PublishUpload({upload, onPublish}) {
             <Button
               style={{height: 32, minWith: 100}}
               size="small" variant="contained"
-              onClick={() => handlePublish()} color="primary"
+              onClick={() => setOpenConfirmDialog(true)} color="primary"
               disabled={upload.process_running}
             >
-              {embargo > 0 ? 'Publish with embargo' : 'Publish'}
+              {buttonLabel}
             </Button>
           </Box>
         </Grid>
@@ -307,7 +327,7 @@ function UploadPage() {
   const classes = useStyles()
   const { uploadId } = useParams()
   const {api, user} = useApi()
-  const errors = useErrors()
+  const {raiseError} = useErrors()
   const history = useHistory()
   const location = useLocation()
 
@@ -318,12 +338,13 @@ function UploadPage() {
   const [data, setData] = useState(null)
   const [apiData, setApiData] = useState(null)
   const [uploading, setUploading] = useState(null)
-  const [err, setErr] = useState(null)
+  const [error, setError] = useState(null)
   const upload = data?.upload
+  const hasUpload = !!upload
   const setUpload = useMemo(() => (upload) => {
     setData(data => ({...data, upload: upload}))
   }, [setData])
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
 
   const isProcessing = upload?.process_running
@@ -335,11 +356,16 @@ function UploadPage() {
         setData(apiData.response)
       })
       .catch((error) => {
-        if (!(error instanceof DoesNotExist && deleteClicked)) {
-          (error.apiMessage ? setErr(error.apiMessage) : errors.raiseError(error))
+        if (error instanceof DoesNotExist && deleteClicked) {
+          return
+        }
+        if (!hasUpload && error.apiMessage) {
+          setError(error.apiMessage)
+        } else {
+          raiseError(error)
         }
       })
-  }, [api, uploadId, pagination, deleteClicked, errors, setData, setApiData])
+  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
@@ -365,7 +391,7 @@ function UploadPage() {
       }
     })
       .then(results => setUpload(results.data))
-      .catch(errors.raiseError)
+      .catch(raiseError)
       .finally(() => {
         setUploading(null)
       })
@@ -374,33 +400,34 @@ function UploadPage() {
   const handleNameChange = (upload_name) => {
     api.post(`/uploads/${uploadId}/edit`, {metadata: {upload_name: upload_name}})
       .then(fetchData())
-      .catch(errors.raiseError)
+      .catch(raiseError)
   }
 
   const handlePublish = ({embargo_length}) => {
     api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
       .then(results => setUpload(results.data))
-      .catch(errors.raiseError)
+      .catch(raiseError)
   }
 
   const handleLiftEmbargo = () => {
+    setOpenEmbargoConfirmDialog(false)
     api.post(`/uploads/${uploadId}/edit`, {metadata: {embargo_length: 0}})
       .then(fetchData())
-      .catch(errors.raiseError)
-    setOpenEmbargoConfirmDialog(false)
+      .catch(raiseError)
   }
 
   const handleReprocess = () => {
     api.post(`/uploads/${uploadId}/action/process`)
       .then(results => setUpload(results.data))
-      .catch(errors.raiseError)
+      .catch(raiseError)
   }
 
   const handleDelete = () => {
+    setOpenDeleteConfirmDialog(false)
     setDeleteClicked(true)
     api.delete(`/uploads/${uploadId}`)
       .then(results => setUpload(results.data))
-      .catch(errors.raiseError)
+      .catch(raiseError)
   }
 
   const viewers = upload?.viewers
@@ -416,9 +443,9 @@ function UploadPage() {
     isWriter: isWriter
   }), [upload, setUpload, data, isViewer, isWriter])
 
-  if (!upload) {
+  if (!hasUpload) {
     return <Page limitedWidth>
-      {(err ? <Typography> {err} </Typography> : <Typography>loading ...</Typography>)}
+      {(error ? <Typography> {error} </Typography> : <Typography>loading ...</Typography>)}
     </Page>
   }
 
@@ -426,11 +453,11 @@ function UploadPage() {
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
 
-  const onConfirm = () => {
+  const handleDeleteButtonClicked = () => {
     if (isEmpty) {
       handleDelete()
     } else {
-      setOpenConfirmDialog(true)
+      setOpenDeleteConfirmDialog(true)
     }
   }
 
@@ -480,13 +507,13 @@ function UploadPage() {
           <SourceApiDialogButton maxWidth="lg" fullWidth>
             <SourceApiCall {...apiData} />
           </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={onConfirm}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked}>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
           </IconButton>
           <Dialog
-            open={openConfirmDialog}
+            open={openDeleteConfirmDialog}
             aria-describedby="alert-dialog-description"
           >
             <DialogContent>
@@ -495,7 +522,7 @@ function UploadPage() {
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+              <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
               <Button onClick={handleDelete}>Delete</Button>
             </DialogActions>
           </Dialog>

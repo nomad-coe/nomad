@@ -53,7 +53,9 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
                 "chemical_formula_anonymous": "A2B5C",
                 "chemical_formula_descriptive": "C2H5Br",
                 "chemical_formula_reduced": "C2H5Br",
-                "functional_type": ["semimetal", "semiconductor"],
+                # A duplicate value is given to test that only unique values
+                # are suggested.
+                "functional_type": ["semimetal", "semiconductor", "semimetal"],
                 "symmetry": {
                     "crystal_system": "cubic",
                     "structure_name": "rock salt",

@@ -3,13 +3,13 @@
 The **NOvel Materials Discovery (NOMAD)** is a data management platform for materials
 science data. Here, NOMAD is a [web-application and database](https://nomad-lab.eu/prod/v1/gui/search)
 that allows to centrally publish data. But you can also use the NOMAD software to build your
-own local [NOMAD Oasis](../oasis/).
+own local [NOMAD Oasis](oasis.md).
 
 
 ![NOMAD](assets/nomad-hero-shot.png){ align=right width=400 }
 *More than 12 million of simulations from over 400 authors world-wide*
 
-- Free publication and sharing data of data
+- Free publication and sharing of data
 - Manage research data though its whole life-cycle
 - Extracts <b>rich metadata</b> from data automatically
 - All data in <b>raw</b> and <b>machine processable</b> form
@@ -53,8 +53,8 @@ and their properties, as well as all analytics.
 
 The *archive* is a hierarchical data format with a strict schema.
 All the information is organized into logical nested *sections*.
-Each *sections* comprised a set of *quantities* on a common subject.
-All *sections* and *quantities* are backed by a formal schema that defines names, descriptions, types, shapes, and units.
+Each *section* comprised a set of *quantities* on a common subject.
+All *sections* and *quantities* are supported by a formal schema that defines names, descriptions, types, shapes, and units.
 We sometimes call this data *archive* and the schema *metainfo*.
 
 ### Datamodel: *uploads*, *entries*, *files*, *datasets*
@@ -72,15 +72,15 @@ Once an upload is published, it becomes immutable.
 
 An *upload* can contain an arbitrary directory structure of *raw* files.
 For each recognized *mainfile*, NOMAD creates an entry.
-An *upload* therefore contains a list of *entries*.
+Therefore, an *upload* contains a list of *entries*.
 Each *entry* is associated with its *mainfile*, an *archive*, and all other *auxiliary* files in the same directory.
 *Entries* are automatically aggregated into *materials* based on the extract materials metadata.
-*Entries* (of many uploads) can be manually curated into *datasets*. You can get a DOI for *datasets*.
+*Entries* (of many uploads) can be manually curated into *datasets*for which you can also get a DOI.
 
 ### Using NOMAD software locally (the Oasis)
 
 The software that runs NOMAD is Open-Source and can be used independently of the NOMAD
-*central installation* that is run at [http://nomad-lab.eu](http://nomad-lab.eu).
+*central installation* at [http://nomad-lab.eu](http://nomad-lab.eu).
 We call any NOMAD installation that is not the *central* one a NOMAD Oasis.
 
 <figure markdown>
@@ -93,11 +93,10 @@ uses and hybrids are imaginable:
 
 - Academia: Use the Oasis for local management of unpublished research data
 - Mirror: Use the Oasis as a mirror that hosts a copy of all published NOMAD data
-- Industry: Use the Oasis to manage private data and use published data fully internally with
-to comply with strict privacy policies
+- Industry: Use of Oasis to manage private data and full internal use of published data in compliance with strict privacy policies
 - FAIRmat: Use Oasis to form a network of repositories to build a federated data infrastructure
 for materials science.
-This what we do in the [FAIRmat project](https://www.fair-di.eu/fairmat/consortium).
+This is what we do in the [FAIRmat project](https://www.fair-di.eu/fairmat/consortium).
 
 ## Architecture
 
@@ -119,6 +118,7 @@ NOMAD. The worker runs all the processing (parsing, normalization). Their separa
 to scale the system for various use-cases.
 
 Other services are:
+
 - rabbitmq: a task queue that we use to distribute tasks for the *worker* containers
 - mongodb: a no-sql database used to maintain processing state and user-metadata
 - elasticsearch: a no-sql database and search engine that drives our search
@@ -127,11 +127,11 @@ Other services are:
 - keycloak: our SSO user management system (can be used by all Oasises)
 - a content management system to provide other web-page content (not part of the Oasis)
 
-All NOMAD software is bundled a single NOMAD docker image and a Python
-([nomad-lab on pypi](https://pypi.org/project/nomad-lab/)) package. The NOMAD docker
+All NOMAD software is bundled in a single NOMAD docker image and a Python package
+([nomad-lab on pypi](https://pypi.org/project/nomad-lab/)). The NOMAD docker
 image can be downloaded from our public registry.
 NOMAD software is organized in multiple git repositories. We use continuous integration
-to constantly produce a latest version of docker image and Python package.
+to constantly provide the latest version of docker image and Python package.
 
 ### NOMAD uses a modern and rich stack frameworks, systems, and libraries
 
@@ -173,7 +173,7 @@ available to inform the user.
 
 [Elasticsearch](https://www.elastic.co/webinars/getting-started-elasticsearch)
 is used to store repository data (not the raw files).
-Elasticsearch allows for flexible scalable search and analytics.
+Elasticsearch enables flexible, scalable search and analytics.
 
 
 #### mongodb
@@ -186,8 +186,8 @@ processing of uploaded files and the generated entries. We use
 #### Keycloak
 
 [Keycloak](https://www.keycloak.org/) is used for user management. It manages users and
-provide functions for registering, password forget, editing user accounts, and single
-sign on of fairdi@nomad and other related services.
+provides functions for registration, forgetting passwords, editing user accounts, and single
+sign-on to fairdi@nomad and other related services.
 
 
 #### FastAPI
@@ -201,14 +201,14 @@ Fruthermore, you can browse and use the API via [OpenAPI dashboard](https://swag
 #### Elasticstack
 
 The [elastic stack](https://www.elastic.co/guide/index.html)
-(previously *ELK* stack) is a central logging, metrics, and monitoring
-solution that collects data within the cluster and provides a flexible analytics frontend
-for said data.
+(previously *ELK* stack) is a centralized logging, metrics, and monitoring
+solution that collects data within the cluster and provides a flexible analytics front end
+for that data.
 
 
 #### Javascript, React, Material-UI
 
-The frontend (GUI) of **nomad@FAIRDI** build on top of the
+The frontend (GUI) of **nomad@FAIRDI** is built on the
 [React](https://reactjs.org/docs/getting-started.html) component framework.
 This allows us to build the GUI as a set of re-usable components to
 achieve a coherent representations for all aspects of nomad, while keeping development
@@ -234,8 +234,8 @@ provide configuration to run the whole nomad stack on a single server node.
 
 To run and scale nomad on a cluster, you can use [kubernetes](https://kubernetes.io/docs/home/)
 to orchestrated the  necessary containers. We provide a [helm](https://docs.helm.sh/)
-chart with all necessary service and deployment descriptors that allow you to setup and
-update nomad with few commands.
+chart with all necessary service and deployment descriptors that allow you to set up and
+update nomad with only a few commands.
 
 
 #### GitLab
@@ -243,5 +243,5 @@ update nomad with few commands.
 Nomad as a software project is managed via [GitLab](https://docs.gitlab.com/).
 The **nomad@FAIRDI** project is hosted [here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR).
 GitLab is used to manage versions, different branches of development, tasks and issues,
-as a [registry for Docker images](https://docs.gitlab.com/ee/user/project/container_registry.html),
+as a [registry for Docker images](https://docs.gitlab.com/ee/user/packages/container_registry/index.html),
 and [CI/CD platform](https://docs.gitlab.com/ee/ci/).

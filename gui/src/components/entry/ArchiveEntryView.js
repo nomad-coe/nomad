@@ -78,7 +78,7 @@ export default function ArchiveEntryView(props) {
           </div> : <div>{
             archive
               ? <div>
-                <Typography>Archive data is not valid JSON. Displaying plain text instead.</Typography>
+                <Typography>Processed data is not valid JSON. Displaying plain text instead.</Typography>
                 <Card>
                   <CardContent>
                     <pre>{archive || ''}</pre>

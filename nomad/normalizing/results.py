@@ -135,6 +135,17 @@ class ResultsNormalizer(Normalizer):
         material = results.material
         if sample.elements and len(sample.elements) > 0:
             material.elements = sample.elements
+        else:
+            # Try to guess elements from sample formula or name
+            if sample.chemical_formula:
+                try:
+                    material.elements = ase.Atoms(sample.chemical_formula).get_chemical_symbols()
+                except Exception:
+                    if sample.name:
+                        try:
+                            material.elements = ase.Atoms(sample.name).get_chemical_symbols()
+                        except Exception:
+                            pass
         if sample.chemical_formula:
             material.chemical_formula_descriptive = sample.chemical_formula
 

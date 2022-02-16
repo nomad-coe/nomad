@@ -632,9 +632,7 @@ export const FilterSubMenu = React.memo(({
     <FilterMenuHeader title={selected} actions={actions}/>
     <div className={styles.content}>
       <Scrollable>
-        <div className={styles.padding}>
-          {children}
-        </div>
+        {children}
       </Scrollable>
     </div>
   </div>
