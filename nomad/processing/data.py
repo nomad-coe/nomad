@@ -48,7 +48,7 @@ from nomad.files import (
     PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles, UploadBundle,
     create_tmp_dir, is_safe_relative_path)
 from nomad.processing.base import (
-    Proc, process, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
+    Proc, process, process_local, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -906,6 +906,14 @@ class Entry(Proc):
     @process(is_child=True)
     def process_entry(self):
         ''' Processes or reprocesses an entry. '''
+        self._process_entry_local()
+
+    @process_local
+    def process_entry_local(self):
+        ''' Processes or reprocesses an entry locally. '''
+        self._process_entry_local()
+
+    def _process_entry_local(self):
         logger = self.get_logger()
         if self.upload is None:
             logger.error('upload does not exist')
@@ -947,7 +955,7 @@ class Entry(Proc):
                         self.parser_name = parser.name  # Parser renamed
             else:
                 should_parse = False
-                logger.error('could not determine a perser for this entry')
+                logger.error('could not determine a parser for this entry')
                 self.errors = ['could not determine a parser for this entry']
 
         if should_parse:
@@ -1064,7 +1072,7 @@ class Entry(Proc):
             with utils.timer(logger, 'normalizer executed', input_size=self.mainfile_file.size):
                 try:
                     normalizer(self._parser_results).normalize(logger=logger)
-                    logger.info('normalizer completed successfull', **context)
+                    logger.info('normalizer completed successfully', **context)
                 except Exception as e:
                     raise ProcessFailure('normalizer failed with exception', exc_info=e, error=str(e), **context)
 
@@ -1477,6 +1485,65 @@ class Upload(Proc):
         else:
             self.cleanup()
 
+    @process_local
+    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> Entry:
+        '''
+        Pushes a raw file, matches it, and if matched, runs the processing - all as a local process.
+        If the the target path exists, it will be overwritten. If matched, we return the
+        resulting Entry, otherwise None.
+        '''
+        assert not self.published, 'Upload cannot be published'
+        assert os.path.isfile(path), '`path` does not specify a file'
+        assert is_safe_relative_path(target_dir), 'Bad target path provided'
+        target_path = os.path.join(target_dir, os.path.basename(path))
+        staging_upload_files = self.staging_upload_files
+        if staging_upload_files.raw_path_exists(target_path):
+            assert staging_upload_files.raw_path_is_file(target_path), 'Target path is a directory'
+
+        self.reprocess_settings = reprocess_settings
+
+        # Push the file
+        self.set_last_status_message('Putting the file')
+        staging_upload_files.add_rawfiles(path, target_dir)
+
+        # Match
+        self.set_last_status_message('Matching')
+        parser = match_parser(staging_upload_files.raw_file_object(target_path).os_path)
+
+        # Process entry, if matched; remove existing entry if unmatched.
+        entry: Entry = Entry.objects(upload_id=self.upload_id, mainfile=target_path).first()
+        if parser:
+            if entry:
+                # Entry already exists. Reset it and the parser_name attribute
+                entry.parser_name = parser.name
+                entry.reset(force=True)
+                entry.save()
+            else:
+                # Create new entry
+                entry = Entry.create(
+                    entry_id=generate_entry_id(self.upload_id, target_path),
+                    mainfile=target_path,
+                    parser_name=parser.name,
+                    upload_id=self.upload_id)
+                # Apply entry level metadata from files, if provided
+                metadata_handler = MetadataEditRequestHandler(
+                    self.get_logger(), self.main_author_user, staging_upload_files, self.upload_id)
+                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
+                for quantity_name, mongo_value in entry_metadata.items():
+                    setattr(entry, quantity_name, mongo_value)
+                entry.save()
+            # process locally
+            self.set_last_status_message('Processing')
+            entry.process_entry_local()
+            return entry
+        else:
+            if entry:
+                # The new file does not match a parser, but an old entry exists - delete it
+                delete_partial_archives_from_mongo([entry.entry_id])
+                search.delete_entry(entry_id=entry.entry_id, update_materials=True)
+                entry.delete()
+        return None
+
     @property
     def upload_files(self) -> UploadFiles:
         upload_files_class = StagingUploadFiles if not self.published else PublicUploadFiles
@@ -1674,7 +1741,7 @@ class Upload(Proc):
                             for entry_id in entries_to_delete:
                                 search.delete_entry(entry_id=entry_id, update_materials=True)
                                 entry = Entry.get(entry_id)
-                            entry.delete()
+                                entry.delete()
 
                 # No entries *should* be processing, but if there are, we reset them to
                 # to minimize problems (should be safe to do so).
