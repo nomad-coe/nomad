@@ -188,7 +188,7 @@ const OverviewView = React.memo(({entryId, ...moreProps}) => {
 
       <Grid item xs={8} className={classes.rightColumn}>
         <NexusCard index={index}/>
-        <MaterialCard index={index} archive={archive} properties={properties}/>
+        {/* <MaterialCard index={index} archive={archive} properties={properties}/> */}
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>

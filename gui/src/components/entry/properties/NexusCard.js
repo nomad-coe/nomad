@@ -30,7 +30,7 @@ const NexusCard = (props) => {
       return null
     else
       return (
-          <Paper elevation={2} style={{height: '50vh'}}>
+          <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
             <H5Web filepath={filepath}/>
         </Paper>
       );
