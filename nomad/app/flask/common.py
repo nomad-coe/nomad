@@ -17,7 +17,7 @@
 #
 
 from structlog import BoundLogger
-from flask_restplus import fields
+# from flask_restplus import fields
 from datetime import datetime
 import pytz
 from contextlib import contextmanager
@@ -27,16 +27,16 @@ logger: BoundLogger = None
 ''' A logger pre configured with information about the current request. '''
 
 
-class RFC3339DateTime(fields.DateTime):
+# class RFC3339DateTime(fields.DateTime):
 
-    def format(self, value):
-        if isinstance(value, datetime):
-            return super().format(value.replace(tzinfo=pytz.utc))
-        else:
-            return str(value)
+#     def format(self, value):
+#         if isinstance(value, datetime):
+#             return super().format(value.replace(tzinfo=pytz.utc))
+#         else:
+#             return str(value)
 
 
-rfc3339DateTime = RFC3339DateTime()
+# rfc3339DateTime = RFC3339DateTime()
 
 
 class DotKeyFieldMixin:
@@ -76,5 +76,5 @@ class DotKeyFieldMixin:
         self.attribute = attribute
 
 
-class DotKeyNested(DotKeyFieldMixin, fields.Nested):
-    pass
+# class DotKeyNested(DotKeyFieldMixin, fields.Nested):
+#     pass

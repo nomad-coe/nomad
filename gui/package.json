@@ -10,6 +10,7 @@
     "@date-io/date-fns": "1.x",
     "@fontsource/material-icons": "^4.2.1",
     "@fontsource/titillium-web": "^4.2.2",
+    "@h5web/app": "^1.4.0",
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",
     "@material-ui/lab": "^4.0.0-alpha.49",
