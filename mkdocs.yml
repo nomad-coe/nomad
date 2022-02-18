@@ -6,7 +6,10 @@ nav:
   - Introduction: index.md
   - web.md
   - api.md
-  - pythonlib.md
+  - The nomad-lab Python package:
+    - pythonlib.md
+    - archive_query.md
+    - local_parsers.md
   - archive.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Extending and Developing NOMAD:

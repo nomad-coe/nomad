@@ -1,28 +1,8 @@
-# Archive Query
+# Query and Access Processed Data
 
-The asynchronous archive query class `ArchiveQuery` provides a "downloader", which adopts a different mechanism compared to the
-synchronous version. The configuration is handled by the construction of the target object.
-
-## Argument List
-
-The following arguments are acceptable.
-
-- `owner` : `str` The scope of data to access. Default: `'visible'`
-- `query` : `dict` The API query. There are no validations of any means carried out by the class, users shall make sure
-  the provided query is valid. Otherwise, server would return error message.
-- `required` : `dict` The required quantities.
-- `url` : `str` The database url. It can be the one of your local database. The official NOMAD database is used be
-  default if no valid one defined. Default: `http://nomad-lab.eu/prod/v1/api`
-- `after` : `str` It can be understood that the data is stored in a sequential list. Each upload has a unique ID,
-  if `after` is not provided, the query always starts from the first upload. One can choose to query the uploads in the
-  middle of storage by assigning a proper value of `after`.
-- `results_max` : `int` Determine how many entries to download. Note each upload may have multiple entries.
-- `page_size` : `int` Page size.
-- `username` : `str` Username for authentication.
-- `password` : `str` Password for authentication.
-- `retry` : `int` In the case of server errors, the fetch process is automatically retried every `sleep_time` seconds.
-  This argument limits the maximum times of retry.
-- `sleep_time` : `float` The interval of fetch retry.
+The `ArchiveQuery` allows you to search for entries and access their parsed and processed *archive* data
+at the same time. Furthermore, all data is accessible through a convenient Python interface
+based on the [NOMAD metainfo](archive.md) rather than plain JSON.
 
 ## Basic Usage
 
@@ -182,3 +162,24 @@ Downloading required data...
 Downloaded 102 entries.
 [('-NiRWNGjS--JtFoEnYrCfg', 8), ('-OcPUKZtS6u3lXlkWBM4qg', 129), ('-PA35e2ZRsq4AdDfBU4M_g', 14), ('-TG77dGiSTyrDAFNqTKa6Q', 366), ('-VzlPYtnS4q1tSl3NOmlCw', 178), ('-XeqzVqwSMCJFwhvDqWs8A', 14), ('-Y7gwnleQI6Q61jp024fXQ', 16), ('-Zf1RO1MQXegYVTbFybtQQ', 8), ('-Zm4S9VGRdOX-kbF1J5lOA', 50)]
 ```
+
+## Argument List
+
+The following arguments are acceptable.
+
+- `owner` : `str` The scope of data to access. Default: `'visible'`
+- `query` : `dict` The API query. There are no validations of any means carried out by the class, users shall make sure
+  the provided query is valid. Otherwise, server would return error message.
+- `required` : `dict` The required quantities.
+- `url` : `str` The database url. It can be the one of your local database. The official NOMAD database is used be
+  default if no valid one defined. Default: `http://nomad-lab.eu/prod/v1/api`
+- `after` : `str` It can be understood that the data is stored in a sequential list. Each upload has a unique ID,
+  if `after` is not provided, the query always starts from the first upload. One can choose to query the uploads in the
+  middle of storage by assigning a proper value of `after`.
+- `results_max` : `int` Determine how many entries to download. Note each upload may have multiple entries.
+- `page_size` : `int` Page size.
+- `username` : `str` Username for authentication.
+- `password` : `str` Password for authentication.
+- `retry` : `int` In the case of server errors, the fetch process is automatically retried every `sleep_time` seconds.
+  This argument limits the maximum times of retry.
+- `sleep_time` : `float` The interval of fetch retry.
