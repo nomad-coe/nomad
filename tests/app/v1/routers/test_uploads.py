@@ -26,7 +26,8 @@ from typing import List, Dict, Any, Iterable
 from tests.utils import build_url, set_upload_entry_metadata
 
 from tests.test_files import (
-    example_file_vasp_with_binary, example_file_aux, example_file_corrupt_zip, empty_file,
+    example_file_mainfile_different_atoms, example_file_vasp_with_binary, example_file_aux,
+    example_file_unparsable, example_file_corrupt_zip, empty_file,
     assert_upload_files)
 from tests.test_search import assert_search_upload
 from tests.processing.test_edit_metadata import (
@@ -104,7 +105,8 @@ def perform_post_upload_action(client, user_auth, upload_id, action, **query_arg
 def assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
         source_path, target_path, query_args, accept_json, use_upload_token,
-        expected_status_code, expected_mainfiles, published, all_entries_should_succeed):
+        expected_status_code, expected_process_status, expected_mainfiles, published,
+        all_entries_should_succeed):
     '''
     Uploads a file, using the given action (POST or PUT), url, query arguments, and checks
     the results.
@@ -117,7 +119,7 @@ def assert_file_upload_and_processing(
     else:
         token = None
     accept = 'application/json' if accept_json else '*'
-    response_data = None
+    processed_response_data = None
     response = perform_post_put_file(
         client, action, url, mode, source_path, user_auth_action, token, accept, **query_args)
 
@@ -126,16 +128,18 @@ def assert_file_upload_and_processing(
         if accept_json:
             response_json = response.json()
             upload_id = response_json['upload_id']
+            if expected_process_status:
+                assert response_json['data']['process_status'] == expected_process_status
             assert_upload(response_json)
         else:
             assert 'Thanks for uploading' in response.text
             if not upload_id:
-                return None
+                return None, None
 
         if source_path == example_file_corrupt_zip:
-            response_data = assert_processing_fails(client, upload_id, user_auth)
+            processed_response_data = assert_processing_fails(client, upload_id, user_auth)
         else:
-            response_data = assert_processing(
+            processed_response_data = assert_processing(
                 client, upload_id, user_auth, published=published,
                 all_entries_should_succeed=all_entries_should_succeed)
 
@@ -161,7 +165,7 @@ def assert_file_upload_and_processing(
                     assert upload_files.raw_file_size(target_path_full) == os.stat(source_path).st_size
 
         assert_expected_mainfiles(upload_id, expected_mainfiles)
-    return response_data
+    return response, processed_response_data
 
 
 def assert_expected_mainfiles(upload_id, expected_mainfiles):
@@ -1016,7 +1020,35 @@ def test_get_upload_entry_archive(
             'examples_vasp/xml/perovskite.xml.gz'], id='unzip-and-add-new-mainfiles'),
     pytest.param(
         'stream', 'test_user', 'examples_template', example_file_corrupt_zip, '', {'file_name': 'tmp.zip'},
-        True, False, 200, ['examples_template/template.json'], id='bad-zip')])
+        True, False, 200, ['examples_template/template.json'], id='bad-zip'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_aux, 'examples_template',
+        {'wait_for_processing': True},
+        True, False, 200, ['examples_template/template.json'], id='wait_for_processing-auxfile-add'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'dir1/dir2',
+        {'wait_for_processing': True},
+        True, False, 200, [
+            'examples_template/template.json',
+            'dir1/dir2/template.json'], id='wait_for_processing-mainfile-add'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'dir1/dir2',
+        {'wait_for_processing': True, 'include_archive': True},
+        True, False, 200, [
+            'examples_template/template.json',
+            'dir1/dir2/template.json'], id='wait_for_processing-mainfile-add-include_archive'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'examples_template',
+        {'wait_for_processing': True},
+        True, False, 200, ['examples_template/template.json'], id='wait_for_processing-mainfile-overwrite'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_unparsable, 'examples_template',
+        {'wait_for_processing': True},
+        True, False, 200, {'examples_template/template.json': False}, id='wait_for_processing-mainfile-overwrite-destroy'),
+    pytest.param(
+        'multipart', 'test_user', 'examples_template', example_file_vasp_with_binary, 'examples_template',
+        {'wait_for_processing': True},
+        True, False, 400, None, id='wait_for_processing-zipfile')])
 def test_put_upload_raw_path(
         client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
         mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token,
@@ -1025,11 +1057,37 @@ def test_put_upload_raw_path(
     url = f'uploads/{upload_id}/raw/{target_path}'
     published = False
     all_entries_should_succeed = not (type(expected_mainfiles) == dict and False in expected_mainfiles.values())
+    expected_process_status = ProcessStatus.SUCCESS if 'wait_for_processing' in query_args else None
 
-    assert_file_upload_and_processing(
+    response, _ = assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
         source_path, target_path, query_args, accept_json, use_upload_token,
-        expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
+        expected_status_code, expected_process_status, expected_mainfiles, published,
+        all_entries_should_succeed)
+
+    if response.status_code == 200 and accept_json:
+        response_json = response.json()
+        processing = response_json['processing']
+        if 'wait_for_processing' in query_args:
+            assert processing
+            assert processing['upload_id'] == upload_id
+            assert processing['path'] == os.path.join(target_path, os.path.basename(source_path))
+            if source_path == example_file_aux:
+                # Not a mainfile
+                for k in ('entry_id', 'parser_name', 'entry', 'archive'):
+                    assert processing[k] is None
+            else:
+                # Mainfile was added
+                if source_path == example_file_unparsable:
+                    expected_entry_process_status = ProcessStatus.FAILURE
+                else:
+                    expected_entry_process_status = ProcessStatus.SUCCESS
+                assert processing['entry_id'] is not None
+                assert processing['parser_name'] is not None
+                assert processing['entry']['process_status'] == expected_entry_process_status
+                assert (processing['archive'] is None) == (not query_args.get('include_archive'))
+        else:
+            assert not processing
 
 
 @pytest.mark.parametrize('user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles', [
@@ -1260,13 +1318,15 @@ def test_post_upload(
     target_path = ''
     expected_mainfiles = None
     upload_id = None  # Not determined yet
+    expected_process_status = None
 
-    response_data = assert_file_upload_and_processing(
+    _, processed_response_data = assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
         source_path, target_path, query_args, accept_json, use_upload_token,
-        expected_status_code, expected_mainfiles, published, all_entries_should_succeed)
+        expected_status_code, expected_process_status, expected_mainfiles, published,
+        all_entries_should_succeed)
 
-    if expected_status_code == 200 and response_data:
+    if expected_status_code == 200 and processed_response_data:
         expected_upload_name = query_args.get('upload_name')
         if not expected_upload_name:
             if mode in ('multipart', 'local_path'):
@@ -1274,10 +1334,10 @@ def test_post_upload(
             elif mode == 'stream':
                 expected_upload_name = query_args.get('file_name')
 
-        assert response_data.get('upload_name') == expected_upload_name
+        assert processed_response_data.get('upload_name') == expected_upload_name
 
     if query_args.get('publish_directly'):
-        upload_id = response_data['upload_id']
+        upload_id = processed_response_data['upload_id']
         upload_proc = Upload.objects(upload_id=upload_id).first()
         if source_path == empty_file:
             assert not upload_proc.published
