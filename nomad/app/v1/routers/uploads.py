@@ -691,7 +691,7 @@ async def get_upload_rawdir_path(
 
 @router.get(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
-    summary='Get the raw file or folder located at the specified path in the specified upload.',
+    summary='Download the raw file or folder located at the specified path in the specified upload.',
     response_class=StreamingResponse,
     responses=create_responses(
         _raw_path_response, _upload_or_path_not_found, _not_authorized_to_upload, _bad_request),
@@ -800,7 +800,7 @@ async def get_upload_raw_path(
 
 @router.put(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
-    summary='Put a raw file to the directory specified by path in the specified upload.',
+    summary='Upload a raw file or folder to the specified path (directory) in the specified upload.',
     response_class=StreamingResponse,
     responses=create_responses(
         _put_raw_file_response, _upload_not_found, _not_authorized_to_upload, _bad_request),

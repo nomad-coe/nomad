@@ -19,11 +19,12 @@ import pytest
 import json
 import random
 import time
+import threading
 from typing import List, Any, Union
 
 from mongoengine import StringField, IntField, ListField
 
-from nomad.processing.base import Proc, ProcessAlreadyRunning, process, ProcessStatus
+from nomad.processing.base import Proc, ProcessAlreadyRunning, process, process_local, ProcessStatus
 
 random.seed(0)
 
@@ -167,8 +168,8 @@ class ParentProc(Proc):
     join_args = ListField()
 
     @classmethod
-    def get(cls, id: str) -> 'ParentProc':
-        return cls.get_by_id(id, 'parent_id')
+    def get(cls, parent_id: str) -> 'ParentProc':
+        return cls.get_by_id(parent_id, 'parent_id')
 
     @process()
     def spawn(
@@ -228,6 +229,23 @@ class ParentProc(Proc):
         events.append(f'{self.parent_id}:blocking:start')
         time.sleep(delay)
         events.append(f'{self.parent_id}:blocking:succ')
+
+    @process(is_blocking=False)
+    def non_blocking(self, delay=0.1):
+        global events
+        events.append(f'{self.parent_id}:non_blocking:start')
+        time.sleep(delay)
+        events.append(f'{self.parent_id}:non_blocking:succ')
+
+    @process_local
+    def local_process(self, delay=0.1, fail=False):
+        global events
+        events.append(f'{self.parent_id}:local_process:start')
+        time.sleep(delay)
+        if fail:
+            events.append(f'{self.parent_id}:local_process:fail')
+            assert False, 'Failing local process'
+        events.append(f'{self.parent_id}:local_process:succ')
 
 
 @pytest.mark.parametrize('spawn_kwargs, expected_events', [
@@ -347,3 +365,54 @@ def test_blocking_then_non_blocking(worker, mongo, reset_events):
     p.block_until_complete()
     assert p.process_status == ProcessStatus.SUCCESS
     assert_events(['p:blocking:start', 'p:blocking:succ'])
+
+
+def test_local_blocked(worker, mongo, reset_events):
+    p = ParentProc.create(parent_id='p')
+
+    def other_call():
+        global events
+        time.sleep(0.5)
+        p2 = ParentProc.get(parent_id='p')
+        try:
+            p2.local_process()
+        except ProcessAlreadyRunning:
+            events.append('other_call:blocked')
+
+    a_thread = threading.Thread(target=other_call)
+    a_thread.start()
+    p.non_blocking(delay=1.0)
+    p.block_until_complete()
+    assert p.process_status == ProcessStatus.SUCCESS
+    a_thread.join()
+    assert_events(['p:non_blocking:start', 'other_call:blocked', 'p:non_blocking:succ'])
+
+
+def test_local_blocking(worker, mongo, reset_events):
+    p = ParentProc.create(parent_id='p')
+
+    def other_call():
+        global events
+        time.sleep(0.5)
+        p2 = ParentProc.get(parent_id='p')
+        try:
+            p2.non_blocking()
+        except ProcessAlreadyRunning:
+            events.append('other_call:blocked1')
+        try:
+            p2.local_process()
+        except ProcessAlreadyRunning:
+            events.append('other_call:blocked2')
+
+    a_thread = threading.Thread(target=other_call)
+    a_thread.start()
+    p.local_process(delay=1.0)
+    assert p.process_status == ProcessStatus.SUCCESS
+    a_thread.join()
+    assert_events(['p:local_process:start', 'other_call:blocked1', 'other_call:blocked2', 'p:local_process:succ'])
+
+
+def test_local_failed(worker, mongo, reset_events):
+    p = ParentProc.create(parent_id='p')
+    p.local_process(fail=True)
+    assert p.process_status == ProcessStatus.FAILURE
