@@ -279,6 +279,8 @@ class RawDirResponse(BaseModel):
 
 
 class PutRawFileResults(BaseModel):
+    upload_id: str = Field()
+    path: str = Field()
     entry_id: Optional[str] = Field()
     parser_name: Optional[str] = Field()
     entry: Optional[EntryProcData] = Field()
@@ -944,6 +946,8 @@ async def put_upload_raw_path(
                 upload_id=upload_id,
                 data=_upload_to_pydantic(upload),
                 results=PutRawFileResults(
+                    upload_id=upload_id,
+                    path=full_path,
                     entry_id=entry.entry_id if entry else None,
                     parser_name=entry.parser_name if entry else None,
                     entry=_entry_to_pydantic(entry) if entry else None,

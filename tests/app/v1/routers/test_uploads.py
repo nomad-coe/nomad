@@ -1070,9 +1070,11 @@ def test_put_upload_raw_path(
         results = response_json['results']
         if 'wait_for_results' in query_args:
             assert results
+            assert results['upload_id'] == upload_id
+            assert results['path'] == os.path.join(target_path, os.path.basename(source_path))
             if source_path == example_file_aux:
                 # Not a mainfile
-                assert set(results.values()) == {None}
+                assert results['entry_id'] == results['parser_name'] == results['entry'] == results['archive'] == None
             else:
                 # Mainfile was added
                 if source_path == example_file_unparsable:
