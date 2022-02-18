@@ -278,7 +278,7 @@ class RawDirResponse(BaseModel):
     pagination: Optional[PaginationResponse] = Field()
 
 
-class PutRawFileResults(BaseModel):
+class ProcessingData(BaseModel):
     upload_id: str = Field()
     path: str = Field()
     entry_id: Optional[str] = Field()
@@ -292,9 +292,9 @@ class PutRawFileResponse(BaseModel):
         Unique id of the upload.'''))
     data: UploadProcData = Field(None, description=strip('''
         The upload data as a dictionary.'''))
-    results: Optional[PutRawFileResults] = Field(None, description=strip('''
-        The results (generated entry and [optionally] archive) of processing the file.
-        If the file does not result in an entry, this will be left empty.'''))
+    processing: Optional[ProcessingData] = Field(None, description=strip('''
+        Information about the processing, including the entry (if one was generated) and
+        [optionally] the archive data of this entry.'''))
 
 
 class UploadCommandExamplesResponse(BaseModel):
@@ -366,10 +366,10 @@ _put_raw_file_response = 200, {
         'text/plain': {'example': 'Thanks for uploading your data to nomad.'}
     },
     'description': strip('''
-        A json structure with upload data and possibly the result of processing,
+        A json structure with upload data and possibly information from the processing,
         or a plain text information string.
         It will be a json structure if the request headers specifies `Accept = application/json`
-        or if `wait_for_results` is set.''')}
+        or if `wait_for_processing` is set.''')}
 
 
 _raw_path_response = 200, {
@@ -825,14 +825,16 @@ async def put_upload_raw_path(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
-        wait_for_results: bool = FastApiQuery(
+        wait_for_processing: bool = FastApiQuery(
             False,
             description=strip('''
-            Waits for the processing to complete and return the results in the response (**USE WITH CARE**).''')),
+            Waits for the processing to complete and return information about the outcome
+            in the response (**USE WITH CARE**).''')),
         include_archive: bool = FastApiQuery(
             False,
             description=strip('''
-            If the archive data should be included in the response when using `wait_for_results` (**USE WITH CARE**).''')),
+            If the archive data should be included in the response when using
+            `wait_for_processing` (**USE WITH CARE**).''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
     Uploads a file to a specified path within the upload identified by `upload_id`.
@@ -846,13 +848,13 @@ async def put_upload_raw_path(
     The `path` is interpreted as a directory. The empty string gives the "root" directory.
 
     If a single file is uploaded (i.e. not a zip or tar archive), it is possible to specify
-    `wait_for_results`. This means that the file (and only this file) will be matched and
-    processed, and the result will be returned with the response. **NOTE**: this should be
-    used with caution! When this option is set, the call will block until processing is complete,
-    which may take some time. Also note, that just processing the new/modified file may not be
-    enough in some cases (since adding/modifying a file somewhere in the directory structure
-    may affect other entries). Also note that results.entry.entry_metadata will not be populated
-    in the response.
+    `wait_for_processing`. This means that the file (and only this file) will be matched and
+    processed, and information about the outcome will be returned with the response. **NOTE**:
+    this should be used with caution! When this option is set, the call will block until
+    processing is complete, which may take some time. Also note, that just processing the
+    new/modified file may not be enough in some cases (since adding/modifying a file somewhere
+    in the directory structure may affect other entries). Also note that
+    processing.entry.entry_metadata will not be populated in the response.
 
     There are two basic ways to upload a file: in the multipart-formdata or streaming the
     file data in the http body. Both are supported. Note, however, that the second method
@@ -862,10 +864,10 @@ async def put_upload_raw_path(
     matter since they are extracted). See the POST `uploads` endpoint for examples of curl
     commands for uploading files.
     '''
-    if include_archive and not wait_for_results:
+    if include_archive and not wait_for_processing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='`include_archive` requires `wait_for_results`.')
+            detail='`include_archive` requires `wait_for_processing`.')
 
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
@@ -884,7 +886,7 @@ async def put_upload_raw_path(
 
     is_compressed = files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path)
 
-    if not wait_for_results:
+    if not wait_for_processing:
         # Process on worker (normal case)
         if is_compressed:
             # Uploading an compressed file -> reprocess the entire target directory
@@ -916,14 +918,15 @@ async def put_upload_raw_path(
         if is_compressed:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='`wait_for_results` can only be used with single files, not with compressed files.')
+                detail='`wait_for_processing` can only be used with single files, not with compressed files.')
 
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
             entry = upload.put_file_and_process_local(upload_path, path)
             if upload.process_status == ProcessStatus.FAILURE:
                 # Should only happen if we fail to put the file, match the file, or to *initiate*
-                # entry processing - i.e. normally, this shouldn't happen.
+                # entry processing - i.e. normally, this shouldn't happen, not even with
+                # an badly formatted/unparsable mainfile.
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Failed to put and process: {upload.errors[0]}')
@@ -945,7 +948,7 @@ async def put_upload_raw_path(
             response = PutRawFileResponse(
                 upload_id=upload_id,
                 data=_upload_to_pydantic(upload),
-                results=PutRawFileResults(
+                processing=ProcessingData(
                     upload_id=upload_id,
                     path=full_path,
                     entry_id=entry.entry_id if entry else None,

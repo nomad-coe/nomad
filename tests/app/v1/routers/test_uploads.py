@@ -1023,32 +1023,32 @@ def test_get_upload_entry_archive(
         True, False, 200, ['examples_template/template.json'], id='bad-zip'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_aux, 'examples_template',
-        {'wait_for_results': True},
-        True, False, 200, ['examples_template/template.json'], id='wait_for_result-auxfile-add'),
+        {'wait_for_processing': True},
+        True, False, 200, ['examples_template/template.json'], id='wait_for_processing-auxfile-add'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'dir1/dir2',
-        {'wait_for_results': True},
+        {'wait_for_processing': True},
         True, False, 200, [
             'examples_template/template.json',
-            'dir1/dir2/template.json'], id='wait_for_result-mainfile-add'),
+            'dir1/dir2/template.json'], id='wait_for_processing-mainfile-add'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'dir1/dir2',
-        {'wait_for_results': True, 'include_archive': True},
+        {'wait_for_processing': True, 'include_archive': True},
         True, False, 200, [
             'examples_template/template.json',
-            'dir1/dir2/template.json'], id='wait_for_result-mainfile-add-include_archive'),
+            'dir1/dir2/template.json'], id='wait_for_processing-mainfile-add-include_archive'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_mainfile_different_atoms, 'examples_template',
-        {'wait_for_results': True},
-        True, False, 200, ['examples_template/template.json'], id='wait_for_result-mainfile-overwrite'),
+        {'wait_for_processing': True},
+        True, False, 200, ['examples_template/template.json'], id='wait_for_processing-mainfile-overwrite'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_unparsable, 'examples_template',
-        {'wait_for_results': True},
-        True, False, 200, {'examples_template/template.json': False}, id='wait_for_result-mainfile-overwrite-destroy'),
+        {'wait_for_processing': True},
+        True, False, 200, {'examples_template/template.json': False}, id='wait_for_processing-mainfile-overwrite-destroy'),
     pytest.param(
         'multipart', 'test_user', 'examples_template', example_file_vasp_with_binary, 'examples_template',
-        {'wait_for_results': True},
-        True, False, 400, None, id='wait_for_result-zipfile')])
+        {'wait_for_processing': True},
+        True, False, 400, None, id='wait_for_processing-zipfile')])
 def test_put_upload_raw_path(
         client, proc_infra, non_empty_processed, example_data_writeable, test_auth_dict,
         mode, user, upload_id, source_path, target_path, query_args, accept_json, use_upload_token,
@@ -1057,7 +1057,7 @@ def test_put_upload_raw_path(
     url = f'uploads/{upload_id}/raw/{target_path}'
     published = False
     all_entries_should_succeed = not (type(expected_mainfiles) == dict and False in expected_mainfiles.values())
-    expected_process_status = ProcessStatus.SUCCESS if 'wait_for_results' in query_args else None
+    expected_process_status = ProcessStatus.SUCCESS if 'wait_for_processing' in query_args else None
 
     response, _ = assert_file_upload_and_processing(
         client, action, url, mode, user, test_auth_dict, upload_id,
@@ -1067,26 +1067,27 @@ def test_put_upload_raw_path(
 
     if response.status_code == 200 and accept_json:
         response_json = response.json()
-        results = response_json['results']
-        if 'wait_for_results' in query_args:
-            assert results
-            assert results['upload_id'] == upload_id
-            assert results['path'] == os.path.join(target_path, os.path.basename(source_path))
+        processing = response_json['processing']
+        if 'wait_for_processing' in query_args:
+            assert processing
+            assert processing['upload_id'] == upload_id
+            assert processing['path'] == os.path.join(target_path, os.path.basename(source_path))
             if source_path == example_file_aux:
                 # Not a mainfile
-                assert results['entry_id'] == results['parser_name'] == results['entry'] == results['archive'] == None
+                for k in ('entry_id', 'parser_name', 'entry', 'archive'):
+                    assert processing[k] is None
             else:
                 # Mainfile was added
                 if source_path == example_file_unparsable:
                     expected_entry_process_status = ProcessStatus.FAILURE
                 else:
                     expected_entry_process_status = ProcessStatus.SUCCESS
-                assert results['entry_id'] is not None
-                assert results['parser_name'] is not None
-                assert results['entry']['process_status'] == expected_entry_process_status
-                assert (results['archive'] is None) == (not query_args.get('include_archive'))
+                assert processing['entry_id'] is not None
+                assert processing['parser_name'] is not None
+                assert processing['entry']['process_status'] == expected_entry_process_status
+                assert (processing['archive'] is None) == (not query_args.get('include_archive'))
         else:
-            assert not results
+            assert not processing
 
 
 @pytest.mark.parametrize('user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles', [
