@@ -1028,20 +1028,23 @@ async def get_entry_raw_file(
     return StreamingResponse(raw_file_content, media_type=mime_type)
 
 
-def answer_entry_archive_request(query: Dict[str, Any], required: ArchiveRequired, user: User):
+def answer_entry_archive_request(
+        query: Dict[str, Any], required: ArchiveRequired, user: User, entry_metadata=None):
     required_reader = _validate_required(required)
 
-    response = perform_search(
-        owner=Owner.visible, query=query,
-        required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
-        user_id=user.user_id if user is not None else None)
+    if not entry_metadata:
+        response = perform_search(
+            owner=Owner.visible, query=query,
+            required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
+            user_id=user.user_id if user is not None else None)
 
-    if response.pagination.total == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry does not exist or is not visible to you.')
+        if response.pagination.total == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='The entry does not exist or is not visible to you.')
 
-    entry_metadata = response.data[0]
+        entry_metadata = response.data[0]
+
     entry_id = entry_metadata['entry_id']
 
     uploads = _Uploads()

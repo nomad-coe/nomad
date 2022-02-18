@@ -530,7 +530,7 @@ class Proc(Document):
         is running or has been added to the queue (blocking processes prevent further requests
         to be queued until they have been completed).
 
-        This is the first of two *sync operations*. These should be atomic and occur in
+        This is the first of three *sync operations*. These should be atomic and occur in
         sequence, each call fully seeing the relevant changes of the previous operation.
         Because of propagation delays and possible race conditions, we use `sync_counter` to
         detect update collisions. Such collisions should be very unusual, but if they occur
@@ -572,7 +572,7 @@ class Proc(Document):
                     ]
                 }, mongo_update)
             try_counter += 1
-            if old_record and old_record['sync_counter'] == self.sync_counter:
+            if old_record and old_record.get('sync_counter') == self.sync_counter:
                 # We have successfully scheduled the process!
                 self.reload()
                 return not prev_process_running
@@ -584,11 +584,61 @@ class Proc(Document):
             time.sleep(0.1)
             self.reload()
 
+    def _sync_start_local_process(self, func_name: str):
+        '''
+        Used to start a *local* process. If successful, the status transitions to RUNNING
+        atomically. The call will fail and raise a :class:`ProcessAlreadyRunning` if any
+        other process is currently running.
+
+        This is one of three *sync operations*. See :func:`_sync_schedule_process`
+        for more info.
+        '''
+        try_counter = 0
+        while True:
+            if self.process_running:
+                raise ProcessAlreadyRunning('Another process is running or waiting to run')
+            mongo_update = {
+                '$set': dict(
+                    sync_counter=self.sync_counter + 1,
+                    process_status=ProcessStatus.RUNNING,
+                    current_process=func_name,
+                    last_status_message='Started: ' + func_name,
+                    worker_hostname=None,
+                    celery_task_id=None,
+                    errors=[],
+                    warnings=[])}
+            # Try to update self atomically. Will fail if someone else has managed to write
+            # a sync op in between.
+            old_record = self._get_collection().find_one_and_update(
+                {
+                    '$and': [
+                        {'_id': self.id},
+                        {
+                            '$or': [
+                                {'sync_counter': self.sync_counter},
+                                {'sync_counter': {'$exists': False}}
+                            ]
+                        }
+                    ]
+                }, mongo_update)
+            try_counter += 1
+            if old_record and old_record.get('sync_counter') == self.sync_counter:
+                # We have successfully started the process!
+                self.reload()
+                return
+            # Someone else must have written a sync op (ticked up the sync_counter) in between
+            if try_counter >= 3:
+                # Three failed attempts - should be virtually impossible!
+                raise ProcessSyncFailure('Failed to start local process too many times - should not happen')
+            # Otherwise, sleep, reload, and try again
+            time.sleep(0.1)
+            self.reload()
+
     def _sync_complete_process(self) -> Tuple[str, List[Any], Dict[str, Any]]:
         '''
-        Used to complete a process (when done, successful or not). Should only be invoked
-        by a celery worker. Returns a triple containing information about the next process
-        to run (if any), of the form (func_name, args, kwargs).
+        Used to complete a process (when done, successful or not). Returns a triple
+        containing information about the next process to run (if any), of the
+        form (func_name, args, kwargs).
 
         There are 3 possibilities:
             1)  There is something in the queue, and the current process was successful
@@ -598,7 +648,7 @@ class Proc(Document):
             3)  There is nothing in the queue:
                 -> We set the status to the provided value and return None
 
-        This is one of two *sync operations*. See :func:`_sync_schedule_process`
+        This is one of three *sync operations*. See :func:`_sync_schedule_process`
         for more info.
         '''
         assert self.process_status in ProcessStatus.STATUSES_COMPLETED
@@ -632,7 +682,7 @@ class Proc(Document):
             old_record = self._get_collection().find_one_and_update(
                 {'_id': self.id, 'sync_counter': self.sync_counter}, mongo_update)
             try_counter += 1
-            if old_record and old_record['sync_counter'] == self.sync_counter:
+            if old_record and old_record.get('sync_counter') == self.sync_counter:
                 # We have successfully completed the process
                 return next_process
             # Someone else must have written a sync op (ticked up the sync_counter) in between
@@ -927,3 +977,58 @@ def process(is_blocking: bool = False, is_child: bool = False):
         setattr(wrapper, '__is_child', is_child)
         return wrapper
     return process_decorator
+
+
+def process_local(func):
+    '''
+    The decorator for functions that process locally. These work similarly to functions
+    marked with the `@process` decorator, but they are executed directly, in the current
+    thread, not via celery. Consequently, they can only be started if no other process is
+    running. They are also implicitly blocking, i.e. while running, no other process
+    (local or celery-based) can be started or scheduled. If successful, a local process can
+    return a value to the caller (unlike celery processes). Invoking a local process should
+    only throw exceptions if it was not possible to start the process (because some other
+    process is running). Any other errors that happen during the running of the process are
+    handled in the usual way, by setting self.errors etc. The Proc object should not have
+    any unsaved changes when a local process is invoked.
+    '''
+    # Determine canonical class name
+    cls_name, func_name = func.__qualname__.split('.')
+    all_blocking_processes[cls_name].append(func_name)
+
+    def wrapper(self: Proc, *args, **kwargs):
+        logger = self.get_logger()
+        logger.debug('Executing local process')
+        self._sync_start_local_process(func_name)
+
+        try:
+            os.chdir(config.fs.working_directory)
+            with utils.timer(logger, 'process executed locally', log_memory=True):
+                # Actually call the process function
+                rv = func(self, *args, **kwargs)
+                if self.errors:
+                    # Should be impossible unless the process has tampered with self.errors, which
+                    # it should not do. We will treat it essentially as if it had raised an exception
+                    self.fail('completed with errors but no exception, should not happen', complete=False)
+                else:
+                    # All looks good
+                    self.on_success()
+                    self.process_status = ProcessStatus.SUCCESS
+                    self.complete_time = datetime.utcnow()
+                    if self.warnings:
+                        self.last_status_message = f'Process {func_name} completed with warnings'
+                    else:
+                        self.last_status_message = f'Process {func_name} completed successfully'
+                    logger.info('completed process')
+                    return rv
+        except SystemExit as e:
+            self.fail(e, complete=False)
+        except ProcessFailure as e:
+            # Exception with details about how to call self.fail
+            self.fail(*e._errors, log_level=e._log_level, complete=False, **e._kwargs)
+        except Exception as e:
+            self.fail(e, complete=False)
+        finally:
+            self._sync_complete_process()  # Queue should be empty, so nothing more to do
+
+    return wrapper
