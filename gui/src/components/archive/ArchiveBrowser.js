@@ -22,7 +22,7 @@ import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, make
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
-import { resolveRef, rootSections } from './metainfo'
+import { metainfoDef, QuantityMDef, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
@@ -194,7 +194,7 @@ function archiveSearchOptions(data) {
       }
       options.push(option)
 
-      if (childDef.m_def === 'SubSection') {
+      if (childDef.m_def === SubSectionMDef) {
         const sectionDef = resolveRef(childDef.sub_section)
         if (Array.isArray(child) && child.length > 0 && child[0]) {
           if (child.length > 1) {
@@ -221,9 +221,14 @@ class ArchiveAdaptor extends Adaptor {
   }
 
   adaptorFactory(obj, def, parent, context) {
-    if (def.m_def === 'Section') {
+    if (def.m_def === SectionMDef) {
+      if (obj.m_def) {
+        // Override the def given by the schema with the potentially more specific
+        // def given by the data
+        def = metainfoDef(obj.m_def)
+      }
       return new SectionAdaptor(obj, def, parent, context || this.context)
-    } else if (def.m_def === 'Quantity') {
+    } else if (def.m_def === QuantityMDef) {
       if (def.type.type_kind === 'reference') {
         return new ReferenceAdaptor(obj, def, parent, context || this.context)
       } else {
@@ -248,14 +253,14 @@ class SectionAdaptor extends ArchiveAdaptor {
     const value = this.e[name]
     if (!property) {
       return super.itemAdaptor(key)
-    } else if (property.m_def === 'SubSection') {
+    } else if (property.m_def === SubSectionMDef) {
       const sectionDef = resolveRef(property.sub_section)
       if (property.repeats) {
         return this.adaptorFactory(value[parseInt(index || 0)], sectionDef, this.e)
       } else {
         return this.adaptorFactory(value, sectionDef, this.e)
       }
-    } else if (property.m_def === 'Quantity') {
+    } else if (property.m_def === QuantityMDef) {
       // References: sections and quantities
       if (property.type.type_kind === 'reference') {
         let reference = null
@@ -406,13 +411,13 @@ function Section({section, def, parent}) {
   }
 
   const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
-  let sub_sections = def._allProperties.filter(prop => prop.m_def === 'SubSection')
+  let sub_sections = def._allProperties.filter(prop => prop.m_def === SubSectionMDef)
   if (def.name === 'EntryArchive') {
     // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
     sub_sections = [...def.sub_sections]
     sub_sections.reverse()
   }
-  const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
+  const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
 
   let contents
   if (def.name === 'Sample') {
@@ -501,7 +506,7 @@ function SubSectionList({subSectionDef}) {
       key = sectionDef.more?.label_quantity
       if (!key) {
         key = ['name', 'type', 'id'].find(key => (
-          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
+          sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
         ))
       }
     }

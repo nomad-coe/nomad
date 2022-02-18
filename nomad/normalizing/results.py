@@ -102,8 +102,8 @@ class ResultsNormalizer(Normalizer):
         for measurement in self.entry_archive.measurement:
             self.normalize_measurement(measurement)
 
-        for sample in self.entry_archive.sample:
-            self.normalize_sample(sample)
+        if self.entry_archive.data:
+            self.entry_archive.data.normalize_results(results, logger)
 
         # Add the list of available_properties: it is a selected subset of the
         # stored properties.
@@ -139,11 +139,11 @@ class ResultsNormalizer(Normalizer):
             # Try to guess elements from sample formula or name
             if sample.chemical_formula:
                 try:
-                    material.elements = ase.Atoms(sample.chemical_formula).get_chemical_symbols()
+                    material.elements = list(set(ase.Atoms(sample.chemical_formula).get_chemical_symbols()))
                 except Exception:
                     if sample.name:
                         try:
-                            material.elements = ase.Atoms(sample.name).get_chemical_symbols()
+                            material.elements = list(set(ase.Atoms(sample.name).get_chemical_symbols()))
                         except Exception:
                             pass
         if sample.chemical_formula:

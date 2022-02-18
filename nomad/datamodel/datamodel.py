@@ -34,10 +34,11 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
+from .data import EntryData  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
-from .metainfo.measurements import Measurement, Experiment, Sample  # noqa
+from .metainfo.measurements import Measurement  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -679,8 +680,8 @@ class EntryArchive(metainfo.MSection):
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)
     measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
-    sample = metainfo.SubSection(sub_section=Sample, repeats=True)
-    experiment = metainfo.SubSection(sub_section=Experiment, repeats=True)
+
+    data = metainfo.SubSection(sub_section=EntryData)
     workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
     metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],

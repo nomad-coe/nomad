@@ -11,20 +11,16 @@ const templates = [
     label: 'Sample',
     description: 'A sample entry.',
     archive: {
-      sample: [{
-        name: 'unnamed'
-      }]
+      data: {
+        m_def: 'nomad.datamodel.metainfo.eln_examples.Sample'
+      }
     }
   },
   {
     id: 'experiment',
     label: 'Experiment',
     description: 'A sample experiment.',
-    archive: {
-      experiment: [{
-        name: 'unnamed'
-      }]
-    }
+    archive: {}
   }
 ]
 

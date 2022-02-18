@@ -50,6 +50,8 @@ class Root(Abstract):
     child = SubSection(sub_section=Child.m_def, categories=[Category])
     children = SubSection(sub_section=Child.m_def, repeats=True, categories=[Category])
 
+    abstract = SubSection(sub_section=Abstract.m_def, categories=[Category])
+
 
 values = dict(
     scalar='test_value',
@@ -60,6 +62,7 @@ expected_child = dict(**values)
 expected_root = dict(
     child=expected_child,
     children=[expected_child, expected_child],
+    abstract=dict(m_def='tests.metainfo.test_to_dict.Child', **expected_child),
     **values)
 
 
@@ -69,6 +72,7 @@ def example():
     root.m_create(Child, Root.child, **values)
     for _ in range(0, 2):
         root.m_create(Child, Root.children, **values)
+    root.abstract = Child(**values)
 
     return root
 
@@ -77,13 +81,18 @@ def test_plain(example):
     assert example.m_to_dict() == expected_root
 
 
+def test_m_from_dict(example):
+    assert Root.m_from_dict(example.m_to_dict()).m_to_dict() == expected_root
+
+
 def test_with_meta(example):
     assert example.m_to_dict(with_meta=True) == dict(
-        m_def='Root',
-        child=dict(m_def='Child', m_parent_sub_section='child', **expected_child),
+        m_def='tests.metainfo.test_to_dict.Root',
+        child=dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='child', **expected_child),
         children=[
-            dict(m_def='Child', m_parent_sub_section='children', m_parent_index=0, **expected_child),
-            dict(m_def='Child', m_parent_sub_section='children', m_parent_index=1, **expected_child)],
+            dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='children', m_parent_index=0, **expected_child),
+            dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='children', m_parent_index=1, **expected_child)],
+        abstract=dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='abstract', **expected_child),
         **values)
 
 
@@ -103,7 +112,7 @@ def test_exclude_include(example, include: bool):
         if isinstance(prop, Quantity) and section.m_def == Root.m_def:
             return not include
 
-        if prop == Root.children:
+        if prop == Root.children or prop == Root.abstract:
             return not include
 
         return include
@@ -113,8 +122,7 @@ def test_exclude_include(example, include: bool):
     else:
         kwargs = dict(exclude=filter_function)
 
-    assert example.m_to_dict(**kwargs) == dict(
-        child=expected_child)
+    assert example.m_to_dict(**kwargs) == dict(child=expected_child)
 
 
 def test_categories(example):

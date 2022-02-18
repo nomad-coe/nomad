@@ -34,6 +34,7 @@ import pytz
 import docstring_parser
 import jmespath
 import base64
+import importlib
 
 from nomad.units import ureg as units
 
@@ -1347,7 +1348,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
         Arguments:
             with_meta: Include information about the section definition and the sections
-                position in its parent.
+                position in its parent. The section definition will always be included
+                if the sub section definition references a base section and the concrete
+                sub section is derived from this base section.
             include_defaults: Include default values of unset quantities.
             include_derived: Include values of derived quantities.
             resolve_references:
@@ -1544,13 +1547,19 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         def serialize_annotation(annotation):
             if isinstance(annotation, Annotation):
                 return annotation.m_to_dict()
+            elif isinstance(annotation, Dict):
+                try:
+                    json.dumps(annotation)
+                    return annotation
+                except Exception:
+                    return str(annotation)
             else:
                 return str(annotation)
 
         def items() -> Iterable[Tuple[str, Any]]:
             # metadata
             if with_meta:
-                yield 'm_def', self.m_def.name
+                yield 'm_def', self.m_def.qualified_name()
                 if self.m_parent_index != -1:
                     yield 'm_parent_index', self.m_parent_index
                 if self.m_parent_sub_section is not None:
@@ -1565,6 +1574,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     annotations[annotation_name] = annotation_value
                 if len(annotations) > 0:
                     yield 'm_annotations', annotations
+            else:
+                if self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
+                    # The sub section definition's section def is different from our
+                    # own section def. We are probably a specialized derived section
+                    # from the base section that was used in the sub section def. To allow
+                    # clients to recognize the concrete section def, we force the export
+                    # of the section def.
+                    yield 'm_def', self.m_def.qualified_name()
 
             # quantities
             sec_path = self.m_path()
@@ -1663,6 +1680,12 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         '''
+        if 'm_def' in dct:
+            # Replace the given cls with to potentially more specific and derived class
+            # specified in the data
+            package_name, section_name = dct['m_def'].rsplit('.', 1)
+            module = importlib.import_module(package_name)
+            cls = getattr(module, section_name)
         section = cls()
         section.m_update_from_dict(dct)
         return section

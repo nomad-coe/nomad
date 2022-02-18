@@ -15,11 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { useApi } from '../api'
-import { useErrors } from '../errors'
-import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
+import { Typography, makeStyles, Box, Grid, Divider, IconButton } from '@material-ui/core'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
@@ -32,8 +30,9 @@ import Page from '../Page'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../buttons/SourceDialogButton'
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
-import { defsByName } from '../archive/metainfo'
+import { metainfoDef } from '../archive/metainfo'
 import FilesCard from './properties/FilesCard'
+import SaveIcon from '@material-ui/icons/Save'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -69,6 +68,9 @@ const useStyles = makeStyles(theme => ({
       marginBottom: theme.spacing(2)
     }
   },
+  editActions: {
+    marginBottom: `${theme.spacing(1)}px !important`
+  },
   divider: {
     marginTop: theme.spacing(1),
     marginBottom: theme.spacing(1)
@@ -79,11 +81,8 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const { raiseError } = useErrors()
-  const [archiveApiData, setArchiveApiData] = useState(null)
+  const {metadata, metadataApiData, exists, editable, requireArchive, archiveApiData, archiveHasChanges, saveArchive} = useEntryContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
-  const {api} = useApi()
-  const {metadata, metadataApiData, exists, entryId} = useEntryContext()
   const index = metadata
 
   const properties = useMemo(() => {
@@ -94,41 +93,46 @@ const OverviewView = React.memo((props) => {
   }, [index])
 
   useEffect(() => {
-    api.post(
-      `/entries/${entryId}/archive/query`,
-      {
-        required: {
-          'resolve-inplace': false,
-          sample: '*',
-          experiment: '*',
-          results: {
-            material: '*',
-            method: '*',
-            properties: {
-              structures: '*',
-              electronic: 'include-resolved',
-              mechanical: 'include-resolved',
-              spectroscopy: 'include-resolved',
-              vibrational: 'include-resolved',
-              // For geometry optimizations we require only the energies.
-              // Trajectory, optimized structure, etc. are unnecessary.
-              geometry_optimization: {
-                energies: 'include-resolved'
-              }
+    console.log(editable)
+    if (editable === true) {
+      requireArchive()
+    } else if (editable === false) {
+      requireArchive({
+        'resolve-inplace': false,
+        data: '*',
+        results: {
+          material: '*',
+          method: '*',
+          properties: {
+            structures: '*',
+            electronic: 'include-resolved',
+            mechanical: 'include-resolved',
+            spectroscopy: 'include-resolved',
+            vibrational: 'include-resolved',
+            // For geometry optimizations we require only the energies.
+            // Trajectory, optimized structure, etc. are unnecessary.
+            geometry_optimization: {
+              energies: 'include-resolved'
             }
           }
         }
-      },
-      {returnRequest: true, jsonResponse: true}
-    ).then(setArchiveApiData).catch(raiseError)
-  }, [api, raiseError, entryId, setArchiveApiData])
+      })
+    }
+  }, [requireArchive, editable])
 
   const sections = useMemo(() => {
+    if (!archive?.data) {
+      return []
+    }
+
     return [
-      {quantity: 'sample', sectionDef: defsByName.Sample[0], getSection: archive => archive.sample[0]},
-      {quantity: 'experiment', sectionDef: defsByName.Experiment[0], getSection: archive => archive.experiment[0]}
+      {
+        archivePath: 'data',
+        sectionDef: metainfoDef(archive.data.m_def),
+        getSection: archive => archive.data
+      }
     ]
-  }, [])
+  }, [archive])
 
   const classes = useStyles()
 
@@ -187,9 +191,24 @@ const OverviewView = React.memo((props) => {
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>
-        {metadata && sections
-          .filter(section => metadata.quantities.indexOf(section.quantity) !== -1)
-          .map((section, index) => <SectionCard key={index} {...section} />)}
+        {editable &&
+          <Box textAlign="right" className={classes.editActions}>
+            <IconButton
+              disabled={!archiveHasChanges} color="primary"
+              onClick={saveArchive}
+            >
+              <SaveIcon/>
+            </IconButton>
+          </Box>
+        }
+        {sections
+          .map((section, index) => (
+            <SectionCard
+              key={index} {...section}
+              archivePath={section.archivePath.replaceAll('.', '/')}
+            />
+          ))
+        }
         <MaterialCard index={index} archive={archive} properties={properties}/>
         <FilesCard />
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>

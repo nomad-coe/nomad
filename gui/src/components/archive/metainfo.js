@@ -17,6 +17,11 @@
  */
 import metainfo from '../../metainfo'
 
+export const SectionMDef = 'nomad.metainfo.metainfo.Section'
+export const QuantityMDef = 'nomad.metainfo.metainfo.Quantity'
+export const SubSectionMDef = 'nomad.metainfo.metainfo.SubSection'
+export const CategoryMDef = 'nomad.metainfo.metainfo.Category'
+
 export const defs = []
 export const defsByName = {}
 export const packageDefs = {}
@@ -119,14 +124,14 @@ metainfo.packages.forEach(pkg => {
     }
     sectionDef._allProperties.forEach(property => {
       addProperty(property)
-      if (property.m_def === 'Quantity') {
+      if (property.m_def === QuantityMDef) {
         property.shape = property.shape || []
         if (isReference(property)) {
           const referencedSection = resolveRef(property.type.type_data)
           referencedSection._incomingRefs = referencedSection._incomingRefs || []
           referencedSection._incomingRefs.push(property)
         }
-      } else if (property.m_def === 'SubSection') {
+      } else if (property.m_def === SubSectionMDef) {
         property._subSection = resolveRef(property.sub_section)
         const subSectionsSectionDef = property._subSection
         initSection(subSectionsSectionDef)
@@ -141,7 +146,7 @@ metainfo.packages.forEach(pkg => {
 })
 
 export const rootSections = sortDefs(defs.filter(def => (
-  def.m_def === 'Section' && !def.extends_base_section && def._parentSections.length === 0)
+  def.m_def === SectionMDef && !def.extends_base_section && def._parentSections.length === 0)
 ))
 
 /**
@@ -208,8 +213,11 @@ export function refPath(ref) {
   }
 }
 
-export function metainfoDef(name) {
-  return packageDefs['nomad.metainfo.metainfo']._sections[name]
+export function metainfoDef(qualifiedName) {
+  const defQualifiedNameSegments = qualifiedName.split('.')
+  const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
+  const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
+  return packageDefs[packageName]._sections[sectionName]
 }
 
 export function isReference(property) {
@@ -228,11 +236,11 @@ export function path(nameOrDef) {
     return null
   }
 
-  if (def.m_def === 'SubSection') {
+  if (def.m_def === SubSectionMDef) {
     def = resolveRef(def.sub_section)
   }
 
-  if (def.m_def === 'Category') {
+  if (def.m_def === CategoryMDef) {
     return `${def._package.name.split('.')[0]}/category_definitions@${def._qualifiedName}`
   }
 
@@ -248,7 +256,7 @@ export function path(nameOrDef) {
       def = parentSubSection
     }
     path.push(def.name)
-    if (def.m_def === 'SubSection') {
+    if (def.m_def === SubSectionMDef) {
       def = def._section
     } else {
       def = def._parentSections && def._parentSections[0]
@@ -305,7 +313,7 @@ export function vicinityGraph(def) {
     nodesMap[key] = node
 
     if (recursive) {
-      if (def.m_def === 'Section') {
+      if (def.m_def === SectionMDef) {
         def._parentSections.forEach(parentSection => {
           const parent = addNode(parentSection, {
             recursive: true,
@@ -324,7 +332,7 @@ export function vicinityGraph(def) {
             () => reference._qualifiedName)
           addEdge(node, referenced, reference)
         })
-      } else if (def.m_def === 'Quantity') {
+      } else if (def.m_def === QuantityMDef) {
         const section = addNode(def._section, {
           recursive: true,
           x: x - dx,

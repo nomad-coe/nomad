@@ -19,7 +19,7 @@
 import numpy as np
 
 from nomad.metainfo import (
-    MSection, Package, Quantity, SubSection, Datetime, MEnum)
+    MSection, Package, Quantity, SubSection, Datetime)
 from nomad.metainfo.metainfo import Reference, SectionProxy
 
 
@@ -51,48 +51,6 @@ class Sample(MSection):
 
     elements = Quantity(type=str, shape=["*"])
     chemical_formula = Quantity(type=str)
-
-    sample_enum = Quantity(type=MEnum('100', '200', '300'), unit='seconds', description='An enum list.')
-
-    sample_int = Quantity(
-        type=np.dtype(np.int), description='A signed integer number.')
-
-    sample_uint = Quantity(
-        type=np.dtype(np.uint), description='An unsigned integer number.')
-
-    sample_float = Quantity(
-        type=np.dtype(np.float64), description='A float number.')
-
-    sample_array_str = Quantity(
-        type=str, shape=['*'], description='Array of string.')
-
-    sample_array_int = Quantity(
-        type=np.dtype(np.int), shape=['*'], description='Array of signed integer number.')
-
-    sample_array_uint = Quantity(
-        type=np.dtype(np.uint), shape=['*'], description='Array of unsigned integer number.')
-
-    sample_array_float = Quantity(
-        type=np.dtype(np.float64), shape=['*'], description='Array of float number.')
-
-
-class Experiment(MSection):
-    name = Quantity(
-        type=str, description='A human readable free text name for the experiment.')
-
-    description = Quantity(
-        type=str, description='A description of the experiment.')
-
-    steps = Quantity(
-        type=str, shape=['*'], description='Human readable experiment steps.')
-
-    sample = SubSection(section_def=Sample, description='The used sample.')
-    sample_ref = Quantity(type=Reference(Sample.m_def), description='Reference to the used sample.')
-
-    measurement = SubSection(
-        section_def=SectionProxy('Measurement'),
-        repeats=True,
-        description='Measurements performed in this experiment.')
 
 
 class Experiment(MSection):

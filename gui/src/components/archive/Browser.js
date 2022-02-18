@@ -131,6 +131,11 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   }, [setRender])
   const lanes = useRef(null)
 
+  // do no reuse the lanes if the adaptor has changed, e.g. due to updated archive data
+  useEffect(() => {
+    lanes.current = null
+  }, [adaptor])
+
   useEffect(() => {
     if (!url) {
       return

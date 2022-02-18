@@ -269,3 +269,104 @@ export function toUnitSystem(value, unit, system, returnLabel = false) {
 export function toSI(value, unit, returnLabel = false) {
   return toUnitSystem(value, unit, unitSystems['SI'].units, returnLabel)
 }
+
+/**
+ * Convenience function for converting values to another unit system. Primarily
+ * you can work with just the Unit and Quantity -classes, but sometimes it is
+ * cleaner to call this function directly instead.
+ *
+ * @param {*} value The values to convert. Can be scalar or multi-dimensional.
+ * @param {*} unit Current unit as a string or an Unit object
+ * @param {object} targetUnit The target unit
+ * @param {bool} returnLabel Whether also the converted unit label should be
+ * returned
+ * @returns
+ */
+export function convertUnit(value, unit, targetUnit, returnLabel = false) {
+  // If value given as Quantity, extract unit and value from it
+  if (value instanceof Quantity) {
+    value = value.value
+    unit = value.unit
+  }
+
+  // If unit is given as a string, create a Unit from for it.
+  if (!(unit instanceof Unit)) {
+    unit = new Unit(unit)
+  }
+  const unitDef = unit.unitDef
+
+  // Function for getting the converted values
+  function convert() {
+    // Temperatures require special handling due to the fact that e.g. Celsius and
+    // Fahrenheit are not absolute units and are non-multiplicative. Two kinds of
+    // temperature conversions are supported: ones with a single temperature unit
+    // and ones where temperature is used as a part of an expression. If a single
+    // temperature unit is specified, they are converted normally taking the
+    // offset into account. If they are used as a part of an expression, they are
+    // interpreted as ranges and the offset is ignored.
+    if (unitDef instanceof SymbolNode) {
+      // Dimensionless quantities do not change in unit conversion
+      if (unitDef.name === 'dimensionless') {
+        return value
+      }
+
+      const unitFrom = unitDef.name
+      if (unitMap[unitFrom].dimension === 'temperature') {
+        const unitTo = targetUnit
+        const multiplier = conversionMap['temperature'].multipliers[unitFrom][unitTo]
+        const constant = conversionMap['temperature'].constants[unitFrom][unitTo]
+        let newValues = value
+        if (multiplier !== 1) {
+          newValues = scale(newValues, multiplier)
+        }
+        if (constant !== undefined) {
+          newValues = add(newValues, constant)
+        }
+        return newValues
+      }
+    }
+
+    // Gather all units present
+    const variables = new Set()
+    unitDef.traverse((node, path, parent) => {
+      if (node.isSymbolNode) {
+        variables.add(node.name)
+      }
+    })
+
+    // Check if conversion is required.
+    let isConverted = true
+    for (const unit of variables) {
+      const unitTo = targetUnit
+      isConverted = unit === unitTo
+      if (!isConverted) {
+        break
+      }
+    }
+    if (isConverted) {
+      return value
+    }
+
+    // Gather conversion values for each present unit
+    const scope = {}
+    for (const unitFrom of variables) {
+      const dimension = unitMap[unitFrom].dimension
+      const unitTo = targetUnit
+      scope[unitFrom] = conversionMap[dimension].multipliers[unitFrom][unitTo]
+    }
+
+    // Compute the scaling factor by evaluating the unit definition with the
+    // SI units converted to target system
+    const code = unitDef.compile()
+    const factor = code.evaluate(scope)
+
+    // Scale values to new units
+    return scale(value, factor)
+  }
+
+  const converted = convert(value)
+  if (returnLabel) {
+    return [converted, targetUnit.label]
+  }
+  return converted
+}

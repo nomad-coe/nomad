@@ -15,15 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import {PropertyCard} from './PropertyCard'
 import SectionEditor from '../../archive/SectionEditor'
 import { useEntryContext } from '../EntryContext'
-import { Box } from '@material-ui/core'
+import { Box, IconButton } from '@material-ui/core'
+import CodeIcon from '@material-ui/icons/Code'
+import MoreIcon from '@material-ui/icons/MoreVert'
+import { ArchiveButton } from '../../nav/Routes'
 
-const SectionCard = React.memo(({sectionDef, getSection, ...props}) => {
-  const {archive, requireArchive} = useEntryContext()
+const SectionCard = React.memo(({archivePath, sectionDef, getSection, ...props}) => {
+  const {entryId, uploadId, archive, requireArchive} = useEntryContext()
+  const [showJson, setShowJson] = useState(false)
 
   useEffect(() => {
     requireArchive()
@@ -35,14 +39,33 @@ const SectionCard = React.memo(({sectionDef, getSection, ...props}) => {
     }
   }, [archive, getSection])
 
-  return <PropertyCard title={sectionDef.name}>
+  const actions = <React.Fragment>
+    <IconButton onClick={() => setShowJson(value => !value)}>
+      <CodeIcon />
+    </IconButton>
+    <ArchiveButton
+      component={IconButton}
+      entryId={entryId} uploadId={uploadId}
+      path={archivePath}
+    >
+      <MoreIcon/>
+    </ArchiveButton>
+  </React.Fragment>
+
+  return <PropertyCard title={sectionDef.name} action={actions}>
     <Box margin={2}>
-      <SectionEditor sectionDef={sectionDef} section={section} {...props} />
+      <SectionEditor
+        sectionDef={sectionDef}
+        section={section}
+        showJson={showJson}
+        {...props}
+      />
     </Box>
   </PropertyCard>
 })
 
 SectionCard.propTypes = {
+  archivePath: PropTypes.string.isRequired,
   sectionDef: PropTypes.object.isRequired,
   getSection: PropTypes.func.isRequired
 }

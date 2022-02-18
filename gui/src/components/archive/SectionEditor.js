@@ -1,11 +1,16 @@
 import React, { useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Button, IconButton, makeStyles, TextField, Typography } from '@material-ui/core'
+import { Box, makeStyles, TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
-import { useApi } from '../api'
-import { useErrors } from '../errors'
-import CodeIcon from '@material-ui/icons/Code'
 import _ from 'lodash'
+import { EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
+import KeepMaxHeight from '../utils/KeepMaxHeight'
+
+const editQuantityComponents = {
+  NumberEditQuantity: NumberEditQuantity,
+  StringEditQuantity: StringEditQuantity,
+  EnumEditQuantity: EnumEditQuantity
+}
 
 const JsonEditor = React.memo(function JsonEditor({data, onChange}) {
   const [json, setJson] = useState(JSON.stringify(data, null, 2))
@@ -39,22 +44,31 @@ JsonEditor.propTypes = {
   onChange: PropTypes.func
 }
 
-const PropertyEditor = React.memo(function PropertyEditor({property, value, onChange}) {
+const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section, onChange}) {
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value)
     }
   }, [onChange])
-  if (property.type?.type_kind === 'python' && property.type?.type_data === 'str' && property.shape?.length === 0) {
-    return <TextField
-      fullWidth variant="filled" value={value || ''} label={property.name}
-      onChange={event => handleChange(event.target.value)}/>
+  const editAnnotations = quantityDef.m_annotations?.eln || []
+  const editAnnotation = editAnnotations[0]
+  const componentName = editAnnotation?.component
+  const component = componentName && editQuantityComponents[componentName]
+  if (!component) {
+    return ''
   }
-  return ''
+  const props = {
+    value: section[quantityDef.name],
+    section: section,
+    quantityDef: quantityDef,
+    onChange: handleChange,
+    ...(editAnnotation?.props || {})
+  }
+  return React.createElement(component, props)
 })
 PropertyEditor.propTypes = {
-  property: PropTypes.object.isRequired,
-  value: PropTypes.any,
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
   onChange: PropTypes.func
 }
 
@@ -63,89 +77,44 @@ const useSectionEditorStyles = makeStyles(theme => ({
     minWidth: 600
   }
 }))
-const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange}) {
+const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange, showJson}) {
   const classes = useSectionEditorStyles()
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-  const [showJson, setShowJson] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [version, setVersion] = useState(0)
-  const [savedVersion, setSavedVersion] = useState(0)
-  const {metadata, archive, reload} = useEntryContext()
-  const hasChanges = version > savedVersion
+  const {handleArchiveChanged} = useEntryContext()
 
   const handleChange = useCallback((property, value) => {
     section[property.name] = value
     if (onChange) {
       onChange(section)
     }
-    setVersion(value => value + 1)
-  }, [section, onChange, setVersion])
-
-  const handleSave = useCallback(() => {
-    const uploadId = metadata.upload_id
-    const {mainfile} = metadata
-    if (uploadId) {
-      const separatorIndex = mainfile.lastIndexOf('/')
-      const path = mainfile.substring(0, separatorIndex + 1)
-      const fileName = mainfile.substring(separatorIndex + 1)
-      const newArchive = {...archive}
-      delete newArchive.metadata
-      delete newArchive.results
-      delete newArchive.processing_logs
-      api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}`, newArchive)
-        .then(() => {
-          // TODO this is just a hack, wait a bit for reprocessing too complete
-          window.setTimeout(reload, 1000)
-        })
-        .catch(raiseError)
-        .finally(() => setSaving(false))
-      setSaving(true)
-    }
-    setSavedVersion(version)
-  }, [setSavedVersion, version, api, raiseError, setSaving, archive, metadata, reload])
+    handleArchiveChanged()
+  }, [section, onChange, handleArchiveChanged])
 
   const handleJsonChange = useCallback((data) => {
     _.extend(section, data)
     if (onChange) {
       onChange(section)
     }
-    setVersion(value => value + 1)
-  }, [setVersion, onChange, section])
+    handleArchiveChanged()
+  }, [handleArchiveChanged, onChange, section])
 
-  return <div className={classes.root}>
-    <Box display="flex" flexDirection="row" justifyContent="flex-end" marginBottom={1}>
-      <IconButton size="small" onClick={() => setShowJson(!showJson)}>
-        <CodeIcon/>
-      </IconButton>
-    </Box>
+  return <KeepMaxHeight className={classes.root}>
     {showJson ? <JsonEditor data={section} onChange={handleJsonChange} /> : (
       sectionDef._allProperties.map(property => (
         <Box marginBottom={1} key={property.name}>
           <PropertyEditor
-            property={property}
-            value={section && section[property.name]} onChange={value => handleChange(property, value)}
+            quantityDef={property}
+            section={section || {}} onChange={value => handleChange(property, value)}
           />
         </Box>
       ))
     )}
-    <Box display="flex" flexDirection="row" alignItems="center" marginY={1}>
-      <Box flexGrow={1}>
-        <Typography>{hasChanges ? 'Not yet saved' : 'All changes saved'}</Typography>
-      </Box>
-      <Button
-        color="primary" variant="contained"
-        disabled={!hasChanges || saving} onClick={handleSave}
-      >
-        {saving ? 'Saving...' : 'Save'}
-      </Button>
-    </Box>
-  </div>
+  </KeepMaxHeight>
 })
 SectionEditor.propTypes = {
   sectionDef: PropTypes.object.isRequired,
   section: PropTypes.object,
   onChange: PropTypes.func,
+  showJson: PropTypes.bool,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node

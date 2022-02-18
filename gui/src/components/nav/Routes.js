@@ -484,6 +484,24 @@ EntryButton.propTypes = {
 }
 
 /**
+ * A button that allows to navigate to the entry page's archive view under the current route prefix.
+ * @param {string} uploadId
+ * @param {string} entryId
+ * @param {string} path
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const ArchiveButton = React.forwardRef((props, ref) => {
+  const {uploadId, entryId, path, ...moreProps} = props
+  const routePath = `entry/id/${uploadId}/${entryId}/archive/${path}`
+  return <RouteButton path={routePath} {...moreProps} ref={ref} />
+})
+ArchiveButton.propTypes = {
+  uploadId: PropTypes.string.isRequired,
+  entryId: PropTypes.string.isRequired,
+  path: PropTypes.string
+}
+
+/**
  * A button that allows to navigate to the dataset page under the current route prefix.
  * @param {string} datasetId
  * @param {elementType} component The component to use to render the button. Default is Button.
