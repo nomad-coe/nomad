@@ -32,7 +32,7 @@ from nomad import utils, config, files
 from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
-from nomad.search import search
+from nomad.search import search, refresh as search_refresh
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
@@ -922,7 +922,10 @@ async def put_upload_raw_path(
 
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            entry = upload.put_file_and_process_local(upload_path, path)
+            reprocess_settings = dict(
+                index_invidiual_entries=True, reprocess_existing_entries=True)
+            entry = upload.put_file_and_process_local(
+                upload_path, path, reprocess_settings=reprocess_settings)
             if upload.process_status == ProcessStatus.FAILURE:
                 # Should only happen if we fail to put the file, match the file, or to *initiate*
                 # entry processing - i.e. normally, this shouldn't happen, not even with
@@ -931,11 +934,10 @@ async def put_upload_raw_path(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Failed to put and process: {upload.errors[0]}')
 
+            search_refresh()
+
             archive = None
             if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
-                # NOTE: We can't rely on ES to get the metadata for the entry, since it may
-                # not have hade enough time to update its index etc. For now, we will just
-                # ignore this, as we do not need it.
                 entry_metadata = dict(
                     upload_id=upload_id,
                     entry_id=entry.entry_id,
