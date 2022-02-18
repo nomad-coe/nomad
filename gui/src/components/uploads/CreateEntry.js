@@ -4,6 +4,8 @@ import { Autocomplete } from '@material-ui/lab'
 import { uploadPageContext } from './UploadPage'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import { getUrl } from '../nav/Routes'
+import { useHistory, useLocation } from 'react-router-dom'
 
 const templates = [
   {
@@ -25,18 +27,24 @@ const templates = [
 ]
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {setUpload, data} = useContext(uploadPageContext)
+  const {data} = useContext(uploadPageContext)
   const uploadId = data.upload.upload_id
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [name, setName] = useState('')
   const [template, setTemplate] = useState(templates[0])
+  const history = useHistory()
+  const location = useLocation()
 
   const handleAdd = useCallback(() => {
-    api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json`, template.archive)
-      .then(response => setUpload(response.data))
+    api.put(`uploads/${uploadId}/raw/?file_name=${name}.archive.json&wait_for_processing=true`, template.archive)
+      .then(response => {
+        // TODO handle processing errors
+        const entryId = response.processing.entry_id
+        history.push(getUrl(`entry/id/${uploadId}/${entryId}`, location))
+      })
       .catch(raiseError)
-  }, [api, raiseError, setUpload, template, name, uploadId])
+  }, [api, raiseError, template, name, uploadId, history, location])
 
   return <React.Fragment>
     <Box display="flex" flexDirection="row" alignItems="center" >

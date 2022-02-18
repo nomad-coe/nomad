@@ -93,7 +93,6 @@ const OverviewView = React.memo((props) => {
   }, [index])
 
   useEffect(() => {
-    console.log(editable)
     if (editable === true) {
       requireArchive()
     } else if (editable === false) {

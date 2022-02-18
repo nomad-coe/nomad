@@ -80,15 +80,18 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
-      api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}`, newArchive)
-        .then(() => {
-          // TODO this is just a hack, wait a bit for reprocessing too complete
-          window.setTimeout(reload, 5000)
+      api.put(`/uploads/${uploadId}/raw/${path}?file_name=${fileName}&wait_for_processing=true`, newArchive)
+        .then(response => {
+          // TODO handle processing errors
+          reload()
         })
         .catch(raiseError)
     }
     setSavedArchiveVersion(archiveVersion)
-  }, [setSavedArchiveVersion, archiveVersion, api, raiseError, archive, metadata, reload])
+  }, [
+    setSavedArchiveVersion, archiveVersion, api, reload,
+    raiseError, archive, metadata
+  ])
 
   const handleArchiveChanged = useCallback(() => {
     setArchiveVersion(value => value + 1)
@@ -96,10 +99,7 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
 
   const value = useMemo(() => {
     const editable = metadata && !metadata.published && (metadata.quantities.find(quantity => {
-      // TODO find a suitable mechanism to determine if an entry needs editor functions.
-      // This should be based on the entries schema and not its data. But currently
-      // all entries are EntryArchive and do not have a special schema.
-      return quantity === 'sample'
+      return quantity === 'data'
     }) !== null)
     return {
       entryId: entryId,
