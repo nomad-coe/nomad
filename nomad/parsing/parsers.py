@@ -25,59 +25,11 @@ from nomad.datamodel import results
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from vaspparser import VASPParser
-from phonopyparser import PhonopyParser
-from elasticparser import ElasticParser
-from lammpsparser import LammpsParser
-from gromacsparser import GromacsParser
-from crystalparser import CrystalParser
-from fhiaimsparser import FHIAimsParser
-from excitingparser import ExcitingParser
-from abinitparser import AbinitParser
-from quantumespressoparser import QuantumEspressoParser
-from gaussianparser import GaussianParser
-from gpawparser import GPAWParser
-from octopusparser import OctopusParser
-from orcaparser import OrcaParser
-from cp2kparser import CP2KParser
-from fhivibesparser import FHIVibesParser
-from turbomoleparser import TurbomoleParser
-from castepparser import CastepParser
-from wien2kparser import Wien2kParser
-from nwchemparser import NWChemParser
-from lobsterparser import LobsterParser
-from bandparser import BandParser
-from amberparser import AmberParser
-from asapparser import AsapParser
-from bigdftparser import BigDFTParser
-from cpmdparser import CPMDParser
-from dftbplusparser import DFTBPlusParser
-from dlpolyparser import DLPolyParser
-from dmol3parser import Dmol3Parser
-from elkparser import ElkParser
-from fleurparser import FleurParser
-from fploparser import FploParser
-from gamessparser import GamessParser
-from gromosparser import GromosParser
-from gulpparser import GulpParser
-from molcasparser import MolcasParser
-from mopacparser import MopacParser
-from namdparser import NAMDParser
-from onetepparser import OnetepParser
-from siestaparser import SiestaParser
-from tinkerparser import TinkerParser
-from charmmparser import CharmmParser
-from libatomsparser import LibAtomsParser
-from atkparser import ATKParser
-from qboxparser import QboxParser
-from openkimparser import OpenKIMParser
+import electronicparsers
+import atomisticparsers
+import workflowparsers
 from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
-from aflowparser import AFLOWParser
-from mpparser import MPParser
-from asrparser import ASRParser
-from psi4parser import Psi4Parser
-from yamboparser import YamboParser
 # TODO
 # from mpesparser import MPESParser
 # from aptfimparser import APTFIMParser
@@ -172,61 +124,61 @@ parsers = [
     GenerateRandomParser(),
     TemplateParser(),
     ChaosParser(),
-    PhonopyParser(),
-    VASPParser(),
-    ExcitingParser(),
-    FHIAimsParser(),
-    FHIVibesParser(),
-    CP2KParser(),
-    CrystalParser(),
-    CPMDParser(),
-    NWChemParser(),
-    BigDFTParser(),
-    Wien2kParser(),
-    BandParser(),
-    QuantumEspressoParser(),
-    GaussianParser(),
-    AbinitParser(),
-    OrcaParser(),
-    CastepParser(),
-    DLPolyParser(),
-    LibAtomsParser(),
-    OctopusParser(),
-    GPAWParser(),
-    ATKParser(),
-    GulpParser(),
-    SiestaParser(),
-    ElkParser(),
-    ElasticParser(),
-    GamessParser(),
-    TurbomoleParser(),
-    QboxParser(),
-    Dmol3Parser(),
-    FleurParser(),
-    MolcasParser(),
-    OnetepParser(),
-    OpenKIMParser(),
-    TinkerParser(),
-    LammpsParser(),
-    AmberParser(),
-    GromacsParser(),
-    LobsterParser(),
-    GromosParser(),
-    NAMDParser(),
-    CharmmParser(),
-    DFTBPlusParser(),
-    AsapParser(),
-    FploParser(),
-    MopacParser(),
+    workflowparsers.PhonopyParser(),
+    electronicparsers.VASPParser(),
+    electronicparsers.ExcitingParser(),
+    electronicparsers.FHIAimsParser(),
+    workflowparsers.FHIVibesParser(),
+    electronicparsers.CP2KParser(),
+    electronicparsers.CrystalParser(),
+    electronicparsers.CPMDParser(),
+    electronicparsers.NWChemParser(),
+    electronicparsers.BigDFTParser(),
+    electronicparsers.Wien2kParser(),
+    electronicparsers.BandParser(),
+    electronicparsers.QuantumEspressoParser(),
+    electronicparsers.GaussianParser(),
+    electronicparsers.AbinitParser(),
+    electronicparsers.OrcaParser(),
+    electronicparsers.CastepParser(),
+    atomisticparsers.DLPolyParser(),
+    atomisticparsers.LibAtomsParser(),
+    electronicparsers.OctopusParser(),
+    electronicparsers.GPAWParser(),
+    electronicparsers.ATKParser(),
+    atomisticparsers.GulpParser(),
+    electronicparsers.SiestaParser(),
+    electronicparsers.ElkParser(),
+    workflowparsers.ElasticParser(),
+    electronicparsers.GamessParser(),
+    electronicparsers.TurbomoleParser(),
+    electronicparsers.QboxParser(),
+    electronicparsers.Dmol3Parser(),
+    electronicparsers.FleurParser(),
+    electronicparsers.MolcasParser(),
+    electronicparsers.OnetepParser(),
+    atomisticparsers.OpenKIMParser(),
+    atomisticparsers.TinkerParser(),
+    atomisticparsers.LammpsParser(),
+    atomisticparsers.AmberParser(),
+    atomisticparsers.GromacsParser(),
+    workflowparsers.LobsterParser(),
+    atomisticparsers.GromosParser(),
+    atomisticparsers.NAMDParser(),
+    electronicparsers.CharmmParser(),
+    atomisticparsers.DFTBPlusParser(),
+    atomisticparsers.AsapParser(),
+    electronicparsers.FploParser(),
+    atomisticparsers.MopacParser(),
     # MPESParser(),
     # APTFIMParser(),
     EELSDBParser(),
     XPSParser(),
-    AFLOWParser(),
-    MPParser(),
-    ASRParser(),
-    Psi4Parser(),
-    YamboParser(),
+    workflowparsers.AFLOWParser(),
+    workflowparsers.MPParser(),
+    workflowparsers.ASRParser(),
+    electronicparsers.Psi4Parser(),
+    electronicparsers.YamboParser(),
     ArchiveParser()
 ]
 

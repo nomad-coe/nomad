@@ -226,6 +226,22 @@ class EnergyEntry(Atomic):
         Value of the potential energy.
         ''')
 
+    kinetic = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the kinetic energy.
+        ''')
+
+    correction = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the correction to the energy.
+        ''')
+
 
 class Energy(MSection):
     '''
@@ -241,6 +257,7 @@ class Energy(MSection):
         Contains the value and information regarding the total energy of the system.
         ''')
 
+    # TODO this should be removed and replaced by correction in EnergyEntry
     current = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -257,12 +274,19 @@ class Energy(MSection):
         Contains the value and information regarding the converged zero-point
         vibrations energy calculated using the method described in zero_point_method.
         ''')
-
+    # this should be removed and replaced by electronic.kinetic
     kinetic_electronic = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the self-consistent electronic
         kinetic energy.
+        ''')
+
+    electronic = SubSection(
+        sub_section=EnergyEntry.m_def,
+        description='''
+        Contains the value and information regarding the self-consistent electronic
+        energy.
         ''')
 
     correlation = SubSection(
@@ -384,7 +408,7 @@ class Energy(MSection):
         ''',
         repeats=True)
 
-    # TODO determine if correction can be generalized in EnergyEntry
+    # TODO remove this should be be entropy.correction
     correction_entropy = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -393,6 +417,7 @@ class Energy(MSection):
         in account. Defined consistently with XC_method.
         ''')
 
+    # TODO remove this should be in electrostatic.correction
     correction_hartree = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -401,6 +426,7 @@ class Energy(MSection):
         density electrostatic energy. Defined consistently with XC_method.
         ''')
 
+    # TODO remove this should be in xc.correction
     correction_xc = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -965,6 +991,14 @@ class MultipolesEntry(Atomic):
     '''
 
     m_def = Section(validate=False)
+
+    origin = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        unit='meter',
+        description='''
+        Origin in cartesian space.
+        ''')
 
     n_multipoles = Quantity(
         type=int,
