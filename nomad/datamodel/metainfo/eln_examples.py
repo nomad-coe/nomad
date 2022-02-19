@@ -61,6 +61,44 @@ class Sample(ElnBaseSection):
         type=np.dtype(np.int32),
         a_eln=dict(component='NumberEditQuantity'))
 
+    coating_method = Quantity(
+        type=MEnum(
+            'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy',
+            'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
+            'Some forms of Epitaxy', 'Molecular beam epitaxy', 'Physical vapor deposition',
+            'Cathodic arc deposition', 'Electron beam physical vapor deposition (EBPVD)',
+            'Ion plating', 'Ion beam assisted deposition (IBAD)', 'Magnetron sputtering',
+            'Pulsed laser deposition', 'Sputter deposition', 'Vacuum deposition',
+            'Pulsed electron deposition (PED)', 'Chemical and electrochemical techniques',
+            'Conversion coating', 'Autophoretic', 'Anodising',
+            'Chromate conversion coating', 'Plasma electrolytic oxidation', 'Phosphate',
+            'Ion beam mixing', 'Pickled and oiled, a type of plate steel coating',
+            'Plating', 'Electroless plating', 'Electroplating', 'Spraying', 'Spray painting',
+            'High velocity oxygen fuel (HVOF)', 'Plasma spraying',
+            'Thermal spraying', 'Kinetic metallization (KM)', 'Plasma transferred wire arc thermal spraying',
+            'The common forms of Powder coating', 'Roll-to-roll coating processes',
+            'Common roll-to-roll coating processes include:', 'Air knife coating', 'Anilox coater',
+            'Flexo coater', 'Gap Coating', 'Knife-over-roll coating', 'Gravure coating',
+            'Immersion dip coating', 'Kiss coating', 'Metering rod (Meyer bar) coating',
+            'Roller coating', 'Forward roller coating', 'Reverse roll coating',
+            'Silk Screen coater', 'Rotary screen', 'Lithography', 'Flexography',
+            'Physical coating processes', 'Langmuir-Blodgett', 'Spin coating', 'Dip coating'),
+        a_eln=dict(
+            label='Coating Method',
+            component='AutocompleteEditQuantity'))
+
+    sample_status = Quantity(
+        type=MEnum('prepared', 'characterized', 'depleted', 'unknown'),
+        a_eln=dict(
+            label='Sample Status',
+            component='EnumEditQuantity'))
+
+    spin_polarized = Quantity(
+        type=bool,
+        a_eln=dict(
+            label='Spin Polarized',
+            component='BoolEditQuantity'))
+
     processes = SubSection(section_def=SectionProxy('Process'))
 
     def normalize_results(self, results: Results, logger):

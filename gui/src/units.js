@@ -283,6 +283,8 @@ export function toSI(value, unit, returnLabel = false) {
  * @returns
  */
 export function convertUnit(value, unit, targetUnit, returnLabel = false) {
+  if (value === undefined || isNaN(value) || targetUnit === undefined || unit === undefined) return undefined
+
   // If value given as Quantity, extract unit and value from it
   if (value instanceof Quantity) {
     value = value.value

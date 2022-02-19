@@ -3,13 +3,15 @@ import PropTypes from 'prop-types'
 import { Box, makeStyles, TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import _ from 'lodash'
-import { EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
+import { AutocompleteEditQuantity, BoolEditQuantity, EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
 import KeepMaxHeight from '../utils/KeepMaxHeight'
 
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
   StringEditQuantity: StringEditQuantity,
-  EnumEditQuantity: EnumEditQuantity
+  EnumEditQuantity: EnumEditQuantity,
+  AutocompleteEditQuantity: AutocompleteEditQuantity,
+  BoolEditQuantity: BoolEditQuantity
 }
 
 const JsonEditor = React.memo(function JsonEditor({data, onChange}) {
