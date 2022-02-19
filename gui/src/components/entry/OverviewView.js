@@ -17,7 +17,7 @@
  */
 import React, { useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, makeStyles, Box, Grid, Divider, IconButton } from '@material-ui/core'
+import { Typography, makeStyles, Box, Grid, Divider } from '@material-ui/core'
 import Quantity from '../Quantity'
 import ElectronicPropertiesCard from '../entry/properties/ElectronicPropertiesCard'
 import MaterialCard from '../entry/properties/MaterialCard'
@@ -32,7 +32,7 @@ import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
 import { metainfoDef } from '../archive/metainfo'
 import FilesCard from './properties/FilesCard'
-import SaveIcon from '@material-ui/icons/Save'
+import { ArchiveSaveButton } from '../archive/ArchiveBrowser'
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -81,7 +81,7 @@ const useStyles = makeStyles(theme => ({
  * Shows an informative overview about the selected entry.
  */
 const OverviewView = React.memo((props) => {
-  const {metadata, metadataApiData, exists, editable, requireArchive, archiveApiData, archiveHasChanges, saveArchive} = useEntryContext()
+  const {metadata, metadataApiData, exists, editable, requireArchive, archiveApiData} = useEntryContext()
   const archive = useMemo(() => archiveApiData?.response?.data?.archive, [archiveApiData])
   const index = metadata
 
@@ -190,16 +190,11 @@ const OverviewView = React.memo((props) => {
       </Grid>
 
       <Grid item xs={8} className={classes.rightColumn}>
-        {editable &&
+        {editable && (
           <Box textAlign="right" className={classes.editActions}>
-            <IconButton
-              disabled={!archiveHasChanges} color="primary"
-              onClick={saveArchive}
-            >
-              <SaveIcon/>
-            </IconButton>
+            <ArchiveSaveButton />
           </Box>
-        }
+        )}
         {sections
           .map((section, index) => (
             <SectionCard

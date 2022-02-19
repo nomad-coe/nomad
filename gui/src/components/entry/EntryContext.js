@@ -103,6 +103,7 @@ const EntryContext = React.memo(function EntryContext({entryId, children}) {
     }) !== null)
     return {
       entryId: entryId,
+      uploadId: metadata?.upload_id,
       exists: exists,
       metadata: metadata,
       metadataApiData: metadataApiData,

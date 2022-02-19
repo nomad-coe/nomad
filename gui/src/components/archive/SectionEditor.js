@@ -60,7 +60,6 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section,
     return ''
   }
   const props = {
-    value: section[quantityDef.name],
     section: section,
     quantityDef: quantityDef,
     onChange: handleChange,

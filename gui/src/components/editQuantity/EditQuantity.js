@@ -234,24 +234,19 @@ NumberEditQuantity.propTypes = {
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState()
-  const defaultValue = (quantityDef?.default !== undefined ? quantityDef?.default : '')
+  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
 
-  useEffect(() => {
-    setValue(section[quantityDef.name] || defaultValue)
-  }, [defaultValue, quantityDef, section])
-
-  const handleChange = useCallback((newValue) => {
-    setValue(newValue)
+  const handleChange = useCallback((value) => {
+    setValue(value)
     if (onChange) {
-      onChange((newValue === '' ? defaultValue : newValue), section, quantityDef)
+      onChange(value === '' ? undefined : value, section, quantityDef)
     }
-  }, [defaultValue, onChange, quantityDef, section])
+  }, [onChange, quantityDef, section])
 
-  return <TextFieldWithHelp withOtherAdornment
-    select variant='filled' size='small' fullWidth label={label}
-    value={value || defaultValue}
-    onChange={event => handleChange(event.target.value)} {...otherProps}
+  return <TextFieldWithHelp
+    select variant='filled' size='small' withOtherAdornment fullWidth
+    label={label} {...otherProps} value={value}
+    onChange={event => handleChange(event.target.value)}
   >
     {quantityDef?.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
   </TextFieldWithHelp>
@@ -265,27 +260,24 @@ EnumEditQuantity.propTypes = {
 export const AutocompleteEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default)
+  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || null)
 
   const handleChange = useCallback((value) => {
     setValue(value)
     if (onChange) {
       onChange((value === '' ? undefined : value), section, quantityDef)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange, quantityDef, section, setValue])
 
-  let selectedIndex = quantityDef?.type?.type_data.indexOf(value)
-  const selected = (quantityDef?.type?.type_data && quantityDef?.type?.type_data.length > 0 && selectedIndex !== undefined && selectedIndex >= 0 ? quantityDef?.type?.type_data[selectedIndex] : '')
   return <AutoComplete
-    options={quantityDef?.type?.type_data}
-    onChange={(event, value) => handleChange((value || ''))}
+    options={quantityDef.type.type_data}
+    onChange={(event, value) => handleChange(value)}
     ListboxProps={{style: {maxHeight: '150px'}}}
-    value={selected}
+    value={value}
     renderInput={params => (
       <TextField
         {...params}
-        variant='filled' size='small'
-        label={label}
+        variant='filled' size='small' label={label}
         placeholder={quantityDef?.description} fullWidth/>
     )}
     {...otherProps}

@@ -38,6 +38,8 @@ import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogBut
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
+import { useEntryContext } from '../entry/EntryContext'
+import SaveIcon from '@material-ui/icons/Save'
 
 export const configState = atom({
   key: 'config',
@@ -67,6 +69,20 @@ ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
 export default ArchiveBrowser
+
+export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
+  const {editable, archiveHasChanges, saveArchive} = useEntryContext()
+  return <React.Fragment>
+    {editable &&
+      <IconButton
+        disabled={!archiveHasChanges} color="primary"
+        onClick={saveArchive}
+      >
+        <SaveIcon/>
+      </IconButton>
+    }
+  </React.Fragment>
+})
 
 function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
@@ -152,6 +168,7 @@ function ArchiveConfigForm({searchOptions, data}) {
         <SourceApiDialogButton maxWidth="lg" fullWidth>
           <SourceApiCall />
         </SourceApiDialogButton>
+        <ArchiveSaveButton/>
       </FormGroup>
     </Box>
   )
