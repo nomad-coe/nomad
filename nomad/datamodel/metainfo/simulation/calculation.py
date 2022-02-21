@@ -703,6 +703,22 @@ class BandGap(MSection):
         The lowest unoccupied energy.
         """)
 
+    value_fundamental = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        GW fundamental band gap
+        ''')
+
+    value_optical = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        GW optical band gap
+        ''')
+
 
 class BandEnergies(MSection):
     '''
@@ -787,6 +803,71 @@ class BandEnergies(MSection):
         description='''
         Values of the band energies.
         ''')
+
+    qp_linearization_prefactor = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        description='''
+        Values of the GW quasi particle linearization pre-factor.
+        ''')
+
+    value_xc_potential = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the GW exchange-correlation potential.
+        ''')
+
+    value_correlation = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the GW correlation energy.
+        ''')
+
+    value_exchange = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the GW exchange energy.
+        ''')
+
+    value_xc = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the GW exchange-correlation energy.
+        ''')
+
+    value_qp = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the GW quasi-particle energy.
+        ''')
+
+    value_ks = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the Kohn-Sham energy.
+        ''')
+
+    value_ks_xc = Quantity(
+        type=np.dtype(np.float64),
+        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
+        unit='joule',
+        description='''
+        Diagonal matrix elements of the Kohn-Sham exchange-correlation energy.
+        ''')
+
+    band_gap = SubSection(sub_section=BandGap.m_def, repeats=True)
 
 
 class BandStructure(MSection):
@@ -1046,118 +1127,6 @@ class Multipoles(MSection):
     octupole = SubSection(sub_section=MultipolesEntry.m_def, repeats=False)
 
     higher_order = SubSection(sub_section=MultipolesEntry.m_def, repeats=True)
-
-
-class GWBandEnergies(BandEnergies):
-    '''
-    Contains information regarding the GW eigenvalues.
-    '''
-
-    m_def = Section(validate=False)
-
-    n_spin_channels = Quantity(
-        type=int,
-        shape=[],
-        description='''
-        Number of spin channels.
-        ''')
-
-    qp_linearization_prefactor = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        description='''
-        Values of the GW quasi particle linearization pre-factor.
-        ''')
-
-    value_xc_potential = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the GW exchange-correlation potential.
-        ''')
-
-    value_correlation = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the GW correlation energy.
-        ''')
-
-    value_exchange = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the GW exchange energy.
-        ''')
-
-    value_xc = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the GW exchange-correlation energy.
-        ''')
-
-    value_qp = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the GW quasi-particle energy.
-        ''')
-
-    value_ks = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the Kohn-Sham energy.
-        ''')
-
-    value_ks_xc = Quantity(
-        type=np.dtype(np.float64),
-        shape=['n_spin_channels', 'n_kpoints', 'n_bands'],
-        unit='joule',
-        description='''
-        Diagonal matrix elements of the Kohn-Sham exchange-correlation energy.
-        ''')
-
-
-class GW(MSection):
-    '''
-    Section containing the results of a GW calculation.
-    '''
-
-    m_def = Section(validate=False)
-
-    fermi_energy = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        GW Fermi energy
-        ''')
-
-    fundamental_gap = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        GW fundamental band gap
-        ''')
-
-    optical_gap = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        GW optical band gap
-        ''')
-
-    eigenvalues = SubSection(sub_section=GWBandEnergies.m_def, repeats=True)
 
 
 class Thermodynamics(MSection):
@@ -1610,8 +1579,6 @@ class BaseCalculation(MSection):
     band_structure_electronic = SubSection(sub_section=BandStructure.m_def, repeats=True)
 
     band_structure_phonon = SubSection(sub_section=BandStructure.m_def, repeats=True)
-
-    gw = SubSection(sub_section=GW.m_def, repeats=True)
 
     thermodynamics = SubSection(sub_section=Thermodynamics.m_def, repeats=True)
 
