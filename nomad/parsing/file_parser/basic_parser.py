@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Dict, Any, List
+from typing import List
 import os
 import logging
 import numpy as np
@@ -21,7 +21,6 @@ import re
 from ase.data import chemical_symbols
 
 from nomad.datamodel import EntryArchive
-from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import Method

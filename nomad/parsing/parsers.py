@@ -25,9 +25,6 @@ from nomad.datamodel import results
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, FairdiParser
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-import electronicparsers
-import atomisticparsers
-import workflowparsers
 from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
 # TODO
