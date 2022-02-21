@@ -22,17 +22,24 @@ and dcat api. The app module also servers documentation, gui, and
 alive.
 '''
 from flask import Flask, jsonify, url_for, abort, request
-from flask_restplus import Api
+# from flask_restplus import Api
 from flask_cors import CORS
 import random
 
 from nomad import config, utils as nomad_utils
 
-from .dcat import blueprint as dcat_blueprint
+# from .dcat import blueprint as dcat_blueprint
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
 from . import common
+
+from h5grove.flaskutils import BLUEPRINT as h5grove_blueprint
+
+
+def auth_before_request():
+    """TODO: Auth needs to be implemented here"""
+    pass
 
 
 @property  # type: ignore
@@ -45,8 +52,8 @@ def specs_url(self):
     return url_for(self.endpoint('specs'), _external=True, _scheme='https')
 
 
-if config.services.https:
-    Api.specs_url = specs_url
+# if config.services.https:
+#     Api.specs_url = specs_url
 
 
 app = Flask(__name__)
@@ -61,10 +68,16 @@ app.config['SECRET_KEY'] = config.services.api_secret
 
 CORS(app)
 
-app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
+# app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
+
+app.config["H5_BASE_DIR"] = config.fs.staging
+app.before_request_funcs = {
+    "h5grove": [auth_before_request]
+}
+app.register_blueprint(h5grove_blueprint, url_prefix='/h5grove')
 
 
 @app.errorhandler(Exception)
