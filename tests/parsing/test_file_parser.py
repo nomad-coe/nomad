@@ -315,9 +315,7 @@ class TestBasicParser:
     def onetep_parser(self):
         re_f = r'\-*\d+\.\d+E*\-*\+*\d+'
         return BasicParser(
-            specifications=dict(
-                name='parsers/onetep', code_name='ONETEP', code_homepage='https://www.onetep.org/',
-                domain='dft', mainfile_contents_re=r'####### #     # ####### ####### ####### ######'),
+            'ONETEP',
             units_mapping=dict(energy=ureg.hartree, length=ureg.bohr),
             auxilliary_files=r'([\w\-]+\.dat)',
             program_version=r'Version\s*([\d\.]+)',

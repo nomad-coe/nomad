@@ -22,6 +22,7 @@ import re
 import os
 import os.path
 from functools import lru_cache
+import importlib
 
 from nomad import config
 from nomad.datamodel import EntryArchive, EntryMetadata
@@ -220,8 +221,25 @@ class MatchingParser(Parser):
         return self.name
 
 
-# For backward compatibility
-FairdiParser = MatchingParser
+class FairdiParser(MatchingParser):
+    '''
+    A parser implementation for the NOMAD FairDI parsers.
+    '''
+    def __init__(self, parser_class_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._parser_class_name = parser_class_name
+        self._mainfile_parser = None
+
+    @property
+    def mainfile_parser(self):
+        if self._mainfile_parser is None:
+            module_path, parser_class = self._parser_class_name.rsplit('.', 1)
+            module = importlib.import_module(module_path)
+            self._mainfile_parser = getattr(module, parser_class)()
+        return self._mainfile_parser
+
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+        self.mainfile_parser.parse(mainfile, archive, logger)
 
 
 class ArchiveParser(MatchingParser):
