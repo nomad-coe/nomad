@@ -35,8 +35,8 @@ const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
 
   return <React.Fragment>
-    {description && <IconButton size="small">
-      {<HelpOutlineIcon fontSize='small' onClick={() => setOpen(true)}/>}
+    {description && <IconButton size="small" onClick={() => setOpen(true)}>
+      {<HelpOutlineIcon fontSize='small'/>}
     </IconButton>}
     {open && <Dialog open={open}>
       <DialogTitle>{title}</DialogTitle>
@@ -182,10 +182,9 @@ export const NumberEditQuantity = React.memo((props) => {
   const timeout = useRef()
 
   useEffect(() => {
-    let newValue = section[quantityDef.name]
-    newValue = `${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), quantityDef.unit, unit) : '') : newValue)}`
+    let newValue = section[quantityDef.name] || defaultValue
     setValue(newValue)
-    setConvertedValue((newValue === '' || newValue === undefined ? `${defaultValue}` : Number(newValue)))
+    setConvertedValue(`${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), quantityDef.unit, unit) : '') : newValue)}`)
   }, [defaultValue, isUnit, quantityDef, section, unit])
 
   const handleChangeUnit = useCallback((newUnit) => {
@@ -209,13 +208,8 @@ export const NumberEditQuantity = React.memo((props) => {
   const validation = useCallback((newValue) => {
     setError('')
     if (newValue === '') {
-      if (defaultValue !== '') {
-        setConvertedValue(`${(isUnit ? (!isNaN(Number(defaultValue)) || value === '' ? convertUnit(Number(defaultValue), unit, quantityDef.unit) : '') : defaultValue)}`)
-        setValue(Number(defaultValue))
-      } else {
-        setConvertedValue(`${defaultValue}`)
-        setValue(defaultValue)
-      }
+      setConvertedValue('')
+      setValue('')
     } else if (!isValidNumber(newValue)) {
       setError('Please enter a valid number!')
     } else if (minValue !== undefined && Number(newValue) < minValue) {
@@ -223,21 +217,21 @@ export const NumberEditQuantity = React.memo((props) => {
     } else if (maxValue !== undefined && Number(newValue) > maxValue) {
       setError(`The value should be less than or equal to ${maxValue}`)
     } else {
-      setValue((isUnit ? (!isNaN(Number(newValue)) || value === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue))
+      setValue((isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue))
       setConvertedValue(`${Number(newValue)}`)
     }
-  }, [defaultValue, isUnit, isValidNumber, maxValue, minValue, quantityDef, unit, value])
+  }, [isUnit, isValidNumber, maxValue, minValue, quantityDef, unit])
 
   const handleChangeValue = useCallback((newValue) => {
     setConvertedValue(`${newValue}`)
     if (onChange) {
-      onChange((newValue === '' ? Number(defaultValue) : (isUnit ? (!isNaN(Number(newValue)) || value === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue)), section, quantityDef)
+      onChange((isUnit ? (newValue === '' ? newValue : (!isNaN(Number(newValue)) ? convertUnit(Number(newValue), unit, quantityDef.unit) : '')) : newValue), section, quantityDef)
     }
     clearTimeout(timeout.current)
     timeout.current = setTimeout(() => {
       validation(newValue)
     }, 1000)
-  }, [isUnit, value, validation, unit, defaultValue, onChange, quantityDef, section, timeout])
+  }, [isUnit, validation, unit, onChange, quantityDef, section, timeout])
 
   const handleValidator = useCallback((event) => {
     validation(event.target.value)
@@ -319,6 +313,7 @@ export const AutocompleteEditQuantity = React.memo((props) => {
       <TextFieldWithHelp
         {...params}
         variant='filled' size='small' label={label}
+        helpTitle={label} helpDescription={quantityDef.description}
         placeholder={quantityDef.description} fullWidth/>
     )}
     {...otherProps}

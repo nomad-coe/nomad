@@ -73,6 +73,7 @@ const defs = {
     name: 'height',
     unit: 'meter',
     description: 'The value of height in meter',
+    default: 1.5e22,
     type: {
       type_kind: 'numpy',
       type_data: 'float64'
@@ -147,6 +148,7 @@ const defs = {
   EnumQuantityDef: {
     name: 'distance',
     description: 'The distance',
+    default: '200',
     type: {
       type_kind: 'Enum',
       type_data: [
@@ -225,7 +227,6 @@ let section = {
   count: 10,
   distance: 100,
   coatingMethod: 'Pulsed electron deposition (PED)',
-  height: 0.15e20,
   mass: 1
 }
 
