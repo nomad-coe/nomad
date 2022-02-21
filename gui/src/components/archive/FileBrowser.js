@@ -28,23 +28,25 @@ import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
 
-const FileBrowser = React.memo(({uploadId, path, rootTitle}) => {
-  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle)
+const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem}) => {
+  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem)
   return <Browser adaptor={adaptor} />
 })
 FileBrowser.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
-  rootTitle: PropTypes.string.isRequired
+  rootTitle: PropTypes.string.isRequired,
+  highlightedItem: PropTypes.string
 }
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(uploadId, path, title) {
+  constructor(uploadId, path, title, highlightedItem) {
     super()
     this.uploadId = uploadId
     this.path = path
     this.title = title
+    this.highlightedItem = highlightedItem
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
   async initialize(api) {
@@ -69,11 +71,11 @@ class RawDirectoryAdaptor extends Adaptor {
     throw new Error('Bad path: ' + key)
   }
   render() {
-    return <RawDirectoryContent uploadId={this.uploadId} path={this.path} title={this.title}/>
+    return <RawDirectoryContent uploadId={this.uploadId} path={this.path} title={this.title} highlightedItem={this.highlightedItem}/>
   }
 }
 
-function RawDirectoryContent({uploadId, path, title}) {
+function RawDirectoryContent({uploadId, path, title, highlightedItem}) {
   const lane = useContext(laneContext)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
@@ -108,6 +110,7 @@ function RawDirectoryContent({uploadId, path, title}) {
               <Item
                 icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
                 itemKey={element.name} key={path ? path + '/' + element.name : element.name}
+                highlighted={element.name === highlightedItem}
                 chip={element.parser_name && element.parser_name.replace('parsers/', '')}
               >
                 {element.name}
@@ -125,7 +128,8 @@ function RawDirectoryContent({uploadId, path, title}) {
 RawDirectoryContent.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired
+  title: PropTypes.string.isRequired,
+  highlightedItem: PropTypes.bool
 }
 
 class RawFileAdaptor extends Adaptor {
