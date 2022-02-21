@@ -29,7 +29,7 @@ import {
   DialogTitle,
   DialogContent,
   FormControl,
-  FormLabel, RadioGroup, Radio
+  FormLabel, RadioGroup, Radio, Slider
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -221,13 +221,16 @@ export const NumberEditQuantity = React.memo((props) => {
       setValue('')
     } else if (!isValidNumber(newValue)) {
       setError('Please enter a valid number!')
-    } else if (minValue !== undefined && Number(newValue) < minValue) {
-      setError(`The value should be higher than or equal to ${minValue}`)
-    } else if (maxValue !== undefined && Number(newValue) > maxValue) {
-      setError(`The value should be less than or equal to ${maxValue}`)
     } else {
-      setValue((isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue))
-      setConvertedValue(`${Number(newValue)}`)
+      let originalValue = (isUnit ? convertUnit(Number(newValue), unit, quantityDef.unit) : newValue)
+      if (minValue !== undefined && originalValue < minValue) {
+        setError(`The value should be higher than or equal to ${minValue}${(isUnit ? `${(new Unit(quantityDef.unit)).label()}` : '')}`)
+      } else if (maxValue !== undefined && originalValue > maxValue) {
+        setError(`The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(quantityDef.unit)).label()}` : '')}`)
+      } else {
+        setValue(originalValue)
+        setConvertedValue(`${Number(newValue)}`)
+      }
     }
   }, [isUnit, isValidNumber, maxValue, minValue, quantityDef, unit])
 
@@ -347,9 +350,9 @@ export const RadioButtonEditQuantity = React.memo((props) => {
   }, [onChange, quantityDef, section])
 
   return <FormControl>
-    <FormLabel id="demo-row-radio-buttons-group-label">{label}</FormLabel>
+    <FormLabel>{label}</FormLabel>
     <RadioGroup row>
-      {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)}/>} label={item}/>)}
+      {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)} {...otherProps}/>} label={item}/>)}
     </RadioGroup>
   </FormControl>
 })
@@ -379,11 +382,73 @@ export const BoolEditQuantity = React.memo((props) => {
   return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
     <FormControlLabel
       label={label}
-      control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" checked={(!!value)}/>}
+      control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" checked={(!!value)} {...otherProps}/>}
     />
   </WithHelp>
 })
 BoolEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const SliderEditQuantity = React.memo((props) => {
+  const classes = useNumberEditQuantityStyles()
+  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const label = otherProps.label || quantityDef.name
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : undefined)
+  const [value, setValue] = useState(0)
+  const [convertedValue, setConvertedValue] = useState(0)
+  const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
+  const units = quantityDef.unit && conversionMap[dimension].units
+  const systemUnits = useUnits()
+  const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
+  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
+
+  useEffect(() => {
+    let newValue = section[quantityDef.name] || defaultValue || minValue
+    setValue(newValue)
+    setConvertedValue(`${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), quantityDef.unit, unit) : '') : newValue)}`)
+  }, [defaultValue, isUnit, minValue, quantityDef, section, unit])
+
+  const handleChangeUnit = useCallback((newUnit) => {
+    setUnit(newUnit)
+    setConvertedValue(`${(isUnit ? (!isNaN(Number(value)) || value === '' ? convertUnit(Number(value), quantityDef.unit, newUnit) : '') : value)}`)
+  }, [isUnit, quantityDef, value])
+
+  const handleChangeValue = useCallback((event, newValue) => {
+    if (typeof newValue !== 'number') return
+    setConvertedValue(`${newValue}`)
+    if (onChange) {
+      onChange((isUnit ? (newValue === '' ? newValue : (!isNaN(Number(newValue)) ? convertUnit(Number(newValue), unit, quantityDef.unit) : '')) : newValue), section, quantityDef)
+    }
+    setValue((isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue))
+    setConvertedValue(`${Number(newValue)}`)
+  }, [isUnit, unit, onChange, quantityDef, section])
+
+  return <FormControl fullWidth>
+    <FormLabel>{label}</FormLabel>
+    <Box display='flex'>
+      <Slider
+        value={Number(convertedValue)}
+        min={convertUnit(Number(minValue), quantityDef.unit, unit)}
+        max={convertUnit(Number(maxValue), quantityDef.unit, unit)}
+        onChange={handleChangeValue}
+        valueLabelDisplay={(!isUnit ? 'on' : 'off')}
+        {...otherProps}/>
+      {isUnit && <TextField
+        className={classes.unitSelect} variant='filled' size='small' select
+        label="unit" value={unit}
+        onChange={(event) => handleChangeUnit(event.target.value)}
+      >
+        {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
+      </TextField>}
+    </Box>
+  </FormControl>
+})
+SliderEditQuantity.propTypes = {
+  maxValue: PropTypes.number,
+  minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired

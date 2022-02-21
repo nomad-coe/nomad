@@ -25,7 +25,8 @@ import {
   EnumEditQuantity,
   NumberEditQuantity,
   RadioButtonEditQuantity,
-  StringEditQuantity
+  StringEditQuantity,
+  SliderEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -115,7 +116,6 @@ const defs = {
   integerQuantityDef: {
     name: 'spin',
     description: 'The spin',
-    unit: 'meter',
     type: {
       type_kind: 'numpy',
       type_data: 'int64'
@@ -246,6 +246,47 @@ const defs = {
         }
       ]
     }
+  },
+  sliderQuantityDef1: {
+    name: 'n',
+    description: 'The value of n',
+    type: {
+      type_kind: 'numpy',
+      type_data: 'int64'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'n',
+          component: 'SliderEditQuantity',
+          props: {
+            minValue: -100,
+            maxValue: 100
+          }
+        }
+      ]
+    }
+  },
+  sliderQuantityDef2: {
+    name: 'd',
+    description: 'The value of d',
+    unit: 'meter',
+    type: {
+      type_kind: 'numpy',
+      type_data: 'float64'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'd',
+          component: 'SliderEditQuantity',
+          props: {
+            minValue: 0,
+            maxValue: 100
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -292,6 +333,8 @@ const EditQuantity = React.memo((props) => {
     return <BoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'RadioButtonEditQuantity') {
     return <RadioButtonEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'SliderEditQuantity') {
+    return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -342,6 +385,12 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.RadioQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.sliderQuantityDef1} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.sliderQuantityDef2} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>
