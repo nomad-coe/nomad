@@ -20,19 +20,45 @@ import {
   TextField,
   makeStyles,
   Box,
-  FormControlLabel, Checkbox, IconButton, InputAdornment, MenuItem
+  FormControlLabel, Checkbox, IconButton, InputAdornment, MenuItem, Dialog, DialogTitle, DialogContent
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
 import {conversionMap, unitMap} from '../../unitsData'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import DialogActions from '@material-ui/core/DialogActions'
+import Button from '@material-ui/core/Button'
 
-const HelpButton = React.memo(function HelpButton(props) {
-  return <IconButton size="small">
-    {<HelpOutlineIcon fontSize='small'/>}
-  </IconButton>
+const HelpDialog = React.memo(({title, description}) => {
+  const [open, setOpen] = useState(false)
+
+  return <React.Fragment>
+    {description && <IconButton size="small">
+      {<HelpOutlineIcon fontSize='small' onClick={() => setOpen(true)}/>}
+    </IconButton>}
+    {open && <Dialog open={open}>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          {description}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <span style={{flexGrow: 1}} />
+        <Button onClick={() => setOpen(false)} color="secondary">
+          Close
+        </Button>
+      </DialogActions>
+
+    </Dialog>}
+  </React.Fragment>
 })
+HelpDialog.propTypes = {
+  title: PropTypes.string,
+  description: PropTypes.string
+}
 
 const useHelpAdornmentStyles = makeStyles(theme => ({
   root: {},
@@ -41,17 +67,19 @@ const useHelpAdornmentStyles = makeStyles(theme => ({
   }
 }))
 
-const HelpAdornment = React.memo(function HelpAdornment({withOtherAdornment}) {
+const HelpAdornment = React.memo(({title, description, withOtherAdornment}) => {
   const classes = useHelpAdornmentStyles()
   return <InputAdornment
     position="end"
     className={withOtherAdornment ? classes.withOtherAdornment : classes.root}
   >
-    <HelpButton />
+    <HelpDialog title={title} description={description}/>
   </InputAdornment>
 })
 HelpAdornment.propTypes = {
-  withOtherAdornment: PropTypes.bool
+  withOtherAdornment: PropTypes.bool,
+  title: PropTypes.string,
+  description: PropTypes.string
 }
 
 const useWithHelpStyles = makeStyles(theme => ({
@@ -64,34 +92,41 @@ const useWithHelpStyles = makeStyles(theme => ({
   }
 }))
 
-const TextFieldWithHelp = React.memo(function TextFieldWithHelp(props) {
-  const {withOtherAdornment, ...otherProps} = props
+const TextFieldWithHelp = React.memo((props) => {
+  const {withOtherAdornment, helpTitle, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <TextField
     className={classes.root}
     InputProps={{endAdornment: (
       <div id="help">
-        <HelpAdornment withOtherAdornment={withOtherAdornment}/>
+        <HelpAdornment title={helpTitle} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
       </div>
     )}}
     {...otherProps}
   />
 })
 TextFieldWithHelp.propTypes = {
-  withOtherAdornment: PropTypes.bool
+  withOtherAdornment: PropTypes.bool,
+  helpTitle: PropTypes.string,
+  helpDescription: PropTypes.string
 }
 
-const WithHelp = React.memo(function TextFieldWithHelp(props) {
+const WithHelp = React.memo((props) => {
+  const {helpTitle, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <Box display="flex" alignItems="center" className={classes.root}>
-    <Box flexGrow={1} {...props}/>
+    <Box flexGrow={1} {...otherProps}/>
     <Box>
       <div id="help">
-        <HelpButton />
+        <HelpDialog title={helpTitle} description={helpDescription} />
       </div>
     </Box>
   </Box>
 })
+WithHelp.propTypes = {
+  helpTitle: PropTypes.string,
+  helpDescription: PropTypes.string
+}
 
 export const StringEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
@@ -109,11 +144,13 @@ export const StringEditQuantity = React.memo((props) => {
     }
   }, [onChange, quantityDef, section])
 
-  return <TextFieldWithHelp fullWidth variant='filled' size='small'
+  return <TextFieldWithHelp
+    fullWidth variant='filled' size='small'
+    label={label}
     value={value || ''}
     placeholder={quantityDef.description}
     onChange={event => handleChange(event.target.value)} {...otherProps}
-    label={label}
+    helpTitle={label} helpDescription={quantityDef.description}
   />
 })
 StringEditQuantity.propTypes = {
@@ -207,12 +244,15 @@ export const NumberEditQuantity = React.memo((props) => {
   }, [validation])
 
   return <Box display='flex'>
-    <TextFieldWithHelp fullWidth variant='filled' size='small'
+    <TextFieldWithHelp
+      fullWidth variant='filled' size='small'
+      label={label}
       value={convertedValue || ''}
       onBlur={handleValidator} error={!!error} helperText={error}
       placeholder={quantityDef.description}
       onChange={event => handleChangeValue(event.target.value)}
-      {...otherProps} label={label}
+      helpTitle={label} helpDescription={quantityDef.description}
+      {...otherProps}
     />
     {isUnit && <TextField
       className={classes.unitSelect} variant='filled' size='small' select
@@ -247,6 +287,7 @@ export const EnumEditQuantity = React.memo((props) => {
     select variant='filled' size='small' withOtherAdornment fullWidth
     label={label} {...otherProps} value={value}
     onChange={event => handleChange(event.target.value)}
+    helpTitle={label} helpDescription={quantityDef.description}
   >
     {quantityDef.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
   </TextFieldWithHelp>
@@ -275,7 +316,7 @@ export const AutocompleteEditQuantity = React.memo((props) => {
     ListboxProps={{style: {maxHeight: '150px'}}}
     value={value}
     renderInput={params => (
-      <TextField
+      <TextFieldWithHelp
         {...params}
         variant='filled' size='small' label={label}
         placeholder={quantityDef.description} fullWidth/>
@@ -306,7 +347,7 @@ export const BoolEditQuantity = React.memo((props) => {
     }
   }, [defaultValue, onChange, quantityDef, section])
 
-  return <WithHelp>
+  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
     <FormControlLabel
       label={label}
       control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" checked={(!!value)}/>}
