@@ -52,6 +52,7 @@ const useFilePreviewStyles = makeStyles(theme => ({
 const viewerText = {
   name: 'text',
   fileExtensions: ['txt', 'yaml', 'yml'],
+  maxSizePreview: 1e10, // Effectively infinite
   maxSizeAutoPreview: 10e6,
   render: ({uploadId, path}) => {
     return <FilePreviewText uploadId={uploadId} path={path}/>
@@ -62,8 +63,10 @@ const viewerImg = {
   fileExtensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'],
   maxSizeAutoPreview: 10e6,
   requiresUrlWithAuth: true,
-  render: ({classes, url}) => {
-    return <div className={classes.imgDiv}><img src={url} className={classes.imgElement} alt="Loading..."/></div>
+  render: ({classes, url, setFailedToPreview}) => {
+    return <div className={classes.imgDiv}>
+      <img src={url} className={classes.imgElement} alt="Loading..." onError={() => setFailedToPreview(true)}/>
+    </div>
   }
 }
 const viewerJSON = {
@@ -95,13 +98,18 @@ export default function FilePreview({uploadId, path, size}) {
   let selectedViewer = viewerText
   for (const viewer of viewers) {
     if (viewer.fileExtensions.includes(fileExtension)) {
-      selectedViewer = viewer
-      autoPreview = size < viewer.maxSizeAutoPreview
-      break
+      if (size < (selectedViewer.maxSizePreview || 50e6)) {
+        selectedViewer = viewer
+        autoPreview = size < viewer.maxSizeAutoPreview
+        break
+      }
     }
   }
 
   const [preview, setPreview] = useState(autoPreview)
+  const [failedToPreview, setFailedToPreview] = useState(false)
+  const [useFallbackViewer, setUseFallbackViewer] = useState(false)
+
   const data = useRef()
   const [dataLoaded, setDataLoaded] = useState(false)
 
@@ -151,11 +159,26 @@ export default function FilePreview({uploadId, path, size}) {
     return <Typography>Loading...</Typography>
   }
 
-  try {
-    return selectedViewer.render({uploadId, path, url, data, classes})
-  } catch (error) {
-    return <Typography>Failed to open viewer</Typography>
+  if (!failedToPreview) {
+    try {
+      return selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
+    } catch (error) {
+      setFailedToPreview(true)
+    }
   }
+  // Selected viewer failed
+  if (!useFallbackViewer) {
+    return (
+      <Box textAlign="center">
+        <Typography color="error">Failed to open with {selectedViewer.name} viewer. Bad file format?</Typography>
+        <Button onClick={() => setUseFallbackViewer(true)} variant="contained" size="small" color="primary">
+          Open with text viewer
+        </Button>
+      </Box>
+    )
+  }
+  // Use the text viewer as last resort
+  return viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
 }
 FilePreview.propTypes = {
   uploadId: PropTypes.string.isRequired,
