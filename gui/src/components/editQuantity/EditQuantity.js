@@ -111,7 +111,7 @@ export const StringEditQuantity = React.memo((props) => {
 
   return <TextFieldWithHelp fullWidth variant='filled' size='small'
     value={value || ''}
-    placeholder={quantityDef?.description}
+    placeholder={quantityDef.description}
     onChange={event => handleChange(event.target.value)} {...otherProps}
     label={label}
   />
@@ -137,11 +137,11 @@ export const NumberEditQuantity = React.memo((props) => {
   const [convertedValue, setConvertedValue] = useState()
   const [error, setError] = useState('')
   const systemUnits = useUnits()
-  const defaultValue = (quantityDef?.default !== undefined ? quantityDef?.default : '')
-  const dimension = quantityDef?.unit && unitMap[quantityDef?.unit].dimension
-  const units = quantityDef?.unit && conversionMap[dimension].units
-  const isUnit = quantityDef?.unit && ['float64', 'float32', 'float'].includes(quantityDef?.type?.type_data)
-  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef?.unit)
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
+  const units = quantityDef.unit && conversionMap[dimension].units
+  const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
+  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
   const timeout = useRef()
 
   useEffect(() => {
@@ -157,13 +157,13 @@ export const NumberEditQuantity = React.memo((props) => {
   }, [isUnit, quantityDef, value])
 
   const isValidNumber = useCallback((value) => {
-    if (['int64', 'int32', 'int'].includes(quantityDef?.type?.type_data)) {
+    if (['int64', 'int32', 'int'].includes(quantityDef.type?.type_data)) {
       const num = Number(value)
       return Number.isInteger(num)
-    } else if (['uint64', 'uint32', 'uint'].includes(quantityDef?.type?.type_data)) {
+    } else if (['uint64', 'uint32', 'uint'].includes(quantityDef.type?.type_data)) {
       const num = Number(value)
       return Number.isInteger(num) && num > 0
-    } else if (['float64', 'float32', 'float'].includes(quantityDef?.type?.type_data)) {
+    } else if (['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)) {
       const num = Number(value)
       return !isNaN(num)
     }
@@ -210,7 +210,7 @@ export const NumberEditQuantity = React.memo((props) => {
     <TextFieldWithHelp fullWidth variant='filled' size='small'
       value={convertedValue || ''}
       onBlur={handleValidator} error={!!error} helperText={error}
-      placeholder={quantityDef?.description}
+      placeholder={quantityDef.description}
       onChange={event => handleChangeValue(event.target.value)}
       {...otherProps} label={label}
     />
@@ -248,7 +248,7 @@ export const EnumEditQuantity = React.memo((props) => {
     label={label} {...otherProps} value={value}
     onChange={event => handleChange(event.target.value)}
   >
-    {quantityDef?.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
+    {quantityDef.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
   </TextFieldWithHelp>
 })
 EnumEditQuantity.propTypes = {
@@ -278,7 +278,7 @@ export const AutocompleteEditQuantity = React.memo((props) => {
       <TextField
         {...params}
         variant='filled' size='small' label={label}
-        placeholder={quantityDef?.description} fullWidth/>
+        placeholder={quantityDef.description} fullWidth/>
     )}
     {...otherProps}
   />
@@ -293,7 +293,7 @@ export const BoolEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
-  const defaultValue = (quantityDef?.default !== undefined ? quantityDef?.default : '')
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
 
   useEffect(() => {
     setValue(section[quantityDef.name] || defaultValue)
