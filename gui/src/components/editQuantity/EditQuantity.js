@@ -20,7 +20,16 @@ import {
   TextField,
   makeStyles,
   Box,
-  FormControlLabel, Checkbox, IconButton, InputAdornment, MenuItem, Dialog, DialogTitle, DialogContent
+  FormControlLabel,
+  Checkbox,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  FormControl,
+  FormLabel, RadioGroup, Radio
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -320,6 +329,31 @@ export const AutocompleteEditQuantity = React.memo((props) => {
   />
 })
 AutocompleteEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const RadioButtonEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const label = otherProps.label || quantityDef.name
+  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
+
+  const handleChange = useCallback((value) => {
+    setValue(value)
+    if (onChange) {
+      onChange(value === '' ? undefined : value, section, quantityDef)
+    }
+  }, [onChange, quantityDef, section])
+
+  return <FormControl>
+    <FormLabel id="demo-row-radio-buttons-group-label">{label}</FormLabel>
+    <RadioGroup row>
+      {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)}/>} label={item}/>)}
+    </RadioGroup>
+  </FormControl>
+})
+RadioButtonEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired

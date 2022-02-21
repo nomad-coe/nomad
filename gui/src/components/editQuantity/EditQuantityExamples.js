@@ -19,7 +19,14 @@ import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import {Card, makeStyles, Box} from '@material-ui/core'
 import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
-import { AutocompleteEditQuantity, BoolEditQuantity, EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from './EditQuantity'
+import {
+  AutocompleteEditQuantity,
+  BoolEditQuantity,
+  EnumEditQuantity,
+  NumberEditQuantity,
+  RadioButtonEditQuantity,
+  StringEditQuantity
+} from './EditQuantity'
 
 const coatingMethods = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
@@ -218,6 +225,27 @@ const defs = {
         }
       ]
     }
+  },
+  RadioQuantityDef: {
+    name: 'alignment',
+    description: 'Left or right alignment',
+    type: {
+      type_kind: 'Enum',
+      type_data: [
+        'Left',
+        'Right',
+        'Both',
+        'None'
+      ]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Alignment',
+          component: 'RadioButtonEditQuantity'
+        }
+      ]
+    }
   }
 }
 
@@ -227,7 +255,8 @@ let section = {
   count: 10,
   distance: 100,
   coatingMethod: 'Pulsed electron deposition (PED)',
-  mass: 1
+  mass: 1,
+  alignment: 'Both'
 }
 
 const useStyles = makeStyles(theme => ({
@@ -261,6 +290,8 @@ const EditQuantity = React.memo((props) => {
     return <AutocompleteEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'BoolEditQuantity') {
     return <BoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'RadioButtonEditQuantity') {
+    return <RadioButtonEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -308,6 +339,9 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.BoolQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.RadioQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>
