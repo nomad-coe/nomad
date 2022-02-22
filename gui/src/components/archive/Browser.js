@@ -276,11 +276,17 @@ const useItemStyles = makeStyles(theme => ({
       backgroundColor: grey[300]
     }
   },
+  rootUnSelectedHighlighted: {
+    color: theme.palette.primary.main,
+    '& $icon': {
+      color: theme.palette.primary.main
+    },
+    '&:hover': {
+      backgroundColor: grey[300]
+    }
+  },
   disabled: {
     color: 'grey'
-  },
-  highlighted: {
-    color: theme.palette.secondary.main
   },
   rightPaddedItem: {
     padding: `0 ${theme.spacing(1)}px 0 0`
@@ -308,7 +314,7 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
   return <Link
     className={classNames(
       classes.root,
-      isSelected ? classes.rootSelected : classes.rootUnSelected
+      isSelected ? classes.rootSelected : highlighted ? classes.rootUnSelectedHighlighted : classes.rootUnSelected
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
@@ -316,7 +322,7 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
       {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
-      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem, highlighted ? classes.highlighted : null)}>
+      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
         <Typography noWrap>{children}</Typography>
       </Grid>
       {chip && (
