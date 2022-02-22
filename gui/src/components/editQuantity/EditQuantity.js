@@ -26,7 +26,6 @@ import {
   InputAdornment,
   MenuItem,
   Dialog,
-  DialogTitle,
   DialogContent,
   FormControl,
   FormLabel, RadioGroup, Radio, Slider
@@ -36,9 +35,9 @@ import {convertUnit, Unit, useUnits} from '../../units'
 import {conversionMap, unitMap} from '../../unitsData'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
-import DialogContentText from '@material-ui/core/DialogContentText'
 import DialogActions from '@material-ui/core/DialogActions'
 import Button from '@material-ui/core/Button'
+import Markdown from '../Markdown'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -48,11 +47,11 @@ const HelpDialog = React.memo(({title, description}) => {
       {<HelpOutlineIcon fontSize='small'/>}
     </IconButton>}
     {open && <Dialog open={open}>
-      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          {description}
-        </DialogContentText>
+        <Markdown>{`
+        ### ${title}
+        ${description}
+      `}</Markdown>
       </DialogContent>
       <DialogActions>
         <span style={{flexGrow: 1}} />
