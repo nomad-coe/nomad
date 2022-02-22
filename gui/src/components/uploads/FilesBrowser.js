@@ -147,7 +147,7 @@ export default function FilesBrower({uploadId, disabled}) {
   const fetchData = useMemo(() => (path, open) => {
     async function fetchData() {
       const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-      const results = await api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?page_size=500`)
+      const results = await api.get(`/uploads/${uploadId}/rawdir/${encodedPath}?page_size=500&include_entry_info=true`)
       allData.current[path] = {
         open: open,
         ...results
@@ -157,24 +157,10 @@ export default function FilesBrower({uploadId, disabled}) {
         .filter(item => item.is_file)
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
+          if (item.parser_name) {
+            item.parser = item.parser_name.replace('parsers/', '')
+          }
         })
-      const potentialMainfiles = Object.keys(resultsByPath)
-      const entryMetadataResults = await api.post(`/entries/query`, {
-        owner: 'visible',
-        pagination: {
-          page_size: potentialMainfiles.length
-        },
-        query: {
-          'upload_id': uploadId,
-          'mainfile:any': potentialMainfiles
-        },
-        required: {
-          include: ['parser_name', 'mainfile']
-        }
-      })
-      entryMetadataResults.data.forEach(({mainfile, parser_name}) => {
-        resultsByPath[mainfile].parser = parser_name.replace('parsers/', '')
-      })
       setRenderCounter(renderCounter => renderCounter + 1)
     }
     if (!disabled) {

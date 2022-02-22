@@ -290,6 +290,9 @@ const useItemStyles = makeStyles(theme => ({
   disabled: {
     color: 'grey'
   },
+  highlighted: {
+    color: theme.palette.secondary.main
+  },
   rightPaddedItem: {
     padding: `0 ${theme.spacing(1)}px 0 0`
   },
@@ -305,7 +308,7 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
-export function Item({children, itemKey, disabled, icon, actions, chip}) {
+export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
@@ -341,7 +344,7 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
       {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
-      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
+      <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem, highlighted ? classes.highlighted : null)}>
         {children}
       </Grid>
       {chip && (
@@ -365,6 +368,7 @@ Item.propTypes = ({
   ]).isRequired,
   itemKey: PropTypes.string,
   disabled: PropTypes.bool,
+  highlighted: PropTypes.bool,
   icon: PropTypes.elementType,
   chip: PropTypes.string,
   actions: PropTypes.oneOfType([
