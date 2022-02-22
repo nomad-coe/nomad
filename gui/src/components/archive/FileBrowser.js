@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState, useCallback, useEffect} from 'react'
+import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
-import { Typography, IconButton, makeStyles, Button, Box } from '@material-ui/core'
-import { useErrors } from '../errors'
+import { Typography, IconButton, Box } from '@material-ui/core'
 import Browser, { Item, Content, Adaptor, laneContext, Title, Compartment } from './Browser'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import FolderIcon from '@material-ui/icons/FolderOutlined'
@@ -26,28 +25,28 @@ import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
 import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
-import InfiniteScroll from 'react-infinite-scroller'
-import { useApi } from '../api'
-import { apiBase } from '../../config'
+import FilePreview from './FilePreview'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
 
-const FileBrowser = React.memo(({uploadId, path, rootTitle}) => {
-  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle)
+const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem}) => {
+  const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem)
   return <Browser adaptor={adaptor} />
 })
 FileBrowser.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
-  rootTitle: PropTypes.string.isRequired
+  rootTitle: PropTypes.string.isRequired,
+  highlightedItem: PropTypes.string
 }
 export default FileBrowser
 
 class RawDirectoryAdaptor extends Adaptor {
-  constructor(uploadId, path, title) {
+  constructor(uploadId, path, title, highlightedItem) {
     super()
     this.uploadId = uploadId
     this.path = path
     this.title = title
+    this.highlightedItem = highlightedItem
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
   async initialize(api) {
@@ -72,11 +71,11 @@ class RawDirectoryAdaptor extends Adaptor {
     throw new Error('Bad path: ' + key)
   }
   render() {
-    return <RawDirectoryContent uploadId={this.uploadId} path={this.path} title={this.title}/>
+    return <RawDirectoryContent uploadId={this.uploadId} path={this.path} title={this.title} highlightedItem={this.highlightedItem}/>
   }
 }
 
-function RawDirectoryContent({uploadId, path, title}) {
+function RawDirectoryContent({uploadId, path, title, highlightedItem}) {
   const lane = useContext(laneContext)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
@@ -111,6 +110,7 @@ function RawDirectoryContent({uploadId, path, title}) {
               <Item
                 icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
                 itemKey={element.name} key={path ? path + '/' + element.name : element.name}
+                highlighted={element.name === highlightedItem}
                 chip={element.parser_name && element.parser_name.replace('parsers/', '')}
               >
                 {element.name}
@@ -128,7 +128,8 @@ function RawDirectoryContent({uploadId, path, title}) {
 RawDirectoryContent.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired
+  title: PropTypes.string.isRequired,
+  highlightedItem: PropTypes.bool
 }
 
 class RawFileAdaptor extends Adaptor {
@@ -220,165 +221,4 @@ RawFileContent.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   data: PropTypes.object.isRequired
-}
-
-const useFilePreviewStyles = makeStyles(theme => ({
-  imgDiv: {
-    width: '100%',
-    height: '100%',
-    position: 'relative'
-  },
-  imgElement: {
-    maxWidth: '100%',
-    maxHeight: '100%',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    margin: 'auto'
-  }
-}))
-function FilePreview({uploadId, path, size}) {
-  const classes = useFilePreviewStyles()
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
-
-  // Determine viewer to use and if we should preview automatically, based on extension and size
-  const fileExtension = path.split('.').pop().toLowerCase()
-  let autoPreview = false
-  let viewer = 'text'
-  if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(fileExtension)) {
-    viewer = 'img'
-    autoPreview = size < 10e6
-  }
-
-  const [preview, setPreview] = useState(autoPreview)
-
-  const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-  let fullUrl = `${apiBase}/v1/uploads/${uploadId}/raw/${encodedPath}`
-  if (fullUrl.startsWith('/')) {
-    fullUrl = `${window.location.origin}${fullUrl}`
-  }
-  const [fullUrlWithToken, setFullUrlWithToken] = useState(undefined)
-  useEffect(() => {
-    if (preview && user && !fullUrlWithToken && viewer !== 'text') {
-      // Need to fetch signature token
-      api.get('/auth/signature_token')
-        .then(response => {
-          const fullUrlWithToken = new URL(fullUrl)
-          fullUrlWithToken.searchParams.append('signature_token', response.signature_token)
-          setFullUrlWithToken(fullUrlWithToken.href)
-        })
-        .catch(raiseError)
-    }
-  }, [preview, viewer, user, fullUrl, fullUrlWithToken, setFullUrlWithToken, api, raiseError])
-
-  if (!preview) {
-    return (
-      <Box margin={2} textAlign="center">
-        <Button onClick={() => setPreview(true)} variant="contained" size="small" color="primary">
-          Preview
-        </Button>
-      </Box>
-    )
-  }
-
-  const url = user ? fullUrlWithToken : fullUrl
-  if (!url && viewer !== 'text') {
-    // Need to wait until we have the signature token
-    return <Typography>Loading...</Typography>
-  }
-
-  // Return the right viewer
-  if (viewer === 'img') {
-    // Use native img tag
-    return <div className={classes.imgDiv}><img src={url} className={classes.imgElement} alt="Loading..."/></div>
-  } else {
-    // Use our own text viewer
-    return <FilePreviewText uploadId={uploadId} path={path}/>
-  }
-}
-FilePreview.propTypes = {
-  uploadId: PropTypes.string.isRequired,
-  path: PropTypes.string.isRequired,
-  size: PropTypes.number.isRequired
-}
-
-const useFilePreviewTextStyles = makeStyles(theme => ({
-  containerDiv: {
-    width: '100%',
-    height: '100%',
-    overflow: 'auto',
-    backgroundColor: theme.palette.primary.dark
-  },
-  fileContents: {
-    margin: 0,
-    padding: 0,
-    display: 'inline-block',
-    color: theme.palette.primary.contrastText,
-    fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
-    fontSize: 12,
-    minWidth: '100%'
-  }
-}))
-function FilePreviewText({uploadId, path}) {
-  const classes = useFilePreviewTextStyles()
-  const {api} = useApi()
-  const {raiseError} = useErrors()
-  const [contents, setContents] = useState(null)
-  const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const containerRef = React.createRef()
-
-  const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-
-  const loadMore = useCallback(() => {
-    // The infinite scroll component has the issue if calling load more whenever it
-    // gets updates, therefore calling this infinitely before it gets any chances of
-    // receiving the results (https://github.com/CassetteRocks/react-infinite-scroller/issues/163).
-    // Therefore, we have to set hasMore to false first and set it to true again after
-    // receiving actual results.    setLoading(true)
-    if (hasMore && !loading) {
-      api.get(
-        `/uploads/${uploadId}/raw/${encodedPath}`,
-        {
-          offset: contents?.length || 0,
-          length: 16 * 1024,
-          decompress: true,
-          ignore_mime_type: true
-        },
-        {transformResponse: []})
-        .then(contents => {
-          setContents(old => (old || '') + (contents || ''))
-          setHasMore(contents?.length === 16 * 1024)
-        })
-        .catch(raiseError)
-        .finally(() => setLoading(false))
-    }
-  }, [uploadId, encodedPath, loading, hasMore, setHasMore, setContents, api, raiseError, contents])
-
-  if (loading && !contents) {
-    return <Typography>Loading ...</Typography>
-  }
-  return (
-    <div ref={containerRef} className={classes.containerDiv}>
-      <InfiniteScroll
-        pageStart={0}
-        loadMore={loadMore}
-        hasMore={hasMore}
-        useWindow={false}
-        getScrollParent={() => containerRef.current}
-      >
-        <pre className={classes.fileContents}>
-          {contents}
-          &nbsp;
-        </pre>
-      </InfiniteScroll>
-    </div>
-  )
-}
-FilePreviewText.propTypes = {
-  uploadId: PropTypes.string.isRequired,
-  path: PropTypes.string.isRequired
 }
