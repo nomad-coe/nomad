@@ -24,7 +24,7 @@ import os.path
 from functools import lru_cache
 import importlib
 
-from nomad import config
+from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
 
 
@@ -221,9 +221,12 @@ class MatchingParser(Parser):
         return self.name
 
 
-class FairdiParser(MatchingParser):
+class MatchingParserInterface(MatchingParser):
     '''
-    A parser implementation for the NOMAD FairDI parsers.
+    An interface to the NOMAD parsers.
+
+    Arguments:
+        parser_class_name: concatenation of module path and parser class name
     '''
     def __init__(self, parser_class_name: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -233,9 +236,14 @@ class FairdiParser(MatchingParser):
     @property
     def mainfile_parser(self):
         if self._mainfile_parser is None:
-            module_path, parser_class = self._parser_class_name.rsplit('.', 1)
-            module = importlib.import_module(module_path)
-            self._mainfile_parser = getattr(module, parser_class)()
+            try:
+                module_path, parser_class = self._parser_class_name.rsplit('.', 1)
+                module = importlib.import_module(module_path)
+                self._mainfile_parser = getattr(module, parser_class)()
+            except Exception as e:
+                logger = utils.get_logger(__name__)
+                logger.error('Error importing parser.', exc_info=e)
+                raise e
         return self._mainfile_parser
 
     def parse(self, mainfile: str, archive: EntryArchive, logger=None):

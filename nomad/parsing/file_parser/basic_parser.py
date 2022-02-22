@@ -35,7 +35,7 @@ class BasicParser:
     single_configuration_calculation.
 
     Arguments:
-        code_name: name of the bode
+        code_name: name of the code
         units_mapping: dictionary of nomad units for basic quantities such as length
         auxiliary_files: re pattern to match auxilliary files from mainfile. If no files
             are found will match files in working directory.
