@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
 import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
-import { metainfoDef, QuantityMDef, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
+import { isEditable, metainfoDef, QuantityMDef, removeSubSection, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
@@ -40,6 +40,9 @@ import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
 import { useEntryContext } from '../entry/EntryContext'
 import SaveIcon from '@material-ui/icons/Save'
+import AddIcon from '@material-ui/icons/AddCircle'
+import CodeIcon from '@material-ui/icons/Code'
+import DeleteIcon from '@material-ui/icons/Delete'
 
 export const configState = atom({
   key: 'config',
@@ -272,11 +275,20 @@ class SectionAdaptor extends ArchiveAdaptor {
       return super.itemAdaptor(key)
     } else if (property.m_def === SubSectionMDef) {
       const sectionDef = resolveRef(property.sub_section)
+      let subSectionAdaptor
+      let subSectionIndex = -1
       if (property.repeats) {
-        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef, this.e)
+        subSectionIndex = parseInt(index || 0)
+        subSectionAdaptor = this.adaptorFactory(value[subSectionIndex], sectionDef, this.e)
       } else {
-        return this.adaptorFactory(value, sectionDef, this.e)
+        subSectionAdaptor = this.adaptorFactory(value, sectionDef, this.e)
       }
+      subSectionAdaptor.parentRelation = {
+        parent: this.e,
+        subSectionDef: property,
+        subSectionIndex: subSectionIndex
+      }
+      return subSectionAdaptor
     } else if (property.m_def === QuantityMDef) {
       // References: sections and quantities
       if (property.type.type_kind === 'reference') {
@@ -307,7 +319,10 @@ class SectionAdaptor extends ArchiveAdaptor {
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} parent={this.parent} />
+    return <Section
+      section={this.e}
+      def={this.def}
+      parent={this.parent} parentRelation={this.parentRelation} />
   }
 }
 
@@ -419,8 +434,38 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-function Section({section, def, parent}) {
+function Section({section, def, parentRelation}) {
+  const {editable, handleArchiveChanged} = useEntryContext()
   const config = useRecoilValue(configState)
+  const [showJson, setShowJson] = useState(false)
+  const lane = useLane()
+  const history = useHistory()
+
+  const sectionIsEditable = useMemo(() => {
+    return editable && isEditable(def)
+  }, [editable, def])
+
+  const actions = useMemo(() => {
+    if (!sectionIsEditable) {
+      return null
+    }
+    const handleDelete = () => {
+      removeSubSection(
+        parentRelation.parent,
+        parentRelation.subSectionDef,
+        parentRelation.subSectionIndex)
+      handleArchiveChanged()
+      history.push(lane.prev.path)
+    }
+    return <React.Fragment>
+      <IconButton onClick={() => setShowJson(value => !value)}>
+        <CodeIcon />
+      </IconButton>
+      <IconButton onClick={handleDelete}>
+        <DeleteIcon />
+      </IconButton>
+    </React.Fragment>
+  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged])
 
   if (!section) {
     console.error('section is not available')
@@ -436,38 +481,34 @@ function Section({section, def, parent}) {
   }
   const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
 
-  let contents
-  if (def.name === 'Sample') {
-    contents = <Compartment title="edit">
-      <SectionEditor sectionDef={def} section={section} />
+  const subSectionCompartment = (
+    <Compartment title="sub sections">
+      {sub_sections
+        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
+        .filter(filter)
+        .map(subSectionDef => {
+          return <SubSection
+            key={subSectionDef.name}
+            subSectionDef={subSectionDef}
+            section={section}
+            editable={sectionIsEditable}
+          />
+        })
+      }
     </Compartment>
+  )
+
+  let contents
+  if (sectionIsEditable) {
+    contents = <React.Fragment>
+      <Compartment title="quantities">
+        <SectionEditor sectionDef={def} section={section} showJson={showJson} />
+      </Compartment>
+      {subSectionCompartment}
+    </React.Fragment>
   } else {
     contents = <React.Fragment>
-      <Compartment title="sub sections">
-        {sub_sections
-          .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
-          .filter(filter)
-          .map(subSectionDef => {
-            const key = subSectionDef.name
-            const disabled = section[key] === undefined
-            if (!disabled && subSectionDef.repeats && section[key].length > 1) {
-              return <SubSectionList
-                key={subSectionDef.name}
-                subSectionDef={subSectionDef}
-                disabled={disabled}
-              />
-            } else {
-              return <Item key={key} itemKey={key} disabled={disabled}>
-                <Typography component="span">
-                  <Box fontWeight="bold" component="span">
-                    {formatSubSectionName(subSectionDef.name)}
-                  </Box>
-                </Typography>
-              </Item>
-            }
-          })
-        }
-      </Compartment>
+      {subSectionCompartment}
       <Compartment title="quantities">
         {quantities
           .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
@@ -502,7 +543,7 @@ function Section({section, def, parent}) {
     </React.Fragment>
   }
   return <Content>
-    <ArchiveTitle def={def} data={section} kindLabel="section" />
+    <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
     <Overview section={section} def={def}/>
     {contents}
     <Meta def={def} />
@@ -511,33 +552,80 @@ function Section({section, def, parent}) {
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.any
+  subSection: PropTypes.object,
+  parentRelation: PropTypes.object
 })
 
-function SubSectionList({subSectionDef}) {
-  const lane = useContext(laneContext)
-  const label = useMemo(() => {
-    let key = subSectionDef.more?.label_quantity
-    if (!key) {
-      const sectionDef = resolveRef(subSectionDef.sub_section)
-      key = sectionDef.more?.label_quantity
-      if (!key) {
-        key = ['name', 'type', 'id'].find(key => (
-          sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
-        ))
-      }
+function SubSection({subSectionDef, section, editable}) {
+  const {handleArchiveChanged} = useEntryContext()
+  const lane = useLane()
+  const history = useHistory()
+  const { label, getItemLabel } = useMemo(() => {
+    const sectionDef = resolveRef(subSectionDef.sub_section)
+    let itemLabelKey = sectionDef.more?.label_quantity
+    if (!itemLabelKey) {
+      itemLabelKey = ['name', 'type', 'id'].find(key => (
+        sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
+      ))
     }
-    return item => {
-      return key && item[key]
+    return {
+      label: formatSubSectionName(subSectionDef.name),
+      getItemLabel: (item) => itemLabelKey && item[itemLabelKey]
     }
   }, [subSectionDef])
-  const values = useMemo(() => lane.adaptor.e[subSectionDef.name].map(label), [lane.adaptor.e, subSectionDef.name, label])
-  return <PropertyValuesList
-    values={values}
-    label={formatSubSectionName(subSectionDef.name) || 'list'} />
+
+  const handleAdd = useCallback(() => {
+    let subSectionKey = subSectionDef.name
+    if (subSectionDef.repeats) {
+      let values = section[subSectionDef.name]
+      if (!values) {
+        values = []
+        section[subSectionDef.name] = values
+      }
+      values.push({})
+      if (values.length > 1) {
+        subSectionKey += `:${values.length - 1}`
+      }
+    } else {
+      section[subSectionDef.name] = {}
+    }
+    handleArchiveChanged()
+    history.push(`${lane.path}/${subSectionKey}`)
+  }, [subSectionDef, section, lane, history, handleArchiveChanged])
+
+  const values = section[subSectionDef.name]
+  const actions = editable && (subSectionDef.repeats || !values) && (
+    <Box marginRight={2}>
+      <IconButton onClick={handleAdd} size="small">
+        <AddIcon style={{fontSize: 20}} />
+      </IconButton>
+    </Box>
+  )
+
+  if (subSectionDef.repeats && values) {
+    return <PropertyValuesList
+      label={label || 'list'} actions={actions}
+      values={(section[subSectionDef.name] || []).map(getItemLabel)}
+    />
+  } else {
+    return (
+      <Item
+        itemKey={subSectionDef.name} disabled={!values}
+        actions={actions}
+      >
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            {label}
+          </Box>
+        </Typography>
+      </Item>
+    )
+  }
 }
-SubSectionList.propTypes = ({
-  subSectionDef: PropTypes.object.isRequired
+SubSection.propTypes = ({
+  subSectionDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  editable: PropTypes.bool
 })
 
 function ReferenceValuesList({quantityDef}) {
@@ -552,7 +640,17 @@ ReferenceValuesList.propTypes = ({
 })
 
 const usePropertyValuesListStyles = makeStyles(theme => ({
+  root: {
+    margin: `0 -${theme.spacing(1)}px`,
+    padding: `0 ${theme.spacing(1)}px`,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    wrap: 'nowrap',
+    alignItems: 'center'
+  },
   title: {
+    flexGrow: 1,
     color: theme.palette.text.primary,
     textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
@@ -569,38 +667,51 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
     '&:hover': {
       backgroundColor: grey[300]
     }
-  }
+  },
+  actions: {}
 }))
-function PropertyValuesList({label, values}) {
+function PropertyValuesList({label, values, actions}) {
   const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-
-  return <div>
-    <Typography onClick={() => setOpen(!open)} className={classNames(
-      classes.title,
-      (!open && selected && selected.startsWith(label + ':')) ? classes.selected : classes.unSelected
-    )}>
-      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-      <span>{label}</span>
-    </Typography>
+  const showSelected = !open && selected && selected.startsWith(label + ':')
+  return <React.Fragment>
+    <div className={classNames(
+      classes.root, showSelected ? classes.selected : classes.unSelected)}
+    >
+      <Typography onClick={() => setOpen(!open)} className={classes.title}>
+        {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+        <span>{label}</span>
+      </Typography>
+      {actions && <div className={classes.actions}>
+        {actions}
+      </div>}
+    </div>
     {open &&
       <div>
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
-            <Box component="span" marginLeft={2}>
-              <Typography component="span">{item || index}</Typography>
+            <Box display="flex" flexDirection="row" flexGrow={1}>
+              <Box component="span" marginLeft={2}>
+                <Typography component="span">{item || index}</Typography>
+              </Box>
             </Box>
           </Item>
         ))}
       </div>
     }
-  </div>
+  </React.Fragment>
 }
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
-  values: PropTypes.arrayOf(PropTypes.string).isRequired
+  values: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onAdd: PropTypes.func,
+  onRemove: PropTypes.func,
+  actions: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 })
 
 function Quantity({value, def}) {

@@ -270,6 +270,23 @@ export function path(nameOrDef) {
 }
 
 /**
+ * @param {*} def A section definition.
+ * @returns True, if sections of the given section def are editable.
+ */
+export function isEditable(def) {
+  return !!def._allProperties.find(prop => prop.m_annotations?.eln)
+}
+
+export function removeSubSection(section, subSectionDef, index) {
+  if (subSectionDef.repeats) {
+    section[subSectionDef.name].splice(index, 1)
+  } else {
+    section[subSectionDef.name] = undefined
+    delete section[subSectionDef.name]
+  }
+}
+
+/**
  * Constructs a graph from and with the definition. The graph will contain the given nodes,
  * all its outgoing and incomming references, the parents up to root (for sections and categories)
  *

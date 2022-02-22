@@ -625,7 +625,7 @@ const definitionLabels = {
   [CategoryMDef]: 'category'
 }
 
-export function ArchiveTitle({def, isDefinition, data, kindLabel, useName}) {
+export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actions}) {
   const color = isDefinition ? 'primary' : 'initial'
   let label = definitionLabels[def.m_def]
   if (def.extends_base_section) {
@@ -636,13 +636,13 @@ export function ArchiveTitle({def, isDefinition, data, kindLabel, useName}) {
     tooltip={def._qualifiedName || def.name}
     label={`${label}${isDefinition ? ' definition' : ''}`}
     color={color}
-    actions={(
+    actions={actions ||
       <SourceJsonDialogButton
         tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
         title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
         data={data || def}
       />
-    )}
+    }
   />
 }
 ArchiveTitle.propTypes = ({
@@ -650,7 +650,11 @@ ArchiveTitle.propTypes = ({
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
   kindLabel: PropTypes.string,
-  useName: PropTypes.bool
+  useName: PropTypes.bool,
+  actions: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {

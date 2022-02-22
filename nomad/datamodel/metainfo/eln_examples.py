@@ -99,7 +99,8 @@ class Sample(ElnBaseSection):
             label='Spin Polarized',
             component='BoolEditQuantity'))
 
-    processes = SubSection(section_def=SectionProxy('Process'))
+    processes = SubSection(section_def=SectionProxy('Process'), repeats=True)
+    experiment = SubSection(section_def=SectionProxy('Experiment'), repeats=False)
 
     def normalize_results(self, results: Results, logger):
         if self.chemical_formula:

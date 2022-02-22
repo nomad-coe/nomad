@@ -113,7 +113,7 @@ function RawDirectoryContent({uploadId, path, title}) {
                 itemKey={element.name} key={path ? path + '/' + element.name : element.name}
                 chip={element.parser_name && element.parser_name.replace('parsers/', '')}
               >
-                {element.name}
+                <Typography>{element.name}</Typography>
               </Item>
             ))
           }
@@ -207,7 +207,7 @@ function RawFileContent({uploadId, path, data}) {
         { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
       </Compartment>
       {data.entry_id && <Compartment>
-        <Item itemKey="archive">processed data</Item>
+        <Item itemKey="archive"><Typography>processed data</Typography></Item>
       </Compartment>}
       <Box marginTop={2}/>
       <Box flexGrow={1} overflow="hidden">

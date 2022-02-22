@@ -169,6 +169,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
           next: null,
+          prev: prev,
           update: update
         }
         if (prev) {
@@ -213,6 +214,11 @@ Browser.propTypes = ({
 export default Browser
 
 export const laneContext = React.createContext()
+
+export const useLane = () => {
+  return useContext(laneContext)
+}
+
 const useLaneStyles = makeStyles(theme => ({
   root: {
     width: 'min-content',
@@ -303,10 +309,24 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-  const isSelected = selected === itemKey
+  const isSelected = itemKey && selected === itemKey
   if (disabled) {
-    return <div className={classNames(classes.childContainer, classes.disabled)}>{children}</div>
+    return <Grid
+      container spacing={0} alignItems="center" wrap="nowrap"
+      style={{padding: 0, margin: 0}}
+    >
+      {icon && <Grid item className={classes.rightPaddedItem}>
+        {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
+      </Grid>}
+      <Grid item className={classNames(classes.childContainer, classes.disabled, classes.rightPaddedItem)}>
+        <Typography noWrap>{children}</Typography>
+      </Grid>
+      {actions && <Grid item>
+        {actions}
+      </Grid>}
+    </Grid>
   }
+
   return <Link
     className={classNames(
       classes.root,
@@ -314,12 +334,15 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
     )}
     to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
   >
-    <Grid container spacing={0} alignItems="center" wrap="nowrap" style={{padding: 0, margin: 0}}>
+    <Grid
+      container spacing={0} alignItems="center" wrap="nowrap"
+      style={{padding: 0, margin: 0}}
+    >
       {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
       <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
-        <Typography noWrap>{children}</Typography>
+        {children}
       </Grid>
       {chip && (
         <Grid item className={classes.rightPaddedItem}>
@@ -329,9 +352,9 @@ export function Item({children, itemKey, disabled, icon, actions, chip}) {
       {actions && <Grid item className={classes.rightPaddedItem}>
         {actions}
       </Grid>}
-      <Grid item style={{padding: 0}}>
+      {itemKey && <Grid item style={{padding: 0}}>
         <ArrowRightIcon padding="0"/>
-      </Grid>
+      </Grid>}
     </Grid>
   </Link>
 }
@@ -340,14 +363,16 @@ Item.propTypes = ({
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]).isRequired,
-  itemKey: PropTypes.string.isRequired,
+  itemKey: PropTypes.string,
   disabled: PropTypes.bool,
   icon: PropTypes.elementType,
   chip: PropTypes.string,
   actions: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ])
+  ]),
+  open: PropTypes.bool,
+  onClick: PropTypes.func
 })
 
 export function Content(props) {

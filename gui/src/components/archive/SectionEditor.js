@@ -98,17 +98,19 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     handleArchiveChanged()
   }, [handleArchiveChanged, onChange, section])
 
-  return <KeepMaxHeight className={classes.root}>
-    {showJson ? <JsonEditor data={section} onChange={handleJsonChange} /> : (
-      sectionDef._allProperties.map(property => (
-        <Box marginBottom={1} key={property.name}>
-          <PropertyEditor
-            quantityDef={property}
-            section={section || {}} onChange={value => handleChange(property, value)}
-          />
-        </Box>
-      ))
-    )}
+  return <KeepMaxHeight>
+    <div className={classes.root}>
+      {showJson ? <JsonEditor data={section} onChange={handleJsonChange} /> : (
+        sectionDef._allProperties.map(property => (
+          <Box marginBottom={1} key={property.name}>
+            <PropertyEditor
+              quantityDef={property}
+              section={section || {}} onChange={value => handleChange(property, value)}
+            />
+          </Box>
+        ))
+      )}
+    </div>
   </KeepMaxHeight>
 })
 SectionEditor.propTypes = {
