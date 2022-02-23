@@ -934,16 +934,16 @@ async def put_upload_raw_path(
             archive = None
             if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
                 # NOTE: We can't rely on ES to get the metadata for the entry, since it may
-                # not have hade enough time to update its index etc. For now, we will just
+                # not have had enough time to update its index etc. For now, we will just
                 # ignore this, as we do not need it.
                 entry_metadata = dict(
                     upload_id=upload_id,
                     entry_id=entry.entry_id,
                     parser_name=entry.parser_name)
-                archive = answer_entry_archive_request(
+                archive = (await answer_entry_archive_request(
                     dict(upload_id=upload_id, mainfile=full_path),
                     required='*', user=user,
-                    entry_metadata=entry_metadata)['data']['archive']
+                    entry_metadata=entry_metadata))['data']['archive']
 
             response = PutRawFileResponse(
                 upload_id=upload_id,
@@ -1041,7 +1041,7 @@ async def get_upload_entry_archive_mainfile(
     is identified by the given `mainfile`.
     '''
     _get_upload_with_read_access(upload_id, user, include_others=True)
-    return answer_entry_archive_request(
+    return await answer_entry_archive_request(
         dict(upload_id=upload_id, mainfile=mainfile),
         required='*', user=user)
 
@@ -1066,7 +1066,7 @@ async def get_upload_entry_archive(
     is identified by the given `entry_id`.
     '''
     _get_upload_with_read_access(upload_id, user, include_others=True)
-    return answer_entry_archive_request(
+    return await answer_entry_archive_request(
         dict(upload_id=upload_id, entry_id=entry_id),
         required='*', user=user)
 
