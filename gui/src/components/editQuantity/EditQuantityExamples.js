@@ -26,7 +26,7 @@ import {
   NumberEditQuantity,
   RadioButtonEditQuantity,
   StringEditQuantity,
-  SliderEditQuantity, DateEditQuantity, TimeEditQuantity, DateTimeEditQuantity
+  SliderEditQuantity, DateEditQuantity, DateTimeEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -357,31 +357,7 @@ const defs = {
       'eln': [
         {
           label: 'Data',
-          component: 'DateEditQuantity',
-          props: {
-            minValue: 0,
-            maxValue: 100
-          }
-        }
-      ]
-    }
-  },
-  timeQuantityDef: {
-    name: 'time',
-    description: 'The time',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Time',
-          component: 'TimeEditQuantity',
-          props: {
-            minValue: 0,
-            maxValue: 100
-          }
+          component: 'DateEditQuantity'
         }
       ]
     }
@@ -397,11 +373,7 @@ const defs = {
       'eln': [
         {
           label: 'Data and time',
-          component: 'DateTimeEditQuantity',
-          props: {
-            minValue: 0,
-            maxValue: 100
-          }
+          component: 'DateTimeEditQuantity'
         }
       ]
     }
@@ -415,7 +387,9 @@ let section = {
   distance: 100,
   coatingMethod: 'Pulsed electron deposition (PED)',
   mass: 1,
-  alignment: 'Both'
+  alignment: 'Both',
+  date: '2021-03-17T13:47:32.899000',
+  dateAndTime: '2022-01-10T13:47:32.899000'
 }
 
 const useStyles = makeStyles(theme => ({
@@ -455,8 +429,6 @@ const EditQuantity = React.memo((props) => {
     return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'DateEditQuantity') {
     return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'TimeEditQuantity') {
-    return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'DateTimeEditQuantity') {
     return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
@@ -518,9 +490,6 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.dateQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.dateAndTimeQuantityDef} section={section} onChange={handleChange}/>
