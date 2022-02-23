@@ -26,7 +26,7 @@ import {
   NumberEditQuantity,
   RadioButtonEditQuantity,
   StringEditQuantity,
-  SliderEditQuantity
+  SliderEditQuantity, DateEditQuantity, TimeEditQuantity, DateTimeEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -40,6 +40,64 @@ const coatingMethods = [
   'Common roll-to-roll coating processes include:', 'Air knife coating', 'Anilox coater', 'Flexo coater', 'Gap Coating', 'Knife-over-roll coating', 'Gravure coating',
   'Immersion dip coating', 'Kiss coating', 'Metering rod (Meyer bar) coating', 'Roller coating', 'Forward roller coating', 'Reverse roll coating',
   'Silk Screen coater', 'Rotary screen', 'Lithography', 'Flexography', 'Physical coating processes', 'Langmuir-Blodgett', 'Spin coating', 'Dip coating']
+
+const markdownTest = '## Code\n' +
+  '\n' +
+  'Inline `code`\n' +
+  '\n' +
+  'Indented code\n' +
+  '\n' +
+  '    // Some comments\n' +
+  '    line 1 of code\n' +
+  '    line 2 of code\n' +
+  '    line 3 of code\n' +
+  '\n' +
+  '\n' +
+  'Block code "fences"\n' +
+  '\n' +
+  '```\n' +
+  'Sample text here...\n' +
+  '```\n' +
+  '\n' +
+  'Syntax highlighting\n' +
+  '\n' +
+  '``` js\n' +
+  'var foo = function (bar) {\n' +
+  '  return bar++;\n' +
+  '};\n' +
+  '\n' +
+  'console.log(foo(5));\n' +
+  '```\n' +
+  '\n' +
+  '## Tables\n' +
+  '\n' +
+  '| Option | Description |\n' +
+  '| ------ | ----------- |\n' +
+  '| data   | path to data files to supply the data that will be passed into templates. |\n' +
+  '| engine | engine to be used for processing templates. Handlebars is the default. |\n' +
+  '| ext    | extension to be used for dest files. |\n' +
+  '\n' +
+  'Right aligned columns\n' +
+  '\n' +
+  '| Option | Description |\n' +
+  '| ------:| -----------:|\n' +
+  '| data   | path to data files to supply the data that will be passed into templates. |\n' +
+  '| engine | engine to be used for processing templates. Handlebars is the default. |\n' +
+  '| ext    | extension to be used for dest files. |\n' +
+  '\n' +
+  '\n' +
+  '## Links\n' +
+  '\n' +
+  '[link text](http://dev.nodeca.com)\n' +
+  '\n' +
+  '[link with title](http://nodeca.github.io/pica/demo/ "title text!")\n' +
+  '\n' +
+  'Autoconverted link https://github.com/nodeca/pica (enable linkify to see)\n' +
+  '\n' +
+  '\n' +
+  '## Images\n' +
+  '\n' +
+  '![curve](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnVwoM-HzRXisuBysqKm8Jfr9nHZqCsp4tLA&usqp=CAU)'
 
 const defs = {
   ShortStringQuantityDef: {
@@ -59,7 +117,7 @@ const defs = {
   },
   LongStringQuantityDef: {
     name: 'description',
-    description: 'It is a description that explains the whole section',
+    description: markdownTest,
     type: {
       type_kind: 'python',
       type_data: 'str'
@@ -287,6 +345,66 @@ const defs = {
         }
       ]
     }
+  },
+  dateQuantityDef: {
+    name: 'date',
+    description: 'The date',
+    type: {
+      type_kind: 'python',
+      type_data: 'str'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Data',
+          component: 'DateEditQuantity',
+          props: {
+            minValue: 0,
+            maxValue: 100
+          }
+        }
+      ]
+    }
+  },
+  timeQuantityDef: {
+    name: 'time',
+    description: 'The time',
+    type: {
+      type_kind: 'python',
+      type_data: 'str'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Time',
+          component: 'TimeEditQuantity',
+          props: {
+            minValue: 0,
+            maxValue: 100
+          }
+        }
+      ]
+    }
+  },
+  dateAndTimeQuantityDef: {
+    name: 'dateAndTime',
+    description: 'The date and time',
+    type: {
+      type_kind: 'python',
+      type_data: 'str'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Data and time',
+          component: 'DateTimeEditQuantity',
+          props: {
+            minValue: 0,
+            maxValue: 100
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -335,6 +453,12 @@ const EditQuantity = React.memo((props) => {
     return <RadioButtonEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'SliderEditQuantity') {
     return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'DateEditQuantity') {
+    return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'TimeEditQuantity') {
+    return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'DateTimeEditQuantity') {
+    return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -391,6 +515,15 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.sliderQuantityDef2} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.dateQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.dateAndTimeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>

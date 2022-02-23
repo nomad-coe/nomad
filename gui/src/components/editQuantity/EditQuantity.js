@@ -452,3 +452,99 @@ SliderEditQuantity.propTypes = {
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
 }
+
+export const DateEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const label = otherProps.label || quantityDef.name
+  const [value, setValue] = useState()
+
+  const handleChange = useCallback((value) => {
+    setValue(value || defaultValue)
+    if (onChange) {
+      onChange(value, section, quantityDef)
+    }
+  }, [defaultValue, onChange, quantityDef, section])
+
+  useEffect(() => {
+    setValue(section[quantityDef.name])
+  }, [quantityDef, section])
+
+  return <TextFieldWithHelp
+    label={label}
+    inputFormat='MM/dd/yyyy'
+    value={value}
+    onChange={handleChange}
+    renderInput={(params) => <TextFieldWithHelp helpTitle={label} helpDescription={quantityDef.description} {...params} />}
+    {...otherProps}
+  />
+})
+DateEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const TimeEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const label = otherProps.label || quantityDef.name
+  const [value, setValue] = useState()
+
+  const handleChange = useCallback((value) => {
+    setValue(value || defaultValue)
+    if (onChange) {
+      onChange(value, section, quantityDef)
+    }
+  }, [defaultValue, onChange, quantityDef, section])
+
+  useEffect(() => {
+    setValue(section[quantityDef.name])
+  }, [quantityDef, section])
+
+  return <TextFieldWithHelp
+    label={label}
+    inputFormat='MM/dd/yyyy'
+    value={value}
+    onChange={handleChange}
+    renderInput={(params) => <TextFieldWithHelp helpTitle={label} helpDescription={quantityDef.description} {...params} />}
+    {...otherProps}
+  />
+})
+TimeEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const DateTimeEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const label = otherProps.label || quantityDef.name
+  const [value, setValue] = useState()
+
+  const handleChange = useCallback((value) => {
+    setValue(value || defaultValue)
+    if (onChange) {
+      onChange(value, section, quantityDef)
+    }
+  }, [defaultValue, onChange, quantityDef, section])
+
+  useEffect(() => {
+    setValue(section[quantityDef.name])
+  }, [quantityDef, section])
+
+  return <TextFieldWithHelp
+    label={label}
+    inputFormat='MM/dd/yyyy'
+    value={value}
+    onChange={handleChange}
+    renderInput={(params) => <TextFieldWithHelp helpTitle={label} helpDescription={quantityDef.description} {...params} />}
+    {...otherProps}
+  />
+})
+DateTimeEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
