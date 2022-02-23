@@ -35,35 +35,10 @@ import {Datatable, DatatableTable} from '../datatable/Datatable'
 import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
-import CloseIcon from '@material-ui/icons/Close'
-import CheckIcon from '@material-ui/icons/Check'
 import {DOI} from '../dataset/DOI'
 
-export const editMetaDataDialogContext = React.createContext()
-export const commentContext = React.createContext()
-export const referencesContext = React.createContext()
-export const datasetsContext = React.createContext()
-
-function EditComments() {
-  const {data, setComment, setIsCommentChanged} = useContext(editMetaDataDialogContext)
-  const [newComment, setNewComment] = useState('')
-  const [defaultComment, setDefaultComment] = useState('')
-
-  useEffect(() => {
-    if (data?.data?.length > 0) {
-      let _comment = data?.data[0]?.entry_metadata?.comment
-      setNewComment(_comment)
-      setDefaultComment(_comment)
-    }
-  }, [data])
-
-  const handleTextFieldChange = (event) => {
-    let _newComment = event.target.value
-    setNewComment(_newComment)
-    setComment(_newComment)
-    let isSame = _newComment === defaultComment
-    setIsCommentChanged(!isSame)
-  }
+function EditComments(props) {
+  const {value, onChange} = props
 
   return <Box display={'block'}>
     <Box marginBottom={1} marginTop={1}>
@@ -71,204 +46,111 @@ function EditComments() {
         Comments
       </Typography>
     </Box>
-    <TextField fullWidth id='outlined-multiline-static' label='Comment'
-      multiline rows={6} value={newComment} variant='filled' size='small'
-      onChange={handleTextFieldChange}
+    <TextField fullWidth label='Comment' multiline
+      rows={6} defaultValue={value} variant='filled' size='small'
+      onChange={(event) => onChange(event.target.value)}
     />
   </Box>
 }
+EditComments.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired
+}
 
-function EditReferences() {
-  const {data, api, setIsReferencesChanged, setReferences, defaultReferences, setDefaultReferences} = useContext(editMetaDataDialogContext)
+function EditReferences(props) {
+  const {values, onAdd, onRemove} = props
   const [newReference, setNewReference] = useState('')
-  const [validation, setValidation] = useState('')
-  const [newReferences, setNewReferences] = useState([])
-  const [edit, setEdit] = useState({index: -1, value: '', validation: ''})
+  const [urlValidation, setUrlValidation] = useState('')
 
-  const columns = [
-    {key: '',
-      align: 'left',
-      render: reference => {
-        let index = newReferences.indexOf(reference)
-        if (edit.index === index) {
-          return <TextField error={edit.validation !== ''} style={{width: '100%'}} label='' defaultValue={reference}
-            helperText={edit.validation !== '' && edit.validation} variant='filled' size='small'
-            inputRef={component => component && component.focus()} onChange={handleEditTextFieldChange(index)}/>
-        } else {
+  const validateURL = useCallback((value) => {
+    try {
+      let url = new URL(value)
+      if (url) {}
+    } catch (_) {
+      return 'Pleas enter a valid URL ...'
+    }
+  }, [])
+
+  const validation = useMemo(() => {
+    if (newReference === '') return undefined
+    if (values?.includes(newReference)) return 'The URL is already in the references'
+    return undefined
+  }, [values, newReference])
+
+  const columns = useMemo(() => {
+    return [
+      {key: 'url',
+        align: 'left',
+        render: reference => {
           return <Box maxWidth='300px' whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden'>
-            <Quantity quantity='data' noLabel noWrap data={{data: reference}} withClipboard />
+            <Quantity quantity='data' noLabel noWrap data={{data: reference.url}} withClipboard />
           </Box>
         }
       }
-    }
-  ]
+    ]
+  }, [])
 
-  const checkChanges = useCallback((references) => {
-    let isSame = defaultReferences.length === references.length &&
-        defaultReferences.every(_reference => references.includes(_reference))
-    setIsReferencesChanged(!isSame)
-  }, [defaultReferences, setIsReferencesChanged])
+  const handleChangeReference = useCallback((event) => {
+    setUrlValidation(undefined)
+    setNewReference(event.target.value)
+  }, [])
 
-  const validateAPI = useCallback((value) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let query = {metadata: {references: value}, verify_only: true}
-        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, query)
-        if (response) {}
-        resolve('')
-      } catch (error) {
-        reject(error.apiMessage[0].msg)
-      }
-    })
-  }, [api, data])
+  const handleAdd = useCallback(() => {
+    let validateURLError = validateURL(newReference)
+    setUrlValidation(validateURLError)
+    if (validateURLError) return
+    onAdd(newReference)
+    setNewReference('')
+  }, [newReference, onAdd, validateURL])
 
-  const validate = useCallback((value, index) => {
-    if (index !== '' && newReferences.includes(value) && value !== newReferences[index]) return 'Duplicated reference'
-    if (index !== '' && value === '') return 'The reference can not be empty'
-    if (index === '' && newReferences.includes(value)) return 'The URL is already in the references'
-    if ([' ', '\t', '\n'].some(whitespace => value.includes(whitespace))) return 'Whitespace is not allowed'
-    return ''
-  }, [newReferences])
+  const apiError = useMemo(() => values && values.find(value => !!(value?.error_reference))?.error_reference, [values])
 
-  const handleEditTextFieldChange = (index) => (event) => {
-    let newValue = event.target.value
-    setEdit({index: index, value: newValue, validation: validate(newValue, index)})
-  }
-
-  useEffect(() => {
-    if (data?.data?.length > 0) {
-      let _references = data?.data[0]?.entry_metadata?.references
-      if (_references) {
-        setNewReferences(_references)
-        setDefaultReferences(_references)
-      }
-    }
-  }, [data, setDefaultReferences])
-
-  const handleTextFieldChange = (event) => {
-    let _newReference = event.target.value
-    setNewReference(_newReference)
-    setValidation(validate(_newReference, ''))
-  }
-
-  const handleAdd = () => {
-    if (newReference) {
-      let _validation = validate(newReference, '')
-      if (_validation === '') {
-        validateAPI(newReference)
-          .then(_api_validation => {
-            if (_api_validation === '') {
-              let _newReferences = [...newReferences, newReference]
-              setNewReferences(_newReferences)
-              setReferences(_newReferences)
-              checkChanges(_newReferences)
-            }
-          })
-          .catch(_api_validation => {
-            setValidation(_api_validation)
-          })
-      } else {
-        setValidation(_validation)
-      }
-    }
-  }
-
-  const contextValue = {
-    newReferences: newReferences,
-    setNewReferences: setNewReferences,
-    edit: edit,
-    setEdit: setEdit,
-    checkChanges: checkChanges
-  }
-
-  return <referencesContext.Provider value={contextValue}>
-    <Box display={'block'}>
-      <Box marginBottom={1} marginTop={3}>
-        <Typography variant='subtitle2'>
-          References
-        </Typography>
-      </Box>
-      <TextField
-        style={{width: '100%'}} label='Enter the URL' defaultValue='' onChange={handleTextFieldChange}
-        error={validation !== ''} helperText={validation !== '' && validation} variant='filled' size='small'
-      />
-      <Box display="flex" justifyContent="right" marginY={1}>
-        <Button variant="contained" color="primary" onClick={handleAdd} disabled={validation !== '' || newReference === ''}>
-          add
-        </Button>
-      </Box>
-      {columns && newReferences.length > 0 && <React.Fragment>
-        <Divider />
-        <Datatable columns={columns} data={newReferences}>
-          <DatatableTable actions={ReferencesActions} noHeader />
-        </Datatable>
-      </React.Fragment>}
+  return <Box display={'block'}>
+    <Box marginBottom={1} marginTop={3}>
+      <Typography variant='subtitle2'>
+        References
+      </Typography>
     </Box>
-  </referencesContext.Provider>
+    <TextField
+      style={{width: '100%'}} label='Enter the URL' onChange={handleChangeReference}
+      error={!!(validation || urlValidation)} helperText={validation || urlValidation} variant='filled' size='small' value={newReference}
+    />
+    <Box display="flex" justifyContent="right" marginY={1}>
+      <Button variant="contained" color="primary" onClick={handleAdd} disabled={!!(validation || newReference === '')}>
+        add
+      </Button>
+    </Box>
+    {columns && values.length > 0 && <React.Fragment>
+      {apiError && <Typography color="error" role='reference-api-error'>
+        {apiError}
+      </Typography>}
+      <Divider />
+      <Datatable columns={columns} data={values.filter(value => !(value?.error_reference)).map(value => Object({url: value, onRemove: onRemove}))}>
+        <DatatableTable actions={ReferencesActions} noHeader />
+      </Datatable>
+    </React.Fragment>}
+  </Box>
+}
+EditReferences.propTypes = {
+  values: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onAdd: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired
 }
 
 const ReferencesActions = React.memo((props) => {
   const {data} = props
-  const {newReferences, setNewReferences, edit, setEdit, checkChanges} = useContext(referencesContext)
-  const {setReferences} = useContext(editMetaDataDialogContext)
-
-  let index = newReferences.indexOf(data)
-
-  const handleRemove = () => {
-    const filteredReferences = newReferences.filter(reference => !(reference === data))
-    setNewReferences(filteredReferences)
-    setReferences(filteredReferences)
-    checkChanges(filteredReferences)
-  }
-
-  const handleEdit = () => {
-    setEdit({index: index, value: data, validation: ''})
-  }
 
   const handleOpenLink = () => {
-    window.open(data, '_blank')
-  }
-
-  const handleApprove = () => {
-    let _newReferences = [...newReferences]
-    _newReferences[edit.index] = edit.value
-    setNewReferences(_newReferences)
-    setReferences(_newReferences)
-    checkChanges(_newReferences)
-    setEdit({index: -1, value: '', validation: ''})
-  }
-
-  const handleCancel = () => {
-    setEdit({index: -1, value: '', validation: ''})
-  }
-
-  if (edit.index === index) {
-    return <Box display={'inline-block'}>
-      <IconButton size='small' onClick={handleCancel}>
-        <Tooltip title='Cancel editing'>
-          <CloseIcon />
-        </Tooltip>
-      </IconButton>
-      <IconButton size='small' onClick={handleApprove} disabled={edit.validation !== ''}>
-        <Tooltip title='Approve editing'>
-          <CheckIcon />
-        </Tooltip>
-      </IconButton>
-    </Box>
+    window.open(data.url, '_blank')
   }
 
   return <Box display={'inline-block'}>
-    <IconButton size='small' onClick={handleEdit}>
-      <Tooltip title='Edit the reference'>
-        <EditIcon />
-      </Tooltip>
-    </IconButton>
     <IconButton size='small' onClick={handleOpenLink}>
       <Tooltip title='Open in new tab'>
         <OpenInNewIcon />
       </Tooltip>
     </IconButton>
-    <IconButton size='small' onClick={handleRemove}>
+    <IconButton size='small' onClick={() => data.onRemove(data.url)}>
       <Tooltip title='Remove the reference'>
         <DeleteIcon />
       </Tooltip>
@@ -276,194 +158,120 @@ const ReferencesActions = React.memo((props) => {
   </Box>
 })
 ReferencesActions.propTypes = {
-  data: PropTypes.string.isRequired
+  data: PropTypes.object.isRequired
 }
 
-function EditDatasets() {
-  const {data, setIsDatasetChanged, setDatasets, defaultDatasets, setDefaultDatasets} = useContext(editMetaDataDialogContext)
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
-  const [validation, setValidation] = useState('')
-  const [allDatasets, setAllDatasets] = useState([])
-  const [newDataset, setNewDataset] = useState({dataset_id: '', dataset_name: ''})
-  const [addDataset, setAddDataset] = useState('')
-  const [newDatasets, setNewDatasets] = useState([])
-  const [isDuplicated, setIsDuplicated] = useState(false)
-  const [apiValidation, setApiValidation] = useState('')
+function EditDatasets(props) {
+  const {values, userDatasets, onCreate, onAdd, onRemove} = props
+  const [newDataset, setNewDataset] = useState('')
+  const [datasetToAdd, setDatasetToAdd] = useState('')
 
   const columns = useMemo(() => ([
-    {key: '', align: 'left', render: dataset => (dataset.doi ? <span> {`${dataset.dataset_name},  DOI:`} <DOI doi={dataset.doi} /></span> : dataset.dataset_name)}
+    {key: 'dataset', align: 'left', render: row => ('doi' in row.dataset ? <span> {`${row.dataset.dataset_name},  DOI:`} <DOI doi={row.dataset.doi} /></span> : row.dataset.dataset_name)}
   ]), [])
 
-  useEffect(() => {
-    api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
-      .then(datasets => {
-        setAllDatasets(datasets?.data)
-      })
-      .catch(err => {
-        setAllDatasets([])
-        raiseError(err)
-      })
-  }, [api, user, raiseError, setAllDatasets])
+  const isDuplicated = useMemo(() => {
+    return !!values.find(dataset => dataset.dataset_id && dataset.dataset_id === datasetToAdd.dataset_id)
+  }, [datasetToAdd, values])
 
-  const checkChanges = useCallback((_datasets) => {
-    let isSame = defaultDatasets.length === _datasets.length &&
-        defaultDatasets.map(dataset => dataset.dataset_id).every(id => _datasets.map(dataset => dataset.dataset_id).includes(id))
-    setIsDatasetChanged(!isSame)
-  }, [defaultDatasets, setIsDatasetChanged])
-
-  useEffect(() => {
-    if (data?.data?.length > 0) {
-      let _datasets = data?.data[0]?.entry_metadata?.datasets
-      if (_datasets && allDatasets) {
-        let __datasets = allDatasets.filter(fullDatasetData => _datasets.map(dataset => dataset.dataset_id).includes(fullDatasetData.dataset_id))
-        setNewDatasets(__datasets)
-        setDefaultDatasets(__datasets)
-      }
-    }
-  }, [data, allDatasets, setDefaultDatasets])
-
-  const validateAPI = useCallback((value) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let query = {metadata: {datasets: value}, verify_only: true}
-        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, query)
-        if (response) {}
-        resolve('')
-      } catch (error) {
-        reject(error.apiMessage[0].msg)
-      }
-    })
-  }, [api, data])
-
-  const validate = useCallback((value) => {
-    if (allDatasets.map(dataset => dataset.dataset_name).includes(value.dataset_name)) return `There is already a dataset with name ${value.dataset_name}`
-    if (newDatasets.map(dataset => dataset.dataset_name).includes(value.dataset_name)) return `There is already a dataset with name ${value.dataset_name}`
-    if (value.dataset_name[0] === ' ') return `Invalid name for dataset`
+  const validation = useMemo(() => {
+    if (userDatasets.map(dataset => dataset.dataset_name).includes(newDataset)) return `There is already a dataset with name ${newDataset}`
+    if (values.map(dataset => dataset.dataset_name).includes(newDataset)) return `There is already a dataset with name ${newDataset}`
+    if (newDataset[0] === ' ') return `Invalid name for dataset`
     return ''
-  }, [allDatasets, newDatasets])
+  }, [newDataset, values, userDatasets])
 
-  const handleAutoCompleteChange = (event, value) => {
-    if (value && value?.dataset_id) {
-      validateAPI([value.dataset_id]).then(_validation => {
-        setApiValidation(_validation)
-        if (_validation === '') {
-          setAddDataset(value)
-          setIsDuplicated(newDatasets.map(dataset => dataset.dataset_id).includes(value.dataset_id))
-        }
-      }).catch(_validation => setApiValidation(_validation))
+  const handleDatasetToAddChanged = useCallback((event, value) => {
+    (value && value?.dataset_id ? setDatasetToAdd(value) : setDatasetToAdd(''))
+  }, [])
+
+  const handleNewDatasetChanged = useCallback((event) => {
+    setNewDataset(event.target.value)
+  }, [])
+
+  const handleCreate = useCallback(() => {
+    onCreate(newDataset)
+    setNewDataset('')
+  }, [newDataset, onCreate])
+
+  const handleAdd = useCallback(() => {
+    onAdd(datasetToAdd)
+    setDatasetToAdd('')
+  }, [datasetToAdd, onAdd])
+
+  const addDatasetButton = useMemo(() => {
+    if (validation === '' && newDataset !== '') {
+      return <Button color="primary" variant="contained" onClick={handleCreate}>
+        add entry to new dataset
+      </Button>
+    } else if (!isDuplicated && datasetToAdd !== '') {
+      return <Button variant="contained" color="primary" onClick={handleAdd}>
+        add entry to existing dataset
+      </Button>
     } else {
-      setAddDataset('')
+      return <Button color="primary" variant="contained" disabled>add</Button>
     }
-  }
+  }, [datasetToAdd, newDataset, handleAdd, handleCreate, validation, isDuplicated])
 
-  const handleCreate = () => {
-    if (newDataset) {
-      if (!newDatasets.map(dataset => dataset.dataset_id).includes(newDataset.dataset_id)) {
-        let _newDatasets = [...newDatasets, newDataset]
-        setNewDatasets(_newDatasets)
-        setDatasets(_newDatasets)
-        checkChanges(_newDatasets)
-      } else {
-        setValidation(validate(newDataset))
-      }
-    }
-  }
+  const apiError = useMemo(() => values && values.find(value => !!(value?.error_dataset))?.error_dataset, [values])
 
-  const handleAdd = () => {
-    if (addDataset) {
-      if (!newDatasets.map(dataset => dataset.dataset_id).includes(addDataset.dataset_id)) {
-        let _newDatasets = [...newDatasets, addDataset]
-        setNewDatasets(_newDatasets)
-        setDatasets(_newDatasets)
-        let isSame = defaultDatasets.length === _newDatasets.length &&
-            defaultDatasets.map(dataset => dataset.dataset_id).every(id => _newDatasets.map(dataset => dataset.dataset_id).includes(id))
-        setIsDatasetChanged(!isSame)
-      } else {
-        setIsDuplicated(true)
-      }
-    }
-  }
-
-  const handleTextFieldChange = (event) => {
-    let _newDataset = {dataset_id: event.target.value, dataset_name: event.target.value}
-    setNewDataset(_newDataset)
-    setValidation(validate(_newDataset))
-  }
-
-  const contextValue = useMemo(() => ({
-    newDatasets: newDatasets,
-    setNewDatasets: setNewDatasets,
-    setDatasets: setDatasets,
-    checkChanges: checkChanges
-  }), [newDatasets, setNewDatasets, setDatasets, checkChanges])
-
-  let addDatasetButton = <Button color="primary" variant="contained" disabled>add</Button>
-  if (validation === '' && newDataset.dataset_name !== '') {
-    addDatasetButton = <Button color="primary" variant="contained" onClick={handleCreate}>
-      add entry to new dataset
-    </Button>
-  } else if (!isDuplicated && !apiValidation && addDataset !== '') {
-    addDatasetButton = <Button variant="contained" color="primary" onClick={handleAdd}>
-      add entry to existing dataset
-    </Button>
-  }
-
-  return <datasetsContext.Provider value={contextValue}>
-    <Box display={'block'}>
-      <Box marginBottom={1} marginTop={3}>
-        <Typography variant='subtitle2'>
-          Datasets
-        </Typography>
-      </Box>
-      <Box marginBottom={1}>
-        <TextField
-          style={{width: '100%'}} label='Create a new dataset' placeholder='Dataset name'
-          defaultValue='' onChange={handleTextFieldChange}
-          error={validation !== ''} helperText={validation !== '' && validation}
-          variant='filled' size='small'
-        />
-      </Box>
-      <AutoComplete
-        style={{width: '100%'}}
-        options={allDatasets}
-        getOptionLabel={option => option.dataset_name}
-        onChange={handleAutoCompleteChange}
-        renderInput={params => (
-          <TextField
-            {...params}
-            variant='filled' label='Search for an existing dataset'
-            placeholder='Dataset name' margin='normal' fullWidth size='small'
-            error={isDuplicated || apiValidation !== ''}
-            helperText={(isDuplicated ? 'The data is already in the selected dataset' : apiValidation)}
-          />
-        )}
-      />
-      <Box display="flex" justifyContent="right" marginY={1}>
-        {addDatasetButton}
-      </Box>
-      <Divider/>
-      {columns && newDatasets.length > 0 && <Datatable columns={columns} data={newDatasets} >
-        <DatatableTable actions={DatasetsActions} noHeader />
-      </Datatable>}
+  return <Box display={'block'}>
+    <Box marginBottom={1} marginTop={3}>
+      <Typography variant='subtitle2'>
+        Datasets
+      </Typography>
     </Box>
-  </datasetsContext.Provider>
+    <Box marginBottom={1}>
+      <TextField
+        value={newDataset} onChange={handleNewDatasetChanged}
+        style={{width: '100%'}} label='Create a new dataset' placeholder='Dataset name'
+        error={validation !== ''} helperText={(validation !== '' && validation)}
+        variant='filled' size='small'
+      />
+    </Box>
+    <AutoComplete
+      style={{width: '100%'}}
+      options={userDatasets}
+      getOptionLabel={option => option.dataset_name || ''}
+      onChange={handleDatasetToAddChanged}
+      value={datasetToAdd}
+      getOptionSelected={(option, value) => (value ? option?.dataset_name === value?.dataset_name : true)}
+      renderInput={params => (
+        <TextField
+          {...params}
+          variant='filled' label='Search for an existing dataset'
+          placeholder='Dataset name' margin='normal' fullWidth size='small'
+          error={isDuplicated || (datasetToAdd.dataset_name && validation.value === datasetToAdd.dataset_name)}
+          helperText={(isDuplicated ? 'The data is already in the selected dataset' : (validation.value === datasetToAdd.dataset_name ? validation.error : ''))}
+        />
+      )}
+    />
+    <Box display="flex" justifyContent="right" marginY={1}>
+      {addDatasetButton}
+    </Box>
+    {apiError && <Typography color="error" role='dataset-api-error'>
+      {apiError}
+    </Typography>}
+    <Divider/>
+    {columns && values.length > 0 && <Datatable columns={columns} data={values.filter(value => !(value?.error_dataset)).map(value => Object({dataset: value, onRemove: onRemove}))}>
+      <DatatableTable actions={DatasetsActions} noHeader />
+    </Datatable>}
+  </Box>
+}
+EditDatasets.propTypes = {
+  values: PropTypes.arrayOf(PropTypes.object).isRequired,
+  userDatasets: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onCreate: PropTypes.func.isRequired,
+  onAdd: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired
 }
 
 const DatasetsActions = React.memo((props) => {
   const {data} = props
   const location = useLocation()
-  const {newDatasets, setNewDatasets, setDatasets, checkChanges} = useContext(datasetsContext)
-
-  const handleRemove = () => {
-    const filteredDatasets = newDatasets.filter(dataset => !(dataset.dataset_id === data.dataset_id))
-    setNewDatasets(filteredDatasets)
-    setDatasets(filteredDatasets)
-    checkChanges(filteredDatasets)
-  }
 
   const handleOpenLink = () => {
-    const path = `dataset/id/${data.dataset_id}`
+    const path = `dataset/id/${data.dataset.dataset_id}`
     window.open(getUrl(path, location), '_blank')
   }
 
@@ -473,8 +281,8 @@ const DatasetsActions = React.memo((props) => {
         <OpenInNewIcon />
       </Tooltip>
     </IconButton>
-    <IconButton size='small' onClick={handleRemove} disabled={!!data.doi} style={{pointerEvents: 'auto'}}>
-      <Tooltip title={(data.doi ? 'The dataset cannot be removed. A DOI has been assigned to the dataset.' : 'Remove the dataset')}>
+    <IconButton size='small' onClick={() => data.onRemove(data.dataset)} disabled={!!data.dataset.doi && !data.dataset?.notSubmitted} style={{pointerEvents: 'auto'}}>
+      <Tooltip title={(data.dataset.doi && !data.dataset?.notSubmitted ? 'The dataset cannot be removed. A DOI has been assigned to the dataset.' : 'Remove the dataset')}>
         <DeleteIcon />
       </Tooltip>
     </IconButton>
@@ -493,78 +301,129 @@ const useEditMetaDataDialogStyles = makeStyles(theme => ({
 function EditMetaDataDialog({...props}) {
   const {isIcon, selectedEntries} = props
   const classes = useEditMetaDataDialogStyles()
-  const {api} = useApi()
+  const {api, user} = useApi()
   const {raiseError} = useErrors()
   const {upload, setUpload, data} = useContext(uploadPageContext)
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running
   const nSelected = (selectedEntries.upload_id ? upload?.entries : selectedEntries.entry_id.length)
+  const [userDatasets, setUserDatasets] = useState([])
+  const [actions, setActions] = useState([])
 
-  const [comment, setComment] = useState('')
-  const [references, setReferences] = useState([])
-  const [defaultReferences, setDefaultReferences] = useState([])
-  const [datasets, setDatasets] = useState([])
-  const [defaultDatasets, setDefaultDatasets] = useState([])
-  const [isCommentChanged, setIsCommentChanged] = useState(false)
-  const [isReferencesChanged, setIsReferencesChanged] = useState(false)
-  const [isDatasetChanged, setIsDatasetChanged] = useState(false)
-
-  const handleOpenDialog = () => {
-    setIsCommentChanged(false)
-    setIsReferencesChanged(false)
-    setIsDatasetChanged(false)
-    setOpen(true)
-  }
-
-  const handleDiscardChanges = () => {
+  const handleDiscardChanges = useCallback(() => {
     setOpenConfirmDialog(false)
     setOpen(false)
-  }
+  }, [])
 
-  const createNewDatasets = useCallback(() => {
-    let promises = []
-    let newDatasets = datasets.filter(_dataset => _dataset.dataset_id === _dataset.dataset_name).map(_dataset => _dataset.dataset_name)
-    newDatasets.forEach(dataset_name => {
-      promises.push(api.post(`/datasets/`, {dataset_name: dataset_name}))
-    })
-    return Promise.all(promises)
-  }, [api, datasets])
-
-  const submitChanges = useCallback((metadata) => {
-    let requestBody = {metadata: metadata, verify_only: false, owner: 'user'}
-    if (selectedEntries.entry_id) requestBody.query = {entry_id: {any: selectedEntries.entry_id}}
-    api.post(`uploads/${data.upload.upload_id}/edit`, requestBody)
-      .then(results => {
-        setUpload(results.data)
-        setOpen(false)
-      }).catch(err => {
+  useEffect(() => {
+    api.get(`/datasets/?page_size=${1000}&page=${1}&user_id=${user.sub}`)
+      .then(datasets => {
+        setUserDatasets(datasets?.data)
+      })
+      .catch(err => {
+        setUserDatasets([])
         raiseError(err)
       })
-  }, [api, raiseError, data, setUpload, selectedEntries])
+  }, [api, user, raiseError, data])
 
-  const handleSubmitChanges = () => {
+  const defaultComment = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.comment || '' : '', [data])
+  const defaultReferences = useMemo(() => data?.data?.length > 0 ? data?.data[0]?.entry_metadata?.references || [] : [], [data])
+  const defaultDatasets = useMemo(() => data?.data?.length > 0 ? (data?.data[0]?.entry_metadata?.datasets ? userDatasets
+    .filter(datasetFullData => data?.data[0]?.entry_metadata?.datasets.map(dataset => dataset.dataset_id).includes(datasetFullData.dataset_id)) : []) : [], [data, userDatasets])
+
+  const handleOpenDialog = useCallback(() => {
+    setActions([])
+    setOpen(true)
+  }, [])
+
+  const createNewDatasets = useCallback(() => {
+    const promises = actions.filter(action => action.create_dataset).map(action => api.post(`/datasets`, {dataset_name: action.create_dataset}))
+    return Promise.all(promises)
+  }, [api, actions])
+
+  const edit = useCallback((metadata, verify_only) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let requestBody = {metadata: metadata, verify_only: verify_only, owner: 'user'}
+        if (selectedEntries.entry_id) requestBody.query = {entry_id: {any: selectedEntries.entry_id}}
+        let response = await api.post(`uploads/${data.upload.upload_id}/edit`, requestBody)
+        if (response) {}
+        resolve('')
+      } catch (error) {
+        reject(error.apiMessage)
+      }
+    })
+  }, [api, data, selectedEntries])
+
+  const submitChanges = useCallback((metadata) => {
+    edit(metadata, true)
+      .then(response => {
+        edit(metadata, false)
+          .then(results => {
+            setActions([])
+            setUpload(results.data)
+          }).catch(err => {
+            raiseError(err)
+          })
+      })
+      .catch(errors => {
+        errors.forEach(error => {
+          if (error.loc.includes('references')) setActions(oldActions => [...oldActions, {'error_reference': error.msg}])
+          if (error.loc.includes('datasets')) setActions(oldActions => [...oldActions, {'error_dataset': error.msg}])
+        })
+      })
+  }, [edit, setUpload, raiseError])
+
+  const isCommentChanged = useMemo(() => !!actions.find(action => 'set_comment' in action), [actions])
+  const isReferencesChanged = useMemo(() => !!actions.find(action => 'add_reference' in action || 'remove_reference' in action), [actions])
+  const isDatasetChanged = useMemo(() => !!actions.find(action => 'add_dataset' in action || 'remove_dataset' in action || 'create_dataset' in action), [actions])
+
+  const comment = useMemo(() => {
+    let action = actions.find(action => 'set_comment' in action)
+    return (action ? action.set_comment : defaultComment)
+  }, [actions, defaultComment])
+
+  const references = useMemo(() => {
+    let references = [...defaultReferences]
+    actions.forEach(action => {
+      if (action.add_reference) references = [...references, action.add_reference]
+      if (action.remove_reference) references = references.filter(reference => reference !== action.remove_reference)
+      if (action.error_reference) references = [...references, action]
+    })
+    return references
+  }, [actions, defaultReferences])
+
+  const datasets = useMemo(() => {
+    let datasets = [...defaultDatasets]
+    actions.forEach(action => {
+      if (action.add_dataset) {
+        let notSubmittedDataset = userDatasets.find(datasetFullData => action.add_dataset === datasetFullData.dataset_id)
+        notSubmittedDataset.notSubmitted = true
+        datasets = [...datasets, notSubmittedDataset]
+      }
+      if (action.create_dataset) datasets = [...datasets, {'dataset_name': action.create_dataset}]
+      if (action.remove_dataset) datasets = datasets.filter(dataset => dataset.dataset_id !== action.remove_dataset)
+      if (action.error_dataset) datasets = [...datasets, action]
+    })
+    return datasets
+  }, [actions, defaultDatasets, userDatasets])
+
+  const handleSubmitChanges = useCallback(() => {
     if (isCommentChanged || isReferencesChanged || isDatasetChanged) {
       let metadata = {}
       if (isCommentChanged) metadata.comment = comment
       if (isReferencesChanged) {
         metadata.references = {}
-        let referencesToAdd = references.filter(dataset => !defaultReferences.includes(dataset))
-        let referencesToRemove = defaultReferences.filter(dataset => !references.includes(dataset))
-        if (referencesToAdd && referencesToAdd.length !== 0) metadata.references.add = referencesToAdd
-        if (referencesToRemove && referencesToRemove.length !== 0) metadata.references.remove = referencesToRemove
+        if (actions.find(action => 'add_reference' in action)) metadata.references.add = actions.flatMap(action => action.add_reference || [])
+        if (actions.find(action => 'remove_reference' in action)) metadata.references.remove = actions.flatMap(action => action.remove_reference || [])
       }
       if (isDatasetChanged) {
         metadata.datasets = {}
         createNewDatasets().then(newDatasets => {
-          let newDatasetsIDs = datasets.filter(_dataset => _dataset.dataset_id !== _dataset.dataset_name)
-            .map(_dataset => _dataset.dataset_id)
-            .concat(newDatasets.map(_dataset => _dataset.dataset_id))
-          let defaultDatasetsIDs = defaultDatasets.map(_dataset => _dataset.dataset_id)
-          let datasetsToAdd = newDatasetsIDs.filter(dataset => !defaultDatasetsIDs.includes(dataset))
-          let datasetsToRemove = defaultDatasetsIDs.filter(dataset => !newDatasetsIDs.includes(dataset))
-          if (datasetsToAdd && datasetsToAdd.length !== 0) metadata.datasets.add = datasetsToAdd
-          if (datasetsToRemove && datasetsToRemove.length !== 0) metadata.datasets.remove = datasetsToRemove
+          let newDatasetsIDs = newDatasets.map(_dataset => _dataset.dataset_id)
+          if (actions.find(action => 'add_dataset' in action || 'create_dataset' in action)) metadata.datasets.add = actions.flatMap(action => action.add_dataset || []).concat(newDatasetsIDs)
+          if (actions.find(action => 'remove_dataset' in action)) metadata.datasets.remove = actions.flatMap(action => action.remove_dataset || [])
           submitChanges(metadata)
         })
       } else {
@@ -573,85 +432,127 @@ function EditMetaDataDialog({...props}) {
     } else {
       setOpen(false)
     }
-  }
+  }, [actions, comment, createNewDatasets, isCommentChanged, isDatasetChanged, isReferencesChanged, submitChanges])
 
-  const handleConfirm = () => {
+  const handleSetComment = useCallback((value) => {
+    let action = actions.find(action => 'set_comment' in action)
+    if (action) {
+      let newActions = [...actions]
+      if (value === defaultComment) {
+        newActions.splice(actions.indexOf(action), 1)
+      } else {
+        newActions[actions.indexOf(action)] = {set_comment: value}
+      }
+      setActions(newActions)
+    } else {
+      setActions(oldActions => [...oldActions, {set_comment: value}])
+    }
+  }, [actions, defaultComment])
+
+  const handleAddReference = useCallback((value) => {
+    setActions(oldActions => oldActions.filter(action => !('error_reference' in action)))
+    if (actions.flatMap(action => action.remove_reference || []).includes(value)) {
+      setActions(_actions => _actions.filter(action => action.remove_reference !== value))
+    } else {
+      setActions(_actions => [..._actions, {add_reference: value}])
+    }
+  }, [actions])
+
+  const handleRemoveReference = useCallback((value) => {
+    setActions(oldActions => oldActions.filter(action => !('error_reference' in action)))
+    if (actions.flatMap(action => action.add_reference || []).includes(value)) {
+      setActions(_actions => _actions.filter(action => action.add_reference !== value))
+    } else {
+      setActions(_actions => [..._actions, {remove_reference: value}])
+    }
+  }, [actions])
+
+  const handleCreateDataset = useCallback((value) => {
+    setActions(oldActions => oldActions.filter(action => !('error_dataset' in action)))
+    if (value && !actions.find(action => action.create_dataset === value)) {
+      setActions(_actions => [..._actions, {create_dataset: value}])
+    }
+  }, [actions])
+
+  const handleAddDataset = useCallback((value) => {
+    if (value) {
+      setActions(oldActions => oldActions.filter(action => !('error_dataset' in action)))
+      if (actions.flatMap(action => action.remove_dataset || []).includes(value.dataset_id)) {
+        setActions(_actions => _actions.filter(action => action.remove_dataset !== value.dataset_id))
+      } else {
+        setActions(_actions => [..._actions, {add_dataset: value.dataset_id}])
+      }
+    }
+  }, [actions])
+
+  const handleRemoveDataset = useCallback((value) => {
+    setActions(oldActions => oldActions.filter(action => !('error_dataset' in action)))
+    if (actions.flatMap(action => action.create_dataset || []).includes(value.dataset_name)) {
+      setActions(_actions => _actions.filter(action => action.create_dataset !== value.dataset_name))
+    } else if (actions.flatMap(action => action.add_dataset || []).includes(value.dataset_id)) {
+      setActions(_actions => _actions.filter(action => action.add_dataset !== value.dataset_id))
+    } else {
+      setActions(_actions => [..._actions, {remove_dataset: value.dataset_id}])
+    }
+  }, [actions])
+
+  const handleConfirm = useCallback(() => {
     if (isCommentChanged || isReferencesChanged || isDatasetChanged) {
       setOpenConfirmDialog(true)
     } else {
       setOpen(false)
     }
-  }
+  }, [isCommentChanged, isDatasetChanged, isReferencesChanged])
 
-  const contextValue = useMemo(() => ({
-    api: api,
-    raiseError: raiseError,
-    setIsCommentChanged: setIsCommentChanged,
-    setIsReferencesChanged: setIsReferencesChanged,
-    setIsDatasetChanged: setIsDatasetChanged,
-    upload: upload,
-    data: data,
-    setComment: setComment,
-    setReferences: setReferences,
-    defaultReferences: defaultReferences,
-    setDefaultReferences: setDefaultReferences,
-    setDatasets: setDatasets,
-    defaultDatasets: defaultDatasets,
-    setDefaultDatasets: setDefaultDatasets
-  }), [api, raiseError, setIsCommentChanged, setIsReferencesChanged, setIsDatasetChanged, upload,
-    data, setComment, setReferences, defaultReferences, setDefaultReferences, setDatasets, defaultDatasets, setDefaultDatasets])
-
-  return <editMetaDataDialogContext.Provider value={contextValue}>
-    <React.Fragment>
-      {isIcon && <IconButton onClick={handleOpenDialog}>
-        <Tooltip title="Edit author metadata">
-          <EditIcon />
-        </Tooltip>
-      </IconButton>}
-      {!isIcon && <Button onClick={handleOpenDialog} variant='contained' color='primary' disabled={isProcessing}>
-        {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
-      </Button>}
-      {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
-        <DialogTitle>Edit upload meta data</DialogTitle>
+  return <React.Fragment>
+    {isIcon && <IconButton onClick={() => handleOpenDialog()}>
+      <Tooltip title="Edit author metadata">
+        <EditIcon />
+      </Tooltip>
+    </IconButton>}
+    {!isIcon && <Button onClick={() => handleOpenDialog()} variant='contained' color='primary' disabled={isProcessing}>
+      {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
+    </Button>}
+    {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown>
+      <DialogTitle>Edit upload meta data</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You can add, remove or edit the meta data for the selected entries.
+          <br/>
+          {nSelected} of {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'} is selected.
+        </DialogContentText>
+        <Divider/>
+        <div>
+          <EditComments value={defaultComment} onChange={handleSetComment}/>
+          <EditReferences values={references} onAdd={handleAddReference} onRemove={handleRemoveReference}/>
+          <EditDatasets values={datasets} userDatasets={userDatasets} onCreate={handleCreateDataset} onAdd={handleAddDataset} onRemove={handleRemoveDataset}/>
+        </div>
+      </DialogContent>
+      <DialogActions>
+        <span style={{flexGrow: 1}} />
+        <Button onClick={handleConfirm} color="secondary">
+          Cancel
+        </Button>
+        <Button onClick={handleSubmitChanges} disabled={!(isCommentChanged || isReferencesChanged || isDatasetChanged)} color="secondary">
+          Submit
+        </Button>
+      </DialogActions>
+      <Dialog
+        open={openConfirmDialog}
+        aria-describedby="alert-dialog-description"
+      >
         <DialogContent>
-          <DialogContentText>
-            You can add, remove or edit the meta data for the selected entries.
-            <br/>
-            {nSelected} of {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'} is selected.
+          <DialogContentText id="alert-dialog-description">
+            Your changes are not submitted yet. Discard changes?
           </DialogContentText>
-          <Divider/>
-          <div>
-            <EditComments/>
-            <EditReferences/>
-            <EditDatasets/>
-          </div>
         </DialogContent>
         <DialogActions>
-          <span style={{flexGrow: 1}} />
-          <Button onClick={handleConfirm} color="secondary">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmitChanges} disabled={!(isCommentChanged || isReferencesChanged || isDatasetChanged)} color="secondary">
-            Submit
-          </Button>
+          <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+          <Button onClick={handleDiscardChanges}>Discard</Button>
         </DialogActions>
-        <Dialog
-          open={openConfirmDialog}
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogContent>
-            <DialogContentText id="alert-dialog-description">
-              Your changes are not submitted yet. Discard changes?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
-            <Button onClick={handleDiscardChanges}>Discard</Button>
-          </DialogActions>
-        </Dialog>
-      </Dialog>}
-    </React.Fragment>
-  </editMetaDataDialogContext.Provider>
+      </Dialog>
+    </Dialog>}
+  </React.Fragment>
 }
 EditMetaDataDialog.propTypes = {
   isIcon: PropTypes.bool,
