@@ -380,12 +380,12 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     }
   } else {
     if (Array.isArray(finalValue)) {
-      return <Typography>
-        <ul style={{margin: 0}}>
-          {finalValue.map((value, index) =>
-            <li key={index}>{typeof value === 'object' ? JSON.stringify(value) : value}</li>)}
-        </ul>
-      </Typography>
+      return <ul style={{margin: 0}}>
+        {finalValue.map((value, index) =>
+          <li key={index}>
+            <Typography>{typeof value === 'object' ? JSON.stringify(value) : value}</Typography>
+          </li>)}
+      </ul>
     } else {
       return <Typography>{finalValue}</Typography>
     }

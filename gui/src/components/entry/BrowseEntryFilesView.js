@@ -30,14 +30,14 @@ const useStyles = makeStyles(theme => ({
 }))
 const BrowseEntryFilesView = React.memo(({entryId}) => {
   const classes = useStyles()
-  const {api} = useApi()
+  const {api, user} = useApi()
   const {raiseError} = useErrors()
 
   const [data, setData] = useState(null)
   const [doesNotExist, setDoesNotExist] = useState(false)
 
   useEffect(() => {
-    api.get(`/entries/${entryId}?include=mainfile&include=upload_id`)
+    api.get(`/entries/${entryId}?include=mainfile&include=upload_id&include=writers&include=published`)
       .then(response => {
         setData(response.data)
       })
@@ -69,6 +69,7 @@ const BrowseEntryFilesView = React.memo(({entryId}) => {
         path={mainfileDirname}
         rootTitle="Entry raw files"
         highlightedItem={mainfileBasename}
+        editable={!data.published && user && !!(data.writers.find(writer => writer.user_id === user.sub))}
       />
     </Page>
   } else {
