@@ -26,8 +26,8 @@ The fetch process is carried out **synchronously**. Users can call
 number_of_entries = query.fetch()
 ```
 
-to perform the fetch process to fetch up to `results_max` entries. An indicative number $$n$$ can be provided `fetch(n)`
-. Given that each upload may contain various numbers of entries, the fetch process guarantees at least $$n$$ entries
+to perform the fetch process to fetch up to `results_max` entries. An indicative number `n` can be provided `fetch(n)`
+. Given that each upload may contain various numbers of entries, the fetch process guarantees at least `n` entries
 will be fetched. The exact number is determined by `page_size`, indicating how many uploads in each page. However, this
 would be limited to the `results_max`. The exact qualified number of entries will be returned. Meanwhile, the qualified
 upload list would be populated with their IDs. To check all qualified upload IDs, one can call `upload_list()` method to
@@ -152,7 +152,7 @@ result = query.download(100)
 print(f'Downloaded {len(result)} entries.')  # Downloaded 102 entries.
 ```
 
-In the above, we request additional 100 entries, however, the list contains only $$6+82+10=98$$ entries, fetch process
+In the above, we request additional 100 entries, however, the list contains only `6+82+10=98` entries, fetch process
 will be called to fetch new entries from server. You will see the following message in terminal.
 
 ```text
@@ -165,7 +165,7 @@ Downloaded 102 entries.
 
 ## Argument List
 
-The following arguments are acceptable.
+The following arguments are acceptable for `ArchiveQuery`.
 
 - `owner` : `str` The scope of data to access. Default: `'visible'`
 - `query` : `dict` The API query. There are no validations of any means carried out by the class, users shall make sure
