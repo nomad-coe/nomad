@@ -23,7 +23,7 @@ global.nomadEnv = {
 }
 // Increased the default jest timeout for individual tests
 // eslint-disable-next-line no-undef
-jest.setTimeout(10000)
+jest.setTimeout(60000)
 
 const { ResizeObserver } = window
 
