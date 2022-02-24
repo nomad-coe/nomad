@@ -126,6 +126,9 @@ TextFieldWithHelp.propTypes = {
 const WithHelp = React.memo((props) => {
   const {helpTitle, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
+  if (!helpDescription) {
+    return ''
+  }
   return <Box display="flex" alignItems="center" className={classes.root}>
     <Box flexGrow={1} {...otherProps}/>
     <Box>
@@ -459,17 +462,15 @@ SliderEditQuantity.propTypes = {
 
 const useDatesEditQuantityStyles = makeStyles(theme => ({
   startDate: {
-    width: '220px'
   },
   endDate: {
-    marginLeft: theme.spacing(1),
-    width: '220px'
+    marginLeft: theme.spacing(1)
   }
 }))
 
 export const DateTimeEditQuantity = React.memo((props) => {
   const classes = useDatesEditQuantityStyles()
-  const {quantityDef, section, onChange, format, timePicker, ...otherProps} = props
+  const {quantityDef, section, onChange, format, time, ...otherProps} = props
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
@@ -500,49 +501,41 @@ export const DateTimeEditQuantity = React.memo((props) => {
     handleAccept(current)
   }, [current, handleAccept])
 
-  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
-    {(!timePicker ? <KeyboardDatePicker
-      className={classes.startDate}
-      size={'small'}
-      error={!!error}
-      variant="inline"
-      inputVariant="outlined"
-      label={label}
-      value={value}
-      format={format || `${dateFormat} HH:mm`}
-      invalidDateMessage={error}
-      InputAdornmentProps={{ position: 'start' }}
-      onAccept={handleAccept}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
-      {...otherProps}
-    /> : <KeyboardTimePicker
-      className={classes.startDate}
-      size={'small'}
-      error={!!error}
-      variant="inline"
-      inputVariant="outlined"
-      label={label}
-      value={value}
+  const renderProps = {
+    className: classes.startDate,
+    size: 'small',
+    error: !!error,
+    variant: 'inline',
+    inputVariant: 'filled',
+    fullWidth: true,
+    label: label,
+    value: value,
+    invalidDateMessage: error,
+    onAccept: handleAccept,
+    onChange: handleChange,
+    onBlur: handleBlur,
+    onKeyDown: (event) => { if (event.key === 'Enter') { handleAccept(current) } },
+    ...otherProps
+  }
+  if (time) {
+    return <KeyboardTimePicker
+      {...renderProps}
       format={format || `HH:mm`}
-      invalidDateMessage={error}
-      InputAdornmentProps={{ position: 'start' }}
       keyboardIcon={<AccessTimeIcon />}
-      onAccept={handleAccept}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
-      {...otherProps}
-    />)}
-  </WithHelp>
+    />
+  } else {
+    return <KeyboardDatePicker
+      {...renderProps}
+      format={format || `${dateFormat} HH:mm`}
+    />
+  }
 })
 DateTimeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   format: PropTypes.string,
-  timePicker: PropTypes.bool
+  time: PropTypes.bool
 }
 
 export const DateEditQuantity = React.memo((props) => {
@@ -559,7 +552,7 @@ DateEditQuantity.propTypes = {
 export const TimeEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
 
-  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} timePicker {...otherProps}/>
+  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} time {...otherProps}/>
 })
 TimeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
@@ -569,7 +562,7 @@ TimeEditQuantity.propTypes = {
 
 export const DateTimeRangeEditQuantity = React.memo((props) => {
   const classes = useDatesEditQuantityStyles()
-  const {quantityDef, section, onChange, format, timePicker, ...otherProps} = props
+  const {quantityDef, section, onChange, format, time, ...otherProps} = props
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : ['', ''])
   const label = otherProps.label || quantityDef.name
   const [startDate, setStartDate] = useState((section[quantityDef.name] ? section[quantityDef.name][0] : defaultValue[0]))
@@ -619,9 +612,9 @@ export const DateTimeRangeEditQuantity = React.memo((props) => {
     setEndDate(date)
   }, [])
 
-  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+  return (
     <Box display='flex'>
-      {(!timePicker ? <KeyboardDatePicker
+      {(!time ? <KeyboardDatePicker
         className={classes.startDate}
         style={{paddingRight: 1}}
         size={'small'}
@@ -656,7 +649,7 @@ export const DateTimeRangeEditQuantity = React.memo((props) => {
         {...otherProps}
         label={`${label} (start)`}
       />)}
-      {(!timePicker ? <KeyboardDatePicker
+      {(!time ? <KeyboardDatePicker
         className={classes.endDate}
         size={'small'}
         error={!!error}
@@ -690,14 +683,14 @@ export const DateTimeRangeEditQuantity = React.memo((props) => {
         label={`${label} (end)`}
       />)}
     </Box>
-  </WithHelp>
+  )
 })
 DateTimeRangeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   format: PropTypes.string,
-  timePicker: PropTypes.bool
+  time: PropTypes.bool
 }
 
 export const DateRangeEditQuantity = React.memo((props) => {
@@ -714,7 +707,7 @@ DateRangeEditQuantity.propTypes = {
 export const TimeRangeEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
 
-  return <DateTimeRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} timePicker {...otherProps}/>
+  return <DateTimeRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} time {...otherProps}/>
 })
 TimeRangeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,

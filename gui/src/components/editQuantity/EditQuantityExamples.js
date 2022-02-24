@@ -543,6 +543,9 @@ export function EditQuantityExamples() {
       <Box margin={1}>
         <EditQuantity quantityDef={defs.dateRangeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
+      {/* <Box>
+        <ListEditQuantity component={NumberEditQuantity} componentProps={{minValue: 2, maxValue: 10}} quantityDef={..., shape: ['*']} />
+      </Box> */}
     </Card>
   </div>
 }

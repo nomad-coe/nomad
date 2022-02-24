@@ -768,7 +768,7 @@ class MaterialLibrary(EntryData):
     creation_datetime = Quantity(
         type=Datetime,
         description='Creation date of the library.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='DateTimeEditQuantity'))
 
     # Can the type be changed to link to another MaterialLibrary section of another entry?
     children = Quantity(
