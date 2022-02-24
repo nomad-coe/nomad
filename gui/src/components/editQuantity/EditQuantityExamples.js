@@ -20,8 +20,17 @@ import PropTypes from 'prop-types'
 import {Card, makeStyles, Box} from '@material-ui/core'
 import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
 import {
-  BoolEditQuantity, EnumEditQuantity, NumberEditQuantity, RadioButtonEditQuantity, StringEditQuantity,
-  AutocompleteEditQuantity, SliderEditQuantity, DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity
+  BoolEditQuantity,
+  EnumEditQuantity,
+  NumberEditQuantity,
+  RadioButtonEditQuantity,
+  StringEditQuantity,
+  AutocompleteEditQuantity,
+  SliderEditQuantity,
+  DateEditQuantity,
+  DateTimeEditQuantity,
+  TimeEditQuantity,
+  DateRangeEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -351,7 +360,7 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Data and time',
+          label: 'Date and time',
           component: 'DateTimeEditQuantity'
         }
       ]
@@ -367,7 +376,7 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Data',
+          label: 'Date',
           component: 'DateEditQuantity'
         }
       ]
@@ -388,6 +397,22 @@ const defs = {
         }
       ]
     }
+  },
+  dateRangeQuantityDef: {
+    name: 'datePeriod',
+    description: 'It is a date range',
+    type: {
+      type_kind: 'python',
+      type_data: 'str'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Date period',
+          component: 'DateRangeEditQuantity'
+        }
+      ]
+    }
   }
 }
 
@@ -399,9 +424,11 @@ let section = {
   coatingMethod: 'Pulsed electron deposition (PED)',
   mass: 1,
   alignment: 'Both',
+  n: 75,
   dateAndTime: '2022-01-10T13:47:32.899000',
   date: '2021-03-17T13:47:32.899000',
-  time: '2001-01-11T11:30:59.899000'
+  time: '2001-01-11T11:30:59.899000',
+  datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM']
 }
 
 const useStyles = makeStyles(theme => ({
@@ -445,6 +472,8 @@ const EditQuantity = React.memo((props) => {
     return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'TimeEditQuantity') {
     return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'DateRangeEditQuantity') {
+    return <DateRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -510,6 +539,9 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.dateRangeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>

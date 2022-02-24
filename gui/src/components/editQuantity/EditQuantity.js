@@ -457,7 +457,18 @@ SliderEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
+const useDatesEditQuantityStyles = makeStyles(theme => ({
+  startDate: {
+    width: '220px'
+  },
+  endDate: {
+    marginLeft: theme.spacing(1),
+    width: '220px'
+  }
+}))
+
 export const DateTimeEditQuantity = React.memo((props) => {
+  const classes = useDatesEditQuantityStyles()
   const {quantityDef, section, onChange, format, timePicker, ...otherProps} = props
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const label = otherProps.label || quantityDef.name
@@ -491,6 +502,8 @@ export const DateTimeEditQuantity = React.memo((props) => {
 
   return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
     {(!timePicker ? <KeyboardDatePicker
+      className={classes.startDate}
+      size={'small'}
       error={!!error}
       variant="inline"
       inputVariant="outlined"
@@ -503,7 +516,10 @@ export const DateTimeEditQuantity = React.memo((props) => {
       onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
+      {...otherProps}
     /> : <KeyboardTimePicker
+      className={classes.startDate}
+      size={'small'}
       error={!!error}
       variant="inline"
       inputVariant="outlined"
@@ -517,6 +533,7 @@ export const DateTimeEditQuantity = React.memo((props) => {
       onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
+      {...otherProps}
     />)}
   </WithHelp>
 })
@@ -545,6 +562,104 @@ export const TimeEditQuantity = React.memo((props) => {
   return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} timePicker {...otherProps}/>
 })
 TimeEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const DateRangeEditQuantity = React.memo((props) => {
+  const classes = useDatesEditQuantityStyles()
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : ['', ''])
+  const label = otherProps.label || quantityDef.name
+  const [startDate, setStartDate] = useState((section[quantityDef.name] ? section[quantityDef.name][0] : defaultValue[0]))
+  const [endDate, setEndDate] = useState((section[quantityDef.name] ? section[quantityDef.name][1] : defaultValue[1]))
+  const [error, setError] = useState('')
+  const changed = useRef(false)
+
+  const handleAccept = useCallback((startDate, endDate) => {
+    if (!changed.current) {
+      return
+    }
+    const start = getTime(startDate)
+    const end = getTime(endDate)
+    if (start > end) {
+      setError('End date cannot be before start date!')
+      return
+    } else if (isNaN(start) || isNaN(end)) {
+      setError('Invalid date format.')
+      return
+    }
+    setError('')
+    changed.current = false
+    if (onChange) {
+      onChange([startDate || '', endDate || ''], section, quantityDef)
+    }
+  }, [onChange, quantityDef, section])
+
+  const handleStartAccept = useCallback((startDate) => {
+    handleAccept(startDate, endDate)
+  }, [endDate, handleAccept])
+
+  const handleEndAccept = useCallback((endDate) => {
+    handleAccept(startDate, endDate)
+  }, [startDate, handleAccept])
+
+  const handleBlurAccept = useCallback(() => {
+    handleAccept(startDate, endDate)
+  }, [startDate, endDate, handleAccept])
+
+  const handleStartChange = useCallback((date) => {
+    changed.current = true
+    setStartDate(date)
+  }, [])
+
+  const handleEndChange = useCallback((date) => {
+    changed.current = true
+    setEndDate(date)
+  }, [])
+
+  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+    <Box display='flex'>
+      <KeyboardDatePicker
+        className={classes.startDate}
+        style={{paddingRight: 1}}
+        size={'small'}
+        error={!!error}
+        variant="inline"
+        inputVariant="outlined"
+        format={dateFormat}
+        value={startDate}
+        invalidDateMessage=""
+        InputAdornmentProps={{ position: 'start' }}
+        onAccept={handleStartAccept}
+        onChange={handleStartChange}
+        onBlur={handleBlurAccept}
+        onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
+        {...otherProps}
+        label={`${label} (start)`}
+      />
+      <KeyboardDatePicker
+        className={classes.endDate}
+        size={'small'}
+        error={!!error}
+        variant="inline"
+        inputVariant="outlined"
+        format={dateFormat}
+        value={endDate}
+        invalidDateMessage=""
+        InputAdornmentProps={{ position: 'start' }}
+        onAccept={handleEndAccept}
+        onChange={handleEndChange}
+        onBlur={handleBlurAccept}
+        onKeyDown={(event) => { if (event.key === 'Enter') { handleBlurAccept() } }}
+        {...otherProps}
+        label={`${label} (end)`}
+      />
+    </Box>
+  </WithHelp>
+})
+DateRangeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
