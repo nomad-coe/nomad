@@ -39,6 +39,7 @@ from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.measurements import Measurement  # noqa
+from .metainfo.material_library import MaterialLibrary  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -682,6 +683,7 @@ class EntryArchive(metainfo.MSection):
     measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
 
     data = metainfo.SubSection(sub_section=EntryData)
+
     workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
     metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],

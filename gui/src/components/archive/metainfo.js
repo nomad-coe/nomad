@@ -274,7 +274,7 @@ export function path(nameOrDef) {
  * @returns True, if sections of the given section def are editable.
  */
 export function isEditable(def) {
-  return !!def._allProperties.find(prop => prop.m_annotations?.eln)
+  return !!def._allProperties.find(prop => prop.m_annotations?.eln) || !!def.m_annotations?.eln
 }
 
 export function removeSubSection(section, subSectionDef, index) {

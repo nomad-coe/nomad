@@ -19,6 +19,15 @@ const templates = [
     }
   },
   {
+    id: 'material_library',
+    label: 'Material Library',
+    archive: {
+      data: {
+        m_def: 'nomad.datamodel.metainfo.material_library.MaterialLibrary'
+      }
+    }
+  },
+  {
     id: 'experiment',
     label: 'Experiment',
     description: 'A sample experiment.',
