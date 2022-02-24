@@ -22,9 +22,8 @@ from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF, RDF
 from nomad import config
 from nomad.datamodel import User
 
-from nomad.datamodel import User
+from .common import url
 
-from .api import url
 
 VCARD = Namespace('http://www.w3.org/2006/vcard/ns#')
 HYDRA = Namespace('http://www.w3.org/ns/hydra/core#')
@@ -92,7 +91,8 @@ class Mapping():
         self.g.add((dataset, DCT.issued, Literal(entry['upload_create_time'])))
         self.g.add((dataset, DCT.modified, Literal(entry['last_processing_time'])))
         self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'results.material.chemical_formula_descriptive'))))
-        self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
+        if 'comment' in entry:
+            self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
 
         if slim:
             return dataset
@@ -114,6 +114,10 @@ class Mapping():
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'raw')))
+
+        if 'datasets' in entry:
+            for nomad_dataset in entry['datasets']:
+                self.g.add((dataset, DCAT.distribution, self.map_nomad_dataset(nomad_dataset)))
 
         return dataset
 
@@ -147,50 +151,46 @@ class Mapping():
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
         self.g.add((person, VCARD.organization, Literal(get_optional_entry_prop(user, 'affiliation'))))
-        # address = BNode()
-        # self.g.add((address, RDF.type, VCARD.Address))
-        # self.g.add((address, VCARD.street_address, )) # affiliation_address?
-        # self.g.add((address, VCARD.postal_code, )) # affiliation_address?
-        # self.g.add((address, VCARD.country_name, )) # affiliation_address?
-        # self.g.add((address, VCARD.locality, )) # affiliation_address?
-        # self.g.add((address, VCARD.region, )) # affiliation_address?
-        # self.g.add((person, VCARD.hasAddress, address))
 
         return person
 
     def map_distribution(self, entry: dict, dist_kind):
         if dist_kind == 'api':
-            # DataService: API
-            service = BNode()
-            self.g.add((service, RDF.type, DCAT.DataService))
-            self.g.add((service, DCT.title, Literal('NOMAD API')))  # How to include terms from swagger document here?
-            self.g.add((service, DCT.description, Literal('Official NOMAD API')))  # same question
-            self.g.add((service, DCAT.endpointURL, URIRef('https://nomad-lab.eu/prod/rae/api/v1')))  # TODO config.api_url() ?
-            # not sure if the following needs to be dataset specific:
-            self.g.add((service, DCAT.endpointDescription, URIRef('https://nomad-lab.eu/prod/rae/api/swagger.json')))
-
             # Distribution over API
             dist = BNode()
-            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_api')))
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCAT.accessService, service))
+            self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_metadata')))
+            self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
+            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download')))
         elif dist_kind == 'json':
             # Distribution as JSON
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_json')))
+            self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_archive')))
             self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
-            self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
-            self.g.add((dist, DCAT.downloadURL, URIRef(
-                f'http://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/archive/download')))
-            self.g.add((dist, DCAT.accessURL, URIRef('%s/entry/id/%s/%s' % (
-                config.gui_url(), entry['upload_id'], entry['entry_id']))))
+            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download')))
         elif dist_kind == 'raw':
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
-            self.g.add((dist, DCT.title, Literal(get_optional_entry_prop(entry, 'formula') + '_raw')))
-            self.g.add((dist, DCAT.accessURL, URIRef(f'https://nomad-lab.eu/prod/rae/api/v1/entries/{entry["entry_id"]}/raw')))
-            self.g.add((dist, DCAT.packageFormat, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
+            self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_raw_files')))
+            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/raw')))
+            self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
+
+        return dist
+
+    def map_nomad_dataset(self, dataset: dict):
+        dist = BNode()
+        self.g.add((dist, RDF.type, DCAT.Distribution))
+
+        id_literal = dataset['dataset_id']
+        try:
+            id_literal = dataset['doi']
+        except KeyError:
+            pass
+        self.g.add((dist, DCT.identifier, Literal(id_literal)))
+        self.g.add((dist, DCT.title, Literal(dataset['dataset_name'])))
+        self.g.add((dist, DCT.accessURL, URIRef(
+            f'{config.gui_url()}/dataset/id/{dataset["dataset_id"]}')))
 
         return dist

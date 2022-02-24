@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from .archive import ArchiveQuery, query_archive
+from .archive import ArchiveQuery
 from .api import Auth
 from .upload import upload_file
 from .processing import LocalEntryProcessing, parse, normalize, normalize_all

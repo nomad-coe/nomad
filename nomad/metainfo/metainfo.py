@@ -34,6 +34,7 @@ import pytz
 import docstring_parser
 import jmespath
 import base64
+import email.utils
 
 from nomad.units import ureg as units
 
@@ -574,10 +575,8 @@ class _Datetime(DataType):
             pass
 
         try:
-            # TODO necessary?
-            import flask_restplus.inputs
-            return flask_restplus.inputs.datetime_from_rfc822(datetime_str)
-        except ValueError:
+            return email.utils.parsedate_to_datetime(datetime_str)
+        except Exception:
             pass
 
         try:

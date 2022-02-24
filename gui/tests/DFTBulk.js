@@ -39,7 +39,22 @@ const common = {
   authors: [{name: 'Lauri Himanen'}],
   datasets: [{dataset_id: 'Mock dataset', dataset_name: 'Mock dataset'}],
   mainfile: 'vasp.xml',
-  formula: 'Si2'
+  formula: 'Si2',
+  upload_name: 'a mock upload',
+  entries: 1,
+  main_author: 'Lauri_Himanen_ID',
+  coauthors: [],
+  reviewers: [],
+  process_status: 'SUCCESS',
+  last_status_message: 'Process edit_upload_metadata completed successfully',
+  viewers: ['Lauri_Himanen_ID'],
+  writers: ['Lauri_Himanen_ID'],
+  published: true,
+  publish_time: '2022-02-02T09:53:39.056000',
+  with_embargo: false,
+  embargo_length: 0,
+  license: 'CC BY 4.0',
+  process_running: false
 }
 
 const vdwMethod = 'G06'

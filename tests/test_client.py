@@ -15,32 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from typing import List, Tuple
+
+from httpx import AsyncClient
 import pytest
 
-from nomad.client import query_archive, Auth
-from nomad.metainfo import MSection, SubSection
+from nomad.app.main import app
+from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
 from nomad.datamodel.metainfo.simulation.run import Run
-
-from tests.app.conftest import other_test_user_auth, test_user_auth  # pylint: disable=unused-import
+from nomad.metainfo import MSection, SubSection
+from tests.conftest import test_users
 from tests.processing import test_data as test_processing
 
-# TODO most nomad.client functionality is only tested indirectly via its use in nomad.cli
 
+# TODO: more tests
 
-def test_requests_auth(api_v1):
-    rv = api_v1.get('users/me', auth=Auth(from_api=True))
-    assert rv.status_code == 200
-
-
-# TODO with the existing published_wo_user_metadata fixture there is only one entry
-# that does not allow to properly test pagination and scrolling
-
-def assert_results(
-        results: List[MSection],
-        sub_section_defs: List[SubSection] = None,
-        total=1):
+def assert_results(results: List[MSection], sub_section_defs: List[SubSection] = None, total=1):
     assert len(results) == total
     for result in results:
         assert result.m_def == EntryArchive.m_def
@@ -56,31 +48,6 @@ def assert_results(
                 current = sub_sections[0]
 
 
-def test_query(api_v1, published_wo_user_metadata):
-    assert_results(query_archive())
-
-
-def test_query_query(api_v1, published_wo_user_metadata):
-    assert_results(query_archive(query=dict(upload_id=[published_wo_user_metadata.upload_id])))
-
-
-@pytest.mark.parametrize('q_schema,sub_sections', [
-    ({'run': '*'}, [EntryArchive.run]),
-    ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
-    ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system])
-])
-def test_query_required(api_v1, published_wo_user_metadata, q_schema, sub_sections):
-    assert_results(query_archive(required=q_schema), sub_section_defs=sub_sections)
-
-
-def test_query_authentication(api_v1, published, other_test_user, test_user):
-    # The published test uploads uploader in entry and upload's user id do not match
-    # due to testing the uploader change via publish metadata.
-
-    assert_results(query_archive(authentication=Auth(other_test_user.username, 'password', from_api=True)), total=0)
-    assert_results(query_archive(authentication=Auth(test_user.username, 'password', from_api=True)), total=1)
-
-
 @pytest.fixture(scope='function')
 def many_uploads(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra):
     _, upload_file = non_empty_uploaded
@@ -93,36 +60,101 @@ def many_uploads(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infr
             pass
 
 
-@pytest.fixture(scope='function', autouse=True)
-def patch_multiprocessing_and_api(monkeypatch):
-    class TestPool:
-        ''' A fake multiprocessing pool, because multiprocessing does not work well in pytest. '''
-        def __init__(self, n):
-            pass
+@pytest.fixture(scope='session')
+def async_api_v1(monkeysession):
+    '''
+    This fixture provides an HTTP client with AsyncClient that accesses
+    the fast api. The patch will redirect all requests to the fast api under test.
+    '''
+    test_client = AsyncClient(app=app)
 
-        def map(self, f, args):
-            return [f(arg) for arg in args]
+    monkeysession.setattr(
+        'nomad.client.archive.ArchiveQuery._fetch_url',
+        'http://testserver/api/v1/entries/query')
+    monkeysession.setattr(
+        'nomad.client.archive.ArchiveQuery._download_url',
+        'http://testserver/api/v1/entries/archive/query')
+    monkeysession.setattr(
+        'nomad.client.archive.ArchiveQuery._auth_url',
+        'http://testserver/api/v1/auth/token')
 
-        def __enter__(self, *args, **kwargs):
-            return self
+    monkeysession.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
+    monkeysession.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
+    monkeysession.setattr('httpx.AsyncClient.post', getattr(test_client, 'post'))
+    monkeysession.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
 
-        def __exit__(self, *args, **kwargs):
-            pass
+    def mocked_auth(self) -> dict:
+        for user in test_users.values():
+            if user['username'] == self._username or user['email'] == self._username:
+                return dict(Authorization=f'Bearer {user["user_id"]}')
+        return {}
 
-    monkeypatch.setattr('multiprocessing.Pool', TestPool)
+    monkeysession.setattr('nomad.client.archive.ArchiveQuery._auth', mocked_auth)
+
+    return test_client
 
 
-def test_parallel_query(api_v1, many_uploads, monkeypatch):
-    result = query_archive(required=dict(run='*'), parallel=2)
-    assert_results(result, total=4)
-    assert result._statistics.nentries == 4
-    assert result._statistics.loaded_nentries == 4
-    assert result._statistics.last_response_nentries == 4
-    assert result._statistics.napi_calls == 1
+def test_async_query():
+    required = {
+        'workflow': {
+            'calculation_result_ref': {
+                'energy': '*',
+                'system_ref': {
+                    'chemical_composition_reduced': '*'
+                }
+            }
+        }
+    }
 
-    result = query_archive(required=dict(run='*'), parallel=2, per_page=1)
-    assert_results(result, total=4)
-    assert result._statistics.nentries == 4
-    assert result._statistics.loaded_nentries == 4
-    assert result._statistics.last_response_nentries == 2
-    assert result._statistics.napi_calls == 2
+    query = {
+        'results.method.simulation.program_name': 'VASP',
+        'results.material.elements': ['Ti', 'O']
+    }
+
+    async_query = ArchiveQuery(query=query, required=required, page_size=100, results_max=10000)
+
+    num_entry = async_query.fetch(1000)
+    num_entry -= len(async_query.download(100))
+    num_entry -= len(async_query.download(100))
+
+    assert num_entry == sum([count for _, count in async_query.upload_list()])
+
+
+def test_async_query_basic(async_api_v1, published_wo_user_metadata):
+    async_query = ArchiveQuery()
+
+    assert_results(async_query.download())
+
+    async_query = ArchiveQuery(query=dict(upload_id=[published_wo_user_metadata.upload_id]))
+
+    assert_results(async_query.download())
+
+
+@pytest.mark.parametrize(
+    'q_required,sub_sections',
+    [({'run': '*'}, [EntryArchive.run]), ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
+        ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system])])
+def test_async_query_required(async_api_v1, published_wo_user_metadata, q_required, sub_sections):
+    async_query = ArchiveQuery(required=q_required)
+
+    assert_results(async_query.download(), sub_section_defs=sub_sections)
+
+
+def test_async_query_auth(async_api_v1, published, other_test_user, test_user):
+    async_query = ArchiveQuery(username=other_test_user.username, password='password')
+
+    assert_results(async_query.download(), total=0)
+
+    async_query = ArchiveQuery(username=test_user.username, password='password')
+
+    assert_results(async_query.download(), total=1)
+
+
+def test_async_query_parallel(async_api_v1, many_uploads, monkeypatch):
+    async_query = ArchiveQuery(required=dict(run='*'))
+
+    assert_results(async_query.download(), total=4)
+
+    async_query = ArchiveQuery(required=dict(run='*'), page_size=1)
+
+    assert_results(async_query.download(), total=4)

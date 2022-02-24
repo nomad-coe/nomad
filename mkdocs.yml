@@ -6,7 +6,10 @@ nav:
   - Introduction: index.md
   - web.md
   - api.md
-  - pythonlib.md
+  - The nomad-lab Python package:
+    - pythonlib.md
+    - archive_query.md
+    - local_parsers.md
   - archive.md
   # - Using the AI Toolkit and other remote tools: aitoolkit.md
   - Extending and Developing NOMAD:
@@ -41,6 +44,8 @@ markdown_extensions:
   - toc:
       permalink: True
       toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
 extra:
   generator: false
   homepage: https://nomad-lab.eu/prod/v1/gui/about
@@ -53,3 +58,6 @@ extra_css:
   - stylesheets/extra.css
 extra_javascript:
   - javascript.js
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
