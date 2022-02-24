@@ -12,7 +12,7 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import EELS from '../visualization/EELS'
 import DOS from '../visualization/DOS'
-import { toUnitSystem } from '../../units'
+import { toUnitSystem, useUnits } from '../../units'
 import { electronicRange } from '../../config'
 import EnergyVolumeCurve from '../visualization/EnergyVolumeCurve'
 
@@ -257,27 +257,27 @@ OverviewEquationOfState.propTypes = ({
 
 export const Overview = React.memo((props) => {
   const {def} = props
+  const units = useUnits()
   let path = window.location.href.split('/').pop().split(':')[0]
 
   if (def.name === 'BandStructure' && path === 'band_structure_electronic') {
-    return <OverviewBandstructureElectronic {...props}/>
+    return <OverviewBandstructureElectronic {...props} units={units}/>
   } else if (def.name === 'BandStructure' && path === 'band_structure_phonon') {
-    return <OverviewBandstructurePhonon {...props}/>
+    return <OverviewBandstructurePhonon {...props} units={units}/>
   } else if (def.name === 'Atoms' && path === 'atoms') {
-    return <OverviewAtoms {...props}/>
+    return <OverviewAtoms {...props} units={units} />
   } else if (def.name === 'Dos' && path === 'dos_electronic') {
-    return <OverviewDOSElectronic {...props}/>
+    return <OverviewDOSElectronic {...props} units={units} />
   } else if (def.name === 'Dos' && path === 'dos_phonon') {
-    return <OverviewDOSPhonon {...props}/>
+    return <OverviewDOSPhonon {...props} units={units}/>
   } else if (def.name === 'Spectrum') {
-    return <OverviewEELS {...props}/>
+    return <OverviewEELS {...props} units={units}/>
   } else if (def.name === 'EquationOfState') {
-    return <OverviewEquationOfState {...props}/>
+    return <OverviewEquationOfState {...props} units={units}/>
   }
   return null
 })
 Overview.propTypes = ({
   def: PropTypes.object,
-  section: PropTypes.object,
-  units: PropTypes.object
+  section: PropTypes.object
 })

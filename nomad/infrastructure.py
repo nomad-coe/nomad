@@ -288,6 +288,11 @@ class Keycloak():
 
         try:
             self._admin_client.create_user(keycloak_user)
+        except KeycloakGetError as e:
+            try:
+                return json.loads(e.response_body)['errorMessage']
+            except Exception:
+                return str(e)
         except Exception as e:
             return str(e)
 

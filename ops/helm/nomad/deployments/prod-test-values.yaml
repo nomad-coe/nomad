@@ -19,10 +19,10 @@ gui:
   debug: true
 
 app:
-  replicas: 1
+  replicas: 2
 
 worker:
-  replicas: 1
+  replicas: 2
   routing: "queue"
   processes: 10
   nomadNodeType: "prod-worker"

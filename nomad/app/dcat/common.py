@@ -16,15 +16,16 @@
 # limitations under the License.
 #
 
-from flask import Blueprint, Response, request
-from flask_restplus import Api, reqparse
+from typing import Optional
+from fastapi import Response, Query, Header
 import urllib.parse
 from rdflib import Graph
+from enum import Enum
 
 from nomad import config
 
-blueprint = Blueprint('dcat', __name__)
 
+root_path = f'{config.services.api_base_path}/dcat'
 base_url = config.api_url(api='dcat')
 
 
@@ -38,29 +39,14 @@ def url(*args, **kwargs):
         return url
 
 
-api = Api(
-    blueprint,
-    version='1.0', title='NOMAD\'s API for servicing dcat resources',
-    description='NOMAD\'s API for serving dcat resources',
-    validate=True)
+class Formats(str, Enum):
+    xml = 'xml',
+    n3 = 'n3',
+    turtle = 'turtle',
+    nt = 'nt',
+    pretty_xml = 'pretty-xml',
+    trig = 'trig'
 
-
-# For some unknown reason it is necessary for each fr api to have a handler.
-# Otherwise the global app error handler won't be called.
-@api.errorhandler(Exception)
-def errorhandler(error):
-    '''When an internal server error is caused by an unexpected exception.'''
-    return str(error)
-
-
-arg_parser = reqparse.RequestParser()
-arg_parser.add_argument('format', type=str, choices=[
-    'xml',
-    'n3',
-    'turtle',
-    'nt',
-    'pretty-xml',
-    'trig'])
 
 all_repsonse_types = {
     'application/xml': 'xml',
@@ -88,21 +74,23 @@ response_types = [
     'application/x-trig']
 
 
-def rdf_respose(g: Graph) -> Response:
-    args = arg_parser.parse_args()
-    format_ = args.get('format')
+def rdf_response(
+    format: Optional[Formats] = Query(None), accept: Optional[str] = Header(None)
+):
+    format_ = format.value if format else None
     if format_ is None:
-        accept_header = request.headers.get('Accept', None)
-        if accept_header is not None:
-            format_ = all_repsonse_types.get(accept_header, 'pretty-xml')
+        if accept:
+            format_ = all_repsonse_types.get(accept, 'pretty-xml')
         else:
             format_ = 'pretty-xml'
 
-    try:
-        content_type = next(key for key, value in all_repsonse_types.items() if value == format_)
-    except StopIteration:
-        content_type = 'application/xml' if format in ['xml', 'pretty-xml'] else 'text/%s' % format_
+    def create_response(g: Graph):
+        try:
+            content_type = next(key for key, value in all_repsonse_types.items() if value == format_)
+        except StopIteration:
+            content_type = 'application/xml' if format_ in ['xml', 'pretty-xml'] else f'text/format'
 
-    return Response(
-        g.serialize(format=format_).decode('utf-8'), 200,
-        {'Content-Type': content_type})
+        return Response(
+            g.serialize(format=format_).decode('utf-8'), media_type=content_type)
+
+    return create_response

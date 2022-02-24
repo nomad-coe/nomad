@@ -60,19 +60,6 @@ async def redirect_to_docs(req: Request):
 app.add_route('/', redirect_to_docs, include_in_schema=False)
 
 
-@app.on_event('startup')
-async def startup_event():
-    from nomad import infrastructure
-    # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
-    try:
-        from mongoengine import disconnect
-        disconnect()
-    except Exception:
-        pass
-
-    infrastructure.setup()
-
-
 @app.exception_handler(Exception)
 async def unicorn_exception_handler(request: Request, e: Exception):
     logger.error('unexpected exception in API', url=request.url, exc_info=e)

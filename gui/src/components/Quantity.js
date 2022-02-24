@@ -29,9 +29,9 @@ import {
   Table,
   TableRow,
   TableCell,
-  Link
+  Link,
+  Box
 } from '@material-ui/core'
-import { Link as RouterLink } from 'react-router-dom'
 import { DOI } from './dataset/DOI'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
@@ -42,6 +42,7 @@ import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Unit, toUnitSystem, useUnits } from '../units'
 import { filterData } from './search/FilterRegistry'
+import { RouteLink } from './nav/Routes'
 
 /**
  * Component for showing a metainfo quantity value together with a name and
@@ -175,13 +176,14 @@ const Quantity = React.memo((props) => {
       return null
     }
 
+    if (finalValue && Array.isArray(finalValue)) {
+      finalValue = finalValue.join(', ')
+    }
+    clipboardContent = clipboardContent || finalValue
+
     if (children && children.length !== 0) {
       content = children
     } else if (finalValue || finalValue === 0) {
-      if (Array.isArray(finalValue)) {
-        finalValue = finalValue.join(', ')
-      }
-      clipboardContent = clipboardContent || finalValue
       content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
         {finalValue}
       </Typography>
@@ -297,7 +299,7 @@ const quantityPresets = {
       <div>
         {data.datasets.map(ds => (
           <Typography key={ds.dataset_id}>
-            <Link component={RouterLink} to={`/dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</Link>
+            <RouteLink path={`dataset/id/${ds.dataset_id}`}>{ds.dataset_name}</RouteLink>
             {ds.doi ? <span>&nbsp;<DOI style={{display: 'inline'}} parentheses doi={ds.doi}/></span> : ''}
           </Typography>))}
       </div>
@@ -324,7 +326,14 @@ const quantityPresets = {
   },
   upload_id: {
     noWrap: true,
-    withClipboard: true
+    withClipboard: true,
+    render: (data) => (
+      <Box flexGrow={1}>
+        <Typography noWrap>
+          <RouteLink path={`upload/id/${data.upload_id}`}>{data.upload_id}</RouteLink>
+        </Typography>
+      </Box>
+    )
   },
   last_processing_time: {
     noWrap: true,
@@ -350,7 +359,14 @@ const quantityPresets = {
   },
   entry_id: {
     noWrap: true,
-    withClipboard: true
+    withClipboard: true,
+    render: (data) => (
+      <Box flexGrow={1}>
+        <Typography noWrap>
+          <RouteLink path={`entry/id/${data.upload_id}/${data.entry_id}`}>{data.entry_id}</RouteLink>
+        </Typography>
+      </Box>
+    )
   },
   'results.material.material_id': {
     noWrap: true,

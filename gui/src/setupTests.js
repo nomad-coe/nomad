@@ -11,7 +11,7 @@ global.nomadEnv = {
   'appBase': 'http://nomad-lab.eu/prod/rae/beta',
   'debug': false,
   'version': {
-    'label': '1.0.0',
+    'label': '1.1.0',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,
@@ -23,7 +23,7 @@ global.nomadEnv = {
 }
 // Increased the default jest timeout for individual tests
 // eslint-disable-next-line no-undef
-jest.setTimeout(10000)
+jest.setTimeout(60000)
 
 const { ResizeObserver } = window
 

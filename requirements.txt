@@ -23,7 +23,7 @@ elasticsearch-dsl==6.4.0
 pydantic==1.8.2
 jmespath==0.10.0
 h5grove==0.0.14
-
+httpx==0.22.0
 
 # [parsing]
 netCDF4==1.5.4
@@ -95,6 +95,7 @@ oauthenticator==14.2.0
 validators==0.18.2
 
 # [dev]
+markupsafe==2.0.1
 setuptools==57.5.0
 gitpython==3.1.24
 mypy==0.730

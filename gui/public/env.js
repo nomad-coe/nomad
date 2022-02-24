@@ -12,7 +12,7 @@ window.nomadEnv = {
   'northBase': 'http://localhost:9000/fairdi/nomad/latest/north',
   'debug': false,
   'version': {
-    'label': '1.0.0',
+    'label': '1.1.0',
     'isBeta': false,
     'isTest': true,
     'usesBetaData': true,

@@ -122,6 +122,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     page={pagination.page - 1}
     onPageChange={handleChangePage}
     onRowsPerPageChange={handleChangeRowsPerPage}
+    role='table-pagination'
   />
 })
 DatatablePagePagination.propTypes = {
@@ -255,6 +256,14 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
     }
   }
 
+  const sortableColumns = useMemo(() => {
+    if (sortingColumns) {
+      return sortingColumns
+    } else {
+      return columns.filter(column => column.sortable).map(column => column.key)
+    }
+  }, [sortingColumns, columns])
+
   return <TableHead>
     <TableRow>
       {withSelectionFeature && <TableCell padding="checkbox" classes={{stickyHeader: classes.stickyHeader}}>
@@ -271,7 +280,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
           align={column.align || 'right'}
           sortDirection={order_by === column.key ? order : false}
         >
-          {withSorting && sortingColumns?.includes(column.key) ? <TableSortLabel
+          {withSorting && sortableColumns.includes(column.key) ? <TableSortLabel
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}
@@ -446,7 +455,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
 
   const table = <Table size="medium" stickyHeader={isScrolling}>
     {!noHeader && <DatatableHeader actions={actions}/>}
-    <TableBody>
+    <TableBody role='datatable-body'>
       {dataToShow.map((row, index) => (
         <DatatableRow
           actions={actions}

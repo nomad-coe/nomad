@@ -247,11 +247,11 @@ meta:
   maintainer_email: '<oasis admin email>'
 
 mongo:
-    db_name: nomad_oasis_v1
+    db_name: nomad_v1
 
 elastic:
-    entries_index: nomad_oasis_entries_v1
-    materials_index: nomad_oasis_materials_v1
+    entries_index: nomad_v1_entries
+    materials_index: nomad_v1_materials
 ```
 
 You need to change the following:

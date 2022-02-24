@@ -249,7 +249,7 @@ const InputSlider = React.memo(({
   // power of ten (in the current unit system) is used.
   const rangeSI = maxLocal - minLocal
   const rangeCustom = toUnitSystem(rangeSI, unitSI, units)
-  const stepFinalCustom = Math.pow(10, (Math.ceil(Math.log10(rangeCustom / nSteps))))
+  const stepFinalCustom = Math.pow(10, (Math.floor(Math.log10(rangeCustom / nSteps))))
   const stepFinalSI = toSI(stepFinalCustom, units[getDimension(unitSI)])
   const stepFinal = stepSI || stepFinalSI || undefined
 
@@ -322,7 +322,7 @@ InputSlider.propTypes = {
 }
 
 InputSlider.defaultProps = {
-  nSteps: 20
+  nSteps: 10
 }
 
 export default InputSlider

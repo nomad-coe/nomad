@@ -242,13 +242,13 @@ export default function About() {
         <Markdown>{`
         # **NOMAD** &ndash; Manage and Publish Materials Data
 
-        This is the *graphical user interface* (GUI) for the NOMAD Repository and
-        Archive. It allows you to **search, access, and download all NOMAD data** in its
-        raw (Repository) and processed (Archive) form. You can **upload and manage your own
+        This is the *graphical user interface* (GUI) of NOMAD. It allows you to **search,
+        access, and download all NOMAD data** in its
+        *raw files* and *processed data* form. You can **upload and manage your own
         raw materials science data**. You can access all published data without an account.
         If you want to provide your own data, please login or register for an account.
 
-        You can learn more about on the NOMAD Repository and Archive
+        You can learn more about NOMAD on its
         [homepage](https://nomad-lab.eu/repo-arch), our
         [documentation](${appBase}/docs/index.html).
         There is also an [FAQ](https://nomad-lab.eu/repository-archive-faqs)
@@ -263,8 +263,8 @@ export default function About() {
         the <b>Optimade</b> filter language to add arbitrarily nested queries.
       </InfoCard>
       <InfoCard xs={6} title="A common data format" top>
-        The <b>NOMAD Archive</b> provides data in processed and normalized form in a machine processable and common hierarchical format.
-        All data in the NOMAD Archive is organized into nested sections of quantities with well defined units,
+        NOMAD provides data in <i>processed</i> and <i>normalized</i> form in a machine processable and common hierarchical format.
+        This <i>processed data</i>, i.e. the <b>NOMAD Archive</b>, is organized into nested sections of quantities with well defined units,
         data types, shapes, and descriptions. These definitions are called the <b>NOMAD Metainfo</b> and they
         can be <Link component={RouterLink} to={'/metainfo'}>browsed here</Link>.
       </InfoCard>
@@ -296,9 +296,9 @@ export default function About() {
       <InfoCard xs={4} title="Processing" bottom>
         <p>
         Uploaded data is automatically processed and made available
-        in the uploaded <b>raw files</b> or in its processed and unified <b>Archive</b> form.
+        in the uploaded <b>raw files</b> or in its unified <b>processed data</b> form.
         NOMAD parsers convert raw files into NOMAD&apos;s common data format.
-        You can inspect the Archive form and extracted metadata before
+        You can inspect the processed data and extracted metadata before
         publishing your data.
         </p>
         <p>NOMAD supports most community codes and file formats: <CodeList/></p>
@@ -338,7 +338,7 @@ export default function About() {
         Oasis), how to contribute parsers, and much more.
 
         ### Source code
-        The source-code for the NOMAD Repository and Archive is maintained
+        The source-code for NOMAD is maintained
         at the MPCDF's [gitlab](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR).
         To push code, you need an MPCDF account and you can apply
         [here](https://www.mpcdf.mpg.de/userspace/forms/onlineregistrationform).

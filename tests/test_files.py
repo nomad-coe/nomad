@@ -39,6 +39,8 @@ PublicUploadWithFiles = Tuple[str, List[datamodel.EntryMetadata], PublicUploadFi
 
 # example_file uses an artificial parser for faster test execution, can also be
 # changed to examples_vasp.zip for using vasp parser
+example_mainfile_raw_path = 'examples_template/template.json'
+
 example_file = 'tests/data/proc/examples_template.zip'
 example_directory = 'tests/data/proc/examples_template'
 example_file_contents = [
@@ -48,7 +50,9 @@ example_file_contents = [
     'examples_template/3.aux',
     'examples_template/4.aux']
 example_file_aux = 'tests/data/proc/examples_template/1.aux'
-example_file_mainfile = 'examples_template/template.json'
+example_file_mainfile = 'tests/data/proc/examples_template/template.json'
+example_file_mainfile_different_atoms = 'tests/data/proc/templates/different_atoms/template.json'
+example_file_unparsable = 'tests/data/proc/templates/unparsable/template.json'
 example_file_vasp_with_binary = 'tests/data/proc/example_vasp_with_binary.zip'
 example_file_corrupt_zip = 'tests/data/proc/examples_corrupt_zip.zip'
 empty_file = 'tests/data/proc/empty.zip'
@@ -68,7 +72,7 @@ def raw_files_on_all_tests(raw_files):
 @pytest.fixture(scope='session')
 def example_mainfile_contents():
     with zipfile.ZipFile(example_file, 'r') as zf:
-        with zf.open(example_file_mainfile) as f:
+        with zf.open(example_mainfile_raw_path) as f:
             return f.read().decode()
 
 
@@ -320,7 +324,7 @@ class TestStagingUploadFiles(UploadFilesContract):
             filepath = os.path.join(target_dir, filepath) if target_dir else filepath
             with test_upload.raw_file(filepath) as f:
                 content = f.read()
-                if filepath == example_file_mainfile:
+                if filepath == example_mainfile_raw_path:
                     assert len(content) > 0
 
     def test_pack(self, test_upload: StagingUploadWithFiles):
@@ -547,7 +551,7 @@ def create_test_upload_files(
         published: bool = True,
         embargo_length: int = 0,
         template_files: str = example_file,
-        template_mainfile: str = example_file_mainfile) -> UploadFiles:
+        template_mainfile: str = example_mainfile_raw_path) -> UploadFiles:
     '''
     Creates an upload_files object and the underlying files for test/mock purposes.
 

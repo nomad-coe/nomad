@@ -16,25 +16,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import '@h5web/app/dist/style-lib.css';
-import '@h5web/app/dist/style.css';
+import '@h5web/app/dist/style-lib.css'
+import '@h5web/app/dist/style.css'
 
 import React from 'react'
-import H5Web from '../../visualization/H5Web';
+import PropTypes from 'prop-types'
+import H5Web from '../../visualization/H5Web'
 import { Paper } from '@material-ui/core'
 
-const NexusCard = (props) => {
-    const filepath = props.index.upload_id.substring(0,2)+"/"+props.index.upload_id+"/raw/"+props.index.mainfile
+const NexusCard = React.memo(function NexusCard({index}) {
+  const filepath = index.upload_id.substring(0, 2) + "/" + index.upload_id + "/raw/" + index.mainfile
 
-    if (!props.index.parser_name === "parsers/nexus")
-      return null
-    else
-      return (
-          <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
-            <H5Web filepath={filepath}/>
-        </Paper>
-      );
-
+  if (!index.parser_name === "parsers/nexus") { return null } else {
+    return (
+      <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
+        <H5Web filepath={filepath}/>
+      </Paper>
+    )
+  }
+})
+NexusCard.propTypes = {
+  index: PropTypes.object.isRequired
 }
 
-export default React.memo(NexusCard)
+export default NexusCard
