@@ -21,16 +21,15 @@ import '@h5web/app/dist/style.css'
 
 import React from 'react'
 import PropTypes from 'prop-types'
-import H5Web from '../../visualization/H5Web'
+import H5Web from '../../visualization/H5Web';
 import { Paper } from '@material-ui/core'
 
 const NexusCard = React.memo(function NexusCard({index}) {
-  const filepath = index.upload_id.substring(0, 2) + "/" + index.upload_id + "/raw/" + index.mainfile
 
   if (!index.parser_name === "parsers/nexus") { return null } else {
     return (
       <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
-        <H5Web filepath={filepath}/>
+        <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
       </Paper>
     )
   }

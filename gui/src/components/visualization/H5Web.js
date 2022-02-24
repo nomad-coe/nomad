@@ -1,19 +1,22 @@
-
-//  TODO: Create a local H5Web component here
 import React from 'react'
 import PropTypes from 'prop-types'
 import { appBase } from '../../config'
 import { App, H5GroveProvider } from '@h5web/app'
+import { useApi } from '../api'
 
-const H5Web = ({filepath}) => {
-  return (
-    <H5GroveProvider url={appBase + '/h5grove/'} filepath={filepath} axiosParams={{file: filepath}}>
-      <App initialPath={'/entry/optional_parent/optional_child'} />
+const H5Web = ({upload_id, filename}) => {
+  const {api} = useApi()
+  const filepath = upload_id.substring(0,2) + '/' + upload_id + '/raw/' + filename
+  return(
+    <H5GroveProvider url={appBase + '/h5grove/'} filepath={filepath} axiosParams={{file: filepath, token: api.keycloak.token, upload_id: upload_id}}>
+        <App />
     </H5GroveProvider>
   )
 }
 H5Web.propTypes = {
-  filepath: PropTypes.string.isRequired
+  upload_id: PropTypes.string.isRequired,
+  filename: PropTypes.string.isRequired
 }
+
 
 export default H5Web
