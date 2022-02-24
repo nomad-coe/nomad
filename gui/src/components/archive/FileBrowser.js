@@ -186,6 +186,21 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
                 {
                   editable &&
                     <Grid item>
+                      <Dropzone
+                        className={classes.dropzoneTop} activeClassName={classes.dropzoneActive}
+                        onDrop={handleDrop}
+                      >
+                        <IconButton size="small">
+                          <Tooltip title="upload to this folder (click or drop files)">
+                            <UploadIcon/>
+                          </Tooltip>
+                        </IconButton>
+                      </Dropzone>
+                    </Grid>
+                }
+                {
+                  editable &&
+                    <Grid item>
                       <IconButton size="small" onClick={() => setOpenConfirmDeleteDirDialog(true)}>
                         <Tooltip title="delete this folder">
                           <DeleteIcon />
@@ -208,19 +223,6 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
               </Grid>
             }
           />
-          {
-            editable &&
-              <Compartment>
-                <Dropzone
-                  className={classes.dropzoneTop} activeClassName={classes.dropzoneActive}
-                  onDrop={handleDrop}
-                >
-                  <Button variant="contained" color="default" startIcon={<UploadIcon/>} fullWidth>
-                    click or drop files
-                  </Button>
-                </Dropzone>
-              </Compartment>
-          }
           <Compartment>
             {
               lane.adaptor.data.response.directory_metadata.content.map(element => (
