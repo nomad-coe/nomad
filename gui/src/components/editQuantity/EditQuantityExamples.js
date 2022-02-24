@@ -20,13 +20,8 @@ import PropTypes from 'prop-types'
 import {Card, makeStyles, Box} from '@material-ui/core'
 import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
 import {
-  AutocompleteEditQuantity,
-  BoolEditQuantity,
-  EnumEditQuantity,
-  NumberEditQuantity,
-  RadioButtonEditQuantity,
-  StringEditQuantity,
-  SliderEditQuantity, DateEditQuantity, DateTimeEditQuantity
+  BoolEditQuantity, EnumEditQuantity, NumberEditQuantity, RadioButtonEditQuantity, StringEditQuantity,
+  AutocompleteEditQuantity, SliderEditQuantity, DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -346,6 +341,22 @@ const defs = {
       ]
     }
   },
+  dateAndTimeQuantityDef: {
+    name: 'dateAndTime',
+    description: 'The date and time',
+    type: {
+      type_kind: 'python',
+      type_data: 'str'
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'Data and time',
+          component: 'DateTimeEditQuantity'
+        }
+      ]
+    }
+  },
   dateQuantityDef: {
     name: 'date',
     description: 'The date',
@@ -362,9 +373,9 @@ const defs = {
       ]
     }
   },
-  dateAndTimeQuantityDef: {
-    name: 'dateAndTime',
-    description: 'The date and time',
+  timeQuantityDef: {
+    name: 'time',
+    description: 'The time',
     type: {
       type_kind: 'python',
       type_data: 'str'
@@ -372,8 +383,8 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Data and time',
-          component: 'DateTimeEditQuantity'
+          label: 'Time',
+          component: 'TimeEditQuantity'
         }
       ]
     }
@@ -388,8 +399,9 @@ let section = {
   coatingMethod: 'Pulsed electron deposition (PED)',
   mass: 1,
   alignment: 'Both',
+  dateAndTime: '2022-01-10T13:47:32.899000',
   date: '2021-03-17T13:47:32.899000',
-  dateAndTime: '2022-01-10T13:47:32.899000'
+  time: '2001-01-11T11:30:59.899000'
 }
 
 const useStyles = makeStyles(theme => ({
@@ -427,10 +439,12 @@ const EditQuantity = React.memo((props) => {
     return <RadioButtonEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'SliderEditQuantity') {
     return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'DateEditQuantity') {
-    return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'DateTimeEditQuantity') {
     return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'DateEditQuantity') {
+    return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'TimeEditQuantity') {
+    return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -489,10 +503,13 @@ export function EditQuantityExamples() {
         <EditQuantity quantityDef={defs.sliderQuantityDef2} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
+        <EditQuantity quantityDef={defs.dateAndTimeQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
         <EditQuantity quantityDef={defs.dateQuantityDef} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
-        <EditQuantity quantityDef={defs.dateAndTimeQuantityDef} section={section} onChange={handleChange}/>
+        <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>

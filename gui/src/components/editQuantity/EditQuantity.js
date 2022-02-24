@@ -38,9 +38,10 @@ import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
 import DialogActions from '@material-ui/core/DialogActions'
 import Button from '@material-ui/core/Button'
 import Markdown from '../Markdown'
-import {dateFormat} from 'nomad-fair-gui/src/config'
-import {KeyboardDatePicker} from '@material-ui/pickers'
+import {dateFormat} from '../../config'
+import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
 import {getTime} from 'date-fns'
+import AccessTimeIcon from '@material-ui/icons/AccessTime'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -456,8 +457,8 @@ SliderEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
-export const DateEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
+export const DateTimeEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, format, timePicker, ...otherProps} = props
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
@@ -489,21 +490,48 @@ export const DateEditQuantity = React.memo((props) => {
   }, [current, handleAccept])
 
   return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
-    <KeyboardDatePicker
+    {(!timePicker ? <KeyboardDatePicker
       error={!!error}
       variant="inline"
       inputVariant="outlined"
       label={label}
       value={value}
-      format={dateFormat}
+      format={format || `${dateFormat} HH:mm`}
       invalidDateMessage={error}
       InputAdornmentProps={{ position: 'start' }}
       onAccept={handleAccept}
       onChange={handleChange}
       onBlur={handleBlur}
       onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
-    />
+    /> : <KeyboardTimePicker
+      error={!!error}
+      variant="inline"
+      inputVariant="outlined"
+      label={label}
+      value={value}
+      format={format || `HH:mm`}
+      invalidDateMessage={error}
+      InputAdornmentProps={{ position: 'start' }}
+      keyboardIcon={<AccessTimeIcon />}
+      onAccept={handleAccept}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
+    />)}
   </WithHelp>
+})
+DateTimeEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  format: PropTypes.string,
+  timePicker: PropTypes.bool
+}
+
+export const DateEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+
+  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} format={dateFormat} {...otherProps}/>
 })
 DateEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
@@ -511,56 +539,12 @@ DateEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
-export const DateTimeEditQuantity = React.memo((props) => {
+export const TimeEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
-  const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState()
-  const [current, setCurrent] = useState()
-  const [error, setError] = useState('')
 
-  useEffect(() => {
-    setValue(section[quantityDef.name] || defaultValue || null)
-  }, [defaultValue, quantityDef, section])
-
-  const handleAccept = useCallback((newValue) => {
-    if (newValue !== null && newValue !== undefined && isNaN(getTime(newValue))) {
-      setError('Invalid date format.')
-      return
-    }
-    setError('')
-    if (newValue !== undefined) setValue(newValue)
-    if (onChange) {
-      onChange(newValue || '', section, quantityDef)
-    }
-  }, [onChange, quantityDef, section])
-
-  const handleChange = useCallback((newValue) => {
-    setCurrent(newValue)
-  }, [])
-
-  const handleBlur = useCallback(() => {
-    handleAccept(current)
-  }, [current, handleAccept])
-
-  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
-    <KeyboardDatePicker
-      error={!!error}
-      variant="inline"
-      inputVariant="outlined"
-      label={label}
-      value={value}
-      format={'yyyy/MM/dd HH:mm'}
-      invalidDateMessage={error}
-      InputAdornmentProps={{ position: 'start' }}
-      onAccept={handleAccept}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleAccept(current) } }}
-    />
-  </WithHelp>
+  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} timePicker {...otherProps}/>
 })
-DateTimeEditQuantity.propTypes = {
+TimeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
