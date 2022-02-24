@@ -18,7 +18,8 @@
 
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip } from '@material-ui/core'
+import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import classNames from 'classnames'
@@ -55,10 +56,23 @@ export class Adaptor {
   }
 
   /**
-   * A potentially asynchronous method that is called once when the adaptor was created
-   * and is assigned to a lane.
+   * If this adaptor needs to fetch some data via the API
    */
-  initialize(api) {
+  needToFetchData() {
+    return false
+  }
+
+  /**
+   * A potentially asynchronous method that is called when the browser is updated if
+   * the adaptor needs to fetch data
+   */
+  fetchData(api) {
+  }
+
+  /**
+   * Called to inform adaptors that the files of an upload has been updated.
+   */
+  onFilesUpdated(uploadId, path) {
   }
 
   /**
@@ -77,6 +91,8 @@ export class Adaptor {
     return ''
   }
 }
+
+export const browserContext = React.createContext()
 
 const useBrowserStyles = makeStyles(theme => ({
   root: {
@@ -125,10 +141,14 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
   })
 
-  const [, setRender] = useState(0)
+  const [render, setRender] = useState(0)
   const update = useCallback(() => {
     setRender(current => current + 1)
   }, [setRender])
+  const [, setInternalRender] = useState(0)
+  const internalUpdate = useCallback(() => {
+    setInternalRender(current => current + 1)
+  }, [setInternalRender])
   const lanes = useRef(null)
 
   useEffect(() => {
@@ -151,6 +171,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         if (lanes.current.length > index) {
           if (lanes.current[index].key === segment) {
             // reuse the existing lane (incl. its adaptor and data)
+            if (lanes.current[index].adaptor.needToFetchData()) {
+              await lanes.current[index].adaptor.fetchData(api)
+              lanes.current[index].fetchDataCounter += 1
+            }
             continue
           } else {
             // the path diverges, start to use new lanes from now on
@@ -164,19 +188,27 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
           next: null,
+          fetchDataCounter: 0,
           update: update
         }
         if (prev) {
           prev.next = lane
         }
-        if (lane.adaptor.initialize) {
-          await lane.adaptor.initialize(api)
+        if (lane.adaptor.needToFetchData()) {
+          await lane.adaptor.fetchData(api)
+          lane.fetchDataCounter += 1
         }
         lanes.current.push(lane)
       }
     }
-    computeLanes().then(() => update())
-  }, [lanes, url, pathname, adaptor, update, api, raiseError])
+    computeLanes().then(() => internalUpdate())
+  }, [lanes, url, pathname, adaptor, render, update, internalUpdate, api, raiseError])
+
+  const contextValue = useMemo(() => ({
+    lanes: lanes,
+    update: update,
+    blockUntilProcessed: undefined // Will be set when creating component
+  }), [lanes, update])
 
   if (url === undefined) {
     // Can happen when navigating to another tab, possibly with the browser's back/forward buttons
@@ -184,7 +216,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     return
   }
 
-  return <React.Fragment>
+  return <browserContext.Provider value={contextValue}>
     {form}
     <Card>
       <CardContent>
@@ -197,9 +229,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
             </div>
           </div>
         </div>
+        <WaitForProcessingDialog/>
       </CardContent>
     </Card>
-  </React.Fragment>
+  </browserContext.Provider>
 })
 Browser.propTypes = ({
   adaptor: PropTypes.object.isRequired,
@@ -226,7 +259,7 @@ const useLaneStyles = makeStyles(theme => ({
 function Lane({lane}) {
   const classes = useLaneStyles()
   const containerRef = createRef()
-  const { key, adaptor, next } = lane
+  const { key, adaptor, next, fetchDataCounter } = lane
   lane.containerRef = containerRef
   const content = useMemo(() => {
     if (!adaptor) {
@@ -244,7 +277,7 @@ function Lane({lane}) {
     // We deliberetly break the React rules here. The goal is to only update if the
     // lanes contents change and not the lane object.
     // eslint-disable-next-line
-  }, [key, adaptor, next?.key, classes])
+  }, [key, adaptor, fetchDataCounter, next?.key, classes])
   return content
 }
 Lane.propTypes = ({
@@ -422,3 +455,102 @@ Title.propTypes = ({
     PropTypes.node
   ])
 })
+
+const statusesProcessing = ['PENDING', 'RUNNING', 'WAITING_FOR_RESULT']
+
+function WaitForProcessingDialog() {
+  const browser = useContext(browserContext)
+  const { api } = useApi()
+  const [jobDef, setJobDef] = useState()
+  const [apiResponse, setApiResponse] = useState()
+  const [apiError, setApiError] = useState()
+  const [refreshing, setRefreshing] = useState(false)
+  const [errorsAcknowledged, setErrorsAcknowledged] = useState(false)
+
+  const blockUntilProcessed = useCallback(({uploadId, apiCall, apiCallText, onSuccess, onFail}) => {
+    apiCall
+      .then(response => {
+        setApiResponse(response)
+      })
+      .catch(error => {
+        setApiError(error)
+      })
+    setJobDef({uploadId, apiCallText, onSuccess, onFail})
+  }, [setApiResponse, setApiError, setJobDef])
+
+  browser.blockUntilProcessed = blockUntilProcessed // add callback to the browser context
+
+  const refresh = useCallback(() => {
+    api.get(`/uploads/${jobDef.uploadId}`)
+      .then(response => {
+        setApiResponse(response)
+        setRefreshing(false)
+      })
+      .catch(error => {
+        setApiError(error)
+      })
+  }, [api, jobDef, setApiResponse, setApiError, setRefreshing])
+
+  const processStatus = apiResponse?.data?.process_status
+  const isProcessing = jobDef && !apiError && (!apiResponse || statusesProcessing.includes(processStatus))
+  const hasErrors = apiError || processStatus === 'FAILURE'
+  const showDialog = jobDef && (isProcessing || (hasErrors && !errorsAcknowledged))
+
+  useEffect(() => {
+    if (jobDef) {
+      if (!apiError && apiResponse && isProcessing && !refreshing) {
+        // Last response was still processing. Wait and try to refresh again
+        setRefreshing(true)
+        const interval = setInterval(refresh(), 1000)
+        return () => clearInterval(interval)
+      }
+      if (!showDialog) {
+        // Closing dialog
+        setJobDef(null)
+        setApiResponse(null)
+        setApiError(null)
+        setRefreshing(false)
+        setErrorsAcknowledged(false)
+        if (hasErrors) {
+          if (jobDef.onFail) {
+            jobDef.onFail()
+          }
+        } else {
+          if (jobDef.onSuccess) {
+            jobDef.onSuccess()
+          }
+        }
+      }
+    }
+  }, [jobDef, apiResponse, apiError, isProcessing, showDialog, hasErrors, refresh,
+    refreshing, setRefreshing, setJobDef, setApiResponse, setApiError, setErrorsAcknowledged])
+
+  if (!showDialog) {
+    return ''
+  }
+  return <Dialog open={true} style={{textAlign: 'center'}}>
+    <DialogTitle>{jobDef.apiCallText}</DialogTitle>
+    <DialogContent>
+      {apiResponse
+        ? <DialogContentText>{apiResponse.data?.last_status_message || 'Processing...'}</DialogContentText>
+        : <DialogContentText>Initiating...</DialogContentText>
+      }
+      {isProcessing &&
+        <CircularProgress />
+      }
+      {apiError &&
+        <DialogContentText color="error">{apiError.apiMessage || 'Operation failed'}</DialogContentText>
+      }
+      {processStatus === 'FAILURE' &&
+        <DialogContentText color="error">{(apiResponse.data?.errors || ['Operation failed'])[0]}</DialogContentText>
+      }
+      {hasErrors &&
+        <DialogActions>
+          <Button onClick={() => setErrorsAcknowledged(true)} autoFocus>OK</Button>
+        </DialogActions>
+      }
+    </DialogContent>
+  </Dialog>
+}
+WaitForProcessingDialog.propTypes = {
+}

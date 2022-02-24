@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 import React, { useContext, useState } from 'react'
+import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip,
-  Dialog, DialogContent } from '@material-ui/core'
-import DialogContentText from '@material-ui/core/DialogContentText'
+  Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
-import Browser, { Item, Content, Adaptor, laneContext, Title, Compartment } from './Browser'
+import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -58,13 +58,21 @@ class RawDirectoryAdaptor extends Adaptor {
     this.editable = editable
     this.data = undefined // Will be set by RawDirectoryContent component when loaded
   }
-  async initialize(api) {
+  needToFetchData() {
+    return this.data === undefined
+  }
+  async fetchData(api) {
     if (this.data === undefined) {
       const encodedPath = this.path.split('/').map(segment => encodeURIComponent(segment)).join('/')
       const response = await api.get(`/uploads/${this.uploadId}/rawdir/${encodedPath}?include_entry_info=true&page_size=500`)
       const elementsByName = {}
       response.directory_metadata.content.forEach(element => { elementsByName[element.name] = element })
       this.data = {response, elementsByName}
+    }
+  }
+  onFilesUpdated(uploadId, path) {
+    if (uploadId === this.uploadId && this.path.startsWith(path)) {
+      this.data = undefined
     }
   }
   itemAdaptor(key) {
@@ -102,7 +110,9 @@ const useRawDirectoryContentStyles = makeStyles(theme => ({
 }))
 function RawDirectoryContent({uploadId, path, title, highlightedItem, editable}) {
   const classes = useRawDirectoryContentStyles()
+  const browser = useContext(browserContext)
   const lane = useContext(laneContext)
+  const history = useHistory()
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const { api } = useApi()
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
@@ -110,16 +120,35 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
-    api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData, {
-      onUploadProgress: (progressEvent) => {
-        // TODO: would be nice to show progress somehow
+    browser.blockUntilProcessed({
+      uploadId: uploadId,
+      apiCall: api.put(`/uploads/${uploadId}/raw/${encodedPath}`, formData, {
+        onUploadProgress: (progressEvent) => {
+          // TODO: would be nice to show progress somehow
+        }
+      }),
+      apiCallText: 'Uploading file',
+      onSuccess: () => {
+        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
+        browser.update()
       }
     })
   }
 
   const handleDeleteDir = () => {
     setOpenConfirmDeleteDirDialog(false)
-    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+    browser.blockUntilProcessed({
+      uploadId: uploadId,
+      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
+      apiCallText: 'Deleting directory',
+      onSuccess: () => {
+        const segments = path.split('/')
+        const parentPath = segments.slice(0, segments.length - 1).join('/')
+        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
+        if (lane.index > 0) {
+          history.push(browser.lanes.current[lane.index - 1].path)
+        }
+      }})
   }
 
   if (lane.adaptor.data === undefined) {
@@ -248,6 +277,9 @@ class RawFileAdaptor extends Adaptor {
 }
 
 function RawFileContent({uploadId, path, data, editable}) {
+  const browser = useContext(browserContext)
+  const lane = useContext(laneContext)
+  const history = useHistory()
   const { api } = useApi()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
@@ -255,7 +287,18 @@ function RawFileContent({uploadId, path, data, editable}) {
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)
-    api.delete(`/uploads/${uploadId}/raw/${encodedPath}`)
+    browser.blockUntilProcessed({
+      uploadId: uploadId,
+      apiCall: api.delete(`/uploads/${uploadId}/raw/${encodedPath}`),
+      apiCallText: 'Deleting file',
+      onSuccess: () => {
+        const segments = path.split('/')
+        const parentPath = segments.slice(0, segments.length - 1).join('/')
+        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, parentPath))
+        if (lane.index > 0) {
+          history.push(browser.lanes.current[lane.index - 1].path)
+        }
+      }})
   }
 
   // A nicer, human-readable size string
@@ -330,8 +373,6 @@ function RawFileContent({uploadId, path, data, editable}) {
         />
       </Box>
       <Compartment>
-        {/* <Quantity quantity="filename" data={{filename: data.name}} label="file name" noWrap ellipsisFront withClipboard />
-        <Quantity quantity="path" data={{path: path}} label="full path" noWrap ellipsisFront withClipboard /> */}
         <Quantity quantity="filesize" data={{filesize: niceSize}} label="file size" />
         { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
         { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
