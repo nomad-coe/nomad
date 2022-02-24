@@ -25,13 +25,14 @@ import H5Web from '../../visualization/H5Web'
 import { Paper } from '@material-ui/core'
 
 const NexusCard = React.memo(function NexusCard({index}) {
-  if (!index.parser_name === "parsers/nexus") { return null } else {
-    return (
-      <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
-        <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
-      </Paper>
-    )
+  if (index.parser_name !== "parsers/nexus") {
+    return ''
   }
+  return (
+    <Paper elevation={2} style={{height: '50vh', width: '40vw'}}>
+      <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
+    </Paper>
+  )
 })
 NexusCard.propTypes = {
   index: PropTypes.object.isRequired

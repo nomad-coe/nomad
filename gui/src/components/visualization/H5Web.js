@@ -7,8 +7,16 @@ import { useApi } from '../api'
 const H5Web = ({upload_id, filename}) => {
   const {api} = useApi()
   const filepath = upload_id.substring(0, 2) + '/' + upload_id + '/raw/' + filename
+  const authParams = {}
+  if (api.keycloak) {
+    authParams.token = api.keycloak.token
+  }
   return (
-    <H5GroveProvider url={appBase + '/h5grove/'} filepath={filepath} axiosParams={{file: filepath, token: api.keycloak.token, upload_id: upload_id}}>
+    <H5GroveProvider
+      url={appBase + '/h5grove/'}
+      filepath={filepath}
+      axiosParams={{file: filepath, upload_id: upload_id, ...authParams}}
+    >
       <App />
     </H5GroveProvider>
   )
