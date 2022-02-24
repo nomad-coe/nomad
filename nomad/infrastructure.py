@@ -141,6 +141,9 @@ class Keycloak():
 
         return self.__public_keys
 
+    def refresh_token(self, access_token: str, refresh_token: str, **kwargs) -> str:
+        return self._oidc_client.refresh_token(refresh_token)
+
     def basicauth(self, username: str, password: str) -> str:
         '''
         Performs basic authentication and returns an access token.
@@ -158,16 +161,7 @@ class Keycloak():
 
         return token_info['access_token']
 
-    def tokenauth(self, access_token: str) -> object:
-        '''
-        Authenticates the given access_token
-
-        Returns:
-            The user
-
-        Raises:
-            KeycloakError
-        '''
+    def decode_access_token(self, access_token: str) -> dict:
         try:
             kid = jwt.get_unverified_header(access_token)['kid']
             key = keycloak._public_keys.get(kid)
@@ -179,9 +173,21 @@ class Keycloak():
                     Does the UI use the right realm?'''))
 
             options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
-            payload = jwt.decode(
+            return jwt.decode(
                 access_token, key=key, algorithms=['RS256'], options=options,
                 issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+        except jwt.InvalidTokenError:
+            raise KeycloakError('Could not validate credentials. The given token is invalid.')
+
+    def tokenauth(self, access_token: str) -> object:
+        '''
+        Authenticates the given access_token
+
+        Returns:
+            The user
+        '''
+        try:
+            payload = self.decode_access_token(access_token)
 
             user_id: str = payload.get('sub')
             if user_id is None:
@@ -192,13 +198,11 @@ class Keycloak():
             from nomad import datamodel
             return datamodel.User(
                 user_id=user_id,
-                email=payload.get('email', None),
                 username=payload.get('preferred_username', None),
+                email=payload.get('email', None),
                 first_name=payload.get('given_name', None),
                 last_name=payload.get('family_name', None))
 
-        except jwt.InvalidTokenError:
-            raise KeycloakError('Could not validate credentials. The given token is invalid.')
         except Exception as e:
             logger.error('cannot perform tokenauth', exc_info=e)
             raise e

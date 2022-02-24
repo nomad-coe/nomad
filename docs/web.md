@@ -69,7 +69,7 @@ User metadata can also be provided in an uploaded file. This can be a `.json` or
     ],
     "entries": {
         "path/to/entry_dir/vasp.xml": {
-            "commit": "An entry specific comment."
+            "comment": "An entry specific comment."
         }
     }
 }

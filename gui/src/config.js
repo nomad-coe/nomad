@@ -22,6 +22,7 @@ export const version = window.nomadEnv.version
 export const appBase = window.nomadEnv.appBase.replace(/\/$/, '')
 // export const apiBase = 'http://nomad-lab.eu/prod/rae/api'
 export const apiBase = `${appBase}/api`
+export const northBase = window.nomadEnv.northBase
 export const guiBase = process.env.PUBLIC_URL
 export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
 export const keycloakBase = window.nomadEnv.keycloakBase

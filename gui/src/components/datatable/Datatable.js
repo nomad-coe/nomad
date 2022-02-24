@@ -122,6 +122,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     page={pagination.page - 1}
     onPageChange={handleChangePage}
     onRowsPerPageChange={handleChangeRowsPerPage}
+    role='table-pagination'
   />
 })
 DatatablePagePagination.propTypes = {
@@ -454,7 +455,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
 
   const table = <Table size="medium" stickyHeader={isScrolling}>
     {!noHeader && <DatatableHeader actions={actions}/>}
-    <TableBody>
+    <TableBody role='datatable-body'>
       {dataToShow.map((row, index) => (
         <DatatableRow
           actions={actions}

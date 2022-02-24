@@ -74,7 +74,7 @@ RUN mkdocs build && mv site docs/build
 RUN \
     find /usr/local/lib/python3.7/ -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + && \
     find /usr/local/lib/python3.7/ -name 'test' -exec rm -r '{}' + && \
-    find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+    find /usr/local/lib/python3.7/site-packages/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" | grep -v h5py && strip -s "{}"' \;
 
 # Built the GUI in the gui build image
 FROM node:14.8 as gui_build
@@ -84,24 +84,31 @@ ENV PATH /app/node_modules/.bin:$PATH
 COPY gui/package.json /app/package.json
 COPY gui/yarn.lock /app/yarn.lock
 COPY gui/materia /app/materia
-RUN yarn
+RUN yarn --network-timeout 1200000
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json
 COPY --from=build /install/gui/src/searchQuantities.json /app/src/searchQuantities.json
 COPY --from=build /install/gui/src/parserMetadata.json /app/src/parserMetadata.json
 COPY --from=build /install/gui/src/toolkitMetadata.json /app/src/toolkitMetadata.json
 COPY --from=build /install/gui/src/unitsData.js /app/src/unitsData.js
+COPY --from=build /install/gui/src/northTools.json /app/src/northTools.json
 RUN yarn run build
 
 # Third, create a slim final image
 FROM final
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && apt-get install -y libmagic-dev curl vim zip unzip
+# Install the proxy used by north
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+RUN apt-get install -y nodejs
+RUN npm install -g configurable-http-proxy
 
 # copy the sources for tests, coverage, qa, etc.
 COPY . /app
 WORKDIR /app
 # transfer installed packages from dependency stage
 COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+# copy shared jupyterhub files
+COPY --from=build /usr/local/share/jupyterhub /usr/local/share/jupyterhub
 # copy the documentation, its files will be served by the API
 COPY --from=build /install/docs/build /app/docs/build
 # copy the nomad command
@@ -120,8 +127,12 @@ RUN mkdir -p /app/.volumes/fs
 RUN useradd -ms /bin/bash nomad
 RUN chown -R nomad /app
 RUN chmod a+rx run.sh
+RUN chmod a+wrx /app
 USER nomad
 
 VOLUME /app/.volumes/fs
 
+# The app default port
 EXPOSE 8000
+# The north default port
+EXPOSE 9000

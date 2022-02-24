@@ -76,6 +76,7 @@ from eelsdbparser import EELSDBParser
 from aflowparser import AFLOWParser
 from mpparser import MPParser
 from asrparser import ASRParser
+from nexusparser import NexusParser
 from psi4parser import Psi4Parser
 from yamboparser import YamboParser
 # TODO
@@ -225,6 +226,7 @@ parsers = [
     AFLOWParser(),
     MPParser(),
     ASRParser(),
+    NexusParser(),
     Psi4Parser(),
     YamboParser(),
     ArchiveParser()

@@ -33,6 +33,7 @@ import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
 import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
+import NORTHMainPage, {help as NORTHHelp} from '../north/NORTHMainPage'
 // import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
 import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
@@ -302,6 +303,17 @@ export const routes = [
         path: 'reproduce',
         title: 'Artificial Intelligence Toolkit',
         component: ReproducePage
+      },
+      {
+        path: 'north',
+        menu: 'NOMAD Remote Tools Hub',
+        tooltip: 'Browse the list of available remote tools.',
+        breadcrumb: 'NOMAD Remote Tools Hub',
+        help: {
+          title: 'NOMAD Remote Tools help page',
+          content: NORTHHelp
+        },
+        component: NORTHMainPage
       }
     ]
   },

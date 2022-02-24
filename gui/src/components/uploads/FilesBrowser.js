@@ -63,7 +63,7 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, path}) {
   const classes = useFolderStyles()
   const handleToggle = event => {
     event.stopPropagation()
@@ -105,6 +105,8 @@ FileOrFolder.propTypes = {
   hasChildren: PropTypes.bool,
   children: PropTypes.arrayOf(PropTypes.object),
   name: PropTypes.string,
+  path: PropTypes.string,
+  uploadId: PropTypes.string,
   parser: PropTypes.string,
   info: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -197,6 +199,8 @@ export default function FilesBrower({uploadId, disabled}) {
     const mapContent = item => renderFileOrFolder(`${pathPrefix}${item.name}`, item)
     const props = {
       key: path,
+      path: path,
+      uploadId: uploadId,
       hasChildren: !is_file,
       open: data?.open,
       children: data?.directory_metadata?.content?.map(mapContent),

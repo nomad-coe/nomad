@@ -30,6 +30,7 @@ import { useKeycloak } from 'react-keycloak'
 import axios from 'axios'
 import { useErrors } from './errors'
 import * as searchQuantities from '../searchQuantities.json'
+import { NorthApi } from './north/northApi'
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -392,6 +393,7 @@ export const APIProvider = React.memo(({
 
   const value = useMemo(() => ({
     api: api,
+    northApi: user ? new NorthApi(api, `users/${user.preferred_username}`) : null,
     user: user,
     info: info
   }), [api, user, info])

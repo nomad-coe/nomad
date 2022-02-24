@@ -21,18 +21,21 @@ This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official
 and dcat api. The app module also servers documentation, gui, and
 alive.
 '''
-from flask import Flask, jsonify, url_for, abort, request
-from flask_restplus import Api
+from flask import Flask, url_for, request
 from flask_cors import CORS
-import random
 
-from nomad import config, utils as nomad_utils
+from nomad import config
 
-from .dcat import blueprint as dcat_blueprint
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
 from .gui import blueprint as gui_blueprint
-from . import common
+
+from h5grove.flaskutils import BLUEPRINT as h5grove_blueprint
+
+
+def auth_before_request():
+    """TODO: Auth needs to be implemented here"""
+    pass
 
 
 @property  # type: ignore
@@ -45,87 +48,23 @@ def specs_url(self):
     return url_for(self.endpoint('specs'), _external=True, _scheme='https')
 
 
-if config.services.https:
-    Api.specs_url = specs_url
-
-
 app = Flask(__name__)
 ''' The Flask app that serves all APIs. '''
 
-app.config.RESTPLUS_MASK_HEADER = False  # type: ignore
-app.config.RESTPLUS_MASK_SWAGGER = False  # type: ignore
-app.config.SWAGGER_UI_OPERATION_ID = True  # type: ignore
-app.config.SWAGGER_UI_REQUEST_DURATION = True  # type: ignore
-
-app.config['SECRET_KEY'] = config.services.api_secret
-
 CORS(app)
 
-app.register_blueprint(dcat_blueprint, url_prefix='/dcat')
 app.register_blueprint(docs_blueprint, url_prefix='/docs')
 app.register_blueprint(dist_blueprint, url_prefix='/dist')
 app.register_blueprint(gui_blueprint, url_prefix='/gui')
 
-
-@app.errorhandler(Exception)
-def handle(error: Exception):
-    status_code = getattr(error, 'code', 500)
-    if not isinstance(status_code, int):
-        status_code = 500
-    if status_code < 100:
-        status_code = 500
-
-    name = getattr(error, 'name', 'Internal Server Error')
-    description = getattr(error, 'description', 'No description available')
-    data = dict(
-        code=status_code,
-        name=name,
-        description=description)
-    data.update(getattr(error, 'data', []))
-    response = jsonify(data)
-    response.status_code = status_code
-    if status_code == 500:
-        local_logger = common.logger
-        # the logger is created in before_request, if the error was created before that
-        # logger can be None
-        if local_logger is None:
-            local_logger = nomad_utils.get_logger(__name__)
-
-        # TODO the error seems not to be the actual exception, therefore
-        # there might be no stacktrace. Maybe there is a way to get the actual
-        # exception/stacktrace
-        local_logger.error('internal server error', error=str(error), exc_info=error)
-
-    return response
+app.config["H5_BASE_DIR"] = config.fs.staging
+app.before_request_funcs = {
+    "h5grove": [auth_before_request]
+}
+app.register_blueprint(h5grove_blueprint, url_prefix='/h5grove')
 
 
 @app.route('/alive')
 def alive():
     ''' Simple endpoint to utilize kubernetes liveness/readiness probing. '''
     return "I am, alive!"
-
-
-@app.before_request
-def before_request():
-    # api logger
-    args = getattr(request, 'view_args')
-    if args is None:
-        args = {}
-    else:
-        args = dict(**args)
-
-    args.update(
-        name=__name__,
-        blueprint=str(request.blueprint),
-        endpoint=request.endpoint,
-        method=request.method,
-        url=request.url,
-        json=request.json,
-        args=request.args)
-
-    common.logger = nomad_utils.get_logger(**args)
-
-    # chaos monkey
-    if config.services.api_chaos > 0:
-        if random.randint(0, 100) <= config.services.api_chaos:
-            abort(random.choice([400, 404, 500]), 'With best wishes from the chaos monkey.')

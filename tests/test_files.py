@@ -209,6 +209,13 @@ class UploadFilesContract(UploadFilesFixtures):
     def test_create(self, empty_test_upload):
         assert UploadFiles.get(empty_test_upload.upload_id).__class__ == empty_test_upload.__class__
 
+    def test_os_path(self, test_upload: UploadWithFiles):
+        upload_files = test_upload[2]
+        assert upload_files.os_path is not None
+        if upload_files.external_os_path:
+            assert upload_files.external_os_path.endswith(
+                upload_files.os_path)
+
     def test_rawfile(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
         for entry in entries:

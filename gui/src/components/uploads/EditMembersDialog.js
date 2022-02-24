@@ -68,8 +68,10 @@ const InviteUserDialog = React.memo(function InviteUserDialog(props) {
   })
   const {api} = useApi()
 
-  const handleClose = useCallback(() => {
-    setOpen(false)
+  const handleClose = useCallback((event, reason) => {
+    if (reason !== 'backdropClick') {
+      setOpen(false)
+    }
   }, [setOpen])
 
   const handleSubmit = useCallback(() => {
@@ -117,7 +119,7 @@ const InviteUserDialog = React.memo(function InviteUserDialog(props) {
     <Dialog
       classes={{paper: classes.dialog}}
       open={open}
-      onClose={handleClose} disableBackdropClick disableEscapeKeyDown>
+      onClose={handleClose} disableEscapeKeyDown>
       <DialogTitle>Invite a new user to NOMAD</DialogTitle>
       <DialogContent>
         <DialogContentText>
@@ -280,7 +282,7 @@ function AddMember({...props}) {
       </Typography>
     </Box>
     <FormControl variant='filled' size='small' fullWidth>
-      <InputLabel htmlFor="role">Select the member&apos;s role</InputLabel>
+      <InputLabel htmlFor='role'>Select the member&apos;s role</InputLabel>
       <Select
         native
         onChange={(event) => setRole(event.target.value)}

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, { useContext, useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
@@ -48,6 +48,12 @@ import DialogActions from '@material-ui/core/DialogActions'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import CreateEntry from './CreateEntry'
 import NorthTools from './NorthTools'
+
+const uploadContext = React.createContext()
+
+export function useUpload() {
+  return useContext(uploadContext)
+}
 
 export const uploadPageContext = React.createContext()
 

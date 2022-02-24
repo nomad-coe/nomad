@@ -125,12 +125,20 @@ celery = NomadConfig(
 fs = NomadConfig(
     tmp='.volumes/fs/tmp',
     staging='.volumes/fs/staging',
+    staging_external=None,
     public='.volumes/fs/public',
+    public_external=None,
     local_tmp='/tmp',
     prefix_size=2,
     archive_version_suffix='v1',
     working_directory=os.getcwd()
 )
+
+try:
+    fs.staging_external = os.path.abspath(fs.staging)
+    fs.public_external = os.path.abspath(fs.public)
+except Exception:
+    pass
 
 elastic = NomadConfig(
     host='localhost',
@@ -193,15 +201,19 @@ tests = NomadConfig(
 )
 
 
-def api_url(ssl: bool = True, api: str = 'api'):
+def api_url(ssl: bool = True, api: str = 'api', api_host: str = None, api_port: int = None):
     '''
     Returns the url of the current running nomad API. This is for server-side use.
     This is not the NOMAD url to use as a client, use `nomad.config.client.url` instead.
     '''
+    if api_port is None:
+        api_port = services.api_port
+    if api_host is None:
+        api_host = services.api_host
     protocol = 'https' if services.https and ssl else 'http'
-    host_and_port = services.api_host.strip('/')
-    if services.api_port not in [80, 443]:
-        host_and_port += ':' + str(services.api_port)
+    host_and_port = api_host
+    if api_port not in [80, 443]:
+        host_and_port += ':' + str(api_port)
     base_path = services.api_base_path.strip('/')
     return f'{protocol}://{host_and_port}/{base_path}/{api}'
 
@@ -376,6 +388,24 @@ bundle_import = NomadConfig(
         delete_unmatched_published_entries=False
     )
 )
+
+north = NomadConfig(
+    hub_ip_connect='172.17.0.1',  # Set this to host.docker.internal on windows/macos.
+    hub_connect_url=None,
+    hub_ip='0.0.0.0',
+    docker_network=None,
+    hub_host='localhost',
+    hub_port=9000,
+    shared_fs='.volumes/fs/north/shared',
+    users_fs='.volumes/fs/north/users',
+    jupyterhub_crypt_key=None,
+    windows=True  # enable windows (as in windows the OS) hacks
+)
+
+
+def north_url(ssl: bool = True):
+    return api_url(ssl=ssl, api='north', api_host=north.hub_host, api_port=north.hub_port)
+
 
 auxfile_cutoff = 100
 parser_matching_size = 150 * 80  # 150 lines of 80 ASCII characters per line
