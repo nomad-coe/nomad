@@ -102,9 +102,6 @@ class ResultsNormalizer(Normalizer):
         for measurement in self.entry_archive.measurement:
             self.normalize_measurement(measurement)
 
-        if self.entry_archive.data:
-            self.entry_archive.data.normalize_results(results, logger)
-
         # Add the list of available_properties: it is a selected subset of the
         # stored properties.
         available_property_names = {

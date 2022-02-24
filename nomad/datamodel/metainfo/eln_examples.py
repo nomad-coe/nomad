@@ -19,6 +19,7 @@
 import numpy as np
 import ase
 
+from nomad.units import ureg
 from nomad.metainfo import Package, Quantity, SubSection, Datetime, MEnum, SectionProxy
 from nomad.datamodel.results import Results, Material
 from nomad.datamodel.data import EntryData
@@ -102,7 +103,8 @@ class Sample(ElnBaseSection):
     processes = SubSection(section_def=SectionProxy('Process'), repeats=True)
     experiment = SubSection(section_def=SectionProxy('Experiment'), repeats=False)
 
-    def normalize_results(self, results: Results, logger):
+    def normalize(self, archive, logger):
+        results = archive.results
         if self.chemical_formula:
             if not results.material:
                 results.material = Material()
@@ -120,6 +122,25 @@ class Process(ElnBaseSection):
     start_time = Quantity(
         type=Datetime,
         a_eln=dict(component='StringEditQuantity'))
+
+    data_file = Quantity(
+        type=str,
+        a_eln=dict(component='FileEditQuantity'))
+
+    n_values = Quantity(type=int)
+    x = Quantity(type=np.dtype(np.float64), shape=['n_values'], unit=ureg.s)
+    y = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'], unit=ureg.pascal,
+        a_plot={
+            'x': 'x', 'y': 'y'
+        })
+
+    def normalize(self, archive, logger):
+        import json
+        if (self.data_file):
+            with archive.m_context.raw_file(self.data_file) as f:
+                data = json.load(f)
+                self.m_update(**data)
 
 
 m_package.__init_metainfo__()

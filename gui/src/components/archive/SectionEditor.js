@@ -11,7 +11,8 @@ const editQuantityComponents = {
   StringEditQuantity: StringEditQuantity,
   EnumEditQuantity: EnumEditQuantity,
   AutocompleteEditQuantity: AutocompleteEditQuantity,
-  BoolEditQuantity: BoolEditQuantity
+  BoolEditQuantity: BoolEditQuantity,
+  FileEditQuantity: StringEditQuantity
 }
 
 const JsonEditor = React.memo(function JsonEditor({data, onChange}) {

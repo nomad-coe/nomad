@@ -18,7 +18,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton, useTheme } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
@@ -43,6 +43,8 @@ import SaveIcon from '@material-ui/icons/Save'
 import AddIcon from '@material-ui/icons/AddCircle'
 import CodeIcon from '@material-ui/icons/Code'
 import DeleteIcon from '@material-ui/icons/Delete'
+import { getLineStyles } from '../../utils'
+import Plot from '../visualization/Plot'
 
 export const configState = atom({
   key: 'config',
@@ -467,6 +469,32 @@ function Section({section, def, parentRelation}) {
     </React.Fragment>
   }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged])
 
+  const renderQuantity = useCallback(quantityDef => {
+    const key = quantityDef.name
+    const disabled = section[key] === undefined
+    if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+      return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+    }
+    return (
+      <Item key={key} itemKey={key} disabled={disabled}>
+        <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+          <Typography component="span">
+            <Box fontWeight="bold" component="span">
+              {quantityDef.name}
+            </Box>
+          </Typography>{!disabled &&
+            <span>&nbsp;=&nbsp;
+              <QuantityItemPreview
+                value={section[quantityDef.name]}
+                def={quantityDef}
+              />
+            </span>
+          }
+        </Box>
+      </Item>
+    )
+  }, [section])
+
   if (!section) {
     console.error('section is not available')
     return ''
@@ -503,6 +531,13 @@ function Section({section, def, parentRelation}) {
     contents = <React.Fragment>
       <Compartment title="quantities">
         <SectionEditor sectionDef={def} section={section} showJson={showJson} />
+        <Box marginTop={2}>
+          {quantities
+            .filter(filter)
+            .filter(quantityDef => !quantityDef.m_annotations?.eln)
+            .map(renderQuantity)
+          }
+        </Box>
       </Compartment>
       {subSectionCompartment}
     </React.Fragment>
@@ -513,31 +548,7 @@ function Section({section, def, parentRelation}) {
         {quantities
           .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
           .filter(filter)
-          .map(quantityDef => {
-            const key = quantityDef.name
-            const disabled = section[key] === undefined
-            if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
-              return <ReferenceValuesList key={key} quantityDef={quantityDef} />
-            }
-            return (
-              <Item key={key} itemKey={key} disabled={disabled}>
-                <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-                  <Typography component="span">
-                    <Box fontWeight="bold" component="span">
-                      {quantityDef.name}
-                    </Box>
-                  </Typography>{!disabled &&
-                    <span>&nbsp;=&nbsp;
-                      <QuantityItemPreview
-                        value={section[quantityDef.name]}
-                        def={quantityDef}
-                      />
-                    </span>
-                  }
-                </Box>
-              </Item>
-            )
-          })
+          .map(renderQuantity)
         }
       </Compartment>
     </React.Fragment>
@@ -714,9 +725,75 @@ PropertyValuesList.propTypes = ({
   ])
 })
 
+const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
+  const theme = useTheme()
+  const units = useUnits()
+
+  const [data, layout] = useMemo(() => {
+    const toUnit = quantityDef => {
+      const value = section[quantityDef.name]
+      const unit = quantityDef.unit
+      return unit ? toUnitSystem(value, unit, units, true) : [value, unit]
+    }
+    const [xValues, xUnit] = toUnit(sectionDef._properties[plot.x])
+    const [yValues, yUnit] = toUnit(sectionDef._properties[plot.y])
+
+    const data = [
+      {
+        x: xValues,
+        y: yValues,
+        type: 'scatter',
+        mode: 'lines',
+        line: getLineStyles(1, theme)
+      }
+    ]
+
+    const layout = {
+      yaxis: {
+        title: {
+          text: yUnit ? `${plot.y} (${yUnit})` : plot.y
+        }
+      },
+      xaxis: {
+        title: {
+          text: yUnit ? `${plot.x} (${xUnit})` : plot.x
+        }
+      }
+    }
+
+    return [data, layout]
+  }, [section, plot, sectionDef, theme, units])
+
+  return <Box minWidth={500}>
+    <Plot
+      data={data}
+      layout={layout}
+      floatTitle={title}
+      fixedMargins={true}
+    />
+  </Box>
+})
+XYPlot.propTypes = {
+  plot: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  sectionDef: PropTypes.object.isRequired,
+  title: PropTypes.string
+}
+
 function Quantity({value, def}) {
+  const {prev} = useLane()
   return <Content>
     <ArchiveTitle def={def} data={value} kindLabel="value" />
+    {def.m_annotations?.plot && (
+      <Compartment title="plot">
+        <XYPlot
+          section={prev.adaptor.e}
+          sectionDef={prev.adaptor.def}
+          plot={def.m_annotations?.plot[0]}
+          title={def.name}
+        />
+      </Compartment>
+    )}
     <Compartment title="value">
       <QuantityValue
         value={value}

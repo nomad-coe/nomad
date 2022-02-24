@@ -716,7 +716,7 @@ def constraint(warning):
 
 class Context():
     '''
-    The root of a metainfo section hiearchy can have a Context. Contexts allow to customize
+    The root of a metainfo section hierarchy can have a Context. Contexts allow to customize
     the resolution of references based on how and in what context an metainfo-based
     archive (or otherwise top-level section is used). This allows to logically combine
     multiple hiearchies (e.g. archives) with references.
@@ -763,6 +763,12 @@ class Context():
         Raises: MetainfoReferenceError
         '''
         raise NotImplementedError()
+
+    def raw_file(self, file_path: str, *args, **kwargs):
+        '''
+        Opens a raw-file. Uses the same interface as Python's buildin open.
+        '''
+        return open(file_path, *args, **kwargs)
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping

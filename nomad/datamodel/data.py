@@ -18,17 +18,9 @@
 
 from nomad import metainfo
 
-from .results import Results
-
 
 class EntryData(metainfo.MSection):
     '''
     An empty base section definition. This can be used to add new top-level sections
     to an entry.
     '''
-
-    def normalize_results(self, results: Results, logger):
-        '''
-        Overwrite this to add section specific information to the section results.
-        '''
-        pass

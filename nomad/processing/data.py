@@ -2402,3 +2402,6 @@ class UploadContext(Context):
             entry_id = id_part
 
         return self._get_archive(entry_id)
+
+    def raw_file(self, file_path: str, *args, **kwargs):
+        return self.upload.upload_files.raw_file(file_path, *args, **kwargs)
