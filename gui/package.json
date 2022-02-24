@@ -114,5 +114,15 @@
       "last 1 safari version"
     ]
   },
-  "homepage": "http://example.com/fairdi/nomad/latest/gui"
+  "homepage": "http://example.com/fairdi/nomad/latest/gui",
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!@h5web)"
+    ],
+    "moduleNameMapper": {
+      "^.+\\.(css|less)$": "<rootDir>/src/CSSStub.js",
+      "d3": "<rootDir>/node_modules/d3/dist/d3.min.js",
+      "three": "<rootDir>/node_modules/three/build/three.min.js"
+    }
+  }
 }

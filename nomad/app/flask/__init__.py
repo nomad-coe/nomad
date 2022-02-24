@@ -21,10 +21,12 @@ This module comprises the nomad@FAIRDI APIs. Currently there is NOMAD's official
 and dcat api. The app module also servers documentation, gui, and
 alive.
 '''
-from flask import Flask, url_for, request
+from flask import Flask, jsonify, url_for, request
 from flask_cors import CORS
 
 from nomad import config
+from nomad.processing import Upload
+from nomad.infrastructure import keycloak
 
 from .docs import blueprint as docs_blueprint
 from .dist import blueprint as dist_blueprint
@@ -34,8 +36,21 @@ from h5grove.flaskutils import BLUEPRINT as h5grove_blueprint
 
 
 def auth_before_request():
-    """TODO: Auth needs to be implemented here"""
-    pass
+    """Checks whether the user is authenticated and has read access to the upload."""
+    token = request.args.get("token")
+    user = keycloak.tokenauth(token)
+
+    upload_id = request.args.get("upload_id")
+    upload = Upload.objects(upload_id=upload_id).first()
+    if not (user and (user.is_admin or (str(user.user_id) in upload.viewers))):
+        status_code = 403
+        data = dict(
+            code=status_code,
+            name="Forbidden",
+            description="User does not have access to this upload.")
+        response = jsonify(data)
+        response.status_code = status_code
+        return response
 
 
 @property  # type: ignore
