@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import ReactDOM from 'react-dom'
 import {
   TextField,
   makeStyles,
@@ -42,6 +43,7 @@ import {dateFormat} from '../../config'
 import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
 import {getTime} from 'date-fns'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
+import {Datatable, DatatableTable} from '../datatable/Datatable'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -710,6 +712,47 @@ export const TimeRangeEditQuantity = React.memo((props) => {
   return <DateTimeRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} time {...otherProps}/>
 })
 TimeRangeEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const ListEditQuantity = React.memo((props) => {
+  const {component, ...componentProps} = props
+  const {quantityDef, section} = componentProps
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : ['', ''])
+  const [values, setValues] = useState()
+
+  useEffect(() => {
+    setValues(section[quantityDef.name])
+  }, [defaultValue, quantityDef, section])
+
+  const columns = useMemo(() => {
+    return [
+      {key: 'url',
+        align: 'left',
+        render: reference => {
+          return <Box maxWidth='300px' whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden'>
+            {ReactDOM.render(component, componentProps)}
+          </Box>
+        }
+      }
+    ]
+  }, [component, componentProps])
+
+  return <Datatable columns={columns} data={values}>
+    <DatatableTable noHeader />
+  </Datatable>
+})
+ListEditQuantity.propTypes = {
+  component: PropTypes.any.isRequired
+}
+
+export const ListNumberEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  return <ListEditQuantity component={NumberEditQuantity} {...otherProps} />
+})
+ListNumberEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired

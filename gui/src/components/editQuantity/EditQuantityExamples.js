@@ -30,7 +30,8 @@ import {
   DateEditQuantity,
   DateTimeEditQuantity,
   TimeEditQuantity,
-  DateRangeEditQuantity
+  DateRangeEditQuantity,
+  ListNumberEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -413,6 +414,71 @@ const defs = {
         }
       ]
     }
+  },
+  listIntegerQuantityDef1: {
+    name: 'listInteger',
+    description: 'This is a fixed length list of integer numbers',
+    type: {
+      type_kind: 'numpy',
+      type_data: 'int64',
+      shape: [3]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of integer (Fixed length)',
+          component: 'ListNumberEditQuantity',
+          props: {
+            minValue: -2,
+            maxValue: 2,
+            direction: 'vertical'
+          }
+        }
+      ]
+    }
+  },
+  listIntegerQuantityDef2: {
+    name: 'listInteger',
+    description: 'This is a fixed length list of integer numbers',
+    type: {
+      type_kind: 'numpy',
+      type_data: 'int64',
+      shape: [3]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of integer (Fixed length)',
+          component: 'ListNumberEditQuantity',
+          props: {
+            minValue: -2,
+            maxValue: 2,
+            direction: 'horizontal'
+          }
+        }
+      ]
+    }
+  },
+  listIntegerQuantityDef3: {
+    name: 'listInteger2',
+    description: 'This is a dynamic length list of integer numbers',
+    type: {
+      type_kind: 'numpy',
+      type_data: 'int64',
+      shape: ['*']
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of integer (Dynamic length)',
+          component: 'ListNumberEditQuantity',
+          props: {
+            minValue: -2,
+            maxValue: 2
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -474,6 +540,8 @@ const EditQuantity = React.memo((props) => {
     return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'DateRangeEditQuantity') {
     return <DateRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'ListNumberEditQuantity') {
+    return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -543,9 +611,15 @@ export function EditQuantityExamples() {
       <Box margin={1}>
         <EditQuantity quantityDef={defs.dateRangeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
-      {/* <Box>
-        <ListEditQuantity component={NumberEditQuantity} componentProps={{minValue: 2, maxValue: 10}} quantityDef={..., shape: ['*']} />
-      </Box> */}
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listIntegerQuantityDef1} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listIntegerQuantityDef2} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listIntegerQuantityDef3} section={section} onChange={handleChange}/>
+      </Box>
     </Card>
   </div>
 }
