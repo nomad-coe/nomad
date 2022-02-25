@@ -429,8 +429,8 @@ const defs = {
           label: 'List of integer (Fixed length)',
           component: 'ListNumberEditQuantity',
           props: {
-            minValue: -2,
-            maxValue: 2,
+            minValue: -100,
+            maxValue: 100,
             direction: 'vertical'
           }
         }
@@ -494,7 +494,8 @@ let section = {
   dateAndTime: '2022-01-10T13:47:32.899000',
   date: '2021-03-17T13:47:32.899000',
   time: '2001-01-11T11:30:59.899000',
-  datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM']
+  datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
+  listInteger: [10, 20, 30]
 }
 
 const useStyles = makeStyles(theme => ({
@@ -613,12 +614,6 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.listIntegerQuantityDef1} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listIntegerQuantityDef2} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listIntegerQuantityDef3} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>
