@@ -379,14 +379,14 @@ class Processes(MSection):
     '''
     m_def = Section(a_eln=dict())
 
-    pvd_evaporation = SubSection(section_def=PVDEvaporation, repeats=True)
-    pld_deposition = SubSection(section_def=PLDDeposition, repeats=True)
-    ebeam_evaporation = SubSection(section_def=EbeamEvaporation, repeats=True)
-    hotplate_annealing = SubSection(section_def=HotPlateAnnealing, repeats=True)
-    tubefurnace_annealing = SubSection(section_def=TubeFurnaceAnnealing, repeats=True)
-    rtp_annealing = SubSection(section_def=RTPAnnealing, repeats=True)
-    spin_coating = SubSection(section_def=SpinCoating, repeats=True)
-    chemical_bath_deposition = SubSection(section_def=ChemicalBathDeposition, repeats=True)
+    pvd_evaporation = SubSection(section_def=PVDEvaporation)
+    pld_deposition = SubSection(section_def=PLDDeposition)
+    ebeam_evaporation = SubSection(section_def=EbeamEvaporation)
+    hotplate_annealing = SubSection(section_def=HotPlateAnnealing)
+    tubefurnace_annealing = SubSection(section_def=TubeFurnaceAnnealing)
+    rtp_annealing = SubSection(section_def=RTPAnnealing)
+    spin_coating = SubSection(section_def=SpinCoating)
+    chemical_bath_deposition = SubSection(section_def=ChemicalBathDeposition)
 
 
 class XrayFluorescence(MSection):

@@ -420,12 +420,12 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     }
   } else {
     if (Array.isArray(finalValue)) {
-      return <Typography>
-        <ul style={{margin: 0}}>
-          {finalValue.map((value, index) =>
-            <li key={index}>{typeof value === 'object' ? JSON.stringify(value) : value}</li>)}
-        </ul>
-      </Typography>
+      return <ul style={{margin: 0}}>
+        {finalValue.map((value, index) =>
+          <li key={index}>
+            <Typography>{typeof value === 'object' ? JSON.stringify(value) : value}</Typography>
+          </li>)}
+      </ul>
     } else {
       return <Typography>{finalValue}</Typography>
     }
@@ -529,16 +529,18 @@ function Section({section, def, parentRelation}) {
   let contents
   if (sectionIsEditable) {
     contents = <React.Fragment>
-      <Compartment title="quantities">
-        <SectionEditor sectionDef={def} section={section} showJson={showJson} />
-        <Box marginTop={2}>
-          {quantities
-            .filter(filter)
-            .filter(quantityDef => !quantityDef.m_annotations?.eln)
-            .map(renderQuantity)
-          }
-        </Box>
-      </Compartment>
+      {quantities.length > 0 && (
+        <Compartment title="quantities">
+          <SectionEditor sectionDef={def} section={section} showJson={showJson} />
+          <Box marginTop={2}>
+            {quantities
+              .filter(filter)
+              .filter(quantityDef => !quantityDef.m_annotations?.eln)
+              .map(renderQuantity)
+            }
+          </Box>
+        </Compartment>
+      )}
       {subSectionCompartment}
     </React.Fragment>
   } else {
@@ -605,15 +607,16 @@ function SubSection({subSectionDef, section, editable}) {
   }, [subSectionDef, section, lane, history, handleArchiveChanged])
 
   const values = section[subSectionDef.name]
+  const showList = subSectionDef.repeats && values && values.length > 1
   const actions = editable && (subSectionDef.repeats || !values) && (
-    <Box marginRight={2}>
+    <Box marginRight={!showList && values ? -1 : 2}>
       <IconButton onClick={handleAdd} size="small">
         <AddIcon style={{fontSize: 20}} />
       </IconButton>
     </Box>
   )
 
-  if (subSectionDef.repeats && values) {
+  if (showList) {
     return <PropertyValuesList
       label={label || 'list'} actions={actions}
       values={(section[subSectionDef.name] || []).map(getItemLabel)}
