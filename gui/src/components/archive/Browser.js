@@ -165,47 +165,57 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
 
     async function computeLanes() {
-      lanes.current = lanes.current || []
-      if (lanes.current.length > segments.length) {
-        // New path is shorter than the old path
-        lanes.current = lanes.current.slice(0, segments.length)
-        lanes.current[lanes.current.length - 1].next = null
-      }
+      const oldLanes = lanes.current
+      const newLanes = []
       for (let index = 0; index < segments.length; index++) {
         const segment = unescapeBadPathChars(segments[index])
-        if (lanes.current.length > index) {
-          if (lanes.current[index].key === segment) {
-            // reuse the existing lane (incl. its adaptor and data)
-            if (lanes.current[index].adaptor.needToFetchData()) {
-              await lanes.current[index].adaptor.fetchData(api)
-              lanes.current[index].fetchDataCounter += 1
-            }
-            continue
-          } else {
-            // the path diverges, start to use new lanes from now on
-            lanes.current = lanes.current.slice(0, index)
+        const prev = index === 0 ? null : newLanes[index - 1]
+        let lane
+
+        if (oldLanes && oldLanes[index]?.key === segment) {
+          // reuse the existing lane (incl. its adaptor and data)
+          lane = oldLanes[index]
+          lane.next = null
+        } else {
+          // create new lane
+          lane = {
+            index: index,
+            key: segment,
+            path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
+            next: null,
+            prev: prev,
+            fetchDataCounter: 0,
+            update: update
           }
-        }
-        const prev = index === 0 ? null : lanes.current[index - 1]
-        const lane = {
-          index: index,
-          key: segment,
-          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
-          adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
-          next: null,
-          prev: prev,
-          fetchDataCounter: 0,
-          update: update
+          if (!prev) {
+            lane.adaptor = adaptor
+          } else {
+            try {
+              lane.adaptor = await prev.adaptor.itemAdaptor(segment, api)
+            } catch (error) {
+              console.log(error)
+              lane.error = `Could not open "${segment}". Bad path provided?`
+            }
+          }
         }
         if (prev) {
           prev.next = lane
         }
-        if (lane.adaptor.needToFetchData()) {
-          await lane.adaptor.fetchData(api)
-          lane.fetchDataCounter += 1
+        if (!lane.error && lane.adaptor.needToFetchData()) {
+          try {
+            await lane.adaptor.fetchData(api)
+            lane.fetchDataCounter += 1
+          } catch (error) {
+            console.log(error)
+            lane.error = `Could not fetch data for "${segment}". Bad path provided?`
+          }
         }
-        lanes.current.push(lane)
+        newLanes.push(lane)
+        if (lane.error) {
+          break // Ignore subsequent segments/lanes
+        }
       }
+      lanes.current = newLanes
     }
     computeLanes().then(() => internalUpdate())
   }, [lanes, url, pathname, adaptor, render, update, internalUpdate, api, raiseError])
@@ -213,7 +223,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const contextValue = useMemo(() => ({
     lanes: lanes,
     update: update,
-    blockUntilProcessed: undefined // Will be set when creating component
+    blockUntilProcessed: undefined // Will be set when creating WaitForProcessingDialog component
   }), [lanes, update])
 
   if (url === undefined) {
@@ -264,7 +274,8 @@ const useLaneStyles = makeStyles(theme => ({
     overflowY: 'scroll'
   },
   error: {
-    margin: theme.spacing(1)
+    margin: theme.spacing(1),
+    minWidth: 300
   }
 }))
 function Lane({lane}) {
@@ -273,6 +284,12 @@ function Lane({lane}) {
   const { key, adaptor, next, fetchDataCounter } = lane
   lane.containerRef = containerRef
   const content = useMemo(() => {
+    if (lane.error) {
+      return <div className={classes.error}>
+        <Typography variant="h6" color="error">ERROR</Typography>
+        <Typography color="error">{lane.error}</Typography>
+      </div>
+    }
     if (!adaptor) {
       return ''
     }
