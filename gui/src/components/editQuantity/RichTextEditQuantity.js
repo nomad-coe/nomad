@@ -15,37 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useCallback, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
-import { useApi } from '../api'
-import { useErrors } from '../errors'
-import './RichTextEditQuantity.css'
+import PropTypes from 'prop-types'
 
 const RichTextEditQuantity = React.memo((props) => {
-  const {raiseError} = useErrors()
+  const {quantityDef, section, onChange} = props
+  const [text] = useState(section[quantityDef.name])
 
-  const {api} = useApi()
-  const { uploadId } = useParams()
+  const handleChange = useCallback((value, editor) => {
+    if (onChange) {
+      onChange(value, section, quantityDef)
+    }
+  }, [onChange, quantityDef, section])
 
   const handleImageUpload = (blobInfo, success, failure, progress) => {
-    const formData = new FormData() // eslint-disable-line no-undef
-    const fileBlob = blobInfo.blob()
-    formData.append('file', fileBlob)
-
-    api.put(`/uploads/${uploadId}/raw/entry_images/`, formData)
-      .then(results => console.log(results))
-      .catch(raiseError)
-      .finally(() => {
-        console.log('Uploaded')
-      })
-
-    success()
+    success('data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64())
   }
   return (
     <Editor
       init={{
-        resize: false,
+        resize: true,
         height: 500,
         menubar: false,
         plugins: [
@@ -61,9 +51,15 @@ const RichTextEditQuantity = React.memo((props) => {
         images_upload_handler: handleImageUpload,
         paste_data_images: true
       }}
+      onEditorChange={handleChange}
+      initialValue={text}
     />
   )
+})
+RichTextEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
 }
-)
 
 export default RichTextEditQuantity
