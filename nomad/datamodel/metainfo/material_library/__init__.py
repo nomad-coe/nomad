@@ -753,7 +753,7 @@ class MaterialLibrary(EntryData):
     library_name = Quantity(
         type=str,
         description='Short name of the library (the id on the substrate), e.g. `4001-8`.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='RichTextEditQuantity'))
 
     owner = Quantity(
         type=str,
