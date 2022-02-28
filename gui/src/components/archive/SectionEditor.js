@@ -4,6 +4,7 @@ import { Box, makeStyles, TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import _ from 'lodash'
 import { AutocompleteEditQuantity, BoolEditQuantity, DateTimeEditQuantity, EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
+import FileEditQuantity from '../editQuantity/FileEditQuantity'
 import KeepMaxHeight from '../utils/KeepMaxHeight'
 
 const editQuantityComponents = {
@@ -12,7 +13,7 @@ const editQuantityComponents = {
   EnumEditQuantity: EnumEditQuantity,
   AutocompleteEditQuantity: AutocompleteEditQuantity,
   BoolEditQuantity: BoolEditQuantity,
-  FileEditQuantity: StringEditQuantity,
+  FileEditQuantity: FileEditQuantity,
   DateTimeEditQuantity: DateTimeEditQuantity
 }
 

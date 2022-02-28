@@ -147,10 +147,11 @@ export const StringEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
+  const sectionValue = section[quantityDef.name]
 
   useEffect(() => {
-    setValue(section[quantityDef.name])
-  }, [quantityDef, section])
+    setValue(sectionValue)
+  }, [sectionValue])
 
   const handleChange = useCallback((newValue) => {
     setValue(newValue || '')

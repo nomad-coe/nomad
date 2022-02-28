@@ -118,6 +118,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
 
   const handleDrop = (files) => {
+    if (!files[0]?.name) {
+      return // Not dropping a file, but something else. Ignore.
+    }
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
     browser.blockUntilProcessed({
