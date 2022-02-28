@@ -28,7 +28,7 @@ import {
   Dialog,
   DialogContent,
   FormControl,
-  FormLabel, RadioGroup, Radio, Slider
+  FormLabel, RadioGroup, Radio, Slider, Typography
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -43,6 +43,8 @@ import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
 import {getTime} from 'date-fns'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
+import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
+import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -97,6 +99,7 @@ HelpAdornment.propTypes = {
 
 const useWithHelpStyles = makeStyles(theme => ({
   root: {
+    width: '100%',
     '&:not(:hover)': {
       '& #help': {
         display: 'none'
@@ -110,11 +113,11 @@ const TextFieldWithHelp = React.memo((props) => {
   const classes = useWithHelpStyles()
   return <TextField
     className={classes.root}
-    InputProps={{endAdornment: (
+    InputProps={(helpDescription && {endAdornment: (
       <div id="help">
         <HelpAdornment title={helpTitle} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
       </div>
-    )}}
+    )})}
     {...otherProps}
   />
 })
@@ -182,7 +185,7 @@ const useNumberEditQuantityStyles = makeStyles(theme => ({
   }
 }))
 
-export const NumberEditQuantity = React.memo((props) => {
+export const NumberEditQuantity0 = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
   const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
@@ -276,12 +279,150 @@ export const NumberEditQuantity = React.memo((props) => {
     </TextField>}
   </Box>
 })
+NumberEditQuantity0.propTypes = {
+  maxValue: PropTypes.number,
+  minValue: PropTypes.number,
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const NumberEditQuantity = React.memo((props) => {
+  const classes = useNumberEditQuantityStyles()
+  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const label = otherProps.label || quantityDef.name
+  const [value, setValue] = useState()
+  const systemUnits = useUnits()
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
+  const units = quantityDef.unit && conversionMap[dimension].units
+  const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
+  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
+
+  useEffect(() => {
+    let newValue = section[quantityDef.name] || defaultValue
+    setValue(newValue)
+  }, [defaultValue, isUnit, quantityDef, section, unit])
+
+  const handleChangeUnit = useCallback((newUnit) => {
+    setUnit(newUnit)
+  }, [])
+
+  const handleChangeValue = useCallback((newValue) => {
+    if (onChange) {
+      onChange(newValue, section, quantityDef)
+    }
+  }, [onChange, quantityDef, section])
+
+  return <Box display='flex'>
+    <NumberFieldWithUnit
+      onChange={handleChangeValue}
+      value={value}
+      defaultUnit={quantityDef.unit}
+      dataType={quantityDef.type?.type_data}
+      minValue={minValue}
+      maxValue={maxValue}
+      unit={unit}
+      defaultValue={defaultValue}
+      helpTitle={label}
+      helpDescription={quantityDef.description}
+      {...otherProps}/>
+    {isUnit && <TextField
+      className={classes.unitSelect} variant='filled' size='small' select
+      label="unit" value={unit}
+      onChange={(event) => handleChangeUnit(event.target.value)}
+    >
+      {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
+    </TextField>}
+  </Box>
+})
 NumberEditQuantity.propTypes = {
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
+}
+
+const NumberFieldWithUnit = React.memo((props) => {
+  const {onChange, value, defaultUnit, dataType, minValue, maxValue, unit, defaultValue, ...otherProps} = props
+  const label = otherProps.label
+  const [convertedValue, setConvertedValue] = useState()
+  const [error, setError] = useState('')
+  const timeout = useRef()
+  const isUnit = unit !== undefined
+
+  useEffect(() => {
+    let newValue = value || defaultValue
+    setConvertedValue(`${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), defaultUnit, unit) : '') : newValue)}`)
+  }, [defaultValue, isUnit, defaultUnit, value, unit])
+
+  const isValidNumber = useCallback((value) => {
+    if (['int64', 'int32', 'int'].includes(dataType)) {
+      const num = Number(value)
+      return Number.isInteger(num)
+    } else if (['uint64', 'uint32', 'uint'].includes(dataType)) {
+      const num = Number(value)
+      return Number.isInteger(num) && num > 0
+    } else if (['float64', 'float32', 'float'].includes(dataType)) {
+      const num = Number(value)
+      return !isNaN(num)
+    }
+  }, [dataType])
+
+  const validation = useCallback((newValue) => {
+    setError('')
+    if (newValue === '') {
+      setConvertedValue('')
+    } else if (!isValidNumber(newValue)) {
+      setError('Please enter a valid number!')
+    } else {
+      let originalValue = (isUnit ? convertUnit(Number(newValue), unit, defaultUnit) : newValue)
+      if (minValue !== undefined && originalValue < minValue) {
+        setError(`The value should be higher than or equal to ${minValue}${(isUnit ? `${(new Unit(defaultUnit)).label()}` : '')}`)
+      } else if (maxValue !== undefined && originalValue > maxValue) {
+        setError(`The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(defaultUnit)).label()}` : '')}`)
+      } else {
+        setConvertedValue(`${Number(newValue)}`)
+        if (onChange) {
+          onChange(originalValue)
+        }
+      }
+    }
+  }, [isUnit, isValidNumber, maxValue, minValue, onChange, defaultUnit, unit])
+
+  const handleChangeValue = useCallback((newValue) => {
+    setConvertedValue(`${newValue}`)
+    clearTimeout(timeout.current)
+    timeout.current = setTimeout(() => {
+      validation(newValue)
+    }, 1000)
+  }, [validation])
+
+  const handleValidator = useCallback((event) => {
+    validation(event.target.value)
+  }, [validation])
+
+  return <TextFieldWithHelp
+    fullWidth variant='filled' size='small'
+    label={label}
+    value={convertedValue || ''}
+    onBlur={handleValidator} error={!!error} helperText={error}
+    onChange={event => handleChangeValue(event.target.value)}
+    {...otherProps}
+  />
+})
+NumberFieldWithUnit.propTypes = {
+  maxValue: PropTypes.number,
+  minValue: PropTypes.number,
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string,
+  defaultUnit: PropTypes.string,
+  dataType: PropTypes.string,
+  defaultValue: PropTypes.string,
+  unit: PropTypes.string
 }
 
 export const EnumEditQuantity = React.memo((props) => {
@@ -718,27 +859,29 @@ TimeRangeEditQuantity.propTypes = {
 }
 
 export const ListEditQuantity = React.memo((props) => {
-  const {component, quantityDef, section, ...componentProps} = props
-  // const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : [1, 2, 3])
-  const [values, setValues] = useState()
-
-  useEffect(() => {
-    setValues([1, 2, 3])
-  }, [])
+  const {component, componentProps, values, onChange} = props
 
   const columns = useMemo(() => {
     return [
-      {key: 'value',
+      {key: 'Value',
+        style: {padding: '0px'},
         align: 'left',
-        render: value => {
+        render: row => {
           let Component = component
-          return <Box maxWidth='300px' whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden'>
-            <Component quantityDef={quantityDef} section={section} {...componentProps}/>
+          return <Box whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden' display='flex' padding={0} margin={0}>
+            <Component
+              value={row.value || ''} onChange={newValue => onChange(newValue, row.index)} {...componentProps}
+              InputProps={{
+                startAdornment: <Typography style={{marginRight: 10, color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
+                  <span>{`${row.index}:`}</span>
+                </Typography>
+              }}
+            />
           </Box>
         }
       }
     ]
-  }, [component, componentProps, quantityDef, section])
+  }, [component, componentProps, onChange])
 
   if (!values) return ''
   return <Datatable columns={columns} data={values.map((value, index) => Object({value: value, index: index}))}>
@@ -746,140 +889,67 @@ export const ListEditQuantity = React.memo((props) => {
   </Datatable>
 })
 ListEditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired,
-  component: PropTypes.any.isRequired
-}
-
-export const ListNumberEditQuantity0 = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-  return <ListEditQuantity component={NumberEditQuantity} quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps} />
-})
-ListNumberEditQuantity0.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
+  component: PropTypes.any.isRequired,
+  componentProps: PropTypes.object.isRequired,
+  values: PropTypes.arrayOf(PropTypes.any),
   onChange: PropTypes.func.isRequired
 }
 
 export const ListNumberEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const {quantityDef, section, onChange, minValue, maxValue, collapse, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState()
-  const [convertedValue, setConvertedValue] = useState()
-  const [errors, setErrors] = useState([])
   const systemUnits = useUnits()
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : [])
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
   const units = quantityDef.unit && conversionMap[dimension].units
   const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
-  const timeout = useRef()
-
-  const convert = useCallback((array, originUnit, targetUnit) => {
-    return (isUnit ? array.map(val => `${(!isNaN(Number(val)) || val === '' ? convertUnit(Number(val), originUnit, targetUnit) : '')}`) : array)
-  }, [isUnit])
-
-  useEffect(() => {
-    let newValue = section[quantityDef.name] || defaultValue
-    setValue(newValue)
-    setConvertedValue(convert(newValue, quantityDef.unit, unit))
-  }, [convert, defaultValue, isUnit, quantityDef, section, unit])
+  const [, setRefresh] = useState(true)
+  const [open, setOpen] = useState((collapse || true))
+  let values = section[quantityDef.name]
 
   const handleChangeUnit = useCallback((newUnit) => {
     setUnit(newUnit)
-    setConvertedValue(convert(value, quantityDef.unit, newUnit))
-  }, [convert, quantityDef, value])
+  }, [])
 
-  const isValidNumber = useCallback((value) => {
-    if (['int64', 'int32', 'int'].includes(quantityDef.type?.type_data)) {
-      const num = Number(value)
-      return Number.isInteger(num)
-    } else if (['uint64', 'uint32', 'uint'].includes(quantityDef.type?.type_data)) {
-      const num = Number(value)
-      return Number.isInteger(num) && num > 0
-    } else if (['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)) {
-      const num = Number(value)
-      return !isNaN(num)
-    }
-  }, [quantityDef])
-
-  const validation = useCallback((newValue, index) => {
-    setErrors(errors.filter(error => error.index !== index))
-    if (newValue === []) {
-      setConvertedValue([])
-      setValue([])
-    } else if (!isValidNumber(newValue)) {
-      setErrors([{index: index, msg: 'Please enter a valid number!'}, ...errors])
-    } else {
-      let originalValue = (isUnit ? convertUnit(Number(newValue), unit, quantityDef.unit) : newValue)
-      let newArray = [...value]
-      newArray[index] = newValue
-      let originalArray = convert(newArray, unit, quantityDef.unit)
-      if (minValue !== undefined && originalValue < minValue) {
-        setErrors([{index: index, msg: `The value should be higher than or equal to ${minValue}${(isUnit ? `${(new Unit(quantityDef.unit)).label()}` : '')}`}, ...errors])
-      } else if (maxValue !== undefined && originalValue > maxValue) {
-        setErrors([{index: index, msg: `The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(quantityDef.unit)).label()}` : '')}`}, ...errors])
-      } else {
-        setValue(originalArray)
-        setConvertedValue(newArray)
-      }
-    }
-  }, [convert, errors, isUnit, isValidNumber, maxValue, minValue, quantityDef, unit, value])
-
-  const handleChangeValue = useCallback((val, index) => {
-    let newValue = [...value]
-    newValue[index] = val
-    setConvertedValue(newValue)
+  const handleChange = useCallback((newValue, index) => {
+    let newArray = [...values]
+    newArray[index] = newValue
     if (onChange) {
-      onChange(convert(newValue, unit, quantityDef.unit), section, quantityDef)
+      onChange(newArray, section, quantityDef)
     }
-    clearTimeout(timeout.current)
-    timeout.current = setTimeout(() => {
-      validation(newValue[index], index)
-    }, 1000)
-  }, [value, onChange, convert, unit, quantityDef, section, validation])
+    setRefresh(current => !current)
+  }, [onChange, quantityDef, section, values, setRefresh])
 
-  const handleValidator = useCallback((value, index) => {
-    validation(value, index)
-  }, [validation])
+  const componentProps = {
+    defaultUnit: quantityDef.unit,
+    dataType: quantityDef.type?.type_data,
+    minValue: minValue,
+    maxValue: maxValue,
+    unit: unit,
+    defaultValue: defaultValue,
+    ...otherProps,
+    label: undefined
+  }
 
-  const columns = useMemo(() => {
-    return [
-      {key: 'Index', align: 'left', render: row => `${row.index}:`},
-      {key: 'Value',
-        style: {padding: '0px'},
-        align: 'left',
-        render: row => {
-          return <Box whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden' display='flex' padding={0} margin={0}>
-            <TextField
-              fullWidth variant='filled' size='small'
-              value={row.value || ''}
-              onBlur={event => handleValidator(event.target.value, row.index)} error={!!errors.find(error => error.index === row.index)} helperText={errors.find(error => error.index === row.index)?.msg}
-              placeholder={quantityDef.description}
-              onChange={event => handleChangeValue(event.target.value, row.index)}
-              helpTitle={label} helpDescription={quantityDef.description}
-              {...otherProps}
-              label={undefined}
-            />
-          </Box>
-        }
-      }
-    ]
-  }, [errors, handleChangeValue, handleValidator, label, otherProps, quantityDef])
-
-  return <Box display={'block'}>
-    {Array.isArray(convertedValue) && <Datatable columns={columns} data={convertedValue.map((val, index) => Object({value: val, index: index}))}>
-      <DatatableTable noHeader />
-    </Datatable>}
-    {isUnit && <TextField
-      className={classes.unitSelect} variant='filled' size='small' select
-      label="unit" value={unit}
-      onChange={(event) => handleChangeUnit(event.target.value)}
-    >
-      {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
-    </TextField>}
+  return <Box display='block'>
+    <Box display='flex'>
+      <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+        <Typography onClick={() => setOpen(!open)} className={classes.title} style={{width: '100%'}}>
+          <span>{label}</span>
+          {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+        </Typography>
+      </WithHelp>
+      {isUnit && <TextField
+        className={classes.unitSelect} variant='filled' size='small' select
+        label="unit" value={unit}
+        onChange={(event) => handleChangeUnit(event.target.value)}
+      >
+        {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
+      </TextField>}
+    </Box>
+    {open && <ListEditQuantity component={NumberFieldWithUnit} componentProps={componentProps} values={values} onChange={handleChange}/>}
   </Box>
 })
 ListNumberEditQuantity.propTypes = {
@@ -887,5 +957,6 @@ ListNumberEditQuantity.propTypes = {
   minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  collapse: PropTypes.bool
 }
