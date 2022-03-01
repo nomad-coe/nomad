@@ -374,6 +374,7 @@ const NumberFieldWithUnit = React.memo((props) => {
     setError('')
     if (newValue === '') {
       setConvertedValue('')
+      if (onChange) onChange('')
     } else if (!isValidNumber(newValue)) {
       setError('Please enter a valid number!')
     } else {
@@ -384,9 +385,7 @@ const NumberFieldWithUnit = React.memo((props) => {
         setError(`The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(defaultUnit)).label()}` : '')}`)
       } else {
         setConvertedValue(`${Number(newValue)}`)
-        if (onChange) {
-          onChange(originalValue)
-        }
+        if (onChange) onChange(originalValue)
       }
     }
   }, [isUnit, isValidNumber, maxValue, minValue, onChange, defaultUnit, unit])
@@ -873,7 +872,7 @@ export const ListEditQuantity = React.memo((props) => {
               value={row.value || ''} onChange={newValue => onChange(newValue, row.index)} {...componentProps}
               InputProps={{
                 startAdornment: <Typography style={{marginRight: 10, color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
-                  <span>{`${row.index}:`}</span>
+                  <span>{`${row.index + 1}:`}</span>
                 </Typography>
               }}
             />
@@ -895,19 +894,38 @@ ListEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
+const usePropertyValuesListStyles = makeStyles(theme => ({
+  title: {
+    flexGrow: 1,
+    color: theme.palette.text.primary,
+    textDecoration: 'none',
+    margin: `0 -${theme.spacing(1)}px`,
+    whiteSpace: 'nowrap',
+    fontWeight: 'bold',
+    width: '100%'
+  },
+  selected: {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    whiteSpace: 'nowrap'
+  }
+}))
+
 export const ListNumberEditQuantity = React.memo((props) => {
+  const listClasses = usePropertyValuesListStyles()
   const classes = useNumberEditQuantityStyles()
   const {quantityDef, section, onChange, minValue, maxValue, collapse, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
   const systemUnits = useUnits()
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+  const shape = quantityDef.type?.shape
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
   const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
   const units = quantityDef.unit && conversionMap[dimension].units
   const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
   const [, setRefresh] = useState(true)
-  const [open, setOpen] = useState((collapse || true))
-  let values = section[quantityDef.name]
+  const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
+  let values = section[quantityDef.name] || defaultValue
 
   const handleChangeUnit = useCallback((newUnit) => {
     setUnit(newUnit)
@@ -928,7 +946,6 @@ export const ListNumberEditQuantity = React.memo((props) => {
     minValue: minValue,
     maxValue: maxValue,
     unit: unit,
-    defaultValue: defaultValue,
     ...otherProps,
     label: undefined
   }
@@ -936,12 +953,12 @@ export const ListNumberEditQuantity = React.memo((props) => {
   return <Box display='block'>
     <Box display='flex'>
       <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
-        <Typography onClick={() => setOpen(!open)} className={classes.title} style={{width: '100%'}}>
-          <span>{label}</span>
+        <Typography onClick={() => setOpen(!open)} className={listClasses.title}>
           {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+          <span>{label}</span>
         </Typography>
       </WithHelp>
-      {isUnit && <TextField
+      {isUnit && open && <TextField
         className={classes.unitSelect} variant='filled' size='small' select
         label="unit" value={unit}
         onChange={(event) => handleChangeUnit(event.target.value)}

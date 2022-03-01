@@ -449,33 +449,12 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'List of integer (Fixed length)',
+          label: 'List of float (Fixed length)',
           component: 'ListNumberEditQuantity',
           props: {
             minValue: -100,
             maxValue: 100,
             direction: 'horizontal'
-          }
-        }
-      ]
-    }
-  },
-  listIntegerQuantityDef3: {
-    name: 'listInteger2',
-    description: 'This is a dynamic length list of integer numbers',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'int64',
-      shape: ['*']
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'List of integer (Dynamic length)',
-          component: 'ListNumberEditQuantity',
-          props: {
-            minValue: -2,
-            maxValue: 2
           }
         }
       ]
@@ -496,8 +475,7 @@ let section = {
   date: '2021-03-17T13:47:32.899000',
   time: '2001-01-11T11:30:59.899000',
   datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
-  listInteger: [10, 20, 30],
-  listFloat: [1, 2, 3]
+  listInteger: [10, 20, 30]
 }
 
 const useStyles = makeStyles(theme => ({
