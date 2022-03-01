@@ -217,6 +217,9 @@ export function isReference(property) {
 }
 
 export function path(nameOrDef) {
+  if (nameOrDef?.name === 'energies') {
+    console.log(nameOrDef)
+  }
   let def
   if (typeof nameOrDef === 'string') {
     def = defsByName[nameOrDef] && defsByName[nameOrDef].find(def => true)
@@ -248,7 +251,7 @@ export function path(nameOrDef) {
       def = parentSubSection
     }
     path.push(def.name)
-    if (def.m_def === 'SubSection') {
+    if (def.m_def === 'SubSection' || def.m_def === 'Quantity') {
       def = def._section
     } else {
       def = def._parentSections && def._parentSections[0]
