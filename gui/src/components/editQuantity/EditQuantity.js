@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useRef, useState} from 'react'
 import {
   TextField,
   makeStyles,
@@ -42,7 +42,6 @@ import {dateFormat} from '../../config'
 import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
 import {getTime} from 'date-fns'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
-import {Datatable, DatatableTable} from '../datatable/Datatable'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 
@@ -856,64 +855,54 @@ TimeRangeEditQuantity.propTypes = {
 }
 
 export const ListEditQuantity = React.memo((props) => {
-  const {component, componentProps, values, onChange} = props
-
-  const columns = useMemo(() => {
-    return [
-      {key: 'Value',
-        style: {padding: '0px'},
-        align: 'left',
-        render: row => {
-          let Component = component
-          return <Box whiteSpace='nowrap' textOverflow='ellipsis' overflow='hidden' display='flex' padding={0} margin={0}>
-            <Component
-              value={row.value || ''} onChange={newValue => onChange(newValue, row.index)} {...componentProps}
-              InputProps={{
-                startAdornment: <Typography style={{marginRight: 10, color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
-                  <span>{`${row.index + 1}:`}</span>
-                </Typography>
-              }}
-            />
-          </Box>
-        }
-      }
-    ]
-  }, [component, componentProps, onChange])
+  const {quantityDef, component, componentProps, values, collapse, onChange, actions} = props
+  const label = componentProps.label || quantityDef.name
+  const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
+  let Component = component
 
   if (!values) return ''
-  return <Datatable columns={columns} data={values.map((value, index) => Object({value: value, index: index}))}>
-    <DatatableTable noHeader />
-  </Datatable>
+
+  return <Box display='block'>
+    <Box display='flex'>
+      <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+        <Box sx={{ flexDirection: 'column' }} onClick={() => setOpen(!open)} height={'26px'}>
+          <FormControlLabel
+            control={open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+            label={label}
+          />
+        </Box>
+      </WithHelp>
+      {open && actions}
+    </Box>
+    {open && <div>
+      {values.map((value, index) => {
+        return <Box key={index} marginTop={1}>
+          <Component
+            value={value || ''} onChange={newValue => onChange(newValue, index)} {...componentProps} label={undefined}
+            InputProps={{
+              startAdornment: <Typography style={{marginRight: 10, color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
+                <span>{`${index + 1}:`}</span>
+              </Typography>
+            }}
+          />
+        </Box>
+      })}
+    </div>}
+  </Box>
 })
 ListEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
   component: PropTypes.any.isRequired,
   componentProps: PropTypes.object.isRequired,
   values: PropTypes.arrayOf(PropTypes.any),
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  collapse: PropTypes.bool,
+  actions: PropTypes.element
 }
 
-const usePropertyValuesListStyles = makeStyles(theme => ({
-  title: {
-    flexGrow: 1,
-    color: theme.palette.text.primary,
-    textDecoration: 'none',
-    margin: `0 -${theme.spacing(1)}px`,
-    whiteSpace: 'nowrap',
-    fontWeight: 'bold',
-    width: '100%'
-  },
-  selected: {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    whiteSpace: 'nowrap'
-  }
-}))
-
 export const ListNumberEditQuantity = React.memo((props) => {
-  const listClasses = usePropertyValuesListStyles()
   const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, minValue, maxValue, collapse, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
+  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
   const systemUnits = useUnits()
   const shape = quantityDef.type?.shape
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
@@ -922,7 +911,6 @@ export const ListNumberEditQuantity = React.memo((props) => {
   const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
   const [, setRefresh] = useState(true)
-  const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
   let values = section[quantityDef.name] || defaultValue
 
   const handleChangeUnit = useCallback((newUnit) => {
@@ -944,27 +932,23 @@ export const ListNumberEditQuantity = React.memo((props) => {
     minValue: minValue,
     maxValue: maxValue,
     unit: unit,
-    ...otherProps,
-    label: undefined
+    ...otherProps
   }
 
   return <Box display='block'>
-    <Box display='flex'>
-      <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
-        <Typography onClick={() => setOpen(!open)} className={listClasses.title}>
-          {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-          <span>{label}</span>
-        </Typography>
-      </WithHelp>
-      {isUnit && open && <TextField
+    <ListEditQuantity
+      quantityDef={quantityDef}
+      component={NumberFieldWithUnit}
+      componentProps={componentProps}
+      values={values}
+      onChange={handleChange}
+      actions={isUnit && <TextField
         className={classes.unitSelect} variant='filled' size='small' select
         label="unit" value={unit}
         onChange={(event) => handleChangeUnit(event.target.value)}
       >
         {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
-      </TextField>}
-    </Box>
-    {open && <ListEditQuantity component={NumberFieldWithUnit} componentProps={componentProps} values={values} onChange={handleChange}/>}
+      </TextField>}/>
   </Box>
 })
 ListNumberEditQuantity.propTypes = {
@@ -972,6 +956,5 @@ ListNumberEditQuantity.propTypes = {
   minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired,
-  collapse: PropTypes.bool
+  onChange: PropTypes.func.isRequired
 }

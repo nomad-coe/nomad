@@ -475,7 +475,8 @@ let section = {
   date: '2021-03-17T13:47:32.899000',
   time: '2001-01-11T11:30:59.899000',
   datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
-  listInteger: [10, 20, 30]
+  listInteger: [10, 20, 30],
+  listFloat: [1, 2, 3]
 }
 
 const useStyles = makeStyles(theme => ({
