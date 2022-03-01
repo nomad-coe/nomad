@@ -20,6 +20,7 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^10.0.0",
     "@testing-library/user-event": "^7.1.2",
+    "@tinymce/tinymce-react": "^3.13.0",
     "autosuggest-highlight": "^3.1.1",
     "base-64": "^0.1.0",
     "chroma-js": "^2.0.3",
@@ -68,6 +69,7 @@
     "remark": "^12.0.1",
     "remark-math": "^2.0.1",
     "swagger-client": "^3.8.22",
+    "tinymce": "^5",
     "url-parse": "^1.4.3",
     "use-query-params": "^0.6.0"
   },

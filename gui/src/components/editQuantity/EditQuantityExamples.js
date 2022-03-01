@@ -33,6 +33,7 @@ import {
   DateRangeEditQuantity,
   ListNumberEditQuantity
 } from './EditQuantity'
+import RichTextEditQuantity from './RichTextEditQuantity'
 
 const coatingMethods = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
@@ -131,11 +132,7 @@ const defs = {
       'eln': [
         {
           label: 'Description',
-          component: 'StringEditQuantity',
-          props: {
-            multiline: true,
-            minRows: 5
-          }
+          component: 'RichTextEditQuantity'
         }
       ]
     }
@@ -485,7 +482,7 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'center'
   },
   card: {
-    width: '600px',
+    width: '40vw',
     padding: '10px'
   }
 }))
@@ -501,6 +498,8 @@ const EditQuantity = React.memo((props) => {
   let otherProps = {'label': label, ...annotationsProps}
   if (component === 'StringEditQuantity') {
     return <StringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'RichTextEditQuantity') {
+    return <RichTextEditQuantity />
   } else if (component === 'NumberEditQuantity') {
     return <NumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'EnumEditQuantity') {

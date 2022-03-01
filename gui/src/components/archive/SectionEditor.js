@@ -6,6 +6,7 @@ import _ from 'lodash'
 import { AutocompleteEditQuantity, BoolEditQuantity, DateTimeEditQuantity, EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
 import FileEditQuantity from '../editQuantity/FileEditQuantity'
 import KeepMaxHeight from '../utils/KeepMaxHeight'
+import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
 
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
@@ -14,7 +15,8 @@ const editQuantityComponents = {
   AutocompleteEditQuantity: AutocompleteEditQuantity,
   BoolEditQuantity: BoolEditQuantity,
   FileEditQuantity: FileEditQuantity,
-  DateTimeEditQuantity: DateTimeEditQuantity
+  DateTimeEditQuantity: DateTimeEditQuantity,
+  RichTextEditQuantity: RichTextEditQuantity
 }
 
 const JsonEditor = React.memo(function JsonEditor({data, onChange}) {
