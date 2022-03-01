@@ -879,8 +879,9 @@ export const ListEditQuantity = React.memo((props) => {
         return <Box key={index} marginTop={1}>
           <Component
             value={value || ''} onChange={newValue => onChange(newValue, index)} {...componentProps} label={undefined}
+            inputProps={{style: { padding: '14px' }}}
             InputProps={{
-              startAdornment: <Typography style={{marginRight: 10, color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
+              startAdornment: <Typography style={{color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
                 <span>{`${index + 1}:`}</span>
               </Typography>
             }}
