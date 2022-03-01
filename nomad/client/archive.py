@@ -110,7 +110,7 @@ class ArchiveQuery:
         self._from_api: bool = from_api
 
         self._oidc = KeycloakOpenID(
-            server_url=config.keycloak.server_url, realm_name=config.keycloak.realm_name,
+            server_url=config.keycloak.public_server_url, realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id)
 
         # noinspection PyTypeChecker

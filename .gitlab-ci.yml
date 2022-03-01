@@ -81,14 +81,14 @@ python tests:
   stage: test
   image: $TEST_IMAGE
   services:
-    - name: rabbitmq:3.7.17
+    - name: rabbitmq:3.9.13
       alias: rabbitmq
     - name: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
       alias: elastic
       # fix issue with running elastic in gitlab ci runner:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
       command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
-    - name: mongo:4
+    - name: mongo:5.0.6
       alias: mongo
   variables:
     RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG

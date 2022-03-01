@@ -28,7 +28,7 @@ your OASIS and the central NOMAD user management and to allow your users to uplo
 Your machine needs to be accessible under this hostname from the public internet. The host
 name needs to be registered in the central NOMAD in order to configure the central user-
 management correctly.
-- Your NOMAD account should act as an admin account for your OASIS. This account must be declared
+- You need to have a NOMAD account that acts as an *admin account* for your OASIS. This account must be declared
 to the central NOMAD as an OASIS admin in order to give it the necessary rights in the central user management.
 - You must know your NOMAD user-id. This information has to be provided by us.
 
@@ -36,20 +36,22 @@ Please [write us](mailto:support@nomad-lab.eu) to register your NOMAD account as
 admin and to register your hostname. Please replace the indicated configuration items with
 the right information.
 
-
-In principle, you can also run your own user management. This is not yet documented.
+The central user management will make synchronizing data between NOMAD installations easer and generally recommend to use the central system.
+But in principle, you can also run your own user management. See the section on
+[your own user management](#provide-and-connect-your-own-user-management).
 
 ## Docker and docker compose
 
 ### Pre-requisites
 
-NOMAD software is distributed as a set of docker containers and there are also other services required
-that can be run with docker. Further, we use docker-compose to setup
-all necessary container in the simplest way possible.
+NOMAD software is distributed as a set of docker containers and there are also other services required that can be run with docker.
+Further, we use docker-compose to setup all necessary container in the simplest way possible.
 
-You will need a single computer, with **docker** and **docker-compose** installed.
+You will need a single computer, with **docker** and **docker-compose** installed. Refer
+to the official [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/)
+documentation for installation instructions.
 
-The following will run all necessary services with docker. These comprise: a **mongodb**
+The following will run all necessary services with docker. These comprise: a **mongo**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
 NOMAD **worker**, and NOMAD **gui**. In this [introduction](index.md#architecture),
 you will learn what each service does and why it is necessary.
@@ -57,8 +59,7 @@ you will learn what each service does and why it is necessary.
 ### Configuration overview
 
 All docker container are configured via docker-compose and the respective `docker-compose.yaml` file.
-Further, we will need to mount some configuration files to configure the NOMAD services within
-their respective containers.
+Further, we will need to mount some configuration files to configure the NOMAD services within their respective containers.
 
 There are three files to configure:
 
@@ -195,7 +196,7 @@ client:
 
 services:
   api_host: '<your-host>'
-  api_prefix: '/nomad-oasis'
+  api_base_path: '/nomad-oasis'
   admin_user_id: '<your admin user id>'
 
 keycloak:
@@ -225,7 +226,6 @@ You need to change the following:
 
 A few things to notice:
 
-- Be secretive about your admin credentials; make sure this file is not publicly readable.
 - We will use your hostname as `deployment_id`. When you publish uploads from your Oasis to the
 central NOMAD, this will be added as upload metadata and allows to see where the upload came
 from.
@@ -291,13 +291,23 @@ A few things to notice:
 - It configures the base path (`nomad-oasis`) at multiple places. It needs to be changed, if you use a different base path.
 - You can use the server for additional content if you like.
 - `client_max_body_size` sets a limit to the possible upload size.
-- If you operate the GUI container behind another proxy, keep in mind that your proxy should not buffer requests/responses to allow streaming of large requests/responses for `../api/uploads` and `../api/raw`.
 
-### gunicorn
-
-Gunicorn is the WSGI-server that runs the nomad app. Consult the
-[gunicorn documentation](https://docs.gunicorn.org/en/stable/configure.html) for
-configuration options.
+You can add an additional reverse proxy in front or modify the nginx in the docker-compose.yaml
+to [support https](http://nginx.org/en/docs/http/configuring_https_servers.html).
+If you operate the GUI container behind another proxy, keep in mind that your proxy should
+not buffer requests/responses to allow streaming of large requests/responses for `api/v1/uploads` and `api/v1/.*/download`.
+An nginx reverse proxy location on an additional reverse proxy, could have these directives
+to ensure the correct http headers and allows download and upload of large files:
+```nginx
+client_max_body_size 35g;
+proxy_set_header Host $host;
+proxy_pass_request_headers on;
+proxy_buffering off;
+proxy_request_buffering off;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_pass http://<your-oasis-host>/nomad-oasis;
+```
 
 ### Running NOMAD
 
@@ -310,7 +320,7 @@ docker-compose pull
 
 In the beginning and to simplify debugging, it is recommended to start the services separately:
 ```sh
-docker-compose up -d mongodb elastic rabbitmq
+docker-compose up -d mongo elastic rabbitmq
 docker-compose up app worker gui
 ```
 
@@ -355,6 +365,121 @@ If you want to report problems with your OASIS. Please provide the logs for
 - nomad_oasis_app
 - nomad_oasis_worker
 - nomad_oasis_gui
+
+### Provide and connect your own user management
+
+NOMAD uses [keycloak](https://www.keycloak.org/) for its user management. NOMAD uses
+keycloak in two way. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
+Second, NOMD uses the keycloak realm-management API to get a list of existing users. Keycloak is highly customizable and numerous options to
+connect keycloak to existing identity providers exist.
+
+This tutorial assumes that you have a some understanding about what keycloak is and
+how it works.
+
+In the following, we provide basic installation steps for running your own keycloak in
+the NOMAD Oasis docker-compose. First, add a keycloak service to the `docker-compose.yaml`:
+
+```yaml
+services:
+    # keycloak user management
+    keycloak:
+        restart: always
+        image: jboss/keycloak:16.1.1
+        container_name: nomad_oasis_keycloak
+        environment:
+            - PROXY_ADDRESS_FORWARDING=true
+            - KEYCLOAK_FRONTEND_URL=http://<your-host>/keycloak/auth
+        volumes:
+            - keycloak:/opt/jboss/keycloak/standalone/data
+        # Uncomment to get access to the admin console.
+        # ports:
+        #   - 8080:8080
+```
+
+Also add links to the `keycloak` service in the `app` and `worker` service:
+```yaml
+services:
+    app:
+        links:
+            - keycloak
+    worker:
+        links:
+            - keycloak
+```
+
+A few notes:
+- The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix `keycloak`.
+- By default, keycloak will use a simple H2 file database stored in the given volume. Keycloak offers many other options to connect SQL databases.
+- We will use keycloak with our nginx proxy here, but you can also host-bind the port `8080` to access keycloak directly.
+
+Second, we add a keycloak location to the nginx config:
+```nginx
+location /keycloak {
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    rewrite /keycloak/(.*) /$1 break;
+    proxy_pass http://keycloak:8080;
+}
+```
+
+A few notes:
+- Again, we are using `keycloak` as a path prefix. We configure the headers to allow
+keycloak to pick up the rewritten url.
+
+Third, we modify the keycloak configuration in the `nomad.yaml`:
+```yaml
+services:
+    admin_user_id: 'a9e97ae9-7568-4b44-bb9f-7a7c6be898e8'
+
+keycloak:
+    server_url: 'http://keycloak:8080/auth'
+    public_server_url: 'http://<your-host>/keycloak/auth'
+    realm_name: nomad
+    username: 'admin'
+    password: 'password'
+    oasis: true
+```
+
+A few notes:
+- There are two urls to configure for keycloak. The `server_url` is used by the nomad
+services to directly communicate with keycloak within the docker network. The `public_server_url`
+is used by the UI for perform the authentication flow.
+- The particular `admin_user_id` is the Oasis admin user in the provided example realm
+configuration. See below.
+
+As a last step, we need to configure keycloak. First, run the keycloak service and
+update nginx with the new config.
+```sh
+docker-compose up keycloak
+docker exec nomad_oasis_gui nginx -s reload
+```
+
+If you open `http://<yourhost>/keycloak/auth` in a browser, you will see that there is no
+admin users. Second, we need to create a keycloak admin account:
+```sh
+docker exec nomad_oasis_keycloak /opt/jboss/keycloak/bin/add-user-keycloak.sh -u admin -p <PASSWORD>
+docker restart nomad_oasis_keycloak
+```
+
+Give it a second to restart. After, you can login to the admin console at `http://<yourhost>/keycloak/auth`.
+
+Keycloak uses `realms` to manage users and clients. We need to create a realm that NOMAD
+can use. We prepared an example realm with the necessary NOMAD client, an Oasis admin,
+and a test user. You can create a new realm through the admin console. Select this file
+to import our example configuration.
+
+A few notes on the realm configuration:
+- Realm and client settings are almost all default keycloak settings.
+- You should change the password of the admin user in the nomad realm.
+- The admin user in the nomad realm has the additional `view-users` client role for `realm-management`
+assigned. This is important, because NOMAD will use this user to retrieve the list of possible
+users for managing co-authors and reviewers on NOMAD uploads.
+- The realm has one client `nomad_public`. This has a basic configuration. You might
+want to adapt this to your own policies. In particular you can alter the valid redirect URIs to
+your own host.
 
 ## Base Linux (without docker)
 

@@ -144,6 +144,7 @@ elastic = NomadConfig(
 )
 
 keycloak = NomadConfig(
+    public_server_url=None,
     server_url='https://nomad-lab.eu/fairdi/keycloak/auth/',
     realm_name='fairdi_nomad_prod',
     username='admin',
@@ -238,6 +239,9 @@ def _check_config():
 
     if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):
         normalize.springer_db_path = None
+
+    if keycloak.public_server_url is None:
+        keycloak.public_server_url = keycloak.server_url
 
 
 mail = NomadConfig(

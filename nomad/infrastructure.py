@@ -178,10 +178,11 @@ class Keycloak():
                     The user provided keycloak public key does not exist.
                     Does the UI use the right realm?'''))
 
+            issuer = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
             options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
             payload = jwt.decode(
                 access_token, key=key, algorithms=['RS256'], options=options,
-                issuer='%s/realms/%s' % (config.keycloak.server_url.rstrip('/'), config.keycloak.realm_name))
+                issuer=issuer)
 
             user_id: str = payload.get('sub')
             if user_id is None:
