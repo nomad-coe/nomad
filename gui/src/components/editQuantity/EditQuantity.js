@@ -414,13 +414,11 @@ const NumberFieldWithUnit = React.memo((props) => {
 NumberFieldWithUnit.propTypes = {
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   defaultUnit: PropTypes.string,
   dataType: PropTypes.string,
-  defaultValue: PropTypes.string,
+  defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   unit: PropTypes.string
 }
 
