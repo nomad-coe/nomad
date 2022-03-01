@@ -43,7 +43,7 @@ const RichTextEditQuantity = React.memo((props) => {
           'searchreplace visualblocks code',
           'insertdatetime media table paste code help wordcount'
         ],
-        toolbar: 'undo redo | formatselect | ' +
+        toolbar: 'undo redo | formatselect image table | ' +
         'bold italic backcolor editimage | alignleft aligncenter ' +
         'alignright alignjustify | bullist numlist outdent indent | ' +
         'removeformat',
