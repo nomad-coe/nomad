@@ -270,9 +270,7 @@ class Api {
 
   async doHttpRequest(method, path, body, config) {
     const noLoading = config?.noLoading
-    if (!noLoading) {
-      this.onStartLoading()
-    }
+    this.onStartLoading(!noLoading)
     const auth = await this.authHeaders()
     config = config || {}
     config.params = config.params || {}
@@ -300,9 +298,7 @@ class Api {
       }
       handleApiError(errors)
     } finally {
-      if (!noLoading) {
-        this.onFinishLoading()
-      }
+      this.onFinishLoading(!noLoading)
     }
   }
 
