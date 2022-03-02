@@ -43,9 +43,9 @@ const RichTextEditQuantity = React.memo((props) => {
           'searchreplace visualblocks code',
           'insertdatetime media table paste code help wordcount'
         ],
-        toolbar: 'undo redo | formatselect image table | ' +
+        toolbar: 'undo redo | formatselect | ' +
         'bold italic backcolor editimage | alignleft aligncenter ' +
-        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'alignright alignjustify | bullist numlist outdent indent | image table | ' +
         'removeformat',
         skin: 'nomad',
         images_upload_handler: handleImageUpload,

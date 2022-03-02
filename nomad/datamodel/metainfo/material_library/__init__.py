@@ -116,6 +116,12 @@ class PVDEvaporation(MSection):
         type=Datetime,
         description='Finishing date and time of the process.')
 
+    comments = Quantity(
+        type=str,  # Revise type
+        description='''Remarks about the process that cannot be seen from the data.
+                    Might include rich text, images and potentially tables''',
+        a_eln=dict(component='RichTextEditQuantity'))
+
     def derive_n_values(self):
         if self.process_time is not None:
             return len(self.process_time)
@@ -152,12 +158,6 @@ class PVDEvaporation(MSection):
     number_crucibles = Quantity(
         type=np.dtype(np.int64),  # unit='',
         description='Number of crucibles active in the chamber')
-
-    comments = Quantity(
-        type=str,  # Revise type
-        description='''Remarks about the process that cannot be seen from the data.
-                    Might include rich text, images and potentially tables''',
-        a_eln=dict(component='StringEditQuantity', props=dict(multiline=True, minlines=10)))
 
     # layer_created = SubSection(section_def=Layers, repeats=True)
     instrument = SubSection(section_def=Instrument)
@@ -531,13 +531,6 @@ class XrayDiffraction(MSection):
         type=str,
         a_eln=dict(component='FileEditQuantity'))
 
-    def normalize(self, archive, logger):
-        from nomad.datamodel.metainfo.material_library.PvdPImporter import Importer
-        importer = Importer()
-        if (self.data_file):
-            with archive.m_context.raw_file(self.data_file) as f:
-                # TODO
-                pass
 
 class RamanSpectroscopy(MSection):
     '''
@@ -753,16 +746,6 @@ class MaterialLibrary(EntryData):
     library_name = Quantity(
         type=str,
         description='Short name of the library (the id on the substrate), e.g. `4001-8`.',
-        a_eln=dict(component='RichTextEditQuantity'))
-
-    owner = Quantity(
-        type=str,
-        description='Name or alias of the library owner.',
-        a_eln=dict(component='StringEditQuantity'))
-
-    institute = Quantity(
-        type=str,
-        description='Alias/short name of the home institute of the owner, i.e. `HZB`.',
         a_eln=dict(component='StringEditQuantity'))
 
     creation_datetime = Quantity(
@@ -770,19 +753,13 @@ class MaterialLibrary(EntryData):
         description='Creation date of the library.',
         a_eln=dict(component='DateTimeEditQuantity'))
 
-    # Can the type be changed to link to another MaterialLibrary section of another entry?
-    children = Quantity(
-        type=Reference(SectionProxy('MaterialLibrary')),
-        shape=["*"],
-        description='''
-        `material_library` IDs of children libraries generated from this entry
-        (e.g. by breaking or splitting the parent library)''')
+    institute = Quantity(
+        type=str,
+        description='Alias/short name of the home institute of the owner, i.e. `HZB`.',
+        a_eln=dict(component='StringEditQuantity'))
 
-    # Can the type be changed to link to another MaterialLibrary section of another entry?
-    parent = Quantity(
-        type=str, description='''
-        `material_library` IDs from which this library was generated
-        (e.g. by breaking or splitting the parent library)''')
+    description = Quantity(
+        type=str, a_eln=dict(component='RichTextEditQuantity'))
 
     processes = SubSection(section_def=Processes, repeats=True)
     measurements = SubSection(section_def=Measurements, repeats=True)

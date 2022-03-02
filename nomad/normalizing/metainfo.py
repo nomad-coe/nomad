@@ -29,11 +29,11 @@ class MetainfoNormalizer(Normalizer):
         if not self.entry_archive.data:
             return
 
-        for section, property_def, _ in list(self.entry_archive.data.m_traverse()):
+        for section, _, _ in list(self.entry_archive.data.m_traverse()):
             try:
                 normalize = getattr(section, 'normalize')
             except Exception as e:
-                print(section.m_def, property_def)
+                pass
 
             try:
                 normalize(self.entry_archive, logger)

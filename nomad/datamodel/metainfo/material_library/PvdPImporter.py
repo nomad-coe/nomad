@@ -2,14 +2,12 @@
 # for PVD Measurementfile v3, 3.0.0
 # Version 0.1
 # by Pascal Becker
-import re
-from typing import Dict, List, Any, Tuple
+from typing import List, Tuple
 import json
 from datetime import datetime
 import numpy as np
 import pandas as pd
 from xarray import Dataset
-import os
 
 
 class Importer:
@@ -59,16 +57,14 @@ class Importer:
 
         header = header[:-3] + '}'
         header_dict = json.loads(header)
-        header_dict['datetime'] = datetime.strptime(header_dict['Date'] + ' ' + header_dict['Time'],
-                                                    '%Y/%m/%d %H:%M:%S')
+        header_dict['datetime'] = datetime.strptime(
+            header_dict['Date'] + ' ' + header_dict['Time'], '%Y/%m/%d %H:%M:%S')
 
         # Check if list of substrate_labels in log file matches with selected libraries
-        substrate_labels = re.split('[;,]', header_dict['Substrate Number'].replace(' ', ''))
+        # substrate_labels = re.split('[;,]', header_dict['Substrate Number'].replace(' ', ''))
 
-        evaporation_start_index = np.where(process_data['QCM1 SHTSRC_1']
-                                            + process_data['QCM1 SHTSRC_2']
-                                            + process_data['QCM2 SHTSRC_1']
-                                            + process_data['QCM2 SHTSRC_2'] > 0)[0][0]
+        evaporation_start_index = np.where(
+            process_data['QCM1 SHTSRC_1'] + process_data['QCM1 SHTSRC_2'] + process_data['QCM2 SHTSRC_1'] + process_data['QCM2 SHTSRC_2'] > 0)[0][0]
 
         datetime_column = []
         process_time_column = []
@@ -82,8 +78,9 @@ class Importer:
                 process_time_column.append((process_time - evaporation_start_time).seconds)
 
         return process_time_column, process_data['Substrate PV'].to_numpy()
-        # All dimensions and data prepared for the dataset.
-        # Start by making the dimension arrays,
+
+        # # All dimensions and data prepared for the dataset.
+        # # Start by making the dimension arrays,
 
         # x_dim_array = make_dimension_array(         ### will only get you in trouble, uses Kameleont functions
         #     dim_name="x",
@@ -98,7 +95,7 @@ class Importer:
         #     dim_long_name="y position"
         # )
 
-        #### uses Kameleont function. Needs to be replaced by something Nexus-like !!! You may want to use the parameters of the read function 'comment' and 'user' for this?!
+        # ### uses Kameleont function. Needs to be replaced by something Nexus-like !!! You may want to use the parameters of the read function 'comment' and 'user' for this?!
         # time_dim_array = make_dimension_array(
         #     dim_name="time",
         #     dim_values=np.array(process_time_column),
@@ -107,25 +104,25 @@ class Importer:
         # )
 
         # pvd_data_das = []
-        for column_name in process_data.columns[:-1]:  # last column is empty because column row ends with tab
-            if column_name.replace('.', '').replace(' ', '_').lower() != 'time':
-                column_unit = self.get_unit(column_name)
-                column_data = process_data[column_name].values[:].reshape(1, 1, -1)  ### this reshape is not necessary, if you make your data only depend on the time
+        # for column_name in process_data.columns[:-1]:  # last column is empty because column row ends with tab
+        #     if column_name.replace('.', '').replace(' ', '_').lower() != 'time':
+        #         column_unit = self.get_unit(column_name)
+        #         column_data = process_data[column_name].values[:].reshape(1, 1, -1)  ### this reshape is not necessary, if you make your data only depend on the time
 
-                ### uses Kameleont function. Needs to be replaced by something Nexus-like !!!
-                ### Generates technically multidemensional arrays depending on x and y.
-                ### in reality, data only depends on time, so  x = process_time_column, y = column_data
-                # pvd_data_das.append(make_data_array(
-                #     data_name=column_name.replace('.', '').replace(' ', '_').lower(),
-                #     data=column_data,
-                #     x_dim=x_dim_array,
-                #     y_dim=y_dim_array,
-                #     additional_dims=[time_dim_array],
-                #     data_units=column_unit,  # TODO: fill units dependent on file type
-                #     data_long_name=column_name
-                # ))
+        #         ## uses Kameleont function. Needs to be replaced by something Nexus-like !!!
+        #         ## Generates technically multidemensional arrays depending on x and y.
+        #         ## in reality, data only depends on time, so  x = process_time_column, y = column_data
+        #         pvd_data_das.append(make_data_array(
+        #             data_name=column_name.replace('.', '').replace(' ', '_').lower(),
+        #             data=column_data,
+        #             x_dim=x_dim_array,
+        #             y_dim=y_dim_array,
+        #             additional_dims=[time_dim_array],
+        #             data_units=column_unit,  # TODO: fill units dependent on file type
+        #             data_long_name=column_name
+        #         ))
 
-        ### This block compiles our data-Arrays into data sets. Don't know, how this would be handled in Nexus files
+        # ## This block compiles our data-Arrays into data sets. Don't know, how this would be handled in Nexus files
         # return_ds = []
         # return_json = []
         # # Finally, make the dataset from a list of the data arrays.
@@ -145,50 +142,50 @@ class Importer:
         #         additional_attrs={'process_id': header_dict.get('process ID', '')}
         #     ))
 
-            ### This block generates information for the library_info.json, i.e. adds inforamtion
-            ### that a new layer was deposited, which has x-y dimensions of abc and is a solar cell absorber
-            # # get substrate dimensions
-            # x_length = None
-            # y_length = None
-            # for layer in library_info["layers"]:
-            #     if layer['type'].lower() == 'substrate':
-            #         physical_prop = layer["properties"]["physical"]
-            #         x_length = (physical_prop["x_length"][0]["value_low"],
-            #                     physical_prop["x_length"][0]["value_high"])
-            #         y_length = (physical_prop["y_length"][0]["value_low"],
-            #                     physical_prop["y_length"][0]["value_high"])
-            #         break
-            #
-            # if x_length and y_length:
-            #     set_layer_dim = False
-            #     # tyring to assign a substrate holder for the sample
-            #     if 23 < x_length[0] < 27 and 23 < y_length[0] < 27:  # inch x inch substrate frame
-            #         x_length = (23 - 0.5, 23)  # opening in the substrate holder
-            #         y_length = (23 - 0.5, 23)  # estimating 0.5 mm possible shading
-            #         set_layer_dim = True
-            #     elif 48 < x_length[0] < 51 and 48 < y_length[0] < 51:  # 50 x 50 substrate frame
-            #         x_length = (48 - 0.5, 48)  # opening in the substrate holder
-            #         y_length = (48 - 0.5, 48)
-            #         set_layer_dim = True
-            #     # for stripe substrates, the dimensions of the layer depend on it's position in the substrate frame.
-            #
-            #     temp_knc_path = generate_knc_path(return_ds[-1])
-            #     temp_layer = LibraryLayer(library_id=library_info["identifiers"]["library_id"],
-            #                               layer_type='absorber',
-            #                               name='Perovskite Absorber',
-            #                               creation_datetime=header_dict['datetime'],
-            #                               position=-1)
-            #     if set_layer_dim:
-            #         temp_layer.add_property(keys=["physical", "x_length"],
-            #                                 value=x_length,
-            #                                 unit="mm",
-            #                                 source=temp_knc_path
-            #                                 )
-            #         temp_layer.add_property(keys=["physical", "y_length"],
-            #                                 value=y_length,
-            #                                 unit="mm",
-            #                                 source=temp_knc_path
-            #                                 )
-            #     return_json.append(temp_layer)
+        #     ## This block generates information for the library_info.json, i.e. adds inforamtion
+        #     ## that a new layer was deposited, which has x-y dimensions of abc and is a solar cell absorber
+        #     # get substrate dimensions
+        #     x_length = None
+        #     y_length = None
+        #     for layer in library_info["layers"]:
+        #         if layer['type'].lower() == 'substrate':
+        #             physical_prop = layer["properties"]["physical"]
+        #             x_length = (physical_prop["x_length"][0]["value_low"],
+        #                         physical_prop["x_length"][0]["value_high"])
+        #             y_length = (physical_prop["y_length"][0]["value_low"],
+        #                         physical_prop["y_length"][0]["value_high"])
+        #             break
 
-        return None ### actually your things, for the nexus file.   # return_ds, return_json
+        #     if x_length and y_length:
+        #         set_layer_dim = False
+        #         # tyring to assign a substrate holder for the sample
+        #         if 23 < x_length[0] < 27 and 23 < y_length[0] < 27:  # inch x inch substrate frame
+        #             x_length = (23 - 0.5, 23)  # opening in the substrate holder
+        #             y_length = (23 - 0.5, 23)  # estimating 0.5 mm possible shading
+        #             set_layer_dim = True
+        #         elif 48 < x_length[0] < 51 and 48 < y_length[0] < 51:  # 50 x 50 substrate frame
+        #             x_length = (48 - 0.5, 48)  # opening in the substrate holder
+        #             y_length = (48 - 0.5, 48)
+        #             set_layer_dim = True
+        #         # for stripe substrates, the dimensions of the layer depend on it's position in the substrate frame.
+
+        #         temp_knc_path = generate_knc_path(return_ds[-1])
+        #         temp_layer = LibraryLayer(library_id=library_info["identifiers"]["library_id"],
+        #                                   layer_type='absorber',
+        #                                   name='Perovskite Absorber',
+        #                                   creation_datetime=header_dict['datetime'],
+        #                                   position=-1)
+        #         if set_layer_dim:
+        #             temp_layer.add_property(keys=["physical", "x_length"],
+        #                                     value=x_length,
+        #                                     unit="mm",
+        #                                     source=temp_knc_path
+        #                                     )
+        #             temp_layer.add_property(keys=["physical", "y_length"],
+        #                                     value=y_length,
+        #                                     unit="mm",
+        #                                     source=temp_knc_path
+        #                                     )
+        #         return_json.append(temp_layer)
+
+        # return None ### actually your things, for the nexus file.   # return_ds, return_json

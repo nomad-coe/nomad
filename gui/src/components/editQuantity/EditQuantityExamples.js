@@ -499,7 +499,7 @@ const EditQuantity = React.memo((props) => {
   if (component === 'StringEditQuantity') {
     return <StringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'RichTextEditQuantity') {
-    return <RichTextEditQuantity />
+    return <RichTextEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps} />
   } else if (component === 'NumberEditQuantity') {
     return <NumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'EnumEditQuantity') {
