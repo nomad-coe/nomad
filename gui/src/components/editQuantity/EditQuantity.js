@@ -188,18 +188,12 @@ export const NumberEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
   const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState()
   const systemUnits = useUnits()
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
   const units = quantityDef.unit && conversionMap[dimension].units
   const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
-
-  useEffect(() => {
-    let newValue = section[quantityDef.name] !== undefined ? section[quantityDef.name] : defaultValue
-    setValue(newValue)
-  }, [defaultValue, isUnit, quantityDef, section, unit])
 
   const handleChangeUnit = useCallback((newUnit) => {
     setUnit(newUnit)
@@ -214,13 +208,12 @@ export const NumberEditQuantity = React.memo((props) => {
   return <Box display='flex'>
     <NumberFieldWithUnit
       onChange={handleChangeValue}
-      value={value}
       defaultUnit={quantityDef.unit}
       dataType={quantityDef.type?.type_data}
       minValue={minValue}
       maxValue={maxValue}
       unit={unit}
-      defaultValue={defaultValue}
+      defaultValue={section[quantityDef.name] !== undefined ? section[quantityDef.name] : defaultValue}
       helpTitle={label}
       helpDescription={quantityDef.description}
       {...otherProps}/>
@@ -242,7 +235,7 @@ NumberEditQuantity.propTypes = {
 }
 
 const NumberFieldWithUnit = React.memo((props) => {
-  const {onChange, value, defaultUnit, dataType, minValue, maxValue, unit, defaultValue, ...otherProps} = props
+  const {onChange, defaultUnit, dataType, minValue, maxValue, unit, defaultValue, ...otherProps} = props
   const label = otherProps.label
   const [convertedValue, setConvertedValue] = useState()
   const [error, setError] = useState('')
@@ -250,13 +243,12 @@ const NumberFieldWithUnit = React.memo((props) => {
   const isUnit = unit !== undefined
 
   useEffect(() => {
-    let newValue = value !== undefined ? value : defaultValue
-    if (newValue === undefined || newValue === '' || isNaN(Number(newValue))) {
+    if (defaultValue === undefined || defaultValue === '' || isNaN(Number(defaultValue))) {
       setConvertedValue('')
     } else {
-      setConvertedValue((isUnit ? convertUnit(Number(newValue), defaultUnit, unit) : newValue))
+      setConvertedValue((isUnit ? convertUnit(Number(defaultValue), defaultUnit, unit) : defaultValue))
     }
-  }, [defaultValue, isUnit, defaultUnit, value, unit])
+  }, [defaultValue, isUnit, defaultUnit, unit])
 
   const isValidNumber = useCallback((value) => {
     if (['int64', 'int32', 'int'].includes(dataType)) {
@@ -316,7 +308,6 @@ NumberFieldWithUnit.propTypes = {
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   defaultUnit: PropTypes.string,
   dataType: PropTypes.string,
   defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -324,36 +315,34 @@ NumberFieldWithUnit.propTypes = {
 }
 
 const StringField = React.memo((props) => {
-  const {onChange, value, defaultValue, ...otherProps} = props
+  const {onChange, defaultValue, ...otherProps} = props
   const label = otherProps.label
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
     label={label}
-    value={value}
     onChange={event => onChange(event.target.value)}
+    value={defaultValue}
     {...otherProps}
   />
 })
 StringField.propTypes = {
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.string,
   defaultValue: PropTypes.string
 }
 
 const BoolField = React.memo((props) => {
-  const {onChange, value, defaultValue, ...otherProps} = props
+  const {onChange, defaultValue, ...otherProps} = props
   const label = otherProps.label
 
   return <FormControlLabel
     label={label}
-    control={<Checkbox onChange={event => onChange(event.target.checked)} color="primary" checked={(!!value)} {...otherProps}/>}
+    control={<Checkbox onChange={event => onChange(event.target.checked)} color="primary" defaultChecked={(!!defaultValue)} {...otherProps}/>}
   />
 })
 BoolField.propTypes = {
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.string,
-  defaultValue: PropTypes.string
+  defaultValue: PropTypes.bool
 }
 
 export const EnumEditQuantity = React.memo((props) => {
@@ -780,7 +769,7 @@ const ListEditQuantity = React.memo((props) => {
     }
   }, [onChange, quantityDef, section, values])
 
-  if (!values) return ''
+  if (!defaultValues) return ''
 
   return <Box display='block'>
     <Box display='flex'>
@@ -795,10 +784,10 @@ const ListEditQuantity = React.memo((props) => {
       {open && actions}
     </Box>
     {open && <div>
-      {values.map((value, index) => {
+      {defaultValues.map((value, index) => {
         return <Box key={index} marginTop={1}>
           <Component
-            value={value !== undefined ? value : ''} onChange={newValue => handleChange(newValue, index)} {...componentProps} label={undefined}
+            defaultValue={value !== undefined ? value : ''} onChange={newValue => handleChange(newValue, index)} {...componentProps} label={undefined}
             inputProps={{style: { padding: '14px' }}}
           />
         </Box>
