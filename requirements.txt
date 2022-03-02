@@ -44,6 +44,7 @@ phonopy==2.11.0
 pymatgen==2022.0.17
 asr==0.4.1
 bitarray==2.3.5
+xrdtools==0.1.1
 
 # [infrastructure]
 optimade[mongo]==0.14.0
