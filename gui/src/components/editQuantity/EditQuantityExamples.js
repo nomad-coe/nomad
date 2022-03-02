@@ -31,7 +31,7 @@ import {
   DateTimeEditQuantity,
   TimeEditQuantity,
   DateRangeEditQuantity,
-  ListNumberEditQuantity
+  ListNumberEditQuantity, ListStringEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -459,6 +459,24 @@ const defs = {
         }
       ]
     }
+  },
+  listStringQuantityDef: {
+    name: 'listString',
+    description: 'This is a fixed length list of strings',
+    unit: 'meter',
+    type: {
+      type_kind: 'python',
+      type_data: 'str',
+      shape: [3]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of strings (Fixed length)',
+          component: 'ListStringEditQuantity'
+        }
+      ]
+    }
   }
 }
 
@@ -476,7 +494,8 @@ let section = {
   time: '2001-01-11T11:30:59.899000',
   datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
   listInteger: [10, 20, 30],
-  listFloat: [1, 2, 3]
+  listFloat: [1, 2, 3],
+  listString: ['https://gitlab.com', 'https://github.com', '']
 }
 
 const useStyles = makeStyles(theme => ({
@@ -524,6 +543,8 @@ const EditQuantity = React.memo((props) => {
     return <DateRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'ListNumberEditQuantity') {
     return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'ListStringEditQuantity') {
+    return <ListStringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -598,6 +619,9 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.listIntegerQuantityDef2} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listStringQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>

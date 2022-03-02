@@ -323,6 +323,24 @@ NumberFieldWithUnit.propTypes = {
   unit: PropTypes.string
 }
 
+const StringField = React.memo((props) => {
+  const {onChange, value, defaultValue, ...otherProps} = props
+  const label = otherProps.label
+
+  return <TextFieldWithHelp
+    fullWidth variant='filled' size='small'
+    label={label}
+    value={value}
+    onChange={event => onChange(event.target.value)}
+    {...otherProps}
+  />
+})
+StringField.propTypes = {
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string,
+  defaultValue: PropTypes.string
+}
+
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
@@ -827,6 +845,44 @@ export const ListNumberEditQuantity = React.memo((props) => {
 ListNumberEditQuantity.propTypes = {
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const ListStringEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const shape = quantityDef.type?.shape
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
+  const [, setRefresh] = useState(true)
+  let values = section[quantityDef.name] || defaultValue
+
+  const handleChange = useCallback((newValue, index) => {
+    let newArray = [...values]
+    newArray[index] = newValue
+    if (onChange) {
+      onChange(newArray, section, quantityDef)
+    }
+    setRefresh(current => !current)
+  }, [onChange, quantityDef, section, values, setRefresh])
+
+  const componentProps = {
+    fullWidth: true,
+    variant: 'filled',
+    size: 'small',
+    ...otherProps
+  }
+
+  return <Box display='block'>
+    <ListEditQuantity
+      quantityDef={quantityDef}
+      component={StringField}
+      componentProps={componentProps}
+      values={values}
+      onChange={handleChange}/>
+  </Box>
+})
+ListStringEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
