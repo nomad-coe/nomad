@@ -341,6 +341,21 @@ StringField.propTypes = {
   defaultValue: PropTypes.string
 }
 
+const BoolField = React.memo((props) => {
+  const {onChange, value, defaultValue, ...otherProps} = props
+  const label = otherProps.label
+
+  return <FormControlLabel
+    label={label}
+    control={<Checkbox onChange={event => onChange(event.target.checked)} color="primary" checked={(!!value)} {...otherProps}/>}
+  />
+})
+BoolField.propTypes = {
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string,
+  defaultValue: PropTypes.string
+}
+
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const label = otherProps.label || quantityDef.name
@@ -749,7 +764,7 @@ TimeRangeEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
-export const ListEditQuantity = React.memo((props) => {
+const ListEditQuantity = React.memo((props) => {
   const {quantityDef, component, componentProps, values, collapse, onChange, actions} = props
   const label = componentProps.label || quantityDef.name
   const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
@@ -826,21 +841,19 @@ export const ListNumberEditQuantity = React.memo((props) => {
     ...otherProps
   }
 
-  return <Box display='block'>
-    <ListEditQuantity
-      quantityDef={quantityDef}
-      component={NumberFieldWithUnit}
-      componentProps={componentProps}
-      values={values}
-      onChange={handleChange}
-      actions={isUnit && <TextField
-        className={classes.unitSelect} variant='filled' size='small' select
-        label="unit" value={unit}
-        onChange={(event) => handleChangeUnit(event.target.value)}
-      >
-        {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
-      </TextField>}/>
-  </Box>
+  return <ListEditQuantity
+    quantityDef={quantityDef}
+    component={NumberFieldWithUnit}
+    componentProps={componentProps}
+    values={values}
+    onChange={handleChange}
+    actions={isUnit && <TextField
+      className={classes.unitSelect} variant='filled' size='small' select
+      label="unit" value={unit}
+      onChange={(event) => handleChangeUnit(event.target.value)}
+    >
+      {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
+    </TextField>}/>
 })
 ListNumberEditQuantity.propTypes = {
   maxValue: PropTypes.number,
@@ -867,22 +880,50 @@ export const ListStringEditQuantity = React.memo((props) => {
   }, [onChange, quantityDef, section, values, setRefresh])
 
   const componentProps = {
-    fullWidth: true,
-    variant: 'filled',
-    size: 'small',
     ...otherProps
   }
 
-  return <Box display='block'>
-    <ListEditQuantity
-      quantityDef={quantityDef}
-      component={StringField}
-      componentProps={componentProps}
-      values={values}
-      onChange={handleChange}/>
-  </Box>
+  return <ListEditQuantity
+    quantityDef={quantityDef}
+    component={StringField}
+    componentProps={componentProps}
+    values={values}
+    onChange={handleChange}/>
 })
 ListStringEditQuantity.propTypes = {
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired
+}
+
+export const ListBoolEditQuantity = React.memo((props) => {
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const shape = quantityDef.type?.shape
+  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => false))
+  const [, setRefresh] = useState(true)
+  let values = section[quantityDef.name] || defaultValue
+
+  const handleChange = useCallback((newValue, index) => {
+    let newArray = [...values]
+    newArray[index] = newValue
+    if (onChange) {
+      onChange(newArray, section, quantityDef)
+    }
+    setRefresh(current => !current)
+  }, [onChange, quantityDef, section, values, setRefresh])
+
+  const componentProps = {
+    ...otherProps
+  }
+
+  return <ListEditQuantity
+    quantityDef={quantityDef}
+    component={BoolField}
+    componentProps={componentProps}
+    values={values}
+    onChange={handleChange}/>
+})
+ListBoolEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired

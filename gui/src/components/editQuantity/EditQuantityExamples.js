@@ -31,7 +31,7 @@ import {
   DateTimeEditQuantity,
   TimeEditQuantity,
   DateRangeEditQuantity,
-  ListNumberEditQuantity, ListStringEditQuantity
+  ListNumberEditQuantity, ListStringEditQuantity, ListBoolEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -477,6 +477,24 @@ const defs = {
         }
       ]
     }
+  },
+  listBoolQuantityDef: {
+    name: 'listBool',
+    description: 'This is a fixed length list of booleans',
+    unit: 'meter',
+    type: {
+      type_kind: 'python',
+      type_data: 'bool',
+      shape: [3]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of booleans (Fixed length)',
+          component: 'ListBoolEditQuantity'
+        }
+      ]
+    }
   }
 }
 
@@ -495,7 +513,8 @@ let section = {
   datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
   listInteger: [10, 20, 30],
   listFloat: [1, 2, 3],
-  listString: ['https://gitlab.com', 'https://github.com', '']
+  listString: ['https://gitlab.com', 'https://github.com', ''],
+  listBool: [true, false, true]
 }
 
 const useStyles = makeStyles(theme => ({
@@ -545,6 +564,8 @@ const EditQuantity = React.memo((props) => {
     return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'ListStringEditQuantity') {
     return <ListStringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'ListBoolEditQuantity') {
+    return <ListBoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -622,6 +643,9 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.listStringQuantityDef} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listBoolQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>
