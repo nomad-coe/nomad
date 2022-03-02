@@ -41,6 +41,7 @@ import TooltipButton from '../utils/TooltipButton'
 import ReloadIcon from '@material-ui/icons/Replay'
 import Quantity from '../Quantity'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import { useHistory } from 'react-router-dom'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -255,6 +256,7 @@ export function UploadsPage() {
     order_by: 'upload_create_time',
     order: 'desc'
   })
+  const history = useHistory()
 
   const fetchData = useCallback(() => {
     const {page_size, page, order_by, order} = pagination
@@ -271,9 +273,12 @@ export function UploadsPage() {
     fetchData()
   }
 
+  // This history dependency makes sure that the uploads are reloaded after page navigating
+  // back to the UploadsPage. E.g. if an upload was deleted on the UploadPage, we are
+  // history.pushed back to the UploadsPage and want to reload the list of uploads.
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, history])
 
   const isDisabled = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : false) : false
 
