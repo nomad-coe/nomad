@@ -251,7 +251,7 @@ const NumberFieldWithUnit = React.memo((props) => {
 
   useEffect(() => {
     let newValue = value !== undefined ? value : defaultValue
-    if (newValue === undefined || isNaN(Number(newValue))) {
+    if (newValue === undefined || newValue === '' || isNaN(Number(newValue))) {
       setConvertedValue('')
     } else {
       setConvertedValue((isUnit ? convertUnit(Number(newValue), defaultUnit, unit) : newValue))
@@ -765,10 +765,20 @@ TimeRangeEditQuantity.propTypes = {
 }
 
 const ListEditQuantity = React.memo((props) => {
-  const {quantityDef, component, componentProps, values, collapse, onChange, actions} = props
+  const {quantityDef, section, component, componentProps, defaultValues, collapse, onChange, actions} = props
+  const [values, setValues] = useState(defaultValues)
   const label = componentProps.label || quantityDef.name
   const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
   let Component = component
+
+  const handleChange = useCallback((newValue, index) => {
+    let newValues = [...values]
+    newValues[index] = newValue
+    setValues(newValues)
+    if (onChange) {
+      onChange(newValues, section, quantityDef)
+    }
+  }, [onChange, quantityDef, section, values])
 
   if (!values) return ''
 
@@ -788,7 +798,7 @@ const ListEditQuantity = React.memo((props) => {
       {values.map((value, index) => {
         return <Box key={index} marginTop={1}>
           <Component
-            value={value !== undefined ? value : ''} onChange={newValue => onChange(newValue, index)} {...componentProps} label={undefined}
+            value={value !== undefined ? value : ''} onChange={newValue => handleChange(newValue, index)} {...componentProps} label={undefined}
             inputProps={{style: { padding: '14px' }}}
           />
         </Box>
@@ -798,9 +808,10 @@ const ListEditQuantity = React.memo((props) => {
 })
 ListEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
   component: PropTypes.any.isRequired,
   componentProps: PropTypes.object.isRequired,
-  values: PropTypes.arrayOf(PropTypes.any),
+  defaultValues: PropTypes.arrayOf(PropTypes.any),
   onChange: PropTypes.func.isRequired,
   collapse: PropTypes.bool,
   actions: PropTypes.element
@@ -816,21 +827,11 @@ export const ListNumberEditQuantity = React.memo((props) => {
   const units = quantityDef.unit && conversionMap[dimension].units
   const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
-  const [, setRefresh] = useState(true)
   let values = section[quantityDef.name] || defaultValue
 
   const handleChangeUnit = useCallback((newUnit) => {
     setUnit(newUnit)
   }, [])
-
-  const handleChange = useCallback((newValue, index) => {
-    let newArray = [...values]
-    newArray[index] = newValue
-    if (onChange) {
-      onChange(newArray, section, quantityDef)
-    }
-    setRefresh(current => !current)
-  }, [onChange, quantityDef, section, values, setRefresh])
 
   const componentProps = {
     defaultUnit: quantityDef.unit,
@@ -843,10 +844,11 @@ export const ListNumberEditQuantity = React.memo((props) => {
 
   return <ListEditQuantity
     quantityDef={quantityDef}
+    section={section}
     component={NumberFieldWithUnit}
     componentProps={componentProps}
-    values={values}
-    onChange={handleChange}
+    defaultValues={values}
+    onChange={onChange}
     actions={isUnit && <TextField
       className={classes.unitSelect} variant='filled' size='small' select
       label="unit" value={unit}
@@ -867,17 +869,7 @@ export const ListStringEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const shape = quantityDef.type?.shape
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
-  const [, setRefresh] = useState(true)
   let values = section[quantityDef.name] || defaultValue
-
-  const handleChange = useCallback((newValue, index) => {
-    let newArray = [...values]
-    newArray[index] = newValue
-    if (onChange) {
-      onChange(newArray, section, quantityDef)
-    }
-    setRefresh(current => !current)
-  }, [onChange, quantityDef, section, values, setRefresh])
 
   const componentProps = {
     ...otherProps
@@ -885,10 +877,11 @@ export const ListStringEditQuantity = React.memo((props) => {
 
   return <ListEditQuantity
     quantityDef={quantityDef}
+    section={section}
     component={StringField}
     componentProps={componentProps}
-    values={values}
-    onChange={handleChange}/>
+    defaultValues={values}
+    onChange={onChange}/>
 })
 ListStringEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
@@ -900,17 +893,7 @@ export const ListBoolEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const shape = quantityDef.type?.shape
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => false))
-  const [, setRefresh] = useState(true)
   let values = section[quantityDef.name] || defaultValue
-
-  const handleChange = useCallback((newValue, index) => {
-    let newArray = [...values]
-    newArray[index] = newValue
-    if (onChange) {
-      onChange(newArray, section, quantityDef)
-    }
-    setRefresh(current => !current)
-  }, [onChange, quantityDef, section, values, setRefresh])
 
   const componentProps = {
     ...otherProps
@@ -918,10 +901,11 @@ export const ListBoolEditQuantity = React.memo((props) => {
 
   return <ListEditQuantity
     quantityDef={quantityDef}
+    section={section}
     component={BoolField}
     componentProps={componentProps}
-    values={values}
-    onChange={handleChange}/>
+    defaultValues={values}
+    onChange={onChange}/>
 })
 ListBoolEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,

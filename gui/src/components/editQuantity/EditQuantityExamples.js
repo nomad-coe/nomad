@@ -430,8 +430,7 @@ const defs = {
           component: 'ListNumberEditQuantity',
           props: {
             minValue: -100,
-            maxValue: 100,
-            direction: 'vertical'
+            maxValue: 100
           }
         }
       ]
@@ -453,8 +452,7 @@ const defs = {
           component: 'ListNumberEditQuantity',
           props: {
             minValue: -100,
-            maxValue: 100,
-            direction: 'horizontal'
+            maxValue: 100
           }
         }
       ]
