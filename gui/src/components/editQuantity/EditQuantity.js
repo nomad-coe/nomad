@@ -871,15 +871,11 @@ export const ListStringEditQuantity = React.memo((props) => {
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
   let values = section[quantityDef.name] || defaultValue
 
-  const componentProps = {
-    ...otherProps
-  }
-
   return <ListEditQuantity
     quantityDef={quantityDef}
     section={section}
     component={StringField}
-    componentProps={componentProps}
+    componentProps={otherProps}
     defaultValues={values}
     onChange={onChange}/>
 })
@@ -895,15 +891,11 @@ export const ListBoolEditQuantity = React.memo((props) => {
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => false))
   let values = section[quantityDef.name] || defaultValue
 
-  const componentProps = {
-    ...otherProps
-  }
-
   return <ListEditQuantity
     quantityDef={quantityDef}
     section={section}
     component={BoolField}
-    componentProps={componentProps}
+    componentProps={otherProps}
     defaultValues={values}
     onChange={onChange}/>
 })
