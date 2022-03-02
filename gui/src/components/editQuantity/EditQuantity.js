@@ -28,7 +28,7 @@ import {
   Dialog,
   DialogContent,
   FormControl,
-  FormLabel, RadioGroup, Radio, Slider, Typography
+  FormLabel, RadioGroup, Radio, Slider
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -353,7 +353,11 @@ const NumberFieldWithUnit = React.memo((props) => {
 
   useEffect(() => {
     let newValue = value || defaultValue
-    setConvertedValue(`${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), defaultUnit, unit) : '') : newValue)}`)
+    if (newValue === undefined || isNaN(Number(newValue))) {
+      setConvertedValue('')
+    } else {
+      setConvertedValue((isUnit ? convertUnit(Number(newValue), defaultUnit, unit) : newValue))
+    }
   }, [defaultValue, isUnit, defaultUnit, value, unit])
 
   const isValidNumber = useCallback((value) => {
@@ -362,7 +366,7 @@ const NumberFieldWithUnit = React.memo((props) => {
       return Number.isInteger(num)
     } else if (['uint64', 'uint32', 'uint'].includes(dataType)) {
       const num = Number(value)
-      return Number.isInteger(num) && num > 0
+      return Number.isInteger(num) && num >= 0
     } else if (['float64', 'float32', 'float'].includes(dataType)) {
       const num = Number(value)
       return !isNaN(num)
@@ -383,14 +387,14 @@ const NumberFieldWithUnit = React.memo((props) => {
       } else if (maxValue !== undefined && originalValue > maxValue) {
         setError(`The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(defaultUnit)).label()}` : '')}`)
       } else {
-        setConvertedValue(`${Number(newValue)}`)
+        setConvertedValue(newValue)
         if (onChange) onChange(originalValue)
       }
     }
   }, [isUnit, isValidNumber, maxValue, minValue, onChange, defaultUnit, unit])
 
   const handleChangeValue = useCallback((newValue) => {
-    setConvertedValue(`${newValue}`)
+    setConvertedValue(newValue)
     clearTimeout(timeout.current)
     timeout.current = setTimeout(() => {
       validation(newValue)
@@ -880,11 +884,6 @@ export const ListEditQuantity = React.memo((props) => {
           <Component
             value={value || ''} onChange={newValue => onChange(newValue, index)} {...componentProps} label={undefined}
             inputProps={{style: { padding: '14px' }}}
-            InputProps={{
-              startAdornment: <Typography style={{color: 'rgba(0, 0, 0, 0.5)', fontSize: 'small'}}>
-                <span>{`${index + 1}:`}</span>
-              </Typography>
-            }}
           />
         </Box>
       })}
