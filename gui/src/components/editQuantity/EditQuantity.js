@@ -277,7 +277,7 @@ const NumberFieldWithUnit = React.memo((props) => {
       } else if (maxValue !== undefined && originalValue > maxValue) {
         setError(`The value should be less than or equal to ${maxValue}${(isUnit ? `${(new Unit(defaultUnit)).label()}` : '')}`)
       } else {
-        setConvertedValue(newValue)
+        setConvertedValue(Number(newValue))
         if (onChange) onChange(originalValue)
       }
     }
@@ -292,6 +292,7 @@ const NumberFieldWithUnit = React.memo((props) => {
   }, [validation])
 
   const handleValidator = useCallback((event) => {
+    clearTimeout(timeout.current)
     validation(event.target.value)
   }, [validation])
 
