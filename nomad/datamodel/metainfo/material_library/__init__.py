@@ -588,12 +588,12 @@ class XrayDiffraction(MSection):
             with archive.m_context.raw_file(self.data_file) as f:
                 xrdml_dict = xrdtools.read_xrdml(f.name)
                 self.intensity = xrdml_dict['data']
-                self.two_theta = xrdml_dict['x'] * ureg('°')
+                self.two_theta = xrdml_dict['x'] * ureg('degree')
                 self.kalpha_one = xrdml_dict['kAlpha1']
                 self.kalpha_two = xrdml_dict['kAlpha2']
                 self.ratio_kalphatwo_kalphaone = xrdml_dict['kAlphaRatio']
                 self.kbeta = xrdml_dict['kBeta']
-                self.scan_axis = xrdml_dict['scanAxis']
+                self.scan_axis = [xrdml_dict['scanAxis']]
                 self.integration_time = xrdml_dict['time']
 
 

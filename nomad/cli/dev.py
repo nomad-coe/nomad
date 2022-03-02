@@ -432,6 +432,11 @@ def units(ctx):
             "label": "Atomic unit of pressure",
             "abbreviation": "a_u_pressure"
         },
+        "millibar": {
+            "dimension": "pressure",
+            "label": "Millibar",
+            "abbreviation": "mbar"
+        },
         # Energy
         "joule": {
             "dimension": "energy",
@@ -594,6 +599,7 @@ def units(ctx):
                 "pascal",
                 "gigapascal",
                 "atomic_unit_of_pressure",
+                "millibar"
             ],
             "multipliers": {},
         },
