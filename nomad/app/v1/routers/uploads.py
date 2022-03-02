@@ -630,6 +630,7 @@ async def get_upload_rawdir_path(
     '''
     # Get upload
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload_files = None
     try:
         # Get upload files
         upload_files = upload.upload_files
@@ -689,7 +690,8 @@ async def get_upload_rawdir_path(
 
         return response
     except Exception:
-        upload_files.close()
+        if upload_files:
+            upload_files.close()
         raise
 
 

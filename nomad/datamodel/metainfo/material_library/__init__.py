@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from matplotlib.afm import CharMetrics
 import numpy as np
 
 from nomad.units import ureg
@@ -28,12 +29,6 @@ from nomad.datamodel.data import EntryData
 m_package = Package(name='material_library')
 
 
-# Comments fields would be great to be aditable in rich text mode
-# with options for uploading images
-
-# Discuss wih Markus if I can have this class here or is he should create something like
-# lab inventory at the level of materials_library section so people can manage their lab
-# items there
 class Chemicals(MSection):
     '''Chemicals available in the lab.'''
 
@@ -81,7 +76,8 @@ class Chemicals(MSection):
         description='''Remarks about the chemical beyond the
                     typically collected information. Here you can collect information
                     about your experience using this chemical, for exmaple if it might
-                    have been contaminated during an experiment''')
+                    have been contaminated during an experiment''',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class Instrument(MSection):
@@ -95,22 +91,30 @@ class Instrument(MSection):
     instrument_information = Quantity(
         type=str,
         description='''Description of the instrument. May include images, free text
-                    and tables''')
+                    and tables''',
+        a_eln=dict(component='RichTextEditQuantity'))
 
-    comments = Quantity(
+    user_manual = Quantity(
         type=str,
-        description='''Remarks about the chemical beyond the
-                    typically collected information. Here you can collect information
-                    about your experience using this chemical, for exmaple if it might
-                    have been contaminated during an experiment''')
+        description='''Link to pdf of the user manual''')
 
 
 class PVDEvaporation(MSection):
     '''The physical vapor deposition (PVD) of a layer by evaporation.'''
 
     operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
+        type=MEnum([
+            'Markus Scheidgen',
+            'Pepe Marquez',
+            'Sandor Brockhauser',
+            'Sherjeel Shabih',
+            'Mohammad Nakhaee',
+            'David Sitker']),
+        shape=[],
+        description='Name or alias of the process operator.',
+        a_eln=dict(
+            label='Layer type',
+            component='AutocompleteEditQuantity'))
 
     datetime = Quantity(
         type=Datetime,
@@ -127,8 +131,6 @@ class PVDEvaporation(MSection):
             return len(self.process_time)
         if self.set_substrate_temperature is not None:
             return len(self.set_substrate_temperature)
-        if self.chamber_pressure is not None:
-            return len(self.chamber_pressure)
         else:
             return 0
 
@@ -136,14 +138,18 @@ class PVDEvaporation(MSection):
     n_values = Quantity(
         type=int, derived=derive_n_values,
         description='Number of registered time values')
+
     process_time = Quantity(
         type=np.dtype(np.float64), unit='seconds', shape=['n_values'],
         description='The temperature set in the substrate heater')
-    # This should have the same shape as process_time
+
     set_substrate_temperature = Quantity(
         type=np.dtype(np.float64), unit='kelvin', shape=['n_values'],
-        description='The temperature set in the substrate heater')
-    # This should have the same shape as process_time
+        description='The temperature set in the substrate heater',
+        a_plot={
+            'x': 'process_time', 'y': 'set_substrate_temperature'
+        })
+
     substrate_temperature = Quantity(
         type=np.dtype(np.float64), unit='kelvin', shape=['n_values'],
         description='The temperature measured in the substrate holder',
@@ -157,7 +163,14 @@ class PVDEvaporation(MSection):
 
     number_crucibles = Quantity(
         type=np.dtype(np.int64),  # unit='',
-        description='Number of crucibles active in the chamber')
+        description='Number of crucibles active in the chamber',
+        a_eln=dict(component='NumberEditQuantity', props=dict(maxValue=4, minValue=0)))
+
+    comments = Quantity(
+        type=str,  # Revise type
+        description='''Remarks about the process that cannot be seen from the data.
+                    Might include rich text, images and potentially tables''',
+        a_eln=dict(component='RichTextEditQuantity'))
 
     # layer_created = SubSection(section_def=Layers, repeats=True)
     instrument = SubSection(section_def=Instrument)
@@ -172,11 +185,14 @@ class PVDEvaporation(MSection):
         importer = Importer()
         if (self.data_file):
             with archive.m_context.raw_file(self.data_file) as f:
-                self.process_time, substrate_temperature = importer.read(f)
+                self.process_time, substrate_temperature, \
+                    set_substrate_temperature, chamber_pressure = importer.read(f)
                 self.substrate_temperature = substrate_temperature * ureg.degC
+                self.set_substrate_temperature = set_substrate_temperature * ureg.degC
+                self.chamber_pressure = chamber_pressure * ureg('mbar')
+                # self.n_values = self.n_values
 
 
-# Discuss wih Markus if I can have this class here (as a lab database item)
 class Targets(MSection):
     '''Targets available in the lab for PLD or Sputtering deposition.'''
 
@@ -276,8 +292,18 @@ class EbeamEvaporation(MSection):
 class HotPlateAnnealing(MSection):
 
     operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
+        type=MEnum([
+            'Markus Scheidgen',
+            'Pepe Marquez',
+            'Sandor Brockhauser',
+            'Sherjeel Shabih',
+            'Mohammad Nakhaee',
+            'David Sitker']),
+        shape=[],
+        description='Name or alias of the process operator.',
+        a_eln=dict(
+            label='Layer type',
+            component='AutocompleteEditQuantity'))
 
     datetime = Quantity(
         type=Datetime,
@@ -285,30 +311,37 @@ class HotPlateAnnealing(MSection):
 
     hotplate_temperature = Quantity(
         type=np.dtype(np.float64), unit='kelvin', shape=[],
-        description='The temperature set in the hot plate')
+        description='The temperature set in the hot plate',
+        a_eln=dict(component='NumberEditQuantity'))
 
     annealing_time = Quantity(
         type=np.dtype(np.float64), unit='seconds', shape=[],
-        description='Time of the sample on the hot plate')
+        description='Time of the sample on the hot plate',
+        a_eln=dict(component='NumberEditQuantity', props=dict(minValue=0, maxValue=1)))
 
     relative_humidity = Quantity(
         type=np.dtype(np.float64),  # unit='',
         description='''Relative humidity of the atmosphere in which the experiment was
-                    performed''')
+                    performed''',
+        a_eln=dict(component='NumberEditQuantity', props=dict(minValue=0, maxValue=1)))
 
     atmosphere = Quantity(
         type=MEnum([
             'humidity chamber',
-            "glove box",
+            'glove box',
             'N2',
             'Ar',
             'Ambient']),
         shape=[],
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Atmosphere in which the process was conducted.',
+        a_eln=dict(
+            label='Process atmosphere',
+            component='AutocompleteEditQuantity'))
 
     comments = Quantity(
         type=str,
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class TubeFurnaceAnnealing(MSection):
@@ -323,7 +356,8 @@ class TubeFurnaceAnnealing(MSection):
 
     comments = Quantity(
         type=str,
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class RTPAnnealing(MSection):
@@ -338,7 +372,8 @@ class RTPAnnealing(MSection):
 
     comments = Quantity(
         type=str,
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class SpinCoating(MSection):
@@ -353,7 +388,8 @@ class SpinCoating(MSection):
 
     comments = Quantity(
         type=str,
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class ChemicalBathDeposition(MSection):
@@ -368,7 +404,8 @@ class ChemicalBathDeposition(MSection):
 
     comments = Quantity(
         type=str,
-        description='Remarks about the process that cannot be seen from the data.')
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class Processes(MSection):
@@ -396,6 +433,7 @@ class XrayFluorescence(MSection):
     '''
 
 
+# TODO include mapping of positions for several imported files
 class XrayDiffraction(MSection):
     '''
     X-ray diffraction is a technique typically used to characterize the structural
@@ -403,53 +441,45 @@ class XrayDiffraction(MSection):
     the corresponding counts collected for each channel
     '''
 
-    # class SpectrumChannel(MSection):
-    #     '''
-    #     Provides the metadata for a generic additional spectrum channel. Do not
-    #     use it for energy or count; they have their predefined channels.
-    #     '''
-    #     channel_id = Quantity(type=str)
-    #     label = Quantity(type=str)
-    #     unit = Quantity(type=str)
-    def derive_x_values(self):
-        if self.count is not None:
-            return len(self.x_positions)
-        else:
-            return 0
+    # def derive_x_values(self):
+    #     if self.count is not None:
+    #         return len(self.x_positions)
+    #     else:
+    #         return 0
 
-    x_values = Quantity(type=int, derived=derive_x_values)
+    # x_values = Quantity(type=int, derived=derive_x_values)
 
-    def derive_y_values(self):
-        if self.count is not None:
-            return len(self.y_positions)
-        else:
-            return 0
+    # def derive_y_values(self):
+    #     if self.count is not None:
+    #         return len(self.y_positions)
+    #     else:
+    #         return 0
 
-    y_values = Quantity(type=int, derived=derive_y_values)
+    # y_values = Quantity(type=int, derived=derive_y_values)
 
-    start_position_x = Quantity(
-        type=np.dtype(np.float64), shape=['*'], unit='meter',
-        description='''Length from the left substrate margin to the spot of
-                    the first scan. The sample should be oriented with the
-                    label at the bottom left corner''')
+    # start_position_x = Quantity(
+    #     type=np.dtype(np.float64), shape=['*'], unit='meter',
+    #     description='''Length from the left substrate margin to the spot of
+    #                 the first scan. The sample should be oriented with the
+    #                 label at the bottom left corner''')
 
-    start_position_y = Quantity(
-        type=np.dtype(np.float64), shape=['*'], unit='meter',
-        description='''Length from the bottom substrate margin to the spot of
-                    the first scan. The sample should be oriented with the
-                    label at the bottom left corner.''')
+    # start_position_y = Quantity(
+    #     type=np.dtype(np.float64), shape=['*'], unit='meter',
+    #     description='''Length from the bottom substrate margin to the spot of
+    #                 the first scan. The sample should be oriented with the
+    #                 label at the bottom left corner.''')
 
-    x_positions = Quantity(
-        type=np.dtype(np.float64), shape=['x_values'], unit='meter',
-        description='''Scan positions on the *x* direction within the substrates.
-                    The origin of coordinates is at the labelled corner of the substrate
-                    from the top view ''')
+    # x_positions = Quantity(
+    #     type=np.dtype(np.float64), shape=['x_values'], unit='meter',
+    #     description='''Scan positions on the *x* direction within the substrates.
+    #                 The origin of coordinates is at the labelled corner of the substrate
+    #                 from the top view ''')
 
-    y_positions = Quantity(
-        type=np.dtype(np.float64), shape=['y_values'], unit='meter',
-        description='''Scan positions on the *y* direction within the substrates
-                    The origin of coordinates is at the labelled corner of the substrate
-                    from the top view ''')
+    # y_positions = Quantity(
+    #     type=np.dtype(np.float64), shape=['y_values'], unit='meter',
+    #     description='''Scan positions on the *y* direction within the substrates
+    #                 The origin of coordinates is at the labelled corner of the substrate
+    #                 from the top view ''')
 
     def derive_n_values(self):
         if self.intensity is not None:
@@ -461,14 +491,29 @@ class XrayDiffraction(MSection):
 
     n_values = Quantity(type=int, derived=derive_n_values)
 
-    intensity = Quantity(
-        type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
-        description='The count at each 2-theta value, dimensionless')
+    # two_theta = Quantity(
+    #     type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
+    #     unit='degrees',
+    #     description='The 2-theta range of the difractogram')
+
+    # intensity = Quantity(
+    #     type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
+    #     description='The count at each 2-theta value, dimensionless',
+    #     a_plot={
+    #         'x': 'two_theta', 'y': 'intensity'
+    #     })
 
     two_theta = Quantity(
-        type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
-        unit='degrees',
+        type=np.dtype(np.float64), shape=['n_values'],
+        unit='radian',
         description='The 2-theta range of the difractogram')
+
+    intensity = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'],
+        description='The count at each 2-theta value, dimensionless',
+        a_plot={
+            'x': 'two_theta', 'y': 'intensity'
+        })
 
     xray_tube_material = Quantity(
         type=str,
@@ -495,17 +540,18 @@ class XrayDiffraction(MSection):
         unit='angstrom',
         description='Wavelength of the Kα2 line')
 
+    ratio_kalphatwo_kalphaone = Quantity(
+        type=np.dtype(np.float64),
+        description='Kα2/Kα1 intensity ratio')
+
     kbeta = Quantity(
         type=np.dtype(np.float64),
         unit='angstrom',
         description='Wavelength of the Kβ line')
 
-    ratio_kalphatwo_kalphaone = Quantity(
-        type=np.dtype(np.float64),
-        description='Kα2/Kα1 intensity ratio')
-
     scan_axis = Quantity(
         type=str,
+        shape=['*'],
         description='Axis scanned')
 
     integration_time = Quantity(
@@ -514,22 +560,41 @@ class XrayDiffraction(MSection):
 
     instrument = SubSection(section_def=Instrument)
 
-    # additional_channel_data = Quantity(
-    #     type=np.dtype(np.float64), shape=['n_channels', 'n_values'],
-    #     description='''
-    #         Data from additional channels. The channels are described in `additional channels`.
-    #     ''')
-    # additional_channels = SubSection(
-    #     sub_section=SpectrumChannel, repeats=True,
-    #     description='''
-    #         Metadata for additional channels. The order is the same as the channel data
-    #         appears in `additional_channel_data`.
-    #     ''')
-    # n_additional_channels = Quantity(type=int, derived=lambda spectrum: len(spectrum.additional_channels))
-
     data_file = Quantity(
         type=str,
         a_eln=dict(component='FileEditQuantity'))
+
+    comments = Quantity(
+        type=str,
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
+
+    # def normalize(self, archive, logger):
+    #     from nomad.datamodel.metainfo.material_library.XRDImporter import Importer
+    #     importer = Importer()
+    #     if (self.data_file):
+    #         with archive.m_context.raw_file(self.data_file) as f:
+    #             self.intensity,
+    #             self.two_theta,
+    #             self.kalpha_one,
+    #             self.kalpha_two,
+    #             self.ratio_kalphatwo_kalphaone,
+    #             self.kbeta, self.scan_axis,
+    #             self.integration_time = importer.read(f)
+
+    def normalize(self, archive, logger):
+        import xrdtools
+        if (self.data_file):
+            with archive.m_context.raw_file(self.data_file) as f:
+                xrdml_dict = xrdtools.read_xrdml(f.name)
+                self.intensity = xrdml_dict['data']
+                self.two_theta = xrdml_dict['x'] * ureg('°')
+                self.kalpha_one = xrdml_dict['kAlpha1']
+                self.kalpha_two = xrdml_dict['kAlpha2']
+                self.ratio_kalphatwo_kalphaone = xrdml_dict['kAlphaRatio']
+                self.kbeta = xrdml_dict['kBeta']
+                self.scan_axis = xrdml_dict['scanAxis']
+                self.integration_time = xrdml_dict['time']
 
 
 class RamanSpectroscopy(MSection):
@@ -605,6 +670,7 @@ class Measurements(MSection):
     the structural properties of an specimen or X-ray fluorescence
     to characterize its composition.
     '''
+    m_def = Section(a_eln=dict())
 
     xray_diffraction = SubSection(section_def=XrayDiffraction, repeats=True)
     xray_fluorescence = SubSection(section_def=XrayFluorescence, repeats=True)
@@ -635,6 +701,8 @@ class PhysicalProperties(MSection):
     It describes physical properties of the layer, like its dimensions in the *x* and *y*
     directions or its thickness.
     '''
+    m_def = Section(a_eln=dict())
+
     x_length = Quantity(
         type=np.dtype(np.float64), unit='meter', shape=[],
         description='Dimension of the layer in the *x*-direction')
@@ -675,6 +743,8 @@ class Layers(MSection):
     List of layers contained in the library, which in turn have subsections
     describing the layer and its properties.
     '''
+    m_def = Section(a_eln=dict())
+
     layer_id = Quantity(
         type=np.dtype(np.int64), description='''unique identifier of the layer
         (counting in the order of adding).
@@ -689,7 +759,10 @@ class Layers(MSection):
             'p-type contact',
             'n-type contact']),
         shape=[],
-        description='type of the layer')
+        description='type of the layer',
+        a_eln=dict(
+            label='Layer type',
+            component='EnumEditQuantity'))
 
     layer_creation_datetime = Quantity(
         type=Datetime,
@@ -761,8 +834,8 @@ class MaterialLibrary(EntryData):
     description = Quantity(
         type=str, a_eln=dict(component='RichTextEditQuantity'))
 
-    processes = SubSection(section_def=Processes, repeats=True)
-    measurements = SubSection(section_def=Measurements, repeats=True)
+    processes = SubSection(section_def=Processes)
+    measurements = SubSection(section_def=Measurements)
     derived_data = SubSection(section_def=DerivedData, repeats=True)
     layers = SubSection(section_def=Layers, repeats=True)
     projects = SubSection(section_def=Projects, repeats=True)
