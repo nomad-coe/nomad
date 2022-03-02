@@ -322,7 +322,7 @@ const StringField = React.memo((props) => {
     fullWidth variant='filled' size='small'
     label={label}
     onChange={event => onChange(event.target.value)}
-    value={defaultValue}
+    defaultValue={defaultValue}
     {...otherProps}
   />
 })
