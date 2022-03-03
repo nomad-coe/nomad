@@ -169,7 +169,6 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Mass',
           component: 'NumberEditQuantity'
         }
       ]
@@ -215,7 +214,7 @@ const defs = {
     }
   },
   EnumQuantityDef: {
-    name: 'distance',
+    name: 'distance_from_origin',
     description: 'The distance',
     default: '200',
     type: {
@@ -229,7 +228,6 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Distance',
           component: 'EnumEditQuantity'
         }
       ]
@@ -497,10 +495,9 @@ const EditQuantity = React.memo((props) => {
 
   const eln = quantityDef?.m_annotations?.eln
   const component = (eln.length > 0 ? eln[0]?.component : undefined)
-  const label = (eln.length > 0 ? eln[0]?.label : quantityDef.name)
   const annotationsProps = (eln.length > 0 ? eln[0]?.props : undefined)
 
-  let otherProps = {'label': label, ...annotationsProps}
+  let otherProps = {...annotationsProps}
   if (component === 'StringEditQuantity') {
     return <StringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'NumberEditQuantity') {

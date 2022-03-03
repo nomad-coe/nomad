@@ -128,7 +128,7 @@ TextFieldWithHelp.propTypes = {
 }
 
 const WithHelp = React.memo((props) => {
-  const {helpTitle, helpDescription, ...otherProps} = props
+  const {label, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   if (!helpDescription) {
     return ''
@@ -137,14 +137,19 @@ const WithHelp = React.memo((props) => {
     <Box flexGrow={1} {...otherProps}/>
     <Box>
       <div id="help">
-        <HelpDialog title={helpTitle} description={helpDescription} />
+        <HelpDialog title={label} description={helpDescription} />
       </div>
     </Box>
   </Box>
 })
 WithHelp.propTypes = {
-  helpTitle: PropTypes.string,
+  label: PropTypes.string,
   helpDescription: PropTypes.string
+}
+
+const capitalize = (s) => {
+  if (typeof s !== 'string') return ''
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 function getArchiveValue(quantityDef, section) {
@@ -155,9 +160,13 @@ function getArchiveValue(quantityDef, section) {
   return value
 }
 
-function getTextFieldProps(quantityDef) {
+function getFieldProps(quantityDef) {
+  const eln = quantityDef?.m_annotations?.eln
+  let name = quantityDef.name.replace(/_/g, ' ')
+  let capitalizeName = capitalize(name)
+  let label = (eln.length > 0 ? eln[0]?.label : undefined) || capitalizeName
   return {
-    label: quantityDef.name,
+    label: label,
     helpDescription: quantityDef.description
   }
 }
@@ -176,7 +185,7 @@ export const StringEditQuantity = React.memo((props) => {
     fullWidth variant='filled' size='small'
     defaultValue={value !== undefined ? value : ''}
     onChange={event => handleChange(event.target.value)}
-    {...getTextFieldProps(quantityDef)}
+    {...getFieldProps(quantityDef)}
     {...otherProps}
   />
 })
@@ -196,7 +205,6 @@ const useNumberEditQuantityStyles = makeStyles(theme => ({
 export const NumberEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
   const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const systemUnits = useUnits()
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
@@ -223,8 +231,8 @@ export const NumberEditQuantity = React.memo((props) => {
       maxValue={maxValue}
       unit={unit}
       defaultValue={section[quantityDef.name] !== undefined ? section[quantityDef.name] : defaultValue}
-      helpTitle={label}
       helpDescription={quantityDef.description}
+      {...getFieldProps(quantityDef)}
       {...otherProps}/>
     {isUnit && <TextField
       className={classes.unitSelect} variant='filled' size='small' select
@@ -245,7 +253,6 @@ NumberEditQuantity.propTypes = {
 
 const NumberFieldWithUnit = React.memo((props) => {
   const {onChange, defaultUnit, dataType, minValue, maxValue, unit, defaultValue, ...otherProps} = props
-  const label = otherProps.label
   const [convertedValue, setConvertedValue] = useState()
   const [error, setError] = useState('')
   const timeout = useRef()
@@ -311,7 +318,6 @@ const NumberFieldWithUnit = React.memo((props) => {
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
-    label={label}
     value={convertedValue !== undefined ? convertedValue : ''}
     onBlur={handleValidator} error={!!error} helperText={error}
     onChange={event => handleChangeValue(event.target.value)}
@@ -330,11 +336,9 @@ NumberFieldWithUnit.propTypes = {
 
 const StringField = React.memo((props) => {
   const {onChange, defaultValue, ...otherProps} = props
-  const label = otherProps.label
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
-    label={label}
     onChange={event => onChange(event.target.value)}
     defaultValue={defaultValue}
     {...otherProps}
@@ -345,23 +349,8 @@ StringField.propTypes = {
   defaultValue: PropTypes.string
 }
 
-const BoolField = React.memo((props) => {
-  const {onChange, defaultValue, ...otherProps} = props
-  const label = otherProps.label
-
-  return <FormControlLabel
-    label={label}
-    control={<Checkbox onChange={event => onChange(event.target.checked)} color="primary" defaultChecked={(!!defaultValue)} {...otherProps}/>}
-  />
-})
-BoolField.propTypes = {
-  onChange: PropTypes.func.isRequired,
-  defaultValue: PropTypes.bool
-}
-
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
 
   const handleChange = useCallback((value) => {
@@ -373,9 +362,10 @@ export const EnumEditQuantity = React.memo((props) => {
 
   return <TextFieldWithHelp
     select variant='filled' size='small' withOtherAdornment fullWidth
-    label={label} {...otherProps} value={value}
+    value={value}
     onChange={event => handleChange(event.target.value)}
-    helpTitle={label} helpDescription={quantityDef.description}
+    {...getFieldProps(quantityDef)}
+    {...otherProps}
   >
     {quantityDef.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
   </TextFieldWithHelp>
@@ -388,7 +378,6 @@ EnumEditQuantity.propTypes = {
 
 export const AutocompleteEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || null)
 
   const handleChange = useCallback((value) => {
@@ -406,11 +395,12 @@ export const AutocompleteEditQuantity = React.memo((props) => {
     renderInput={params => (
       <TextFieldWithHelp
         {...params}
-        variant='filled' size='small' label={label}
-        helpTitle={label} helpDescription={quantityDef.description}
-        placeholder={quantityDef.description} fullWidth/>
+        variant='filled' size='small'
+        placeholder={quantityDef.description} fullWidth
+        {...getFieldProps(quantityDef)}
+        {...otherProps}
+      />
     )}
-    {...otherProps}
   />
 })
 AutocompleteEditQuantity.propTypes = {
@@ -421,7 +411,6 @@ AutocompleteEditQuantity.propTypes = {
 
 export const RadioButtonEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
 
   const handleChange = useCallback((value) => {
@@ -432,7 +421,7 @@ export const RadioButtonEditQuantity = React.memo((props) => {
   }, [onChange, quantityDef, section])
 
   return <FormControl>
-    <FormLabel>{label}</FormLabel>
+    <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
     <RadioGroup row>
       {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)} {...otherProps}/>} label={item}/>)}
     </RadioGroup>
@@ -446,7 +435,6 @@ RadioButtonEditQuantity.propTypes = {
 
 export const BoolEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
 
@@ -461,10 +449,10 @@ export const BoolEditQuantity = React.memo((props) => {
     }
   }, [defaultValue, onChange, quantityDef, section])
 
-  return <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+  return <WithHelp {...getFieldProps(quantityDef)}>
     <FormControlLabel
-      label={label}
       control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" checked={(!!value)} {...otherProps}/>}
+      label={getFieldProps(quantityDef).label}
     />
   </WithHelp>
 })
@@ -477,7 +465,6 @@ BoolEditQuantity.propTypes = {
 export const SliderEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
   const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : undefined)
   const [value, setValue] = useState(0)
   const [convertedValue, setConvertedValue] = useState(0)
@@ -509,7 +496,7 @@ export const SliderEditQuantity = React.memo((props) => {
   }, [isUnit, unit, onChange, quantityDef, section])
 
   return <FormControl fullWidth>
-    <FormLabel>{label}</FormLabel>
+    <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
     <Box display='flex'>
       <Slider
         value={Number(convertedValue)}
@@ -548,7 +535,6 @@ export const DateTimeEditQuantity = React.memo((props) => {
   const classes = useDatesEditQuantityStyles()
   const {quantityDef, section, onChange, format, time, ...otherProps} = props
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
-  const label = otherProps.label || quantityDef.name
   const [value, setValue] = useState()
   const [current, setCurrent] = useState()
   const [error, setError] = useState('')
@@ -584,7 +570,7 @@ export const DateTimeEditQuantity = React.memo((props) => {
     variant: 'inline',
     inputVariant: 'filled',
     fullWidth: true,
-    label: label,
+    label: getFieldProps(quantityDef).label,
     value: value,
     invalidDateMessage: error,
     onAccept: handleAccept,
@@ -640,7 +626,6 @@ TimeEditQuantity.propTypes = {
 const ListEditQuantity = React.memo((props) => {
   const {quantityDef, section, component, componentProps, defaultValues, collapse, onChange, actions} = props
   const [values, setValues] = useState(defaultValues)
-  const label = componentProps.label || quantityDef.name
   const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
   let Component = component
 
@@ -657,11 +642,11 @@ const ListEditQuantity = React.memo((props) => {
 
   return <Box display='block'>
     <Box display='flex'>
-      <WithHelp helpTitle={label} helpDescription={quantityDef.description}>
+      <WithHelp helpDescription={quantityDef.description} {...getFieldProps(quantityDef)}>
         <Box sx={{ flexDirection: 'column' }} onClick={() => setOpen(!open)} height={'26px'}>
           <FormControlLabel
             control={open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-            label={label}
+            label={getFieldProps(quantityDef).label}
           />
         </Box>
       </WithHelp>
