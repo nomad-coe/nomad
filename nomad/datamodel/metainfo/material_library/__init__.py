@@ -54,10 +54,15 @@ class Chemical(EntryData):
         description='Supplier of the chemical.',
         a_eln=dict(component='StringEditQuantity'))
 
+    sku_no = Quantity(
+        type=str,
+        description=' Stock keeping unit of the chemical. (e.g. 244619-50G)',
+        a_eln=dict(component='StringEditQuantity'))
+
     opening_date = Quantity(
         type=Datetime,
         description='Opening date of the chemical.',
-        a_eln=dict(component='DateEditQuantity'))
+        a_eln=dict(component='DateTimeEditQuantity'))
 
     # pack_size = Quantity(
     #     type=np.float64, unit = ['mg', 'ml'],
@@ -66,11 +71,12 @@ class Chemical(EntryData):
     impurities = Quantity(
         type=str,
         description='''Descriptions of the impurities of the product.''',
-        a_eln=dict(component='RichTextEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'))
 
     cas_number = Quantity(
         type=str,
-        description='''The CAS number is a unique and unambiguous identifier for a specific substance.''',
+        description='''The CAS number is a unique and unambiguous
+                    identifier for a specific substance.''',
         a_eln=dict(component='StringEditQuantity'))
 
     sds_link = Quantity(
@@ -128,6 +134,10 @@ class Instrument(EntryData):
         a_eln=dict(component='FileEditQuantity'),
         a_browser=dict(adaptor='RawFileAdaptor'))
 
+    certificate = Quantity(
+        type=str,
+        description='''Link to pdf of the instrument's certificates''')
+
     def normalize(self, archive, logger):
         if self.name:
             archive.metadata.entry_name = self.name
@@ -164,7 +174,7 @@ class Process(MSection):
         a_eln=dict(component='ReferenceEditQuantity'))
 
     comments = Quantity(
-        type=str,  # Revise type
+        type=str,
         description='''Remarks about the process that cannot be seen from the data.
                     Might include rich text, images and potentially tables''',
         a_eln=dict(component='RichTextEditQuantity'))
@@ -181,7 +191,6 @@ class PVDEvaporation(Process):
         else:
             return 0
 
-    # Ask Markus about data type and tell that should have the shape of the time array
     n_values = Quantity(
         type=int, derived=derive_n_values,
         description='Number of registered time values')
@@ -212,7 +221,7 @@ class PVDEvaporation(Process):
         })
 
     number_crucibles = Quantity(
-        type=np.dtype(np.int64),  # unit='',
+        type=np.dtype(np.int64),
         description='Number of crucibles active in the chamber',
         a_eln=dict(component='NumberEditQuantity', props=dict(maxValue=4, minValue=0)))
 
@@ -300,7 +309,7 @@ class HotPlateAnnealing(Process):
     annealing_time = Quantity(
         type=np.dtype(np.float64), unit='seconds', shape=[],
         description='Time of the sample on the hot plate.',
-        a_eln=dict(component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'), props=dict(minValue=0))
 
     relative_humidity = Quantity(
         type=np.dtype(np.float64),  # unit='',
@@ -309,15 +318,13 @@ class HotPlateAnnealing(Process):
         '''),
         a_eln=dict(component='NumberEditQuantity', props=dict(minValue=0, maxValue=1)))
 
-    atmosphere = Quantity(
+    instrument_atmosphere = Quantity(
         type=MEnum([
             'humidity chamber',
             'glove box',
-            'N2',
-            'Ar',
-            'Ambient']),
+            'ambient']),
         shape=[],
-        description='Atmosphere in which the process was conducted.',
+        description='Location or atmosphere in which the process was conducted.',
         a_eln=dict(
             label='Process atmosphere',
             component='RadioEnumEditQuantity'))
@@ -387,6 +394,24 @@ class XrayDiffraction(Measurement):
     the corresponding counts collected for each channel
     '''
 
+    start_position_x = Quantity(
+        type=np.dtype(np.float64), shape=['*'], unit='meter',
+        description='''Length from the left substrate margin to the spot of
+                    the first scan. The sample should be oriented with the
+                    label at the bottom left corner''',
+        a_eln=dict(
+            component='NumberEditQuantity',
+            label='Length from the left substrate margin'))
+
+    start_position_y = Quantity(
+        type=np.dtype(np.float64), shape=['*'], unit='meter',
+        description='''Length from the bottom substrate margin to the spot of
+                    the first scan. The sample should be oriented with the
+                    label at the bottom left corner.''',
+        a_eln=dict(
+            component='NumberEditQuantity',
+            label='Length from the bottom substrate margin'))
+
     def derive_n_values(self):
         if self.intensity is not None:
             return len(self.intensity)
@@ -400,7 +425,18 @@ class XrayDiffraction(Measurement):
     two_theta = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
         unit='radian',
-        description='The 2-theta range of the difractogram')
+        description='The 2-theta range of the difractogram',
+        a_plot={
+            'x': 'two_theta', 'y': 'intensity'
+        })
+
+    q_vector = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'],
+        unit='meter**(-1)',
+        description='The scattering vector *Q* of the difractogram',
+        a_plot={
+            'x': 'q_vector', 'y': 'intensity'
+        })
 
     intensity = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
@@ -409,20 +445,32 @@ class XrayDiffraction(Measurement):
             'x': 'two_theta', 'y': 'intensity'
         })
 
-    xray_tube_material = Quantity(
-        type=str,
-        shape=["*"],
-        description='Material of the X-ray tube')
+    omega = Quantity(
+        type=np.dtype(np.float64), shape=['n_values'],
+        unit='radian',
+        description='The omega range of the difractogram')
+    # xray_tube_material = Quantity(
+    #     type=str,
+    #     shape=["*"],
+    #     description='Material of the X-ray tube')
 
     xray_tube_current = Quantity(
         type=np.dtype(np.float64),
         unit='A',
-        description='Current of the X-ray tube')
+        description='Current of the X-ray tube',
+        a_eln=dict(
+            component='NumberEditQuantity',
+            label='Current of the X-ray tube',
+            props=dict(minValue=1e4, maxValue=4e4)))
 
     xray_tube_voltage = Quantity(
         type=np.dtype(np.float64),
         unit='V',
-        description='Voltage of the X-ray tube')
+        description='Voltage of the X-ray tube',
+        a_eln=dict(
+            component='NumberEditQuantity',
+            label='Voltage of the X-ray tube',
+            props=dict(minValue=1e4, maxValue=4e4)))
 
     kalpha_one = Quantity(
         type=np.dtype(np.float64),
@@ -445,11 +493,12 @@ class XrayDiffraction(Measurement):
 
     scan_axis = Quantity(
         type=str,
-        shape=['*'],
+        # shape=['*'],
         description='Axis scanned')
 
     integration_time = Quantity(
         type=np.dtype(np.float64),
+        shape=['*'],
         description='Integration time per channel')
 
     data_file = Quantity(
@@ -463,12 +512,14 @@ class XrayDiffraction(Measurement):
                 xrdml_dict = xrdtools.read_xrdml(f.name)
                 self.intensity = xrdml_dict['data']
                 self.two_theta = xrdml_dict['x'] * ureg('degree')
+                self.omega = xrdml_dict['Omega'] * ureg('degree')
                 self.kalpha_one = xrdml_dict['kAlpha1']
                 self.kalpha_two = xrdml_dict['kAlpha2']
                 self.ratio_kalphatwo_kalphaone = xrdml_dict['kAlphaRatio']
                 self.kbeta = xrdml_dict['kBeta']
-                self.scan_axis = [xrdml_dict['scanAxis']]
+                self.scan_axis = xrdml_dict['scanAxis']
                 self.integration_time = xrdml_dict['time']
+                self.q_vector = (4 * np.pi / self.kalpha_one) * np.sin((self.two_theta))
 
 
 class RamanSpectroscopy(Measurement): pass
@@ -546,15 +597,18 @@ class PhysicalProperties(MSection):
 
     x_length = Quantity(
         type=np.dtype(np.float64), unit='meter', shape=[],
-        description='Dimension of the layer in the *x*-direction')
+        description='Dimension of the layer in the *x*-direction',
+        a_eln=dict(component='NumberEditQuantity'))
 
     y_length = Quantity(
         type=np.dtype(np.float64), unit='meter', shape=[],
-        description='Dimension of the layer in the *y*-direction')
+        description='Dimension of the layer in the *y*-direction',
+        a_eln=dict(component='NumberEditQuantity'))
 
     thickness = Quantity(
         type=np.dtype(np.float64), unit='meter', shape=["*"],
-        description='Thickness of the layer')
+        description='Thickness of the layer',
+        a_eln=dict(component='NumberEditQuantity'))
 
 
 class CompositionalProperties(MSection):
@@ -580,10 +634,10 @@ class Layers(MSection):
     '''
     m_def = Section(a_eln=dict())
 
-    layer_id = Quantity(
-        type=np.dtype(np.int64), description='''unique identifier of the layer
-        (counting in the order of adding).
-        "0" would be assigned to the substrate.''')
+    # layer_id = Quantity(
+    #     type=np.dtype(np.int64), description='''unique identifier of the layer
+    #     (counting in the order of adding).
+    #     "0" would be assigned to the substrate.''')
 
     layer_type = Quantity(
         type=MEnum([
@@ -599,15 +653,19 @@ class Layers(MSection):
 
     layer_creation_datetime = Quantity(
         type=Datetime,
-        description='Creation date of the layer.')
+        description='Creation date of the layer.',
+        a_eln=dict(
+            label='Creation date and time of the layer.',
+            component='DateTimeEditQuantity'))
 
     layer_position = Quantity(
         type=np.dtype(np.int64),
         description='''Position of the layer within
-        the stack counting from substrate = 0; not necessarily gapless''')
+        the stack counting from substrate = 0; not necessarily gapless''',
+        a_eln=dict(component='NumberEditQuantity'))
 
-    layer_origin = Quantity(
-        type=str, description='A link to the `process` where the layer was created.')
+    # layer_origin = Quantity(
+    #     type=str, description='A link to the `process` where the layer was created.')
 
     physical_properties = SubSection(section_def=PhysicalProperties)
     compositional_properties = SubSection(section_def=CompositionalProperties)
@@ -645,9 +703,24 @@ class Sample(EntryData):
     the chemical compostion of the film varies in the x and y directions.
     '''
 
+    library_owner = Quantity(
+        type=MEnum([
+            'Markus Scheidgen',
+            'Pepe Marquez',
+            'Sandor Brockhauser',
+            'Sherjeel Shabih',
+            'Mohammad Nakhaee',
+            'David Sitker']),
+        shape=[],
+        description='Name or alias of the process operator.',
+        a_eln=dict(
+            label='Layer type',
+            component='AutocompleteEditQuantity'))
+
     library_id = Quantity(
         type=str,
-        description='Full library id.')
+        description='Full library id.',
+        a_eln=dict(component='StringEditQuantity'))
 
     library_name = Quantity(
         type=str,
