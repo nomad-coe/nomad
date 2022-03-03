@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react'
+import React, { useCallback, useContext, useMemo, useState } from 'react'
 import { Box, Button, TextField } from '@material-ui/core'
 import { Autocomplete } from '@material-ui/lab'
 import { uploadPageContext } from './UploadPage'
@@ -6,37 +6,28 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 import { useHistory, useLocation } from 'react-router-dom'
-
-const templates = [
-  {
-    id: 'sample',
-    label: 'Sample',
-    description: 'A sample entry.',
-    archive: {
-      data: {
-        m_def: 'nomad.datamodel.metainfo.eln_examples.Sample'
-      }
-    }
-  },
-  {
-    id: 'material_library',
-    label: 'Material Library',
-    archive: {
-      data: {
-        m_def: 'nomad.datamodel.metainfo.material_library.MaterialLibrary'
-      }
-    }
-  },
-  {
-    id: 'experiment',
-    label: 'Experiment',
-    description: 'A sample experiment.',
-    archive: {}
-  }
-]
+import { defs as metainfoDefs, SectionMDef, resolveRef } from '../archive/metainfo'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
   const {data} = useContext(uploadPageContext)
+  const templates = useMemo(() => {
+    return metainfoDefs
+      .filter(definition => {
+        if (definition.m_def !== SectionMDef) {
+          return false
+        }
+        return definition.base_sections?.find(baseSection => resolveRef(baseSection).name === 'EntryData')
+      })
+      .map(dataSection => ({
+        id: dataSection._qualifiedName,
+        label: dataSection.name,
+        archive: {
+          data: {
+            m_def: dataSection._qualifiedName
+          }
+        }
+      }))
+  }, [])
   const uploadId = data.upload.upload_id
   const {api} = useApi()
   const {raiseError} = useErrors()

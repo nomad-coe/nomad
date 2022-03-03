@@ -12,6 +12,8 @@ const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
   StringEditQuantity: StringEditQuantity,
   EnumEditQuantity: EnumEditQuantity,
+  SelectEnumEditQuantity: EnumEditQuantity,
+  RadioEnumEditQuantity: EnumEditQuantity,
   AutocompleteEditQuantity: AutocompleteEditQuantity,
   BoolEditQuantity: BoolEditQuantity,
   FileEditQuantity: FileEditQuantity,

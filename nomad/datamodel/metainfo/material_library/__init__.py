@@ -29,12 +29,13 @@ from nomad.datamodel.data import EntryData
 m_package = Package(name='material_library')
 
 
-class Chemicals(MSection):
-    '''Chemicals available in the lab.'''
+class Chemical(EntryData):
+    '''A chemical available in the lab.'''
 
     formula = Quantity(
         type=str,
-        description='Empirical formula of the chemical (Hill notation).')
+        description='Empirical formula of the chemical (Hill notation).',
+        a_eln=dict(component='StringEditQuantity'))
 
     form = Quantity(
         type=MEnum([
@@ -43,15 +44,18 @@ class Chemicals(MSection):
             'liquid',
             'gas']),
         shape=[],
-        description='Physical state of the chemical.')
+        description='Physical state of the chemical.',
+        a_eln=dict(component='RadioEnumEditQuantity'))
 
     supplier = Quantity(
         type=str,
-        description='Supplier of the chemical.')
+        description='Supplier of the chemical.',
+        a_eln=dict(component='StringEditQuantity'))
 
     opening_date = Quantity(
         type=Datetime,
-        description='Opening date of the chemical.')
+        description='Opening date of the chemical.',
+        a_eln=dict(component='DateEditQuantity'))
 
     # pack_size = Quantity(
     #     type=np.float64, unit = ['mg', 'ml'],
@@ -59,39 +63,57 @@ class Chemicals(MSection):
 
     impurities = Quantity(
         type=str,
-        description='''Descriptions of the impurities of the product.''')
+        description='''Descriptions of the impurities of the product.''',
+        a_eln=dict(component='RichTextEditQuantity'))
 
     cas_number = Quantity(
         type=str,
-        description='''The CAS number is a unique and unambiguous
-                    identifier for a specific substance.''')
+        description='''The CAS number is a unique and unambiguous identifier for a specific substance.''',
+        a_eln=dict(component='StringEditQuantity'))
 
     sds_link = Quantity(
         type=str,
-        description='''A link to the corresponding Safety Data Sheet (SDS)
-                    of the product.''')
+        description='''The corresponding Safety Data Sheet (SDS) of the product.''',
+        a_eln=dict(component='FileEditQuantity'))
 
     comments = Quantity(
         type=str,
         description='''Remarks about the chemical beyond the
                     typically collected information. Here you can collect information
-                    about your experience using this chemical, for exmaple if it might
+                    about your experience using this chemical, for example if it might
                     have been contaminated during an experiment''',
         a_eln=dict(component='RichTextEditQuantity'))
 
+    def normalize(self, archive, logger):
+        if self.formula:
+            archive.metadata.entry_name = self.formula
 
-class Instrument(MSection):
-    '''Chemicals available in the lab.'''
+            # results = archive.resuls
+            # if not results.material:
+            #     results.material = Material()
+            # try:
+            #     atoms = ase.Atoms(self.formula)
+            #     results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
+            #     results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
+            #     results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
+            #     results.material.elements = list(set(atoms.get_chemical_symbols()))
+            # except Exception as e:
+            #     logger.warn('could not normalize formula', exc_info=e)
 
-    instrument_name = Quantity(
+
+class Instrument(EntryData):
+    '''An instrument available in the lab.'''
+
+    name = Quantity(
         type=str,
         description='Name of the instrument used')
 
     # Rich text material for ELNs
-    instrument_information = Quantity(
+    description = Quantity(
         type=str,
-        description='''Description of the instrument. May include images, free text
-                    and tables''',
+        description=(
+            '''Description of the instrument. May include images, free text
+            and tables'''),
         a_eln=dict(component='RichTextEditQuantity'))
 
     user_manual = Quantity(
@@ -172,9 +194,8 @@ class PVDEvaporation(MSection):
                     Might include rich text, images and potentially tables''',
         a_eln=dict(component='RichTextEditQuantity'))
 
-    # layer_created = SubSection(section_def=Layers, repeats=True)
-    instrument = SubSection(section_def=Instrument)
-    chemicals = SubSection(section_def=Chemicals, repeats=True)
+    instrument = Quantity(type=Reference(Instrument.m_def))
+    chemicals = Quantity(type=Reference(Chemical.m_def), shape=['*'])
 
     data_file = Quantity(
         type=str,
