@@ -30,6 +30,7 @@ from nomad import config, infrastructure
 from .optimade import optimade_app
 from .flask import app as flask_app
 from .v1.main import app as v1_app
+from .dcat.main import app as dcat_app
 
 
 class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
@@ -60,6 +61,7 @@ if config.oasis.allowed_users is not None:
 
 app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
+app.mount(f'{app_base}/dcat', dcat_app)
 app.mount(f'{app_base}/optimade', optimade_app)
 app.mount(app_base, WSGIMiddleware(flask_app))
 
@@ -98,7 +100,7 @@ async def http_exception_handler(request, exc):
                 <h2>apis</h2>
                 <a href="{app_base}/api/v1/extensions/docs">NOMAD API v1</a><br/>
                 <a href="{app_base}/optimade/v1/extensions/docs">Optimade API</a><br/>
-                <a href="{app_base}/dcat">DCAT API</a><br/>
+                <a href="{app_base}/dcat/extensions/docs">DCAT API</a><br/>
             </body>
         </html>
         ''')
@@ -119,7 +121,7 @@ async def http_exception_handler(request, exc):
                 },
                 'dcat': {
                     'root': f'{app_base}/dcat',
-                    'dashboard': f'{app_base}/dcat'
+                    'dashboard': f'{app_base}/dcat/extensions/docs'
                 }
             }
         }

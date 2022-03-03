@@ -18,39 +18,49 @@
 
 import pytest
 from datetime import datetime
+from fastapi.testclient import TestClient
 
-from nomad.app.flask.dcat.mapping import Mapping
+from nomad.app.dcat.main import app
+from nomad.app.dcat.mapping import Mapping
 from nomad.datamodel.results import Material, Results
+from nomad.datamodel import Dataset
 
 from tests.utils import ExampleData
 
 
-class BlueprintClient():
-    def __init__(self, app_client, blueprint_url_prefix):
-        self.app_client = app_client
-        self.blueprint_url_prefix = blueprint_url_prefix.strip('/')
-
-    def _delegate(self, method, path, *args, **kwargs):
-        app_client_function = getattr(self.app_client, method)
-        prefixed_path = '/%s/%s' % (self.blueprint_url_prefix, path.lstrip('/'))
-        return app_client_function(prefixed_path, *args, **kwargs)
-
-    def get(self, *args, **kwargs):
-        return self._delegate('get', *args, **kwargs)
-
-
 @pytest.fixture(scope='session')
-def api(session_client):
-    return BlueprintClient(session_client, '/dcat')
+def api():
+    return TestClient(app, base_url='http://testserver/')
+
+
+def create_dataset(**kwargs):
+    dataset = Dataset(
+        dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(),
+        **kwargs)
+    dataset.m_get_annotations('mongo').save()
+    return dataset
 
 
 @pytest.fixture(scope='module')
-def data(test_user, other_test_user, elastic_infra):
+def data(test_user, other_test_user, elastic_infra, mongo_infra):
     example_attrs = dict(
         entry_id='test-id',
         upload_id='upload-id',
         last_processing_time=datetime.now(),
         entry_coauthors=[other_test_user],
+        datasets=[
+            create_dataset(
+                dataset_id='dataset_1',
+                user_id=test_user.user_id,
+                dataset_name='test dataset 1',
+                dataset_type='owned',
+                doi='TEST/DOI'),
+            create_dataset(
+                dataset_id='dataset_2',
+                user_id=test_user.user_id,
+                dataset_name='test dataset 2',
+                dataset_type='owned')
+        ],
         comment='this is an entry comment')
 
     data = ExampleData(main_author=test_user)
@@ -65,7 +75,7 @@ def data(test_user, other_test_user, elastic_infra):
             last_processing_time=datetime(2020, 1, i))
         data.create_entry(**example_attrs)
 
-    data.save(with_files=False, with_mongo=False)
+    data.save(with_files=False)
 
     return data
 

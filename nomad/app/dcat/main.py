@@ -16,27 +16,18 @@
 # limitations under the License.
 #
 
-from typing import Any
 from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
-import orjson
 
 from nomad import config, utils
 
 from .common import root_path
-from .routers import users, entries, materials, auth, info, datasets, uploads, suggestions
+from .routers import dcat
 
 
 logger = utils.get_logger(__name__)
-
-
-class ORJSONResponse(JSONResponse):
-    media_type = "application/json"
-
-    def render(self, content: Any) -> bytes:
-        return orjson.dumps(content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # type: ignore
 
 
 app = FastAPI(
@@ -45,13 +36,9 @@ app = FastAPI(
     docs_url='/extensions/docs',
     redoc_url='/extensions/redoc',
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
-    title='NOMAD API',
+    title='DCAT API',
     version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
-    description=utils.strip(f'''
-        Please visit the [API section of the NOMAD documentation]({config.api_url(True, 'docs/api.html')})
-        for a introduction and examples.
-    '''),
-    default_response_class=ORJSONResponse)
+    description='NOMAD\'s API for serving dcat resources')
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,11 +72,4 @@ async def unicorn_exception_handler(request: Request, e: Exception):
         }
     )
 
-app.include_router(info.router, prefix='/info')
-app.include_router(auth.router, prefix='/auth')
-app.include_router(materials.router, prefix='/materials')
-app.include_router(entries.router, prefix='/entries')
-app.include_router(datasets.router, prefix='/datasets')
-app.include_router(uploads.router, prefix='/uploads')
-app.include_router(users.router, prefix='/users')
-app.include_router(suggestions.router, prefix='/suggestions')
+app.include_router(dcat.router)

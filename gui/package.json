@@ -1,6 +1,6 @@
 {
   "name": "nomad-fair-gui",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "commit": "e98694e",
   "private": true,
   "workspaces": [
@@ -78,6 +78,7 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
+    "@apidevtools/swagger-express-middleware": "^4.0.2",
     "@material-ui/codemod": "^4.5.0",
     "@welldone-software/why-did-you-render": "^6.2.1",
     "babel-eslint": "^10.1.0",
@@ -90,9 +91,11 @@
     "eslint-plugin-react": "^7.20.5",
     "eslint-plugin-standard": "^3.1.0",
     "eslint-plugin-testing-library": "^3.10.1",
+    "express": "^4.17.2",
     "jest-environment-jsdom-sixteen": "^1.0.3",
     "react-docgen": "^5.3.0",
-    "serve": "^10.0.0"
+    "serve": "^10.0.0",
+    "supertest": "^6.2.2"
   },
   "eslintConfig": {
     "extends": "react-app"
