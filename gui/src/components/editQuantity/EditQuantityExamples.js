@@ -30,8 +30,7 @@ import {
   DateEditQuantity,
   DateTimeEditQuantity,
   TimeEditQuantity,
-  DateRangeEditQuantity,
-  ListNumberEditQuantity, ListStringEditQuantity, ListBoolEditQuantity
+  ListNumberEditQuantity, ListStringEditQuantity
 } from './EditQuantity'
 
 const coatingMethods = [
@@ -399,22 +398,6 @@ const defs = {
       ]
     }
   },
-  dateRangeQuantityDef: {
-    name: 'datePeriod',
-    description: 'It is a date range',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Date period',
-          component: 'DateRangeEditQuantity'
-        }
-      ]
-    }
-  },
   listIntegerQuantityDef1: {
     name: 'listInteger',
     description: 'This is a fixed length list of integer numbers',
@@ -472,24 +455,6 @@ const defs = {
         {
           label: 'List of strings (Fixed length)',
           component: 'ListStringEditQuantity'
-        }
-      ]
-    }
-  },
-  listBoolQuantityDef: {
-    name: 'listBool',
-    description: 'This is a fixed length list of booleans',
-    unit: 'meter',
-    type: {
-      type_kind: 'python',
-      type_data: 'bool',
-      shape: [3]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'List of booleans (Fixed length)',
-          component: 'ListBoolEditQuantity'
         }
       ]
     }
@@ -556,14 +521,10 @@ const EditQuantity = React.memo((props) => {
     return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'TimeEditQuantity') {
     return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'DateRangeEditQuantity') {
-    return <DateRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'ListNumberEditQuantity') {
     return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'ListStringEditQuantity') {
     return <ListStringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'ListBoolEditQuantity') {
-    return <ListBoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -631,9 +592,6 @@ export function EditQuantityExamples() {
         <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
-        <EditQuantity quantityDef={defs.dateRangeQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
         <EditQuantity quantityDef={defs.listIntegerQuantityDef1} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
@@ -641,9 +599,6 @@ export function EditQuantityExamples() {
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.listStringQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listBoolQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>

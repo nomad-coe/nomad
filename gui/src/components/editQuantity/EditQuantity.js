@@ -28,7 +28,7 @@ import {
   Dialog,
   DialogContent,
   FormControl,
-  FormLabel, RadioGroup, Radio, Slider
+  FormLabel, RadioGroup, Radio, Slider, DialogTitle
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -53,11 +53,11 @@ const HelpDialog = React.memo(({title, description}) => {
       {<HelpOutlineIcon fontSize='small'/>}
     </IconButton>}
     {open && <Dialog open={open}>
+      <DialogTitle>
+        {title}
+      </DialogTitle>
       <DialogContent>
-        <Markdown>{`
-        ### ${title}
-        ${description}
-      `}</Markdown>
+        <Markdown>{description}</Markdown>
       </DialogContent>
       <DialogActions>
         <span style={{flexGrow: 1}} />
@@ -108,21 +108,22 @@ const useWithHelpStyles = makeStyles(theme => ({
 }))
 
 const TextFieldWithHelp = React.memo((props) => {
-  const {withOtherAdornment, helpTitle, helpDescription, ...otherProps} = props
+  const {withOtherAdornment, label, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <TextField
     className={classes.root}
     InputProps={(helpDescription && {endAdornment: (
       <div id="help">
-        <HelpAdornment title={helpTitle} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
+        <HelpAdornment title={label} description={helpDescription} withOtherAdornment={withOtherAdornment}/>
       </div>
     )})}
+    label={label}
     {...otherProps}
   />
 })
 TextFieldWithHelp.propTypes = {
   withOtherAdornment: PropTypes.bool,
-  helpTitle: PropTypes.string,
+  label: PropTypes.string,
   helpDescription: PropTypes.string
 }
 
@@ -146,29 +147,37 @@ WithHelp.propTypes = {
   helpDescription: PropTypes.string
 }
 
+function getArchiveValue(quantityDef, section) {
+  let value = section[quantityDef.name]
+  if (value === undefined) {
+    return quantityDef.default
+  }
+  return value
+}
+
+function getTextFieldProps(quantityDef) {
+  return {
+    label: quantityDef.name,
+    helpDescription: quantityDef.description
+  }
+}
+
 export const StringEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const label = otherProps.label || quantityDef.name
-  const [value, setValue] = useState()
-
-  useEffect(() => {
-    setValue(section[quantityDef.name])
-  }, [quantityDef, section])
+  const value = getArchiveValue(quantityDef, section)
 
   const handleChange = useCallback((newValue) => {
-    setValue(newValue !== undefined ? newValue : '')
     if (onChange) {
-      onChange(newValue, section, quantityDef)
+      onChange(newValue === '' ? undefined : newValue, section, quantityDef)
     }
   }, [onChange, quantityDef, section])
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
-    label={label}
-    value={value !== undefined ? value : ''}
-    placeholder={quantityDef.description}
-    onChange={event => handleChange(event.target.value)} {...otherProps}
-    helpTitle={label} helpDescription={quantityDef.description}
+    defaultValue={value !== undefined ? value : ''}
+    onChange={event => handleChange(event.target.value)}
+    {...getTextFieldProps(quantityDef)}
+    {...otherProps}
   />
 })
 StringEditQuantity.propTypes = {
@@ -628,136 +637,6 @@ TimeEditQuantity.propTypes = {
   onChange: PropTypes.func.isRequired
 }
 
-export const DateTimeRangeEditQuantity = React.memo((props) => {
-  const classes = useDatesEditQuantityStyles()
-  const {quantityDef, section, onChange, format, time, ...otherProps} = props
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : ['', ''])
-  const label = otherProps.label || quantityDef.name
-  const [startDate, setStartDate] = useState((section[quantityDef.name] ? section[quantityDef.name][0] : defaultValue[0]))
-  const [endDate, setEndDate] = useState((section[quantityDef.name] ? section[quantityDef.name][1] : defaultValue[1]))
-  const [error, setError] = useState('')
-  const changed = useRef(false)
-
-  const handleAccept = useCallback((startDate, endDate) => {
-    if (!changed.current) {
-      return
-    }
-    const start = getTime(new Date(startDate))
-    const end = getTime(new Date(endDate))
-    if (start > end) {
-      setError('End date cannot be before start date!')
-      return
-    } else if (isNaN(start) || isNaN(end)) {
-      setError('Invalid date format.')
-      return
-    }
-    setError('')
-    changed.current = false
-    if (onChange) {
-      onChange([startDate || '', endDate || ''], section, quantityDef)
-    }
-  }, [onChange, quantityDef, section])
-
-  const handleStartAccept = useCallback((startDate) => {
-    handleAccept(startDate, endDate)
-  }, [endDate, handleAccept])
-
-  const handleEndAccept = useCallback((endDate) => {
-    handleAccept(startDate, endDate)
-  }, [startDate, handleAccept])
-
-  const handleBlurAccept = useCallback(() => {
-    handleAccept(startDate, endDate)
-  }, [startDate, endDate, handleAccept])
-
-  const handleStartChange = useCallback((date) => {
-    changed.current = true
-    setStartDate(date)
-  }, [])
-
-  const handleEndChange = useCallback((date) => {
-    changed.current = true
-    setEndDate(date)
-  }, [])
-
-  const renderProps = {
-    className: classes.startDate,
-    style: {paddingRight: 1},
-    size: 'small',
-    error: !!error,
-    variant: 'inline',
-    inputVariant: 'filled',
-    fullWidth: true,
-    label: `${label} (start)`,
-    value: startDate,
-    invalidDateMessage: error,
-    InputAdornmentProps: { position: 'start' },
-    onAccept: handleStartAccept,
-    onChange: handleStartChange,
-    onBlur: handleBlurAccept,
-    onKeyDown: (event) => { if (event.key === 'Enter') { handleBlurAccept() } },
-    ...otherProps
-  }
-
-  return (
-    <Box display='flex'>
-      {(!time ? <KeyboardDatePicker
-        {...renderProps}
-        format={format || `${dateFormat} HH:mm`}
-      /> : <KeyboardTimePicker
-        {...renderProps}
-        format={format || `HH:mm`}
-      />)}
-      {(!time ? <KeyboardDatePicker
-        {...renderProps}
-        format={format || `${dateFormat} HH:mm`}
-        value={endDate}
-        invalidDateMessage=''
-        onAccept={handleEndAccept}
-        onChange={handleEndChange}
-        label={`${label} (end)`}
-      /> : <KeyboardTimePicker
-        {...renderProps}
-        format={format || `HH:mm`}
-        value={endDate}
-        invalidDateMessage=''
-        onAccept={handleEndAccept}
-        onChange={handleEndChange}
-        label={`${label} (end)`}
-      />)}
-    </Box>
-  )
-})
-DateTimeRangeEditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired,
-  format: PropTypes.string,
-  time: PropTypes.bool
-}
-
-export const DateRangeEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-
-  return <DateTimeRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} format={dateFormat} {...otherProps}/>
-})
-DateRangeEditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
-}
-
-export const TimeRangeEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-
-  return <DateTimeRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} time {...otherProps}/>
-})
-TimeRangeEditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
-}
-
 const ListEditQuantity = React.memo((props) => {
   const {quantityDef, section, component, componentProps, defaultValues, collapse, onChange, actions} = props
   const [values, setValues] = useState(defaultValues)
@@ -874,26 +753,6 @@ export const ListStringEditQuantity = React.memo((props) => {
     onChange={onChange}/>
 })
 ListStringEditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
-}
-
-export const ListBoolEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-  const shape = quantityDef.type?.shape
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => false))
-  let values = section[quantityDef.name] || defaultValue
-
-  return <ListEditQuantity
-    quantityDef={quantityDef}
-    section={section}
-    component={BoolField}
-    componentProps={otherProps}
-    defaultValues={values}
-    onChange={onChange}/>
-})
-ListBoolEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
