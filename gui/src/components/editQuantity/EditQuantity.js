@@ -28,7 +28,7 @@ import {
   Dialog,
   DialogContent,
   FormControl,
-  FormLabel, RadioGroup, Radio, Slider, DialogTitle
+  FormLabel, RadioGroup, Radio, Slider, DialogTitle, Collapse
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {convertUnit, Unit, useUnits} from '../../units'
@@ -652,16 +652,18 @@ const ListEditQuantity = React.memo((props) => {
       </WithHelp>
       {open && actions}
     </Box>
-    {open && <div>
-      {defaultValues.map((value, index) => {
-        return <Box key={index} marginTop={1}>
-          <Component
-            defaultValue={value !== undefined ? value : ''} onChange={newValue => handleChange(newValue, index)} {...componentProps} label={undefined}
-            inputProps={{style: { padding: '14px' }}}
-          />
-        </Box>
-      })}
-    </div>}
+    <Collapse in={open}>
+      <div>
+        {defaultValues.map((value, index) => {
+          return <Box key={index} marginTop={1}>
+            <Component
+              defaultValue={value !== undefined ? value : ''} onChange={newValue => handleChange(newValue, index)} {...componentProps} label={undefined}
+              inputProps={{style: { padding: '14px' }}}
+            />
+          </Box>
+        })}
+      </div>
+    </Collapse>
   </Box>
 })
 ListEditQuantity.propTypes = {
