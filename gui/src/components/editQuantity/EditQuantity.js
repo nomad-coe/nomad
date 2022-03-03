@@ -263,11 +263,14 @@ const NumberFieldWithUnit = React.memo((props) => {
     }
   }, [dataType])
 
-  const validation = useCallback((newValue) => {
+  const validation = useCallback((val, fastEvaluation) => {
     setError('')
+    let newValue = val.replace(/,/g, '.')
     if (newValue === '') {
       setConvertedValue('')
       if (onChange) onChange('')
+    } else if (fastEvaluation) {
+      if (!newValue.match(/^[+-]?((\d+|\.\d?|\d+\.|\d+\.\d+)|(\d+|\.\d?|\d+\.|\d+\.\d+)(e|e\+|e-)\d?)?$/)) setError('Please enter a valid number!')
     } else if (!isValidNumber(newValue)) {
       setError('Please enter a valid number!')
     } else {
@@ -285,15 +288,16 @@ const NumberFieldWithUnit = React.memo((props) => {
 
   const handleChangeValue = useCallback((newValue) => {
     setConvertedValue(newValue)
+    validation(newValue, true)
     clearTimeout(timeout.current)
     timeout.current = setTimeout(() => {
-      validation(newValue)
-    }, 1000)
+      validation(newValue, false)
+    }, 3000)
   }, [validation])
 
   const handleValidator = useCallback((event) => {
     clearTimeout(timeout.current)
-    validation(event.target.value)
+    validation(event.target.value, false)
   }, [validation])
 
   return <TextFieldWithHelp
