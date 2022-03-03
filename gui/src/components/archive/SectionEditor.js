@@ -7,6 +7,7 @@ import { AutocompleteEditQuantity, BoolEditQuantity, DateTimeEditQuantity, EnumE
 import FileEditQuantity from '../editQuantity/FileEditQuantity'
 import KeepMaxHeight from '../utils/KeepMaxHeight'
 import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
+import ReferenceEditQuantity from '../editQuantity/ReferenceEditQuantity'
 
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
@@ -18,7 +19,8 @@ const editQuantityComponents = {
   BoolEditQuantity: BoolEditQuantity,
   FileEditQuantity: FileEditQuantity,
   DateTimeEditQuantity: DateTimeEditQuantity,
-  RichTextEditQuantity: RichTextEditQuantity
+  RichTextEditQuantity: RichTextEditQuantity,
+  ReferenceEditQuantity: ReferenceEditQuantity
 }
 
 const JsonEditor = React.memo(function JsonEditor({data, onChange}) {

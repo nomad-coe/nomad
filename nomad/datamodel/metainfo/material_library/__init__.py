@@ -195,7 +195,10 @@ class PVDEvaporation(MSection):
         a_eln=dict(component='RichTextEditQuantity'))
 
     instrument = Quantity(type=Reference(Instrument.m_def))
-    chemicals = Quantity(type=Reference(Chemical.m_def), shape=['*'])
+    chemicals = Quantity(
+        type=Reference(Chemical.m_def),
+        descriptions='The chemicals used in this process',
+        a_eln=dict(component='ReferenceEditQuantity'))
 
     data_file = Quantity(
         type=str,

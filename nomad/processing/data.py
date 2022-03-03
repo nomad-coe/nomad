@@ -2365,7 +2365,7 @@ class UploadContext(Context):
         if entry_id is None:
             raise MetainfoReferenceError()
 
-        return f'../upload/entries/{entry_id}/archive#{super().get_reference(section, quantity_def, value)}'
+        return f'../upload/archive/{entry_id}#{super().get_reference(section, quantity_def, value)}'
 
     def _resolve_mainfile(self, mainfile: str) -> str:
         return generate_entry_id(self.upload.upload_id, mainfile)

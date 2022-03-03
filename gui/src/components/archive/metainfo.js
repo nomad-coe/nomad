@@ -149,6 +149,39 @@ export const rootSections = sortDefs(defs.filter(def => (
   def.m_def === SectionMDef && !def.extends_base_section && def._parentSections.length === 0)
 ))
 
+export async function resolveRefAsync(ref, data, fetchArchive) {
+  if (!data) {
+    return resolveRef(ref)
+  }
+
+  if (!ref.includes('#')) {
+    return resolveRef(ref, data)
+  }
+
+  console.log('####', ref)
+  const [url] = ref.split('#')
+  if (url === '') {
+    return resolveRef(ref, data)
+  }
+
+  if (data?.resources[url]) {
+    return resolveRef(ref, data)
+  }
+
+  const uploadId = data?.metadata?.upload_id
+  if (!(url.startsWith('../upload/archive/') && uploadId)) {
+    return null
+  }
+
+  const archive = await fetchArchive(`uploads/${uploadId}/${url.slice('../upload/'.length)}`)
+  if (!data.resources) {
+    data.resource = {}
+  }
+  data.resources[url] = archive
+
+  resolveRef(ref, data)
+}
+
 /**
  * Resolves the given string reference into the actual data.
  * @param {string} ref Reference.

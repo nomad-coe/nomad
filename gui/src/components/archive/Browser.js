@@ -143,6 +143,9 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
   const [render, setRender] = useState(0)
   const update = useCallback(() => {
+    if (lanes.current.length > 0) {
+      lanes.current.splice(-1)
+    }
     setRender(current => current + 1)
   }, [setRender])
   const [, setInternalRender] = useState(0)
@@ -364,6 +367,17 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
+export function ItemLink({itemKey, ...props}) {
+  const lane = useContext(laneContext)
+  return <Link
+    {...props}
+    to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
+  />
+}
+ItemLink.propTypes = {
+  itemKey: PropTypes.string.isRequired
+}
+
 export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
@@ -386,12 +400,12 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
     </Grid>
   }
 
-  return <Link
+  return <ItemLink
     className={classNames(
       classes.root,
       isSelected ? classes.rootSelected : highlighted ? classes.rootUnSelectedHighlighted : classes.rootUnSelected
     )}
-    to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
+    itemKey={itemKey}
   >
     <Grid
       container spacing={0} alignItems="center" wrap="nowrap"
@@ -415,7 +429,7 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
         <ArrowRightIcon padding="0"/>
       </Grid>}
     </Grid>
-  </Link>
+  </ItemLink>
 }
 Item.propTypes = ({
   children: PropTypes.oneOfType([

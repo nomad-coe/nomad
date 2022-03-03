@@ -312,7 +312,17 @@ class SectionAdaptor extends ArchiveAdaptor {
           return this.adaptorFactory(reference, property, this.e)
         }
         const resolvedDef = resolveRef(property.type.type_data)
-        return this.adaptorFactory(resolved, resolvedDef, this.e)
+        const context = {
+          ...this.context,
+          isReferenced: true
+        }
+        if (reference.includes('#')) {
+          const [url] = reference.split('#')
+          if (url !== '') {
+            context.archive = this.context.archive.resources[url]
+          }
+        }
+        return this.adaptorFactory(resolved, resolvedDef, this.e, context)
       }
       // Regular quantities
       return this.adaptorFactory(value, property, this.e)
@@ -444,8 +454,8 @@ function Section({section, def, parentRelation}) {
   const history = useHistory()
 
   const sectionIsEditable = useMemo(() => {
-    return editable && isEditable(def)
-  }, [editable, def])
+    return editable && isEditable(def) && !lane.adaptor.context.isReferenced
+  }, [editable, def, lane])
 
   const actions = useMemo(() => {
     if (!sectionIsEditable) {
@@ -815,11 +825,12 @@ function Reference({value, def}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [loading, setLoading] = useState(true)
-  const {data, update} = useContext(laneContext)
+  const {adaptor, update} = useContext(laneContext)
+  const archive = adaptor.context.archive
   useEffect(() => {
     const url = value.split('#')[0]
-    const upload_id = data.metadata.upload_id
-    if (data.resources[url]) {
+    const upload_id = archive.metadata.upload_id
+    if (archive.resources[url]) {
       setLoading(false)
       return
     }
@@ -831,11 +842,11 @@ function Reference({value, def}) {
 
     api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
       .then(response => {
-        data.resources[url] = response.data.archive
+        archive.resources[url] = response.data.archive
         update()
       })
       .catch(raiseError)
-  }, [api, data.metadata.upload_id, data.resources, raiseError, setLoading, update, value])
+  }, [api, archive.metadata.upload_id, archive.resources, raiseError, setLoading, update, value])
 
   if (loading) {
     return <Content>

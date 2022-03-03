@@ -39,7 +39,6 @@ from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.measurements import Measurement  # noqa
-from .metainfo.material_library import MaterialLibrary  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -417,7 +416,12 @@ class EntryMetadata(metainfo.MSection):
     entry_name = metainfo.Quantity(
         type=str,
         description='A brief human readable name for the entry.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type, _es_field='keyword'),
+            Elasticsearch(
+                material_entry_type, field='prefix',
+                es_query='match_phrase_prefix', mapping='text', _es_field='')
+        ])
 
     calc_id = metainfo.Quantity(
         type=str, description='Legacy field name, use `entry_id` instead.',
