@@ -30,15 +30,17 @@ class MetainfoNormalizer(Normalizer):
             return
 
         for section, _, _ in list(self.entry_archive.data.m_traverse()):
+            normalize = None
             try:
                 normalize = getattr(section, 'normalize')
             except Exception as e:
                 pass
 
-            try:
-                normalize(self.entry_archive, logger)
-            except Exception as e:
-                logger.error(
-                    'could not normalize section',
-                    section=section.m_def.name,
-                    exc_info=e)
+            if normalize:
+                try:
+                    normalize(self.entry_archive, logger)
+                except Exception as e:
+                    logger.error(
+                        'could not normalize section',
+                        section=section.m_def.name,
+                        exc_info=e)

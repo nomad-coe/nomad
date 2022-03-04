@@ -2,12 +2,11 @@
 # for PVD Measurementfile v3, 3.0.0
 # Version 0.1
 # by Pascal Becker
-from typing import List, Tuple
+
 import json
 from datetime import datetime
 import numpy as np
 import pandas as pd
-from xarray import Dataset
 
 
 class Importer:
@@ -44,7 +43,7 @@ class Importer:
         # none of the above (default)
         return ''
 
-    def read(self, f, comment: str = None, user: str = None) -> Tuple[List[Dataset], List[None]]:
+    def read(self, f, comment: str = None, user: str = None):
         header = '{"'
         while True:
             line = f.readline()

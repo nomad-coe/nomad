@@ -74,7 +74,8 @@ class Chemical(EntryData):
     sds_link = Quantity(
         type=str,
         description='''The corresponding Safety Data Sheet (SDS) of the product.''',
-        a_eln=dict(component='FileEditQuantity'))
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
 
     comments = Quantity(
         type=str,
@@ -106,7 +107,8 @@ class Instrument(EntryData):
 
     name = Quantity(
         type=str,
-        description='Name of the instrument used')
+        description='Name of the instrument used',
+        a_eln=dict(component='StringEditQuantity'))
 
     # Rich text material for ELNs
     description = Quantity(
@@ -118,7 +120,13 @@ class Instrument(EntryData):
 
     user_manual = Quantity(
         type=str,
-        description='''Link to pdf of the user manual''')
+        description='''Link to pdf of the user manual''',
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
+
+    def normalize(self, archive, logger):
+        if self.name:
+            archive.metadata.entry_name = self.name
 
 
 class PVDEvaporation(MSection):
@@ -188,21 +196,26 @@ class PVDEvaporation(MSection):
         description='Number of crucibles active in the chamber',
         a_eln=dict(component='NumberEditQuantity', props=dict(maxValue=4, minValue=0)))
 
-    comments = Quantity(
-        type=str,  # Revise type
-        description='''Remarks about the process that cannot be seen from the data.
-                    Might include rich text, images and potentially tables''',
-        a_eln=dict(component='RichTextEditQuantity'))
+    data_file = Quantity(
+        type=str,
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
 
-    instrument = Quantity(type=Reference(Instrument.m_def))
+    instrument = Quantity(
+        type=Reference(Instrument.m_def),
+        descriptions='The instrument used for this process.',
+        a_eln=dict(component='ReferenceEditQuantity'))
+
     chemicals = Quantity(
         type=Reference(Chemical.m_def),
         descriptions='The chemicals used in this process',
         a_eln=dict(component='ReferenceEditQuantity'))
 
-    data_file = Quantity(
-        type=str,
-        a_eln=dict(component='FileEditQuantity'))
+    comments = Quantity(
+        type=str,  # Revise type
+        description='''Remarks about the process that cannot be seen from the data.
+                    Might include rich text, images and potentially tables''',
+        a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
         from nomad.datamodel.metainfo.material_library.PvdPImporter import Importer

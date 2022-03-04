@@ -21,11 +21,10 @@ import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { debounce } from 'lodash'
 import { Autocomplete } from '@material-ui/lab'
-import { IconButton, TextField } from '@material-ui/core'
+import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { resolveRefAsync } from '../archive/metainfo'
-import NavigateIcon from '@material-ui/icons/ArrowRight'
-import { ItemLink } from '../archive/Browser'
+import { ItemButton } from '../archive/Browser'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {archive} = useEntryContext()
@@ -118,16 +117,14 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     renderInput={params => {
       return (
         <TextField
+          {...params}
           fullWidth variant='filled' size='small'
           label={label || quantityDef.name}
-          {...params}
           InputProps={{
             ...params.InputProps,
             endAdornment: (
-              <div style={{position: 'absolute', right: 9, top: 'calc(50% - 14px)'}}>
-                <IconButton size="small" component={ItemLink} itemKey={quantityDef.name}>
-                  <NavigateIcon />
-                </IconButton>
+              <div style={{position: 'absolute', right: 12, top: 'calc(50% - 14px)'}}>
+                <ItemButton size="small" itemKey={quantityDef.name} />
               </div>
             )
           }}

@@ -22,6 +22,7 @@ import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, make
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
+import { RawFileAdaptor } from './FileBrowser'
 import { isEditable, metainfoDef, QuantityMDef, removeSubSection, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
@@ -243,6 +244,7 @@ class ArchiveAdaptor extends Adaptor {
   }
 
   adaptorFactory(obj, def, parent, context) {
+    context = context || this.context
     if (def.m_def === SectionMDef) {
       if (obj.m_def) {
         // Override the def given by the schema with the potentially more specific
@@ -269,7 +271,7 @@ class ArchiveAdaptor extends Adaptor {
 }
 
 class SectionAdaptor extends ArchiveAdaptor {
-  itemAdaptor(key) {
+  async itemAdaptor(key, api) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name]
     const value = this.e[name]
@@ -325,6 +327,14 @@ class SectionAdaptor extends ArchiveAdaptor {
         return this.adaptorFactory(resolved, resolvedDef, this.e, context)
       }
       // Regular quantities
+      if (property.m_annotations?.browser) {
+        if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
+          const uploadId = this.context.archive.metadata.upload_id
+          const path = this.e[property.name]
+          const response = await api.get(`uploads/${uploadId}/rawdir/${path}`)
+          return new RawFileAdaptor(uploadId, path, response.file_metadata, false)
+        }
+      }
       return this.adaptorFactory(value, property, this.e)
     } else {
       throw new Error('Unknown metainfo meta definition')

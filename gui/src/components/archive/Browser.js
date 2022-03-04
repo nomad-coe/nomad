@@ -19,14 +19,14 @@
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, IconButton } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
-import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import NavigateIcon from '@material-ui/icons/ArrowRight'
 
 function escapeBadPathChars(s) {
   return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
@@ -369,12 +369,28 @@ const useItemStyles = makeStyles(theme => ({
 
 export function ItemLink({itemKey, ...props}) {
   const lane = useContext(laneContext)
-  return <Link
-    {...props}
-    to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
-  />
+  if (lane) {
+    return <Link
+      {...props}
+      to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
+    />
+  } else {
+    // If this is used in a non Browser context
+    return ''
+  }
 }
 ItemLink.propTypes = {
+  itemKey: PropTypes.string.isRequired
+}
+
+export function ItemButton({itemKey, ...props}) {
+  return (
+    <IconButton {...props} component={ItemLink} itemKey={itemKey}>
+      <NavigateIcon />
+    </IconButton>
+  )
+}
+ItemButton.propTypes = {
   itemKey: PropTypes.string.isRequired
 }
 
@@ -426,7 +442,7 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
         {actions}
       </Grid>}
       {itemKey && <Grid item style={{padding: 0}}>
-        <ArrowRightIcon padding="0"/>
+        <NavigateIcon padding="0"/>
       </Grid>}
     </Grid>
   </ItemLink>

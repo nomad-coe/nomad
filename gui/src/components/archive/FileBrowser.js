@@ -256,7 +256,7 @@ RawDirectoryContent.propTypes = {
   editable: PropTypes.bool.isRequired
 }
 
-class RawFileAdaptor extends Adaptor {
+export class RawFileAdaptor extends Adaptor {
   constructor(uploadId, path, data, editable) {
     super()
     this.uploadId = uploadId

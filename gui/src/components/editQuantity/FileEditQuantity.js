@@ -17,27 +17,33 @@
  */
 import React, {useCallback, useContext } from 'react'
 import PropTypes from 'prop-types'
-import { makeStyles, Grid, IconButton, Tooltip } from '@material-ui/core'
+import { makeStyles, IconButton, Tooltip, TextField } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import { useApi } from '../api'
-import { browserContext } from '../archive/Browser'
+import { browserContext, ItemButton } from '../archive/Browser'
 import { useEntryContext } from '../entry/EntryContext'
-import { StringEditQuantity } from './EditQuantity'
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
   dropzone: {
     border: 0
   },
   dropzoneActive: {
-    backgroundColor: theme.palette.primary.light
+    backgroundColor: theme.palette.primary.main,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    '& input, & button, & label, & a': {
+      color: theme.palette.primary.contrastText
+    }
   }
 }))
-const FileEditQuantity = React.memo((props) => {
+const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherProps}) => {
   const classes = useFileEditQuantityStyles()
   const browser = useContext(browserContext)
   const {uploadId, metadata} = useEntryContext()
   const { api } = useApi()
+
+  const value = section[quantityDef.name]
 
   const handleDrop = useCallback(files => {
     if (!files[0]?.name) {
@@ -51,6 +57,11 @@ const FileEditQuantity = React.memo((props) => {
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
 
+    // TODO In non browser environment the browser is missing
+    if (!browser) {
+      return
+    }
+
     browser.blockUntilProcessed({
       uploadId: uploadId,
       apiCall: api.put(`/uploads/${uploadId}/raw/${mainfileDirEncoded}`, formData, {
@@ -60,35 +71,50 @@ const FileEditQuantity = React.memo((props) => {
       }),
       apiCallText: 'Uploading file',
       onSuccess: () => {
-        if (props.onChange) {
-          props.onChange(fullPath, props.section, props.quantityDef)
+        if (onChange) {
+          onChange(fullPath, section, quantityDef)
         }
         browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, mainfileDir))
         browser.update()
       }
     })
-  }, [api, browser, uploadId, metadata, props])
+  }, [api, browser, uploadId, metadata, onChange, section, quantityDef])
+
+  const handleChange = useCallback(event => {
+    const value = event.target.value
+    if (onChange) {
+      console.log('### v', event, value)
+      onChange(value, section, quantityDef)
+    }
+  }, [onChange, section, quantityDef])
 
   return (
-    <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
-      <Grid item style={{flexGrow: 1}}>
-        <Dropzone
-          className={classes.dropzone} activeClassName={classes.dropzoneActive}
-          onDrop={handleDrop} disableClick
-        >
-          <StringEditQuantity {...props} />
-        </Dropzone>
-      </Grid>
-      <Grid item style={{marginTop: 'auto', marginBottom: 'auto'}}>
-        <Dropzone className={classes.dropzone} onDrop={handleDrop}>
-          <IconButton size="small">
-            <Tooltip title="upload file (click or drop file)">
-              <UploadIcon/>
-            </Tooltip>
-          </IconButton>
-        </Dropzone>
-      </Grid>
-    </Grid>)
+    <Dropzone
+      className={classes.dropzone} activeClassName={classes.dropzoneActive}
+      onDrop={handleDrop} disableClick
+    >
+      <TextField
+        value={value} onChange={handleChange}
+        size="small" variant="filled" fullWidth
+        label={quantityDef.name}
+        {...otherProps}
+        InputProps={{
+          endAdornment: (
+            <React.Fragment>
+              <Dropzone className={classes.dropzone} onDrop={handleDrop}>
+                <IconButton size="small">
+                  <Tooltip title="upload file (click or drop file)">
+                    <UploadIcon/>
+                  </Tooltip>
+                </IconButton>
+              </Dropzone>
+              <ItemButton size="small" itemKey={quantityDef.name} />
+            </React.Fragment>
+          )
+        }}
+      />
+    </Dropzone>
+  )
 })
 FileEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,

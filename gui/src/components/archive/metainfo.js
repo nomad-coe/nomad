@@ -84,7 +84,7 @@ metainfo.packages.forEach(pkg => {
     }
     addBaseSection(sectionDef)
     baseSections.forEach(addProperties)
-    return Object.keys(results).sort().map(key => results[key])
+    return Object.keys(results).map(key => results[key])
   }
 
   const addSectionDef = (sectionDef, parentDef) => {
@@ -158,7 +158,6 @@ export async function resolveRefAsync(ref, data, fetchArchive) {
     return resolveRef(ref, data)
   }
 
-  console.log('####', ref)
   const [url] = ref.split('#')
   if (url === '') {
     return resolveRef(ref, data)

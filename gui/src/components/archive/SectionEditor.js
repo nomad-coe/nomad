@@ -1,13 +1,13 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { Box, makeStyles, TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import _ from 'lodash'
 import { AutocompleteEditQuantity, BoolEditQuantity, DateTimeEditQuantity, EnumEditQuantity, NumberEditQuantity, StringEditQuantity } from '../editQuantity/EditQuantity'
 import FileEditQuantity from '../editQuantity/FileEditQuantity'
-import KeepMaxHeight from '../utils/KeepMaxHeight'
 import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
 import ReferenceEditQuantity from '../editQuantity/ReferenceEditQuantity'
+import { QuantityMDef } from './metainfo'
 
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
@@ -90,6 +90,7 @@ const useSectionEditorStyles = makeStyles(theme => ({
 const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange, showJson}) {
   const classes = useSectionEditorStyles()
   const {handleArchiveChanged} = useEntryContext()
+  const rootRef = useRef()
 
   const handleChange = useCallback((property, value) => {
     section[property.name] = value
@@ -107,20 +108,39 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     handleArchiveChanged()
   }, [handleArchiveChanged, onChange, section])
 
-  return <KeepMaxHeight>
-    <div className={classes.root}>
-      {showJson ? <JsonEditor data={section} onChange={handleJsonChange} /> : (
-        sectionDef._allProperties.map(property => (
-          <Box marginBottom={1} key={property.name}>
-            <PropertyEditor
-              quantityDef={property}
-              section={section || {}} onChange={value => handleChange(property, value)}
-            />
+  const jsonData = useMemo(() => {
+    if (!showJson) {
+      return null
+    }
+    const jsonData = {}
+    sectionDef._allProperties
+      .filter(property => property.m_def === QuantityMDef && property.m_annotations?.eln)
+      .forEach(property => {
+        jsonData[property.name] = section[property.name]
+      })
+    return jsonData
+  }, [showJson, section, sectionDef])
+
+  return (
+    <div className={classes.root} ref={rootRef}>
+      {showJson
+        ? (
+          <Box height={rootRef.current?.clientHeight} marginY={1}>
+            <JsonEditor data={jsonData} onChange={handleJsonChange} />
           </Box>
-        ))
-      )}
+        ) : (
+          sectionDef._allProperties.map(property => (
+            <Box marginBottom={1} key={property.name}>
+              <PropertyEditor
+                quantityDef={property}
+                section={section || {}} onChange={value => handleChange(property, value)}
+              />
+            </Box>
+          ))
+        )
+      }
     </div>
-  </KeepMaxHeight>
+  )
 })
 SectionEditor.propTypes = {
   sectionDef: PropTypes.object.isRequired,

@@ -108,7 +108,7 @@ const useWithHelpStyles = makeStyles(theme => ({
   }
 }))
 
-export const TextFieldWithHelp = React.memo((props) => {
+const TextFieldWithHelp = React.memo((props) => {
   const {withOtherAdornment, helpTitle, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <TextField
@@ -415,6 +415,8 @@ const NumberFieldWithUnit = React.memo((props) => {
 NumberFieldWithUnit.propTypes = {
   maxValue: PropTypes.number,
   minValue: PropTypes.number,
+  quantityDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
   value: PropTypes.string,
   defaultUnit: PropTypes.string,
