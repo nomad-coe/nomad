@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {
   TextField,
   makeStyles,
@@ -44,6 +44,7 @@ import {getTime} from 'date-fns'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
+import {debounce} from 'lodash'
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -204,7 +205,7 @@ const useNumberEditQuantityStyles = makeStyles(theme => ({
 
 export const NumberEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const {quantityDef, section, onChange, ...otherProps} = props
   const systemUnits = useUnits()
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
   const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
@@ -227,8 +228,6 @@ export const NumberEditQuantity = React.memo((props) => {
       onChange={handleChangeValue}
       defaultUnit={quantityDef.unit}
       dataType={quantityDef.type?.type_data}
-      minValue={minValue}
-      maxValue={maxValue}
       unit={unit}
       defaultValue={section[quantityDef.name] !== undefined ? section[quantityDef.name] : defaultValue}
       helpDescription={quantityDef.description}
@@ -244,8 +243,6 @@ export const NumberEditQuantity = React.memo((props) => {
   </Box>
 })
 NumberEditQuantity.propTypes = {
-  maxValue: PropTypes.number,
-  minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
@@ -255,7 +252,6 @@ const NumberFieldWithUnit = React.memo((props) => {
   const {onChange, defaultUnit, dataType, minValue, maxValue, unit, defaultValue, ...otherProps} = props
   const [convertedValue, setConvertedValue] = useState()
   const [error, setError] = useState('')
-  const timeout = useRef()
   const isUnit = unit !== undefined
 
   useEffect(() => {
@@ -286,7 +282,7 @@ const NumberFieldWithUnit = React.memo((props) => {
       setConvertedValue('')
       if (onChange) onChange('')
     } else if (fastEvaluation) {
-      if (!newValue.match(/^[+-]?((\d+|\.\d?|\d+\.|\d+\.\d+)|(\d+|\.\d?|\d+\.|\d+\.\d+)(e|e\+|e-)\d?)?$/)) setError('Please enter a valid number!')
+      if (!newValue.match(/^[+-]?((\d+|\.\d?|\d+\.|\d+\.\d+)|(\d+|\.\d?|\d+\.|\d+\.\d+)(e|e\+|e-)\d*)?$/)) setError('Please enter a valid number!')
     } else if (!isValidNumber(newValue)) {
       setError('Please enter a valid number!')
     } else {
@@ -302,19 +298,19 @@ const NumberFieldWithUnit = React.memo((props) => {
     }
   }, [isUnit, isValidNumber, maxValue, minValue, onChange, defaultUnit, unit])
 
+  const debouncedValidation = useMemo(() => {
+    return debounce(validation, 2000)
+  }, [validation])
+
   const handleChangeValue = useCallback((newValue) => {
     setConvertedValue(newValue)
     validation(newValue, true)
-    clearTimeout(timeout.current)
-    timeout.current = setTimeout(() => {
-      validation(newValue, false)
-    }, 3000)
-  }, [validation])
+    debouncedValidation(newValue)
+  }, [debouncedValidation, validation])
 
   const handleValidator = useCallback((event) => {
-    clearTimeout(timeout.current)
-    validation(event.target.value, false)
-  }, [validation])
+    debouncedValidation.flush()
+  }, [debouncedValidation])
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
@@ -464,7 +460,8 @@ BoolEditQuantity.propTypes = {
 
 export const SliderEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const {quantityDef, section, onChange, ...otherProps} = props
+  const {minValue, maxValue, ...sliderProps} = otherProps
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : undefined)
   const [value, setValue] = useState(0)
   const [convertedValue, setConvertedValue] = useState(0)
@@ -504,7 +501,7 @@ export const SliderEditQuantity = React.memo((props) => {
         max={convertUnit(Number(maxValue), quantityDef.unit, unit)}
         onChange={handleChangeValue}
         valueLabelDisplay={(!isUnit ? 'on' : 'off')}
-        {...otherProps}/>
+        {...sliderProps}/>
       {isUnit && <TextField
         className={classes.unitSelect} variant='filled' size='small' select
         label="unit" value={unit}
@@ -516,8 +513,6 @@ export const SliderEditQuantity = React.memo((props) => {
   </FormControl>
 })
 SliderEditQuantity.propTypes = {
-  maxValue: PropTypes.number,
-  minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
@@ -624,9 +619,9 @@ TimeEditQuantity.propTypes = {
 }
 
 const ListEditQuantity = React.memo((props) => {
-  const {quantityDef, section, component, componentProps, defaultValues, collapse, onChange, actions} = props
+  const {quantityDef, section, component, componentProps, defaultValues, onChange, actions} = props
   const [values, setValues] = useState(defaultValues)
-  const [open, setOpen] = useState((collapse !== undefined ? !collapse : false))
+  const [open, setOpen] = useState(false)
   let Component = component
 
   const handleChange = useCallback((newValue, index) => {
@@ -673,13 +668,12 @@ ListEditQuantity.propTypes = {
   componentProps: PropTypes.object.isRequired,
   defaultValues: PropTypes.arrayOf(PropTypes.any),
   onChange: PropTypes.func.isRequired,
-  collapse: PropTypes.bool,
   actions: PropTypes.element
 }
 
 export const ListNumberEditQuantity = React.memo((props) => {
   const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, minValue, maxValue, ...otherProps} = props
+  const {quantityDef, section, onChange, ...otherProps} = props
   const systemUnits = useUnits()
   const shape = quantityDef.type?.shape
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : Array.apply(null, Array(shape[0])).map(() => ''))
@@ -696,8 +690,6 @@ export const ListNumberEditQuantity = React.memo((props) => {
   const componentProps = {
     defaultUnit: quantityDef.unit,
     dataType: quantityDef.type?.type_data,
-    minValue: minValue,
-    maxValue: maxValue,
     unit: unit,
     ...otherProps
   }
@@ -718,8 +710,6 @@ export const ListNumberEditQuantity = React.memo((props) => {
     </TextField>}/>
 })
 ListNumberEditQuantity.propTypes = {
-  maxValue: PropTypes.number,
-  minValue: PropTypes.number,
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired
