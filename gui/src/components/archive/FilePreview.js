@@ -24,9 +24,11 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
-import H5Web from '../visualization/H5Web'
+import { Item } from './Browser'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
+
+const maxPreviewWidth = 900
 
 const useFilePreviewStyles = makeStyles(theme => ({
   scrollableContainer: {
@@ -35,20 +37,9 @@ const useFilePreviewStyles = makeStyles(theme => ({
     display: 'inline-block',
     overflow: 'auto'
   },
-  imgDiv: {
-    width: '100%',
-    height: '100%',
-    position: 'relative'
-  },
-  imgElement: {
-    maxWidth: '100%',
-    maxHeight: '100%',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    margin: 'auto'
+  img: {
+    maxWidth: maxPreviewWidth,
+    maxHeight: '100%'
   }
 }))
 
@@ -68,9 +59,10 @@ const viewerImg = {
   maxSizeAutoPreview: 10e6,
   requiresUrlWithAuth: true,
   render: ({classes, url, setFailedToPreview}) => {
-    return <div className={classes.imgDiv}>
-      <img src={url} className={classes.imgElement} alt="Loading..." onError={() => setFailedToPreview(true)}/>
-    </div>
+    return <img
+      src={url} className={classes.img}
+      alt="Loading..." onError={() => setFailedToPreview(true)}
+    />
   }
 }
 const viewerJSON = {
@@ -108,12 +100,8 @@ const viewerHDF5 = {
   name: 'hdf5',
   fileExtensions: ['hdf5', 'hd5'],
   maxSizeAutoPreview: 10e6,
-  render: ({uploadId, path}) => {
-    return (
-      <Box width={1296} height="100%">
-        <H5Web upload_id={uploadId} filename={path}/>
-      </Box>
-    )
+  render: () => {
+    return <Item itemKey="h5web">H5Web</Item>
   }
 }
 const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5]
@@ -221,7 +209,7 @@ export default FilePreview
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
     padding: theme.spacing(1),
-    width: 900,
+    width: maxPreviewWidth,
     height: '100%',
     overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
@@ -299,7 +287,7 @@ FilePreviewText.propTypes = {
 
 const useFilePreviewPdfStyles = makeStyles(theme => ({
   containerDiv: {
-    width: 900,
+    width: maxPreviewWidth,
     height: '100%',
     overflowX: 'hidden',
     overflowY: 'scroll',

@@ -23,13 +23,19 @@ import PropTypes from 'prop-types'
  * the maximum observed height. Allows to keep the height of a component more consistent
  * and avoid confusing layout changes.
  */
-const KeepMaxHeight = React.memo(function KeepMaxHeight({children}) {
-  const [height, setHeight] = useState(null)
+const KeepMax = React.memo(function KeepMax({children, width, height}) {
+  const [heightValue, setHeightValue] = useState(null)
+  const [widthValue, setWidthValue] = useState(null)
   const ref = useRef()
   const handleChange = useCallback(() => {
-    // TODO Don't know why the height does not seem to be exact and needs another "20"
-    setHeight(height => Math.max(height, ref.current.offsetHeight + 20))
-  }, [setHeight, ref])
+    if (height) {
+      // TODO Don't know why the height does not seem to be exact and needs another "20"
+      setHeightValue(height => Math.max(height, ref.current.offsetHeight + 20))
+    }
+    if (width) {
+      setWidthValue(width => Math.max(width, ref.current.offsetWidth))
+    }
+  }, [setHeightValue, setWidthValue, width, height, ref])
 
   useLayoutEffect(() => {
     handleChange()
@@ -43,13 +49,15 @@ const KeepMaxHeight = React.memo(function KeepMaxHeight({children}) {
     }
   }, [ref, handleChange])
 
-  return <div ref={ref} style={{minHeight: height}}>{children}</div>
+  return <div ref={ref} style={{minHeight: heightValue, minWidth: widthValue}}>{children}</div>
 })
-KeepMaxHeight.propTypes = {
+KeepMax.propTypes = {
+  width: PropTypes.bool,
+  height: PropTypes.height,
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
 }
 
-export default KeepMaxHeight
+export default KeepMax

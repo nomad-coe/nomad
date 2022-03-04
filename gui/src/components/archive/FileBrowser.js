@@ -34,6 +34,7 @@ import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
+import H5Web from '../visualization/H5Web'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
@@ -270,14 +271,28 @@ export class RawFileAdaptor extends Adaptor {
         const response = await api.get(`entries/${this.data.entry_id}/archive`)
         this.data.archive = response.data.archive
       }
-
       return archiveAdaptorFactory(this.data.archive)
+    } else if (key === 'h5web') {
+      return new H5WebAdaptor(this.uploadId, this.path)
     }
   }
   render() {
     return <RawFileContent
       uploadId={this.uploadId} path={this.path} data={this.data} editable={this.editable}
       key={this.path}/>
+  }
+}
+
+class H5WebAdaptor extends Adaptor {
+  constructor(uploadId, path) {
+    super()
+    this.uploadId = uploadId
+    this.path = path
+  }
+  render() {
+    return <Box width="80vw" height="100%">
+      <H5Web upload_id={this.uploadId} filename={this.path}/>
+    </Box>
   }
 }
 
@@ -332,7 +347,7 @@ function RawFileContent({uploadId, path, data, editable}) {
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} minWidth={600} maxWidth="initial"
+      paddingTop={0} paddingBottom={0} maxWidth="initial"
     >
       <Box paddingTop={1}>
         <Title
@@ -386,9 +401,7 @@ function RawFileContent({uploadId, path, data, editable}) {
         <Item itemKey="archive"><Typography>processed data</Typography></Item>
       </Compartment>}
       <Box marginTop={2}/>
-      <Box flexGrow={1} overflow="hidden">
-        <FilePreview uploadId={uploadId} path={path} size={data.size}/>
-      </Box>
+      <FilePreview uploadId={uploadId} path={path} size={data.size}/>
       <Box paddingBottom={1}/>
     </Content>)
 }
