@@ -30,8 +30,7 @@ import {
   DateEditQuantity,
   DateTimeEditQuantity,
   TimeEditQuantity,
-  DateRangeEditQuantity,
-  ListNumberEditQuantity
+  ListNumberEditQuantity, ListStringEditQuantity
 } from './EditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
 
@@ -167,7 +166,6 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Mass',
           component: 'NumberEditQuantity'
         }
       ]
@@ -213,7 +211,7 @@ const defs = {
     }
   },
   EnumQuantityDef: {
-    name: 'distance',
+    name: 'distance_from_origin',
     description: 'The distance',
     default: '200',
     type: {
@@ -227,7 +225,6 @@ const defs = {
     m_annotations: {
       'eln': [
         {
-          label: 'Distance',
           component: 'EnumEditQuantity'
         }
       ]
@@ -396,22 +393,6 @@ const defs = {
       ]
     }
   },
-  dateRangeQuantityDef: {
-    name: 'datePeriod',
-    description: 'It is a date range',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Date period',
-          component: 'DateRangeEditQuantity'
-        }
-      ]
-    }
-  },
   listIntegerQuantityDef1: {
     name: 'listInteger',
     description: 'This is a fixed length list of integer numbers',
@@ -427,8 +408,7 @@ const defs = {
           component: 'ListNumberEditQuantity',
           props: {
             minValue: -100,
-            maxValue: 100,
-            direction: 'vertical'
+            maxValue: 100
           }
         }
       ]
@@ -450,9 +430,26 @@ const defs = {
           component: 'ListNumberEditQuantity',
           props: {
             minValue: -100,
-            maxValue: 100,
-            direction: 'horizontal'
+            maxValue: 100
           }
+        }
+      ]
+    }
+  },
+  listStringQuantityDef: {
+    name: 'listString',
+    description: 'This is a fixed length list of strings',
+    unit: 'meter',
+    type: {
+      type_kind: 'python',
+      type_data: 'str',
+      shape: [3]
+    },
+    m_annotations: {
+      'eln': [
+        {
+          label: 'List of strings (Fixed length)',
+          component: 'ListStringEditQuantity'
         }
       ]
     }
@@ -472,7 +469,10 @@ let section = {
   date: '2021-03-17T13:47:32.899000',
   time: '2001-01-11T11:30:59.899000',
   datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
-  listInteger: [10, 20, 30]
+  listInteger: [10, 20, 30],
+  listFloat: [1, 2, 3],
+  listString: ['https://gitlab.com', 'https://github.com', ''],
+  listBool: [true, false, true]
 }
 
 const useStyles = makeStyles(theme => ({
@@ -492,10 +492,9 @@ const EditQuantity = React.memo((props) => {
 
   const eln = quantityDef?.m_annotations?.eln
   const component = (eln.length > 0 ? eln[0]?.component : undefined)
-  const label = (eln.length > 0 ? eln[0]?.label : quantityDef.name)
   const annotationsProps = (eln.length > 0 ? eln[0]?.props : undefined)
 
-  let otherProps = {'label': label, ...annotationsProps}
+  let otherProps = {...annotationsProps}
   if (component === 'StringEditQuantity') {
     return <StringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'RichTextEditQuantity') {
@@ -518,10 +517,10 @@ const EditQuantity = React.memo((props) => {
     return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'TimeEditQuantity') {
     return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'DateRangeEditQuantity') {
-    return <DateRangeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'ListNumberEditQuantity') {
     return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+  } else if (component === 'ListStringEditQuantity') {
+    return <ListStringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   }
 })
 EditQuantity.propTypes = {
@@ -589,13 +588,13 @@ export function EditQuantityExamples() {
         <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
-        <EditQuantity quantityDef={defs.dateRangeQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
         <EditQuantity quantityDef={defs.listIntegerQuantityDef1} section={section} onChange={handleChange}/>
       </Box>
       <Box margin={1}>
         <EditQuantity quantityDef={defs.listIntegerQuantityDef2} section={section} onChange={handleChange}/>
+      </Box>
+      <Box margin={1}>
+        <EditQuantity quantityDef={defs.listStringQuantityDef} section={section} onChange={handleChange}/>
       </Box>
     </Card>
   </div>
