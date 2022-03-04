@@ -332,7 +332,7 @@ function RawFileContent({uploadId, path, data, editable}) {
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} maxWidth={600} minWidth={600}
+      paddingTop={0} paddingBottom={0} minWidth={600} maxWidth="initial"
     >
       <Box paddingTop={1}>
         <Title

@@ -16,8 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import '@h5web/app/dist/style-lib.css'
-import '@h5web/app/dist/style.css'
 
 import React from 'react'
 import PropTypes from 'prop-types'

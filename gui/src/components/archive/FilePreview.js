@@ -24,13 +24,12 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
+import H5Web from '../visualization/H5Web'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
 const useFilePreviewStyles = makeStyles(theme => ({
   scrollableContainer: {
-    border: '1px solid black',
-    boxSizing: 'border-box',
     width: '100%',
     height: '100%',
     display: 'inline-block',
@@ -56,9 +55,9 @@ const useFilePreviewStyles = makeStyles(theme => ({
 /* Viewer definitions */
 const viewerText = {
   name: 'text',
-  fileExtensions: ['txt', 'yaml', 'yml'],
+  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml'],
   maxSizePreview: 1e10, // Effectively infinite
-  maxSizeAutoPreview: 10e6,
+  maxSizeAutoPreview: 1e10, // Effectively infinite
   render: ({uploadId, path}) => {
     return <FilePreviewText uploadId={uploadId} path={path}/>
   }
@@ -105,7 +104,19 @@ const viewerPDF = {
     />
   }
 }
-const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF]
+const viewerHDF5 = {
+  name: 'hdf5',
+  fileExtensions: ['hdf5', 'hd5'],
+  maxSizeAutoPreview: 10e6,
+  render: ({uploadId, path}) => {
+    return (
+      <Box width={1296} height="100%">
+        <H5Web upload_id={uploadId} filename={path}/>
+      </Box>
+    )
+  }
+}
+const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()
@@ -209,7 +220,8 @@ export default FilePreview
 
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
-    width: '100%',
+    padding: theme.spacing(1),
+    width: 900,
     height: '100%',
     overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
@@ -287,11 +299,11 @@ FilePreviewText.propTypes = {
 
 const useFilePreviewPdfStyles = makeStyles(theme => ({
   containerDiv: {
-    width: '100%',
+    width: 900,
     height: '100%',
     overflowX: 'hidden',
     overflowY: 'scroll',
-    border: '1px solid black',
+    border: '1px solid rgba(0, 0, 0, 0.42)',
     boxSizing: 'border-box'
   },
   pageDiv: {
