@@ -15,17 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useRef, useCallback, useEffect} from 'react'
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect} from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Button, Box } from '@material-ui/core'
 import { useErrors } from '../errors'
 import ReactJson from 'react-json-view'
+import { Document, Page, pdfjs } from 'react-pdf'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
 
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
+
 const useFilePreviewStyles = makeStyles(theme => ({
   scrollableContainer: {
+    border: '1px solid black',
+    boxSizing: 'border-box',
     width: '100%',
     height: '100%',
     display: 'inline-block',
@@ -85,9 +90,24 @@ const viewerJSON = {
     )
   }
 }
-const viewers = [viewerText, viewerImg, viewerJSON]
+const viewerPDF = {
+  name: 'pdf',
+  fileExtensions: ['pdf'],
+  maxSizeAutoPreview: 10e6,
+  requiresUrlWithAuth: true,
+  render: ({url, setFailedToPreview}) => {
+    return <FilePreviewPdf
+      file={{url: url}}
+      error={(error) => {
+        console.log(error)
+        setFailedToPreview(true)
+      }}
+    />
+  }
+}
+const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF]
 
-export default function FilePreview({uploadId, path, size}) {
+const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
@@ -179,12 +199,13 @@ export default function FilePreview({uploadId, path, size}) {
   }
   // Use the text viewer as last resort
   return viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
-}
+})
 FilePreview.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired,
   size: PropTypes.number.isRequired
 }
+export default FilePreview
 
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
@@ -263,3 +284,45 @@ FilePreviewText.propTypes = {
   uploadId: PropTypes.string.isRequired,
   path: PropTypes.string.isRequired
 }
+
+const useFilePreviewPdfStyles = makeStyles(theme => ({
+  containerDiv: {
+    width: '100%',
+    height: '100%',
+    overflowX: 'hidden',
+    overflowY: 'scroll',
+    border: '1px solid black',
+    boxSizing: 'border-box'
+  },
+  pageDiv: {
+    border: '5px solid gray'
+  }
+}))
+const FilePreviewPdf = React.memo(props => {
+  const classes = useFilePreviewPdfStyles()
+  const containerRef = useRef()
+  const [numPages, setNumPages] = useState(null)
+  const [pageWidth, setPageWidth] = useState()
+
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+      setPageWidth(containerRef.current.clientWidth - 10) // The -10 is because of the borders
+    }
+  }, [])
+
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages)
+  }
+
+  return (
+    <div className={classes.containerDiv} ref={containerRef}>
+      <Document onLoadSuccess={onDocumentLoadSuccess} renderMode="svg" {...props}>
+        {numPages && pageWidth &&
+          Array(numPages).fill().map((_, i) =>
+            <div className={classes.pageDiv} key={`pdfPageDiv${i + 1}`}>
+              <Page pageNumber={i + 1} key={`pdfPage${i + 1}`} width={pageWidth}/>
+            </div>)
+        }
+      </Document>
+    </div>)
+})
