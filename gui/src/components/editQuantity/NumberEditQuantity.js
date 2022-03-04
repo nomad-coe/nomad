@@ -40,7 +40,7 @@ export const NumberFieldWithUnit = React.memo((props) => {
     if (defaultValue === undefined || defaultValue === '' || isNaN(Number(defaultValue))) {
       setConvertedValue('')
     } else {
-      setConvertedValue((isUnit ? convertUnit(Number(defaultValue), defaultUnit, unit) : defaultValue))
+      setConvertedValue((isUnit ? convertUnit(Number(defaultValue), defaultUnit, unit) : Number(defaultValue)))
     }
   }, [defaultValue, isUnit, defaultUnit, unit])
 
