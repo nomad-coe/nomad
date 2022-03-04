@@ -19,19 +19,15 @@ import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import {Card, makeStyles, Box} from '@material-ui/core'
 import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
-import {
-  BoolEditQuantity,
-  EnumEditQuantity,
-  NumberEditQuantity,
-  RadioButtonEditQuantity,
-  StringEditQuantity,
-  AutocompleteEditQuantity,
-  SliderEditQuantity,
-  DateEditQuantity,
-  DateTimeEditQuantity,
-  TimeEditQuantity,
-  ListNumberEditQuantity, ListStringEditQuantity
-} from './EditQuantity'
+import {NumberEditQuantity} from './NumberEditQuantity'
+import {ListNumberEditQuantity, ListStringEditQuantity} from './ListEditQuantity'
+import {StringEditQuantity} from './StringEditQuantity'
+import {EnumEditQuantity} from './EnumEditQuantity'
+import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
+import {RadioButtonEditQuantity} from './RadioButtonEditQuantity'
+import {BoolEditQuantity} from './BoolEditQuantity'
+import {SliderEditQuantity} from './SliderEditQuantity'
+import { DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity } from './DateTimeEditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
 
 const coatingMethods = [
