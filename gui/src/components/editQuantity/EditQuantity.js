@@ -347,10 +347,8 @@ StringField.propTypes = {
 
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
 
   const handleChange = useCallback((value) => {
-    setValue(value)
     if (onChange) {
       onChange(value === '' ? undefined : value, section, quantityDef)
     }
@@ -358,7 +356,7 @@ export const EnumEditQuantity = React.memo((props) => {
 
   return <TextFieldWithHelp
     select variant='filled' size='small' withOtherAdornment fullWidth
-    value={value}
+    defaultValue={section[quantityDef.name] || quantityDef.default || ''}
     onChange={event => handleChange(event.target.value)}
     {...getFieldProps(quantityDef)}
     {...otherProps}
@@ -374,20 +372,18 @@ EnumEditQuantity.propTypes = {
 
 export const AutocompleteEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || null)
 
   const handleChange = useCallback((value) => {
-    setValue(value)
     if (onChange) {
       onChange((value === '' ? undefined : value), section, quantityDef)
     }
-  }, [onChange, quantityDef, section, setValue])
+  }, [onChange, quantityDef, section])
 
   return <AutoComplete
     options={quantityDef.type.type_data}
     onChange={(event, value) => handleChange(value)}
     ListboxProps={{style: {maxHeight: '150px'}}}
-    value={value}
+    defaultValue={section[quantityDef.name] || quantityDef.default || null}
     renderInput={params => (
       <TextFieldWithHelp
         {...params}
@@ -431,15 +427,9 @@ RadioButtonEditQuantity.propTypes = {
 
 export const BoolEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
-  const [value, setValue] = useState()
   const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
 
-  useEffect(() => {
-    setValue(section[quantityDef.name] || defaultValue)
-  }, [defaultValue, quantityDef, section])
-
   const handleChange = useCallback((newValue) => {
-    setValue(newValue)
     if (onChange) {
       onChange((newValue === '' ? defaultValue : newValue), section, quantityDef)
     }
@@ -447,7 +437,7 @@ export const BoolEditQuantity = React.memo((props) => {
 
   return <WithHelp {...getFieldProps(quantityDef)}>
     <FormControlLabel
-      control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" checked={(!!value)} {...otherProps}/>}
+      control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" defaultChecked={!!section[quantityDef.name] || !!defaultValue} {...otherProps}/>}
       label={getFieldProps(quantityDef).label}
     />
   </WithHelp>
