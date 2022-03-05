@@ -367,7 +367,7 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
-export function ItemLink({itemKey, ...props}) {
+export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
   const lane = useContext(laneContext)
   if (lane) {
     return <Link
@@ -378,16 +378,23 @@ export function ItemLink({itemKey, ...props}) {
     // If this is used in a non Browser context
     return ''
   }
-}
+})
 ItemLink.propTypes = {
   itemKey: PropTypes.string.isRequired
 }
 
 export function ItemButton({itemKey, ...props}) {
+  // ItemButtons are often used in clickable context and we should stop the propagation
+  // of click events to prevent unwanted behavior.
+  const handleClick = useCallback((event) => {
+    event.stopPropagation()
+  }, [])
   return (
-    <IconButton {...props} component={ItemLink} itemKey={itemKey}>
-      <NavigateIcon />
-    </IconButton>
+    <div onClick={handleClick}>
+      <IconButton {...props} component={ItemLink} itemKey={itemKey}>
+        <NavigateIcon />
+      </IconButton>
+    </div>
   )
 }
 ItemButton.propTypes = {
