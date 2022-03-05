@@ -13,13 +13,14 @@ import FileEditQuantity from '../editQuantity/FileEditQuantity'
 import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
 import ReferenceEditQuantity from '../editQuantity/ReferenceEditQuantity'
 import { QuantityMDef } from './metainfo'
+import { RadioEnumEditQuantity } from '../editQuantity/RadioEnumEditQuantity'
 
 const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
   StringEditQuantity: StringEditQuantity,
   EnumEditQuantity: EnumEditQuantity,
   SelectEnumEditQuantity: EnumEditQuantity,
-  RadioEnumEditQuantity: EnumEditQuantity,
+  RadioEnumEditQuantity: RadioEnumEditQuantity,
   AutocompleteEditQuantity: AutocompleteEditQuantity,
   BoolEditQuantity: BoolEditQuantity,
   FileEditQuantity: FileEditQuantity,

@@ -24,7 +24,7 @@ import {ListNumberEditQuantity, ListStringEditQuantity} from './ListEditQuantity
 import {StringEditQuantity} from './StringEditQuantity'
 import {EnumEditQuantity} from './EnumEditQuantity'
 import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
-import {RadioButtonEditQuantity} from './RadioButtonEditQuantity'
+import {RadioEnumEditQuantity} from './RadioEnumEditQuantity'
 import {BoolEditQuantity} from './BoolEditQuantity'
 import {SliderEditQuantity} from './SliderEditQuantity'
 import { DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity } from './DateTimeEditQuantity'
@@ -502,7 +502,7 @@ const EditQuantity = React.memo((props) => {
   } else if (component === 'BoolEditQuantity') {
     return <BoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'RadioButtonEditQuantity') {
-    return <RadioButtonEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
+    return <RadioEnumEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'SliderEditQuantity') {
     return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
   } else if (component === 'DateTimeEditQuantity') {

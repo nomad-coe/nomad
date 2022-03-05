@@ -19,12 +19,12 @@ import React, {useCallback, useState} from 'react'
 import {
   FormControlLabel,
   FormControl,
-  FormLabel, RadioGroup, Radio
+  FormLabel, RadioGroup, Radio, Box
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps} from './StringEditQuantity'
 
-export const RadioButtonEditQuantity = React.memo((props) => {
+export const RadioEnumEditQuantity = React.memo((props) => {
   const {quantityDef, section, onChange, ...otherProps} = props
   const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
 
@@ -35,14 +35,18 @@ export const RadioButtonEditQuantity = React.memo((props) => {
     }
   }, [onChange, quantityDef, section])
 
-  return <FormControl>
-    <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
-    <RadioGroup row>
-      {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)} {...otherProps}/>} label={item}/>)}
-    </RadioGroup>
-  </FormControl>
+  return (
+    <Box marginTop={2}>
+      <FormControl>
+        <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
+        <RadioGroup row>
+          {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)} {...otherProps}/>} label={item}/>)}
+        </RadioGroup>
+      </FormControl>
+    </Box>
+  )
 })
-RadioButtonEditQuantity.propTypes = {
+RadioEnumEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired

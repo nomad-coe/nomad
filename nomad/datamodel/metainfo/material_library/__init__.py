@@ -129,9 +129,8 @@ class Instrument(EntryData):
             archive.metadata.entry_name = self.name
 
 
-class PVDEvaporation(MSection):
-    '''The physical vapor deposition (PVD) of a layer by evaporation.'''
-
+class Process(MSection):
+    ''' Any physical process applied to the sample library. '''
     operator = Quantity(
         type=MEnum([
             'Markus Scheidgen',
@@ -147,13 +146,28 @@ class PVDEvaporation(MSection):
 
     datetime = Quantity(
         type=Datetime,
-        description='Finishing date and time of the process.')
+        description='Finishing date and time of the process.',
+        a_eln=dict(component='DateTimeEditQuantity'))
+
+    instrument = Quantity(
+        type=Reference(Instrument.m_def),
+        descriptions='The instrument used for this process.',
+        a_eln=dict(component='ReferenceEditQuantity'))
+
+    chemicals = Quantity(
+        type=Reference(Chemical.m_def),
+        descriptions='The chemicals used in this process',
+        a_eln=dict(component='ReferenceEditQuantity'))
 
     comments = Quantity(
         type=str,  # Revise type
         description='''Remarks about the process that cannot be seen from the data.
                     Might include rich text, images and potentially tables''',
         a_eln=dict(component='RichTextEditQuantity'))
+
+
+class PVDEvaporation(Process):
+    '''The physical vapor deposition (PVD) of a layer by evaporation.'''
 
     def derive_n_values(self):
         if self.process_time is not None:
@@ -188,7 +202,10 @@ class PVDEvaporation(MSection):
 
     chamber_pressure = Quantity(
         type=np.dtype(np.float64), unit='pascal', shape=['n_values'],
-        description='Data array of the values of the pressure during the process')
+        description='Data array of the values of the pressure during the process',
+        a_plot={
+            'x': 'process_time', 'y': 'chamber_pressure'
+        })
 
     number_crucibles = Quantity(
         type=np.dtype(np.int64),  # unit='',
@@ -199,22 +216,6 @@ class PVDEvaporation(MSection):
         type=str,
         a_eln=dict(component='FileEditQuantity'),
         a_browser=dict(adaptor='RawFileAdaptor'))
-
-    instrument = Quantity(
-        type=Reference(Instrument.m_def),
-        descriptions='The instrument used for this process.',
-        a_eln=dict(component='ReferenceEditQuantity'))
-
-    chemicals = Quantity(
-        type=Reference(Chemical.m_def),
-        descriptions='The chemicals used in this process',
-        a_eln=dict(component='ReferenceEditQuantity'))
-
-    comments = Quantity(
-        type=str,  # Revise type
-        description='''Remarks about the process that cannot be seen from the data.
-                    Might include rich text, images and potentially tables''',
-        a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
         from nomad.datamodel.metainfo.material_library.PvdPImporter import Importer
@@ -275,89 +276,33 @@ class Targets(MSection):
                     this target, or additional observations''')
 
 
-class PLDDeposition(MSection):
+class PLDDeposition(Process):
     '''The deposition process of a layer by Pulsed Laser Deposition (PLD) method.'''
-
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
 
     targets = SubSection(section_def=Targets, repeats=True)
 
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.')
 
-    instrument = SubSection(section_def=Instrument)
-# class ProcessEntries(MSection):
-#     '''The physical vapor deposition (PVD) of a layer by e-beam evaporation.'''
-
-#     operator = Quantity(
-#         type=str,
-#         description='Name or alias of the process operator.')
-
-#     datetime = Quantity(
-#         type=Datetime,
-#         description='Finishing date and time of the process.')
-
-#     comments = Quantity(
-#         type=str,
-#         description='Remarks about the process that cannot be seen from the data.')
-
-
-class EbeamEvaporation(MSection):
+class EbeamEvaporation(Process):
     '''The physical vapor deposition (PVD) of a layer by e-beam evaporation.'''
 
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
 
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.')
-
-
-class HotPlateAnnealing(MSection):
-
-    operator = Quantity(
-        type=MEnum([
-            'Markus Scheidgen',
-            'Pepe Marquez',
-            'Sandor Brockhauser',
-            'Sherjeel Shabih',
-            'Mohammad Nakhaee',
-            'David Sitker']),
-        shape=[],
-        description='Name or alias of the process operator.',
-        a_eln=dict(
-            component='AutocompleteEditQuantity'))
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
+class HotPlateAnnealing(Process):
 
     hotplate_temperature = Quantity(
         type=np.dtype(np.float64), unit='kelvin', shape=[],
-        description='The temperature set in the hot plate',
+        description='The temperature set for the hot plate.',
         a_eln=dict(component='NumberEditQuantity'))
 
     annealing_time = Quantity(
         type=np.dtype(np.float64), unit='seconds', shape=[],
-        description='Time of the sample on the hot plate',
-        a_eln=dict(component='NumberEditQuantity', props=dict(minValue=0, maxValue=1)))
+        description='Time of the sample on the hot plate.',
+        a_eln=dict(component='NumberEditQuantity'))
 
     relative_humidity = Quantity(
         type=np.dtype(np.float64),  # unit='',
-        description='''Relative humidity of the atmosphere in which the experiment was
-                    performed''',
+        description=('''
+            Relative humidity of the atmosphere in which the experiment was performed.
+        '''),
         a_eln=dict(component='NumberEditQuantity', props=dict(minValue=0, maxValue=1)))
 
     atmosphere = Quantity(
@@ -371,81 +316,28 @@ class HotPlateAnnealing(MSection):
         description='Atmosphere in which the process was conducted.',
         a_eln=dict(
             label='Process atmosphere',
-            component='AutocompleteEditQuantity'))
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
+            component='RadioEnumEditQuantity'))
 
 
-class TubeFurnaceAnnealing(MSection):
-
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
+class TubeFurnaceAnnealing(Process):
+    pass
 
 
-class RTPAnnealing(MSection):
-
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
+class RTPAnnealing(Process):
+    pass
 
 
-class SpinCoating(MSection):
-
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
+class SpinCoating(Process):
+    pass
 
 
-class ChemicalBathDeposition(MSection):
-
-    operator = Quantity(
-        type=str,
-        description='Name or alias of the process operator.')
-
-    datetime = Quantity(
-        type=Datetime,
-        description='Finishing date and time of the process.')
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
+class ChemicalBathDeposition(Process):
+    pass
 
 
 class Processes(MSection):
     '''
-    Experimetal event which  generally change the library or a new component is added to it.
+    Experiment event which  generally change the library or a new component is added to it.
     For example, in the context of thin films, cleaning the substrate or
     the deposition of a new layer by evaporation are `processes`.
     '''
@@ -461,7 +353,22 @@ class Processes(MSection):
     chemical_bath_deposition = SubSection(section_def=ChemicalBathDeposition)
 
 
-class XrayFluorescence(MSection):
+class Measurement(MSection):
+    '''
+    Any measurement performed on the sample library.
+    '''
+    instrument = Quantity(
+        type=Reference(Instrument.m_def),
+        descriptions='The instrument used for this measurement.',
+        a_eln=dict(component='ReferenceEditQuantity'))
+
+    comments = Quantity(
+        type=str,
+        description='Remarks about the process that cannot be seen from the data.',
+        a_eln=dict(component='RichTextEditQuantity'))
+
+
+class XrayFluorescence(Measurement):
     '''
     X-ray fluorescence is a technique typically used to obtain information about the
     chemical composition of a sample.
@@ -469,52 +376,12 @@ class XrayFluorescence(MSection):
 
 
 # TODO include mapping of positions for several imported files
-class XrayDiffraction(MSection):
+class XrayDiffraction(Measurement):
     '''
     X-ray diffraction is a technique typically used to characterize the structural
     properties of crystalline materials. The data contains `two_theta` values of the scan
     the corresponding counts collected for each channel
     '''
-
-    # def derive_x_values(self):
-    #     if self.count is not None:
-    #         return len(self.x_positions)
-    #     else:
-    #         return 0
-
-    # x_values = Quantity(type=int, derived=derive_x_values)
-
-    # def derive_y_values(self):
-    #     if self.count is not None:
-    #         return len(self.y_positions)
-    #     else:
-    #         return 0
-
-    # y_values = Quantity(type=int, derived=derive_y_values)
-
-    # start_position_x = Quantity(
-    #     type=np.dtype(np.float64), shape=['*'], unit='meter',
-    #     description='''Length from the left substrate margin to the spot of
-    #                 the first scan. The sample should be oriented with the
-    #                 label at the bottom left corner''')
-
-    # start_position_y = Quantity(
-    #     type=np.dtype(np.float64), shape=['*'], unit='meter',
-    #     description='''Length from the bottom substrate margin to the spot of
-    #                 the first scan. The sample should be oriented with the
-    #                 label at the bottom left corner.''')
-
-    # x_positions = Quantity(
-    #     type=np.dtype(np.float64), shape=['x_values'], unit='meter',
-    #     description='''Scan positions on the *x* direction within the substrates.
-    #                 The origin of coordinates is at the labelled corner of the substrate
-    #                 from the top view ''')
-
-    # y_positions = Quantity(
-    #     type=np.dtype(np.float64), shape=['y_values'], unit='meter',
-    #     description='''Scan positions on the *y* direction within the substrates
-    #                 The origin of coordinates is at the labelled corner of the substrate
-    #                 from the top view ''')
 
     def derive_n_values(self):
         if self.intensity is not None:
@@ -525,18 +392,6 @@ class XrayDiffraction(MSection):
             return 0
 
     n_values = Quantity(type=int, derived=derive_n_values)
-
-    # two_theta = Quantity(
-    #     type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
-    #     unit='degrees',
-    #     description='The 2-theta range of the difractogram')
-
-    # intensity = Quantity(
-    #     type=np.dtype(np.float64), shape=['x_values', 'y_values', 'n_values'],
-    #     description='The count at each 2-theta value, dimensionless',
-    #     a_plot={
-    #         'x': 'two_theta', 'y': 'intensity'
-    #     })
 
     two_theta = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
@@ -593,29 +448,9 @@ class XrayDiffraction(MSection):
         type=np.dtype(np.float64),
         description='Integration time per channel')
 
-    instrument = SubSection(section_def=Instrument)
-
     data_file = Quantity(
         type=str,
         a_eln=dict(component='FileEditQuantity'))
-
-    comments = Quantity(
-        type=str,
-        description='Remarks about the process that cannot be seen from the data.',
-        a_eln=dict(component='RichTextEditQuantity'))
-
-    # def normalize(self, archive, logger):
-    #     from nomad.datamodel.metainfo.material_library.XRDImporter import Importer
-    #     importer = Importer()
-    #     if (self.data_file):
-    #         with archive.m_context.raw_file(self.data_file) as f:
-    #             self.intensity,
-    #             self.two_theta,
-    #             self.kalpha_one,
-    #             self.kalpha_two,
-    #             self.ratio_kalphatwo_kalphaone,
-    #             self.kbeta, self.scan_axis,
-    #             self.integration_time = importer.read(f)
 
     def normalize(self, archive, logger):
         import xrdtools
@@ -632,70 +467,37 @@ class XrayDiffraction(MSection):
                 self.integration_time = xrdml_dict['time']
 
 
-class RamanSpectroscopy(MSection):
-    '''
-
-    '''
+class RamanSpectroscopy(Measurement): pass
 
 
-class Resistivity(MSection):
-    '''
-
-    '''
+class Resistivity(Measurement): pass
 
 
-class SolarSimulator(MSection):
-    '''
-
-    '''
+class SolarSimulator(Measurement): pass
 
 
-class CapacitanceVoltage(MSection):
-    '''
-
-    '''
+class CapacitanceVoltage(Measurement): pass
 
 
-class EQE(MSection):
-    '''
-
-    '''
+class EQE(Measurement): pass
 
 
-class SteadyStatePL(MSection):
-    '''
-
-    '''
+class SteadyStatePL(Measurement): pass
 
 
-class PLImaging(MSection):
-    '''
-
-    '''
+class PLImaging(Measurement): pass
 
 
-class TimeResolvedPL(MSection):
-    '''
-
-    '''
+class TimeResolvedPL(Measurement): pass
 
 
-class UVVisNIRImaging(MSection):
-    '''
-
-    '''
+class UVVisNIRImaging(Measurement): pass
 
 
-class UVVisNIRSpectroscopy(MSection):
-    '''
-
-    '''
+class UVVisNIRSpectroscopy(Measurement): pass
 
 
-class TerahertzSpectroscopy(MSection):
-    '''
-
-    '''
+class TerahertzSpectroscopy(Measurement): pass
 
 
 class Measurements(MSection):
@@ -761,16 +563,10 @@ class CompositionalProperties(MSection):
     chemical_formula = Quantity(type=str)
 
 
-class StructuralProperties(MSection):
-    '''
-
-    '''
+class StructuralProperties(MSection): pass
 
 
-class OptoelectronicProperties(MSection):
-    '''
-
-    '''
+class OptoelectronicProperties(MSection): pass
 
 
 class Layers(MSection):

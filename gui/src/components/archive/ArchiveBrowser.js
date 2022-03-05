@@ -367,6 +367,11 @@ function QuantityItemPreview({value, def}) {
       <Typography component="span">reference ...</Typography>
     </Box>
   }
+  if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+    return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
+      <Typography component="span">rich text</Typography>
+    </Box>
+  }
   if (def.shape.length > 0) {
     const dimensions = []
     let current = value
@@ -438,6 +443,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     } else {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
+  } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+    return <div dangerouslySetInnerHTML={{ __html: finalValue }}/>
   } else {
     if (Array.isArray(finalValue)) {
       return <ul style={{margin: 0}}>
@@ -520,7 +527,7 @@ function Section({section, def, parentRelation}) {
     return ''
   }
 
-  const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
+  const filter = config.showCodeSpecific ? def => !def.virtual : def => !def.virtual && !def.name.startsWith('x_')
   let sub_sections = def._allProperties.filter(prop => prop.m_def === SubSectionMDef)
   if (def.name === 'EntryArchive') {
     // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run

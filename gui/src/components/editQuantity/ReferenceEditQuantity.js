@@ -23,7 +23,7 @@ import { debounce } from 'lodash'
 import { Autocomplete } from '@material-ui/lab'
 import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
-import { resolveRefAsync } from '../archive/metainfo'
+import { resolveRef, resolveRefAsync } from '../archive/metainfo'
 import { ItemButton } from '../archive/Browser'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
@@ -35,12 +35,18 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {raiseError} = useErrors()
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
+  const referencedSectionQualifiedName = useMemo(() => {
+    return resolveRef(quantityDef.type.type_data)._qualifiedName
+  }, [quantityDef])
   const fetchSuggestions = useCallback(input => {
     const query = {}
+    if (input !== '') {
+      query.entry_name = input
+    }
     api.post('entries/query', {
       'owner': 'visible',
       'query': {
-        'entry_name.prefix': input,
+        'sections': referencedSectionQualifiedName,
         ...query
       },
       'required': {
@@ -56,7 +62,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       const suggestions = response.data
       setSuggestions(suggestions)
     }).catch(raiseError)
-  }, [api, raiseError, setSuggestions])
+  }, [api, raiseError, setSuggestions, referencedSectionQualifiedName])
 
   useEffect(() => {
     if (!currentValue || currentValue === '') {
@@ -107,11 +113,19 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     setInputValue(value)
   }, [setInputValue])
 
+  const handleFocus = useCallback(() => {
+    console.log('### doit')
+    if (inputValue === '') {
+      fetchSuggestionsDebounced('')
+    }
+  }, [fetchSuggestionsDebounced, inputValue])
+
   return <Autocomplete
     disabled={currentValue && !entry}
     options={suggestions}
     onInputChange={handleInputValueChange}
     onChange={handleValueChange}
+    onFocus={handleFocus}
     inputValue={inputValue}
     getOptionLabel={getOptionLabel}
     renderInput={params => {
@@ -122,7 +136,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
           label={label || quantityDef.name}
           InputProps={{
             ...params.InputProps,
-            endAdornment: (
+            endAdornment: inputValue !== '' && (
               <div style={{position: 'absolute', right: 12, top: 'calc(50% - 14px)'}}>
                 <ItemButton size="small" itemKey={quantityDef.name} />
               </div>
