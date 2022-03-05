@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState } from 'react'
+import React, { useContext, useMemo, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip,
@@ -35,6 +35,8 @@ import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
 import H5Web from '../visualization/H5Web'
+import NorthLaunchButton from '../north/NorthLaunchButton'
+import { useTools } from '../north/NorthPage'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
@@ -304,6 +306,15 @@ function RawFileContent({uploadId, path, data, editable}) {
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
+  const allNorthTools = useTools()
+  const applicableNorthTools = useMemo(() => {
+    const fileExtension = path.split('.').pop().toLowerCase()
+    return Object.keys(allNorthTools)
+      .filter(key => {
+        const tool = allNorthTools[key]
+        return tool.file_extensions && tool.file_extensions.includes(fileExtension)
+      })
+  }, [allNorthTools, path])
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)
@@ -397,12 +408,20 @@ function RawFileContent({uploadId, path, data, editable}) {
         { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
         { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
       </Compartment>
-      {data.entry_id && <Compartment>
-        <Item itemKey="archive"><Typography>processed data</Typography></Item>
-      </Compartment>}
-      <Box marginTop={2}/>
-      <FilePreview uploadId={uploadId} path={path} size={data.size}/>
-      <Box paddingBottom={1}/>
+      {data.entry_id && (
+        <Compartment title="more">
+          <Item itemKey="archive"><Typography>processed data</Typography></Item>
+        </Compartment>
+      )}
+      {applicableNorthTools.length > 0 && (
+        <Compartment title="tools">
+          <NorthLaunchButton uploadId={uploadId} path={path} tools={applicableNorthTools} />
+        </Compartment>
+      )}
+      <Compartment title="preview">
+        <FilePreview uploadId={uploadId} path={path} size={data.size}/>
+      </Compartment>
+
     </Content>)
 }
 RawFileContent.propTypes = {

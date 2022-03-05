@@ -19,12 +19,10 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles } from '@material-ui/core/styles'
 import {
-  CardHeader,
-  CardContent,
+  Box,
   Typography,
   Button
 } from '@material-ui/core'
-import Grid from '@material-ui/core/Grid'
 import AssessmentIcon from '@material-ui/icons/Assessment'
 import Icon from '@material-ui/core/Icon'
 import {useApi} from '../api.js'
@@ -44,7 +42,7 @@ const stoppButtonLabels = {
 }
 
 const LaunchButton = React.memo(function LaunchButton(props) {
-  return <Button color="primary" style={{width: '8rem'}} variant="contained" {...props} />
+  return <Button color="primary" variant="contained" size="small" {...props} />
 })
 
 /**
@@ -67,7 +65,7 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-const NORTHToolItem = React.memo(({
+const NorthTool = React.memo(({
   name,
   title,
   version,
@@ -76,7 +74,8 @@ const NORTHToolItem = React.memo(({
   icon,
   disableDescription,
   disableActions,
-  uploadId
+  uploadId,
+  path
 }) => {
   const styles = useStyles()
   const {northApi, user} = useApi()
@@ -85,9 +84,18 @@ const NORTHToolItem = React.memo(({
   const [state, setState] = useState('idle')
 
   const toolUrl = useMemo(() => {
-    const path = path_prefix && uploadId ? `/${path_prefix}/uploads/${uploadId}` : ''
-    return `${northBase}/user/${user.preferred_username}/${name}${path}`
-  }, [user, name, path_prefix, uploadId])
+    let toolPath = ''
+    if (path_prefix) {
+      toolPath += `/${path_prefix}`
+    }
+    if (uploadId) {
+      toolPath += `/uploads/${uploadId}`
+    }
+    if (path) {
+      toolPath += `/${path}`
+    }
+    return `${northBase}/user/${user.preferred_username}/${name}${toolPath}`
+  }, [user, name, path_prefix, uploadId, path])
 
   const getToolStatus = useCallback(() => {
     if (northApi === null) {
@@ -149,38 +157,35 @@ const NORTHToolItem = React.memo(({
       .catch(raiseError)
   }, [northApi, raiseError, setState, name])
 
-  return <div>
-    <CardHeader
-      avatar={icon
-        ? <Icon classes={{root: styles.iconRoot}}>
-          <img className={styles.imageIcon} src={`../${icon}`} alt="icon"/>
+  return <Box marginY={1}>
+    <Box display="flex" flexDirection="row" marginBottom={1}>
+      {icon ? (
+        <Icon classes={{root: styles.iconRoot}}>
+          <img className={styles.imageIcon} src={`${process.env.PUBLIC_URL}/${icon}`} alt="icon"/>
         </Icon>
-        : <AssessmentIcon classes={{root: styles.iconRoot}}/>}
-      title={title}
-      subheader={version}
-      action={!disableActions &&
-        <Grid container direction="column" spacing={1}>
-          <Grid item xs={12}>
-            <LaunchButton name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
-              {launchButtonLabels[state]}
-            </LaunchButton>
-          </Grid>
-          <Grid item xs={12}>
-            {(state === 'running' || state === 'stopping') && <LaunchButton color="error" onClick={stop} disabled={state === 'stopping'}>
-              {stoppButtonLabels[state]}
-            </LaunchButton>}
-          </Grid>
-        </Grid>
-      }
-      classes={{action: styles.action}}
-    />
-    {(!disableDescription && description) && <CardContent>
-      <Typography variant="body2" component="p">{description}</Typography>
-    </CardContent>}
-  </div>
+      ) : (
+        <AssessmentIcon classes={{root: styles.iconRoot}}/>
+      )}
+      <Box flexGrow={1}>
+        <Typography><b>{title || name}{version && <span> ({version})</span>}</b>: {description}</Typography>
+      </Box>
+    </Box>
+    <Box display="flex" flexDirection="row">
+      <LaunchButton fullWidth name={name} onClick={launch} disabled={state === 'stopping' || state === 'launching'}>
+        {launchButtonLabels[state]}
+      </LaunchButton>
+      {(state === 'running' || state === 'stopping') && (
+        <Box marginLeft={1}>
+          <LaunchButton color="default" fullWidth onClick={stop} disabled={state === 'stopping'}>
+            {stoppButtonLabels[state]}
+          </LaunchButton>
+        </Box>
+      )}
+    </Box>
+  </Box>
 })
 
-NORTHToolItem.propTypes = {
+NorthTool.propTypes = {
   name: PropTypes.string.isRequired, // The unique identitifier for this tool
   title: PropTypes.string.isRequired, // The displayed name of this tool
   version: PropTypes.string, // Version number if available
@@ -190,7 +195,8 @@ NORTHToolItem.propTypes = {
   running: PropTypes.bool, // Whether the tool is running
   disableDescription: PropTypes.bool, // Whether to hide the description
   disableActions: PropTypes.bool, // Whether to hide actions for this tool
-  uploadId: PropTypes.string // Upload id
+  uploadId: PropTypes.string, // Upload id
+  path: PropTypes.string // path to a file within the upload
 }
 
-export default NORTHToolItem
+export default NorthTool

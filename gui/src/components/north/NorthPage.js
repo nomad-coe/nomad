@@ -19,19 +19,19 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Grid,
-  List,
   Paper,
   Divider,
   Step,
   StepLabel,
   Stepper,
-  makeStyles
+  makeStyles,
+  Box
 } from '@material-ui/core'
 import Alert from '@material-ui/lab/Alert'
 import Page from '../Page'
 import { useApi, withLoginRequired } from '../api'
 import { useErrors } from '../errors'
-import NORTHToolItem from './NORTHToolItem'
+import NorthTool from './NorthTool'
 import {
   addColumnDefaults,
   combinePagination,
@@ -68,7 +68,7 @@ const useStyles = makeStyles(theme => ({
     marginLeft: theme.spacing(3)
   }
 }))
-const NORTHMainPage = React.memo(() => {
+const NorthPage = React.memo(() => {
   const styles = useStyles()
   const tools = useTools()
   // const instances = useInstances()
@@ -141,18 +141,20 @@ const NORTHMainPage = React.memo(() => {
             </Step>
           </Stepper>
           <Paper className={styles.stepContent}>
-            <List>
-              {Object.keys(tools).map(key => ({name: key, title: key, ...tools[key]})).map((tool, index) => (
-                <div key={tool.name}>
-                  <NORTHToolItem
+            {Object.keys(tools).map(key => ({name: key, title: key, ...tools[key]})).map((tool, index) => (
+              <React.Fragment key={tool.name}>
+                <Box padding={1}>
+                  <NorthTool
                     {...tool}
                     disabled={!canLaunch}
                     uploadId={selected[0] && selected[0].upload_id}
                   />
-                  {index !== Object.keys(tools).length - 1 && <Divider/>}
-                </div>
-              ))}
-            </List>
+                </Box>
+                {index !== Object.keys(tools).length - 1 && (
+                  <Box marginY={1}><Divider/></Box>
+                )}
+              </React.Fragment>
+            ))}
           </Paper>
         </Grid>
       </Grid>
@@ -160,7 +162,7 @@ const NORTHMainPage = React.memo(() => {
     : null
 })
 
-export default withLoginRequired(NORTHMainPage)
+export default withLoginRequired(NorthPage)
 
 /**
  * Hook for loading the list of running instances from the NORTH API.

@@ -33,7 +33,7 @@ import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
 import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
-import NORTHMainPage, {help as NORTHHelp} from '../north/NORTHMainPage'
+import NorthPage, {help as NORTHHelp} from '../north/NorthPage'
 // import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
 import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
@@ -313,7 +313,7 @@ export const routes = [
           title: 'NOMAD Remote Tools help page',
           content: NORTHHelp
         },
-        component: NORTHMainPage
+        component: NorthPage
       }
     ]
   },

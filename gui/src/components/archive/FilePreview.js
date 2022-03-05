@@ -101,7 +101,7 @@ const viewerHDF5 = {
   fileExtensions: ['hdf5', 'hd5'],
   maxSizeAutoPreview: 10e6,
   render: () => {
-    return <Item itemKey="h5web">H5Web</Item>
+    return <Item itemKey="h5web"><Typography>H5Web</Typography></Item>
   }
 }
 const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5]
