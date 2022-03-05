@@ -143,7 +143,6 @@ class PVDEvaporation(MSection):
         shape=[],
         description='Name or alias of the process operator.',
         a_eln=dict(
-            label='Layer type',
             component='AutocompleteEditQuantity'))
 
     datetime = Quantity(
@@ -339,7 +338,6 @@ class HotPlateAnnealing(MSection):
         shape=[],
         description='Name or alias of the process operator.',
         a_eln=dict(
-            label='Layer type',
             component='AutocompleteEditQuantity'))
 
     datetime = Quantity(
@@ -797,9 +795,7 @@ class Layers(MSection):
             'n-type contact']),
         shape=[],
         description='type of the layer',
-        a_eln=dict(
-            label='Layer type',
-            component='EnumEditQuantity'))
+        a_eln=dict(component='EnumEditQuantity'))
 
     layer_creation_datetime = Quantity(
         type=Datetime,
