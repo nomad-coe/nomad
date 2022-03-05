@@ -19,19 +19,15 @@ import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import {Card, makeStyles, Box} from '@material-ui/core'
 import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
-import {
-  BoolEditQuantity,
-  EnumEditQuantity,
-  NumberEditQuantity,
-  RadioButtonEditQuantity,
-  StringEditQuantity,
-  AutocompleteEditQuantity,
-  SliderEditQuantity,
-  DateEditQuantity,
-  DateTimeEditQuantity,
-  TimeEditQuantity,
-  ListNumberEditQuantity, ListStringEditQuantity
-} from './EditQuantity'
+import {NumberEditQuantity} from './NumberEditQuantity'
+import {ListNumberEditQuantity, ListStringEditQuantity} from './ListEditQuantity'
+import {StringEditQuantity} from './StringEditQuantity'
+import {EnumEditQuantity} from './EnumEditQuantity'
+import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
+import {RadioButtonEditQuantity} from './RadioButtonEditQuantity'
+import {BoolEditQuantity} from './BoolEditQuantity'
+import {SliderEditQuantity} from './SliderEditQuantity'
+import { DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity } from './DateTimeEditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
 
 const coatingMethods = [
@@ -468,11 +464,9 @@ let section = {
   dateAndTime: '2022-01-10T13:47:32.899000',
   date: '2021-03-17T13:47:32.899000',
   time: '2001-01-11T11:30:59.899000',
-  datePeriod: ['dateTue, Feb 1, 2022, 12:28 PM', 'dateMon, Feb 28, 2022, 12:28 PM'],
   listInteger: [10, 20, 30],
   listFloat: [1, 2, 3],
-  listString: ['https://gitlab.com', 'https://github.com', ''],
-  listBool: [true, false, true]
+  listString: ['https://gitlab.com', 'https://github.com', '']
 }
 
 const useStyles = makeStyles(theme => ({
