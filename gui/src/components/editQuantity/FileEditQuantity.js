@@ -83,7 +83,6 @@ const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherPr
   const handleChange = useCallback(event => {
     const value = event.target.value
     if (onChange) {
-      console.log('### v', event, value)
       onChange(value, section, quantityDef)
     }
   }, [onChange, section, quantityDef])

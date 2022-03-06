@@ -32,7 +32,6 @@ import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider } from '../bu
 import { useEntryContext } from './EntryContext'
 import SectionCard from './properties/SectionCard'
 import { metainfoDef } from '../archive/metainfo'
-import FilesCard from './properties/FilesCard'
 import { ArchiveSaveButton } from '../archive/ArchiveBrowser'
 
 function MetadataSection({title, children}) {
@@ -206,7 +205,6 @@ const OverviewView = React.memo((props) => {
         }
         <NexusCard index={index}/>
         <MaterialCard index={index} archive={archive} properties={properties}/>
-        <FilesCard />
         <ElectronicPropertiesCard index={index} archive={archive} properties={properties}/>
         <VibrationalPropertiesCard index={index} archive={archive} properties={properties}/>
         <MechanicalPropertiesCard index={index} archive={archive} properties={properties}/>

@@ -177,7 +177,6 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
     <EntryButton
       {...props}
       entryId={data.entry_id}
-      uploadId={data.upload_id}
     />
   </Tooltip>
 })

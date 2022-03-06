@@ -1,15 +1,15 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Box, Button, TextField } from '@material-ui/core'
 import { Autocomplete } from '@material-ui/lab'
-import { uploadPageContext } from './UploadPage'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 import { getUrl } from '../nav/Routes'
 import { useHistory, useLocation } from 'react-router-dom'
 import { defs as metainfoDefs, SectionMDef, resolveRef } from '../archive/metainfo'
+import { useUploadContext } from './UploadContext'
 
 const CreateEntry = React.memo(function CreateEntry(props) {
-  const {data} = useContext(uploadPageContext)
+  const {data} = useUploadContext()
   const templates = useMemo(() => {
     return metainfoDefs
       .filter(definition => {
@@ -59,7 +59,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
         options={templates}
         getOptionLabel={(option) => option.label}
         style={{ width: 300 }}
-        renderInput={(params) => <TextField {...params} label="template" variant="filled" />}
+        renderInput={(params) => <TextField {...params} label="type" variant="filled" />}
       />
     </Box>
     <Box display="flex" justifyContent="end" marginY={1}>

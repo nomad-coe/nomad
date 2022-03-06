@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, {useContext, useMemo, useState} from 'react'
+import React, {useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { Paper, Link } from '@material-ui/core'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
@@ -26,9 +26,9 @@ import {
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import Quantity from '../Quantity'
-import {uploadPageContext} from './UploadPage'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import {pluralize} from '../../utils'
+import { useUploadContext } from './UploadContext'
 
 const columns = [
   {
@@ -91,7 +91,7 @@ const defaultSelectedColumns = [
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
   const {pagination, customTitle} = props
-  const {upload, isWriter} = useContext(uploadPageContext)
+  const {upload, isWriter} = useUploadContext()
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {

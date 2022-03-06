@@ -26,6 +26,7 @@ import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import DeleteIcon from '@material-ui/icons/Delete'
+import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import FolderIcon from '@material-ui/icons/FolderOutlined'
 import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
 import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
@@ -37,6 +38,7 @@ import { archiveAdaptorFactory } from './ArchiveBrowser'
 import H5Web from '../visualization/H5Web'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
+import { EntryButton } from '../nav/Routes'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
@@ -178,7 +180,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
             label="folder"
             tooltip={path}
             actions={
-              <Grid container justifyContent="space-between" wrap="nowrap" spacing={0}>
+              <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
                 <Grid item>
                   <Download
                     component={IconButton} disabled={false} size="small"
@@ -366,7 +368,14 @@ function RawFileContent({uploadId, path, data, editable}) {
           label="file"
           tooltip={path}
           actions={
-            <Grid container justifyContent="space-between" wrap="nowrap" spacing={0}>
+            <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+              {data.entry_id && (
+                <Grid item>
+                  <EntryButton entryId={data.entry_id} component={IconButton} size="small">
+                    <NavigateIcon />
+                  </EntryButton>
+                </Grid>
+              )}
               <Grid item>
                 <Download
                   component={IconButton} disabled={false} size="small"

@@ -84,6 +84,7 @@ ENV PATH /app/node_modules/.bin:$PATH
 COPY gui/package.json /app/package.json
 COPY gui/yarn.lock /app/yarn.lock
 COPY gui/materia /app/materia
+COPY gui/crystcif-parse /app/crystcif-parse
 RUN yarn --network-timeout 1200000
 COPY gui /app
 COPY --from=build /install/gui/src/metainfo.json /app/src/metainfo.json

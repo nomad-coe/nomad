@@ -55,9 +55,8 @@ const EntryPage = React.memo(() => {
   // state to the URL (e.g. path to section on the ArchiveEntryView).
   const urls = useRef({
     'overview': `${urlNoSlash}/overview`,
-    'raw': `${urlNoSlash}/raw`,
-    'browse': `${urlNoSlash}/browse`,
-    'archive': `${urlNoSlash}/archive`,
+    'files': `${urlNoSlash}/files`,
+    'data': `${urlNoSlash}/data`,
     'logs': `${urlNoSlash}/logs`
   })
 
@@ -75,14 +74,14 @@ const EntryPage = React.memo(() => {
       variant="fullWidth"
     >
       <Tab label="Overview" value="overview" />
-      <Tab label="Raw data" value="raw" />
-      <Tab label="Processed data" value="archive"/>
+      <Tab label="Files" value="files" />
+      <Tab label="Data" value="data"/>
       <Tab label="Logs" value="logs"/>
     </Tabs>
     <CacheSwitch>
       <CacheRoute path={`${path}`} exact render={() => <OverviewView/>} />
-      <CacheRoute when="always" path={`${path}/raw`} render={() => <BrowseEntryFilesView />} />
-      <CacheRoute when="back" path={`${path}/archive`} render={() => <ArchiveEntryView />} />
+      <CacheRoute when="always" path={`${path}/files`} render={() => <BrowseEntryFilesView />} />
+      <CacheRoute when="back" path={`${path}/data`} render={() => <ArchiveEntryView />} />
       <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView />} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>

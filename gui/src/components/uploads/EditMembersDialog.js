@@ -24,13 +24,13 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import {uploadPageContext} from './UploadPage'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
 import PropTypes from 'prop-types'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import DeleteIcon from '@material-ui/icons/Delete'
+import { useUploadContext } from './UploadContext'
 
 export const editMembersDialogContext = React.createContext()
 
@@ -333,7 +333,7 @@ function EditMembersDialog({...props}) {
   const classes = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
-  const {upload, setUpload} = useContext(uploadPageContext)
+  const {upload, setUpload} = useUploadContext()
   const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)

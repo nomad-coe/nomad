@@ -638,6 +638,7 @@ export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actio
     color={color}
     actions={actions ||
       <SourceJsonDialogButton
+        buttonProps={{size: 'small'}}
         tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
         title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
         data={data || def}

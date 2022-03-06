@@ -114,7 +114,6 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [setInputValue])
 
   const handleFocus = useCallback(() => {
-    console.log('### doit')
     if (inputValue === '') {
       fetchSuggestionsDebounced('')
     }

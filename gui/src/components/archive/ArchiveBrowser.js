@@ -18,7 +18,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton, useTheme } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton, useTheme, Grid } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
@@ -35,7 +35,7 @@ import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
 import SectionEditor from './SectionEditor'
@@ -464,7 +464,7 @@ QuantityValue.propTypes = ({
 })
 
 function Section({section, def, parentRelation}) {
-  const {editable, handleArchiveChanged} = useEntryContext()
+  const {editable, handleArchiveChanged} = useEntryContext() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useLane()
@@ -476,8 +476,14 @@ function Section({section, def, parentRelation}) {
 
   const actions = useMemo(() => {
     if (!sectionIsEditable) {
-      return null
+      return <SourceJsonDialogButton
+        buttonProps={{size: 'small'}}
+        tooltip={`Show section data as JSON`}
+        title={`Underlying section data as JSON`}
+        data={section}
+      />
     }
+
     const handleDelete = () => {
       removeSubSection(
         parentRelation.parent,
@@ -486,15 +492,20 @@ function Section({section, def, parentRelation}) {
       handleArchiveChanged()
       history.push(lane.prev.path)
     }
-    return <React.Fragment>
-      <IconButton onClick={() => setShowJson(value => !value)}>
-        <CodeIcon />
-      </IconButton>
-      <IconButton onClick={handleDelete}>
-        <DeleteIcon />
-      </IconButton>
-    </React.Fragment>
-  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged])
+
+    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+      <Grid item>
+        <IconButton onClick={() => setShowJson(value => !value)} size="small">
+          <CodeIcon />
+        </IconButton>
+      </Grid>
+      <Grid item>
+        <IconButton onClick={handleDelete} size="small">
+          <DeleteIcon />
+        </IconButton>
+      </Grid>
+    </Grid>
+  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
@@ -597,7 +608,7 @@ Section.propTypes = ({
 })
 
 function SubSection({subSectionDef, section, editable}) {
-  const {handleArchiveChanged} = useEntryContext()
+  const {handleArchiveChanged} = useEntryContext() || {}
   const lane = useLane()
   const history = useHistory()
   const { label, getItemLabel } = useMemo(() => {

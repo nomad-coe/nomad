@@ -28,7 +28,6 @@ import TutorialsPage from '../aitoolkit/TutorialsPage'
 import ReproducePage from '../aitoolkit/ReproducePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
-import UploadPage from '../uploads/UploadPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
@@ -43,6 +42,7 @@ import DatasetsPage, { help as datasetsHelp } from '../dataset/DatasetsPage'
 import ResolveDOI from '../dataset/ResolveDOI'
 import { DatatableExamples } from '../datatable/DatatableExamples'
 import {EditQuantityExamples} from '../editQuantity/EditQuantityExamples'
+import UploadPage from '../uploads/UploadPage'
 
 /**
  * Each route is an object with possible nested sub routes. Therefore, each object only
@@ -77,7 +77,7 @@ const entryRoutes = [
     path: 'entry',
     routes: [
       {
-        path: 'id/:uploadId/:entryId',
+        path: 'id/:entryId',
         breadcrumb: 'Entry',
         component: EntryPage,
         help: {
@@ -86,24 +86,19 @@ const entryRoutes = [
         },
         routes: [
           {
-            path: 'raw',
+            path: 'files',
             exact: true,
-            breadcrumb: 'Raw data files'
+            breadcrumb: 'Files'
           },
           {
-            path: 'browse',
+            path: 'data',
             exact: true,
-            breadcrumb: 'Browse files'
-          },
-          {
-            path: 'archive',
-            exact: true,
-            breadcrumb: 'Processed data'
+            breadcrumb: 'Data'
           },
           {
             path: 'logs',
             exact: true,
-            breadcrumb: 'Processing logs'
+            breadcrumb: 'Logs'
           }
         ]
       },
@@ -155,10 +150,16 @@ const uploadRoutes = [
     routes: [
       {
         path: 'id/:uploadId',
-        exact: true,
         breadcrumb: 'Upload',
         component: UploadPage,
-        routes: entryRoutes
+        routes: [
+          {
+            path: 'files',
+            exact: true,
+            breadcrumb: 'Files'
+          },
+          ...entryRoutes
+        ]
       }
     ]
   }
@@ -486,12 +487,11 @@ RouteButton.propTypes = {
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
 export const EntryButton = React.forwardRef((props, ref) => {
-  const {uploadId, entryId, ...moreProps} = props
-  const path = `entry/id/${uploadId}/${entryId}`
+  const {entryId, ...moreProps} = props
+  const path = `entry/id/${entryId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
 })
 EntryButton.propTypes = {
-  uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired
 }
 
@@ -504,7 +504,7 @@ EntryButton.propTypes = {
  */
 export const ArchiveButton = React.forwardRef((props, ref) => {
   const {uploadId, entryId, path, ...moreProps} = props
-  const routePath = `entry/id/${uploadId}/${entryId}/archive/${path}`
+  const routePath = `entry/id/${entryId}/data/${path}`
   return <RouteButton path={routePath} {...moreProps} ref={ref} />
 })
 ArchiveButton.propTypes = {

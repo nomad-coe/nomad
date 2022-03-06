@@ -84,8 +84,6 @@ const NorthPage = React.memo(() => {
   })
   const canLaunch = selected.length > 0
 
-  console.log('###', tools)
-
   // Fetch the list of unpublished uploads.
   useEffect(() => {
     const {page_size, page, order_by, order} = pagination

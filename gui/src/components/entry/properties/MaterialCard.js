@@ -127,7 +127,6 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
       )}
     </Select>
   </FormControl>
-  console.log('###', structure)
   return <PropertyCard title="Material" action={select}>
     <PropertyGrid>
       <PropertyItem title="Composition" xs={6} height="auto">
