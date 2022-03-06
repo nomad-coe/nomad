@@ -25,10 +25,10 @@ import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
 import { Item } from './Browser'
+import { parseCifStructures } from 'crystcif-parse'
+import Structure from '../visualization/Structure'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
-
-const maxPreviewWidth = 900
 
 const useFilePreviewStyles = makeStyles(theme => ({
   scrollableContainer: {
@@ -38,8 +38,8 @@ const useFilePreviewStyles = makeStyles(theme => ({
     overflow: 'auto'
   },
   img: {
-    maxWidth: maxPreviewWidth,
-    maxHeight: '100%'
+    maxHeight: '100%',
+    maxWidth: '100%'
   }
 }))
 
@@ -49,6 +49,7 @@ const viewerText = {
   fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml'],
   maxSizePreview: 1e10, // Effectively infinite
   maxSizeAutoPreview: 1e10, // Effectively infinite
+  width: 700,
   render: ({uploadId, path}) => {
     return <FilePreviewText uploadId={uploadId} path={path}/>
   }
@@ -86,6 +87,7 @@ const viewerPDF = {
   fileExtensions: ['pdf'],
   maxSizeAutoPreview: 10e6,
   requiresUrlWithAuth: true,
+  width: 700,
   render: ({url, setFailedToPreview}) => {
     return <FilePreviewPdf
       file={{url: url}}
@@ -104,7 +106,32 @@ const viewerHDF5 = {
     return <Item itemKey="h5web"><Typography>H5Web</Typography></Item>
   }
 }
-const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5]
+const viewerCif = {
+  name: 'cif',
+  fileExtensions: ['cif'],
+  maxSizeAutoPreview: 1e5,
+  requiresLoadedData: true,
+  width: 500,
+  render: ({data}) => {
+    if (typeof data.current === 'string') {
+      const cifData = parseCifStructures(data.current)
+      const cifStructure = cifData[Object.keys(cifData)[0]]
+      const structureData = {
+        cell: cifStructure.get_cell(),
+        pbc: cifStructure.get_pbc(),
+        positions: cifStructure.get_positions(),
+        species: cifStructure.get_chemical_symbols()
+      }
+      data.current = structureData
+    }
+    return (
+      <div style={{height: 500, width: 500}}>
+        <Structure data={data.current} />
+      </div>
+    )
+  }
+}
+const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5, viewerCif]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()
@@ -172,22 +199,20 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
     )
   }
 
+  let content
   const url = user ? fullUrlWithAuth : fullUrl
   if ((selectedViewer.requiresUrlWithAuth && !url) || (selectedViewer.requiresLoadedData && !dataLoaded)) {
     // Not ready to invoke the viewer yet
-    return <Typography>Loading...</Typography>
-  }
-
-  if (!failedToPreview) {
+    content = <Typography>Loading...</Typography>
+  } else if (!failedToPreview) {
     try {
-      return selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
+      content = selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
     } catch (error) {
-      setFailedToPreview(true)
+      // TODO
     }
-  }
-  // Selected viewer failed
-  if (!useFallbackViewer) {
-    return (
+  } else if (!useFallbackViewer) {
+    // Selected viewer failed
+    content = (
       <Box textAlign="center">
         <Typography color="error">Failed to open with {selectedViewer.name} viewer. Bad file format?</Typography>
         <Button onClick={() => setUseFallbackViewer(true)} variant="contained" size="small" color="primary">
@@ -195,9 +220,14 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
         </Button>
       </Box>
     )
+  } else {
+    // Use the text viewer as last resort
+    content = viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
   }
-  // Use the text viewer as last resort
-  return viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
+
+  return <div style={{width: selectedViewer.width || 500}}>
+    {content}
+  </div>
 })
 FilePreview.propTypes = {
   uploadId: PropTypes.string.isRequired,
@@ -209,7 +239,6 @@ export default FilePreview
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
     padding: theme.spacing(1),
-    width: maxPreviewWidth,
     height: '100%',
     overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
@@ -287,7 +316,6 @@ FilePreviewText.propTypes = {
 
 const useFilePreviewPdfStyles = makeStyles(theme => ({
   containerDiv: {
-    width: maxPreviewWidth,
     height: '100%',
     overflowX: 'hidden',
     overflowY: 'scroll',

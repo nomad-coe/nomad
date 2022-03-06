@@ -4,7 +4,8 @@
   "commit": "e98694e",
   "private": true,
   "workspaces": [
-    "materia"
+    "materia",
+    "crystcif-parse"
   ],
   "dependencies": {
     "@date-io/date-fns": "1.x",

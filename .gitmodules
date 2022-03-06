@@ -226,3 +226,6 @@
 [submodule "dependencies/parsers/yambo"]
 	path = dependencies/parsers/yambo
 	url = https://github.com/nomad-coe/nomad-parser-yambo.git
+[submodule "gui/crystcif-parse"]
+	path = gui/crystcif-parse
+	url = https://github.com/stur86/crystcif-parse.git
