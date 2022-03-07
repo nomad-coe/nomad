@@ -41,7 +41,7 @@ const CreateEntry = React.memo(function CreateEntry(props) {
       .then(response => {
         // TODO handle processing errors
         const entryId = response.processing.entry_id
-        history.push(getUrl(`entry/id/${uploadId}/${entryId}`, location))
+        history.push(getUrl(`entry/id/${entryId}`, location))
       })
       .catch(raiseError)
   }, [api, raiseError, template, name, uploadId, history, location])

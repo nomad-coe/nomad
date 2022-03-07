@@ -224,10 +224,9 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
     // Use the text viewer as last resort
     content = viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
   }
-
-  return <div style={{width: selectedViewer.width || 500}}>
+  return <Box marginBottom={1} flexGrow={1} width={`${selectedViewer.width || 500}px`} overflow="hidden">
     {content}
-  </div>
+  </Box>
 })
 FilePreview.propTypes = {
   uploadId: PropTypes.string.isRequired,
@@ -238,13 +237,12 @@ export default FilePreview
 
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
-    padding: theme.spacing(1),
     height: '100%',
     overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
   },
   fileContents: {
-    margin: 0,
+    margin: theme.spacing(1),
     padding: 0,
     display: 'inline-block',
     color: theme.palette.primary.contrastText,

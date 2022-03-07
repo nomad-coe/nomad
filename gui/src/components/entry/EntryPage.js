@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { Tab, Tabs } from '@material-ui/core'
 import { trimEnd } from 'lodash'
 import OverviewView from './OverviewView'
@@ -45,25 +45,33 @@ const EntryPage = React.memo(() => {
   const history = useHistory()
   const currentPath = history.location.pathname
   const {path, url} = useRouteMatch()
-  const urlNoSlash = trimEnd(url, '/')
   const match = matchPath(currentPath, { path: `${path}/:tab?` })
   const {params: {tab = 'overview'}} = match
   const entryId = match?.params?.entryId
+  const defaultUrls = useMemo(() => {
+    const urlNoSlash = trimEnd(url, '/')
+    return {
+      'overview': `${urlNoSlash}/overview`,
+      'files': `${urlNoSlash}/files`,
+      'data': `${urlNoSlash}/data`,
+      'logs': `${urlNoSlash}/logs`
+    }
+  }, [url])
 
   // We use a useRef object to keep track of the current urls of each tab. Switching
   // tabs would go to the previous tab url. This way, the views behind a tab can add
   // state to the URL (e.g. path to section on the ArchiveEntryView).
-  const urls = useRef({
-    'overview': `${urlNoSlash}/overview`,
-    'files': `${urlNoSlash}/files`,
-    'data': `${urlNoSlash}/data`,
-    'logs': `${urlNoSlash}/logs`
-  })
+  const urls = useRef(defaultUrls)
 
   const handleChange = (_, value) => {
     urls.current[tab] = currentPath
     history.push(urls.current[value])
   }
+
+  // Reset the urls if a new entry is visited
+  useMemo(() => {
+    urls.current = defaultUrls
+  }, [entryId, defaultUrls, urls])
 
   return <EntryContext entryId={entryId}>
     <Tabs

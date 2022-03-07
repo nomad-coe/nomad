@@ -68,7 +68,7 @@ const BrowseEntryFilesView = React.memo((props) => {
       <FileBrowser
         uploadId={data.upload_id}
         path={mainfileDirname}
-        rootTitle="Entry raw files"
+        rootTitle="Entry files"
         highlightedItem={mainfileBasename}
         editable={!data.published && user && !!(data.writers.find(writer => writer.user_id === user.sub))}
       />

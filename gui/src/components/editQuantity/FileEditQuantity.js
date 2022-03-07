@@ -15,14 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext } from 'react'
+import React, {useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, IconButton, Tooltip, TextField } from '@material-ui/core'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import Dropzone from 'react-dropzone'
 import { useApi } from '../api'
-import { browserContext, ItemButton } from '../archive/Browser'
+import { ItemButton } from '../archive/Browser'
 import { useEntryContext } from '../entry/EntryContext'
+import { useErrors } from '../errors'
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
   dropzone: {
@@ -39,9 +40,9 @@ const useFileEditQuantityStyles = makeStyles(theme => ({
 }))
 const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherProps}) => {
   const classes = useFileEditQuantityStyles()
-  const browser = useContext(browserContext)
   const {uploadId, metadata} = useEntryContext()
-  const { api } = useApi()
+  const {api} = useApi()
+  const {raiseError} = useErrors()
 
   const value = section[quantityDef.name]
 
@@ -57,28 +58,18 @@ const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherPr
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
 
-    // TODO In non browser environment the browser is missing
-    if (!browser) {
-      return
-    }
-
-    browser.blockUntilProcessed({
-      uploadId: uploadId,
-      apiCall: api.put(`/uploads/${uploadId}/raw/${mainfileDirEncoded}`, formData, {
+    api.put(
+      `/uploads/${uploadId}/raw/${mainfileDirEncoded}?wait_for_processing=true`,
+      formData, {
         onUploadProgress: (progressEvent) => {
           // TODO: would be nice to show progress somehow
         }
-      }),
-      apiCallText: 'Uploading file',
-      onSuccess: () => {
-        if (onChange) {
-          onChange(fullPath, section, quantityDef)
-        }
-        browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, mainfileDir))
-        browser.update()
       }
-    })
-  }, [api, browser, uploadId, metadata, onChange, section, quantityDef])
+    ).catch(raiseError)
+    if (onChange) {
+      onChange(fullPath, section, quantityDef)
+    }
+  }, [api, raiseError, uploadId, metadata, onChange, section, quantityDef])
 
   const handleChange = useCallback(event => {
     const value = event.target.value
@@ -87,13 +78,14 @@ const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherPr
     }
   }, [onChange, section, quantityDef])
 
+  console.log('####', value)
   return (
     <Dropzone
       className={classes.dropzone} activeClassName={classes.dropzoneActive}
       onDrop={handleDrop} disableClick
     >
       <TextField
-        value={value} onChange={handleChange}
+        value={value || ''} onChange={handleChange}
         size="small" variant="filled" fullWidth
         label={quantityDef.name}
         {...otherProps}

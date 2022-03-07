@@ -29,6 +29,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import FolderIcon from '@material-ui/icons/FolderOutlined'
 import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
+import ReloadIcon from '@material-ui/icons/Replay'
 import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
@@ -181,6 +182,13 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
             tooltip={path}
             actions={
               <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+                <Grid item>
+                  <IconButton size="small" onClick={() => browser.update(lane)}>
+                    <Tooltip title="reload directory contents">
+                      <ReloadIcon/>
+                    </Tooltip>
+                  </IconButton>
+                </Grid>
                 <Grid item>
                   <Download
                     component={IconButton} disabled={false} size="small"

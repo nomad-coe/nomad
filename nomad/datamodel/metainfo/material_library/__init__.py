@@ -32,6 +32,8 @@ m_package = Package(name='material_library')
 class Chemical(EntryData):
     '''A chemical available in the lab.'''
 
+    chemical_name = Quantity(type=str)
+
     formula = Quantity(
         type=str,
         description='Empirical formula of the chemical (Hill notation).',
@@ -88,6 +90,8 @@ class Chemical(EntryData):
     def normalize(self, archive, logger):
         if self.formula:
             archive.metadata.entry_name = self.formula
+            if self.chemical_name:
+                archive.metadata.entry_name += f' ({self.chemical_name})'
 
             # results = archive.resuls
             # if not results.material:
@@ -632,7 +636,7 @@ class Projects(MSection):
         type=str, description='ID of the contract of that is funding this project.')
 
 
-class MaterialLibrary(EntryData):
+class Sample(EntryData):
     '''
     Sample in which one or various properties
     can vary across the area of the substrate,

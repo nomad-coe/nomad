@@ -94,7 +94,9 @@ const NorthTool = React.memo(({
     if (path) {
       toolPath += `/${path}`
     }
-    return `${northBase}/user/${user.preferred_username}/${name}${toolPath}`
+    const toolUrl = `${northBase}/user/${user.preferred_username}/${name}${toolPath}`
+    console.log('###', toolUrl)
+    return toolUrl
   }, [user, name, path_prefix, uploadId, path])
 
   const getToolStatus = useCallback(() => {

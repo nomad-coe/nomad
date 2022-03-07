@@ -142,12 +142,21 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   })
 
   const [render, setRender] = useState(0)
-  const update = useCallback(() => {
-    if (lanes.current.length > 0) {
+  const update = useCallback((lane) => {
+    if (lane) {
+      const index = lanes.current.indexOf(lane)
+      if (index >= 0) {
+        lanes.current.splice(index)
+      }
+    } else if (lanes.current.length > 0) {
       lanes.current.splice(-1)
     }
+    // If all lanes got updated, remove all data from the root adaptor to force reload
+    if (lanes.current.length === 0) {
+      adaptor.data = undefined
+    }
     setRender(current => current + 1)
-  }, [setRender])
+  }, [setRender, adaptor])
   const [, setInternalRender] = useState(0)
   const internalUpdate = useCallback(() => {
     setInternalRender(current => current + 1)
@@ -197,7 +206,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
               lane.adaptor = await prev.adaptor.itemAdaptor(segment, api)
             } catch (error) {
               console.log(error)
-              lane.error = `Could not open "${segment}". Bad path provided?`
+              lane.error = `The item "${segment}" does not exist.`
             }
           }
         }
@@ -213,10 +222,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
             lane.error = `Could not fetch data for "${segment}". Bad path provided?`
           }
         }
-        newLanes.push(lane)
         if (lane.error) {
           break // Ignore subsequent segments/lanes
         }
+        newLanes.push(lane)
       }
       lanes.current = newLanes
     }

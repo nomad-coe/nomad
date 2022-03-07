@@ -27,6 +27,7 @@ import { resolveRef, resolveRefAsync } from '../archive/metainfo'
 import { ItemButton } from '../archive/Browser'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
+  const {uploadId} = useEntryContext()
   const {archive} = useEntryContext()
   const {quantityDef, section, onChange, label} = props
   const currentValue = useMemo(() => section[quantityDef.name], [section, quantityDef])
@@ -39,9 +40,11 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     return resolveRef(quantityDef.type.type_data)._qualifiedName
   }, [quantityDef])
   const fetchSuggestions = useCallback(input => {
-    const query = {}
+    const query = {
+      'upload_id': uploadId
+    }
     if (input !== '') {
-      query.entry_name = input
+      query['entry_name.prefix'] = input
     }
     api.post('entries/query', {
       'owner': 'visible',
@@ -62,7 +65,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       const suggestions = response.data
       setSuggestions(suggestions)
     }).catch(raiseError)
-  }, [api, raiseError, setSuggestions, referencedSectionQualifiedName])
+  }, [api, raiseError, setSuggestions, referencedSectionQualifiedName, uploadId])
 
   useEffect(() => {
     if (!currentValue || currentValue === '') {
@@ -92,24 +95,24 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   )
 
   useEffect(() => {
-    const trimmedInput = inputValue?.trim()
-    if (trimmedInput && trimmedInput.length > 0) {
-      fetchSuggestionsDebounced(inputValue)
-    } else {
-      setSuggestions(old => old.length > 0 ? [] : old)
-    }
+    fetchSuggestionsDebounced(inputValue)
   }, [fetchSuggestionsDebounced, inputValue])
 
   const handleValueChange = useCallback((event, value) => {
-    const reference = `../upload/archive/${value.entry_id}#data`
+    if (value?.entry_id) {
+      value = `../upload/archive/${value.entry_id}#data`
+    } else {
+      value = undefined
+    }
     if (onChange) {
-      onChange(reference)
+      onChange(value)
     }
   }, [onChange])
 
   const getOptionLabel = useCallback(option => option.entry_name, [])
 
   const handleInputValueChange = useCallback((event, value) => {
+    value = value || event.target.value
     setInputValue(value)
   }, [setInputValue])
 
