@@ -22,12 +22,12 @@ import numpy as np
 from elasticsearch_dsl import Keyword
 
 from nomad import config
+from nomad.utils.exampledata import ExampleData
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entries_with_materials,
     entry_type, material_type, material_entry_type, entry_index, material_index)
 
-from tests.utils import ExampleData
 from tests.conftest import clear_elastic_infra
 from tests.app.v1.routers.common import perform_quantity_search_test
 

@@ -1,0 +1,295 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.method.simulation.program_name": {
+              "terms": {
+                "quantity": "results.method.simulation.program_name",
+                "exclude_from_search": true,
+                "size": 5
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 3
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.simulation.program_name": {
+              "terms": {
+                "quantity": "results.method.simulation.program_name",
+                "exclude_from_search": true,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "VASP"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "exciting"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ABINIT"
+                  },
+                  {
+                    "count": 0,
+                    "value": "AFlow"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Amber"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ASAP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ASR"
+                  },
+                  {
+                    "count": 0,
+                    "value": "AtomistixToolKit"
+                  },
+                  {
+                    "count": 0,
+                    "value": "BAND"
+                  },
+                  {
+                    "count": 0,
+                    "value": "BigDFT"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CASTEP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Charmm"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CP2K"
+                  },
+                  {
+                    "count": 0,
+                    "value": "CPMD"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Crystal"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DFTB+"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DL_POLY"
+                  },
+                  {
+                    "count": 0,
+                    "value": "DMol3"
+                  },
+                  {
+                    "count": 0,
+                    "value": "elastic"
+                  },
+                  {
+                    "count": 0,
+                    "value": "elk"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FHI-aims"
+                  },
+                  {
+                    "count": 0,
+                    "value": "FHI-vibes"
+                  },
+                  {
+                    "count": 0,
+                    "value": "fleur"
+                  },
+                  {
+                    "count": 0,
+                    "value": "fplo"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GAMESS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Gaussian"
+                  },
+                  {
+                    "count": 0,
+                    "value": "GPAW"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Gromacs"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Gromos"
+                  },
+                  {
+                    "count": 0,
+                    "value": "gulp"
+                  },
+                  {
+                    "count": 0,
+                    "value": "LAMMPS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "libAtoms"
+                  },
+                  {
+                    "count": 0,
+                    "value": "LOBSTER"
+                  },
+                  {
+                    "count": 0,
+                    "value": "MaterialsProject"
+                  },
+                  {
+                    "count": 0,
+                    "value": "MOLCAS"
+                  },
+                  {
+                    "count": 0,
+                    "value": "MOPAC"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Namd"
+                  },
+                  {
+                    "count": 0,
+                    "value": "NWChem"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Octopus"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ONETEP"
+                  },
+                  {
+                    "count": 0,
+                    "value": "OpenKIM"
+                  },
+                  {
+                    "count": 0,
+                    "value": "ORCA"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Phonopy"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Psi4"
+                  },
+                  {
+                    "count": 0,
+                    "value": "qbox"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Quantum Espresso"
+                  },
+                  {
+                    "count": 0,
+                    "value": "Siesta"
+                  },
+                  {
+                    "count": 0,
+                    "value": "TINKER"
+                  },
+                  {
+                    "count": 0,
+                    "value": "turbomole"
+                  },
+                  {
+                    "count": 0,
+                    "value": "WIEN2k"
+                  },
+                  {
+                    "count": 0,
+                    "value": "YAMBO"
+                  },
+                  {
+                    "count": 0,
+                    "value": "unavailable"
+                  },
+                  {
+                    "count": 0,
+                    "value": "not processed"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "1929",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

@@ -18,76 +18,57 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { render, screen, archives, wait } from '../../testSetup'
-import { expectPlotButtons, expectQuantity } from '../../testHelpers'
 import { waitFor, within } from '@testing-library/dom'
-import { getIndex } from '../../../tests/DFTBulk'
-import { useApi } from '../api'
-import OverviewView from './OverviewView'
+import { render, screen, expectQuantity, readArchive, startAPI, closeAPI } from '../conftest'
+import { expectPlotButtons } from '../visualization/conftest'
 import {
-  testComposition,
-  testSymmetry,
-  testLatticeParameters
-} from './properties/MaterialCard.spec'
-
-jest.mock('../api')
-const index = getIndex()
-
-beforeAll(() => {
-  // API mock init
-  useApi.mockReturnValue({
-    api: {
-      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
-      get: () => wait({response: { // entry metadata
-        entry_id: index.entry_id,
-        data: index
-      }})
-    }
-  })
-})
-
-afterAll(() => {
-  // API mock cleanup
-  jest.unmock('../api')
-})
+  expectComposition,
+  expectSymmetry,
+  expectLatticeParameters
+} from './conftest'
+import OverviewView from './OverviewView'
 
 test('correctly renders metadata and all properties', async () => {
-  render(<OverviewView entryId={index.entry_id} uploadId="dont-care" />)
+  startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
 
-  // Wait to load the entry metadata, i.e. wait for an arbitrary placeholder to appear
-  await waitFor(() => {
-    expect(screen.getByTestId('dos-electronic-placeholder')).toBeInTheDocument()
-  })
+  // We read the JSON archive corresponding to the tested API entry. Using this
+  // data makes writing assertions much easier.
+  const index = (await readArchive('../../../tests/states/archives/dft.json'))[1]
+  render(<OverviewView entryId={index.entry_id} uploadId={index.upload_id} />)
+
+  // Wait to load the entry metadata, i.e. wait for some of the text to appear
+  await screen.findByText('VASP')
 
   // Check if all method quantities are shown (on the left)
-  expectQuantity('results.method.simulation.program_name', index)
-  expectQuantity('results.method.simulation.program_version', index)
-  expectQuantity('results.method.simulation.dft.xc_functional_type', index)
-  expectQuantity('results.method.simulation.dft.xc_functional_names', index.results.method.simulation.dft.xc_functional_names.join(', '))
-  expectQuantity('results.method.simulation.dft.basis_set_type', index)
-  expectQuantity('results.method.simulation.dft.basis_set_name', index)
-  expectQuantity('results.method.simulation.dft.van_der_Waals_method', index)
-  expectQuantity('results.method.simulation.dft.relativity_method', index)
+  expectQuantity('results.method.simulation.program_name', 'VASP')
+  expectQuantity('results.method.simulation.program_version', '1')
+  expectQuantity('results.method.simulation.dft.xc_functional_type', 'GGA')
+  expectQuantity('results.method.simulation.dft.xc_functional_names', 'GGA_C_PBE, GGA_X_PBE')
+  expectQuantity('results.method.simulation.dft.basis_set_type', 'plane waves')
+  expectQuantity('results.method.simulation.dft.basis_set_name', 'STO-3G')
+  expectQuantity('results.method.simulation.dft.van_der_Waals_method', 'G06')
+  expectQuantity('results.method.simulation.dft.relativity_method', 'scalar_relativistic_atomic_ZORA')
 
   // Check if all metadata is shown (on the left)
   expectQuantity('results.method.method_name', index)
   expectQuantity('comment', index)
   expectQuantity('references', index.references[0])
-  expectQuantity('authors', index.authors[0].name)
-  expectQuantity('datasets', index.datasets[0].dataset_name)
+  expectQuantity('authors', 'Markus Scheidgen')
   expectQuantity('mainfile', index)
   expectQuantity('entry_id', index)
   expectQuantity('upload_id', index)
   expectQuantity('results.material.material_id', index)
-  expectQuantity('upload_create_time', new Date(index.upload_create_time).toLocaleString())
-  expectQuantity('last_processing_time', new Date(index.last_processing_time).toLocaleString())
   expectQuantity(undefined, `${index.nomad_version}/${index.nomad_commit}`, 'processing version', 'Version used in the last processing')
+  // TODO: add the following to the state for testing.
+  // expectQuantity('datasets', index.datasets[0].dataset_name)
+  // expectQuantity('upload_create_time', new Date(index.upload_create_time).toLocaleString())
+  // expectQuantity('last_processing_time', new Date(index.last_processing_time).toLocaleString())
 
   // Check if all material data is shown (on the right, in the materials card)
-  testComposition(index)
-  testSymmetry(index)
-  testLatticeParameters(index)
-  // testStructure(index) // TODO: The click introduced here breaks the subsequent tests
+  expectComposition(index)
+  expectSymmetry(index)
+  expectLatticeParameters(index)
+  // expectStructure(index) // TODO: The click introduced here breaks the subsequent tests
 
   // Check if all the property cards are shown
   expect(screen.getByText('Electronic properties')).toBeInTheDocument()
@@ -161,4 +142,6 @@ test('correctly renders metadata and all properties', async () => {
   expect(within(shearModulus).getByText('Type')).toBeInTheDocument()
   expect(within(shearModulus).getByText('Value (GPa)')).toBeInTheDocument()
   expect(within(shearModulus).getByText('voigt_reuss_hill_average')).toBeInTheDocument()
+
+  closeAPI()
 })

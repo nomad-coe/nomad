@@ -25,9 +25,9 @@ from nomad.datamodel import Dataset
 from nomad import processing
 from nomad.search import search
 from nomad.app.v1.models import Query, Any_
+from nomad.utils.exampledata import ExampleData
 
 from tests.conftest import admin_user_id
-from tests.utils import ExampleData
 
 from .test_entries import data as example_entries  # pylint: disable=unused-import
 from .common import assert_response

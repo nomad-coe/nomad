@@ -24,9 +24,9 @@ from nomad import utils
 from nomad.search import search
 from nomad.app.optimade import parse_filter
 from nomad.app.optimade.common import provider_specific_fields
+from nomad.utils.exampledata import ExampleData
 
 from tests.conftest import clear_elastic, clear_raw_files
-from tests.utils import ExampleData
 
 
 def test_get_entry(published: Upload):

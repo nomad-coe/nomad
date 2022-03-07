@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
+import { scalePow } from 'd3-scale'
 import { toUnitSystem, Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
@@ -703,4 +704,31 @@ export function getLabel(name) {
   label = label.replace(/_/g, ' ')
   label = startCase(label)
   return label
+}
+
+/**
+ * Used to create a label from the metainfo name.
+ * @param {str} type Type of scaling.
+ * @returns A function that when given a number between [0, 1] will trasnsform
+ * it to the given output range with the given type of scaling.
+ */
+export function getScaler(type, range = [0, 1]) {
+  const scale = scales[type]
+  if (isNil(scale)) {
+    throw Error('Invalid scaling type.')
+  }
+  const scaler = scalePow()
+    .exponent(scale)
+    .domain([0, 1])
+    .range(range)
+
+  return scaler
+}
+
+// The available scaling options
+export const scales = {
+  'linear': 1,
+  '1/2': 0.5,
+  '1/4': 0.25,
+  '1/8': 0.125
 }

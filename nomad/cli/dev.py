@@ -282,7 +282,7 @@ def update_parser_readmes(parser):
 @click.option('--username', '-u', type=str, help='The main author username.')
 def example_data(username: str):
     from nomad import infrastructure, utils
-    from tests.utils import ExampleData
+    from nomad.utils.exampledata import ExampleData
 
     infrastructure.setup()
 

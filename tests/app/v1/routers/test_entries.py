@@ -24,8 +24,8 @@ import json
 
 from nomad.datamodel import results
 from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.utils.exampledata import ExampleData
 
-from tests.utils import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 from .common import (

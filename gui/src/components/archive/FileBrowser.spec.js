@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render, screen, wait } from '../../testSetup'
+import { waitFor, within } from '@testing-library/dom'
+import { renderNoAPI, screen, wait } from '../conftest'
 import FileBrowser from './FileBrowser'
 import { useApi } from '../api'
-import { waitFor, within } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
 
 jest.mock('../api')
@@ -116,7 +116,7 @@ function checkLanes(path, rootPath, rootTitle) {
 }
 
 test('render browser and browse around', async () => {
-  render(<FileBrowser uploadId="upload_id_1" path="" rootTitle="Root Title"/>)
+  renderNoAPI(<FileBrowser uploadId="upload_id_1" path="" rootTitle="Root Title"/>)
   await waitFor(() => {
     expect(screen.getByText('Root Title')).toBeVisible()
   })

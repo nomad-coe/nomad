@@ -15,16 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { makeStyles } from '@material-ui/core/styles'
+import React, { useMemo } from 'react'
+import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { Skeleton } from '@material-ui/lab'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 
 /**
- * Component that is used as a placeholder while loading data. Fairly simple
- * wrapper around the MUI Skeleton component that allows using an aspect ratio
- * to determine the size.
+ * Component that is used as a placeholder while loading data. Implemented as a
+ * simple wrapper around the MUI Skeleton component.
  *
  * Override the 'placeholder' CSS-class to control the size of the placeholder
  * with respect to the root component.
@@ -53,13 +52,24 @@ const Placeholder = React.memo(({
   classes,
   'data-testid':
   testID,
+  margin,
   ...other
 }) => {
   const styles = useStyles({classes: classes})
+  const theme = useTheme()
+  const margins = useMemo(() => {
+    return {
+      position: 'absolute',
+      top: theme.spacing(margin),
+      left: theme.spacing(margin),
+      right: theme.spacing(margin),
+      bottom: theme.spacing(margin)
+    }
+  }, [margin, theme])
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <div className={styles.placeholder}>
-      <Skeleton className={styles.skeleton} {...other} />
+    <div style={margins}>
+      <Skeleton variant='rect' className={styles.skeleton} {...other} />
     </div>
   </div>
 })
@@ -67,7 +77,15 @@ const Placeholder = React.memo(({
 Placeholder.propTypes = {
   className: PropTypes.string,
   classes: PropTypes.object,
+  /**
+   * Placeholder margin with respect to the parent in theme spacing units.
+   */
+  margin: PropTypes.oneOfType([PropTypes.number, PropTypes.arrayOf(PropTypes.number)]),
   'data-testid': PropTypes.string
+}
+
+Placeholder.defaultProps = {
+  margin: 0
 }
 
 export default Placeholder
