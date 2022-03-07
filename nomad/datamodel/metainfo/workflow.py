@@ -1207,7 +1207,8 @@ class Thermodynamics(MSection):
         mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
         heat_capacity = self.heat_capacity_c_v
         specific_heat_capacity = heat_capacity / mass_per_unit_cell
-        return specific_heat_capacity
+
+        return specific_heat_capacity.magnitude
 
     vibrational_free_energy_at_constant_volume = Quantity(
         type=np.dtype(np.float64),
@@ -1234,7 +1235,8 @@ class Thermodynamics(MSection):
         mass_per_unit_cell = nomad.atomutils.get_summed_atomic_mass(atomic_numbers)
         free_energy = self.vibrational_free_energy_at_constant_volume
         specific_free_energy = free_energy / mass_per_unit_cell
-        return specific_free_energy
+
+        return specific_free_energy.magnitude
 
     vibrational_free_energy = Quantity(
         type=np.dtype(np.float64),

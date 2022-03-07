@@ -25,7 +25,7 @@ import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { InputTextField } from './InputText'
-import { Quantity, Unit, toUnitSystem, toSI, getDimension } from '../../../units'
+import { useUnits, Quantity, Unit, toUnitSystem, toSI, getDimension } from '../../../units'
 import { formatNumber } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 
@@ -83,10 +83,10 @@ const InputSlider = React.memo(({
   visible,
   className,
   classes,
-  units,
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const units = useUnits()
   const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const endChanged = useRef(false)
@@ -317,7 +317,6 @@ InputSlider.propTypes = {
   visible: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
-  units: PropTypes.object,
   'data-testid': PropTypes.string
 }
 

@@ -25,7 +25,7 @@ import { Grid, Card, CardContent, Typography, makeStyles, Link, Dialog, DialogTi
 import { Link as RouterLink, useHistory } from 'react-router-dom'
 import tutorials from '../toolkitMetadata'
 import parserMetadata from '../parserMetadata'
-import { useApi } from './api'
+import { useInfo } from './api'
 
 function CodeInfo({code, ...props}) {
   if (!code) {
@@ -160,7 +160,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function About() {
   const classes = useStyles()
-  const {info} = useApi()
+  const info = useInfo()
   const svg = useRef()
   const history = useHistory()
 
@@ -200,7 +200,7 @@ export default function About() {
   }, [svg, makeClickable, setText, history])
 
   useEffect(() => {
-    const statistics = (info && info.statistics) || {}
+    const statistics = (info && {...info.statistics}) || {}
     statistics.n_tutorials = tutorials.tutorials.length
     const value = (key, unit) => {
       const nominal = statistics[key]

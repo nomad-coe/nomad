@@ -17,11 +17,10 @@
  */
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
-import { scalePow } from 'd3-scale'
 import { Typography } from '@material-ui/core/'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
-import { approxInteger } from '../../../utils'
+import { approxInteger, getScaler } from '../../../utils'
 
 /**
  * A rectangular bar displaying the relative occurence of a specific value. Uses
@@ -67,11 +66,7 @@ const StatisticsBar = React.memo(({
   const theme = useTheme()
 
   // Calculate the approximated count and the final scaled value
-  const scaler = useMemo(() => scalePow()
-    .exponent(scale)
-    .domain([0, 1])
-    .range([0, 1])
-  , [scale])
+  const scaler = useMemo(() => getScaler(scale), [scale])
   const finalCount = useMemo(() => approxInteger(value || 0), [value])
   const finalScale = useMemo(() => scaler(value / max) || 0, [value, max, scaler])
 
@@ -89,7 +84,7 @@ const StatisticsBar = React.memo(({
 StatisticsBar.propTypes = {
   max: PropTypes.number,
   value: PropTypes.number,
-  scale: PropTypes.number,
+  scale: PropTypes.string,
   selected: PropTypes.bool,
   disabled: PropTypes.bool,
   className: PropTypes.string,

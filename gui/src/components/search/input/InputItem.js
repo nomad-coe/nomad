@@ -173,7 +173,7 @@ InputItem.propTypes = {
   variant: PropTypes.oneOf(['radio', 'checkbox']), // The type of item to display
   max: PropTypes.number, // Maximum for statistics
   count: PropTypes.number, // Count of these values for statistics
-  scale: PropTypes.number, // Scaling of the statistics
+  scale: PropTypes.string, // Scaling of the statistics
   disableStatistics: PropTypes.bool, // Use to disable statistics for this item
   labelPlacement: PropTypes.oneOf(['start', 'end']), // Controls the label placement
   disableLabelClick: PropTypes.bool, // Whether clicking the label is enabled

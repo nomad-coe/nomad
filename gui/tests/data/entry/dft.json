@@ -1,0 +1,576 @@
+{
+  "50015d45d65d9c4bcf80ab46c155920c": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "entry_id": "dft_bulk",
+          "required": {},
+          "data": {
+            "last_processing_time": "2021-03-17T15:47:32.899000",
+            "upload_id": "dft_upload",
+            "references": [
+              "doi"
+            ],
+            "parser_name": "parsers/vasp",
+            "origin": "Markus Scheidgen",
+            "calc_id": "dft_bulk",
+            "published": true,
+            "writers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "n_quantities": 0,
+            "nomad_version": "0.10.0",
+            "upload_create_time": "2022-03-02T15:21:35.424470",
+            "nomad_commit": "bf3c06fa",
+            "processed": true,
+            "mainfile": "vasp.xml",
+            "main_author": {
+              "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+              "name": "Markus Scheidgen"
+            },
+            "viewers": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "entry_create_time": "2022-03-02T15:21:35.428470",
+            "publish_time": "2022-03-02T15:21:35.427470",
+            "with_embargo": false,
+            "domain": "dft",
+            "comment": "Mocked",
+            "results": {
+              "material": {
+                "symmetry": {
+                  "bravais_lattice": "cP",
+                  "space_group_symbol": "Fd-3m",
+                  "structure_name": "rock salt",
+                  "space_group_number": 227,
+                  "point_group": "6mm",
+                  "crystal_system": "cubic"
+                },
+                "elements": [
+                  "Si"
+                ],
+                "elements_exclusive": "Si",
+                "chemical_formula_anonymous": "A2",
+                "material_id": "bulk_material",
+                "structural_type": "bulk",
+                "chemical_formula_reduced": "Si2",
+                "n_elements": 1,
+                "chemical_formula_descriptive": "Si2",
+                "material_name": "Silicon",
+                "chemical_formula_hill": "Si2"
+              },
+              "method": {
+                "method_name": "DFT",
+                "simulation": {
+                  "program_version": "1",
+                  "dft": {
+                    "basis_set_type": "plane waves",
+                    "core_electron_treatment": "unavailable",
+                    "xc_functional_type": "GGA",
+                    "xc_functional_names": [
+                      "GGA_C_PBE",
+                      "GGA_X_PBE"
+                    ],
+                    "van_der_Waals_method": "G06",
+                    "relativity_method": "scalar_relativistic_atomic_ZORA",
+                    "basis_set_name": "STO-3G"
+                  },
+                  "program_name": "VASP"
+                }
+              },
+              "properties": {
+                "available_properties": [
+                  "dos_electronic",
+                  "band_structure_electronic",
+                  "dos_phonon",
+                  "band_structure_phonon",
+                  "heat_capacity_constant_volume",
+                  "energy_free_helmholtz",
+                  "bulk_modulus",
+                  "shear_modulus",
+                  "energy_volume_curve"
+                ],
+                "structures": {
+                  "structure_primitive": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-28,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  },
+                  "structure_conventional": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-35,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  },
+                  "structure_original": {
+                    "nperiodic_dimensions": 0,
+                    "n_sites": 0,
+                    "cell_volume": 1.25e-28,
+                    "lattice_parameters": {
+                      "a": 5e-10,
+                      "b": 5e-10,
+                      "c": 5e-10,
+                      "alpha": 1.5707963267948966,
+                      "beta": 1.5707963267948966,
+                      "gamma": 1.5707963267948966
+                    }
+                  }
+                },
+                "electronic": {
+                  "dos_electronic": {},
+                  "band_structure_electronic": {
+                    "band_gap": [
+                      {
+                        "type": "indirect",
+                        "value": 1e-19
+                      }
+                    ]
+                  }
+                },
+                "mechanical": {
+                  "energy_volume_curve": [
+                    {
+                      "type": "murhaghan"
+                    }
+                  ],
+                  "shear_modulus": [
+                    {
+                      "type": "voigt_reuss_hill_average",
+                      "value": 1
+                    }
+                  ],
+                  "bulk_modulus": [
+                    {
+                      "type": "murnaghan",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            },
+            "entry_id": "dft_bulk",
+            "authors": [
+              {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              }
+            ],
+            "license": "CC BY 4.0"
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "2945",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "39fd0212960bd36797e4676fcbaa554f": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/dft_bulk/archive/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "resolve-inplace": false,
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structures": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "required": {
+            "resolve-inplace": false,
+            "results": {
+              "material": "*",
+              "method": "*",
+              "properties": {
+                "structures": "*",
+                "electronic": "include-resolved",
+                "mechanical": "include-resolved",
+                "spectroscopy": "include-resolved",
+                "vibrational": "include-resolved",
+                "geometry_optimization": {
+                  "energies": "include-resolved"
+                }
+              }
+            }
+          },
+          "entry_id": "dft_bulk",
+          "data": {
+            "entry_id": "dft_bulk",
+            "upload_id": "dft_upload",
+            "parser_name": "parsers/vasp",
+            "archive": {
+              "run": [
+                {
+                  "calculation": [
+                    {
+                      "band_structure_electronic": [
+                        {
+                          "reciprocal_cell": [
+                            [
+                              1000000000,
+                              0,
+                              0
+                            ],
+                            [
+                              0,
+                              1000000000,
+                              0
+                            ],
+                            [
+                              0,
+                              0,
+                              1000000000
+                            ]
+                          ],
+                          "segment": [
+                            {
+                              "kpoints": [
+                                [
+                                  0,
+                                  0,
+                                  0
+                                ],
+                                [
+                                  0.5,
+                                  0.5,
+                                  0.5
+                                ]
+                              ],
+                              "endpoints_labels": [
+                                "L",
+                                "K"
+                              ],
+                              "energies": [
+                                [
+                                  [
+                                    0
+                                  ],
+                                  [
+                                    1e-19
+                                  ]
+                                ]
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "dos_electronic": [
+                        {
+                          "energies": [
+                            0,
+                            1e-19
+                          ],
+                          "total": [
+                            {
+                              "spin": 0,
+                              "normalization_factor": 1e-19,
+                              "value": [
+                                0,
+                                1000000000000000000
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "band_structure_phonon": [
+                        {
+                          "segment": [
+                            {
+                              "kpoints": [
+                                [
+                                  0,
+                                  0,
+                                  0
+                                ],
+                                [
+                                  0.5,
+                                  0.5,
+                                  0.5
+                                ]
+                              ],
+                              "endpoints_labels": [
+                                "L",
+                                "K"
+                              ],
+                              "energies": [
+                                [
+                                  [
+                                    0
+                                  ],
+                                  [
+                                    1e-19
+                                  ]
+                                ]
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "dos_phonon": [
+                        {
+                          "energies": [
+                            0,
+                            1e-19
+                          ],
+                          "total": [
+                            {
+                              "normalization_factor": 1e-19,
+                              "value": [
+                                0,
+                                1000000000000000000
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "workflow": [
+                {
+                  "thermodynamics": {
+                    "heat_capacity_c_v": [
+                      0,
+                      1
+                    ],
+                    "temperature": [
+                      0,
+                      100
+                    ],
+                    "vibrational_free_energy_at_constant_volume": [
+                      0,
+                      1
+                    ]
+                  }
+                },
+                {
+                  "equation_of_state": {
+                    "volumes": [
+                      0,
+                      1
+                    ],
+                    "eos_fit": [
+                      {
+                        "fitted_energies": [
+                          0,
+                          1
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "results": {
+                "material": {
+                  "material_id": "bulk_material",
+                  "material_name": "Silicon",
+                  "structural_type": "bulk",
+                  "elements": [
+                    "Si"
+                  ],
+                  "chemical_formula_descriptive": "Si2",
+                  "chemical_formula_reduced": "Si2",
+                  "chemical_formula_hill": "Si2",
+                  "chemical_formula_anonymous": "A2",
+                  "symmetry": {
+                    "bravais_lattice": "cP",
+                    "crystal_system": "cubic",
+                    "point_group": "6mm",
+                    "space_group_number": 227,
+                    "space_group_symbol": "Fd-3m",
+                    "structure_name": "rock salt"
+                  }
+                },
+                "method": {
+                  "method_name": "DFT",
+                  "simulation": {
+                    "program_name": "VASP",
+                    "program_version": "1",
+                    "dft": {
+                      "basis_set_type": "plane waves",
+                      "basis_set_name": "STO-3G",
+                      "van_der_Waals_method": "G06",
+                      "relativity_method": "scalar_relativistic_atomic_ZORA",
+                      "xc_functional_type": "GGA",
+                      "xc_functional_names": [
+                        "GGA_C_PBE",
+                        "GGA_X_PBE"
+                      ]
+                    }
+                  }
+                },
+                "properties": {
+                  "structures": {
+                    "structure_original": {
+                      "cell_volume": 1.25e-28,
+                      "lattice_parameters": {
+                        "a": 5e-10,
+                        "b": 5e-10,
+                        "c": 5e-10,
+                        "alpha": 1.5707963267948966,
+                        "beta": 1.5707963267948966,
+                        "gamma": 1.5707963267948966
+                      }
+                    },
+                    "structure_conventional": {
+                      "cell_volume": 1.25e-35,
+                      "lattice_parameters": {
+                        "a": 5e-10,
+                        "b": 5e-10,
+                        "c": 5e-10,
+                        "alpha": 1.5707963267948966,
+                        "beta": 1.5707963267948966,
+                        "gamma": 1.5707963267948966
+                      }
+                    },
+                    "structure_primitive": {
+                      "cell_volume": 1.25e-28,
+                      "lattice_parameters": {
+                        "a": 5e-10,
+                        "b": 5e-10,
+                        "c": 5e-10,
+                        "alpha": 1.5707963267948966,
+                        "beta": 1.5707963267948966,
+                        "gamma": 1.5707963267948966
+                      }
+                    }
+                  },
+                  "electronic": {
+                    "band_structure_electronic": {
+                      "reciprocal_cell": "/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell",
+                      "segment": [
+                        "/run/0/calculation/0/band_structure_electronic/0/segment/0"
+                      ],
+                      "band_gap": [
+                        {
+                          "value": 1e-19,
+                          "type": "indirect",
+                          "energy_highest_occupied": 0
+                        }
+                      ]
+                    },
+                    "dos_electronic": {
+                      "energies": "/run/0/calculation/0/dos_electronic/0/energies",
+                      "total": [
+                        "/run/0/calculation/0/dos_electronic/0/total/0"
+                      ],
+                      "band_gap": [
+                        {
+                          "energy_highest_occupied": 0
+                        }
+                      ]
+                    }
+                  },
+                  "mechanical": {
+                    "energy_volume_curve": [
+                      {
+                        "type": "murhaghan",
+                        "volumes": "/workflow/1/equation_of_state/volumes",
+                        "energies_fit": "/workflow/1/equation_of_state/eos_fit/0/fitted_energies"
+                      }
+                    ],
+                    "bulk_modulus": [
+                      {
+                        "type": "murnaghan",
+                        "value": 1
+                      }
+                    ],
+                    "shear_modulus": [
+                      {
+                        "type": "voigt_reuss_hill_average",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "vibrational": {
+                    "band_structure_phonon": {
+                      "segment": [
+                        "/run/0/calculation/0/band_structure_phonon/0/segment/0"
+                      ]
+                    },
+                    "dos_phonon": {
+                      "energies": "/run/0/calculation/0/dos_phonon/0/energies",
+                      "total": [
+                        "/run/0/calculation/0/dos_phonon/0/total/0"
+                      ]
+                    },
+                    "heat_capacity_constant_volume": {
+                      "heat_capacities": "/workflow/0/thermodynamics/heat_capacity_c_v",
+                      "temperatures": "/workflow/0/thermodynamics/temperature"
+                    },
+                    "energy_free_helmholtz": {
+                      "energies": "/workflow/0/thermodynamics/vibrational_free_energy_at_constant_volume",
+                      "temperatures": "/workflow/0/thermodynamics/temperature"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "3859",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

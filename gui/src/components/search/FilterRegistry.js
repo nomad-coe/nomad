@@ -191,7 +191,7 @@ function saveFilter(name, group, config) {
   data.nested = searchQuantities[name]?.nested
   data.section = !isNil(data.nested)
   data.description = config.description || searchQuantities[name]?.description
-  data.scale = config.scale || 1
+  data.scale = config.scale || 'linear'
   if (data.queryMode && !data.multiple) {
     throw Error('Only filters that accept multiple values may have a query mode.')
   }
@@ -287,7 +287,7 @@ const noQueryQuantity = {guiOnly: true, multiple: false}
 const rangeQuantity = {agg: 'min_max', multiple: false}
 
 // Filters that directly correspond to a metainfo value
-registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: 1 / 4})
+registerFilter('results.material.structural_type', labelMaterial, {...termQuantity, scale: '1/4'})
 registerFilter('results.material.functional_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.compound_type', labelMaterial, termQuantityNonExclusive)
 registerFilter('results.material.material_name', labelMaterial, termQuantity)
@@ -302,17 +302,17 @@ registerFilter('results.material.symmetry.space_group_symbol', labelSymmetry, te
 registerFilter('results.material.symmetry.point_group', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.hall_symbol', labelSymmetry, termQuantity)
 registerFilter('results.material.symmetry.prototype_aflow_id', labelSymmetry, termQuantity)
-registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: 1 / 4})
-registerFilter('results.method.workflow_name', labelMethod, {...termQuantity, scale: 1 / 4})
-registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: 1 / 4})
+registerFilter('results.method.method_name', labelMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.workflow_name', labelMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.program_name', labelSimulation, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_version', labelSimulation, termQuantity)
-registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: 1 / 4})
+registerFilter('results.method.simulation.dft.basis_set_type', labelDFT, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.dft.core_electron_treatment', labelDFT, termQuantity)
-registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: 1 / 2, label: 'XC Functional Type'})
-registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: 1 / 2, label: 'XC Functional Names'})
+registerFilter('results.method.simulation.dft.xc_functional_type', labelDFT, {...termQuantity, scale: '1/2', label: 'XC Functional Type'})
+registerFilter('results.method.simulation.dft.xc_functional_names', labelDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
 registerFilter('results.method.simulation.dft.relativity_method', labelDFT, termQuantity)
 registerFilter('results.method.simulation.gw.type', labelGW, {...termQuantity, label: 'GW Type'})
-registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: 1 / 4})
+registerFilter('external_db', labelAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
 registerFilter('authors.name', labelAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
 registerFilter('upload_create_time', labelAuthor, rangeQuantity)
 registerFilter('datasets.dataset_name', labelDataset, {...termQuantity, label: 'Dataset Name', aggDefaultSize: 10})

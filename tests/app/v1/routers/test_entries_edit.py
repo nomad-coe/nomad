@@ -19,12 +19,11 @@
 import pytest
 from datetime import datetime
 
-from nomad import utils
 from nomad.search import search
 from nomad.datamodel import Dataset
-from nomad import processing as proc
+from nomad import processing as proc, utils
+from nomad.utils.exampledata import ExampleData
 
-from tests.utils import ExampleData
 from tests.app.v1.routers.common import assert_response
 from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_entry_metadata, all_admin_entry_metadata)

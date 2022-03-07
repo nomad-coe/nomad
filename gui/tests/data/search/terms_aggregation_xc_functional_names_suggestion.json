@@ -1,0 +1,141 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "exclude": [
+            "atoms",
+            "only_atoms",
+            "files",
+            "quantities",
+            "dft.quantities",
+            "optimade",
+            "dft.labels",
+            "dft.geometries"
+          ],
+          "owner": "visible",
+          "query": {},
+          "aggregations": {
+            "results.method.simulation.dft.xc_functional_names": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.xc_functional_names",
+                "exclude_from_search": false,
+                "size": 5
+              }
+            }
+          },
+          "pagination": {
+            "page_size": 0
+          },
+          "required": {
+            "include": []
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 0,
+            "order_by": "entry_id",
+            "order": "asc",
+            "total": 3
+          },
+          "required": {
+            "include": [
+              "entry_id"
+            ]
+          },
+          "aggregations": {
+            "results.method.simulation.dft.xc_functional_names": {
+              "terms": {
+                "quantity": "results.method.simulation.dft.xc_functional_names",
+                "exclude_from_search": false,
+                "metrics": [],
+                "size": 5,
+                "data": [
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "GGA_C_PBE_SOL"
+                  },
+                  {
+                    "count": 2,
+                    "nested_count": 2,
+                    "value": "GGA_X_PBE_SOL"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "LDA_C_PZ"
+                  },
+                  {
+                    "count": 1,
+                    "nested_count": 1,
+                    "value": "LDA_X_PZ"
+                  }
+                ]
+              }
+            }
+          },
+          "data": []
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "556",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "64e34867e86fc21d5a868ccf50d49841": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/suggestions",
+        "method": "POST",
+        "body": {
+          "input": "SOL",
+          "quantities": [
+            "results.method.simulation.dft.xc_functional_names"
+          ]
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "results.method.simulation.dft.xc_functional_names": [
+            {
+              "value": "GGA_X_PBE_SOL",
+              "weight": 1
+            },
+            {
+              "value": "GGA_C_PBE_SOL",
+              "weight": 1
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "133",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}
