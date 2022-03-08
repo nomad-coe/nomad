@@ -19,6 +19,7 @@ import React, { useCallback, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import PropTypes from 'prop-types'
 import { Box, FormControl, FormLabel, makeStyles } from '@material-ui/core'
+import { getFieldProps } from './StringEditQuantity'
 
 const useStyle = makeStyles(theme => ({
   root: {
@@ -37,17 +38,18 @@ const useStyle = makeStyles(theme => ({
 
 const RichTextEditQuantity = React.memo((props) => {
   const classes = useStyle()
+  const {quantityDef, value, onChange} = props
   const initialHeight = 500
-  const {quantityDef, section, onChange} = props
-  const [text] = useState(section[quantityDef.name])
+  const {label} = getFieldProps(quantityDef)
+  const [text] = useState(value || '')
   const [focus, setFocus] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  const handleChange = useCallback((value, editor) => {
+  const handleChange = useCallback((value) => {
     if (onChange) {
-      onChange(value === '' ? undefined : value, section, quantityDef)
+      onChange(value === '' ? undefined : value)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange])
 
   const handleImageUpload = useCallback((blobInfo, success, failure, progress) => {
     success('data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64())
@@ -60,7 +62,7 @@ const RichTextEditQuantity = React.memo((props) => {
   return (
     <FormControl fullWidth focused={focus} className={focus ? classes.focused : classes.root}>
       <Box marginY={1}>
-        <FormLabel>{quantityDef.name}</FormLabel>
+        <FormLabel>{label}</FormLabel>
       </Box>
       <Box height={initialized ? 'initial' : initialHeight}>
         <Editor
@@ -93,8 +95,8 @@ const RichTextEditQuantity = React.memo((props) => {
 })
 RichTextEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }
 
 export default RichTextEditQuantity

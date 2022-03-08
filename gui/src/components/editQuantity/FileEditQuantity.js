@@ -38,13 +38,12 @@ const useFileEditQuantityStyles = makeStyles(theme => ({
     }
   }
 }))
-const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherProps}) => {
+const FileEditQuantity = React.memo(props => {
   const classes = useFileEditQuantityStyles()
+  const {onChange, quantityDef, value, ...otherProps} = props
   const {uploadId, metadata} = useEntryContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
-
-  const value = section[quantityDef.name]
 
   const handleDrop = useCallback(files => {
     if (!files[0]?.name) {
@@ -67,18 +66,17 @@ const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherPr
       }
     ).catch(raiseError)
     if (onChange) {
-      onChange(fullPath, section, quantityDef)
+      onChange(fullPath)
     }
-  }, [api, raiseError, uploadId, metadata, onChange, section, quantityDef])
+  }, [api, raiseError, uploadId, metadata, onChange])
 
   const handleChange = useCallback(event => {
     const value = event.target.value
     if (onChange) {
-      onChange(value, section, quantityDef)
+      onChange(value)
     }
-  }, [onChange, section, quantityDef])
+  }, [onChange])
 
-  console.log('####', value)
   return (
     <Dropzone
       className={classes.dropzone} activeClassName={classes.dropzoneActive}
@@ -109,7 +107,7 @@ const FileEditQuantity = React.memo(({onChange, quantityDef, section, ...otherPr
 })
 FileEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }
 export default FileEditQuantity

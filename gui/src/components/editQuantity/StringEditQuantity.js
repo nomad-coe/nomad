@@ -97,16 +97,15 @@ const useWithHelpStyles = makeStyles(theme => ({
 export const WithHelp = React.memo((props) => {
   const {label, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
-  if (!helpDescription) {
-    return ''
-  }
   return <Box display="flex" alignItems="center" className={classes.root}>
     <Box flexGrow={1} {...otherProps}/>
-    <Box>
-      <div id="help">
-        <HelpDialog title={label} description={helpDescription} />
-      </div>
-    </Box>
+    {helpDescription && (
+      <Box>
+        <div id="help">
+          <HelpDialog title={label} description={helpDescription} />
+        </div>
+      </Box>
+    )}
   </Box>
 })
 WithHelp.propTypes = {
@@ -119,29 +118,21 @@ const capitalize = (s) => {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function getArchiveValue(quantityDef, section) {
-  let value = section[quantityDef.name]
-  if (value === undefined) {
-    return quantityDef.default
-  }
-  return value
-}
-
 export function getFieldProps(quantityDef) {
   const eln = quantityDef?.m_annotations?.eln
-  let name = quantityDef.name.replace(/_/g, ' ')
-  let capitalizeName = capitalize(name)
-  let label = (eln.length > 0 ? eln[0]?.label : undefined) || capitalizeName
+  const name = quantityDef.name.replace(/_/g, ' ')
+  const label = eln?.[0].label || capitalize(name)
   return {
     label: label,
     helpDescription: quantityDef.description
   }
 }
 
-export const TextFieldWithHelp = React.memo((props) => {
+export const TextFieldWithHelp = React.memo(React.forwardRef((props, ref) => {
   const {withOtherAdornment, label, helpDescription, ...otherProps} = props
   const classes = useWithHelpStyles()
   return <TextField
+    inputRef={ref}
     className={classes.root}
     InputProps={(helpDescription && {endAdornment: (
       <div id="help">
@@ -151,7 +142,7 @@ export const TextFieldWithHelp = React.memo((props) => {
     label={label}
     {...otherProps}
   />
-})
+}))
 TextFieldWithHelp.propTypes = {
   withOtherAdornment: PropTypes.bool,
   label: PropTypes.string,
@@ -159,14 +150,13 @@ TextFieldWithHelp.propTypes = {
 }
 
 export const StringEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-  const value = getArchiveValue(quantityDef, section)
+  const {quantityDef, value, onChange, ...otherProps} = props
 
-  const handleChange = useCallback((newValue) => {
+  const handleChange = useCallback((value) => {
     if (onChange) {
-      onChange(newValue === '' ? undefined : newValue, section, quantityDef)
+      onChange(value === '' ? undefined : value)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange])
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
@@ -178,21 +168,26 @@ export const StringEditQuantity = React.memo((props) => {
 })
 StringEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }
 
 export const StringField = React.memo((props) => {
-  const {onChange, defaultValue, ...otherProps} = props
+  const {onChange, ...otherProps} = props
+
+  const handleChange = useCallback(event => {
+    const value = event.target.value
+    if (onChange) {
+      onChange(value === '' ? undefined : value)
+    }
+  }, [onChange])
 
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
-    onChange={event => onChange(event.target.value)}
-    defaultValue={defaultValue}
+    onChange={handleChange}
     {...otherProps}
   />
 })
 StringField.propTypes = {
-  onChange: PropTypes.func.isRequired,
-  defaultValue: PropTypes.string
+  onChange: PropTypes.func
 }

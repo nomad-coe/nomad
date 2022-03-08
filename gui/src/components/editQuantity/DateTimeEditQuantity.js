@@ -16,68 +16,42 @@
  * limitations under the License.
  */
 import React, {useCallback, useEffect, useState} from 'react'
-import {makeStyles} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {dateFormat} from '../../config'
 import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
-import {getTime} from 'date-fns'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
 import {getFieldProps} from './StringEditQuantity'
 
-const useDateTimeEditQuantityStyles = makeStyles(theme => ({
-  startDate: {
-  },
-  endDate: {
-    marginLeft: theme.spacing(1)
-  }
-}))
-
 export const DateTimeEditQuantity = React.memo((props) => {
-  const classes = useDateTimeEditQuantityStyles()
-  const {quantityDef, section, onChange, format, time, ...otherProps} = props
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
-  const [value, setValue] = useState()
-  const [current, setCurrent] = useState()
-  const [error, setError] = useState('')
+  const {quantityDef, value, onChange, format, time, ...otherProps} = props
+  const [dateValue, setDateValue] = useState(value || null)
 
   useEffect(() => {
-    setValue(section[quantityDef.name] || defaultValue || null)
-  }, [defaultValue, quantityDef, section])
+    setDateValue(date => date?.toJSON() === value ? date : value)
+  }, [value])
 
-  const handleAccept = useCallback((newValue) => {
-    if (newValue !== null && newValue !== undefined && isNaN(getTime(newValue))) {
-      setError('Invalid date format.')
-      return
-    }
-    setError('')
-    if (newValue !== undefined) setValue(newValue)
+  const handleChange = useCallback((date) => {
+    setDateValue(date)
     if (onChange) {
-      onChange(newValue || '', section, quantityDef)
+      if (date === null) {
+        onChange(undefined)
+      } else {
+        const jsonValue = date?.toJSON()
+        if (jsonValue) {
+          onChange(jsonValue)
+        }
+      }
     }
-  }, [onChange, quantityDef, section])
-
-  const handleChange = useCallback((newValue) => {
-    setCurrent(newValue)
-  }, [])
-
-  const handleBlur = useCallback(() => {
-    handleAccept(current)
-  }, [current, handleAccept])
+  }, [onChange, setDateValue])
 
   const renderProps = {
-    className: classes.startDate,
     size: 'small',
-    error: !!error,
     variant: 'inline',
     inputVariant: 'filled',
     fullWidth: true,
     label: getFieldProps(quantityDef).label,
-    value: value,
-    invalidDateMessage: error,
-    onAccept: handleAccept,
+    value: dateValue,
     onChange: handleChange,
-    onBlur: handleBlur,
-    onKeyDown: (event) => { if (event.key === 'Enter') { handleAccept(current) } },
     ...otherProps
   }
 
@@ -96,30 +70,26 @@ export const DateTimeEditQuantity = React.memo((props) => {
 })
 DateTimeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func,
   format: PropTypes.string,
   time: PropTypes.bool
 }
 
 export const DateEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-
-  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} format={dateFormat} {...otherProps}/>
+  return <DateTimeEditQuantity {...props} format={dateFormat}/>
 })
 DateEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }
 
 export const TimeEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-
-  return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} time {...otherProps}/>
+  return <DateTimeEditQuantity time {...props}/>
 })
 TimeEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }

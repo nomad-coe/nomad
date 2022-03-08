@@ -21,26 +21,31 @@ import PropTypes from 'prop-types'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 
 export const EnumEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
+  const {quantityDef, value, onChange, ...otherProps} = props
 
-  const handleChange = useCallback((value) => {
+  const handleChange = useCallback(event => {
+    const value = event.target.value
     if (onChange) {
-      onChange(value === '' ? undefined : value, section, quantityDef)
+      onChange(value === '' ? undefined : value)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange])
 
   return <TextFieldWithHelp
     select variant='filled' size='small' withOtherAdornment fullWidth
-    defaultValue={section[quantityDef.name] || quantityDef.default || ''}
-    onChange={event => handleChange(event.target.value)}
+    value={value || ''}
+    onChange={handleChange}
     {...getFieldProps(quantityDef)}
     {...otherProps}
   >
-    {quantityDef.type?.type_data.map(item => <MenuItem value={item} key={item}>{item}</MenuItem>)}
+    {quantityDef.type?.type_data.map(item => (
+      <MenuItem value={item} key={item}>
+        {item}
+      </MenuItem>
+    ))}
   </TextFieldWithHelp>
 })
 EnumEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }

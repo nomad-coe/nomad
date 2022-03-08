@@ -21,24 +21,24 @@ import AutoComplete from '@material-ui/lab/Autocomplete'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 
 export const AutocompleteEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
+  const {quantityDef, value, onChange, ...otherProps} = props
 
-  const handleChange = useCallback((value) => {
+  const handleChange = useCallback((event, value) => {
+    value = value || event.target.value
     if (onChange) {
-      onChange((value === '' ? undefined : value), section, quantityDef)
+      onChange((value === null || value === '') ? undefined : value)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange])
 
   return <AutoComplete
     options={quantityDef.type.type_data}
-    onChange={(event, value) => handleChange(value)}
+    onChange={handleChange}
     ListboxProps={{style: {maxHeight: '150px'}}}
-    defaultValue={section[quantityDef.name] || quantityDef.default || null}
+    value={value || null}
     renderInput={params => (
       <TextFieldWithHelp
         {...params}
-        variant='filled' size='small'
-        placeholder={quantityDef.description} fullWidth
+        variant='filled' size='small' fullWidth
         {...getFieldProps(quantityDef)}
         {...otherProps}
       />
@@ -47,6 +47,6 @@ export const AutocompleteEditQuantity = React.memo((props) => {
 })
 AutocompleteEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }

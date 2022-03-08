@@ -15,76 +15,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useMemo, useState} from 'react'
 import {
-  TextField,
   Box,
-  MenuItem,
   FormControl,
   FormLabel, Slider
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import {convertUnit, Unit, useUnits} from '../../units'
-import {conversionMap, unitMap} from '../../unitsData'
-import {useNumberEditQuantityStyles} from './NumberEditQuantity'
+import {convertUnit, useUnits} from '../../units'
+import {unitMap} from '../../unitsData'
+import {UnitSelect} from './NumberEditQuantity'
 import {getFieldProps} from './StringEditQuantity'
 
 export const SliderEditQuantity = React.memo((props) => {
-  const classes = useNumberEditQuantityStyles()
-  const {quantityDef, section, onChange, ...otherProps} = props
-  const {minValue, maxValue, ...sliderProps} = otherProps
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : undefined)
-  const [value, setValue] = useState(0)
-  const [convertedValue, setConvertedValue] = useState(0)
-  const dimension = quantityDef.unit && unitMap[quantityDef.unit].dimension
-  const units = quantityDef.unit && conversionMap[dimension].units
+  const {quantityDef, value, onChange, minValue, maxValue, ...sliderProps} = props
+  const {label} = getFieldProps(quantityDef)
+
   const systemUnits = useUnits()
-  const isUnit = quantityDef.unit && ['float64', 'float32', 'float'].includes(quantityDef.type?.type_data)
+  const hasUnit = quantityDef.unit
+  const dimension = hasUnit && unitMap[quantityDef.unit].dimension
   const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
 
-  useEffect(() => {
-    let newValue = section[quantityDef.name] !== undefined ? section[quantityDef.name] : (defaultValue || minValue)
-    setValue(newValue)
-    setConvertedValue(`${(isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), quantityDef.unit, unit) : '') : newValue)}`)
-  }, [defaultValue, isUnit, minValue, quantityDef, section, unit])
-
-  const handleChangeUnit = useCallback((newUnit) => {
-    setUnit(newUnit)
-    setConvertedValue(`${(isUnit ? (!isNaN(Number(value)) || value === '' ? convertUnit(Number(value), quantityDef.unit, newUnit) : '') : value)}`)
-  }, [isUnit, quantityDef, value])
-
-  const handleChangeValue = useCallback((event, newValue) => {
-    if (typeof newValue !== 'number') return
-    setConvertedValue(`${newValue}`)
-    if (onChange) {
-      onChange((isUnit ? (newValue === '' ? newValue : (!isNaN(Number(newValue)) ? convertUnit(Number(newValue), unit, quantityDef.unit) : '')) : newValue), section, quantityDef)
+  const sliderValue = useMemo(() => {
+    if (!hasUnit) {
+      return value || 0
     }
-    setValue((isUnit ? (!isNaN(Number(newValue)) || newValue === '' ? convertUnit(Number(newValue), unit, quantityDef.unit) : '') : newValue))
-    setConvertedValue(`${Number(newValue)}`)
-  }, [isUnit, unit, onChange, quantityDef, section])
+    return convertUnit(value || 0, quantityDef.unit, unit)
+  }, [hasUnit, unit, quantityDef, value])
+
+  const handleChangeValue = useCallback((event, value) => {
+    const convertedValue = hasUnit ? convertUnit(value, unit, quantityDef.unit) : value
+    if (onChange) {
+      onChange(convertedValue)
+    }
+  }, [hasUnit, unit, onChange, quantityDef])
 
   return <FormControl fullWidth>
-    <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
-    <Box display='flex'>
+    <FormLabel>{label}</FormLabel>
+    <Box display="flex" alignItems="center">
       <Slider
-        value={Number(convertedValue)}
-        min={convertUnit(Number(minValue), quantityDef.unit, unit)}
-        max={convertUnit(Number(maxValue), quantityDef.unit, unit)}
+        value={sliderValue}
+        min={convertUnit(minValue, quantityDef.unit, unit)}
+        max={convertUnit(maxValue, quantityDef.unit, unit)}
         onChange={handleChangeValue}
-        valueLabelDisplay={(!isUnit ? 'on' : 'off')}
-        {...sliderProps}/>
-      {isUnit && <TextField
-        className={classes.unitSelect} variant='filled' size='small' select
-        label="unit" value={unit}
-        onChange={(event) => handleChangeUnit(event.target.value)}
-      >
-        {units.map(unit => <MenuItem key={unit} value={unit}>{(new Unit(unit)).label()}</MenuItem>)}
-      </TextField>}
+        valueLabelDisplay={(!hasUnit ? 'on' : 'off')}
+        {...sliderProps}
+      />
+      {hasUnit && (
+        <UnitSelect defaultUnit={quantityDef.unit} unit={unit} onChange={setUnit}/>
+      )}
     </Box>
   </FormControl>
 })
 SliderEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.number,
+  minValue: PropTypes.number.isRequired,
+  maxValue: PropTypes.number.isRequired,
+  onChange: PropTypes.func
 }

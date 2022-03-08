@@ -25,12 +25,12 @@ import { TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import { resolveRef, resolveRefAsync } from '../archive/metainfo'
 import { ItemButton } from '../archive/Browser'
+import { getFieldProps } from './StringEditQuantity'
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {uploadId} = useEntryContext()
   const {archive} = useEntryContext()
-  const {quantityDef, section, onChange, label} = props
-  const currentValue = useMemo(() => section[quantityDef.name], [section, quantityDef])
+  const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -68,7 +68,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [api, raiseError, setSuggestions, referencedSectionQualifiedName, uploadId])
 
   useEffect(() => {
-    if (!currentValue || currentValue === '') {
+    if (!value || value === '') {
       return
     }
     const fetchArchive = url => {
@@ -86,8 +86,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         })
         .catch(raiseError)
     }
-    resolveRefAsync(currentValue, archive, fetchArchive)
-  }, [currentValue, api, raiseError, archive])
+    resolveRefAsync(value, archive, fetchArchive)
+  }, [value, api, raiseError, archive])
 
   const fetchSuggestionsDebounced = useCallback(
     debounce(fetchSuggestions, 150),
@@ -114,7 +114,10 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const handleInputValueChange = useCallback((event, value) => {
     value = value || event.target.value
     setInputValue(value)
-  }, [setInputValue])
+    if (value === '' && onChange) {
+      onChange(undefined)
+    }
+  }, [setInputValue, onChange])
 
   const handleFocus = useCallback(() => {
     if (inputValue === '') {
@@ -122,8 +125,16 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     }
   }, [fetchSuggestionsDebounced, inputValue])
 
+  const itemKey = useMemo(() => {
+    if (!isNaN(index)) {
+      return `${quantityDef.name}:${index}`
+    } else {
+      return quantityDef.name
+    }
+  }, [quantityDef, index])
+
   return <Autocomplete
-    disabled={currentValue && !entry}
+    disabled={value && !entry}
     options={suggestions}
     onInputChange={handleInputValueChange}
     onChange={handleValueChange}
@@ -135,12 +146,12 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         <TextField
           {...params}
           fullWidth variant='filled' size='small'
-          label={label || quantityDef.name}
+          {...getFieldProps(quantityDef)}
           InputProps={{
             ...params.InputProps,
             endAdornment: inputValue !== '' && (
               <div style={{position: 'absolute', right: 12, top: 'calc(50% - 14px)'}}>
-                <ItemButton size="small" itemKey={quantityDef.name} />
+                <ItemButton size="small" itemKey={itemKey} />
               </div>
             )
           }}
@@ -151,9 +162,9 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
 })
 ReferenceEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
+  value: PropTypes.string,
   onChange: PropTypes.func,
-  label: PropTypes.string
+  index: PropTypes.number // additional index used for navigation of higher shaped references
 }
 
 export default ReferenceEditQuantity

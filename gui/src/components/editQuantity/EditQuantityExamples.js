@@ -15,12 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback} from 'react'
-import PropTypes from 'prop-types'
-import {Card, makeStyles, Box} from '@material-ui/core'
-import {SourceJsonDialogButton} from '../buttons/SourceDialogButton'
+import React, {useRef, useState} from 'react'
+import {Card, Box, Typography, Grid, CardContent} from '@material-ui/core'
 import {NumberEditQuantity} from './NumberEditQuantity'
-import {ListNumberEditQuantity, ListStringEditQuantity} from './ListEditQuantity'
 import {StringEditQuantity} from './StringEditQuantity'
 import {EnumEditQuantity} from './EnumEditQuantity'
 import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
@@ -29,8 +26,9 @@ import {BoolEditQuantity} from './BoolEditQuantity'
 import {SliderEditQuantity} from './SliderEditQuantity'
 import { DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity } from './DateTimeEditQuantity'
 import RichTextEditQuantity from './RichTextEditQuantity'
+import ListEditQuantity from './ListEditQuantity'
 
-const coatingMethods = [
+const enumValues = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
   'Some forms of Epitaxy', 'Molecular beam epitaxy', 'Physical vapor deposition', 'Cathodic arc deposition', 'Electron beam physical vapor deposition (EBPVD)',
   'Ion plating', 'Ion beam assisted deposition (IBAD)', 'Magnetron sputtering', 'Pulsed laser deposition', 'Sputter deposition',
@@ -42,554 +40,137 @@ const coatingMethods = [
   'Immersion dip coating', 'Kiss coating', 'Metering rod (Meyer bar) coating', 'Roller coating', 'Forward roller coating', 'Reverse roll coating',
   'Silk Screen coater', 'Rotary screen', 'Lithography', 'Flexography', 'Physical coating processes', 'Langmuir-Blodgett', 'Spin coating', 'Dip coating']
 
-const markdownTest = '## Code\n' +
-  '\n' +
-  'Inline `code`\n' +
-  '\n' +
-  'Indented code\n' +
-  '\n' +
-  '    // Some comments\n' +
-  '    line 1 of code\n' +
-  '    line 2 of code\n' +
-  '    line 3 of code\n' +
-  '\n' +
-  '\n' +
-  'Block code "fences"\n' +
-  '\n' +
-  '```\n' +
-  'Sample text here...\n' +
-  '```\n' +
-  '\n' +
-  'Syntax highlighting\n' +
-  '\n' +
-  '``` js\n' +
-  'var foo = function (bar) {\n' +
-  '  return bar++;\n' +
-  '};\n' +
-  '\n' +
-  'console.log(foo(5));\n' +
-  '```\n' +
-  '\n' +
-  '## Tables\n' +
-  '\n' +
-  '| Option | Description |\n' +
-  '| ------ | ----------- |\n' +
-  '| data   | path to data files to supply the data that will be passed into templates. |\n' +
-  '| engine | engine to be used for processing templates. Handlebars is the default. |\n' +
-  '| ext    | extension to be used for dest files. |\n' +
-  '\n' +
-  'Right aligned columns\n' +
-  '\n' +
-  '| Option | Description |\n' +
-  '| ------:| -----------:|\n' +
-  '| data   | path to data files to supply the data that will be passed into templates. |\n' +
-  '| engine | engine to be used for processing templates. Handlebars is the default. |\n' +
-  '| ext    | extension to be used for dest files. |\n' +
-  '\n' +
-  '\n' +
-  '## Links\n' +
-  '\n' +
-  '[link text](http://dev.nodeca.com)\n' +
-  '\n' +
-  '[link with title](http://nodeca.github.io/pica/demo/ "title text!")\n' +
-  '\n' +
-  'Autoconverted link https://github.com/nodeca/pica (enable linkify to see)\n' +
-  '\n' +
-  '\n' +
-  '## Images\n' +
-  '\n' +
-  '![curve](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnVwoM-HzRXisuBysqKm8Jfr9nHZqCsp4tLA&usqp=CAU)'
-
-const defs = {
-  ShortStringQuantityDef: {
-    name: 'name',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Name',
-          component: 'StringEditQuantity'
-        }
-      ]
-    }
-  },
-  LongStringQuantityDef: {
-    name: 'description',
-    description: markdownTest,
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Description',
-          component: 'RichTextEditQuantity'
-        }
-      ]
-    }
-  },
-  floatQuantityDef: {
-    name: 'height',
-    unit: 'meter',
-    description: 'The value of height in meter',
-    default: 1.5e22,
-    type: {
-      type_kind: 'numpy',
-      type_data: 'float64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Height',
-          component: 'NumberEditQuantity'
-        }
-      ]
-    }
-  },
-  limitedFloatQuantityDef: {
-    name: 'mass',
-    unit: 'kilogram',
-    description: 'The mass in Kg',
-    default: 0,
-    type: {
-      type_kind: 'numpy',
-      type_data: 'float64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          component: 'NumberEditQuantity'
-        }
-      ]
-    }
-  },
-  integerQuantityDef: {
-    name: 'spin',
-    description: 'The spin',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'int64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Spin',
-          component: 'NumberEditQuantity',
-          props: {
-            minValue: -2,
-            maxValue: 2
-          }
-        }
-      ]
-    }
-  },
-  limitedIntegerQuantityDef: {
-    name: 'count',
-    description: 'The count',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'uint64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Count',
-          component: 'NumberEditQuantity',
-          props: {
-            maxValue: 10
-          }
-        }
-      ]
-    }
-  },
-  EnumQuantityDef: {
-    name: 'distance_from_origin',
-    description: 'The distance',
-    default: '200',
-    type: {
-      type_kind: 'Enum',
-      type_data: [
-        '100',
-        '200',
-        '300'
-      ]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          component: 'EnumEditQuantity'
-        }
-      ]
-    }
-  },
-  EnumQuantityDef2: {
-    name: 'polarized',
-    description: 'Polarized',
-    default: 'No',
-    type: {
-      type_kind: 'Enum',
-      type_data: [
-        'Yes',
-        'No'
-      ]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Polarized',
-          component: 'EnumEditQuantity'
-        }
-      ]
-    }
-  },
-  AutocompleteQuantityDef: {
-    name: 'coatingMethod',
-    description: 'The coating method',
-    default: 'Vapor deposition',
-    type: {
-      type_kind: 'Enum',
-      type_data: coatingMethods
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Coating Method',
-          component: 'AutocompleteEditQuantity'
-        }
-      ]
-    }
-  },
-  BoolQuantityDef: {
-    name: 'spinPolarized',
-    description: 'The spin polarization',
-    type: {
-      type_kind: 'python',
-      type_data: 'bool'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Spin Polarized',
-          component: 'BoolEditQuantity'
-        }
-      ]
-    }
-  },
-  RadioQuantityDef: {
-    name: 'alignment',
-    description: 'Left or right alignment',
-    type: {
-      type_kind: 'Enum',
-      type_data: [
-        'Left',
-        'Right',
-        'Both',
-        'None'
-      ]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Alignment',
-          component: 'RadioButtonEditQuantity'
-        }
-      ]
-    }
-  },
-  sliderQuantityDef1: {
-    name: 'n',
-    description: 'The value of n',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'int64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'n',
-          component: 'SliderEditQuantity',
-          props: {
-            minValue: -100,
-            maxValue: 100
-          }
-        }
-      ]
-    }
-  },
-  sliderQuantityDef2: {
-    name: 'd',
-    description: 'The value of d',
-    unit: 'meter',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'float64'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'd',
-          component: 'SliderEditQuantity',
-          props: {
-            minValue: 0,
-            maxValue: 100
-          }
-        }
-      ]
-    }
-  },
-  dateAndTimeQuantityDef: {
-    name: 'dateAndTime',
-    description: 'The date and time',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Date and time',
-          component: 'DateTimeEditQuantity'
-        }
-      ]
-    }
-  },
-  dateQuantityDef: {
-    name: 'date',
-    description: 'The date',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Date',
-          component: 'DateEditQuantity'
-        }
-      ]
-    }
-  },
-  timeQuantityDef: {
-    name: 'time',
-    description: 'The time',
-    type: {
-      type_kind: 'python',
-      type_data: 'str'
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'Time',
-          component: 'TimeEditQuantity'
-        }
-      ]
-    }
-  },
-  listIntegerQuantityDef1: {
-    name: 'listInteger',
-    description: 'This is a fixed length list of integer numbers',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'int64',
-      shape: [3]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'List of integer (Fixed length)',
-          component: 'ListNumberEditQuantity',
-          props: {
-            minValue: -100,
-            maxValue: 100
-          }
-        }
-      ]
-    }
-  },
-  listIntegerQuantityDef2: {
-    name: 'listFloat',
-    description: 'This is a fixed length list of float numbers',
-    unit: 'meter',
-    type: {
-      type_kind: 'numpy',
-      type_data: 'float64',
-      shape: [3]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'List of float (Fixed length)',
-          component: 'ListNumberEditQuantity',
-          props: {
-            minValue: -100,
-            maxValue: 100
-          }
-        }
-      ]
-    }
-  },
-  listStringQuantityDef: {
-    name: 'listString',
-    description: 'This is a fixed length list of strings',
-    unit: 'meter',
-    type: {
-      type_kind: 'python',
-      type_data: 'str',
-      shape: [3]
-    },
-    m_annotations: {
-      'eln': [
-        {
-          label: 'List of strings (Fixed length)',
-          component: 'ListStringEditQuantity'
-        }
-      ]
-    }
-  }
-}
-
-let section = {
-  name: 'unnamed',
-  description: 'This is a section',
-  count: 10,
-  distance: 100,
-  coatingMethod: 'Pulsed electron deposition (PED)',
-  mass: 1,
-  alignment: 'Both',
-  n: 75,
-  dateAndTime: '2022-01-10T13:47:32.899000',
-  date: '2021-03-17T13:47:32.899000',
-  time: '2001-01-11T11:30:59.899000',
-  listInteger: [10, 20, 30],
-  listFloat: [1, 2, 3],
-  listString: ['https://gitlab.com', 'https://github.com', '']
-}
-
-const useStyles = makeStyles(theme => ({
-  root: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  card: {
-    width: '40vw',
-    padding: '10px'
-  }
-}))
-
-const EditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange} = props
-
-  const eln = quantityDef?.m_annotations?.eln
-  const component = (eln.length > 0 ? eln[0]?.component : undefined)
-  const annotationsProps = (eln.length > 0 ? eln[0]?.props : undefined)
-
-  let otherProps = {...annotationsProps}
-  if (component === 'StringEditQuantity') {
-    return <StringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'RichTextEditQuantity') {
-    return <RichTextEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps} />
-  } else if (component === 'NumberEditQuantity') {
-    return <NumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'EnumEditQuantity') {
-    return <EnumEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'AutocompleteEditQuantity') {
-    return <AutocompleteEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'BoolEditQuantity') {
-    return <BoolEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'RadioButtonEditQuantity') {
-    return <RadioEnumEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'SliderEditQuantity') {
-    return <SliderEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'DateTimeEditQuantity') {
-    return <DateTimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'DateEditQuantity') {
-    return <DateEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'TimeEditQuantity') {
-    return <TimeEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'ListNumberEditQuantity') {
-    return <ListNumberEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  } else if (component === 'ListStringEditQuantity') {
-    return <ListStringEditQuantity quantityDef={quantityDef} section={section} onChange={onChange} {...otherProps}/>
-  }
-})
-EditQuantity.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
-}
-
 export function EditQuantityExamples() {
-  const styles = useStyles()
+  const [, setUpdate] = useState(0)
+  const propsRef = useRef({})
+  const sectionRef = useRef({})
 
-  const handleChange = useCallback((value, section, quantityDef) => {
-    section[quantityDef.name] = value
-  }, [])
+  const createDefaultProps = (name, props) => {
+    if (!propsRef.current[name]) {
+      propsRef.current[name] = {
+        quantityDef: {
+          name: name,
+          description: `
+            This is **MARKDOWN** help text.
+          `,
+          ...(props || {})
+        },
+        onChange: value => {
+          sectionRef.current[name] = value
+          setUpdate(value => value + 1)
+        }
+      }
+    }
+    return {
+      ...(propsRef.current[name]),
+      value: sectionRef.current[name]
+    }
+  }
 
-  return <div className={styles.root}>
-    <Card className={styles.card}>
-      <SourceJsonDialogButton title={`Section`} data={section}/>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.ShortStringQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.LongStringQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.floatQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.limitedFloatQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.integerQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.limitedIntegerQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.EnumQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.EnumQuantityDef2} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.AutocompleteQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.BoolQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.RadioQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.sliderQuantityDef1} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.sliderQuantityDef2} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.dateAndTimeQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.dateQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.timeQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listIntegerQuantityDef1} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listIntegerQuantityDef2} section={section} onChange={handleChange}/>
-      </Box>
-      <Box margin={1}>
-        <EditQuantity quantityDef={defs.listStringQuantityDef} section={section} onChange={handleChange}/>
-      </Box>
-    </Card>
-  </div>
+  const float = {
+    type_kind: 'python',
+    type_data: 'float'
+  }
+
+  const int = {
+    type_kind: 'python',
+    type_data: 'int'
+  }
+
+  return <Box margin={3}>
+    <Grid container direction="row" spacing={2}>
+      <Grid item>
+        <Card>
+          <CardContent>
+            <Box width={800}>
+              <Grid container direction="column" spacing={1}>
+                <Grid item>
+                  <StringEditQuantity {...createDefaultProps('string')} />
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity {...createDefaultProps('float', {type: float})} />
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity {...createDefaultProps('float_unit', {type: float, unit: 'meter'})} />
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity
+                    {...createDefaultProps('float_with_bounds', {type: float, unit: 'second'})}
+                    minValue={0} maxValue={10}
+                  />
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity {...createDefaultProps('int', {type: int})} />
+                </Grid>
+                <Grid item>
+                  <NumberEditQuantity
+                    {...createDefaultProps('int_with_bounds', {type: int})}
+                    minValue={0} maxValue={10}
+                  />
+                </Grid>
+                <Grid item>
+                  <BoolEditQuantity {...createDefaultProps('bool')} />
+                </Grid>
+                <Grid item>
+                  <RadioEnumEditQuantity {...createDefaultProps('radio_enum', {
+                    type: {
+                      type_data: ['one', 'two', 'three']
+                    }
+                  })} />
+                </Grid>
+                <Grid item>
+                  <EnumEditQuantity {...createDefaultProps('select_enum', {
+                    type: {
+                      type_data: ['one', 'two', 'three']
+                    }
+                  })} />
+                </Grid>
+                <Grid item>
+                  <AutocompleteEditQuantity {...createDefaultProps('autocomplete_enum', {
+                    type: {
+                      type_data: enumValues
+                    }
+                  })} />
+                </Grid>
+                <Grid item>
+                  <SliderEditQuantity {...createDefaultProps('slider')} minValue={0} maxValue={10} />
+                </Grid>
+                <Grid item>
+                  <DateTimeEditQuantity {...createDefaultProps('date_time')} />
+                </Grid>
+                <Grid item>
+                  <DateEditQuantity {...createDefaultProps('date')} />
+                </Grid>
+                <Grid item>
+                  <TimeEditQuantity {...createDefaultProps('time')} />
+                </Grid>
+                <Grid item>
+                  <RichTextEditQuantity {...createDefaultProps('richt_text')} />
+                </Grid>
+                <Grid item>
+                  <ListEditQuantity
+                    component={StringEditQuantity}
+                    {...createDefaultProps('list', {shape: ['*']})}
+                  />
+                </Grid>
+                <Grid item>
+                  <ListEditQuantity
+                    component={StringEditQuantity}
+                    {...createDefaultProps('list_fixed', {shape: [3]})}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item>
+        <Box margin={2} width={800}>
+          <Typography component="pre">
+            {JSON.stringify(sectionRef.current, null, 4)}
+          </Typography>
+        </Box>
+      </Grid>
+    </Grid>
+  </Box>
 }

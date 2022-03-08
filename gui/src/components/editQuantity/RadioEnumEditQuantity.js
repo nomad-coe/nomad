@@ -15,39 +15,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useState} from 'react'
+import React, {useCallback} from 'react'
 import {
   FormControlLabel,
   FormControl,
-  FormLabel, RadioGroup, Radio, Box
+  FormLabel, RadioGroup, Radio
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import {getFieldProps} from './StringEditQuantity'
+import {getFieldProps, WithHelp} from './StringEditQuantity'
 
 export const RadioEnumEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-  const [value, setValue] = useState(section[quantityDef.name] || quantityDef.default || '')
+  const {quantityDef, value, onChange, ...otherProps} = props
+  const fieldProps = getFieldProps(quantityDef)
 
   const handleChange = useCallback((value) => {
-    setValue(value)
     if (onChange) {
-      onChange(value === '' ? undefined : value, section, quantityDef)
+      onChange(value === '' ? undefined : value)
     }
-  }, [onChange, quantityDef, section])
+  }, [onChange])
 
   return (
-    <Box marginTop={2}>
+    <WithHelp {...fieldProps}>
       <FormControl>
-        <FormLabel>{getFieldProps(quantityDef).label}</FormLabel>
+        <FormLabel>{fieldProps.label}</FormLabel>
         <RadioGroup row>
-          {quantityDef.type?.type_data.map(item => <FormControlLabel value={item} key={item} control={<Radio checked={value === item} onClick={event => handleChange(item)} {...otherProps}/>} label={item}/>)}
+          {quantityDef.type?.type_data.map(item => (
+            <FormControlLabel
+              value={item} key={item}
+              control={(
+                <Radio
+                  checked={value === item}
+                  onClick={() => handleChange(item)}
+                  {...otherProps}
+                />
+              )}
+              label={item}
+            />))}
         </RadioGroup>
       </FormControl>
-    </Box>
+    </WithHelp>
   )
 })
 RadioEnumEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.string,
+  onChange: PropTypes.func
 }

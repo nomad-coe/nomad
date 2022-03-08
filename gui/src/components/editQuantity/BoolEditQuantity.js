@@ -23,25 +23,32 @@ import {
 import PropTypes from 'prop-types'
 import {getFieldProps, WithHelp} from './StringEditQuantity'
 
-export const BoolEditQuantity = React.memo((props) => {
-  const {quantityDef, section, onChange, ...otherProps} = props
-  const defaultValue = (quantityDef.default !== undefined ? quantityDef.default : '')
+export const BoolEditQuantity = React.memo(function BoolEditQuantity(props) {
+  const {quantityDef, value, onChange, ...otherProps} = props
+  const fieldProps = getFieldProps(quantityDef)
 
-  const handleChange = useCallback((newValue) => {
+  const handleChange = useCallback((event) => {
+    const value = event.target.checked
     if (onChange) {
-      onChange((newValue === '' ? defaultValue : newValue), section, quantityDef)
+      onChange(value)
     }
-  }, [defaultValue, onChange, quantityDef, section])
+  }, [onChange])
 
-  return <WithHelp {...getFieldProps(quantityDef)}>
+  return <WithHelp {...fieldProps}>
     <FormControlLabel
-      control={<Checkbox onChange={event => handleChange(event.target.checked)} color="primary" defaultChecked={!!section[quantityDef.name] || !!defaultValue} {...otherProps}/>}
-      label={getFieldProps(quantityDef).label}
+      control={(
+        <Checkbox
+          onChange={handleChange}
+          color="primary"
+          checked={!!value}
+          {...otherProps}
+        />)}
+      label={fieldProps.label}
     />
   </WithHelp>
 })
 BoolEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
-  onChange: PropTypes.func.isRequired
+  value: PropTypes.bool,
+  onChange: PropTypes.func
 }

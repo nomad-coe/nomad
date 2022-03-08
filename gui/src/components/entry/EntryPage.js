@@ -70,7 +70,9 @@ const EntryPage = React.memo(() => {
 
   // Reset the urls if a new entry is visited
   useMemo(() => {
-    urls.current = defaultUrls
+    if (entryId) {
+      urls.current = defaultUrls
+    }
   }, [entryId, defaultUrls, urls])
 
   return <EntryContext entryId={entryId}>

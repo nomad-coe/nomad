@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { Box, makeStyles, TextField } from '@material-ui/core'
 import { useEntryContext } from '../entry/EntryContext'
 import _ from 'lodash'
+import ListEditQuantity from '../editQuantity/ListEditQuantity'
 import {DateTimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
 import {StringEditQuantity} from '../editQuantity/StringEditQuantity'
 import {NumberEditQuantity} from '../editQuantity/NumberEditQuantity'
@@ -62,11 +63,6 @@ JsonEditor.propTypes = {
 }
 
 const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section, onChange}) {
-  const handleChange = useCallback((value) => {
-    if (onChange) {
-      onChange(value)
-    }
-  }, [onChange])
   const editAnnotations = quantityDef.m_annotations?.eln || []
   const editAnnotation = editAnnotations[0]
   const componentName = editAnnotation?.component
@@ -75,17 +71,28 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section,
     return ''
   }
   const props = {
-    section: section,
     quantityDef: quantityDef,
-    onChange: handleChange,
+    value: section[quantityDef.name],
+    onChange: onChange,
     ...(editAnnotation?.props || {})
   }
-  return React.createElement(component, props)
+  const shape = quantityDef.shape || []
+  if (shape.length === 0) {
+    return React.createElement(component, props)
+  } else if (shape.length === 1) {
+    return <ListEditQuantity
+      component={component}
+      {...props}
+    />
+  } else {
+    console.log('Unsupported quantity shape ', shape)
+    return ''
+  }
 })
 PropertyEditor.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   section: PropTypes.object.isRequired,
-  onChange: PropTypes.func
+  onChange: PropTypes.func.isRequired
 }
 
 const useSectionEditorStyles = makeStyles(theme => ({
