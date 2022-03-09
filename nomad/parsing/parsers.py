@@ -17,7 +17,7 @@
 #
 
 import os.path
-from typing import Dict
+from typing import Tuple, List, Dict
 
 from nomad import config
 from nomad.datamodel import results
@@ -102,7 +102,7 @@ except ImportError:
     pass
 
 
-def match_parser(mainfile_path: str, strict=True) -> Parser:
+def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tuple[Parser, List[str]]:
     '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -114,12 +114,15 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
     Arguments:
         mainfile_path: Path to the mainfile
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
+        parser_name: Optional, to force the matching to test only a specific parser
 
-    Returns: The parser, or None if no parser could be matched.
+    Returns: A tuple (`parser`, `suffixes`). The `parser` is the matched parser, and `suffixes`
+    a list of suffix strings. Note, if a parser matches but it does not use suffixes, we return
+    the value [''] for `suffixes`. If no parser matches, we return (None, None).
     '''
     mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
-        return None
+        return None, None
 
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
@@ -145,12 +148,18 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
                 decoded_buffer = buffer.decode(encoding)
             except Exception:
                 pass
-
-    for parser in parsers:
+    if parser_name:
+        parser = parser_dict.get(parser_name)
+        assert parser is not None, f'parser by the name `{parser_name}` does not exist'
+        parsers_to_check = [parser]
+    else:
+        parsers_to_check = parsers
+    for parser in parsers_to_check:
         if strict and isinstance(parser, (MissingParser, EmptyParser)):
             continue
 
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
+        match_result = parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression)
+        if match_result:
             # potentially convert the file
             if encoding in ['iso-8859-1']:
                 try:
@@ -163,9 +172,15 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
                         text_file.write(content)
 
             # TODO: deal with multiple possible parser specs
-            return parser
+            if type(match_result) == set:
+                for suffix in match_result:  # type: ignore
+                    assert type(suffix) == str, f'Suffixes must be strings, got {suffix}'
+                suffixes = sorted(match_result)  # type: ignore
+            else:
+                suffixes = ['']
+            return parser, suffixes  # type: ignore
 
-    return None
+    return None, None
 
 
 parsers = [

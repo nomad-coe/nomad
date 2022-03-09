@@ -30,10 +30,10 @@ def parse(
         mainfile_path: str,
         parser_name: str = None,
         backend_factory: typing.Callable = None,
-        strict: bool = True, logger=None):
+        strict: bool = True, logger=None) -> typing.List[datamodel.EntryArchive]:
     '''
-    Run the given parser on the downloaded entry. If no parser is given,
-    do parser matching and use the respective parser.
+    Run the given parser on the provided mainfile. If no parser_name is given,
+    do parser matching and use the matched parser.
     '''
     from nomad import parsing
     from nomad.parsing import parsers
@@ -41,16 +41,13 @@ def parse(
 
     if logger is None:
         logger = utils.get_logger(__name__)
-    if parser_name is not None:
-        parser = parsers.parser_dict.get(parser_name)
-        assert parser is not None, 'the given parser must exist'
+
+    mainfile_path = os.path.abspath(mainfile_path)
+    parser, suffixes = parsers.match_parser(mainfile_path, strict=strict, parser_name=parser_name)
+    if isinstance(parser, parsing.MatchingParser):
+        parser_name = parser.name
     else:
-        mainfile_path = os.path.abspath(mainfile_path)
-        parser = parsers.match_parser(mainfile_path, strict=strict)
-        if isinstance(parser, parsing.MatchingParser):
-            parser_name = parser.name
-        else:
-            parser_name = parser.__class__.__name__
+        parser_name = parser.__class__.__name__
 
     assert parser is not None, 'there is no parser matching %s' % mainfile
     logger = logger.bind(parser=parser.name)  # type: ignore
@@ -58,24 +55,29 @@ def parse(
     if hasattr(parser, 'backend_factory'):
         setattr(parser, 'backend_factory', backend_factory)
 
-    entry_archive = datamodel.EntryArchive()
-    metadata = entry_archive.m_create(datamodel.EntryMetadata)
-    cwd = os.getcwd()
-    try:
-        mainfile_path = os.path.abspath(mainfile_path)
-        os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
-        parser.parse(mainfile_path, entry_archive, logger=logger)
-    except Exception as e:
-        logger.error('parsing was not successful', exc_info=e)
-        raise e
-    finally:
-        os.chdir(cwd)
+    entry_archives = []
+    for suffix in suffixes:
+        entry_archive = datamodel.EntryArchive()
+        metadata = entry_archive.m_create(datamodel.EntryMetadata)
+        metadata.mainfile = mainfile_path + (f'[{suffix}]' if suffix else '')
+        cwd = os.getcwd()
+        try:
+            mainfile_path = os.path.abspath(mainfile_path)
+            os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
+            parser.parse(mainfile_path, entry_archive, logger=logger)
+        except Exception as e:
+            logger.error('parsing was not successful', exc_info=e)
+            raise e
+        finally:
+            os.chdir(cwd)
 
-    if metadata.domain is None:
-        metadata.domain = parser.domain
+        if metadata.domain is None:
+            metadata.domain = parser.domain
+
+        entry_archives.append(entry_archive)
 
     logger.info('ran parser')
-    return entry_archive
+    return entry_archives
 
 
 def normalize(
@@ -189,7 +191,7 @@ class LocalEntryProcessing:
         if exception:
             sys.exit(1)
 
-    def parse(self, parser_name: str = None, **kwargs):
+    def parse(self, parser_name: str = None, **kwargs) -> typing.List[datamodel.EntryArchive]:
         '''
         Run the given parser on the downloaded entry. If no parser is given,
         do parser matching and use the respective parser.

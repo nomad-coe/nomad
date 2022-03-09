@@ -36,16 +36,17 @@ def _parse(mainfile, show_archive, show_metadata, skip_normalizers, not_strict, 
 
     kwargs = dict(strict=not not_strict, parser_name=parser)
 
-    entry_archive = parse(mainfile, **kwargs)
+    entry_archives = parse(mainfile, **kwargs)
 
-    if not skip_normalizers:
-        normalize_all(entry_archive)
-        entry_archive.metadata.apply_archvie_metadata(entry_archive)
+    for entry_archive in entry_archives:
+        if not skip_normalizers:
+            normalize_all(entry_archive)
+            entry_archive.metadata.apply_archvie_metadata(entry_archive)
 
-    if show_archive:
-        json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
+        if show_archive:
+            json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
-    if show_metadata:
-        metadata = entry_archive.metadata
-        metadata.apply_archvie_metadata(entry_archive)
-        json.dump(metadata.m_to_dict(), sys.stdout, indent=4)
+        if show_metadata:
+            metadata = entry_archive.metadata
+            metadata.apply_archvie_metadata(entry_archive)
+            json.dump(metadata.m_to_dict(), sys.stdout, indent=4)

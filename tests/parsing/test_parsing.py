@@ -200,7 +200,7 @@ def test_match(raw_files, with_latin_1_file, no_warn):
     matched_mainfiles = {}
     for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
         mainfile = path_info.path
-        parser = match_parser(upload_files.raw_file_object(mainfile).os_path)
+        parser, _suffixes = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser
 
@@ -217,20 +217,22 @@ def parser_in_dir(dir):
             if 'test' not in file_path:
                 continue
 
-            parser = match_parser(file_path)
+            parser, suffixes = match_parser(file_path)
             if parser is not None:
-
-                try:
-                    archive = datamodel.EntryArchive()
-                    parser.parse(file_path, entry_archive=archive)
-                    # check if the result can be dumped
-                    dump_json(archive.m_to_dict())
-                except Exception as e:
-                    print(file_path, parser, 'FAILURE', e)
-                    import traceback
-                    traceback.print_exc()
-                else:
-                    print(file_path, parser, 'SUCCESS')
+                for suffix in suffixes:
+                    try:
+                        archive = datamodel.EntryArchive()
+                        metadata = archive.m_create(datamodel.EntryMetadata)
+                        metadata.mainfile = file_name + (f'[{suffix}]' if suffix else '')
+                        parser.parse(file_path, entry_archive=archive)
+                        # check if the result can be dumped
+                        dump_json(archive.m_to_dict())
+                    except Exception as e:
+                        print(file_path, parser, 'FAILURE', e)
+                        import traceback
+                        traceback.print_exc()
+                    else:
+                        print(file_path, parser, 'SUCCESS')
 
 
 if __name__ == '__main__':

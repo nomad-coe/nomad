@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List
+from typing import List, Set, Union
 from abc import ABCMeta, abstractmethod
 import re
 import os
@@ -45,9 +45,19 @@ class Parser(metaclass=ABCMeta):
     @abstractmethod
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> bool:
+            compression: str = None) -> Union[bool, Set[str]]:
         '''
-        Checks if a file is a mainfile for the parsers.
+        Checks if a file is a mainfile for the parser. Should return True or a non-empty set
+        of *suffixes* (strings) if it is a mainfile, otherwise a falsey value.
+
+        The option of returning a set of suffixes should only be used by parsers that may
+        generate multiple entries from the same mainfile (which is not the normal case). For
+        the normal case, i.e. parsers that do *not* use suffixes, only one entry will be
+        created when processing the file, and it should have `metadata.mainfile` set to the
+        value of the `filename` argument. For parsers that use suffixes, a separate entry will
+        be created for each suffix when processing, and this entry should have the
+        `metadata.mainfile` set to `filename[suffix]` (or just `filename`, if the suffix is
+        the empty string).
 
         Arguments:
             filename: The filesystem path to the mainfile

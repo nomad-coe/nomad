@@ -641,15 +641,18 @@ async def get_upload_rawdir_path(
                 'embargoed' if upload.embargo_length else 'public'))
 
         if upload_files.raw_path_is_file(path):
+            # Path denotes a file
             response.file_metadata = RawDirFileMetadata(
                 name=os.path.basename(path),
                 size=upload_files.raw_file_size(path))
             if include_entry_info:
-                entry: Entry = Entry.objects(upload_id=upload_id, mainfile=path).first()
+                entries = list(upload.entries_from_mainfile_path(path))
+                entry = entries[0] if entries else None  # TODO: handle mainfiles with multiple entries
                 if entry:
                     response.file_metadata.entry_id = entry.entry_id
                     response.file_metadata.parser_name = entry.parser_name
         else:
+            # Path denotes a directory
             start = pagination.get_simple_index()
             end = start + pagination.page_size
             directory_list = upload_files.raw_directory_list(path)
@@ -672,6 +675,7 @@ async def get_upload_rawdir_path(
 
             if include_entry_info and content:
                 for entry in Entry.objects(upload_id=upload_id, mainfile__in=path_to_element.keys()):
+                    # TODO: handle mainfiles with multiple entries
                     element = path_to_element[entry.mainfile]
                     element.entry_id = entry.entry_id
                     element.parser_name = entry.parser_name
@@ -922,7 +926,7 @@ async def put_upload_raw_path(
 
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            entry = upload.put_file_and_process_local(upload_path, path)
+            entries = upload.put_file_and_process_local(upload_path, path)
             if upload.process_status == ProcessStatus.FAILURE:
                 # Should only happen if we fail to put the file, match the file, or to *initiate*
                 # entry processing - i.e. normally, this shouldn't happen, not even with
@@ -932,6 +936,8 @@ async def put_upload_raw_path(
                     detail=f'Failed to put and process: {upload.errors[0]}')
 
             archive = None
+            # TODO: handle mainfiles with multiple entries
+            entry = entries[0] if entries else None
             if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
                 # NOTE: We can't rely on ES to get the metadata for the entry, since it may
                 # not have had enough time to update its index etc. For now, we will just

@@ -730,14 +730,33 @@ class Entry(Proc):
 
         self._entry_metadata: EntryMetadata = None
         self._perform_index = True
+        self._suffix: str = None
 
     @classmethod
     def get(cls, id) -> 'Entry':
         return cls.get_by_id(id, 'entry_id')
 
     @property
+    def suffix(self) -> str:
+        ''' The parser suffix. The empty string means no suffix. '''
+        if self._suffix is None:
+            basename = os.path.basename(self.mainfile)
+            if basename.endswith(']') and '[' in basename:
+                self._suffix = basename[basename.find('[') + 1:-1]
+            else:
+                self._suffix = ''
+        return self._suffix
+
+    @property
+    def mainfile_path(self) -> str:
+        ''' The mainfile path, i.e. excluding the suffix (if any). '''
+        if self.suffix:
+            return self.mainfile[0:-len(self.suffix) - 2]  # pylint: disable=E1136
+        return self.mainfile
+
+    @property
     def mainfile_file(self) -> PathObject:
-        return self.upload_files.raw_file_object(self.mainfile)
+        return self.upload_files.raw_file_object(self.mainfile_path)
 
     @property
     def processed(self) -> bool:
@@ -769,8 +788,8 @@ class Entry(Proc):
         '''
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile)
-        entry_metadata.files = self.upload_files.entry_files(self.mainfile)
+        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile_path, self.suffix)
+        entry_metadata.files = self.upload_files.entry_files(self.mainfile_path)
         entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
 
@@ -933,8 +952,7 @@ class Entry(Proc):
         else:
             if settings.rematch_published and not settings.use_original_parser:
                 with utils.timer(logger, 'parser matching executed'):
-                    parser = match_parser(
-                        self.upload_files.raw_file_object(self.mainfile).os_path, strict=False)
+                    parser, _suffixes = match_parser(self.mainfile_file.os_path, strict=False)
             else:
                 parser = parser_dict[self.parser_name]
 
@@ -1044,9 +1062,7 @@ class Entry(Proc):
                             'could not re-create parser instance',
                             exc_info=e, error=str(e), **context)
             try:
-                parser.parse(
-                    self.upload_files.raw_file_object(self.mainfile).os_path,
-                    self._parser_results, logger=logger)
+                parser.parse(self.mainfile_file.os_path, self._parser_results, logger=logger)
 
             except Exception as e:
                 raise ProcessFailure('parser failed with exception', exc_info=e, error=str(e), **context)
@@ -1486,7 +1502,7 @@ class Upload(Proc):
             self.cleanup()
 
     @process_local
-    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> Entry:
+    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> List[Entry]:
         '''
         Pushes a raw file, matches it, and if matched, runs the processing - all as a local process.
         If the the target path exists, it will be overwritten. If matched, we return the
@@ -1508,41 +1524,49 @@ class Upload(Proc):
 
         # Match
         self.set_last_status_message('Matching')
-        parser = match_parser(staging_upload_files.raw_file_object(target_path).os_path)
+        parser, suffixes = match_parser(staging_upload_files.raw_file_object(target_path).os_path)
 
-        # Process entry, if matched; remove existing entry if unmatched.
-        entry: Entry = Entry.objects(upload_id=self.upload_id, mainfile=target_path).first()
+        # Process entries, if matched; remove existing entries if unmatched.
+        entries = {e.mainfile: e for e in self.entries_from_mainfile_path(target_path)}
+        mainfiles_to_delete = set(entries.keys())
+        rv = []
         if parser:
-            if entry:
-                # Entry already exists. Reset it and the parser_name attribute
-                entry.parser_name = parser.name
-                entry.reset(force=True)
-                entry.save()
-            else:
-                # Create new entry
-                entry = Entry.create(
-                    entry_id=generate_entry_id(self.upload_id, target_path),
-                    mainfile=target_path,
-                    parser_name=parser.name,
-                    upload_id=self.upload_id)
-                # Apply entry level metadata from files, if provided
-                metadata_handler = MetadataEditRequestHandler(
-                    self.get_logger(), self.main_author_user, staging_upload_files, self.upload_id)
-                entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
-                for quantity_name, mongo_value in entry_metadata.items():
-                    setattr(entry, quantity_name, mongo_value)
-                entry.save()
-            # process locally
-            self.set_last_status_message('Processing')
-            entry.process_entry_local()
-            return entry
-        else:
-            if entry:
-                # The new file does not match a parser, but an old entry exists - delete it
-                delete_partial_archives_from_mongo([entry.entry_id])
+            metadata_handler = MetadataEditRequestHandler(
+                self.get_logger(), self.main_author_user, staging_upload_files, self.upload_id)
+
+            for suffix in suffixes:
+                mainfile = target_path + (f'[{suffix}]' if suffix else '')
+                entry = entries.get(mainfile)
+                if entry:
+                    # Entry already exists. Reset it and the parser_name attribute
+                    entry.parser_name = parser.name
+                    entry.reset(force=True)
+                    entry.save()
+                    mainfiles_to_delete.remove(mainfile)
+                else:
+                    # Create new entry
+                    entry = Entry.create(
+                        entry_id=generate_entry_id(self.upload_id, mainfile),
+                        mainfile=mainfile,
+                        parser_name=parser.name,
+                        upload_id=self.upload_id)
+                    # Apply entry level metadata from files, if provided
+                    entry_metadata = metadata_handler.get_entry_mongo_metadata(self, entry)
+                    for quantity_name, mongo_value in entry_metadata.items():
+                        setattr(entry, quantity_name, mongo_value)
+                    entry.save()
+                # process locally
+                self.set_last_status_message('Processing')
+                entry.process_entry_local()
+                rv.append(entry)
+        # Delete existing unmatched entries
+        if mainfiles_to_delete:
+            delete_partial_archives_from_mongo([entries[mainfile].entry_id for mainfile in mainfiles_to_delete])
+            for mainfile in mainfiles_to_delete:
+                entry = entries[mainfile]
                 search.delete_entry(entry_id=entry.entry_id, update_materials=True)
                 entry.delete()
-        return None
+        return rv
 
     @property
     def upload_files(self) -> UploadFiles:
@@ -1662,9 +1686,11 @@ class Upload(Proc):
                     continue
 
                 try:
-                    parser = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
+                    parser, suffixes = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
                     if parser is not None:
-                        yield path_info.path, parser
+                        for suffix in suffixes:
+                            mainfile = path_info.path + (f'[{suffix}]' if suffix else '')
+                            yield mainfile, parser
                 except Exception as e:
                     self.get_logger().error(
                         'exception while matching pot. mainfile',
@@ -1697,12 +1723,12 @@ class Upload(Proc):
                     for entry in Entry.objects(upload_id=self.upload_id):
                         if entry.process_running:
                             processing_entries.append(entry.entry_id)
-                        if self._passes_path_filter(entry.mainfile, path_filter):
+                        if self._passes_path_filter(entry.mainfile_path, path_filter):
                             old_entries.add(entry.entry_id)
 
                 with utils.timer(logger, 'matching completed'):
-                    for filename, parser in self.match_mainfiles(path_filter):
-                        entry_id = generate_entry_id(self.upload_id, filename)
+                    for mainfile, parser in self.match_mainfiles(path_filter):
+                        entry_id = generate_entry_id(self.upload_id, mainfile)
 
                         try:
                             entry = Entry.get(entry_id)
@@ -1719,7 +1745,7 @@ class Upload(Proc):
                                 # Create new entry
                                 entry = Entry.create(
                                     entry_id=entry_id,
-                                    mainfile=filename,
+                                    mainfile=mainfile,
                                     parser_name=parser.name,
                                     worker_hostname=self.worker_hostname,
                                     upload_id=self.upload_id)
@@ -1777,7 +1803,7 @@ class Upload(Proc):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level
-                        if level == 0 and not self._passes_path_filter(entry.mainfile, path_filter):
+                        if level == 0 and not self._passes_path_filter(entry.mainfile_path, path_filter):
                             continue  # Ignore level 0 parsers if not matching path filter
                         if level >= min_level:
                             if next_level is None or level < next_level:
@@ -1896,6 +1922,17 @@ class Upload(Proc):
     def get_entry(self, entry_id) -> Entry:
         ''' Returns the upload entry with the given id or ``None``. '''
         return Entry.objects(upload_id=self.upload_id, entry_id=entry_id).first()
+
+    def entries_from_mainfile_path(self, mainfile_path: str) -> Iterable[Entry]:
+        ''' Gets the entries generated from a specific mainfile. '''
+        prefix = mainfile_path + '['
+        for entry in Entry.objects(
+                upload_id=self.upload_id,
+                mainfile__gte=mainfile_path,
+                mainfile__lt=mainfile_path + ']'):
+            if entry.mainfile == mainfile_path or (
+                    entry.mainfile.endswith(']') and entry.mainfile.startswith(prefix)):
+                yield entry
 
     @property
     def processed_entries_count(self) -> int:
