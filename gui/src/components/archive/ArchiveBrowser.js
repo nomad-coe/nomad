@@ -619,9 +619,21 @@ function SubSection({subSectionDef, section, editable}) {
         sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
       ))
     }
+    const labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    const getItemLabel = item => {
+      if (labelQuantity) {
+        const value = item[itemLabelKey]
+        if (value) {
+          return <QuantityValue value={item[itemLabelKey]} def={labelQuantity}/>
+        }
+      } else if (itemLabelKey) {
+        return item[itemLabelKey]
+      }
+      return null
+    }
     return {
       label: formatSubSectionName(subSectionDef.name),
-      getItemLabel: (item) => itemLabelKey && item[itemLabelKey]
+      getItemLabel: getItemLabel
     }
   }, [subSectionDef])
 

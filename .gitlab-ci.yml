@@ -116,7 +116,7 @@ gui tests:
   stage: test
   before_script:
     - git submodule sync
-    - git submodule update --init -- gui/materia
+    - git submodule update --init -- gui/materia gui/crystcif-parse
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json

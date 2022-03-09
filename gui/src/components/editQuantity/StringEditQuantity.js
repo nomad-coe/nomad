@@ -146,21 +146,20 @@ export const TextFieldWithHelp = React.memo(React.forwardRef((props, ref) => {
 TextFieldWithHelp.propTypes = {
   withOtherAdornment: PropTypes.bool,
   label: PropTypes.string,
+  value: PropTypes.string,
   helpDescription: PropTypes.string
 }
 
 export const StringEditQuantity = React.memo((props) => {
-  const {quantityDef, value, onChange, ...otherProps} = props
+  const {quantityDef, onChange, ...otherProps} = props
 
   const handleChange = useCallback((value) => {
     if (onChange) {
       onChange(value === '' ? undefined : value)
     }
   }, [onChange])
-
   return <TextFieldWithHelp
     fullWidth variant='filled' size='small'
-    defaultValue={value !== undefined ? value : ''}
     onChange={event => handleChange(event.target.value)}
     {...getFieldProps(quantityDef)}
     {...otherProps}

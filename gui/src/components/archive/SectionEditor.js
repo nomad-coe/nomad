@@ -62,7 +62,7 @@ JsonEditor.propTypes = {
   onChange: PropTypes.func
 }
 
-const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section, onChange}) {
+const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, onChange}) {
   const editAnnotations = quantityDef.m_annotations?.eln || []
   const editAnnotation = editAnnotations[0]
   const componentName = editAnnotation?.component
@@ -72,10 +72,11 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section,
   }
   const props = {
     quantityDef: quantityDef,
-    value: section[quantityDef.name],
+    value: value,
     onChange: onChange,
     ...(editAnnotation?.props || {})
   }
+
   const shape = quantityDef.shape || []
   if (shape.length === 0) {
     return React.createElement(component, props)
@@ -91,7 +92,7 @@ const PropertyEditor = React.memo(function PropertyEditor({quantityDef, section,
 })
 PropertyEditor.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  section: PropTypes.object.isRequired,
+  value: PropTypes.any,
   onChange: PropTypes.func.isRequired
 }
 
@@ -106,6 +107,9 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
   const rootRef = useRef()
 
   const handleChange = useCallback((property, value) => {
+    if (section[property.name] === value) {
+      return
+    }
     section[property.name] = value
     if (onChange) {
       onChange(section)
@@ -128,12 +132,14 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     const jsonData = {}
     sectionDef._allProperties
       .filter(property => property.m_def === QuantityMDef && property.m_annotations?.eln)
+      .filter(property => section[property.name]?.length <= 1e3) // TODO this is just a hack to avoid large values, e.g. rich text with images
       .forEach(property => {
         jsonData[property.name] = section[property.name]
       })
     return jsonData
   }, [showJson, section, sectionDef])
 
+  console.log('### section editor render', section)
   return (
     <div className={classes.root} ref={rootRef}>
       {showJson
@@ -146,7 +152,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
             <Box marginBottom={1} key={property.name}>
               <PropertyEditor
                 quantityDef={property}
-                section={section || {}} onChange={value => handleChange(property, value)}
+                value={section?.[property.name]} onChange={value => handleChange(property, value)}
               />
             </Box>
           ))

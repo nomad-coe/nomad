@@ -31,8 +31,9 @@ m_package = Package(name='material_library')
 
 class Chemical(EntryData):
     '''A chemical available in the lab.'''
+    m_def = Section(label_quantity='formula')
 
-    chemical_name = Quantity(type=str)
+    chemical_name = Quantity(type=str, a_eln=dict(component='StringEditQuantity'))
 
     formula = Quantity(
         type=str,
@@ -99,17 +100,30 @@ class Chemical(EntryData):
             if self.chemical_name:
                 archive.metadata.entry_name += f' ({self.chemical_name})'
 
-            # results = archive.resuls
-            # if not results.material:
-            #     results.material = Material()
-            # try:
-            #     atoms = ase.Atoms(self.formula)
-            #     results.material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
-            #     results.material.chemical_formula_reduced = atoms.get_chemical_formula(mode='reduce')
-            #     results.material.chemical_formula_descriptive = results.material.chemical_formula_hill
-            #     results.material.elements = list(set(atoms.get_chemical_symbols()))
-            # except Exception as e:
-            #     logger.warn('could not normalize formula', exc_info=e)
+
+class Maintenance(MSection):
+    m_def = Section(label_quantity='datetime')
+
+    datetime = Quantity(
+        type=Datetime,
+        description='The date and time of the maintenance.',
+        a_eln=dict(component='DateTimeEditQuantity'))
+
+    maintainer = Quantity(
+        type=MEnum([
+            'Markus Scheidgen',
+            'Pepe Marquez',
+            'Sandor Brockhauser',
+            'Sherjeel Shabih',
+            'Mohammad Nakhaee',
+            'David Sitker']),
+        description='Name or alias of the persen that performed the maintenance.',
+        a_eln=dict(component='AutocompleteEditQuantity'))
+
+    description = Quantity(
+        type=str,
+        description='Description of what was done to the instrument.',
+        a_eln=dict(component='RichTextEditQuantity'))
 
 
 class Instrument(EntryData):
@@ -136,7 +150,11 @@ class Instrument(EntryData):
 
     certificate = Quantity(
         type=str,
-        description='''Link to pdf of the instrument's certificates''')
+        description='''Link to pdf of the instrument's certificates''',
+        a_eln=dict(component='FileEditQuantity'),
+        a_browser=dict(adaptor='RawFileAdaptor'))
+
+    maintenance = SubSection(section_def=Maintenance, repeats=True)
 
     def normalize(self, archive, logger):
         if self.name:
@@ -170,14 +188,35 @@ class Process(MSection):
 
     chemicals = Quantity(
         type=Reference(Chemical.m_def),
+        shape=['*'],
         descriptions='The chemicals used in this process',
         a_eln=dict(component='ReferenceEditQuantity'))
+
+    creates_layer = Quantity(
+        type=bool,
+        a_eln=dict(component='BoolEditQuantity'))
 
     comments = Quantity(
         type=str,
         description='''Remarks about the process that cannot be seen from the data.
                     Might include rich text, images and potentially tables''',
         a_eln=dict(component='RichTextEditQuantity'))
+
+    def normalize(self, archive, logger):
+        if self.creates_layer:
+            logger.debug('create layer if necessary')
+            layer_exists = False
+            for layer in archive.data.layers:
+                if layer.layer_origin is None:
+                    continue
+                if layer.layer_origin.m_resolved() == self:
+                    layer_exists = True
+
+            if not layer_exists:
+                logger.debug('create layer')
+                archive.data.layers.append(Layer(
+                    layer_origin=self,
+                    layer_creation_datetime=self.datetime))
 
 
 class PVDEvaporation(Process):
@@ -231,6 +270,8 @@ class PVDEvaporation(Process):
         a_browser=dict(adaptor='RawFileAdaptor'))
 
     def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
         from nomad.datamodel.metainfo.material_library.PvdPImporter import Importer
         importer = Importer()
         if (self.data_file):
@@ -627,11 +668,7 @@ class StructuralProperties(MSection): pass
 class OptoelectronicProperties(MSection): pass
 
 
-class Layers(MSection):
-    '''
-    List of layers contained in the library, which in turn have subsections
-    describing the layer and its properties.
-    '''
+class Layer(MSection):
     m_def = Section(a_eln=dict())
 
     # layer_id = Quantity(
@@ -664,13 +701,32 @@ class Layers(MSection):
         the stack counting from substrate = 0; not necessarily gapless''',
         a_eln=dict(component='NumberEditQuantity'))
 
-    # layer_origin = Quantity(
-    #     type=str, description='A link to the `process` where the layer was created.')
+    layer_origin = Quantity(
+        type=Reference(Process.m_def),
+        description='A link to the `process` where the layer was created.')
 
-    physical_properties = SubSection(section_def=PhysicalProperties)
-    compositional_properties = SubSection(section_def=CompositionalProperties)
-    structural_properties = SubSection(section_def=StructuralProperties)
-    optoelectronic_properties = SubSection(section_def=OptoelectronicProperties)
+    x_length = Quantity(
+        type=np.dtype(np.float64), unit='meter', shape=[],
+        description='Dimension of the layer in the *x*-direction',
+        a_eln=dict(component='NumberEditQuantity'))
+
+    y_length = Quantity(
+        type=np.dtype(np.float64), unit='meter', shape=[],
+        description='Dimension of the layer in the *y*-direction',
+        a_eln=dict(component='NumberEditQuantity'))
+
+    thickness = Quantity(
+        type=np.dtype(np.float64), unit='meter', shape=["*"],
+        description='Thickness of the layer',
+        a_eln=dict(component='NumberEditQuantity'))
+
+    elements = Quantity(type=str, shape=["*"], a_eln=dict(component='StringEditQuantity'))
+    chemical_formula = Quantity(type=str, a_eln=dict(component='StringEditQuantity'))
+
+    # physical_properties = SubSection(section_def=PhysicalProperties)
+    # compositional_properties = SubSection(section_def=CompositionalProperties)
+    # structural_properties = SubSection(section_def=StructuralProperties)
+    # optoelectronic_properties = SubSection(section_def=OptoelectronicProperties)
 
 
 class Projects(MSection):
@@ -713,9 +769,7 @@ class Sample(EntryData):
             'David Sitker']),
         shape=[],
         description='Name or alias of the process operator.',
-        a_eln=dict(
-            label='Layer type',
-            component='AutocompleteEditQuantity'))
+        a_eln=dict(component='AutocompleteEditQuantity'))
 
     library_id = Quantity(
         type=str,
@@ -742,9 +796,9 @@ class Sample(EntryData):
 
     processes = SubSection(section_def=Processes)
     measurements = SubSection(section_def=Measurements)
-    derived_data = SubSection(section_def=DerivedData, repeats=True)
-    layers = SubSection(section_def=Layers, repeats=True)
-    projects = SubSection(section_def=Projects, repeats=True)
+    # derived_data = SubSection(section_def=DerivedData, repeats=True)
+    layers = SubSection(section_def=Layer, repeats=True)
+    # projects = SubSection(section_def=Projects, repeats=True)
 
 
 m_package.__init_metainfo__()

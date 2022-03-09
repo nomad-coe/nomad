@@ -63,7 +63,6 @@ export const NumberField = React.memo((props) => {
   }, [dataType])
 
   const handleChange = useCallback(() => {
-    console.log('###', inputRef.current)
     const value = inputRef.current.value.trim().replace(/,/g, '.')
     if (value === '') {
       if (onChange) {

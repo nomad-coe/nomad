@@ -252,7 +252,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
               {lanes.current && lanes.current.map((lane, index) => (
-                <Lane key={index} lane={lane} />
+                <Lane key={lane.key} lane={lane} />
               ))}
             </div>
           </div>
