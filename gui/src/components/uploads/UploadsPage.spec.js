@@ -18,111 +18,25 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { waitFor, within } from '@testing-library/dom'
-import { renderNoAPI as render, screen, archives, wait } from '../conftest'
-import { getIndex } from '../../../tests/DFTBulk'
-import { useApi } from '../api'
-import { UploadsPage } from './UploadsPage'
-import supertest from 'supertest'
+import {
+  render,
+  screen,
+  startAPI,
+  closeAPI
+} from '../conftest'
+import UploadPage from './UploadPage'
 
-const express = require('express')
-const createMiddleware = require('@apidevtools/swagger-express-middleware')
-let app = express()
+test('Render upload page: unauthenticated', async () => {
+  startAPI('tests.states.multiple_entries.multiple_entries', 'tests/data/multiple_entries/multiple_entries')
+  render(<UploadPage uploadId={'dft_upload1'}/>)
 
-// eslint-disable-next-line handle-callback-err
-createMiddleware('openapi.json', app, (err, middleware) => {
-  app.use(
-    middleware.metadata(),
-    middleware.parseRequest(),
-    middleware.validateRequest(),
-    middleware.mock()
-  )
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
 
-  supertest(app)
-    .get('/info')
-    .then(response => {
-      if (response) {}
-      // console.log(response.body)
-    })
-    // .end(function(err, res) {
-    //   if (err) console.log(err)
-    // })
-})
+  expect(screen.queryByTestId('step-prepare-and-upload-your-files')).toBeInTheDocument()
+  expect(screen.queryByTestId('step-process-data')).toBeInTheDocument()
+  expect(screen.queryByTestId('step-edit-author-metadata')).toBeNull()
+  expect(screen.queryByTestId('step-publish')).toBeNull()
 
-jest.mock('../api')
-const index = getIndex()
-
-beforeAll(() => {
-  // API mock init
-  useApi.mockReturnValue({
-    api: {
-      post: () => wait({response: {data: {archive: archives.get(index.entry_id)}}}), // results
-      get: (url) => {
-        switch (url) {
-          case '/uploads?page_size=10&page=1&order_by=upload_create_time&order=desc':
-            return wait({response: { // response when page_size != 0
-              query: {},
-              data: [index],
-              pagination: {
-                'page_size': 10,
-                'order_by': 'upload_create_time',
-                'order': 'desc',
-                'page': 1,
-                'total': 1
-              }
-            }})
-          case '/uploads?is_published=false&page_size=0&order_by=upload_create_time&order=desc':
-            return wait(
-              { // response when page_size=0
-                query: {
-                  'is_published': false
-                },
-                data: [],
-                pagination: {
-                  'page_size': 0,
-                  'order_by': 'upload_create_time',
-                  'order': 'desc',
-                  'page': 1,
-                  'total': 0
-                }
-              })
-          default:
-            return wait({response: { // response any other url
-            }})
-        }
-      }}})
-})
-
-afterAll(() => {
-  // API mock cleanup
-  jest.unmock('../api')
-})
-
-test('correctly renders uploads page', async () => {
-  render(<UploadsPage/>)
-
-  // Wait to load the UploadsPage
-  await waitFor(() => {
-    expect(screen.queryByRole('new-upload-button')).toBeInTheDocument()
-  })
-
-  expect(screen.queryByRole('upload-commands')).toBeInTheDocument()
-  expect(screen.queryByRole('error-maximum-number-of-unpublished')).toBeNull()
-
-  // Test if the table header is rendered correctly
-  expect(screen.queryByText('Your existing uploads')).toBeInTheDocument()
-  expect(screen.queryByRole('table-pagination')).toBeInTheDocument()
-  expect(screen.queryByRole('datatable-body')).toBeInTheDocument()
-
-  let datatableBody = screen.getByRole('datatable-body')
-
-  // Test if the times are printed correctly
-  expect(within(datatableBody).queryByText('2021-03-17T13:47:32.899000')).toBeNull()
-  expect(within(datatableBody).queryByText(new Date('2021-03-17T13:47:32.899000').toLocaleString())).toBeInTheDocument()
-
-  // Test if the published icon is printed not unpublished icon
-  expect(within(datatableBody).queryByTitle('published upload')).toBeInTheDocument()
-  expect(within(datatableBody).queryByTitle('this upload is not yet published')).toBeNull()
-
-  // TODO: test if the data is sorted by upload_create_time. It needs more test data in DFTBulk.js.
+  closeAPI()
 })
