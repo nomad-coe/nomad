@@ -423,6 +423,11 @@ class EntryMetadata(metainfo.MSection):
                 es_query='match_phrase_prefix', mapping='text', _es_field='')
         ])
 
+    entry_type = metainfo.Quantity(
+        type=str,
+        description='The main schema definition. This is the name of the section used for data.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
     calc_id = metainfo.Quantity(
         type=str, description='Legacy field name, use `entry_id` instead.',
         derived=lambda entry: entry.entry_id,

@@ -246,7 +246,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
                   icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
                   itemKey={element.name} key={path ? path + '/' + element.name : element.name}
                   highlighted={element.name === highlightedItem}
-                  chip={element.parser_name && element.parser_name.replace('parsers/', '')}
+                  chip={element.parser_name && element.parser_name.replace('parsers/', '').replace('archive', 'nomad')}
                 >
                   {element.name}
                 </Item>

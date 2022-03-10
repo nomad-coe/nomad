@@ -32,6 +32,14 @@ import { useUploadContext } from './UploadContext'
 
 const columns = [
   {
+    key: 'entry_name',
+    label: 'Name',
+    align: 'left',
+    sortable: false,
+    render: entry => <Quantity quantity={'entry_name'} noWrap noLabel placeholder="unnamed" data={entry} />
+  },
+  {key: 'entry_type', align: 'left', sortable: false, label: 'Type'},
+  {
     key: 'mainfile',
     align: 'left',
     render: entry => <Quantity quantity={'mainfile'} noLabel noWrap withClipboard data={entry}/>
@@ -44,7 +52,13 @@ const columns = [
   },
   {key: 'parser_name', align: 'left'},
   {key: 'process_status', align: 'left'},
-  {key: 'complete_time', align: 'left', sortable: false},
+  {
+    label: 'Modified',
+    key: 'complete_time',
+    align: 'left',
+    sortable: false,
+    render: entry => new Date(entry.complete_time).toLocaleString()
+  },
   {key: 'comment', sortable: false, align: 'left'},
   {
     key: 'references',
@@ -83,9 +97,10 @@ const columns = [
 addColumnDefaults(columns)
 
 const defaultSelectedColumns = [
+  'entry_name',
+  'entry_type',
   'mainfile',
-  'parser_name',
-  'process_status'
+  'complete_time'
 ]
 
 export default function ProcessingTable(props) {

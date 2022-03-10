@@ -95,6 +95,8 @@ class Chemical(EntryData):
         a_eln=dict(component='RichTextEditQuantity'))
 
     def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
         if self.formula:
             archive.metadata.entry_name = self.formula
             if self.chemical_name:
@@ -157,12 +159,14 @@ class Instrument(EntryData):
     maintenance = SubSection(section_def=Maintenance, repeats=True)
 
     def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
         if self.name:
             archive.metadata.entry_name = self.name
 
 
 class Process(MSection):
-    ''' Any physical process applied to the sample library. '''
+    ''' Any physical process applied to the sample. '''
     operator = Quantity(
         type=MEnum([
             'Markus Scheidgen',
@@ -389,7 +393,7 @@ class ChemicalBathDeposition(Process):
 
 class Processes(MSection):
     '''
-    Experiment event which  generally change the library or a new component is added to it.
+    Experiment event which  generally change the sample or a new component is added to it.
     For example, in the context of thin films, cleaning the substrate or
     the deposition of a new layer by evaporation are `processes`.
     '''
@@ -407,7 +411,7 @@ class Processes(MSection):
 
 class Measurement(MSection):
     '''
-    Any measurement performed on the sample library.
+    Any measurement performed on the sample.
     '''
     instrument = Quantity(
         type=Reference(Instrument.m_def),
@@ -598,7 +602,7 @@ class TerahertzSpectroscopy(Measurement): pass
 
 class Measurements(MSection):
     '''
-    Experimental procedure in which a material library or sample gets characterized
+    Experimental procedure in which a sample gets characterized
     by a technique. For example, a measurment by X-ray diffraction to characterize
     the structural properties of an specimen or X-ray fluorescence
     to characterize its composition.
@@ -759,7 +763,7 @@ class Sample(EntryData):
     the chemical compostion of the film varies in the x and y directions.
     '''
 
-    library_owner = Quantity(
+    sample_owner = Quantity(
         type=MEnum([
             'Markus Scheidgen',
             'Pepe Marquez',
@@ -771,19 +775,19 @@ class Sample(EntryData):
         description='Name or alias of the process operator.',
         a_eln=dict(component='AutocompleteEditQuantity'))
 
-    library_id = Quantity(
+    sample_id = Quantity(
         type=str,
-        description='Full library id.',
+        description='Full sample id.',
         a_eln=dict(component='StringEditQuantity'))
 
-    library_name = Quantity(
+    sample_name = Quantity(
         type=str,
-        description='Short name of the library (the id on the substrate), e.g. `4001-8`.',
+        description='Short name of the sample (the id on the substrate), e.g. `4001-8`.',
         a_eln=dict(component='StringEditQuantity'))
 
     creation_datetime = Quantity(
         type=Datetime,
-        description='Creation date of the library.',
+        description='Creation date of the sample.',
         a_eln=dict(component='DateTimeEditQuantity'))
 
     institute = Quantity(

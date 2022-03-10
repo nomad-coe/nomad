@@ -45,7 +45,7 @@ const useFolderStyles = makeStyles(theme => ({
 
   },
   tags: {
-    textTransform: 'uppercase',
+    // textTransform: 'uppercase',
     marginLeft: theme.spacing(1)
   },
   info: {
@@ -90,7 +90,7 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
         {parser && <Typography variant="caption">mainfile</Typography>}
       </div>}
       <div className={classes.tags}>
-        {parser && <Chip size="small" label={parser} color="primary" />}
+        {parser && <Chip size="small" label={parser} color="default" />}
       </div>
     </div>
     <Collapse in={open} className={classes.children}>
@@ -160,7 +160,7 @@ export default function FilesBrower({uploadId, disabled}) {
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
           if (item.parser_name) {
-            item.parser = item.parser_name.replace('parsers/', '')
+            item.parser = item.parser_name.replace('parsers/', '').replace('archive', 'nomad')
           }
         })
       setRenderCounter(renderCounter => renderCounter + 1)

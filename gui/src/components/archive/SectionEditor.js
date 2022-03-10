@@ -139,7 +139,6 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
     return jsonData
   }, [showJson, section, sectionDef])
 
-  console.log('### section editor render', section)
   return (
     <div className={classes.root} ref={rootRef}>
       {showJson

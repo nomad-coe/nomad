@@ -24,3 +24,6 @@ class EntryData(metainfo.MSection):
     An empty base section definition. This can be used to add new top-level sections
     to an entry.
     '''
+
+    def normalize(self, archive, logger):
+        archive.metadata.entry_type = self.m_def.name
