@@ -25,10 +25,11 @@ import {
   closeAPI
 } from '../conftest'
 import UploadPage from './UploadPage'
+import { within } from '@testing-library/dom'
 
 test('Render upload page: unauthenticated', async () => {
   startAPI('tests.states.multiple_entries.multiple_entries', 'tests/data/multiple_entries/multiple_entries')
-  render(<UploadPage uploadId={'dft_upload1'}/>)
+  render(<UploadPage uploadId={'dft_upload_1'}/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -37,6 +38,19 @@ test('Render upload page: unauthenticated', async () => {
   expect(screen.queryByTestId('step-process-data')).toBeInTheDocument()
   expect(screen.queryByTestId('step-edit-author-metadata')).toBeNull()
   expect(screen.queryByTestId('step-publish')).toBeNull()
+
+  // Test if the table header is rendered correctly
+  expect(screen.queryByText('4 entries')).toBeInTheDocument()
+  expect(screen.queryByRole('table-pagination')).toBeInTheDocument()
+  expect(screen.queryByRole('datatable-body')).toBeInTheDocument()
+
+  let datatableBody = screen.getByRole('datatable-body')
+
+  // Test if the name of the entries are rendered
+  expect(within(datatableBody).queryByText('vasp_1.xml')).toBeInTheDocument()
+  expect(within(datatableBody).queryByText('vasp_2.xml')).toBeInTheDocument()
+  expect(within(datatableBody).queryByText('vasp_3.xml')).toBeInTheDocument()
+  expect(within(datatableBody).queryByText('vasp_4.xml')).toBeInTheDocument()
 
   closeAPI()
 })

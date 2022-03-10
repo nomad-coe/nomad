@@ -31,14 +31,16 @@ def multiple_entries():
     main_author = infrastructure.keycloak.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
-    upload_id = 'dft_upload1'
-    entry_id = 'dft_bulk1'
+    upload_id = 'dft_upload_1'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
-    entry = data.create_entry(
-        upload_id=upload_id,
-        entry_id=entry_id,
-        mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk()
-    )
+
+    for i in range(1, 5):
+        entry_id = f'dft_bulk_{i}'
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=entry_id,
+            mainfile=f'vasp_{i}.xml',
+            entry_archive=archive_dft_bulk()
+        )
 
     data.save()
