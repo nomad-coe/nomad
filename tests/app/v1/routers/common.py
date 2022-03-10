@@ -109,34 +109,35 @@ def get_query_test_parameters(
     ]
 
 
-def owner_test_parameters(total: int):
+def owner_test_parameters():
     return [
-        pytest.param('user', None, 401, -1, id='user-wo-auth'),
-        pytest.param('staging', None, 401, -1, id='staging-wo-auth'),
-        pytest.param('visible', None, 200, total, id='visible-wo-auth'),
-        pytest.param('admin', None, 401, -1, id='admin-wo-auth'),
-        pytest.param('shared', None, 401, -1, id='shared-wo-auth'),
-        pytest.param('public', None, 200, total, id='public-wo-auth'),
+        # (owner, user, status_code, total_entries, total_mainfiles, total_materials)
+        pytest.param('user', None, 401, -1, -1, -1, id='user-wo-auth'),
+        pytest.param('staging', None, 401, -1, -1, -1, id='staging-wo-auth'),
+        pytest.param('visible', None, 200, 23, 23, 6, id='visible-wo-auth'),
+        pytest.param('admin', None, 401, -1, -1, -1, id='admin-wo-auth'),
+        pytest.param('shared', None, 401, -1, -1, -1, id='shared-wo-auth'),
+        pytest.param('public', None, 200, 23, 23, 6, id='public-wo-auth'),
 
-        pytest.param('user', 'test_user', 200, total + 6, id='user-test-user'),
-        pytest.param('staging', 'test_user', 200, 3, id='staging-test-user'),
-        pytest.param('visible', 'test_user', 200, total + 6, id='visible-test-user'),
-        pytest.param('admin', 'test_user', 401, -1, id='admin-test-user'),
-        pytest.param('shared', 'test_user', 200, total + 6, id='shared-test-user'),
-        pytest.param('public', 'test_user', 200, total, id='public-test-user'),
+        pytest.param('user', 'test_user', 200, 32, 30, 13, id='user-test-user'),
+        pytest.param('staging', 'test_user', 200, 6, 4, 4, id='staging-test-user'),
+        pytest.param('visible', 'test_user', 200, 32, 30, 13, id='visible-test-user'),
+        pytest.param('admin', 'test_user', 401, -1, -1, -1, id='admin-test-user'),
+        pytest.param('shared', 'test_user', 200, 32, 30, 13, id='shared-test-user'),
+        pytest.param('public', 'test_user', 200, 23, 23, 6, id='public-test-user'),
 
-        pytest.param('user', 'other_test_user', 200, 0, id='user-other-test-user'),
-        pytest.param('staging', 'other_test_user', 200, 2, id='staging-other-test-user'),
-        pytest.param('visible', 'other_test_user', 200, total + 4, id='visible-other-test-user'),
-        pytest.param('shared', 'other_test_user', 200, 4, id='shared-other-test-user'),
-        pytest.param('public', 'other_test_user', 200, total, id='public-other-test-user'),
+        pytest.param('user', 'other_test_user', 200, 0, 0, 0, id='user-other-test-user'),
+        pytest.param('staging', 'other_test_user', 200, 2, 2, 2, id='staging-other-test-user'),
+        pytest.param('visible', 'other_test_user', 200, 27, 27, 10, id='visible-other-test-user'),
+        pytest.param('shared', 'other_test_user', 200, 4, 4, 4, id='shared-other-test-user'),
+        pytest.param('public', 'other_test_user', 200, 23, 23, 6, id='public-other-test-user'),
 
-        pytest.param('all', None, 200, total + 3, id='metadata-all-wo-auth'),
-        pytest.param('all', 'test_user', 200, total + 6, id='metadata-all-test-user'),
-        pytest.param('all', 'other_test_user', 200, total + 5, id='metadata-all-other-test-user'),
+        pytest.param('all', None, 200, 26, 26, 9, id='metadata-all-wo-auth'),
+        pytest.param('all', 'test_user', 200, 32, 30, 13, id='metadata-all-test-user'),
+        pytest.param('all', 'other_test_user', 200, 28, 28, 11, id='metadata-all-other-test-user'),
 
-        pytest.param('admin', 'admin_user', 200, total + 6, id='admin-admin-user'),
-        pytest.param('all', 'bad_user', 401, -1, id='bad-credentials')
+        pytest.param('admin', 'admin_user', 200, 32, 30, 13, id='admin-admin-user'),
+        pytest.param('all', 'bad_user', 401, -1, -1, -1, id='bad-credentials')
     ]
 
 
@@ -183,7 +184,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
         ),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id'}},
-            7, 7, 200, 'test_user', id='default'),
+            8, 8, 200, 'test_user', id='default'),
         pytest.param(
             {
                 'terms': {
@@ -191,7 +192,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': f'{entry_prefix}main_author.user_id'}
                 }
             },
-            7, 7, 200, 'test_user', id='order-str'),
+            8, 8, 200, 'test_user', id='order-str'),
         pytest.param(
             {
                 'terms': {
@@ -199,7 +200,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': upload_create_time}
                 }
             },
-            7, 7, 200, 'test_user', id='order-date'),
+            8, 8, 200, 'test_user', id='order-date'),
         pytest.param(
             {
                 'terms': {
@@ -207,7 +208,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order_by': f'{entry_prefix}results.properties.n_calculations'}
                 }
             },
-            7, 7, 200, 'test_user', id='order-int'),
+            8, 8, 200, 'test_user', id='order-int'),
         pytest.param(
             {'terms': {'quantity': f'{material_prefix}symmetry.structure_name'}},
             0, 0, 200, 'test_user', id='no-results'),
@@ -218,7 +219,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'page_after_value': 'id_published'}
                 }
             },
-            7, 3, 200, 'test_user', id='after'),
+            8, 4, 200, 'test_user', id='after'),
         pytest.param(
             {
                 'terms': {
@@ -229,13 +230,13 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     }
                 }
             },
-            7, 3, 200, 'test_user', id='after-order'),
+            8, 4, 200, 'test_user', id='after-order'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
-            7, 7, 200, 'test_user', id='entries'),
+            8, 8, 200, 'test_user', id='entries'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 1}}},
-            7, 7, 200, 'test_user', id='entries-size'),
+            8, 8, 200, 'test_user', id='entries-size'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 0}}},
             -1, -1, 422, 'test_user', id='bad-entries'),
@@ -251,7 +252,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     }
                 }
             },
-            7, 7, 200, 'test_user', id='entries-include'),
+            8, 8, 200, 'test_user', id='entries-include'),
         pytest.param(
             {'terms': {'quantity': program_name}},
             n_code_names, n_code_names, 200, None, id='fixed-values'),
@@ -283,7 +284,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'order': 'asc'}
                 }
             },
-            7, 7, 200, 'test_user', id='order-direction'),
+            8, 8, 200, 'test_user', id='order-direction'),
         pytest.param(
             {'terms': {'quantity': 'does not exist'}},
             -1, -1, 422, None, id='bad-quantity'),

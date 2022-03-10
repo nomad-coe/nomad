@@ -215,17 +215,20 @@ def test_materials_get_query(client, data, query, status_code, total):
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('owner, user, status_code, total', owner_test_parameters(total=6))
+@pytest.mark.parametrize(
+    'owner, user, status_code, total_entries, total_mainfiles, total_materials',
+    owner_test_parameters())
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_materials_metadata_test, id='metadata')])
 def test_materials_owner(
         client, data, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
+        owner, user, status_code, total_entries, total_mainfiles, total_materials,
+        http_method, test_method):
 
     perform_owner_test(
         client, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method)
+        owner, user, status_code, total_materials, http_method, test_method)
 
 
 @pytest.mark.parametrize('pagination, response_pagination, status_code', pagination_test_parameters(

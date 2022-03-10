@@ -337,9 +337,9 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_upload_ids=[
                 'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_processing', 'id_empty'],
+                'id_published', 'id_suffixes', 'id_processing', 'id_empty'],
             expected_pagination={
-                'total': 9, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'total': 10, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}
         ), id='no-args'),
     pytest.param(
@@ -370,7 +370,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_upload_ids=[
                 'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_empty'],
+                'id_published', 'id_suffixes', 'id_empty'],
         ), id='filter-is_processing-False'),
     pytest.param(
         dict(
@@ -382,7 +382,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'is_published': False},
             expected_upload_ids=[
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_processing', 'id_empty'],
+                'id_suffixes', 'id_processing', 'id_empty'],
         ), id='filter-is_published-False'),
     pytest.param(
         dict(
@@ -409,7 +409,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'page_size': 2},
             expected_upload_ids=['id_embargo', 'id_embargo_w_coauthor'],
             expected_pagination={
-                'total': 9, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'total': 10, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
         ), id='pag-page-1'),
     pytest.param(
@@ -417,20 +417,20 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'page_size': 2, 'page': 2},
             expected_upload_ids=['id_embargo_w_reviewer', 'id_unpublished'],
             expected_pagination={
-                'total': 9, 'page': 2, 'page_after_value': '1', 'next_page_after_value': '3',
+                'total': 10, 'page': 2, 'page_after_value': '1', 'next_page_after_value': '3',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': Any, 'first_page_url': Any}
         ), id='pag-page-2'),
     pytest.param(
         dict(
-            query_params={'page_size': 3, 'page': 3},
-            expected_upload_ids=['id_published', 'id_processing', 'id_empty'],
+            query_params={'page_size': 4, 'page': 3},
+            expected_upload_ids=['id_processing', 'id_empty'],
             expected_pagination={
-                'total': 9, 'page': 3, 'page_after_value': '5', 'next_page_after_value': None,
+                'total': 10, 'page': 3, 'page_after_value': '7', 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': Any, 'first_page_url': Any}
         ), id='pag-page-3'),
     pytest.param(
         dict(
-            query_params={'page_size': 3, 'page': 4},
+            query_params={'page_size': 5, 'page': 3},
             expected_status_code=400
         ), id='pag-page-out-of-range'),
     pytest.param(
@@ -438,7 +438,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'page_size': 2, 'order': 'desc'},
             expected_upload_ids=['id_empty', 'id_processing'],
             expected_pagination={
-                'total': 9, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
+                'total': 10, 'page': 1, 'page_after_value': None, 'next_page_after_value': '1',
                 'page_url': Any, 'next_page_url': Any, 'prev_page_url': None, 'first_page_url': Any}
         ), id='pag-page-order-desc'),
     pytest.param(

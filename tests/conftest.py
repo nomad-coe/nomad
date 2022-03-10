@@ -775,6 +775,8 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         partial archive exists only for id_01
         raw files and archive file for id_02 are missing
         id_10, id_11 reside in the same directory
+    id_suffixes:
+        3 entries from one mainfile, 1 material, unpublished
     id_processing:
         unpublished upload without any entries, in status processing
     id_empty:
@@ -834,6 +836,19 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         if i == 1:
             archive = data.archives[entry_id]
             write_partial_archive_to_mongo(archive)
+
+    # 3 entries from one mainfile, 1 material, unpublished
+    upload_id = 'id_suffixes'
+    data.create_upload(
+        upload_id=upload_id,
+        upload_name='name_suffixes',
+        published=False)
+    for suffix in ('', 'suffix1', 'suffix2'):
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=upload_id + '_' + (suffix or 'none'),
+            material_id=upload_id,
+            mainfile=f'test_content/mainfile_suffixes.json' + (f'[{suffix}]' if suffix else ''))
 
     # one upload, no entries, still processing
     data.create_upload(

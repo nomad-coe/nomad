@@ -56,6 +56,11 @@ def perform_entries_raw_test(
         client, headers={}, query={}, owner=None, files={}, total=-1, files_per_entry=5,
         status_code=200, http_method='get'):
 
+    if type(total) == int:
+        total_entries = total_mainfiles = total
+    else:
+        total_entries, total_mainfiles = total
+
     if owner == 'all':
         # This operation is not allow for owner 'all'
         status_code = 401
@@ -79,7 +84,7 @@ def perform_entries_raw_test(
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
-            response, files=total * files_per_entry + 1, manifest_entries=total,
+            response, files=total_mainfiles * files_per_entry + 1, manifest_entries=total_entries,
             compressed=files.get('compress', False))
 
 
@@ -339,7 +344,7 @@ def test_entries_all_metrics(client, data):
                     }
                 }
             },
-            7, 7, 200, 'test_user', id='entries-exclude'),
+            8, 8, 200, 'test_user', id='entries-exclude'),
         pytest.param(
             {'terms': {'quantity': 'entry_id', 'include': '_0'}},
             9, 9, 200, None, id='filter'),
@@ -728,7 +733,9 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('owner, user, status_code, total', owner_test_parameters(total=23))
+@pytest.mark.parametrize(
+    'owner, user, status_code, total_entries, total_mainfiles, total_materials',
+    owner_test_parameters())
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
@@ -738,8 +745,10 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_owner(
         client, data, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
+        owner, user, status_code, total_entries, total_mainfiles, total_materials,
+        http_method, test_method):
 
+    total = (total_entries, total_mainfiles) if test_method == perform_entries_raw_test else total_entries
     perform_owner_test(
         client, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total, http_method, test_method)
