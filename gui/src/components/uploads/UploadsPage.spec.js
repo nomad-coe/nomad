@@ -28,7 +28,7 @@ import UploadPage from './UploadPage'
 import { within } from '@testing-library/dom'
 
 test('Render upload page: unauthenticated', async () => {
-  startAPI('tests.states.multiple_entries.multiple_entries', 'tests/data/multiple_entries/multiple_entries')
+  startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
   render(<UploadPage uploadId={'dft_upload_1'}/>)
 
   // Wait to load the page, i.e. wait for some text to appear
@@ -51,6 +51,29 @@ test('Render upload page: unauthenticated', async () => {
   expect(within(datatableBody).queryByText('vasp_2.xml')).toBeInTheDocument()
   expect(within(datatableBody).queryByText('vasp_3.xml')).toBeInTheDocument()
   expect(within(datatableBody).queryByText('vasp_4.xml')).toBeInTheDocument()
+
+  closeAPI()
+})
+
+test('Render upload page: one entry', async () => {
+  startAPI('tests.states.uploads.one_entry', 'tests/data/uploads/one_entry')
+  render(<UploadPage uploadId={'dft_upload'}/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if the table header is rendered correctly
+  expect(screen.queryByText('1 entry')).toBeInTheDocument()
+
+  closeAPI()
+})
+
+test('Render upload page: not exists', async () => {
+  startAPI('tests.states.uploads.one_entry', 'tests/data/uploads/not_exists')
+  render(<UploadPage uploadId={'a_not_exists_upload_ID'}/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('The specified upload_id was not found.')
 
   closeAPI()
 })

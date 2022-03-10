@@ -1,0 +1,27 @@
+{
+  "65bc4b35ab3ab26ba5a6e187a063b398": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/a_not_exists_upload_ID/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "detail": "The specified upload_id was not found."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "51",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

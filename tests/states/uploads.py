@@ -16,16 +16,35 @@
 # limitations under the License.
 #
 
-import json
 from nomad import infrastructure
 from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
 
 
+def one_entry():
+    '''
+    State containing one entry
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    upload_id = 'dft_upload'
+    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
+    entry_id = 'dft_bulk'
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=entry_id,
+        mainfile='vasp.xml',
+        entry_archive=archive_dft_bulk()
+    )
+
+    data.save()
+
+
 def multiple_entries():
     '''
-    State containing DFT entries that can be used to e.g. test the different
-    entry tabs.
+    State containing multiple DFT entries
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
