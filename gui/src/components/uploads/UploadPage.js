@@ -495,7 +495,7 @@ function UploadPage() {
           </WithButton>
         </Grid>
         <Grid>
-          <EditMembersDialog/>
+          <EditMembersDialog disabled={!isWriter}/>
           <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
           <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
             <Tooltip title="Reprocess">
