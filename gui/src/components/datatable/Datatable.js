@@ -122,7 +122,7 @@ export const DatatablePagePagination = React.memo(function DatatablePagePaginati
     page={pagination.page - 1}
     onPageChange={handleChangePage}
     onRowsPerPageChange={handleChangeRowsPerPage}
-    role='table-pagination'
+    data-testid='table-pagination'
   />
 })
 DatatablePagePagination.propTypes = {
@@ -372,6 +372,7 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
       role="checkbox"
       tabIndex={-1}
       selected={selected}
+      data-testid={'datatable-row'}
     >
       {withSelectionFeature && <TableCell padding="checkbox">
         <Checkbox
@@ -455,7 +456,7 @@ export const DatatableTable = React.memo(function DatatableTable({children, acti
 
   const table = <Table size="medium" stickyHeader={isScrolling}>
     {!noHeader && <DatatableHeader actions={actions}/>}
-    <TableBody role='datatable-body'>
+    <TableBody data-testid='datatable-body'>
       {dataToShow.map((row, index) => (
         <DatatableRow
           actions={actions}

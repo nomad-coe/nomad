@@ -75,18 +75,22 @@ test('Render upload page: multiple entries', async () => {
 
   // Test if the table header is rendered correctly
   expect(screen.queryByText('6 entries')).toBeInTheDocument()
-  expect(screen.queryByRole('table-pagination')).toBeInTheDocument()
-  expect(screen.queryByRole('datatable-body')).toBeInTheDocument()
+  expect(screen.queryByTestId('table-pagination')).toBeInTheDocument()
+  expect(screen.queryByTestId('datatable-body')).toBeInTheDocument()
 
-  let datatableBody = screen.getByRole('datatable-body')
+  let datatableBody = screen.getByTestId('datatable-body')
 
-  // Test if the name of the entries are rendered
-  expect(within(datatableBody).queryByText('vasp_1.xml')).toBeInTheDocument()
-  expect(within(datatableBody).queryByText('vasp_2.xml')).toBeInTheDocument()
-  expect(within(datatableBody).queryByText('vasp_3.xml')).toBeInTheDocument()
-  expect(within(datatableBody).queryByText('vasp_4.xml')).toBeInTheDocument()
-  expect(within(datatableBody).queryByText('vasp_5.xml')).toBeInTheDocument()
+  // Test if the pagination works correctly
+  let rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(5)
   expect(within(datatableBody).queryByText('vasp_6.xml')).not.toBeInTheDocument()
+
+  // Test if the name of the entries are rendered in the right order
+  expect(within(rows[0]).queryByText('vasp_1.xml')).toBeInTheDocument()
+  expect(within(rows[1]).queryByText('vasp_2.xml')).toBeInTheDocument()
+  expect(within(rows[2]).queryByText('vasp_3.xml')).toBeInTheDocument()
+  expect(within(rows[3]).queryByText('vasp_4.xml')).toBeInTheDocument()
+  expect(within(rows[4]).queryByText('vasp_5.xml')).toBeInTheDocument()
 
   closeAPI()
 })
