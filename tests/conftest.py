@@ -641,7 +641,8 @@ def oasis_publishable_upload(
         bundle_info['upload_id'] += suffix
         bundle_info['upload']['_id'] += suffix
         for entry_dict in bundle_info['entries']:
-            entry_dict['_id'] = generate_entry_id(upload_id + suffix, entry_dict['mainfile'])
+            entry_dict['_id'] = generate_entry_id(
+                upload_id + suffix, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
             entry_dict['upload_id'] += suffix
 
     old_bundle_import_files = files.UploadBundle.import_upload_files
@@ -660,7 +661,9 @@ def oasis_publishable_upload(
                     section_metadata = archive_dict['metadata']
                     section_metadata['upload_id'] += suffix
                     new_entry_id = generate_entry_id(
-                        section_metadata['upload_id'], section_metadata['mainfile'])
+                        section_metadata['upload_id'],
+                        section_metadata['mainfile'],
+                        section_metadata.get('mainfile_key'))
                     section_metadata['entry_id'] = new_entry_id
                     new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
@@ -775,8 +778,8 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         partial archive exists only for id_01
         raw files and archive file for id_02 are missing
         id_10, id_11 reside in the same directory
-    id_suffixes:
-        3 entries from one mainfile, 1 material, unpublished
+    id_child_entries:
+        1 parent entry and 2 child entries from one mainfile, 1 material, unpublished
     id_processing:
         unpublished upload without any entries, in status processing
     id_empty:
@@ -838,17 +841,18 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             write_partial_archive_to_mongo(archive)
 
     # 3 entries from one mainfile, 1 material, unpublished
-    upload_id = 'id_suffixes'
+    upload_id = 'id_child_entries'
     data.create_upload(
         upload_id=upload_id,
-        upload_name='name_suffixes',
+        upload_name='name_child_entries',
         published=False)
-    for suffix in ('', 'suffix1', 'suffix2'):
+    for mainfile_key in (None, 'child1', 'child2'):
         data.create_entry(
             upload_id=upload_id,
-            entry_id=upload_id + '_' + (suffix or 'none'),
+            entry_id=upload_id + '_' + (mainfile_key or 'main'),
             material_id=upload_id,
-            mainfile=f'test_content/mainfile_suffixes.json' + (f'[{suffix}]' if suffix else ''))
+            mainfile=f'test_content/mainfile_w_children.json',
+            mainfile_key=mainfile_key)
 
     # one upload, no entries, still processing
     data.create_upload(

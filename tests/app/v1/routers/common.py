@@ -219,7 +219,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     'pagination': {'page_after_value': 'id_published'}
                 }
             },
-            8, 4, 200, 'test_user', id='after'),
+            8, 3, 200, 'test_user', id='after'),
         pytest.param(
             {
                 'terms': {
@@ -230,7 +230,7 @@ def aggregation_test_parameters(entity_id: str, material_prefix: str, entry_pref
                     }
                 }
             },
-            8, 4, 200, 'test_user', id='after-order'),
+            8, 3, 200, 'test_user', id='after-order'),
         pytest.param(
             {'terms': {'quantity': f'{entry_prefix}upload_id', 'entries': {'size': 10}}},
             8, 8, 200, 'test_user', id='entries'),

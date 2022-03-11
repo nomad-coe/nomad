@@ -200,7 +200,7 @@ def test_match(raw_files, with_latin_1_file, no_warn):
     matched_mainfiles = {}
     for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
         mainfile = path_info.path
-        parser, _suffixes = match_parser(upload_files.raw_file_object(mainfile).os_path)
+        parser, _mainfile_keys = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser
 
@@ -217,13 +217,14 @@ def parser_in_dir(dir):
             if 'test' not in file_path:
                 continue
 
-            parser, suffixes = match_parser(file_path)
+            parser, mainfile_keys = match_parser(file_path)
             if parser is not None:
-                for suffix in suffixes:
+                for mainfile_key in mainfile_keys:
                     try:
                         archive = datamodel.EntryArchive()
                         metadata = archive.m_create(datamodel.EntryMetadata)
-                        metadata.mainfile = file_name + (f'[{suffix}]' if suffix else '')
+                        metadata.mainfile = file_name
+                        metadata.mainfile_key = mainfile_key
                         parser.parse(file_path, entry_archive=archive)
                         # check if the result can be dumped
                         dump_json(archive.m_to_dict())

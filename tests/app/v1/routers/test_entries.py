@@ -340,7 +340,7 @@ def test_entries_all_metrics(client, data):
                     'quantity': 'upload_id',
                     'entries': {
                         'size': 10,
-                        'required': {'exclude': ['files', 'mainfile']}
+                        'required': {'exclude': ['files', 'mainfile*']}
                     }
                 }
             },

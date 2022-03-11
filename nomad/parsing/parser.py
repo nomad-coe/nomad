@@ -47,17 +47,21 @@ class Parser(metaclass=ABCMeta):
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
             compression: str = None) -> Union[bool, Set[str]]:
         '''
-        Checks if a file is a mainfile for the parser. Should return True or a non-empty set
-        of *suffixes* (strings) if it is a mainfile, otherwise a falsey value.
+        Checks if a file is a mainfile for the parser. Should return True or a set of
+        *keys* (non-empty strings) if it is a mainfile, otherwise a falsey value.
 
-        The option of returning a set of suffixes should only be used by parsers that may
-        generate multiple entries from the same mainfile (which is not the normal case). For
-        the normal case, i.e. parsers that do *not* use suffixes, only one entry will be
-        created when processing the file, and it should have `metadata.mainfile` set to the
-        value of the `filename` argument. For parsers that use suffixes, a separate entry will
-        be created for each suffix when processing, and this entry should have the
-        `metadata.mainfile` set to `filename[suffix]` (or just `filename`, if the suffix is
-        the empty string).
+        The option to return a set of keys should only be used by parsers that generate
+        multiple entries - namely a *main* entry and some number of *child* entries.
+        Most parsers, however, only generate a main entry, no child entries, and should thus
+        just return a boolean value.
+
+        If the return value is a set of keys, a main entry will be created when parsing,
+        plus one child entry for each key in the returned set. The key value will be stored
+        in the field `mainfile_key` of the corresponding child entry. Main entries have
+        `mainfile_key == None`.
+
+        The combination (`upload_id`, `mainfile`, `mainfile_key`) uniquely identifies an entry
+        (regardless of it's a main entry or child entry).
 
         Arguments:
             filename: The filesystem path to the mainfile

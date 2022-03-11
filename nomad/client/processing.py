@@ -32,8 +32,8 @@ def parse(
         backend_factory: typing.Callable = None,
         strict: bool = True, logger=None) -> typing.List[datamodel.EntryArchive]:
     '''
-    Run the given parser on the provided mainfile. If no parser_name is given,
-    do parser matching and use the matched parser.
+    Run the given parser on the provided mainfile. If parser_name is given, we only try
+    to match this parser, otherwise we try to match all parsers.
     '''
     from nomad import parsing
     from nomad.parsing import parsers
@@ -43,7 +43,7 @@ def parse(
         logger = utils.get_logger(__name__)
 
     mainfile_path = os.path.abspath(mainfile_path)
-    parser, suffixes = parsers.match_parser(mainfile_path, strict=strict, parser_name=parser_name)
+    parser, mainfile_keys = parsers.match_parser(mainfile_path, strict=strict, parser_name=parser_name)
     if isinstance(parser, parsing.MatchingParser):
         parser_name = parser.name
     else:
@@ -56,10 +56,11 @@ def parse(
         setattr(parser, 'backend_factory', backend_factory)
 
     entry_archives = []
-    for suffix in suffixes:
+    for mainfile_key in mainfile_keys:
         entry_archive = datamodel.EntryArchive()
         metadata = entry_archive.m_create(datamodel.EntryMetadata)
-        metadata.mainfile = mainfile_path + (f'[{suffix}]' if suffix else '')
+        metadata.mainfile = mainfile_path
+        metadata.mainfile_key = mainfile_key
         cwd = os.getcwd()
         try:
             mainfile_path = os.path.abspath(mainfile_path)

@@ -1024,20 +1024,20 @@ class StagingUploadFiles(UploadFiles):
             self.logger.error('exception during packing raw files', exc_info=e)
             raise
 
-    def entry_files(self, mainfile_path: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
+    def entry_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
         '''
-        Returns all the auxfiles and mainfile for a given mainfile_path. This implements
+        Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of an entry and what not. The mainfile
         is the first element, the rest is sorted.
         Arguments:
-            mainfile_path: The mainfile path (i.e. excluding suffix) relative to upload
+            mainfile: The mainfile path relative to upload
             with_mainfile: Do include the mainfile, default is True
         '''
-        mainfile_object = self._raw_dir.join_file(mainfile_path)
+        mainfile_object = self._raw_dir.join_file(mainfile)
         if not mainfile_object.exists():
-            raise KeyError(mainfile_path)
+            raise KeyError(mainfile)
 
-        mainfile_basename = os.path.basename(mainfile_path)
+        mainfile_basename = os.path.basename(mainfile)
         entry_dir = os.path.dirname(mainfile_object.os_path)
         entry_relative_dir = entry_dir[len(self._raw_dir.os_path) + 1:]
 
@@ -1059,29 +1059,29 @@ class StagingUploadFiles(UploadFiles):
         aux_files = sorted(aux_files)
 
         if with_mainfile:
-            return [mainfile_path] + aux_files
+            return [mainfile] + aux_files
         else:
             return aux_files
 
-    def entry_hash(self, mainfile_path: str, suffix: str) -> str:
+    def entry_hash(self, mainfile: str, mainfile_key: str) -> str:
         '''
         Calculates a hash for the given entry based on file contents and aux file contents.
         Arguments:
-            mainfile_path: The mainfile path (no suffix) relative to the upload that identifies
-                the entry in the folder structure.
-            suffix: The suffix of the entry (if any)
+            mainfile: The mainfile path relative to the upload that identifies the entry in
+                the folder structure.
+            mainfile_key: The mainfile_key of the entry (if any)
         Returns:
             The calculated hash
         Raises:
             KeyError: If the mainfile does not exist.
         '''
         hash = hashlib.sha512()
-        for filepath in self.entry_files(mainfile_path):
+        for filepath in self.entry_files(mainfile):
             with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
-        if suffix:
-            hash.update(suffix.encode('utf8'))
+        if mainfile_key:
+            hash.update(mainfile_key.encode('utf8'))
         return utils.make_websave(hash)
 
     def files_to_bundle(

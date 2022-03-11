@@ -116,9 +116,13 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
         parser_name: Optional, to force the matching to test only a specific parser
 
-    Returns: A tuple (`parser`, `suffixes`). The `parser` is the matched parser, and `suffixes`
-    a list of suffix strings. Note, if a parser matches but it does not use suffixes, we return
-    the value [''] for `suffixes`. If no parser matches, we return (None, None).
+    Returns:
+        A tuple (`parser`, `mainfile_keys`). The `parser` is the matched parser, and
+        `mainfile_keys` defines the keys to use for the resulting entries. The `mainfile_keys`
+        list will always contain at least one value, namely None (for the main entry).
+        This is always the first key in the list (and usually also the only key in the list,
+        since most parsers don't produce any child entries). If no parser matches, we return
+        (None, None).
     '''
     mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
@@ -160,6 +164,13 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
 
         match_result = parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression)
         if match_result:
+            mainfile_keys: List[str] = [None]
+            if type(match_result) == set:
+                for mainfile_key in match_result:  # type: ignore
+                    assert mainfile_key and type(mainfile_key) == str, (
+                        f'Keys must be strings, got {type(mainfile_key)}')
+                mainfile_keys += sorted(match_result)  # type: ignore
+
             # potentially convert the file
             if encoding in ['iso-8859-1']:
                 try:
@@ -172,13 +183,7 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
                         text_file.write(content)
 
             # TODO: deal with multiple possible parser specs
-            if type(match_result) == set:
-                for suffix in match_result:  # type: ignore
-                    assert type(suffix) == str, f'Suffixes must be strings, got {suffix}'
-                suffixes = sorted(match_result)  # type: ignore
-            else:
-                suffixes = ['']
-            return parser, suffixes  # type: ignore
+            return parser, mainfile_keys
 
     return None, None
 

@@ -337,7 +337,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_upload_ids=[
                 'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_suffixes', 'id_processing', 'id_empty'],
+                'id_published', 'id_child_entries', 'id_processing', 'id_empty'],
             expected_pagination={
                 'total': 10, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}
@@ -370,7 +370,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             expected_upload_ids=[
                 'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_suffixes', 'id_empty'],
+                'id_published', 'id_child_entries', 'id_empty'],
         ), id='filter-is_processing-False'),
     pytest.param(
         dict(
@@ -382,7 +382,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
             query_params={'is_published': False},
             expected_upload_ids=[
                 'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_suffixes', 'id_processing', 'id_empty'],
+                'id_child_entries', 'id_processing', 'id_empty'],
         ), id='filter-is_published-False'),
     pytest.param(
         dict(

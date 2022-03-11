@@ -127,7 +127,7 @@ def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message
             current = current[sub_key]
 
 
-def generate_entry_id(upload_id: str, mainfile: str) -> str:
+def generate_entry_id(upload_id: str, mainfile: str, mainfile_key: str) -> str:
     '''
     Generates an id for an entry.
     Arguments:
@@ -136,6 +136,8 @@ def generate_entry_id(upload_id: str, mainfile: str) -> str:
     Returns:
         The generated entry id
     '''
+    if mainfile_key:
+        return utils.hash(upload_id, mainfile, mainfile_key)
     return utils.hash(upload_id, mainfile)
 
 
@@ -693,6 +695,7 @@ class Entry(Proc):
     last_processing_time = DateTimeField()
     last_edit_time = DateTimeField()
     mainfile = StringField()
+    mainfile_key = StringField()
     parser_name = StringField()
     pid = StringField()
     external_id = StringField()
@@ -709,6 +712,7 @@ class Entry(Proc):
             'upload_id',
             'parser_name',
             ('upload_id', 'mainfile'),
+            ('upload_id', 'mainfile', 'mainfile_key'),
             ('upload_id', 'parser_name'),
             ('upload_id', 'process_status'),
             ('upload_id', 'nomad_version'),
@@ -730,33 +734,14 @@ class Entry(Proc):
 
         self._entry_metadata: EntryMetadata = None
         self._perform_index = True
-        self._suffix: str = None
 
     @classmethod
     def get(cls, id) -> 'Entry':
         return cls.get_by_id(id, 'entry_id')
 
     @property
-    def suffix(self) -> str:
-        ''' The parser suffix. The empty string means no suffix. '''
-        if self._suffix is None:
-            basename = os.path.basename(self.mainfile)
-            if basename.endswith(']') and '[' in basename:
-                self._suffix = basename[basename.find('[') + 1:-1]
-            else:
-                self._suffix = ''
-        return self._suffix
-
-    @property
-    def mainfile_path(self) -> str:
-        ''' The mainfile path, i.e. excluding the suffix (if any). '''
-        if self.suffix:
-            return self.mainfile[0:-len(self.suffix) - 2]  # pylint: disable=E1136
-        return self.mainfile
-
-    @property
     def mainfile_file(self) -> PathObject:
-        return self.upload_files.raw_file_object(self.mainfile_path)
+        return self.upload_files.raw_file_object(self.mainfile)
 
     @property
     def processed(self) -> bool:
@@ -788,8 +773,8 @@ class Entry(Proc):
         '''
         entry_metadata.nomad_version = config.meta.version
         entry_metadata.nomad_commit = config.meta.commit
-        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile_path, self.suffix)
-        entry_metadata.files = self.upload_files.entry_files(self.mainfile_path)
+        entry_metadata.entry_hash = self.upload_files.entry_hash(self.mainfile, self.mainfile_key)
+        entry_metadata.files = self.upload_files.entry_files(self.mainfile)
         entry_metadata.last_processing_time = datetime.utcnow()
         entry_metadata.processing_errors = []
 
@@ -952,7 +937,7 @@ class Entry(Proc):
         else:
             if settings.rematch_published and not settings.use_original_parser:
                 with utils.timer(logger, 'parser matching executed'):
-                    parser, _suffixes = match_parser(self.mainfile_file.os_path, strict=False)
+                    parser, _mainfile_keys = match_parser(self.mainfile_file.os_path, strict=False)
             else:
                 parser = parser_dict[self.parser_name]
 
@@ -1502,11 +1487,11 @@ class Upload(Proc):
             self.cleanup()
 
     @process_local
-    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> List[Entry]:
+    def put_file_and_process_local(self, path, target_dir, reprocess_settings: Dict[str, Any] = None) -> Entry:
         '''
         Pushes a raw file, matches it, and if matched, runs the processing - all as a local process.
         If the the target path exists, it will be overwritten. If matched, we return the
-        resulting Entry, otherwise None.
+        resulting main Entry, otherwise None.
         '''
         assert not self.published, 'Upload cannot be published'
         assert os.path.isfile(path), '`path` does not specify a file'
@@ -1524,30 +1509,33 @@ class Upload(Proc):
 
         # Match
         self.set_last_status_message('Matching')
-        parser, suffixes = match_parser(staging_upload_files.raw_file_object(target_path).os_path)
+        parser, mainfile_keys = match_parser(staging_upload_files.raw_file_object(target_path).os_path)
 
         # Process entries, if matched; remove existing entries if unmatched.
-        entries = {e.mainfile: e for e in self.entries_from_mainfile_path(target_path)}
-        mainfiles_to_delete = set(entries.keys())
-        rv = []
+        old_entries_dict: Dict[str, Entry] = {
+            e.entry_id: e
+            for e in Entry.objects(upload_id=self.upload_id, mainfile=target_path)}
+        entry_ids_to_delete = set(old_entries_dict.keys())
+        rv: Entry = None
         if parser:
             metadata_handler = MetadataEditRequestHandler(
                 self.get_logger(), self.main_author_user, staging_upload_files, self.upload_id)
 
-            for suffix in suffixes:
-                mainfile = target_path + (f'[{suffix}]' if suffix else '')
-                entry = entries.get(mainfile)
+            for mainfile_key in mainfile_keys:
+                entry_id = generate_entry_id(self.upload_id, target_path, mainfile_key)
+                entry = old_entries_dict.get(entry_id)
                 if entry:
                     # Entry already exists. Reset it and the parser_name attribute
                     entry.parser_name = parser.name
                     entry.reset(force=True)
                     entry.save()
-                    mainfiles_to_delete.remove(mainfile)
+                    entry_ids_to_delete.remove(entry_id)
                 else:
                     # Create new entry
                     entry = Entry.create(
-                        entry_id=generate_entry_id(self.upload_id, mainfile),
-                        mainfile=mainfile,
+                        entry_id=entry_id,
+                        mainfile=target_path,
+                        mainfile_key=mainfile_key,
                         parser_name=parser.name,
                         upload_id=self.upload_id)
                     # Apply entry level metadata from files, if provided
@@ -1558,14 +1546,16 @@ class Upload(Proc):
                 # process locally
                 self.set_last_status_message('Processing')
                 entry.process_entry_local()
-                rv.append(entry)
+
+                if not mainfile_key:
+                    rv = entry  # This is the main entry
+
         # Delete existing unmatched entries
-        if mainfiles_to_delete:
-            delete_partial_archives_from_mongo([entries[mainfile].entry_id for mainfile in mainfiles_to_delete])
-            for mainfile in mainfiles_to_delete:
-                entry = entries[mainfile]
-                search.delete_entry(entry_id=entry.entry_id, update_materials=True)
-                entry.delete()
+        if entry_ids_to_delete:
+            delete_partial_archives_from_mongo(list(entry_ids_to_delete))
+            for entry_id in entry_ids_to_delete:
+                search.delete_entry(entry_id=entry_id, update_materials=True)
+                old_entries_dict[entry_id].delete()
         return rv
 
     @property
@@ -1659,13 +1649,13 @@ class Upload(Proc):
                     self.staging_upload_files.raw_file_object(path).os_path,
                     self.staging_upload_files.raw_file_object(stripped_path).os_path))
 
-    def match_mainfiles(self, path_filter: str) -> Iterator[Tuple[str, Parser]]:
+    def match_mainfiles(self, path_filter: str) -> Iterator[Tuple[str, str, Parser]]:
         '''
         Generator function that matches all files in the upload to all parsers to
         determine the upload's mainfiles.
 
         Returns:
-            Tuples of (mainfile raw path, parser)
+            Tuples of (mainfile, mainfile_key, parser)
         '''
         staging_upload_files = self.staging_upload_files
 
@@ -1686,11 +1676,11 @@ class Upload(Proc):
                     continue
 
                 try:
-                    parser, suffixes = match_parser(staging_upload_files.raw_file_object(path_info.path).os_path)
+                    parser, mainfile_keys = match_parser(
+                        staging_upload_files.raw_file_object(path_info.path).os_path)
                     if parser is not None:
-                        for suffix in suffixes:
-                            mainfile = path_info.path + (f'[{suffix}]' if suffix else '')
-                            yield mainfile, parser
+                        for mainfile_key in mainfile_keys:
+                            yield path_info.path, mainfile_key, parser
                 except Exception as e:
                     self.get_logger().error(
                         'exception while matching pot. mainfile',
@@ -1723,12 +1713,12 @@ class Upload(Proc):
                     for entry in Entry.objects(upload_id=self.upload_id):
                         if entry.process_running:
                             processing_entries.append(entry.entry_id)
-                        if self._passes_path_filter(entry.mainfile_path, path_filter):
+                        if self._passes_path_filter(entry.mainfile, path_filter):
                             old_entries.add(entry.entry_id)
 
                 with utils.timer(logger, 'matching completed'):
-                    for mainfile, parser in self.match_mainfiles(path_filter):
-                        entry_id = generate_entry_id(self.upload_id, mainfile)
+                    for mainfile, mainfile_key, parser in self.match_mainfiles(path_filter):
+                        entry_id = generate_entry_id(self.upload_id, mainfile, mainfile_key)
 
                         try:
                             entry = Entry.get(entry_id)
@@ -1746,6 +1736,7 @@ class Upload(Proc):
                                 entry = Entry.create(
                                     entry_id=entry_id,
                                     mainfile=mainfile,
+                                    mainfile_key=mainfile_key,
                                     parser_name=parser.name,
                                     worker_hostname=self.worker_hostname,
                                     upload_id=self.upload_id)
@@ -1803,7 +1794,7 @@ class Upload(Proc):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level
-                        if level == 0 and not self._passes_path_filter(entry.mainfile_path, path_filter):
+                        if level == 0 and not self._passes_path_filter(entry.mainfile, path_filter):
                             continue  # Ignore level 0 parsers if not matching path filter
                         if level >= min_level:
                             if next_level is None or level < next_level:
@@ -1922,17 +1913,6 @@ class Upload(Proc):
     def get_entry(self, entry_id) -> Entry:
         ''' Returns the upload entry with the given id or ``None``. '''
         return Entry.objects(upload_id=self.upload_id, entry_id=entry_id).first()
-
-    def entries_from_mainfile_path(self, mainfile_path: str) -> Iterable[Entry]:
-        ''' Gets the entries generated from a specific mainfile. '''
-        prefix = mainfile_path + '['
-        for entry in Entry.objects(
-                upload_id=self.upload_id,
-                mainfile__gte=mainfile_path,
-                mainfile__lt=mainfile_path + ']'):
-            if entry.mainfile == mainfile_path or (
-                    entry.mainfile.endswith(']') and entry.mainfile.startswith(prefix)):
-                yield entry
 
     @property
     def processed_entries_count(self) -> int:
@@ -2284,7 +2264,9 @@ class Upload(Proc):
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
-                assert entry_dict['_id'] == generate_entry_id(self.upload_id, entry_dict['mainfile']), (
+                expected_entry_id = generate_entry_id(
+                    self.upload_id, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
+                assert entry_dict['_id'] == expected_entry_id, (
                     'Provided entry id does not match generated value')
                 check_user_ids(entry_dict.get('entry_coauthors', []), 'Invalid entry_coauthor reference: {id}')
 
@@ -2404,8 +2386,8 @@ class UploadContext(Context):
 
         return f'../upload/entries/{entry_id}/archive#{super().get_reference(section, quantity_def, value)}'
 
-    def _resolve_mainfile(self, mainfile: str) -> str:
-        return generate_entry_id(self.upload.upload_id, mainfile)
+    def _resolve_mainfile(self, mainfile: str, mainfile_key: str = None) -> str:
+        return generate_entry_id(self.upload.upload_id, mainfile, mainfile_key)
 
     def _get_archive(self, entry_id: str) -> EntryArchive:
         try:

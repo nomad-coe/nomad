@@ -40,7 +40,8 @@ from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
 def test_generate_entry_id():
-    assert generate_entry_id('an_upload_id', 'a/mainfile/path') == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
+    assert generate_entry_id('an_upload_id', 'a/mainfile/path', None) == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
+    assert generate_entry_id('an_upload_id', 'a/mainfile/path', 'child1') == 'di12O5zSSb0Al9ipG6BBp_I0JYgd'
 
 
 def test_send_mail(mails, monkeypatch):
