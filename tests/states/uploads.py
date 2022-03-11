@@ -21,9 +21,9 @@ from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
 
 
-def one_entry():
+def published():
     '''
-    State containing one entry
+    State published upload containing one entry
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
@@ -42,9 +42,51 @@ def one_entry():
     data.save()
 
 
+def published_with_embargo():
+    '''
+    State published upload but under 3 months embargo
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    upload_id = 'dft_upload'
+    data.create_upload(upload_id=upload_id, published=True, embargo_length=3)
+    entry_id = 'dft_bulk'
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=entry_id,
+        mainfile='vasp.xml',
+        entry_archive=archive_dft_bulk()
+    )
+
+    data.save()
+
+
+def unpublished():
+    '''
+    State unpublished upload containing one entry
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    upload_id = 'dft_upload'
+    data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
+    entry_id = 'dft_bulk'
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=entry_id,
+        mainfile='vasp.xml',
+        entry_archive=archive_dft_bulk()
+    )
+
+    data.save()
+
+
 def multiple_entries():
     '''
-    State containing multiple DFT entries
+    State published upload containing multiple entries
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
@@ -53,7 +95,7 @@ def multiple_entries():
     upload_id = 'dft_upload_1'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
 
-    for i in range(1, 5):
+    for i in range(1, 7):
         entry_id = f'dft_bulk_{i}'
         data.create_entry(
             upload_id=upload_id,

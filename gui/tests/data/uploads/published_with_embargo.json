@@ -1,0 +1,27 @@
+{
+  "31f8db5a713f7d27a9062a1a04d5ad41": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/uploads/dft_upload/entries?page_size=5&page=1&order=asc&order_by=process_status",
+        "method": "GET",
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "detail": "You do not have access to the specified upload - published with embargo."
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "85",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}
