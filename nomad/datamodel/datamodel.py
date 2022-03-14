@@ -27,7 +27,7 @@ from nomad import metainfo, config
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
@@ -476,7 +476,7 @@ class EntryMetadata(metainfo.MSection):
             NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
         ''',
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     raw_id = metainfo.Quantity(
         type=str,
@@ -484,7 +484,7 @@ class EntryMetadata(metainfo.MSection):
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
         ''',
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     external_id = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
