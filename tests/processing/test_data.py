@@ -29,6 +29,8 @@ import yaml
 from nomad import utils, infrastructure, config
 from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
+from nomad.parsing.parser import Parser
+from nomad.parsing import parsers
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.processing.data import UploadContext, generate_entry_id
 from nomad.search import search, refresh as search_refresh
@@ -649,6 +651,46 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert not entry.process_running
     assert entry.process_status == ProcessStatus.FAILURE
     assert len(entry.errors) == 1
+
+
+def test_parent_child_parser(proc_infra, test_user, tmp):
+    # Create a dummy parser which creates child entries
+    class ParentChildParser(Parser):
+        name = 'parsers/parentchild'
+
+        def is_mainfile(
+                self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+                compression: str = None):
+            if decoded_buffer.startswith('parentchild\n'):
+                return set([line.strip() for line in decoded_buffer.split('\n')[1:] if line.strip()])
+            return False
+
+        def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+            pass
+
+    # Register it
+    test_parser = ParentChildParser()
+    parsers.parsers.append(test_parser)
+    parsers.parser_dict[test_parser.name] = test_parser
+
+    # Test it
+    example_upload_id = 'parentchild'
+    example_filename = 'parentchild.txt'
+    example_filepath = os.path.join(tmp, example_filename)
+    for children in [('child1', 'child2'), ('child2', 'child3', 'child4')]:
+        with open(example_filepath, 'w') as f:
+            f.write('\n'.join(['parentchild', *children]))
+
+        upload = run_processing((example_upload_id, example_filepath), test_user)
+
+        assert upload.process_status == ProcessStatus.SUCCESS
+        assert upload.total_entries_count == len(children) + 1
+        assert set([e.mainfile_key for e in upload.successful_entries]) == set([None, *children])
+
+    upload.process_upload(file_operation=dict(op='DELETE', path=example_filename))
+    upload.block_until_complete()
+    assert upload.process_status == ProcessStatus.SUCCESS
+    assert upload.total_entries_count == 0
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
