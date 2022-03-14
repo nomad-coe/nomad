@@ -202,6 +202,7 @@ class EntryRawDir(BaseModel):
     entry_id: str = Field(None)
     upload_id: str = Field(None)
     mainfile: str = Field(None)
+    mainfile_key: Optional[str] = Field(None)
     files: List[EntryRawDirFile] = Field(None)
 
 
@@ -467,6 +468,7 @@ def _create_entry_rawdir(entry_metadata: Dict[str, Any], uploads: _Uploads):
     entry_id = entry_metadata['entry_id']
     upload_id = entry_metadata['upload_id']
     mainfile = entry_metadata['mainfile']
+    mainfile_key = entry_metadata.get('mainfile_key')
 
     upload_files = uploads.get_upload_files(upload_id)
     mainfile_dir = os.path.dirname(mainfile)
@@ -475,7 +477,8 @@ def _create_entry_rawdir(entry_metadata: Dict[str, Any], uploads: _Uploads):
     for path_info in upload_files.raw_directory_list(mainfile_dir, files_only=True):
         files.append(EntryRawDirFile(path=path_info.path, size=path_info.size))
 
-    return EntryRawDir(entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, files=files)
+    return EntryRawDir(
+        entry_id=entry_id, upload_id=upload_id, mainfile=mainfile, mainfile_key=mainfile_key, files=files)
 
 
 def _answer_entries_rawdir_request(

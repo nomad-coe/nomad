@@ -125,6 +125,7 @@ class EntryProcData(ProcData):
     entry_id: str = Field()
     entry_create_time: datetime = Field()
     mainfile: str = Field()
+    mainfile_key: Optional[str] = Field()
     upload_id: str = Field()
     parser_name: str = Field()
     entry_metadata: Optional[dict] = Field()
@@ -1040,15 +1041,19 @@ async def get_upload_entry_archive_mainfile(
         mainfile: str = Path(
             ...,
             description='The mainfile path within the upload\'s raw files.'),
+        mainfile_key: Optional[str] = FastApiQuery(
+            None,
+            description='The mainfile_key, for accessing child entries.'),
         user: User = Depends(create_user_dependency(required=False))):
     '''
     For the upload specified by `upload_id`, gets the full archive of a single entry that
     is identified by the given `mainfile`.
     '''
     _get_upload_with_read_access(upload_id, user, include_others=True)
-    return await answer_entry_archive_request(
-        dict(upload_id=upload_id, mainfile=mainfile),
-        required='*', user=user)
+    query = dict(upload_id=upload_id, mainfile=mainfile)
+    if mainfile_key:
+        query.update(mainfile_key=mainfile_key)
+    return await answer_entry_archive_request(query, required='*', user=user)
 
 
 @router.get(

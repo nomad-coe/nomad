@@ -476,6 +476,7 @@ def test_get_uploads(
 
 @pytest.mark.parametrize('user, upload_id, expected_status_code', [
     pytest.param('test_user', 'id_unpublished', 200, id='valid-upload_id'),
+    pytest.param('test_user', 'id_child_entries', 200, id='valid-upload_id-w-child-entries'),
     pytest.param('test_user', 'silly_value', 404, id='invalid-upload_id'),
     pytest.param(None, 'id_unpublished', 401, id='no-credentials'),
     pytest.param('invalid', 'id_unpublished', 401, id='invalid-credentials'),
@@ -501,6 +502,15 @@ def test_get_upload(
                 'total': 1, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
                 'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}),
         id='no-args'),
+    pytest.param(
+        dict(
+            upload_id='id_child_entries',
+            expected_data_len=3,
+            expected_response={'processing_successful': 3, 'processing_failed': 0},
+            expected_pagination={
+                'total': 3, 'page': 1, 'page_after_value': None, 'next_page_after_value': None,
+                'page_url': Any, 'next_page_url': None, 'prev_page_url': None, 'first_page_url': Any}),
+        id='upload-w-child-entries'),
     pytest.param(
         dict(
             user=None,
@@ -643,6 +653,7 @@ def test_get_upload_entries(
 
 @pytest.mark.parametrize('upload_id, entry_id, user, expected_status_code', [
     pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
+    pytest.param('id_child_entries', 'id_child_entries_child1', 'test_user', 200, id='child-entry'),
     pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
     pytest.param('id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'),
     pytest.param('id_embargo', 'id_embargo_1', 'other_test_user', 401, id='no-access'),
@@ -858,6 +869,10 @@ def test_get_upload_raw_path(
         200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile.json'], None, {'total': 5},
         id='unpublished-dir-include_entry_info'),
     pytest.param(
+        'test_user', 'id_child_entries', 'test_content', {'include_entry_info': True},
+        200, ['1.aux', '2.aux', '3.aux', '4.aux', 'mainfile_w_children.json'], None, {'total': 5},
+        id='dir-child-entries-include_entry_info'),
+    pytest.param(
         'test_user', 'id_unpublished', '', {},
         200, ['test_content'], None, {'total': 1},
         id='unpublished-dir-root'),
@@ -926,7 +941,8 @@ def test_get_upload_rawdir_path(
     pytest.param('id_published', 'test_content/doesnotexist.json', None, 404, id='bad-mainfile'),
     pytest.param('id_doesnotexist', 'test_content/subdir/test_entry_01/mainfile.json', None, 404, id='bad-upload-id'),
     pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', None, 401, id='unpublished'),
-    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', 'test_user', 200, id='auth')
+    pytest.param('id_unpublished', 'test_content/id_unpublished_1/mainfile.json', 'test_user', 200, id='auth'),
+    pytest.param('id_child_entries', 'test_content/mainfile_w_children.json', 'test_user', 200, id='entry-w-child-entries')
 ])
 def test_get_upload_entry_archive_mainfile(
     client, example_data, test_auth_dict,
@@ -944,7 +960,8 @@ def test_get_upload_entry_archive_mainfile(
     pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
     pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
     pytest.param('id_unpublished', 'id_unpublished_1', None, 401, id='unpublished'),
-    pytest.param('id_unpublished', 'id_unpublished_1', 'test_user', 200, id='auth')
+    pytest.param('id_unpublished', 'id_unpublished_1', 'test_user', 200, id='auth'),
+    pytest.param('id_child_entries', 'id_child_entries_child1', 'test_user', 200, id='child-entry')
 ])
 def test_get_upload_entry_archive(
     client, example_data, test_auth_dict,

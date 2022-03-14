@@ -75,9 +75,7 @@ def test_invite(client, test_user_auth, no_warn):
         [conf_test_users[conf_test_user_uuid(1)]],
         id='wrong-user-id')
 ])
-def test_users(
-        client, example_data, test_auth_dict,
-        args, expected_status_code, expected_content):
+def test_users(client, args, expected_status_code, expected_content):
     prefix = args.get('prefix', None)
     user_id = args.get('user_id', None)
 
@@ -116,9 +114,7 @@ def test_users(
         user_id=conf_test_user_uuid(1)), 200,
         conf_test_users[conf_test_user_uuid(1)],
         id='valid-user')])
-def test_users_id(
-        client, example_data, test_auth_dict,
-        args, expected_status_code, expected_content):
+def test_users_id(client, args, expected_status_code, expected_content):
     user_id = args['user_id']
     rv = client.get(f'users/{user_id}')
     assert rv.status_code == expected_status_code

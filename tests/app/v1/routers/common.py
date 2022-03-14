@@ -590,6 +590,11 @@ def assert_metadata(response_json):
     for metadata in metadatas:
         if 'required' not in response_json:
             assert 'license' in metadata
+            if 'entry_id' in metadata:
+                if metadata['entry_id'].startswith('id_child_entries_child'):
+                    assert metadata['mainfile_key']
+                else:
+                    assert 'mainfile_key' not in metadata
 
         if 'main_author' in metadata:
             assert 'email' not in metadata['main_author']

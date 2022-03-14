@@ -34,7 +34,7 @@ from .common import (
     perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
     perform_owner_test, owner_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
-from tests.conftest import example_data as data  # pylint: disable=unused-import
+from tests.conftest import example_data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -317,7 +317,7 @@ n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggreg
 program_name = 'results.method.simulation.program_name'
 
 
-def test_entries_all_metrics(client, data):
+def test_entries_all_metrics(client, example_data):
     aggregations = {
         quantity: {
             'terms': {
@@ -352,7 +352,7 @@ def test_entries_all_metrics(client, data):
             {'terms': {'quantity': 'entry_id', 'include': '.*_0.*'}},
             -1, -1, 422, None, id='bad-filter')
     ])
-def test_entries_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):
+def test_entries_aggregations(client, example_data, test_user_auth, aggregation, total, size, status_code, user):
     headers = {}
     if user == 'test_user':
         headers = test_user_auth
@@ -376,7 +376,7 @@ def test_entries_aggregations(client, data, test_user_auth, aggregation, total, 
 @pytest.mark.parametrize(
     'query,agg_data,total,status_code',
     aggregation_exclude_from_search_test_parameters(resource='entries', total_per_entity=1, total=23))
-def test_entries_aggregations_exclude_from_search(client, data, query, agg_data, total, status_code):
+def test_entries_aggregations_exclude_from_search(client, example_data, query, agg_data, total, status_code):
     aggs, types, lengths = agg_data
     response_json = perform_entries_metadata_test(
         client, owner='visible',
@@ -404,7 +404,7 @@ def test_entries_aggregations_exclude_from_search(client, data, query, agg_data,
     pytest.param({'include': ['upload_id']}, 200, id='include-id')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_required(client, data, required, status_code, http_method):
+def test_entries_required(client, example_data, required, status_code, http_method):
     response_json = perform_entries_metadata_test(
         client, required=required, pagination={'page_size': 1}, status_code=status_code, http_method=http_method)
 
@@ -414,15 +414,17 @@ def test_entries_required(client, data, required, status_code, http_method):
     assert_required(response_json['data'][0], required, default_key='entry_id')
 
 
-@pytest.mark.parametrize('entry_id, required, status_code', [
-    pytest.param('id_01', {}, 200, id='id'),
-    pytest.param('doesnotexist', {}, 404, id='404'),
-    pytest.param('id_01', {'include': ['entry_id', 'upload_id']}, 200, id='include'),
-    pytest.param('id_01', {'exclude': ['upload_id']}, 200, id='exclude'),
-    pytest.param('id_01', {'exclude': ['entry_id', 'upload_id']}, 200, id='exclude-entry-id')
+@pytest.mark.parametrize('user, entry_id, required, status_code', [
+    pytest.param(None, 'id_01', {}, 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', {}, 200, id='id-child-entry'),
+    pytest.param(None, 'doesnotexist', {}, 404, id='404'),
+    pytest.param(None, 'id_01', {'include': ['entry_id', 'upload_id']}, 200, id='include'),
+    pytest.param(None, 'id_01', {'exclude': ['upload_id']}, 200, id='exclude'),
+    pytest.param(None, 'id_01', {'exclude': ['entry_id', 'upload_id']}, 200, id='exclude-entry-id')
 ])
-def test_entry_metadata(client, data, entry_id, required, status_code):
-    response = client.get('entries/%s?%s' % (entry_id, urlencode(required, doseq=True)))
+def test_entry_metadata(client, example_data, test_auth_dict, user, entry_id, required, status_code):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get('entries/%s?%s' % (entry_id, urlencode(required, doseq=True)), headers=user_auth)
     response_json = assert_metadata_response(response, status_code=status_code)
 
     if response_json is None:
@@ -431,71 +433,83 @@ def test_entry_metadata(client, data, entry_id, required, status_code):
     assert_required(response_json['data'], required, default_key='entry_id')
 
 
-@pytest.mark.parametrize('query, files, total, files_per_entry, status_code', [
-    pytest.param({}, {}, 23, 5, 200, id='all'),
-    pytest.param({'entry_id': 'id_01'}, {}, 1, 5, 200, id='all'),
-    pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
+@pytest.mark.parametrize('user, owner, query, files, total, files_per_entry, status_code', [
+    pytest.param(None, None, {}, {}, 23, 5, 200, id='all'),
+    pytest.param(None, None, {'entry_id': 'id_01'}, {}, 1, 5, 200, id='one-entry'),
+    pytest.param('test_user', 'visible', {'upload_id': 'id_child_entries'}, {}, 3, 5, 200, id='child-entries'),
+    pytest.param(None, None, {program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_rawdir(client, data, query, files, total, files_per_entry, status_code, http_method):
+def test_entries_rawdir(
+        client, example_data, test_auth_dict,
+        user, owner, query, files, total, files_per_entry, status_code, http_method):
+    user_auth, _ = test_auth_dict[user]
     perform_entries_rawdir_test(
-        client, status_code=status_code, query=query, files=files, total=total,
-        files_per_entry=files_per_entry, http_method=http_method)
+        client, owner=owner, status_code=status_code, query=query, files=files, total=total,
+        files_per_entry=files_per_entry, http_method=http_method, headers=user_auth)
 
 
-@pytest.mark.parametrize('query, files, total, files_per_entry, status_code', [
-    pytest.param({}, {}, 23, 5, 200, id='all'),
-    pytest.param({program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty'),
-    pytest.param({}, {'glob_pattern': '*.json'}, 23, 1, 200, id='glob'),
-    pytest.param({}, {'re_pattern': '[a-z]*\\.aux'}, 23, 4, 200, id='re'),
-    pytest.param({}, {'re_pattern': 'test_entry_02'}, 1, 5, 200, id='re-filter-entries'),
-    pytest.param({}, {'re_pattern': 'test_entry_02/.*\\.json'}, 1, 1, 200, id='re-filter-entries-and-files'),
-    pytest.param({}, {'glob_pattern': '*.json', 're_pattern': '.*\\.aux'}, 23, 4, 200, id='re-overwrites-glob'),
-    pytest.param({}, {'re_pattern': '**'}, -1, -1, 422, id='bad-re-pattern'),
-    pytest.param({}, {'compress': True}, 23, 5, 200, id='compress'),
-    pytest.param({}, {'include_files': ['1.aux']}, 23, 1, 200, id='file'),
-    pytest.param({}, {'include_files': ['1.aux', '2.aux']}, 23, 2, 200, id='files')
+@pytest.mark.parametrize('user, owner, query, files, total, files_per_entry, status_code', [
+    pytest.param(None, None, {}, {}, 23, 5, 200, id='all'),
+    pytest.param('test_user', 'visible', {'upload_id': 'id_child_entries'}, {}, (3, 1), 5, 200, id='child-entries'),
+    pytest.param(None, None, {program_name: 'DOESNOTEXIST'}, {}, 0, 5, 200, id='empty'),
+    pytest.param(None, None, {}, {'glob_pattern': '*.json'}, 23, 1, 200, id='glob'),
+    pytest.param(None, None, {}, {'re_pattern': '[a-z]*\\.aux'}, 23, 4, 200, id='re'),
+    pytest.param(None, None, {}, {'re_pattern': 'test_entry_02'}, 1, 5, 200, id='re-filter-entries'),
+    pytest.param(None, None, {}, {'re_pattern': 'test_entry_02/.*\\.json'}, 1, 1, 200, id='re-filter-entries-and-files'),
+    pytest.param(None, None, {}, {'glob_pattern': '*.json', 're_pattern': '.*\\.aux'}, 23, 4, 200, id='re-overwrites-glob'),
+    pytest.param(None, None, {}, {'re_pattern': '**'}, -1, -1, 422, id='bad-re-pattern'),
+    pytest.param(None, None, {}, {'compress': True}, 23, 5, 200, id='compress'),
+    pytest.param(None, None, {}, {'include_files': ['1.aux']}, 23, 1, 200, id='file'),
+    pytest.param(None, None, {}, {'include_files': ['1.aux', '2.aux']}, 23, 2, 200, id='files')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_raw(client, data, query, files, total, files_per_entry, status_code, http_method):
+def test_entries_raw(
+        client, example_data, test_auth_dict,
+        user, owner, query, files, total, files_per_entry, status_code, http_method):
+    user_auth, _ = test_auth_dict[user]
     perform_entries_raw_test(
-        client, status_code=status_code, query=query, files=files, total=total,
-        files_per_entry=files_per_entry, http_method=http_method)
+        client, headers=user_auth, owner=owner, status_code=status_code, query=query,
+        files=files, total=total, files_per_entry=files_per_entry, http_method=http_method)
 
 
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_raw_test, id='raw'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
-def test_entries_download_max(monkeypatch, client, data, test_method, http_method):
+def test_entries_download_max(monkeypatch, client, example_data, test_method, http_method):
     monkeypatch.setattr('nomad.config.max_entry_download', 20)
 
     test_method(client, status_code=400, http_method=http_method)
 
 
-@pytest.mark.parametrize('entry_id, files_per_entry, status_code', [
-    pytest.param('id_01', 5, 200, id='id'),
-    pytest.param('id_embargo', -1, 404, id='404'),
-    pytest.param('doesnotexist', -1, 404, id='404')])
-def test_entry_rawdir(client, data, entry_id, files_per_entry, status_code):
-    response = client.get('entries/%s/rawdir' % entry_id)
+@pytest.mark.parametrize('user, entry_id, files_per_entry, status_code', [
+    pytest.param(None, 'id_01', 5, 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', 5, 200, id='child-entries'),
+    pytest.param(None, 'id_embargo', -1, 404, id='embargoed'),
+    pytest.param(None, 'doesnotexist', -1, 404, id='bad-entry_id')])
+def test_entry_rawdir(client, example_data, test_auth_dict, user, entry_id, files_per_entry, status_code):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get('entries/%s/rawdir' % entry_id, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_entry_rawdir_response(response.json(), files_per_entry=files_per_entry)
 
 
-@pytest.mark.parametrize('entry_id, files, files_per_entry, status_code', [
-    pytest.param('id_01', {}, 5, 200, id='id'),
-    pytest.param('doesnotexist', {}, -1, 404, id='404'),
-    pytest.param('id_01', {'glob_pattern': '*.json'}, 1, 200, id='glob'),
-    pytest.param('id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
-    pytest.param('id_01', {'re_pattern': '**'}, -1, 422, id='bad-re-pattern'),
-    pytest.param('id_01', {'compress': True}, 5, 200, id='compress'),
-    pytest.param('id_01', {'include_files': ['1.aux']}, 1, 200, id='file'),
-    pytest.param('id_01', {'include_files': ['1.aux', '2.aux']}, 2, 200, id='files')
+@pytest.mark.parametrize('user, entry_id, files, files_per_entry, status_code', [
+    pytest.param(None, 'id_01', {}, 5, 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', {}, 5, 200, id='child-entry'),
+    pytest.param(None, 'doesnotexist', {}, -1, 404, id='404'),
+    pytest.param(None, 'id_01', {'glob_pattern': '*.json'}, 1, 200, id='glob'),
+    pytest.param(None, 'id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
+    pytest.param(None, 'id_01', {'re_pattern': '**'}, -1, 422, id='bad-re-pattern'),
+    pytest.param(None, 'id_01', {'compress': True}, 5, 200, id='compress'),
+    pytest.param(None, 'id_01', {'include_files': ['1.aux']}, 1, 200, id='file'),
+    pytest.param(None, 'id_01', {'include_files': ['1.aux', '2.aux']}, 2, 200, id='files')
 ])
-def test_entry_raw(client, data, entry_id, files, files_per_entry, status_code):
-    response = client.get('entries/%s/raw?%s' % (entry_id, urlencode(files, doseq=True)))
+def test_entry_raw(client, example_data, test_auth_dict, user, entry_id, files, files_per_entry, status_code):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get('entries/%s/raw?%s' % (entry_id, urlencode(files, doseq=True)), headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_raw_zip_file(
@@ -546,6 +560,7 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
 
 @pytest.mark.parametrize('entry_id, path, params, status_code', [
     pytest.param('id_01', 'mainfile.json', {}, 200, id='id'),
+    pytest.param('id_child_entries_child1', 'mainfile_w_children.json', {'user': 'test_user'}, 200, id='child-entry'),
     pytest.param('doesnotexist', 'mainfile.json', {}, 404, id='404-entry'),
     pytest.param('id_01', 'doesnot.exist', {}, 404, id='404-file'),
     pytest.param('id_01', 'mainfile.json', {'offset': 10, 'length': 10}, 200, id='offset-length'),
@@ -556,32 +571,27 @@ def example_data_with_compressed_files(elastic_module, raw_files_module, mongo_m
     pytest.param('id_01', 'mainfile.json', {'decompress': True}, 200, id='decompress-json'),
     pytest.param('with_compr_published', 'mainfile.xz', {'decompress': True}, 200, id='decompress-xz-published'),
     pytest.param('with_compr_published', 'mainfile.gz', {'decompress': True}, 200, id='decompress-gz-published'),
-    pytest.param('with_compr_unpublished', 'mainfile.xz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-xz-unpublished'),
-    pytest.param('with_compr_unpublished', 'mainfile.gz', {'decompress': True, 'user': 'test-user'}, 200, id='decompress-gz-unpublished'),
+    pytest.param('with_compr_unpublished', 'mainfile.xz', {'decompress': True, 'user': 'test_user'}, 200, id='decompress-xz-unpublished'),
+    pytest.param('with_compr_unpublished', 'mainfile.gz', {'decompress': True, 'user': 'test_user'}, 200, id='decompress-gz-unpublished'),
     pytest.param('id_unpublished', 'mainfile.json', {}, 404, id='404-unpublished'),
     pytest.param('id_embargo_1', 'mainfile.json', {}, 404, id='404-embargo-no-user'),
-    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'other-test-user'}, 404, id='404-embargo-no-access'),
-    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'test-user'}, 200, id='embargo-main_author'),
-    pytest.param('id_embargo_w_coauthor_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-coauthor'),
-    pytest.param('id_embargo_w_reviewer_1', 'mainfile.json', {'user': 'other-test-user'}, 200, id='embargo-reviewer')
+    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'other_test_user'}, 404, id='404-embargo-no-access'),
+    pytest.param('id_embargo_1', 'mainfile.json', {'user': 'test_user'}, 200, id='embargo-main_author'),
+    pytest.param('id_embargo_w_coauthor_1', 'mainfile.json', {'user': 'other_test_user'}, 200, id='embargo-coauthor'),
+    pytest.param('id_embargo_w_reviewer_1', 'mainfile.json', {'user': 'other_test_user'}, 200, id='embargo-reviewer')
 ])
 def test_entry_raw_file(
-        client, data, example_data_with_compressed_files, example_mainfile_contents, test_user_auth, other_test_user_auth,
+        client, example_data, example_data_with_compressed_files, example_mainfile_contents, test_auth_dict,
         entry_id, path, params, status_code):
 
     user = params.get('user')
+    user_auth, _ = test_auth_dict[user]
     if user:
         del(params['user'])
-        if user == 'test-user':
-            headers = test_user_auth
-        elif user == 'other-test-user':
-            headers = other_test_user_auth
-    else:
-        headers = {}
 
     response = client.get(
         f'entries/{entry_id}/raw/{path}?{urlencode(params, doseq=True)}',
-        headers=headers)
+        headers=user_auth)
 
     assert_response(response, status_code)
     if status_code == 200:
@@ -594,16 +604,19 @@ def test_entry_raw_file(
             assert content == 'test content\n'
 
 
-@pytest.mark.parametrize('query, files, total, status_code', [
-    pytest.param({}, {}, 23, 200, id='all'),
-    pytest.param({program_name: 'DOESNOTEXIST'}, {}, -1, 200, id='empty'),
-    pytest.param({}, {'compress': True}, 23, 200, id='compress')
+@pytest.mark.parametrize('user, owner, query, files, total, status_code', [
+    pytest.param(None, None, {}, {}, 23, 200, id='all'),
+    pytest.param('test_user', 'visible', {'upload_id': 'id_child_entries'}, {}, 3, 200, id='child-entries'),
+    pytest.param(None, None, {program_name: 'DOESNOTEXIST'}, {}, -1, 200, id='empty'),
+    pytest.param(None, None, {}, {'compress': True}, 23, 200, id='compress')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_entries_archive_download(client, data, query, files, total, status_code, http_method):
+def test_entries_archive_download(
+        client, example_data, test_auth_dict, user, owner, query, files, total, status_code, http_method):
+    user_auth, _ = test_auth_dict[user]
     perform_entries_archive_download_test(
-        client, status_code=status_code, query=query, files=files, total=total,
-        http_method=http_method)
+        client, headers=user_auth, owner=owner, status_code=status_code, query=query, http_method=http_method,
+        files=files, total=total)
 
 
 @pytest.mark.parametrize('required, status_code', [
@@ -613,28 +626,32 @@ def test_entries_archive_download(client, data, query, files, total, status_code
     pytest.param({'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
     pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
 ])
-def test_entries_archive(client, data, required, status_code):
+def test_entries_archive(client, example_data, required, status_code):
     perform_entries_archive_test(
         client, status_code=status_code, required=required, http_method='post')
 
 
-@pytest.mark.parametrize('entry_id, status_code', [
-    pytest.param('id_01', 200, id='id'),
-    pytest.param('id_02', 404, id='404-not-visible'),
-    pytest.param('doesnotexist', 404, id='404-does-not-exist')])
-def test_entry_archive(client, data, entry_id, status_code):
-    response = client.get('entries/%s/archive' % entry_id)
+@pytest.mark.parametrize('user, entry_id, status_code', [
+    pytest.param(None, 'id_01', 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', 200, id='child-entry'),
+    pytest.param(None, 'id_02', 404, id='404-not-visible'),
+    pytest.param(None, 'doesnotexist', 404, id='404-does-not-exist')])
+def test_entry_archive(client, example_data, test_auth_dict, user, entry_id, status_code):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get('entries/%s/archive' % entry_id, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
 
 
-@pytest.mark.parametrize('entry_id, status_code', [
-    pytest.param('id_01', 200, id='id'),
-    pytest.param('id_02', 404, id='404-not-visible'),
-    pytest.param('doesnotexist', 404, id='404-does-not-exist')])
-def test_entry_archive_download(client, data, entry_id, status_code):
-    response = client.get('entries/%s/archive/download' % entry_id)
+@pytest.mark.parametrize('user, entry_id, status_code', [
+    pytest.param(None, 'id_01', 200, id='id'),
+    pytest.param('test_user', 'id_child_entries_child1', 200, id='child-entry'),
+    pytest.param(None, 'id_02', 404, id='404-not-visible'),
+    pytest.param(None, 'doesnotexist', 404, id='404-does-not-exist')])
+def test_entry_archive_download(client, example_data, test_auth_dict, user, entry_id, status_code):
+    user_auth, _ = test_auth_dict[user]
+    response = client.get('entries/%s/archive/download' % entry_id, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         archive = response.json()
@@ -642,20 +659,22 @@ def test_entry_archive_download(client, data, entry_id, status_code):
         assert 'run' in archive
 
 
-@pytest.mark.parametrize('entry_id, required, status_code', [
-    pytest.param('id_01', '*', 200, id='full'),
-    pytest.param('id_02', '*', 404, id='404'),
-    pytest.param('id_01', {'metadata': '*'}, 200, id='partial'),
-    pytest.param('id_01', {'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param('id_01', {'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
-    pytest.param('id_01', {'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
-    pytest.param('id_01', {'resolve-inplace': 'NotBool', 'workflow': '*'}, 422, id='bad-required-4'),
-    pytest.param('id_01', {'resolve-inplace': True, 'metadata': 'include-resolved'}, 200, id='resolve-inplace')
+@pytest.mark.parametrize('user, entry_id, required, status_code', [
+    pytest.param(None, 'id_01', '*', 200, id='full'),
+    pytest.param('test_user', 'id_child_entries_child1', '*', 200, id='full-child-entry'),
+    pytest.param(None, 'id_02', '*', 404, id='404'),
+    pytest.param(None, 'id_01', {'metadata': '*'}, 200, id='partial'),
+    pytest.param(None, 'id_01', {'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
+    pytest.param(None, 'id_01', {'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
+    pytest.param(None, 'id_01', {'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
+    pytest.param(None, 'id_01', {'resolve-inplace': 'NotBool', 'workflow': '*'}, 422, id='bad-required-4'),
+    pytest.param(None, 'id_01', {'resolve-inplace': True, 'metadata': 'include-resolved'}, 200, id='resolve-inplace')
 ])
-def test_entry_archive_query(client, data, entry_id, required, status_code):
+def test_entry_archive_query(client, example_data, test_auth_dict, user, entry_id, required, status_code):
+    user_auth, _ = test_auth_dict[user]
     response = client.post('entries/%s/archive/query' % entry_id, json={
         'required': required
-    })
+    }, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json(), required=required)
@@ -679,7 +698,7 @@ n_elements = 'results.material.n_elements'
     pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
-def test_entries_post_query(client, data, query, status_code, total, test_method):
+def test_entries_post_query(client, example_data, query, status_code, total, test_method):
     response_json = test_method(client, query=query, status_code=status_code, total=total, http_method='post')
 
     response = client.post('entries/query', json={'query': query})
@@ -708,7 +727,7 @@ def test_entries_post_query(client, data, query, status_code, total, test_method
     pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
-def test_entries_get_query(client, data, query, status_code, total, test_method):
+def test_entries_get_query(client, example_data, query, status_code, total, test_method):
     response_json = test_method(
         client, query=query, status_code=status_code, total=total, http_method='get')
 
@@ -744,7 +763,7 @@ def test_entries_get_query(client, data, query, status_code, total, test_method)
     pytest.param(perform_entries_archive_test, id='archive'),
     pytest.param(perform_entries_archive_download_test, id='archive-download')])
 def test_entries_owner(
-        client, data, test_user_auth, other_test_user_auth, admin_user_auth,
+        client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
         owner, user, status_code, total_entries, total_mainfiles, total_materials,
         http_method, test_method):
 
@@ -764,7 +783,7 @@ def test_entries_owner(
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive')])
-def test_entries_pagination(client, data, pagination, response_pagination, status_code, http_method, test_method):
+def test_entries_pagination(client, example_data, pagination, response_pagination, status_code, http_method, test_method):
     response_json = test_method(
         client, pagination=pagination, status_code=status_code, http_method=http_method)
 
