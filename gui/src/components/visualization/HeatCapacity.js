@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
-import { Unit, toUnitSystem } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const HeatCapacity = React.memo(({
@@ -43,13 +43,13 @@ const HeatCapacity = React.memo(({
     let defaultLayout = {
       xaxis: {
         title: {
-          text: `Temperature (${tempUnit.label(units)})`
+          text: `Temperature (${tempUnit.toSystem(units).label})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Heat capacity (${capacityUnit.label(units)})`
+          text: `Heat capacity (${capacityUnit.toSystem(units).label})`
         },
         zeroline: false
       }
@@ -67,8 +67,8 @@ const HeatCapacity = React.memo(({
     }
 
     // Convert units and determine range
-    const temperatures = toUnitSystem(data.temperatures, tempUnit, units)
-    const heatCapacities = toUnitSystem(data.heat_capacities, capacityUnit, units)
+    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value
+    const heatCapacities = new Quantity(data.heat_capacities, capacityUnit).toSystem(units).value
 
     // Create the final data that will be plotted.
     const plotData = [{

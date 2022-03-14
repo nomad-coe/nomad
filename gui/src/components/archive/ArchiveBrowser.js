@@ -27,7 +27,7 @@ import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './Metainf
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { toUnitSystem, useUnits } from '../../units'
+import { Quantity as Q, useUnits } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
@@ -336,10 +336,13 @@ function QuantityItemPreview({value, def}) {
       </Typography>
     </Box>
   } else {
-    const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
-    const [finalValue, finalUnit] = def.unit
-      ? toUnitSystem(val, def.unit, units, true)
-      : [val, def.unit]
+    let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+    let finalUnit
+    if (def.unit) {
+      const a = new Q(finalValue, def.unit).toSystem(units)
+      finalValue = a.value
+      finalUnit = a.unit.label
+    }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8} />
       {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
@@ -353,10 +356,13 @@ QuantityItemPreview.propTypes = ({
 
 const QuantityValue = React.memo(function QuantityValue({value, def}) {
   const units = useUnits()
-  const val = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
-  const [finalValue, finalUnit] = def.unit
-    ? toUnitSystem(val, def.unit, units, true)
-    : [val, def.unit]
+  let finalValue = (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' ? new Date(value).toLocaleString() : value)
+  let finalUnit
+  if (def.unit) {
+    const a = new Q(finalValue, def.unit).toSystem(units)
+    finalValue = a.value
+    finalUnit = a.unit.label
+  }
 
   let isMathValue = def.type.type_kind === 'numpy'
   if (isMathValue) {

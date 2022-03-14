@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from './Plot'
 import { withErrorHandler } from '../ErrorHandler'
-import { toUnitSystem, Unit } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { getLineStyles } from '../../utils'
 
 /**
@@ -70,8 +70,8 @@ const EnergyVolumeCurve = React.memo(({
     const lineStyles = getLineStyles(data.data.length, theme)
     for (let curve of data.data) {
       const trace = {
-        x: toUnitSystem(indices.map(i => curve.volumes[i]), volumeUnit, units),
-        y: toUnitSystem(indices.map(i => curve.energies[i]), energyUnit, units),
+        x: new Quantity(indices.map(i => curve.volumes[i]), volumeUnit).toSystem(units).value,
+        y: new Quantity(indices.map(i => curve.energies[i]), energyUnit).toSystem(units).value,
         name: curve.name,
         visible: i === 0 || 'legendonly',
         type: 'scatter',
@@ -97,13 +97,13 @@ const EnergyVolumeCurve = React.memo(({
       },
       xaxis: {
         title: {
-          text: `Volume/atom (${volumeUnit.label(units)})`
+          text: `Volume/atom (${volumeUnit.toSystem(units).label})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Energy (${energyUnit.label(units)})`
+          text: `Energy (${energyUnit.toSystem(units).label})`
         },
         zeroline: false
       }

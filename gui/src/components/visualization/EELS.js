@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { getLineStyles, mergeObjects } from '../../utils'
-import { toUnitSystem, Unit } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const energyUnit = new Unit('joule')
@@ -54,7 +54,7 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
       xaxis: {
         showexponent: 'first',
         title: {
-          text: `Electron energy loss (${energyUnit.label(units)})`
+          text: `Electron energy loss (${energyUnit.toSystem(units).label})`
         }
       }
     }
@@ -71,7 +71,7 @@ function EELS({data, layout, aspectRatio, className, units, ...other}) {
     const lineStyles = getLineStyles(data.length, theme)
     for (let i = 0; i < data.length; ++i) {
       const trace = data[i]
-      const energies = toUnitSystem(trace.energy, energyUnit, units)
+      const energies = new Quantity(trace.energy, energyUnit).toSystem(units).value
       plotData.push(
         {
           x: energies,

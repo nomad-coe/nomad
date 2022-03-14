@@ -17,7 +17,7 @@
  */
 import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
 import { scalePow } from 'd3-scale'
-import { toUnitSystem, Quantity } from './units'
+import { Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import { scale as chromaScale } from 'chroma-js'
@@ -316,8 +316,10 @@ export function toMateriaStructure(structure) {
 
     const structMateria = {
       species: structure.species_at_sites.map(x => speciesMap.get(x)),
-      cell: structure.lattice_vectors ? toUnitSystem(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      positions: toUnitSystem(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
+      cell: structure.lattice_vectors
+        ? new Quantity(structure.lattice_vectors, 'meter').to('angstrom').value
+        : undefined,
+      positions: new Quantity(structure.cartesian_site_positions, 'meter').to('angstrom').value,
       fractional: false,
       pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined
     }
@@ -474,10 +476,11 @@ export function getSerializer(dtype, pretty = true) {
         let label
         let valueConv
         if (units) {
-          label = value.unit.label(units)
-          valueConv = value.toSystem(units)
+          const a = value.toSystem(units)
+          valueConv = a.value
+          label = a.unit.label
         } else {
-          label = value.unit.label()
+          label = value.unit.label
           valueConv = value.value
         }
         return `${pretty ? formatNumber(valueConv) : valueConv}${label ? ` ${label}` : ''}`
