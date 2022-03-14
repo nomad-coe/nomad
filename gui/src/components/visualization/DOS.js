@@ -20,13 +20,12 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { add, mergeObjects } from '../../utils'
-import { Unit, toUnitSystem } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { msgNormalizationWarning } from '../../config'
 
 const energyUnit = new Unit('joule')
 const valueUnit = new Unit('1/joule')
-const valueDisplayUnit = new Unit('state/joule', undefined, false)
 
 const DOS = React.memo(({
   data,
@@ -44,7 +43,7 @@ const DOS = React.memo(({
     let defaultLayout = {
       yaxis: {
         title: {
-          text: `Energy (${energyUnit.label(units)})`
+          text: `Energy (${energyUnit.toSystem(units).label})`
         },
         zeroline: type === 'vibrational'
       },
@@ -89,7 +88,7 @@ const DOS = React.memo(({
         energyHighestOccupied = 0
         normalized = false
       } else {
-        energyHighestOccupied = toUnitSystem(data.energy_highest_occupied, energyUnit, units)
+        energyHighestOccupied = new Quantity(data.energy_highest_occupied, energyUnit).toSystem(units).value
         normalized = true
       }
     }
@@ -98,13 +97,13 @@ const DOS = React.memo(({
     let mins = []
     let maxes = []
     let nChannels = data.densities.length
-    let energies = toUnitSystem(data.energies, energyUnit, units)
-    const values1 = toUnitSystem(data.densities[0], valueUnit, units)
+    let energies = new Quantity(data.energies, energyUnit).toSystem(units).value
+    const values1 = new Quantity(data.densities[0], valueUnit).toSystem(units).value
     let values2
     mins.push(Math.min(...values1))
     maxes.push(Math.max(...values1))
     if (nChannels === 2) {
-      values2 = toUnitSystem(data.densities[1], valueUnit, units)
+      values2 = new Quantity(data.densities[1], valueUnit).toSystem(units).value
       mins.push(Math.min(...values2))
       maxes.push(Math.max(...values2))
     }
@@ -165,7 +164,7 @@ const DOS = React.memo(({
       {
         xaxis: {
           title: {
-            text: valueDisplayUnit.label(units)
+            text: valueUnit.toSystem(units).label.replace('1', 'states')
           },
           range: range
         },

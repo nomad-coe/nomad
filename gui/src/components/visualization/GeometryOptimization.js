@@ -22,7 +22,7 @@ import Plot from '../visualization/Plot'
 import { QuantityTable, QuantityRow, QuantityCell } from '../Quantity'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
-import { toUnitSystem, Unit } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
 const energyUnit = new Unit('joule')
@@ -43,8 +43,8 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
     }
 
     // Convert energies into the correct units and calculate the total difference
-    let energyDiffTotal = toUnitSystem(diffTotal(energies), energyUnit, units)
-    let convergenceCriteria = toUnitSystem(convergence?.convergence_tolerance_energy_difference, energyUnit, units)
+    let energyDiffTotal = new Quantity(diffTotal(energies), energyUnit).toSystem(units).value
+    let convergenceCriteria = new Quantity(convergence?.convergence_tolerance_energy_difference, energyUnit).toSystem(units).value
 
     let steps = [...Array(energies.length).keys()]
     const energyDiff = []
@@ -126,7 +126,7 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
         spikemode: 'across' },
       yaxis: {
         title: {
-          text: `Total change (${energyUnit.label(units)})`
+          text: `Total change (${energyUnit.toSystem(units).label})`
         },
         tickfont: {
           color: theme.palette.primary.dark
@@ -136,7 +136,7 @@ const GeometryOptimization = React.memo(({energies, convergence, className, clas
       },
       yaxis2: {
         title: {
-          text: `Abs. change per step (${energyUnit.label(units)})`
+          text: `Abs. change per step (${energyUnit.toSystem(units).label})`
         },
         tickfont: {
           color: theme.palette.secondary.dark

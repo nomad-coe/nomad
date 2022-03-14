@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../visualization/Plot'
 import { mergeObjects } from '../../utils'
-import { Unit, toUnitSystem } from '../../units'
+import { Quantity, Unit } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 
 const HelmholtzFreeEnergy = React.memo(({
@@ -41,13 +41,13 @@ const HelmholtzFreeEnergy = React.memo(({
     let defaultLayout = {
       xaxis: {
         title: {
-          text: `Temperature (${tempUnit.label(units)})`
+          text: `Temperature (${tempUnit.toSystem(units).label})`
         },
         zeroline: false
       },
       yaxis: {
         title: {
-          text: `Helmholtz free energy (${energyUnit.label(units)})`
+          text: `Helmholtz free energy (${energyUnit.toSystem(units).label})`
         },
         zeroline: false
       }
@@ -68,8 +68,8 @@ const HelmholtzFreeEnergy = React.memo(({
     }
 
     // Convert units
-    const temperatures = toUnitSystem(data.temperatures, tempUnit, units, false)
-    const energies = toUnitSystem(data.energies, energyUnit, units, false)
+    const temperatures = new Quantity(data.temperatures, tempUnit).toSystem(units).value
+    const energies = new Quantity(data.energies, energyUnit).toSystem(units).value
 
     // Create the final data that will be plotted.
     const plotData = [{

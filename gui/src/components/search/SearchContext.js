@@ -1274,15 +1274,19 @@ function toAPIFilterSingle(key, value, path = undefined) {
     if (newValue.length === 0) {
       newValue = undefined
     } else {
-      newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
+      newValue = newValue.map((item) => item instanceof Quantity
+        ? item.toSI().value
+        : item)
     }
   } else if (value instanceof Quantity) {
-    newValue = value.toSI()
+    newValue = value.toSI().value
   } else if (isArray(value)) {
     if (value.length === 0) {
       newValue = undefined
     } else {
-      newValue = value.map((item) => item instanceof Quantity ? item.toSI() : item)
+      newValue = value.map((item) => item instanceof Quantity
+        ? item.toSI().value
+        : item)
     }
   } else if (isPlainObject(value)) {
     newValue = {}

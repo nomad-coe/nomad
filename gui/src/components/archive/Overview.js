@@ -12,7 +12,7 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import EELS from '../visualization/EELS'
 import DOS from '../visualization/DOS'
-import { toUnitSystem, useUnits } from '../../units'
+import { Quantity, useUnits } from '../../units'
 import { electronicRange } from '../../config'
 import EnergyVolumeCurve from '../visualization/EnergyVolumeCurve'
 
@@ -28,9 +28,9 @@ export const OverviewAtoms = React.memo(({def, section}) => {
   const system = useMemo(() => ({
     'species': section.species,
     'cell': section.lattice_vectors
-      ? toUnitSystem(section.lattice_vectors, 'meter', {length: 'angstrom'})
+      ? new Quantity(section.lattice_vectors, 'meter').to('angstrom').value
       : undefined,
-    'positions': toUnitSystem(section.positions, 'meter', {length: 'angstrom'}),
+    'positions': new Quantity(section.positions, 'meter').to('angstrom').value,
     'pbc': section.periodic
   }), [section])
 
@@ -150,7 +150,7 @@ export const OverviewBandstructureElectronic = React.memo(({def, section, units}
   const layout = useMemo(() => ({
     yaxis: {
       autorange: false,
-      range: toUnitSystem(electronicRange, 'electron_volt', units)
+      range: new Quantity(electronicRange, 'electron_volt').toSystem(units).value
     }
   }), [units])
 

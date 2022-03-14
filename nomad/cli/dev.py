@@ -316,435 +316,444 @@ def units(ctx):
     # Mapping from unit name to dimension
     unit_map = {
         # Time
-        "second": {
-            "dimension": "time",
-            "label": "Second",
-            "abbreviation": "s",
+        'second': {
+            'dimension': 'time',
+            'label': 'Second',
+            'abbreviation': 's',
         },
-        "atomic_unit_of_time": {
-            "dimension": "time",
-            "label": "Atomic unit of time",
-            "abbreviation": "a_u_time",
+        'femtosecond': {
+            'dimension': 'time',
+            'label': 'Femtosecond',
+            'abbreviation': 'fs',
+        },
+        'atomic_unit_of_time': {
+            'dimension': 'time',
+            'label': 'Atomic unit of time',
+            'abbreviation': 'a_u_time',
         },
         # Length
-        "meter": {
-            "dimension": "length",
-            "label": "Meter",
-            "abbreviation": "m",
+        'meter': {
+            'dimension': 'length',
+            'label': 'Meter',
+            'abbreviation': 'm',
         },
-        "bohr": {
-            "dimension": "length",
-            "label": "Bohr",
-            "abbreviation": "bohr",
+        'bohr': {
+            'dimension': 'length',
+            'label': 'Bohr',
+            'abbreviation': 'bohr',
         },
-        "angstrom": {
-            "dimension": "length",
-            "label": "Ångstrom",
-            "abbreviation": "Å",
+        'angstrom': {
+            'dimension': 'length',
+            'label': 'Ångstrom',
+            'abbreviation': 'Å',
         },
         # Mass
-        "kilogram": {
-            "dimension": "mass",
-            "label": "Kilogram",
-            "abbreviation": "kg",
+        'kilogram': {
+            'dimension': 'mass',
+            'label': 'Kilogram',
+            'abbreviation': 'kg',
         },
-        "electron_mass": {
-            "dimension": "mass",
-            "label": "Electron mass",
-            "abbreviation": "mₑ",
+        'electron_mass': {
+            'dimension': 'mass',
+            'label': 'Electron mass',
+            'abbreviation': 'mₑ',
         },
-        "unified_atomic_mass_unit": {
-            "dimension": "mass",
-            "label": "Unified atomic mass unit",
-            "abbreviation": "u",
+        'unified_atomic_mass_unit': {
+            'dimension': 'mass',
+            'label': 'Unified atomic mass unit',
+            'abbreviation': 'u',
         },
         # Current
-        "ampere": {
-            "dimension": "current",
-            "label": "Ampere",
-            "abbreviation": "A",
+        'ampere': {
+            'dimension': 'current',
+            'label': 'Ampere',
+            'abbreviation': 'A',
         },
-        "atomic_unit_of_current": {
-            "dimension": "current",
-            "label": "Atomic unit of current",
-            "abbreviation": "a_u_current",
+        'atomic_unit_of_current': {
+            'dimension': 'current',
+            'label': 'Atomic unit of current',
+            'abbreviation': 'a_u_current',
         },
         # Substance
-        "mole": {
-            "dimension": "substance",
-            "label": "Mole",
-            "abbreviation": "mole",
+        'mole': {
+            'dimension': 'substance',
+            'label': 'Mole',
+            'abbreviation': 'mole',
         },
         # Luminosity
-        "candela": {
-            "dimension": "luminosity",
-            "label": "Candela",
-            "abbreviation": "cd",
+        'candela': {
+            'dimension': 'luminosity',
+            'label': 'Candela',
+            'abbreviation': 'cd',
         },
         # Temperature
-        "kelvin": {
-            "dimension": "temperature",
-            "label": "Kelvin",
-            "abbreviation": "K",
+        'kelvin': {
+            'dimension': 'temperature',
+            'label': 'Kelvin',
+            'abbreviation': 'K',
         },
-        "celsius": {
-            "dimension": "temperature",
-            "label": "Celsius",
-            "abbreviation": "°C",
+        'celsius': {
+            'dimension': 'temperature',
+            'label': 'Celsius',
+            'abbreviation': '°C',
         },
-        "fahrenheit": {
-            "dimension": "temperature",
-            "label": "Fahrenheit",
-            "abbreviation": "°F",
+        'fahrenheit': {
+            'dimension': 'temperature',
+            'label': 'Fahrenheit',
+            'abbreviation': '°F',
         },
-        "atomic_unit_of_temperature": {
-            "dimension": "temperature",
-            "label": "Atomic unit of temperature",
-            "abbreviation": "a_u_temperature",
+        'atomic_unit_of_temperature': {
+            'dimension': 'temperature',
+            'label': 'Atomic unit of temperature',
+            'abbreviation': 'a_u_temperature',
         },
         # Force
-        "newton": {
-            "dimension": "force",
-            "label": "Newton",
-            "abbreviation": "N",
+        'newton': {
+            'dimension': 'force',
+            'label': 'Newton',
+            'abbreviation': 'N',
         },
-        "atomic_unit_of_force": {
-            "dimension": "force",
-            "label": "Atomic unit of force",
-            "abbreviation": "a_u_force",
+        'atomic_unit_of_force': {
+            'dimension': 'force',
+            'label': 'Atomic unit of force',
+            'abbreviation': 'a_u_force',
         },
         # Pressure
-        "pascal": {
-            "dimension": "pressure",
-            "label": "Pascal",
-            "abbreviation": "Pa"
+        'pascal': {
+            'dimension': 'pressure',
+            'label': 'Pascal',
+            'abbreviation': 'Pa'
         },
-        "gigapascal": {
-            "dimension": "pressure",
-            "label": "Gigapascal",
-            "abbreviation": "GPa"
+        'gigapascal': {
+            'dimension': 'pressure',
+            'label': 'Gigapascal',
+            'abbreviation': 'GPa'
         },
-        "atomic_unit_of_pressure": {
-            "dimension": "pressure",
-            "label": "Atomic unit of pressure",
-            "abbreviation": "a_u_pressure"
+        'atomic_unit_of_pressure': {
+            'dimension': 'pressure',
+            'label': 'Atomic unit of pressure',
+            'abbreviation': 'a_u_pressure'
         },
         # Energy
-        "joule": {
-            "dimension": "energy",
-            "label": "Joule",
-            "abbreviation": "J",
+        'joule': {
+            'dimension': 'energy',
+            'label': 'Joule',
+            'abbreviation': 'J',
         },
-        "electron_volt": {
-            "dimension": "energy",
-            "label": "Electron volt",
-            "abbreviation": "eV",
+        'electron_volt': {
+            'dimension': 'energy',
+            'label': 'Electron volt',
+            'abbreviation': 'eV',
         },
-        "hartree": {
-            "dimension": "energy",
-            "label": "Hartree",
-            "abbreviation": "Ha",
+        'hartree': {
+            'dimension': 'energy',
+            'label': 'Hartree',
+            'abbreviation': 'Ha',
         },
         # Power
-        "watt": {
-            "dimension": "power",
-            "label": "Watt",
-            "abbreviation": "W",
+        'watt': {
+            'dimension': 'power',
+            'label': 'Watt',
+            'abbreviation': 'W',
         },
         # Frequency
-        "hertz": {
-            "dimension": "frequency",
-            "label": "Hertz",
-            "abbreviation": "Hz",
+        'hertz': {
+            'dimension': 'frequency',
+            'label': 'Hertz',
+            'abbreviation': 'Hz',
         },
         # Electric potential
-        "volt": {
-            "dimension": "electric_potential",
-            "label": "Volt",
-            "abbreviation": "V",
+        'volt': {
+            'dimension': 'electric_potential',
+            'label': 'Volt',
+            'abbreviation': 'V',
         },
         # Capacitance
-        "farad": {
-            "dimension": "capacitance",
-            "label": "Farad",
-            "abbreviation": "F",
+        'farad': {
+            'dimension': 'capacitance',
+            'label': 'Farad',
+            'abbreviation': 'F',
         },
         # Charge
-        "coulomb": {
-            "dimension": "charge",
-            "label": "Coulomb",
-            "abbreviation": "C",
+        'coulomb': {
+            'dimension': 'charge',
+            'label': 'Coulomb',
+            'abbreviation': 'C',
         },
-        "elementary_charge": {
-            "dimension": "charge",
-            "label": "Elementary charge",
-            "abbreviation": "e",
+        'elementary_charge': {
+            'dimension': 'charge',
+            'label': 'Elementary charge',
+            'abbreviation': 'e',
         },
         # Magnetic field
-        "tesla": {
-            "dimension": "magnetic_field",
-            "label": "Tesla",
-            "abbreviation": "T",
+        'tesla': {
+            'dimension': 'magnetic_field',
+            'label': 'Tesla',
+            'abbreviation': 'T',
         },
         # Magnetic flux
-        "weber": {
-            "dimension": "magnetic_flux",
-            "label": "Weber",
-            "abbreviation": "Wb",
+        'weber': {
+            'dimension': 'magnetic_flux',
+            'label': 'Weber',
+            'abbreviation': 'Wb',
         },
         # Magnetic dipole
-        "bohr_magneton": {
-            "dimension": "magnetic_dipole",
-            "label": "Bohr magneton",
-            "abbreviation": "Bm",
+        'bohr_magneton': {
+            'dimension': 'magnetic_dipole',
+            'label': 'Bohr magneton',
+            'abbreviation': 'Bm',
         },
         # Inductance
-        "henry": {
-            "dimension": "inductance",
-            "label": "Henry",
-            "abbreviation": "H",
+        'henry': {
+            'dimension': 'inductance',
+            'label': 'Henry',
+            'abbreviation': 'H',
         },
         # angle
-        "radian": {
-            "dimension": "angle",
-            "label": "Radian",
-            "abbreviation": "rad",
+        'radian': {
+            'dimension': 'angle',
+            'label': 'Radian',
+            'abbreviation': 'rad',
         },
-        "degree": {
-            "dimension": "angle",
-            "label": "Degree",
-            "abbreviation": "°",
+        'degree': {
+            'dimension': 'angle',
+            'label': 'Degree',
+            'abbreviation': '°',
         },
         # dimensionless
-        "dimensionless": {
-            "dimension": "dimensionless",
-            "label": "Dimensionless",
-            "abbreviation": "",
+        'dimensionless': {
+            'dimension': 'dimensionless',
+            'label': 'Dimensionless',
+            'abbreviation': '',
         },
     }
+
+    # Add name as part of the data
+    for key, data in unit_map.items():
+        data['name'] = key
 
     # Units that are supported
     unit_table = {
         # Base units
-        "time": {
-            "units": [
-                "second",
-                "atomic_unit_of_time",
+        'time': {
+            'units': [
+                'second',
+                'femtosecond',
+                'atomic_unit_of_time',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "length": {
-            "units": [
-                "meter",
-                "bohr",
-                "angstrom",
+        'length': {
+            'units': [
+                'meter',
+                'bohr',
+                'angstrom',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "mass": {
-            "units": [
-                "kilogram",
-                "electron_mass",
-                "unified_atomic_mass_unit",
+        'mass': {
+            'units': [
+                'kilogram',
+                'electron_mass',
+                'unified_atomic_mass_unit',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "current": {
-            "units": [
-                "ampere",
-                "atomic_unit_of_current",
+        'current': {
+            'units': [
+                'ampere',
+                'atomic_unit_of_current',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "substance": {
-            "units": [
-                "mole",
+        'substance': {
+            'units': [
+                'mole',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "luminosity": {
-            "units": [
-                "candela",
+        'luminosity': {
+            'units': [
+                'candela',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "temperature": {
-            "units": [
-                "kelvin",
-                "celsius",
-                "fahrenheit",
-                "atomic_unit_of_temperature",
+        'temperature': {
+            'units': [
+                'kelvin',
+                'celsius',
+                'fahrenheit',
+                'atomic_unit_of_temperature',
             ],
-            "multipliers": {},
-            "constants": {},
+            'multipliers': {},
+            'constants': {},
         },
         # Derived units
-        "force": {
-            "units": [
-                "newton",
-                "atomic_unit_of_force",
+        'force': {
+            'units': [
+                'newton',
+                'atomic_unit_of_force',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "pressure": {
-            "units": [
-                "pascal",
-                "gigapascal",
-                "atomic_unit_of_pressure",
+        'pressure': {
+            'units': [
+                'pascal',
+                'gigapascal',
+                'atomic_unit_of_pressure',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "energy": {
-            "units": [
-                "joule",
-                "electron_volt",
-                "hartree",
+        'energy': {
+            'units': [
+                'joule',
+                'electron_volt',
+                'hartree',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "power": {
-            "units": [
-                "watt",
+        'power': {
+            'units': [
+                'watt',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "frequency": {
-            "units": [
-                "hertz",
+        'frequency': {
+            'units': [
+                'hertz',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "electric_potential": {
-            "units": [
-                "volt",
+        'electric_potential': {
+            'units': [
+                'volt',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "capacitance": {
-            "units": [
-                "farad",
+        'capacitance': {
+            'units': [
+                'farad',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "charge": {
-            "units": [
-                "coulomb",
-                "elementary_charge",
+        'charge': {
+            'units': [
+                'coulomb',
+                'elementary_charge',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "magnetic_field": {
-            "units": [
-                "tesla",
+        'magnetic_field': {
+            'units': [
+                'tesla',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "magnetic_flux": {
-            "units": [
-                "weber",
+        'magnetic_flux': {
+            'units': [
+                'weber',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "magnetic_dipole": {
-            "units": [
-                "bohr_magneton",
+        'magnetic_dipole': {
+            'units': [
+                'bohr_magneton',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "inductance": {
-            "dimension": "inductance",
-            "units": [
-                "henry",
+        'inductance': {
+            'dimension': 'inductance',
+            'units': [
+                'henry',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "angle": {
-            "dimension": "angle",
-            "units": [
-                "radian",
-                "degree",
+        'angle': {
+            'dimension': 'angle',
+            'units': [
+                'radian',
+                'degree',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
-        "dimensionless": {
-            "dimension": "dimensionless",
-            "units": [
-                "dimensionless",
+        'dimensionless': {
+            'dimension': 'dimensionless',
+            'units': [
+                'dimensionless',
             ],
-            "multipliers": {},
+            'multipliers': {},
         },
     }
 
     # Unit systems
     unit_systems = {
-        "SI": {
-            "label": "SI",
-            "description": "International System of Units (SI)",
-            "units": {
-                "time": "second",
-                "length": "meter",
-                "mass": "kilogram",
-                "current": "ampere",
-                "substance": "mole",
-                "luminosity": "candela",
-                "temperature": "kelvin",
-                "force": "newton",
-                "pressure": "pascal",
-                "energy": "joule",
-                "power": "watt",
-                "frequency": "hertz",
-                "electric_potential": "volt",
-                "charge": "coulomb",
-                "angle": "radian",
+        'SI': {
+            'label': 'SI',
+            'description': 'International System of Units (SI)',
+            'units': {
+                'time': 'second',
+                'length': 'meter',
+                'mass': 'kilogram',
+                'current': 'ampere',
+                'substance': 'mole',
+                'luminosity': 'candela',
+                'temperature': 'kelvin',
+                'force': 'newton',
+                'pressure': 'pascal',
+                'energy': 'joule',
+                'power': 'watt',
+                'frequency': 'hertz',
+                'electric_potential': 'volt',
+                'charge': 'coulomb',
+                'angle': 'radian',
             },
         },
-        "AU": {
-            "label": "Atomic units",
-            "description": "Hartree atomic units",
-            "units": {
-                "time": "atomic_unit_of_time",
-                "length": "bohr",
-                "mass": "electron_mass",
-                "current": "atomic_unit_of_current",
-                "temperature": "atomic_unit_of_temperature",
-                "force": "atomic_unit_of_force",
-                "energy": "hartree",
-                "pressure": "atomic_unit_of_pressure",
-                "angle": "radian",
+        'AU': {
+            'label': 'Atomic units',
+            'description': 'Hartree atomic units',
+            'units': {
+                'time': 'atomic_unit_of_time',
+                'length': 'bohr',
+                'mass': 'electron_mass',
+                'current': 'atomic_unit_of_current',
+                'temperature': 'atomic_unit_of_temperature',
+                'force': 'atomic_unit_of_force',
+                'energy': 'hartree',
+                'pressure': 'atomic_unit_of_pressure',
+                'angle': 'radian',
             }
         }
     }
 
     # Precompute conversion factors and possible shifts
     for value in unit_table.values():
-        units = value["units"]
+        units = value['units']
         for i_unit in units:
             for j_unit in units:
-                # Create dictionaries if not present
-                multipliers = value["multipliers"]
+                if i_unit == j_unit:
+                    continue
+
+                # Solve the multiplication factor using 'delta'-units if an
+                # offset is present (see
+                # https://pint.readthedocs.io/en/0.10.1/nonmult.html) y(1) = a
+                # + b -> a = y(1) - b, with delta units b = 0
+                y_1 = 1 * getattr(ureg, 'delta_' + i_unit, getattr(ureg, i_unit))
+                a = y_1.to(getattr(ureg, 'delta_' + j_unit, getattr(ureg, j_unit))).magnitude
+
+                # Save multiplication factor
+                multipliers = value['multipliers']
                 if i_unit not in multipliers:
                     multipliers[i_unit] = {}
                 if j_unit not in multipliers[i_unit]:
                     multipliers[i_unit][j_unit] = {}
-
-                # Check if there is a constant shift: y = ax + b -> y(0) = b.
-                # Uses delta units for temperatures since only they are
-                # multiplicative.
-                y_0 = 0 * getattr(ureg, "delta_" + i_unit, getattr(ureg, i_unit))
-                b = y_0.to(getattr(ureg, j_unit)).magnitude
-
-                # Solving the multiplication factor with:
-                # y(1) = a + b -> a = y(1) - b
-                # Uses delta units for temperatures since only they are
-                # multiplicative. Causes minor numerical accuracy issues in the
-                # factor due to floating point precision
-                y_1 = 1 * getattr(ureg, "delta_" + i_unit, getattr(ureg, i_unit))
-                a = y_1.to(getattr(ureg, "delta_" + j_unit, getattr(ureg, j_unit))).magnitude
                 multipliers[i_unit][j_unit] = a
 
-                # Create dictionaries if not present
+                # Calculate the constant offset: y = ax + b -> y(0) = b.
+                b = ureg.Quantity(0, getattr(ureg, i_unit)).to(getattr(ureg, j_unit)).magnitude
+
+                # Save constant offset is non-zero
                 if b != 0:
-                    constants = value["constants"]
+                    constants = value['constants']
                     if i_unit not in constants:
                         constants[i_unit] = {}
                     if j_unit not in constants[i_unit]:
@@ -753,30 +762,30 @@ def units(ctx):
 
     # Check that all defined units are present in the conversion table
     for unit, info in unit_map.items():
-        dimension = info["dimension"]
-        unit_list = unit_table[dimension]["units"]
-        assert unit in unit_list, "Could not find '{}' in the unit table under the dimension '{}'.".format(unit, dimension)
+        dimension = info['dimension']
+        unit_list = unit_table[dimension]['units']
+        assert unit in unit_list, 'Could not find "{}" in the unit table under the dimension "{}".'.format(unit, dimension)
 
     # Check unit system correctness
     for system in unit_systems.values():
-        for dimension, unit in system["units"].items():
+        for dimension, unit in system['units'].items():
             info = unit_map[unit]
-            assert dimension == info["dimension"]
+            assert dimension == info['dimension']
 
     # Go through the metainfo and check that all units are defined
     all_metainfo = _all_metainfo_packages()
     units = set()
     packages = all_metainfo.m_to_dict(with_meta=True)['packages']
     for package in packages:
-        sections = package.get("section_definitions", [])
+        sections = package.get('section_definitions', [])
         for section in sections:
-            quantities = section.get("quantities", [])
+            quantities = section.get('quantities', [])
             for quantity in quantities:
-                unit = quantity.get("unit")
+                unit = quantity.get('unit')
                 if unit is not None:
                     parts = unit.split()
                     for part in parts:
-                        is_operator = part in {"/", "**", "*"}
+                        is_operator = part in {'/', '**', '*'}
                         is_number = True
                         try:
                             int(part)
@@ -788,10 +797,10 @@ def units(ctx):
         if unit == 'byte':
             continue
 
-        assert unit in unit_map, "The unit '{}' is not defined in the unit definitions.".format(unit)
+        assert unit in unit_map, 'The unit "{}" is not defined in the unit definitions.'.format(unit)
 
     # Print unit conversion table and unit systems as a Javascript source file
-    output = """/*
+    output = '''/*
  * Copyright The NOMAD Authors.
  *
  * This file is part of NOMAD. See https://nomad-lab.eu for further info.
@@ -809,20 +818,20 @@ def units(ctx):
  * limitations under the License.
  */
 // Generated by NOMAD CLI. Do not edit manually.
-"""
-    output += "export const unitMap = "
+'''
+    output += 'export const unitMap = '
     json_string = json.dumps(unit_map, indent=2)
     json_string = re.sub(r'(?<!: )"(\S*?)":', '\\1:', json_string)
     json_string = json_string.replace("\"", "'")
     output += json_string
-    output += "\nexport const conversionMap = "
+    output += '\nexport const conversionMap = '
     json_string = json.dumps(unit_table, indent=2)
     json_string = re.sub(r'(?<!: )"(\S*?)":', '\\1:', json_string)
     json_string = json_string.replace("\"", "'")
     output += json_string
-    output += "\nexport const unitSystems = "
+    output += '\nexport const unitSystems = '
     json_string = json.dumps(unit_systems, indent=2)
     json_string = re.sub(r'(?<!: )"(\S*?)":', '\\1:', json_string)
-    json_string = json_string.replace("\"", "'")
+    json_string = json_string.replace('"', '\'')
     output += json_string
     print(output)
