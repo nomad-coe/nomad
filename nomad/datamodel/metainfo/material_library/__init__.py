@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 
-from matplotlib.afm import CharMetrics
 import numpy as np
 
 from nomad.units import ureg
@@ -64,10 +63,6 @@ class Chemical(EntryData):
         type=Datetime,
         description='Opening date of the chemical.',
         a_eln=dict(component='DateTimeEditQuantity'))
-
-    # pack_size = Quantity(
-    #     type=np.float64, unit = ['mg', 'ml'],
-    #     description='Distributor of the chemical.')
 
     impurities = Quantity(
         type=str,
@@ -308,10 +303,6 @@ class Targets(MSection):
         type=Datetime,
         description='Opening date of the chemical.')
 
-    # pack_size = Quantity(
-    #     type=np.float64, unit = ['mg', 'ml'],
-    #     description='Distributor of the chemical.')
-
     impurities = Quantity(
         type=str,
         description='''Descriptions of the impurities of the product.''')
@@ -431,7 +422,6 @@ class XrayFluorescence(Measurement):
     '''
 
 
-# TODO include mapping of positions for several imported files
 class XrayDiffraction(Measurement):
     '''
     X-ray diffraction is a technique typically used to characterize the structural
@@ -494,10 +484,6 @@ class XrayDiffraction(Measurement):
         type=np.dtype(np.float64), shape=['n_values'],
         unit='radian',
         description='The omega range of the difractogram')
-    # xray_tube_material = Quantity(
-    #     type=str,
-    #     shape=["*"],
-    #     description='Material of the X-ray tube')
 
     xray_tube_current = Quantity(
         type=np.dtype(np.float64),
@@ -538,7 +524,6 @@ class XrayDiffraction(Measurement):
 
     scan_axis = Quantity(
         type=str,
-        # shape=['*'],
         description='Axis scanned')
 
     integration_time = Quantity(
@@ -674,11 +659,6 @@ class OptoelectronicProperties(MSection): pass
 
 class Layer(MSection):
     m_def = Section(a_eln=dict())
-
-    # layer_id = Quantity(
-    #     type=np.dtype(np.int64), description='''unique identifier of the layer
-    #     (counting in the order of adding).
-    #     "0" would be assigned to the substrate.''')
 
     layer_type = Quantity(
         type=MEnum([

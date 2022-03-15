@@ -19,7 +19,7 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
   TextField, Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
-  Input, DialogTitle, DialogContent, Dialog, LinearProgress, Paper, Slide, CircularProgress, IconButton} from '@material-ui/core'
+  Input, DialogTitle, DialogContent, Dialog, LinearProgress, IconButton} from '@material-ui/core'
 import Dropzone from 'react-dropzone'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { appBase } from '../../config'
@@ -305,16 +305,6 @@ const useStyles = makeStyles(theme => ({
   },
   stepContent: {
     marginBottom: theme.spacing(2)
-  },
-  status: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    marginTop: -20,
-    margin: -10,
-    padding: 10,
-    paddingTop: 20,
-    zIndex: 1000
   }
 }))
 
@@ -407,21 +397,6 @@ function UploadOverview() {
           </Box>
         </DialogContent>
       </Dialog>}
-      <Slide direction="down" in={isProcessing} mountOnEnter unmountOnExit>
-        <Paper className={classes.status}>
-          <Page limitedWidth>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item>
-                <CircularProgress />
-              </Grid>
-              <Grid item style={{flexGrow: 1}}>
-                <Typography>Upload is processing ...</Typography>
-                <Typography>{upload.last_status_message}</Typography>
-              </Grid>
-            </Grid>
-          </Page>
-        </Paper>
-      </Slide>
       <Grid container spacing={2} alignItems="center">
         <Grid item>
           <UploadStatus upload={upload} fontSize="large" />

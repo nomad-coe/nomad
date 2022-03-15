@@ -144,6 +144,27 @@ const Quantity = React.memo((props) => {
     valueClassName = `${valueClassName} ${styles.ellipsisFront}`
   }
 
+  const def = typeof quantity === 'string'
+    ? searchQuantities[quantity]
+    : undefined
+
+  // Determine the final label to show
+  const useLabel = useMemo(() => {
+    let useLabel = label
+    if (!useLabel) {
+      if (def?.name) {
+        useLabel = def.name.replace(/_/g, ' ')
+      } else if (typeof quantity === 'string') {
+        useLabel = quantity
+      } else {
+        useLabel = 'MISSING LABEL'
+      }
+    }
+    return useLabel
+  }, [quantity, label, def])
+
+  const tooltip = description || def?.description || ''
+
   // Determine the final value to show.
   if (!loading) {
     let finalValue = value
@@ -193,27 +214,6 @@ const Quantity = React.memo((props) => {
       </Typography>
     }
   }
-
-  const def = typeof quantity === 'string'
-    ? searchQuantities[quantity]
-    : undefined
-
-  // Determine the final label to show
-  const useLabel = useMemo(() => {
-    let useLabel = label
-    if (!useLabel) {
-      if (def?.name) {
-        useLabel = def.name.replace(/_/g, ' ')
-      } else if (typeof quantity === 'string') {
-        useLabel = quantity
-      } else {
-        useLabel = 'MISSING LABEL'
-      }
-    }
-    return useLabel
-  }, [quantity, label, def])
-
-  const tooltip = description || def?.description || ''
 
   if (row || column || flex) {
     return <div className={row ? styles.row : (column ? styles.column : styles.flex)}>{children}</div>

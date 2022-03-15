@@ -23,6 +23,7 @@ import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import UploadOverview from './UploadOverview'
 import UploadFilesView from './UploadFilesView'
 import UploadContext from './UploadContext'
+import UploadProcessingStatus from './UploadProcessingStatus'
 
 const UploadPage = React.memo(() => {
   const history = useHistory()
@@ -47,6 +48,7 @@ const UploadPage = React.memo(() => {
   }
 
   return <UploadContext uploadId={uploadId}>
+    <UploadProcessingStatus />
     <Tabs
       value={tab}
       onChange={handleChange}
