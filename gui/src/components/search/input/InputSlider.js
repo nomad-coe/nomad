@@ -25,7 +25,7 @@ import { isNil } from 'lodash'
 import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { InputTextField } from './InputText'
-import { Quantity, Unit, toUnitSystem, toSI, getDimension } from '../../../units'
+import { useUnits, Quantity, Unit, getDimension } from '../../../units'
 import { formatNumber } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 
@@ -83,10 +83,10 @@ const InputSlider = React.memo(({
   visible,
   className,
   classes,
-  units,
   'data-testid': testID
 }) => {
   const theme = useTheme()
+  const units = useUnits()
   const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
   const endChanged = useRef(false)
@@ -110,17 +110,17 @@ const InputSlider = React.memo(({
   const unit = useMemo(() => {
     return unitSI && new Unit(unitSI, units)
   }, [unitSI, units])
-  const unitLabel = unit && unit.label()
+  const unitLabel = unit && unit.label
   const title = unitLabel ? `${name} (${unitLabel})` : name
-  const stepSI = step instanceof Quantity ? step.toSI() : step
+  const stepSI = step instanceof Quantity ? step.toSI().value : step
   const unavailable = (minGlobalSI === null || maxGlobalSI === null || range === undefined)
   const disabled = locked || unavailable
 
   // When units change or the slider is used to set a value, update the min/max
   // text
   useEffect(() => {
-    setMinText(isNil(range.gte) ? '' : format(toUnitSystem(range.gte, unitSI, units)))
-    setMaxText(isNil(range.lte) ? '' : format(toUnitSystem(range.lte, unitSI, units)))
+    setMinText(isNil(range.gte) ? '' : format(new Quantity(range.gte, unitSI).toSystem(units).value))
+    setMaxText(isNil(range.lte) ? '' : format(new Quantity(range.lte, unitSI).toSystem(units).value))
   }, [range, units, unitSI])
 
   // If no filter has been specified by the user, the range is automatically
@@ -131,8 +131,8 @@ const InputSlider = React.memo(({
     let gte
     let min
     let max
-    const minGlobal = def.minOverride ? Math.max(minGlobalSI, def.minOverride.toSI()) : minGlobalSI
-    const maxGlobal = def.maxOverride ? Math.min(maxGlobalSI, def.maxOverride.toSI()) : maxGlobalSI
+    const minGlobal = def.minOverride ? Math.max(minGlobalSI, def.minOverride.toSI().value) : minGlobalSI
+    const maxGlobal = def.maxOverride ? Math.min(maxGlobalSI, def.maxOverride.toSI().value) : maxGlobalSI
     if (!isNil(minGlobal) && !isNil(maxGlobal)) {
       // When no filter is set, use the whole available range
       if (isNil(filter)) {
@@ -142,14 +142,14 @@ const InputSlider = React.memo(({
         max = maxGlobal
       // A single specific value is given
       } else if (filter instanceof Quantity) {
-        gte = filter.toSI()
-        lte = filter.toSI()
+        gte = filter.toSI().value
+        lte = filter.toSI().value
         min = Math.min(minGlobal, gte)
         max = Math.max(maxGlobal, lte)
       // A range is given
       } else {
-        gte = filter.gte instanceof Quantity ? filter.gte.toSI() : filter.gte
-        lte = filter.lte instanceof Quantity ? filter.lte.toSI() : filter.lte
+        gte = filter.gte instanceof Quantity ? filter.gte.toSI().value : filter.gte
+        lte = filter.lte instanceof Quantity ? filter.lte.toSI().value : filter.lte
         if (isNil(gte)) {
           min = Math.min(minGlobal, lte)
           gte = Math.min(minGlobal, lte)
@@ -166,8 +166,8 @@ const InputSlider = React.memo(({
       setMinLocal(min)
       setMaxLocal(max)
       setRange({gte: gte, lte: lte})
-      setMinText(format(toUnitSystem(gte, unitSI, units)))
-      setMaxText(format(toUnitSystem(lte, unitSI, units)))
+      setMinText(format(new Quantity(gte, unitSI).toSystem(units).value))
+      setMaxText(format(new Quantity(lte, unitSI).toSystem(units).value))
     }
   }, [minGlobalSI, maxGlobalSI, filter, unitSI, units, def])
 
@@ -208,7 +208,7 @@ const InputSlider = React.memo(({
     const value = minText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const numberSI = toSI(number, unit)
+      const numberSI = new Quantity(number, unit).toSI().value
       updateRange({...range, gte: numberSI})
     } else {
       setError(`Invalid minimum value.`)
@@ -224,7 +224,7 @@ const InputSlider = React.memo(({
     const value = maxText
     const number = Number.parseFloat(value)
     if (!isNaN(number)) {
-      const numberSI = toSI(number, unit)
+      const numberSI = new Quantity(number, unit).toSI().value
       updateRange({...range, lte: numberSI})
     } else {
       setError(`Invalid maximum value.`)
@@ -248,9 +248,9 @@ const InputSlider = React.memo(({
   // the available range is broken down into a number of steps, and the closest
   // power of ten (in the current unit system) is used.
   const rangeSI = maxLocal - minLocal
-  const rangeCustom = toUnitSystem(rangeSI, unitSI, units)
+  const rangeCustom = new Quantity(rangeSI, unitSI).toSystem(units).value
   const stepFinalCustom = Math.pow(10, (Math.floor(Math.log10(rangeCustom / nSteps))))
-  const stepFinalSI = toSI(stepFinalCustom, units[getDimension(unitSI)])
+  const stepFinalSI = new Quantity(stepFinalCustom, units[getDimension(unitSI)]).toSI().value
   const stepFinal = stepSI || stepFinalSI || undefined
 
   return <div className={clsx(className, styles.root)} data-testid={testID}>
@@ -317,7 +317,6 @@ InputSlider.propTypes = {
   visible: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
-  units: PropTypes.object,
   'data-testid': PropTypes.string
 }
 

@@ -24,8 +24,7 @@ from nomad.app.dcat.main import app
 from nomad.app.dcat.mapping import Mapping
 from nomad.datamodel.results import Material, Results
 from nomad.datamodel import Dataset
-
-from tests.utils import ExampleData
+from nomad.utils.exampledata import ExampleData
 
 
 @pytest.fixture(scope='session')

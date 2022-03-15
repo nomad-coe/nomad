@@ -309,6 +309,8 @@ jupyterhub -f nomad/jupyterhub_config.py --port 9000
 
 ## Running tests
 
+### Backend tests
+
 To run the tests some additional settings and files are necessary that are not part
 of the code base.
 
@@ -340,8 +342,143 @@ To run all tests and code qa:
 nomad dev qa
 ```
 
-This mimiques the tests and checks that the GitLab CI/CD will perform.
+This mimics the tests and checks that the GitLab CI/CD will perform.
 
+### Frontend tests
+
+We use
+[`testing-library`](https://testing-library.com/docs/react-testing-library/intro/)
+to implement our GUI tests and testing-library itself uses
+[`jest`](https://jestjs.io/) to run the tests. Tests are written in `\*.spec.js`
+files that accompany the implementation. Tests should focus on functionality,
+not on implementation details: `testing-library` is designed to enforce this kind
+of testing.
+
+!!! note
+
+    When testing HTML output, the elements are rendered using
+    [jsdom](https://github.com/jsdom/jsdom): this is not completely identical
+    to using an actual browser (does not support e.g. WebGL), but in practice
+    is realistic enough for the majority of the test.
+
+We have adopted a `pytest`-like structure for organizing the test utilities:
+each source code folder may contain a `conftest.js` file that contains
+utilities that are relevant for testing the code in that particular folder.
+These utilities can usually be placed into the following categories:
+
+ - Custom renders: When testing React components, the
+   [`render`](https://testing-library.com/docs/react-testing-library/api/#render)-function
+   is used to display them on the test DOM. Typically your components require
+   some parts of the infrastructure to work properly, which is achieved by
+   wrapping your component with other components that provide a context. Custom
+   render functions can do this automatically for you. E.g. the default render
+   as exported from `src/components/conftest.js` wraps your components with an
+   infrastructure that is very similar to the production app. See
+   [here](https://testing-library.com/docs/react-testing-library/setup/#custom-render)
+   for more information. 
+ - Custom queries: See
+   [here](https://testing-library.com/docs/react-testing-library/setup/#add-custom-queries)
+   for more information.
+ - Custom expects: These are reusable functions that perform actual tests using
+   the expect-function. Whenever the same tests are performed by several
+   \*.spec.js files, you should formalize these common tests into a
+   `expect*`-function and place it in a relevant conftest.js file.
+
+Often you components will need to communicate with the API during tests. One
+should generally avoid using manually created mocks for the API traffic, and
+instead prefer using API responses that originate from an actual API call
+during testing. Manually created mocks require a lot of manual work in creating
+them and keeping them up to date and fact true integration tests are impossible
+to perform without live communication with an API. In order to simplify the API
+communication during testing, you can use the `startAPI`+`closeAPI` functions, that
+will prepare the API traffic for you. A simple example could look like this:
+
+```javascript
+import React from 'react'
+import { waitFor } from '@testing-library/dom'
+import { startAPI, closeAPI, screen } from '../../conftest'
+import { renderSearchEntry, expectInputHeader } from '../conftest'
+
+test('periodic table shows the elements retrieved through the API', async () => {
+  startAPI('<state_name>', '<snapshot_name>')
+  renderSearchEntry(...)
+  expect(...)
+  closeAPI()
+})
+```
+
+Here the important parameters are:
+
+ - `<state_name>`: Specifies an initial backend configuration for this test. These
+   states are defined as python functions that are stored in
+   nomad-FAIR/tests/states, example given below. These functions may e.g.
+   prepare several uploads entries, datasets, etc. for the test.
+ - `<snapshot_name>`: Specifies a filepath for reading/recording pre-recorded API
+   traffic.
+
+An example of a simple test state could look like this:
+
+```python
+from nomad import infrastructure
+from nomad.utils import create_uuid
+from nomad.utils.exampledata import ExampleData
+
+def search():
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username="test")
+    data = ExampleData(main_author=main_author)
+    upload_id = create_uuid()
+    data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=create_uuid(),
+        mainfile="test_content/test_entry/mainfile.json",
+        results={
+            "material": {"elements": ["C", "H"]},
+            "method": {},
+            "properties": {}
+        }
+    )
+    data.save()
+```
+When running in the `test-integration` or `test-record` mode (see below), this
+function will be executed in order to prepare the application backend. The
+`closeAPI` function will handle cleaning the test state between successive
+`startAPI` calls: it will completely wipe out MongoDB, ElasticSearch and the
+upload files.
+
+!!! note
+
+    The tests are using a custom `nomad-test.yaml` file that specifies a
+    separate database/filesystem config in order to prevent interacting with
+    any other instances of NOMAD.
+
+In order to control how the API traffic is handled, there are three main ways
+for running the test suite, as configured in `package.json`:
+
+ - `yarn test [<filename>]`: Runs the tests parallelly in an 'offline'
+   mode: `startAPI` will use pre-recorded API snapshot files that are found in
+   gui/tests.
+ - `yarn test-integration filename>]`: Runs the tests serially and `startAPI`
+   will forward any API traffic to a live API that is running locally. 
+ - `yarn test-record [<filename>]`: Runs the tests serially and `startAPI` will
+   forward traffic to a live API that is running locally, additionally
+   recording the traffic to the specified snapshot file.
+
+!!! note
+
+    Before running against a live API (`yarn test-integration` and `yarn
+    test-record`), you need to boot up the infrastructure and ensure that the
+    nomad package is available with the correct test configuration:
+
+    1. Have the docker infrastructure running: `docker-compose up`
+
+    2. Have the `nomad appworker` running with the config found in
+       nomad-FAIR/nomad-test.yaml. This can be achieved e.g. with the command: `export
+       NOMAD_CONFIG=nomad-test.yaml; nomad admin run appworker`
+
+    3. Activate the correct python virtual environment before running the tests
+       with yarn (yarn will run the python functions that prepare the state).
 
 ## Setup your IDE
 

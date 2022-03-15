@@ -24,8 +24,7 @@ from nomad import config, utils, infrastructure
 from nomad.app.v1.models import WithQuery
 from nomad.search import quantity_values, search, update_by_query, refresh
 from nomad.metainfo.elasticsearch_extension import entry_type, entry_index, material_index
-
-from tests.utils import ExampleData
+from nomad.utils.exampledata import ExampleData
 
 
 def assert_search_upload(

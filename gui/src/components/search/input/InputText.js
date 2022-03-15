@@ -33,19 +33,33 @@ import { useSearchContext } from '../SearchContext'
 import { guiState } from '../../GUIMenu'
 import { useSuggestions } from '../../../hooks'
 import searchQuantities from '../../../searchQuantities'
+import Placeholder from '../../visualization/Placeholder'
 
 /*
  * Representational component for all text fields used in the search.
  */
+
+const useInputTextFieldStyles = makeStyles(theme => ({
+  root: {
+    height: '3rem'
+  }
+}))
 export const InputTextField = React.memo((props) => {
   const initialLabel = useState(props.label)[0]
   const inputVariant = useRecoilValue(guiState('inputVariant'))
   const inputSize = useRecoilValue(guiState('inputSize'))
-  return <TextField {...props} size={inputSize} variant={inputVariant} hiddenLabel={!initialLabel}/>
+  const styles = useInputTextFieldStyles({classes: props.classes})
+
+  return props.loading
+    ? <Placeholder className={clsx(props.className, styles.root)}></Placeholder>
+    : <TextField {...props} size={inputSize} variant={inputVariant} hiddenLabel={!initialLabel}/>
 })
 
 InputTextField.propTypes = {
-  label: PropTypes.string
+  label: PropTypes.string,
+  loading: PropTypes.bool,
+  className: PropTypes.string,
+  classes: PropTypes.object
 }
 
 /*

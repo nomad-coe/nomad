@@ -18,8 +18,8 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import {render, screen, archives, wait, within} from '../../testSetup'
-import { waitFor } from '@testing-library/dom'
+import { waitFor, within } from '@testing-library/dom'
+import { renderNoAPI as render, screen, archives, wait } from '../conftest'
 import { getIndex } from '../../../tests/DFTBulk'
 import { useApi } from '../api'
 import { UploadsPage } from './UploadsPage'

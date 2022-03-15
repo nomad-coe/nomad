@@ -1,0 +1,469 @@
+{
+  "entry_id": "dft_bulk",
+  "run": [
+    {
+      "program": {
+        "name": "VASP",
+        "version": "1"
+      },
+      "method": [
+        {
+          "dft": {
+            "xc_functional": {
+              "exchange": [
+                {
+                  "name": "GGA_X_PBE"
+                }
+              ],
+              "correlation": [
+                {
+                  "name": "GGA_C_PBE"
+                }
+              ]
+            }
+          },
+          "electronic": {
+            "method": "DFT",
+            "relativity_method": "scalar_relativistic_atomic_ZORA"
+          },
+          "basis_set": [
+            {
+              "type": "plane waves",
+              "name": "STO-3G"
+            }
+          ]
+        }
+      ],
+      "system": [
+        {
+          "atoms": {
+            "species": [
+              1,
+              1
+            ]
+          }
+        }
+      ],
+      "calculation": [
+        {
+          "system_ref": "/run/0/system/0",
+          "dos_electronic": [
+            {
+              "energies": [
+                0.0,
+                1e-19
+              ],
+              "band_gap": [
+                {
+                  "index": 0,
+                  "energy_highest_occupied": 0
+                }
+              ],
+              "total": [
+                {
+                  "spin": 0,
+                  "normalization_factor": 1e-19,
+                  "value": [
+                    0.0,
+                    1e+18
+                  ]
+                }
+              ]
+            }
+          ],
+          "dos_phonon": [
+            {
+              "energies": [
+                0.0,
+                1e-19
+              ],
+              "total": [
+                {
+                  "normalization_factor": 1e-19,
+                  "value": [
+                    0.0,
+                    1e+18
+                  ]
+                }
+              ]
+            }
+          ],
+          "band_structure_electronic": [
+            {
+              "reciprocal_cell": [
+                [
+                  1000000000.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1000000000.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1000000000.0
+                ]
+              ],
+              "band_gap": [
+                {
+                  "value": 1e-19,
+                  "type": "indirect",
+                  "energy_highest_occupied": 0
+                }
+              ],
+              "segment": [
+                {
+                  "kpoints": [
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.5,
+                      0.5,
+                      0.5
+                    ]
+                  ],
+                  "endpoints_labels": [
+                    "L",
+                    "K"
+                  ],
+                  "energies": [
+                    [
+                      [
+                        0.0
+                      ],
+                      [
+                        1e-19
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "band_structure_phonon": [
+            {
+              "reciprocal_cell": [
+                [
+                  1000000000.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1000000000.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1000000000.0
+                ]
+              ],
+              "segment": [
+                {
+                  "kpoints": [
+                    [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    [
+                      0.5,
+                      0.5,
+                      0.5
+                    ]
+                  ],
+                  "endpoints_labels": [
+                    "L",
+                    "K"
+                  ],
+                  "energies": [
+                    [
+                      [
+                        0.0
+                      ],
+                      [
+                        1e-19
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "workflow": [
+    {
+      "type": "phonon",
+      "calculation_result_ref": "/run/0/calculation/0",
+      "calculations_ref": [
+        "/run/0/calculation/0"
+      ],
+      "thermodynamics": {
+        "temperature": [
+          0,
+          100
+        ],
+        "heat_capacity_c_v": [
+          0,
+          1
+        ],
+        "heat_capacity_c_v_specific": [
+          0.0,
+          2.9873508155649754e+26
+        ],
+        "vibrational_free_energy_at_constant_volume": [
+          0,
+          1
+        ],
+        "vibrational_free_energy_at_constant_volume_specific": [
+          0.0,
+          2.9873508155649754e+26
+        ]
+      }
+    },
+    {
+      "type": "equation_of_state",
+      "calculation_result_ref": "/run/0/calculation/0",
+      "calculations_ref": [
+        "/run/0/calculation/0"
+      ],
+      "equation_of_state": {
+        "volumes": [
+          0,
+          1
+        ],
+        "energies": [
+          0,
+          1
+        ],
+        "eos_fit": [
+          {
+            "function_name": "murnaghan",
+            "fitted_energies": [
+              0,
+              1
+            ],
+            "bulk_modulus": 1
+          }
+        ]
+      }
+    },
+    {
+      "type": "elastic",
+      "calculation_result_ref": "/run/0/calculation/0",
+      "calculations_ref": [
+        "/run/0/calculation/0"
+      ],
+      "elastic": {}
+    }
+  ],
+  "metadata": {
+    "upload_id": "dft_upload",
+    "upload_create_time": "2022-03-15T09:30:25.496779",
+    "entry_id": "dft_bulk",
+    "calc_id": "dft_bulk",
+    "entry_hash": "dummy_hash_dft_bulk",
+    "entry_create_time": "2022-03-15T09:30:25.500779",
+    "parser_name": "parsers/vasp",
+    "mainfile": "vasp.xml",
+    "published": true,
+    "publish_time": "2022-03-15T09:30:25.499779",
+    "with_embargo": false,
+    "embargo_length": 0,
+    "license": "CC BY 4.0",
+    "processed": true,
+    "last_processing_time": "2021-03-17T15:47:32.899000",
+    "nomad_version": "0.10.0",
+    "nomad_commit": "bf3c06fa",
+    "comment": "Mocked",
+    "references": [
+      "doi"
+    ],
+    "origin": "Markus Scheidgen",
+    "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+    "authors": [
+      "68878af7-6845-46c0-b2c1-250d4d8eb470"
+    ],
+    "writers": [
+      "68878af7-6845-46c0-b2c1-250d4d8eb470"
+    ],
+    "viewers": [
+      "68878af7-6845-46c0-b2c1-250d4d8eb470"
+    ],
+    "domain": "dft"
+  },
+  "results": {
+    "material": {
+      "material_id": "bulk_material",
+      "material_name": "Silicon",
+      "structural_type": "bulk",
+      "elements": [
+        "Si"
+      ],
+      "n_elements": 1,
+      "elements_exclusive": "Si",
+      "chemical_formula_descriptive": "Si2",
+      "chemical_formula_reduced": "Si2",
+      "chemical_formula_hill": "Si2",
+      "chemical_formula_anonymous": "A2",
+      "symmetry": {
+        "bravais_lattice": "cP",
+        "crystal_system": "cubic",
+        "point_group": "6mm",
+        "space_group_number": 227,
+        "space_group_symbol": "Fd-3m",
+        "structure_name": "rock salt"
+      }
+    },
+    "method": {
+      "method_name": "DFT",
+      "simulation": {
+        "program_name": "VASP",
+        "program_version": "1",
+        "dft": {
+          "basis_set_type": "plane waves",
+          "basis_set_name": "STO-3G",
+          "van_der_Waals_method": "G06",
+          "relativity_method": "scalar_relativistic_atomic_ZORA",
+          "xc_functional_type": "GGA",
+          "xc_functional_names": [
+            "GGA_C_PBE",
+            "GGA_X_PBE"
+          ]
+        }
+      }
+    },
+    "properties": {
+      "available_properties": [
+        "dos_electronic",
+        "band_structure_electronic",
+        "dos_phonon",
+        "band_structure_phonon",
+        "heat_capacity_constant_volume",
+        "energy_free_helmholtz",
+        "bulk_modulus",
+        "shear_modulus",
+        "energy_volume_curve"
+      ],
+      "structures": {
+        "structure_original": {
+          "nperiodic_dimensions": 0,
+          "n_sites": 0,
+          "cell_volume": 1.25e-28,
+          "lattice_parameters": {
+            "a": 5e-10,
+            "b": 5e-10,
+            "c": 5e-10,
+            "alpha": 1.5707963267948966,
+            "beta": 1.5707963267948966,
+            "gamma": 1.5707963267948966
+          }
+        },
+        "structure_conventional": {
+          "nperiodic_dimensions": 0,
+          "n_sites": 0,
+          "cell_volume": 1.25e-35,
+          "lattice_parameters": {
+            "a": 5e-10,
+            "b": 5e-10,
+            "c": 5e-10,
+            "alpha": 1.5707963267948966,
+            "beta": 1.5707963267948966,
+            "gamma": 1.5707963267948966
+          }
+        },
+        "structure_primitive": {
+          "nperiodic_dimensions": 0,
+          "n_sites": 0,
+          "cell_volume": 1.25e-28,
+          "lattice_parameters": {
+            "a": 5e-10,
+            "b": 5e-10,
+            "c": 5e-10,
+            "alpha": 1.5707963267948966,
+            "beta": 1.5707963267948966,
+            "gamma": 1.5707963267948966
+          }
+        }
+      },
+      "vibrational": {
+        "band_structure_phonon": {
+          "segment": [
+            "/run/0/calculation/0/band_structure_phonon/0/segment/0"
+          ]
+        },
+        "dos_phonon": {
+          "energies": "/run/0/calculation/0/dos_phonon/0/energies",
+          "total": [
+            "/run/0/calculation/0/dos_phonon/0/total/0"
+          ]
+        },
+        "heat_capacity_constant_volume": {
+          "heat_capacities": "/workflow/0/thermodynamics/heat_capacity_c_v",
+          "temperatures": "/workflow/0/thermodynamics/temperature"
+        },
+        "energy_free_helmholtz": {
+          "energies": "/workflow/0/thermodynamics/vibrational_free_energy_at_constant_volume",
+          "temperatures": "/workflow/0/thermodynamics/temperature"
+        }
+      },
+      "electronic": {
+        "band_structure_electronic": {
+          "reciprocal_cell": "/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell",
+          "segment": [
+            "/run/0/calculation/0/band_structure_electronic/0/segment/0"
+          ],
+          "band_gap": [
+            {
+              "value": 1e-19,
+              "type": "indirect",
+              "energy_highest_occupied": 0
+            }
+          ]
+        },
+        "dos_electronic": {
+          "energies": "/run/0/calculation/0/dos_electronic/0/energies",
+          "total": [
+            "/run/0/calculation/0/dos_electronic/0/total/0"
+          ],
+          "band_gap": [
+            {
+              "energy_highest_occupied": 0
+            }
+          ]
+        }
+      },
+      "mechanical": {
+        "energy_volume_curve": [
+          {
+            "type": "murhaghan",
+            "volumes": "/workflow/1/equation_of_state/volumes",
+            "energies_fit": "/workflow/1/equation_of_state/eos_fit/0/fitted_energies"
+          }
+        ],
+        "bulk_modulus": [
+          {
+            "type": "murnaghan",
+            "value": 1
+          }
+        ],
+        "shear_modulus": [
+          {
+            "type": "voigt_reuss_hill_average",
+            "value": 1
+          }
+        ]
+      }
+    }
+  }
+}

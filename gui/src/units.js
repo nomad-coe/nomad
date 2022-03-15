@@ -19,6 +19,7 @@ import { parse, SymbolNode } from 'mathjs'
 import { atom, useRecoilValue } from 'recoil'
 import { scale, add } from './utils'
 import { conversionMap, unitMap, unitSystems } from './unitsData'
+import { isNil, isString } from 'lodash'
 
 // Setup a unit system: by default use SI units, unless explicitly overridden
 // with something else.
@@ -69,72 +70,148 @@ export function getDimension(unit) {
 }
 
 /**
+ * Get the information related to the given unit.
+ * @param {string} name Name of the unit: either the full name or an
+ * abbreviation.
+ *
+ * @returns Information about this unit.
+ */
+export function getUnitByName(name) {
+  // First try the full unit name
+  let unitInfo = unitMap[name]
+  // Try the abbreviation
+  if (unitInfo === undefined) {
+    const fullName = abbreviationMap[name]
+    unitInfo = fullName && unitMap[fullName]
+  }
+  if (isNil(unitInfo)) {
+    throw Error(`Unknown unit: ${name}`)
+  }
+  return unitInfo
+}
+
+/**
+ * The the unit corresponding to the given unit in the given system.
+ * @param {string} name Name of the dimension
+ * abbreviation.
+ *
+ * @returns Information about the matching unit.
+ */
+export function getUnitByDimension(dimension, system) {
+  if (dimension === 'dimensionless') {
+    return unitMap['dimensionless']
+  }
+
+  const unitName = system[dimension]
+  if (isNil(unitName)) {
+    throw Error(`Could not a find unit with dimension ${dimension}" using the given unit system.`)
+  }
+  return getUnitByName(unitName)
+}
+
+/**
  * Helper class for persisting unit information.
  */
 export class Unit {
-  constructor(unit, system = undefined, validate = true) {
-    this.unitDef = this.getUnitDefinition(unit, system, validate)
+  constructor(unit) {
+    if (isString(unit)) {
+      this.unitDef = this.getUnitExpression(unit)
+    } else {
+      this.unitDef = unit.cloneDeep()
+    }
+    this.label = this.getLabel(this.unitDef)
   }
-  getUnitDefinition(unit, system = undefined, validate) {
-    // Modify unit definition to comply with math.js evaluation
-    const from = unit.replace('**', '^')
 
+  /**
+   * Function for converting the value of this Unit to the SI unit system.
+   *
+   * @returns A new Unit instance in the SI unit system.
+   */
+  toSI() {
+    return this.toSystem(unitSystems['SI'].units)
+  }
+
+  /**
+   * Returns this unit in the given unit system.
+   * @param {object} system Unit system for performing conversions.
+   * @returns A new Unit instance.
+   */
+  toSystem(system) {
     // Create the math.js node tree from the unit definition. Unique
     // abbreviations are translated to full unit names. If a unit system is
     // given, the units are also converted here.
-    let rootNode = parse(from)
-    rootNode = rootNode.transform((node, path, parent) => {
+    let newNode = this.unitDef.cloneDeep()
+    newNode = newNode.transform((node, path, parent) => {
       if (node.isSymbolNode) {
-        // First try the full unit name
-        let unitFromInfo = unitMap[node.name]
-        // Try the abbreviation
-        if (unitFromInfo === undefined) {
-          const fullName = abbreviationMap[node.name]
-          unitFromInfo = fullName && unitMap[fullName]
-          if (unitFromInfo) {
-            node.name = fullName
-          }
-        }
-        if (validate && unitFromInfo === undefined) {
-          throw Error(`Unknown unit: ${node.name}`)
-        }
-        // If unit system is given, perform the translation.
-        if (system && unitFromInfo !== undefined) {
-          const dimension = unitFromInfo.dimension
-          const unitTo = system[dimension]
-          node.name = unitTo
-        }
+        // Get the target unit if conversion is required.
+        const unitFromInfo = getUnitByName(node.name)
+        const unitTo = getUnitByDimension(unitFromInfo.dimension, system)
+        node.name = unitTo.name
       }
       return node
     })
-    return rootNode
+    const label = this.getLabel(newNode)
+    return new Unit(newNode, label)
   }
+
   /**
-   * Returns the unit definition as a human-readable string. If a unit system is
-   * provided, performs the conversions to that system on-the-fly.
-   * @param {object} system Optional unit system for performing conversions.
-   * @returns The unit definition as a string.
+   *
    */
-  label(system = undefined) {
-    const copy = this.unitDef.cloneDeep()
+  getLabel(rootNode) {
+    const copy = rootNode.cloneDeep()
     const newRoot = copy.transform((node, path, parent) => {
       if (node.isSymbolNode) {
-        const unitFromInfo = unitMap[node.name]
+        const unitFromInfo = getUnitByName(node.name)
         if (unitFromInfo !== undefined) {
-          let def
-          if (system) {
-            const dimension = unitFromInfo.dimension
-            const unitTo = system[dimension]
-            def = unitMap[unitTo]
-          } else {
-            def = unitFromInfo
-          }
-          node.name = def.abbreviation
+          let unitToInfo = unitFromInfo
+          node.name = unitToInfo.abbreviation
         }
       }
       return node
     })
     return newRoot.toString()
+  }
+
+  /**
+   * Constructs a math.js expression tree for the unit in the given system. If
+   * the conversion is invalid, raises an exception.
+  */
+  getUnitExpression(unit) {
+    // Modify unit definition to comply with math.js evaluation
+    let rootNode
+    const from = unit.replace('**', '^')
+    rootNode = parse(from)
+
+    // Create the math.js node tree from the unit definition. Unique
+    // abbreviations are translated to full unit names. If a unit system is
+    // given, the units are also converted here.
+    rootNode = rootNode.transform((node, path, parent) => {
+      if (node.isSymbolNode) {
+        // Get the unit information
+        const unitFromInfo = getUnitByName(node.name)
+        node.name = unitFromInfo?.name || node.name
+      }
+      return node
+    })
+
+    return rootNode
+  }
+
+  /**
+   * Returns the system in which this unit is represented in.
+   * @returns Object representing the unit system.
+   */
+  getUnitSystem() {
+    const system = {}
+    this.unitDef.transform((node, path, parent) => {
+      if (node.isSymbolNode) {
+        const unitFromInfo = getUnitByName(node.name)
+        const dimension = unitFromInfo.dimension
+        system[dimension] = unitFromInfo?.name || node.name
+      }
+      return node
+    })
+    return system
   }
 }
 
@@ -146,128 +223,108 @@ export class Quantity {
     this.value = value
     this.unit = unit instanceof Unit ? unit : new Unit(unit)
   }
-  toSI(returnLabel = false) {
-    return toSI(this.value, this.unit, returnLabel)
+  /**
+   * Function for converting the value of this quantity to another unit.
+   *
+   * @param {str | Unit} unit The target unit
+   * @returns A new Quantity expressed in the given units.
+   */
+  to(unit) {
+    const newUnit = unit instanceof Unit ? unit : new Unit(unit)
+    const system = newUnit.getUnitSystem()
+    return this.toSystem(system)
   }
-  toSystem(system, returnLabel = false) {
-    return toUnitSystem(this.value, this.unit, system, returnLabel)
+  /**
+   * Function for converting the value of this Quantity to the SI unit system.
+   *
+   * @returns A new Quantity instance in the SI unit system.
+   */
+  toSI() {
+    return this.toSystem(unitSystems['SI'].units)
   }
-  label(system) {
-    return this.unit.label(system)
-  }
-}
+  /**
+   * Function for converting the value of this quantity to another unit system.
+   *
+   * @param {object} system The target unit system
+   * @returns A new Unit instance in the given system.
+   */
+  toSystem(system) {
+    let value = this.value
+    let unit = this.unit
+    const unitDef = unit.unitDef
 
-/**
- * Convenience function for converting values to another unit system. Primarily
- * you can work with just the Unit and Quantity -classes, but sometimes it is
- * cleaner to call this function directly instead.
- *
- * @param {*} value The values to convert. Can be scalar or multi-dimensional.
- * @param {*} unit Current unit as a string or an Unit object
- * @param {object} system The target unit system
- * @param {bool} returnLabel Whether also the converted unit label should be
- * returned
- * @returns
- */
-export function toUnitSystem(value, unit, system, returnLabel = false) {
-  // If value given as Quantity, extract unit and value from it
-  if (value instanceof Quantity) {
-    value = value.value
-    unit = value.unit
-  }
+    // Function for getting the converted values
+    function convert(value) {
+      // Conversions for non-multiplicative offset units requires a special
+      // handling. Here we take an automated approach: simple conversions between
+      // two units takes the offset into account normally, but when combined with
+      // other units (e.g.  with multiplication, division, power, etc.) the offset
+      // is ignored and the 'delta' version of the units are used (see
+      // https://pint.readthedocs.io/en/0.10.1/nonmult.html)
+      let constant
+      if (unitDef instanceof SymbolNode) {
+        if (unitDef.name === 'dimensionless') {
+          return value
+        }
+        const unitFrom = unitDef.name
+        const dimension = unitMap[unitFrom].dimension
+        const unitTo = system[dimension]
+        constant = conversionMap[dimension]?.constants?.[unitFrom]?.[unitTo]
+      }
 
-  // If unit is given as a string, create a Unit from for it.
-  if (!(unit instanceof Unit)) {
-    unit = new Unit(unit)
-  }
-  const unitDef = unit.unitDef
+      // Gather all units present
+      const variables = new Set()
+      unitDef.traverse((node, path, parent) => {
+        if (node.isSymbolNode) {
+          variables.add(node.name)
+        }
+      })
 
-  // Function for getting the converted values
-  function convert() {
-    // Temperatures require special handling due to the fact that e.g. Celsius and
-    // Fahrenheit are not absolute units and are non-multiplicative. Two kinds of
-    // temperature conversions are supported: ones with a single temperature unit
-    // and ones where temperature is used as a part of an expression. If a single
-    // temperature unit is specified, they are converted normally taking the
-    // offset into account. If they are used as a part of an expression, they are
-    // interpreted as ranges and the offset is ignored.
-    if (unitDef instanceof SymbolNode) {
-      // Dimensionless quantities do not change in unit conversion
-      if (unitDef.name === 'dimensionless') {
+      // Check if conversion is required.
+      let isConverted = true
+      for (const unit of variables) {
+        const dimension = unitMap[unit].dimension
+        const unitTo = system[dimension]
+        isConverted = unit === unitTo
+        if (!isConverted) {
+          break
+        }
+      }
+      if (isConverted) {
         return value
       }
 
-      const unitFrom = unitDef.name
-      if (unitMap[unitFrom].dimension === 'temperature') {
-        const unitTo = system['temperature']
-        const multiplier = conversionMap['temperature'].multipliers[unitFrom][unitTo]
-        const constant = conversionMap['temperature'].constants[unitFrom][unitTo]
-        let newValues = value
-        if (multiplier !== 1) {
-          newValues = scale(newValues, multiplier)
-        }
-        if (constant !== undefined) {
-          newValues = add(newValues, constant)
-        }
-        return newValues
+      // Gather conversion values for each present unit
+      const scope = {}
+      for (const unitFrom of variables) {
+        const dimension = unitMap[unitFrom].dimension
+        const unitTo = system[dimension]
+        const multiplier = unitFrom === unitTo
+          ? 1
+          : conversionMap[dimension].multipliers[unitFrom][unitTo]
+        scope[unitFrom] = multiplier
       }
-    }
 
-    // Gather all units present
-    const variables = new Set()
-    unitDef.traverse((node, path, parent) => {
-      if (node.isSymbolNode) {
-        variables.add(node.name)
+      // Compute the scaling factor by evaluating the unit definition with the
+      // SI units converted to target system
+      const code = unitDef.compile()
+      const factor = code.evaluate(scope)
+
+      // Scale values to new units
+      let newValues = scale(value, factor)
+
+      // Offset if needed
+      if (constant) {
+        newValues = add(newValues, constant)
       }
-    })
-
-    // Check if conversion is required.
-    let isConverted = true
-    for (const unit of variables) {
-      const dimension = unitMap[unit].dimension
-      const unitTo = system[dimension]
-      isConverted = unit === unitTo
-      if (!isConverted) {
-        break
-      }
-    }
-    if (isConverted) {
-      return value
+      return newValues
     }
 
-    // Gather conversion values for each present unit
-    const scope = {}
-    for (const unitFrom of variables) {
-      const dimension = unitMap[unitFrom].dimension
-      const unitTo = system[dimension]
-      scope[unitFrom] = conversionMap[dimension].multipliers[unitFrom][unitTo]
-    }
-
-    // Compute the scaling factor by evaluating the unit definition with the
-    // SI units converted to target system
-    const code = unitDef.compile()
-    const factor = code.evaluate(scope)
-
-    // Scale values to new units
-    return scale(value, factor)
+    return new Quantity(
+      convert(value),
+      new Unit(unitDef).toSystem(system)
+    )
   }
-
-  const converted = convert(value)
-  if (returnLabel) {
-    return [converted, unit.label(system)]
-  }
-  return converted
-}
-
-/**
- *
- * @param {*} value
- * @param {*} unitDef
- * @param {*} system
- * @returns
- */
-export function toSI(value, unit, returnLabel = false) {
-  return toUnitSystem(value, unit, unitSystems['SI'].units, returnLabel)
 }
 
 /**
@@ -278,97 +335,11 @@ export function toSI(value, unit, returnLabel = false) {
  * @param {*} value The values to convert. Can be scalar or multi-dimensional.
  * @param {*} unit Current unit as a string or an Unit object
  * @param {object} targetUnit The target unit
- * @param {bool} returnLabel Whether also the converted unit label should be
- * returned
  * @returns
  */
-export function convertUnit(value, unit, targetUnit, returnLabel = false) {
+export function convertUnit(value, unit, targetUnit) {
   if (value === undefined || isNaN(value) || targetUnit === undefined || unit === undefined) return undefined
-
-  // If value given as Quantity, extract unit and value from it
-  if (value instanceof Quantity) {
-    value = value.value
-    unit = value.unit
-  }
-
-  // If unit is given as a string, create a Unit from for it.
-  if (!(unit instanceof Unit)) {
-    unit = new Unit(unit)
-  }
-  const unitDef = unit.unitDef
-
-  // Function for getting the converted values
-  function convert() {
-    // Temperatures require special handling due to the fact that e.g. Celsius and
-    // Fahrenheit are not absolute units and are non-multiplicative. Two kinds of
-    // temperature conversions are supported: ones with a single temperature unit
-    // and ones where temperature is used as a part of an expression. If a single
-    // temperature unit is specified, they are converted normally taking the
-    // offset into account. If they are used as a part of an expression, they are
-    // interpreted as ranges and the offset is ignored.
-    if (unitDef instanceof SymbolNode) {
-      // Dimensionless quantities do not change in unit conversion
-      if (unitDef.name === 'dimensionless') {
-        return value
-      }
-
-      const unitFrom = unitDef.name
-      if (unitMap[unitFrom].dimension === 'temperature') {
-        const unitTo = targetUnit
-        const multiplier = conversionMap['temperature'].multipliers[unitFrom][unitTo]
-        const constant = conversionMap['temperature'].constants[unitFrom][unitTo]
-        let newValues = value
-        if (multiplier !== 1) {
-          newValues = scale(newValues, multiplier)
-        }
-        if (constant !== undefined) {
-          newValues = add(newValues, constant)
-        }
-        return newValues
-      }
-    }
-
-    // Gather all units present
-    const variables = new Set()
-    unitDef.traverse((node, path, parent) => {
-      if (node.isSymbolNode) {
-        variables.add(node.name)
-      }
-    })
-
-    // Check if conversion is required.
-    let isConverted = true
-    for (const unit of variables) {
-      const unitTo = targetUnit
-      isConverted = unit === unitTo
-      if (!isConverted) {
-        break
-      }
-    }
-    if (isConverted) {
-      return value
-    }
-
-    // Gather conversion values for each present unit
-    const scope = {}
-    for (const unitFrom of variables) {
-      const dimension = unitMap[unitFrom].dimension
-      const unitTo = targetUnit
-      scope[unitFrom] = conversionMap[dimension].multipliers[unitFrom][unitTo]
-    }
-
-    // Compute the scaling factor by evaluating the unit definition with the
-    // SI units converted to target system
-    const code = unitDef.compile()
-    const factor = code.evaluate(scope)
-
-    // Scale values to new units
-    return scale(value, factor)
-  }
-
-  const converted = convert(value)
-  if (returnLabel) {
-    return [converted, targetUnit.label]
-  }
-  return converted
+  const quantity = new Quantity(value, unit)
+  const converted = quantity.to(targetUnit)
+  return converted.value
 }

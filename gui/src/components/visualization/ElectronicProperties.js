@@ -18,7 +18,7 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import { toUnitSystem } from '../../units'
+import { Quantity } from '../../units'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
@@ -58,7 +58,7 @@ const ElectronicProperties = React.memo(({
   classes,
   units
 }) => {
-  const range = useMemo(() => toUnitSystem(electronicRange, 'electron_volt', units), [units])
+  const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value, [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
 

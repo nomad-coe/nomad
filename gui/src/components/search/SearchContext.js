@@ -178,6 +178,7 @@ export const SearchContext = React.memo(({
     aggsFamily,
     aggsState,
     paginationState,
+    resultsUsedState,
     resultsState,
     apiDataState,
     aggsResponseState,
@@ -280,6 +281,11 @@ export const SearchContext = React.memo(({
         page_size: 20,
         ...orderByMap[resource]
       }
+    })
+
+    const resultsUsedState = atom({
+      key: `resultsUsed_${indexContext}`,
+      default: false
     })
 
     const statisticFamily = atomFamily({
@@ -613,7 +619,16 @@ export const SearchContext = React.memo(({
      *
      * @returns {object} {data, pagination, setPagination}
      */
-    const useResults = () => useRecoilValue(resultsState)
+    const useResults = () => {
+      const setResultsUsed = useSetRecoilState(resultsUsedState)
+
+      // When loading results for the first time, inform the context that
+      // results need to be fetched.
+      useEffect(() => {
+        setResultsUsed(true)
+      }, [setResultsUsed])
+      return useRecoilValue(resultsState)
+    }
 
     /**
      * Hook for returning an object containing the last used API call.
@@ -675,6 +690,7 @@ export const SearchContext = React.memo(({
       aggsFamily,
       aggsState,
       paginationState,
+      resultsUsedState,
       resultsState,
       apiDataState,
       aggsResponseState,
@@ -699,6 +715,7 @@ export const SearchContext = React.memo(({
   const aggs = useRecoilValue(aggsState)
   const query = useRecoilValue(queryState)
   const [pagination, setPagination] = useRecoilState(paginationState)
+  const resultsUsed = useRecoilValue(resultsUsedState)
   const updateQueryString = useUpdateQueryString()
 
   /**
@@ -756,7 +773,7 @@ export const SearchContext = React.memo(({
    * function, as it is the final one that gets called after the debounce
    * interval.
    */
-  const apiCall = useCallback((query, aggs, pagination, queryChanged, paginationChanged, updateAggs, callback = undefined) => {
+  const apiCall = useCallback((query, aggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback = undefined) => {
     // Create the final search object.
     const aggsToUpdate = Object.keys(aggs).filter(key => aggs[key].update)
     const aggsChanged = Object.keys(aggs).filter(key => aggs[key].changed)
@@ -779,8 +796,9 @@ export const SearchContext = React.memo(({
     }
 
     // When aggregations have changed but the query has not, we request only the
-    // aggregation data without any hits.
-    if (updateAggs && !queryChanged && !paginationChanged) {
+    // aggregation data without any hits. Also if results are not needed, we
+    // don't return them.
+    if ((updateAggs && !queryChanged && !paginationChanged) || !resultsUsed) {
       search.pagination = {page_size: 0}
       search.required = { include: [] }
     }
@@ -839,7 +857,7 @@ export const SearchContext = React.memo(({
    * - Calls are debounced when necessary
    * - API calls are made only if necessary
    */
-  const apiCallInterMediate = useCallback((query, aggs, pagination, callback = undefined, forceUpdate = false) => {
+  const apiCallInterMediate = useCallback((query, aggs, pagination, resultsUsed, callback = undefined, forceUpdate = false) => {
     if (disableUpdate.current) {
       disableUpdate.current = false
       return
@@ -859,15 +877,16 @@ export const SearchContext = React.memo(({
       updatedFilters.current
     )
 
-    // If the query and pagination has not changed AND aggregations do not need
-    // to be updated, no update is necessary. The API calls is made immediately
-    // when requesting the first set of results, when the pagination changes or
-    // when only aggregations need to be updated. Otherwise it is debounced.
-    if (paginationChanged || queryChanged || updateAggs) {
+    // If results are needed and query and pagination have not changed and
+    // aggregations do not need to be updated, no update is necessary. The API
+    // calls is made immediately when requesting the first set of results, when
+    // the pagination changes or when only aggregations need to be updated.
+    // Otherwise it is debounced.
+    if ((resultsUsed && (paginationChanged || queryChanged)) || updateAggs) {
       if (firstLoad.current || paginationChanged || !queryChanged) {
-        apiCall(query, reducedAggs, pagination, queryChanged, paginationChanged, updateAggs, callback)
+        apiCall(query, reducedAggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback, false)
       } else {
-        apiCallDebounced(query, reducedAggs, pagination, queryChanged, paginationChanged, updateAggs, callback)
+        apiCallDebounced(query, reducedAggs, pagination, resultsUsed, queryChanged, paginationChanged, updateAggs, callback)
       }
     } else {
       callback && callback(undefined, undefined)
@@ -876,26 +895,28 @@ export const SearchContext = React.memo(({
 
   // When query, aggregation or pagination changes, update the search context
   useEffect(() => {
-    apiCallInterMediate(query, aggs, pagination)
-  }, [query, aggs, pagination, apiCallInterMediate, apiCallDebounced])
+    apiCallInterMediate(query, aggs, pagination, resultsUsed)
+  }, [query, aggs, pagination, resultsUsed, apiCallInterMediate, apiCallDebounced])
 
   // Hook for refreshing the results.
   const useRefresh = useCallback(() => {
     const query = useRecoilValue(queryState)
     const aggs = useRecoilValue(aggsState)
     const pagination = useRecoilValue(paginationState)
+    const resultsUsed = useRecoilValue(resultsUsedState)
 
     const refresh = useCallback(() => {
-      apiCallInterMediate(query, aggs, pagination, undefined, true)
-    }, [aggs, pagination, query])
+      apiCallInterMediate(query, aggs, pagination, resultsUsed, undefined, true)
+    }, [aggs, pagination, query, resultsUsed])
     return refresh
-  }, [aggsState, apiCallInterMediate, paginationState, queryState])
+  }, [aggsState, apiCallInterMediate, paginationState, queryState, resultsUsedState])
 
   // Hook for imperatively requesting aggregation data. By using this hook you
   // can track the state of individual calls and perform callbacks.
   const useAggCall = useCallback((name) => {
     const query = useRecoilValue(queryState)
     const pagination = useRecoilValue(paginationState)
+    const resultsUsed = useRecoilValue(resultsUsedState)
     const setAgg = useSetRecoilState(aggsFamily(name))
 
     /**
@@ -908,7 +929,7 @@ export const SearchContext = React.memo(({
     const aggCall = useCallback((size, id, callback) => {
       const aggMap = {[id]: {size, update: true}}
       const aggs = {[name]: aggMap}
-      apiCallInterMediate(query, aggs, pagination, (response) => callback(response && response[name]))
+      apiCallInterMediate(query, aggs, pagination, resultsUsed, (response) => callback(response && response[name]))
 
       // We also need to update aggregation request state, otherwise the
       // subsequent calls will not be able to know what was done by this call.
@@ -920,10 +941,10 @@ export const SearchContext = React.memo(({
         const newAgg = old ? {...old, ...aggMap} : aggMap
         return newAgg
       })
-    }, [pagination, query, name, setAgg])
+    }, [pagination, query, resultsUsed, name, setAgg])
 
     return aggCall
-  }, [queryState, paginationState, aggsFamily, apiCallInterMediate])
+  }, [queryState, paginationState, resultsUsedState, aggsFamily, apiCallInterMediate])
 
   // This updated the query string to represent the latest value within the
   // search context.
@@ -1253,15 +1274,19 @@ function toAPIFilterSingle(key, value, path = undefined) {
     if (newValue.length === 0) {
       newValue = undefined
     } else {
-      newValue = newValue.map((item) => item instanceof Quantity ? item.toSI() : item)
+      newValue = newValue.map((item) => item instanceof Quantity
+        ? item.toSI().value
+        : item)
     }
   } else if (value instanceof Quantity) {
-    newValue = value.toSI()
+    newValue = value.toSI().value
   } else if (isArray(value)) {
     if (value.length === 0) {
       newValue = undefined
     } else {
-      newValue = value.map((item) => item instanceof Quantity ? item.toSI() : item)
+      newValue = value.map((item) => item instanceof Quantity
+        ? item.toSI().value
+        : item)
     }
   } else if (isPlainObject(value)) {
     newValue = {}

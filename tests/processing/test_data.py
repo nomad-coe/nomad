@@ -32,10 +32,11 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.processing.data import UploadContext, generate_entry_id
 from nomad.search import search, refresh as search_refresh
+from nomad.utils.exampledata import ExampleData
 
 from tests.test_search import assert_search_upload
 from tests.test_files import assert_upload_files
-from tests.utils import ExampleData, create_template_upload_file, set_upload_entry_metadata
+from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
 def test_generate_entry_id():

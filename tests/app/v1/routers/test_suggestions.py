@@ -27,8 +27,8 @@ to assert for certain aspects in the responses.
 """
 
 import pytest
-from tests.utils import ExampleData
 from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.utils.exampledata import ExampleData
 from .common import assert_response
 
 

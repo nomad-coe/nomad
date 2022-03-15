@@ -180,7 +180,7 @@ export const UnitSelect = React.memo(({defaultUnit, unit, onChange}) => {
     >
       {units.map(unit => (
         <MenuItem key={unit} value={unit}>
-          {(new Unit(unit)).label()}
+          {(new Unit(unit)).label}
         </MenuItem>
       ))}
     </TextField>

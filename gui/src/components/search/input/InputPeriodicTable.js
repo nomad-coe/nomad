@@ -18,7 +18,6 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { scalePow } from 'd3-scale'
 import { isNil } from 'lodash'
 import elementData from '../../../elementData'
 import {
@@ -31,7 +30,7 @@ import InputCheckbox from './InputCheckbox'
 import AspectRatio from '../../visualization/AspectRatio'
 import { makeStyles } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
-import { approxInteger } from '../../../utils'
+import { approxInteger, getScaler } from '../../../utils'
 
 // A fixed 2D, 10x18 array for the element data.
 const elements = []
@@ -145,11 +144,7 @@ const Element = React.memo(({
   const isStatisticsEnabled = useIsStatisticsEnabled()
 
   // Calculate the approximated count and the final scaled value
-  const scaler = useMemo(() => scalePow()
-    .exponent(scale)
-    .domain([0, 1])
-    .range([0.2, 1]) // Note that the range should not start from 0
-  , [scale])
+  const scaler = useMemo(() => getScaler(scale, [0.2, 1]), [scale])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
   const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
 
@@ -238,7 +233,7 @@ Element.propTypes = {
   disabled: PropTypes.bool,
   max: PropTypes.number,
   count: PropTypes.number,
-  scale: PropTypes.number,
+  scale: PropTypes.string,
   localFilter: PropTypes.object
 }
 
@@ -394,13 +389,13 @@ InputPeriodicTable.propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   visible: PropTypes.bool,
-  initialScale: PropTypes.number,
+  initialScale: PropTypes.string,
   draggable: PropTypes.bool,
   aggId: PropTypes.string
 }
 
 InputPeriodicTable.defaultProps = {
-  initialScale: 1,
+  initialScale: 'linear',
   aggId: 'default'
 }
 

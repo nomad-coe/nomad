@@ -18,7 +18,8 @@
 
 import React from 'react'
 import 'regenerator-runtime/runtime'
-import { render, screen, within } from '../../testSetup'
+import { within } from '@testing-library/react'
+import { render, screen } from '../conftest'
 import MainMenu from './MainMenu'
 import { routes } from './Routes'
 

@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 import { cloneDeep, merge, isSet, isNil, isString, isNumber, startCase } from 'lodash'
-import { toUnitSystem, Quantity } from './units'
+import { scalePow } from 'd3-scale'
+import { Quantity } from './units'
 import { fromUnixTime, format } from 'date-fns'
 import { dateFormat } from './config'
 import { scale as chromaScale } from 'chroma-js'
@@ -315,8 +316,10 @@ export function toMateriaStructure(structure) {
 
     const structMateria = {
       species: structure.species_at_sites.map(x => speciesMap.get(x)),
-      cell: structure.lattice_vectors ? toUnitSystem(structure.lattice_vectors, 'meter', {length: 'angstrom'}, false) : undefined,
-      positions: toUnitSystem(structure.cartesian_site_positions, 'meter', {length: 'angstrom'}, false),
+      cell: structure.lattice_vectors
+        ? new Quantity(structure.lattice_vectors, 'meter').to('angstrom').value
+        : undefined,
+      positions: new Quantity(structure.cartesian_site_positions, 'meter').to('angstrom').value,
       fractional: false,
       pbc: structure.dimension_types ? structure.dimension_types.map((x) => !!x) : undefined
     }
@@ -473,10 +476,11 @@ export function getSerializer(dtype, pretty = true) {
         let label
         let valueConv
         if (units) {
-          label = value.unit.label(units)
-          valueConv = value.toSystem(units)
+          const a = value.toSystem(units)
+          valueConv = a.value
+          label = a.unit.label
         } else {
-          label = value.unit.label()
+          label = value.unit.label
           valueConv = value.value
         }
         return `${pretty ? formatNumber(valueConv) : valueConv}${label ? ` ${label}` : ''}`
@@ -703,4 +707,31 @@ export function getLabel(name) {
   label = label.replace(/_/g, ' ')
   label = startCase(label)
   return label
+}
+
+/**
+ * Used to create a label from the metainfo name.
+ * @param {str} type Type of scaling.
+ * @returns A function that when given a number between [0, 1] will trasnsform
+ * it to the given output range with the given type of scaling.
+ */
+export function getScaler(type, range = [0, 1]) {
+  const scale = scales[type]
+  if (isNil(scale)) {
+    throw Error('Invalid scaling type.')
+  }
+  const scaler = scalePow()
+    .exponent(scale)
+    .domain([0, 1])
+    .range(range)
+
+  return scaler
+}
+
+// The available scaling options
+export const scales = {
+  'linear': 1,
+  '1/2': 0.5,
+  '1/4': 0.25,
+  '1/8': 0.125
 }

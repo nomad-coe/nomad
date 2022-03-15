@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import PropTypes from 'prop-types'
 import { Box, FormControl, FormLabel, makeStyles } from '@material-ui/core'
@@ -41,13 +41,13 @@ const RichTextEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange} = props
   const initialHeight = 500
   const {label} = getFieldProps(quantityDef)
-  const [text, setText] = useState(value || '')
+  const [text] = useState(value || '')
   const [focus, setFocus] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  useEffect(() => {
-    setText(value || '')
-  }, [value])
+  // useEffect(() => {
+  //   setText(value || '')
+  // }, [value])
 
   const handleChange = useCallback((value) => {
     if (onChange) {

@@ -40,6 +40,7 @@ import CancelIcon from '@material-ui/icons/Cancel'
 import InputTitle from './InputTitle'
 import { useSearchContext } from '../SearchContext'
 import { Actions, ActionHeader, Action } from '../../Actions'
+import { scales } from '../../../utils'
 import { guiState } from '../../GUIMenu'
 import { useBoolState } from '../../../hooks'
 
@@ -70,13 +71,6 @@ const useStyles = makeStyles(theme => ({
     minWidth: 0
   }
 }))
-const scales = {
-  'linear': 1,
-  '1/2': 0.5,
-  '1/4': 0.25,
-  '1/8': 0.125
-}
-
 const InputHeader = React.memo(({
   quantity,
   label,
@@ -168,10 +162,10 @@ const InputHeader = React.memo(({
           <FormLabel component="legend">Statistics scaling</FormLabel>
           <RadioGroup
             value={scale}
-            onChange={onChangeScale ? (event, value) => onChangeScale(Number(value)) : undefined}
+            onChange={onChangeScale ? (event, value) => onChangeScale(value) : undefined}
           >
             {Object.entries(scales).map(([key, value]) =>
-              <FormControlLabel key={key} value={value} label={key} control={<Radio/>} />
+              <FormControlLabel key={key} value={key} label={key} control={<Radio/>} />
             )}
           </RadioGroup>
         </FormControl>
@@ -183,10 +177,10 @@ const InputHeader = React.memo(({
         onMouseEnter={openStatsTooltip}
         onMouseLeave={closeStatsTooltip}
         onOpen={closeStatsTooltip}
-        onChange={onChangeScale ? (event) => onChangeScale(Number(event.target.value)) : undefined}
+        onChange={onChangeScale ? (event) => onChangeScale(event.target.value) : undefined}
       >
         {Object.entries(scales).map(([key, value]) =>
-          <MenuItem key={key} value={value}>{key}</MenuItem>
+          <MenuItem key={key} value={key}>{key}</MenuItem>
         )}
       </Select>
     </Action>
@@ -221,7 +215,7 @@ InputHeader.propTypes = {
   description: PropTypes.string,
   disableStatistics: PropTypes.bool,
   disableScale: PropTypes.bool,
-  scale: PropTypes.oneOf(Object.values(scales)),
+  scale: PropTypes.string,
   onChangeScale: PropTypes.func,
   draggable: PropTypes.bool,
   actions: PropTypes.node,
@@ -233,7 +227,7 @@ InputHeader.defaultProps = {
   underscores: false,
   disableStatistics: false,
   disableScale: false,
-  scale: 1
+  scale: 'linear'
 }
 
 export default InputHeader

@@ -40,6 +40,7 @@ import re
 import unidecode
 
 from nomad import config, utils
+from nomad.utils.structlogging import get_logger
 
 # The metainfo is defined and used during imports. This is problematic.
 # We import all parsers very early in the infrastructure setup. This will populate
@@ -47,7 +48,7 @@ from nomad import config, utils
 from nomad.parsing import parsers  # pylint: disable=unused-import
 
 
-logger = utils.get_logger(__name__)
+logger = get_logger(__name__)
 
 elastic_client = None
 ''' The elastic search client. '''

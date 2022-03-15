@@ -28,8 +28,8 @@ from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
 from nomad.processing import Upload, Entry, ProcessStatus
+from nomad.utils.exampledata import ExampleData
 
-from tests.utils import ExampleData
 # TODO there is much more to test
 
 

@@ -43,12 +43,13 @@ from nomad.archive import write_archive, read_archive, write_partial_archive_to_
 from nomad.processing import ProcessStatus
 from nomad.processing.data import generate_entry_id
 from nomad.app.main import app
+from nomad.utils.exampledata import ExampleData
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url, ExampleData
+from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
 
 test_log_level = logging.CRITICAL
 

@@ -23,7 +23,7 @@ import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
-import { toUnitSystem } from '../../units'
+import { Quantity } from '../../units'
 
 const VibrationalProperties = React.memo(({
   bs,
@@ -38,7 +38,7 @@ const VibrationalProperties = React.memo(({
     if (dos?.energies) {
       const min = Math.min(...dos.energies)
       const max = Math.max(...dos.energies)
-      range = toUnitSystem([min, max], 'joule', units, false)
+      range = new Quantity([min, max], 'joule').toSystem(units).value
     }
     return range
   }, [dos, units])

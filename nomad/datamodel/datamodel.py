@@ -637,7 +637,7 @@ class EntryMetadata(metainfo.MSection):
     optimade = metainfo.SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),

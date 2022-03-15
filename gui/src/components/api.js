@@ -243,6 +243,7 @@ class Api {
         return result.data
       }
     } catch (errors) {
+      // console.log(errors)
       handleApiError(errors)
     } finally {
       this.onFinishLoading(config?.loadingIndicator || false)
@@ -400,6 +401,27 @@ export const APIProvider = React.memo(({
 })
 APIProvider.propTypes = {
   children: PropTypes.node
+}
+
+/**
+ * Hook for using server info.
+*/
+const infoState = atom({
+  key: 'info',
+  default: undefined
+})
+export function useInfo() {
+  const [info, setInfo] = useRecoilState(infoState)
+  const { api } = useApi()
+
+  // Get info only once
+  useEffect(() => {
+    if (!info) {
+      api.get('/info').then(setInfo).catch(() => {})
+    }
+  }, [info, api, setInfo])
+
+  return info
 }
 
 /**

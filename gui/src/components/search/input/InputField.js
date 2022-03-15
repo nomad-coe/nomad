@@ -279,6 +279,7 @@ const InputField = React.memo(({
       aggComp = <Placeholder
         variant="rect"
         classes={{placeholder: styles.placeholder}}
+        data-testid={`${testID}-placeholder`}
       />
     } else {
       aggComp = <>
@@ -325,7 +326,8 @@ const InputField = React.memo(({
     handleShowMore,
     handleShowLess,
     loading,
-    nMaxOptions
+    nMaxOptions,
+    testID
   ]
   )
 
@@ -336,7 +338,6 @@ const InputField = React.memo(({
       description={description}
       scale={scale}
       onChangeScale={setScale}
-      disableAggSize
     />
     {searchComponent}
     {optionsComponent}

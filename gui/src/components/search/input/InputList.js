@@ -94,7 +94,7 @@ const InputList = React.memo(({
   const theme = useTheme()
   const {filterData, useAgg, useFilterState, useFilterLocked} = useSearchContext()
   const styles = useStyles({classes: classes, theme: theme})
-  const [scale, setScale] = useState(initialScale)
+  const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const [filter, setFilter] = useFilterState(quantity)
   const locked = useFilterLocked(quantity)
@@ -124,6 +124,7 @@ const InputList = React.memo(({
       aggComp = <Placeholder
         variant="rect"
         classes={{placeholder: styles.placeholder}}
+        data-testid={`${testID}-placeholder`}
       />
       nShown = 0
     } else {
@@ -153,10 +154,10 @@ const InputList = React.memo(({
       }
     }
     return [aggComp, nShown]
-  }, [agg, aggIndicator, aggSize, filter, handleChange, locked, max, scale, styles])
+  }, [agg, aggIndicator, aggSize, filter, handleChange, locked, max, scale, styles, testID])
 
   return <InputTooltip locked={locked}>
-    <div className={clsx(className, styles.root)} data-testid={testID}>
+    <div className={clsx(className, styles.root)}>
       <InputHeader
         quantity={quantity}
         label={labelFinal}
@@ -188,7 +189,7 @@ InputList.propTypes = {
   quantity: PropTypes.string.isRequired,
   description: PropTypes.string,
   visible: PropTypes.bool.isRequired,
-  initialScale: PropTypes.number,
+  initialScale: PropTypes.string,
   draggable: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
@@ -197,7 +198,6 @@ InputList.propTypes = {
 }
 
 InputList.defaultProps = {
-  initialScale: 1,
   aggId: 'default'
 }
 
