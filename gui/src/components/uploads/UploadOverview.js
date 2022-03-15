@@ -310,16 +310,14 @@ const useStyles = makeStyles(theme => ({
 
 function UploadOverview(props) {
   const classes = useStyles()
-  const { uploadId: propsUploadId } = props
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {
-    uploadId: contextUploadId, setUpload, hasUpload, error, update, upload, isProcessing, apiData,
+    uploadId, setUpload, hasUpload, error, update, upload, isProcessing, apiData,
     isWriter, pagination, setPagination, data, deleteClicked, setDeleteClicked} = useUploadContext()
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
-  let uploadId = propsUploadId || contextUploadId
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -537,9 +535,6 @@ function UploadOverview(props) {
       </Stepper>
     </Page>
   )
-}
-UploadOverview.propTypes = {
-  uploadId: PropTypes.string
 }
 
 export default UploadOverview
