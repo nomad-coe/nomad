@@ -354,3 +354,16 @@ class TestClient:
         assert 'Atoms / Molecules' in result.output
         assert 'DOS' in result.output
         assert 'Band structures' in result.output
+
+
+@pytest.mark.usefixtures('reset_config')
+class TestDev:
+
+    def test_parser_metadata(self):
+        result = invoke_cli(
+            cli, ['dev', 'parser-metadata'], catch_exceptions=True)
+
+        assert result.exit_code == 0, result.output
+        assert 'yambo' in result.output
+        assert 'lammps' in result.output
+        assert 'elastic' in result.output
