@@ -17,7 +17,6 @@
  */
 
 import React from 'react'
-import 'regenerator-runtime/runtime'
 import {
   render,
   screen,
@@ -29,7 +28,7 @@ import { within } from '@testing-library/dom'
 
 test('Render upload page: published|not reader|not writer', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId={'dft_upload'}/>)
+  render(<UploadPage uploadId="dft_upload"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -43,27 +42,38 @@ test('Render upload page: published|not reader|not writer', async () => {
   closeAPI()
 })
 
-test('Render upload page: unpublished|not reader|not writer', async () => {
-  startAPI('tests.states.uploads.unpublished', 'tests/data/uploads/unpublished')
-  render(<UploadPage uploadId={'dft_upload'}/>)
-
-  await screen.findByText('You do not have access to the specified upload - not published yet.')
-
-  closeAPI()
-})
-
-test('Render upload page: published under 3 months embargo/not reader/not writer', async () => {
-  startAPI('tests.states.uploads.published_with_embargo', 'tests/data/uploads/published_with_embargo')
-  render(<UploadPage uploadId={'dft_upload'}/>)
-
-  await screen.findByText('You do not have access to the specified upload - published with embargo.')
-
+test.each([
+  [
+    'unpublished, not reader or writer',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/unpublished',
+    'dft_upload',
+    'You do not have access to the specified upload - not published yet.'
+  ],
+  [
+    'published with embargo, not reader or writer',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo',
+    'dft_upload',
+    'You do not have access to the specified upload - published with embargo.'
+  ],
+  [
+    'unknown upload_id',
+    'tests.states.uploads.published',
+    'tests/data/uploads/not_exists',
+    'a_not_exists_upload_ID',
+    'The specified upload_id was not found.'
+  ]
+])('Render upload page: error message due to %s', async (name, state, snapshot, uploadId, msg) => {
+  startAPI(state, snapshot)
+  render(<UploadPage uploadId={uploadId}/>)
+  await screen.findByText(msg)
   closeAPI()
 })
 
 test('Render upload page: multiple entries', async () => {
   startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
-  render(<UploadPage uploadId={'dft_upload_1'}/>)
+  render(<UploadPage uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -97,22 +107,13 @@ test('Render upload page: multiple entries', async () => {
 
 test('Render upload page: one entry', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId={'dft_upload'}/>)
+  render(<UploadPage uploadId="dft_upload"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
   // Test if the table title is rendered correctly
   expect(screen.queryByText('1 entry')).toBeInTheDocument()
-
-  closeAPI()
-})
-
-test('Render upload page: not exists', async () => {
-  startAPI('tests.states.uploads.published', 'tests/data/uploads/not_exists')
-  render(<UploadPage uploadId={'a_not_exists_upload_ID'}/>)
-
-  await screen.findByText('The specified upload_id was not found.')
 
   closeAPI()
 })
