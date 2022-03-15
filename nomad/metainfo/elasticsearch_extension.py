@@ -626,6 +626,8 @@ class Elasticsearch(DefinitionAnnotation):
             A callable that is used to transform the search input when
             targeting this field. Note that this does not affect the way the
             value is indexed.
+        es_query: The Elasticsearch query type that is used when querying for the annotated
+            quantity, e.g. match, term, match_phrase. Default is 'match'.
 
     Attributes:
         name:
@@ -649,6 +651,7 @@ class Elasticsearch(DefinitionAnnotation):
             suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
             variants: Union[Callable[[str], List[str]]] = None,
             normalizer: Callable[[Any], Any] = None,
+            es_query: str = 'match',
             _es_field: str = None):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
@@ -683,6 +686,7 @@ class Elasticsearch(DefinitionAnnotation):
 
         self._custom_mapping = mapping
         self.field = field
+        self.es_query = es_query
         self._es_field = field if _es_field is None else _es_field
         self.doc_type = doc_type
         self.value = value
@@ -839,18 +843,18 @@ class SearchQuantity():
         if prefix is not None:
             qualified_field = f'{prefix}.{qualified_field}'
 
-        if annotation.field is not None:
-            qualified_field = f'{qualified_field}.{annotation.field}'
-
         if annotation.suggestion:
             qualified_field = f'{qualified_field}__suggestion'
-
-        self.qualified_field = qualified_field
-        self.qualified_name = qualified_field
 
         self.search_field = qualified_field
         if not(annotation._es_field == '' or annotation._es_field is None):
             self.search_field = f'{qualified_field}.{annotation._es_field}'
+
+        if annotation.field is not None:
+            qualified_field = f'{qualified_field}.{annotation.field}'
+
+        self.qualified_field = qualified_field
+        self.qualified_name = qualified_field
 
     @property
     def definition(self):

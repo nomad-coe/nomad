@@ -205,7 +205,7 @@ Usually these services are used only by NOMAD, but sometimes you also
 need to check something or do some manual steps. You can access mongodb and elastic search
 via your preferred tools. Just make sure to use the right ports.
 
-### Run NOMAD
+## Run NOMAD
 
 Before you run NOMAD for development purposes, you should configure it to use the `test`
 realm of our user management system. By default, NOMAD will use the `fairdi_nomad_prod` realm.
@@ -216,6 +216,7 @@ keycloak:
   realm_name: fairdi_nomad_test
 ```
 
+### App and Worker
 NOMAD consist of the NOMAD app/api, a worker, and the GUI. You can run the app and the worker with
 the NOMAD cli. These commands will run the services and display their log output. You should open
 them in separate shells as they run continuously. They will not watch code changes and
@@ -261,7 +262,52 @@ yarn
 yarn start
 ```
 
-## Run tests
+### JupyterHUB
+
+NOMAD also has a build in JupyterHUB that is used to launch remote tools (e.g. Jupyter
+notebooks).
+
+To run the JupyterHUB, some additional configuration might be necessary.
+```sh
+north:
+    hub_ip_connect: 'host.docker.internal'
+    jupyterhub_crypt_key: '<crypt key>'
+```
+
+On Windows system, you might have to activate further specific functionality:
+```sh
+north:
+    hub_ip_connect: 'host.docker.internal'
+    hub_connect_url: 'http://host.docker.internal:8081'
+    windows: true
+    jupyterhub_crypt_key: '<crypt key>'
+```
+
+- If you are not on Linux, you need to configure how JupyterHUB can reach your host network from
+docker containers. For Windows and MacOS you need to set `hub_ip_connect` to `host.docker.internal`. For linux you can leave it out and use the default `172.17.0.1`, unless you changed your
+docker configuration.
+- You have to generate a `crypt key` with `openssl rand -hex 32`.
+- You might need to install [configurable-http-proxy](https://github.com/jupyterhub/configurable-http-proxy).
+
+The *configurable-http-proxy* It comes as a node package. See [node](https://nodejs.org) for how to install `npm`. The proxy can be globally installed with:
+
+```sh
+npm install -g configurable-http-proxy
+```
+
+The JupyterHUB is a separate application. You can run the JuypterHUB similar
+tp the other part.
+
+```sh
+nomad admin run hub
+```
+
+To run the JupyterHUB directly, do (from the root)
+```sh
+jupyterhub -f nomad/jupyterhub_config.py --port 9000
+```
+
+## Running tests
 
 ### Backend tests
 

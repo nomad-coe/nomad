@@ -27,13 +27,14 @@ from nomad import metainfo, config
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requireing the m_package already, this would be too late.
 m_package = metainfo.Package()
 
 from .results import Results  # noqa
+from .data import EntryData  # noqa
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
@@ -412,6 +413,21 @@ class EntryMetadata(metainfo.MSection):
         categories=[MongoEntryMetadata, MongoSystemMetadata],
         a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
 
+    entry_name = metainfo.Quantity(
+        type=str,
+        description='A brief human readable name for the entry.',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type, _es_field='keyword'),
+            Elasticsearch(
+                material_entry_type, field='prefix',
+                es_query='match_phrase_prefix', mapping='text', _es_field='')
+        ])
+
+    entry_type = metainfo.Quantity(
+        type=str,
+        description='The main schema definition. This is the name of the section used for data.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
     calc_id = metainfo.Quantity(
         type=str, description='Legacy field name, use `entry_id` instead.',
         derived=lambda entry: entry.entry_id,
@@ -460,7 +476,7 @@ class EntryMetadata(metainfo.MSection):
             NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
         ''',
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     raw_id = metainfo.Quantity(
         type=str,
@@ -468,7 +484,7 @@ class EntryMetadata(metainfo.MSection):
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
         ''',
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     external_id = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
@@ -621,7 +637,7 @@ class EntryMetadata(metainfo.MSection):
     optimade = metainfo.SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
-        a_elasticsearch=Elasticsearch(entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type))
 
     domain = metainfo.Quantity(
         type=metainfo.MEnum('dft', 'ems'),
@@ -637,8 +653,14 @@ class EntryMetadata(metainfo.MSection):
         description='All quantities that are used by this entry.',
         a_elasticsearch=QuantitySearch())
 
+    sections = metainfo.Quantity(
+        type=str, shape=['*'],
+        description='All sections that are present in this entry.',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
     def apply_archvie_metadata(self, archive):
         quantities = set()
+        sections = set()
         n_quantities = 0
 
         section_paths = {}
@@ -661,12 +683,16 @@ class EntryMetadata(metainfo.MSection):
             return section_path
 
         for section, property_def, _ in archive.m_traverse():
+            sections.add(section.m_def)
+
             quantity_path = f'{get_section_path(section)}.{property_def.name}'
             quantities.add(quantity_path)
             n_quantities += 1
 
         self.quantities = list(quantities)
         self.quantities.sort()
+        self.sections = [section.qualified_name() for section in sections]
+        self.sections.sort()
         self.n_quantities = n_quantities
 
 
@@ -679,6 +705,9 @@ class EntryArchive(metainfo.MSection):
 
     run = metainfo.SubSection(sub_section=Run, repeats=True)
     measurement = metainfo.SubSection(sub_section=Measurement, repeats=True)
+
+    data = metainfo.SubSection(sub_section=EntryData)
+
     workflow = metainfo.SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
     metadata = metainfo.SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],

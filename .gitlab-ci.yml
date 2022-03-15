@@ -26,8 +26,8 @@ variables:
 build:
   stage: build
   before_script:
-    - git submodule sync
-    - git submodule update --init --jobs=4
+    - git submodule sync --recursive
+    - git submodule update --init --recursive --jobs=4
     # create the version information
     - ./gitinfo.sh
   script:
@@ -60,12 +60,13 @@ gui linting:
   stage: test
   before_script:
     - git submodule sync
-    - git submodule update --init -- gui/materia
+    - git submodule update --init -- gui/materia gui/crystcif-parse
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
-    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.json
+    - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+    - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
   script:
     - cd gui
     - yarn --network-timeout 1200000
@@ -115,12 +116,13 @@ gui tests:
   stage: test
   before_script:
     - git submodule sync
-    - git submodule update --init -- gui/materia
+    - git submodule update --init -- gui/materia gui/crystcif-parse
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev search-quantities > gui/src/searchQuantities.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev units > gui/src/unitsData.js
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev toolkit-metadata > gui/src/toolkitMetadata.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev metainfo > gui/src/metainfo.json
     - docker run --rm $TEST_IMAGE python -m nomad.cli dev parser-metadata > gui/src/parserMetadata.json
+    - docker run --rm $TEST_IMAGE cat dependencies/nomad-remote-tools-hub/tools.json > gui/src/northTools.json
   script:
     - cd gui
     - yarn --network-timeout 1200000
@@ -143,9 +145,9 @@ install tests:
   stage: test
   image: python:3.7
   before_script:
-    - git submodule sync
+    - git submodule sync --recursive
     - sleep 5
-    - git submodule update --init --jobs=4
+    - git submodule update --init --recursive --jobs=4
   script:
     - pip install --upgrade pip
     - pip install fastentrypoints

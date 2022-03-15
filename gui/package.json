@@ -4,17 +4,24 @@
   "commit": "e98694e",
   "private": true,
   "workspaces": [
-    "materia"
+    "materia",
+    "crystcif-parse"
   ],
   "dependencies": {
     "@date-io/date-fns": "1.x",
     "@fontsource/material-icons": "^4.2.1",
     "@fontsource/titillium-web": "^4.2.2",
+    "@h5web/app": "1.4.0",
+    "@h5web/lib": "1.4.0",
     "@material-ui/core": "^4.0.0",
     "@material-ui/icons": "^4.0.0",
     "@material-ui/lab": "^4.0.0-alpha.49",
     "@material-ui/pickers": "^3.3.10",
     "@navjobs/upload": "^3.1.3",
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^10.0.0",
+    "@testing-library/user-event": "^7.1.2",
+    "@tinymce/tinymce-react": "^3.13.0",
     "autosuggest-highlight": "^3.1.1",
     "base-64": "^0.1.0",
     "chroma-js": "^2.0.3",
@@ -63,6 +70,7 @@
     "remark": "^12.0.1",
     "remark-math": "^2.0.1",
     "swagger-client": "^3.8.22",
+    "tinymce": "^5",
     "url-parse": "^1.4.3",
     "use-query-params": "^0.6.0"
   },
@@ -116,8 +124,16 @@
       "last 1 safari version"
     ]
   },
+  "homepage": "http://example.com/fairdi/nomad/latest/gui",
   "jest": {
-    "coverageReporters": ["html", "text", "text-summary", "cobertura"]
-  },
-  "homepage": "http://example.com/fairdi/nomad/latest/gui"
+    "coverageReporters": ["html", "text", "text-summary", "cobertura"],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!@h5web)"
+    ],
+    "moduleNameMapper": {
+      "^.+\\.(css|less)$": "<rootDir>/src/CSSStub.js",
+      "d3": "<rootDir>/node_modules/d3/dist/d3.min.js",
+      "three": "<rootDir>/node_modules/three/build/three.min.js"
+    }
+  }
 }

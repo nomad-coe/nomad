@@ -24,41 +24,32 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
+import { Item } from './Browser'
+import { parseCifStructures } from 'crystcif-parse'
+import Structure from '../visualization/Structure'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
 const useFilePreviewStyles = makeStyles(theme => ({
   scrollableContainer: {
-    border: '1px solid black',
-    boxSizing: 'border-box',
     width: '100%',
     height: '100%',
     display: 'inline-block',
     overflow: 'auto'
   },
-  imgDiv: {
-    width: '100%',
-    height: '100%',
-    position: 'relative'
-  },
-  imgElement: {
-    maxWidth: '100%',
+  img: {
     maxHeight: '100%',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    margin: 'auto'
+    maxWidth: '100%'
   }
 }))
 
 /* Viewer definitions */
 const viewerText = {
   name: 'text',
-  fileExtensions: ['txt', 'yaml', 'yml'],
+  fileExtensions: ['txt', 'yaml', 'yml', 'csv', 'xml'],
   maxSizePreview: 1e10, // Effectively infinite
-  maxSizeAutoPreview: 10e6,
+  maxSizeAutoPreview: 1e10, // Effectively infinite
+  width: 700,
   render: ({uploadId, path}) => {
     return <FilePreviewText uploadId={uploadId} path={path}/>
   }
@@ -69,9 +60,10 @@ const viewerImg = {
   maxSizeAutoPreview: 10e6,
   requiresUrlWithAuth: true,
   render: ({classes, url, setFailedToPreview}) => {
-    return <div className={classes.imgDiv}>
-      <img src={url} className={classes.imgElement} alt="Loading..." onError={() => setFailedToPreview(true)}/>
-    </div>
+    return <img
+      src={url} className={classes.img}
+      alt="Loading..." onError={() => setFailedToPreview(true)}
+    />
   }
 }
 const viewerJSON = {
@@ -95,6 +87,7 @@ const viewerPDF = {
   fileExtensions: ['pdf'],
   maxSizeAutoPreview: 10e6,
   requiresUrlWithAuth: true,
+  width: 700,
   render: ({url, setFailedToPreview}) => {
     return <FilePreviewPdf
       file={{url: url}}
@@ -105,7 +98,40 @@ const viewerPDF = {
     />
   }
 }
-const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF]
+const viewerHDF5 = {
+  name: 'hdf5',
+  fileExtensions: ['hdf5', 'hd5'],
+  maxSizeAutoPreview: 10e6,
+  render: () => {
+    return <Item itemKey="h5web"><Typography>H5Web</Typography></Item>
+  }
+}
+const viewerCif = {
+  name: 'cif',
+  fileExtensions: ['cif'],
+  maxSizeAutoPreview: 1e5,
+  requiresLoadedData: true,
+  width: 500,
+  render: ({data}) => {
+    if (typeof data.current === 'string') {
+      const cifData = parseCifStructures(data.current)
+      const cifStructure = cifData[Object.keys(cifData)[0]]
+      const structureData = {
+        cell: cifStructure.get_cell(),
+        pbc: cifStructure.get_pbc(),
+        positions: cifStructure.get_positions(),
+        species: cifStructure.get_chemical_symbols()
+      }
+      data.current = structureData
+    }
+    return (
+      <div style={{height: 500, width: 500}}>
+        <Structure data={data.current} />
+      </div>
+    )
+  }
+}
+const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5, viewerCif]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()
@@ -173,22 +199,20 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
     )
   }
 
+  let content
   const url = user ? fullUrlWithAuth : fullUrl
   if ((selectedViewer.requiresUrlWithAuth && !url) || (selectedViewer.requiresLoadedData && !dataLoaded)) {
     // Not ready to invoke the viewer yet
-    return <Typography>Loading...</Typography>
-  }
-
-  if (!failedToPreview) {
+    content = <Typography>Loading...</Typography>
+  } else if (!failedToPreview) {
     try {
-      return selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
+      content = selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
     } catch (error) {
-      setFailedToPreview(true)
+      // TODO
     }
-  }
-  // Selected viewer failed
-  if (!useFallbackViewer) {
-    return (
+  } else if (!useFallbackViewer) {
+    // Selected viewer failed
+    content = (
       <Box textAlign="center">
         <Typography color="error">Failed to open with {selectedViewer.name} viewer. Bad file format?</Typography>
         <Button onClick={() => setUseFallbackViewer(true)} variant="contained" size="small" color="primary">
@@ -196,9 +220,13 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
         </Button>
       </Box>
     )
+  } else {
+    // Use the text viewer as last resort
+    content = viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
   }
-  // Use the text viewer as last resort
-  return viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
+  return <Box marginBottom={1} flexGrow={1} width={`${selectedViewer.width || 500}px`} overflow="hidden">
+    {content}
+  </Box>
 })
 FilePreview.propTypes = {
   uploadId: PropTypes.string.isRequired,
@@ -209,13 +237,12 @@ export default FilePreview
 
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
-    width: '100%',
     height: '100%',
     overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
   },
   fileContents: {
-    margin: 0,
+    margin: theme.spacing(1),
     padding: 0,
     display: 'inline-block',
     color: theme.palette.primary.contrastText,
@@ -287,11 +314,10 @@ FilePreviewText.propTypes = {
 
 const useFilePreviewPdfStyles = makeStyles(theme => ({
   containerDiv: {
-    width: '100%',
     height: '100%',
     overflowX: 'hidden',
     overflowY: 'scroll',
-    border: '1px solid black',
+    border: '1px solid rgba(0, 0, 0, 0.42)',
     boxSizing: 'border-box'
   },
   pageDiv: {

@@ -27,6 +27,11 @@ def run():
     pass
 
 
+@run.command(help='Run the jupyter hub.')
+def hub():
+    run_hub()
+
+
 @run.command(help='Run the nomad development worker.')
 def worker():
     run_worker()
@@ -55,6 +60,22 @@ def run_worker():
     config.meta.service = 'worker'
     from nomad import processing
     processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery'])
+
+
+def run_hub():
+    from jupyterhub.app import main
+    import sys
+    import os
+    import subprocess
+
+    if 'JUPYTERHUB_CRYPT_KEY' not in os.environ:
+        crypt_key = config.north.jupyterhub_crypt_key
+        if crypt_key is None:
+            crypt_key = subprocess.check_output('openssl rand -hex 32'.split(' ')).decode().strip('\n')
+        os.environ['JUPYTERHUB_CRYPT_KEY'] = crypt_key
+
+    config.meta.service = 'hub'
+    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--debug']))
 
 
 @run.command(help='Run both app and worker.')

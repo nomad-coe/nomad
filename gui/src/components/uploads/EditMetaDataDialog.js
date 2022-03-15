@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {
   makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip, Divider,
   Typography, TextField, Box
@@ -24,7 +24,6 @@ import DialogContentText from '@material-ui/core/DialogContentText'
 import EditIcon from '@material-ui/icons/Edit'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import {uploadPageContext} from './UploadPage'
 import PropTypes from 'prop-types'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import {useApi} from '../api'
@@ -36,6 +35,7 @@ import DeleteIcon from '@material-ui/icons/Delete'
 import OpenInNewIcon from '@material-ui/icons/OpenInNew'
 import Quantity from '../Quantity'
 import {DOI} from '../dataset/DOI'
+import { useUploadContext } from './UploadContext'
 
 function EditComments(props) {
   const {value, onChange} = props
@@ -303,7 +303,7 @@ function EditMetaDataDialog({...props}) {
   const classes = useEditMetaDataDialogStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
-  const {upload, setUpload, data} = useContext(uploadPageContext)
+  const {upload, setUpload, data} = useUploadContext()
   const [open, setOpen] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const isProcessing = upload?.process_running

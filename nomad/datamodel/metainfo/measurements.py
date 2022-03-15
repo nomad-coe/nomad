@@ -20,6 +20,7 @@ import numpy as np
 
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime)
+from nomad.metainfo.metainfo import Reference, SectionProxy
 
 
 m_package = Package(name='measurements')
@@ -50,6 +51,25 @@ class Sample(MSection):
 
     elements = Quantity(type=str, shape=["*"])
     chemical_formula = Quantity(type=str)
+
+
+class Experiment(MSection):
+    name = Quantity(
+        type=str, description='A human readable free text name for the experiment.')
+
+    description = Quantity(
+        type=str, description='A description of the experiment.')
+
+    steps = Quantity(
+        type=str, shape=['*'], description='Human readable experiment steps.')
+
+    sample = SubSection(section_def=Sample, description='The used sample.')
+    sample_ref = Quantity(type=Reference(Sample.m_def), description='Reference to the used sample.')
+
+    measurement = SubSection(
+        section_def=SectionProxy('Measurement'),
+        repeats=True,
+        description='Measurements performed in this experiment.')
 
 
 class Instrument(MSection):

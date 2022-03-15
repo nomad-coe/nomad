@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { Tab, Tabs } from '@material-ui/core'
 import { trimEnd } from 'lodash'
 import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
 import ArchiveLogView from './ArchiveLogView'
-import RawFileView from './RawFileView'
 import BrowseEntryFilesView from './BrowseEntryFilesView'
 import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom'
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
+import EntryContext from './EntryContext'
 
 export const help = `
 The *overview* tab gives you an insightful overview about the most prominent
@@ -45,28 +45,37 @@ const EntryPage = React.memo(() => {
   const history = useHistory()
   const currentPath = history.location.pathname
   const {path, url} = useRouteMatch()
-  const urlNoSlash = trimEnd(url, '/')
   const match = matchPath(currentPath, { path: `${path}/:tab?` })
   const {params: {tab = 'overview'}} = match
   const entryId = match?.params?.entryId
+  const defaultUrls = useMemo(() => {
+    const urlNoSlash = trimEnd(url, '/')
+    return {
+      'overview': `${urlNoSlash}/overview`,
+      'files': `${urlNoSlash}/files`,
+      'data': `${urlNoSlash}/data`,
+      'logs': `${urlNoSlash}/logs`
+    }
+  }, [url])
 
   // We use a useRef object to keep track of the current urls of each tab. Switching
   // tabs would go to the previous tab url. This way, the views behind a tab can add
   // state to the URL (e.g. path to section on the ArchiveEntryView).
-  const urls = useRef({
-    'overview': `${urlNoSlash}/overview`,
-    'raw': `${urlNoSlash}/raw`,
-    'browse': `${urlNoSlash}/browse`,
-    'archive': `${urlNoSlash}/archive`,
-    'logs': `${urlNoSlash}/logs`
-  })
+  const urls = useRef(defaultUrls)
 
   const handleChange = (_, value) => {
     urls.current[tab] = currentPath
     history.push(urls.current[value])
   }
 
-  return <>
+  // Reset the urls if a new entry is visited
+  useMemo(() => {
+    if (entryId) {
+      urls.current = defaultUrls
+    }
+  }, [entryId, defaultUrls, urls])
+
+  return <EntryContext entryId={entryId}>
     <Tabs
       value={tab}
       onChange={handleChange}
@@ -75,20 +84,18 @@ const EntryPage = React.memo(() => {
       variant="fullWidth"
     >
       <Tab label="Overview" value="overview" />
-      <Tab label="Raw data" value="raw" />
-      <Tab label="Browse" value="browse" />
-      <Tab label="Processed data" value="archive"/>
+      <Tab label="Files" value="files" />
+      <Tab label="Data" value="data"/>
       <Tab label="Logs" value="logs"/>
     </Tabs>
     <CacheSwitch>
-      <CacheRoute path={`${path}`} exact render={() => <OverviewView entryId={entryId}/>} />
-      <CacheRoute path={`${path}/raw`} render={() => <RawFileView entryId={entryId}/>} />
-      <CacheRoute when="always" path={`${path}/browse`} render={() => <BrowseEntryFilesView entryId={entryId}/>} />
-      <CacheRoute when="always" path={`${path}/archive`} render={() => <ArchiveEntryView entryId={entryId}/>} />
-      <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView entryId={entryId}/>} />
+      <CacheRoute path={`${path}`} exact render={() => <OverviewView/>} />
+      <CacheRoute when="always" path={`${path}/files`} render={() => <BrowseEntryFilesView />} />
+      <CacheRoute when="back" path={`${path}/data`} render={() => <ArchiveEntryView />} />
+      <CacheRoute path={`${path}/logs`} render={() => <ArchiveLogView />} />
       <Redirect strict from={`${path}/overview`} to={`${path}`} />
     </CacheSwitch>
-  </>
+  </EntryContext>
 })
 
 export default EntryPage

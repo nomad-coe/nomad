@@ -17,6 +17,7 @@
  */
 
 import React from 'react'
+import PropTypes from 'prop-types'
 import {
   Divider,
   Typography,
@@ -38,6 +39,19 @@ import AccessIcon from '../../images/AIT_ico_bd_link_external_big.svg'
 import WatchIcon from '../../images/AIT_ico_bd_youtube.svg'
 import PdfIcon from '../../images/AIT_ico_bd_link_pdf.svg'
 import DoiIcon from '../../images/AIT_ico_bd_link_doi.svg'
+
+const NotebookButton = React.memo(function NotebookButton({...props}) {
+  // TODO this button has to be implemented and send users to the respective AItoolkit
+  // notebook on north.
+  return <Button {...props} />
+})
+NotebookButton.propTypes = {
+  metadata: PropTypes.Object,
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
+}
 
 const useStyles = makeStyles(theme => ({
   tutorialTitleGrid: {
@@ -218,15 +232,14 @@ function AccordionsList(props) {
               <Grid item xs={7} className={styles.tutorialActions}>
                 <Grid container spacing={0}>
                   <Grid item xs={5}>
-                    <Button
-                      href={tutorial.link_public}
-                      target="tutorial"
+                    <NotebookButton
+                      metadata={tutorial}
                       startIcon={<img alt='Access icon' src={AccessIcon}></img>}
                     >
                       <Typography className={styles.fieldText} >
                         <b>Access tutorial</b>
                       </Typography>
-                    </Button>
+                    </NotebookButton>
                   </Grid>
                   <Grid item xs={5} >
                     <div>

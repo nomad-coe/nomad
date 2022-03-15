@@ -68,6 +68,9 @@ const nElementMap = {
   10: 'decimary'
 }
 const MaterialCard = React.memo(({index, properties, archive}) => {
+  if (!index?.results?.material) {
+    return ''
+  }
   // Find out which properties are present
   const structures = index?.results?.properties?.structures
   const hasStructures = structures?.structure_original ||
@@ -124,7 +127,6 @@ const MaterialCard = React.memo(({index, properties, archive}) => {
       )}
     </Select>
   </FormControl>
-
   return <PropertyCard title="Material" action={select}>
     <PropertyGrid>
       <PropertyItem title="Composition" xs={6} height="auto">

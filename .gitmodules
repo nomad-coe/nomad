@@ -213,9 +213,19 @@
 [submodule "dependencies/parsers/asr"]
 	path = dependencies/parsers/asr
 	url = https://github.com/nomad-coe/nomad-parser-asr.git
+[submodule "dependencies/nomad-remote-tools-hub"]
+	path = dependencies/nomad-remote-tools-hub
+	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git
+[submodule "dependencies/parsers/nexus"]
+	path = dependencies/parsers/nexus
+	url = https://github.com/nomad-coe/nomad-parser-nexus.git
+	branch = master
 [submodule "dependencies/parsers/psi4"]
 	path = dependencies/parsers/psi4
 	url = https://github.com/nomad-coe/nomad-parser-psi4.git
 [submodule "dependencies/parsers/yambo"]
 	path = dependencies/parsers/yambo
 	url = https://github.com/nomad-coe/nomad-parser-yambo.git
+[submodule "gui/crystcif-parse"]
+	path = gui/crystcif-parse
+	url = https://github.com/stur86/crystcif-parse.git

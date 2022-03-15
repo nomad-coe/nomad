@@ -16,19 +16,20 @@
  * limitations under the License.
  */
 import React, { useState, useEffect } from 'react'
-import PropTypes from 'prop-types'
 import { Typography, makeStyles } from '@material-ui/core'
 import { useErrors } from '../errors'
 import FileBrowser from '../archive/FileBrowser'
 import { useApi } from '../api'
 import Page from '../Page'
+import { useEntryContext } from './EntryContext'
 
 const useStyles = makeStyles(theme => ({
   error: {
     marginTop: theme.spacing(2)
   }
 }))
-const BrowseEntryFilesView = React.memo(({entryId}) => {
+const BrowseEntryFilesView = React.memo((props) => {
+  const {entryId} = useEntryContext()
   const classes = useStyles()
   const {api, user} = useApi()
   const {raiseError} = useErrors()
@@ -67,7 +68,7 @@ const BrowseEntryFilesView = React.memo(({entryId}) => {
       <FileBrowser
         uploadId={data.upload_id}
         path={mainfileDirname}
-        rootTitle="Entry raw files"
+        rootTitle="Entry files"
         highlightedItem={mainfileBasename}
         editable={!data.published && user && !!(data.writers.find(writer => writer.user_id === user.sub))}
       />
@@ -76,7 +77,5 @@ const BrowseEntryFilesView = React.memo(({entryId}) => {
     return <Page><Typography>loading ...</Typography></Page>
   }
 })
-BrowseEntryFilesView.propTypes = {
-  entryId: PropTypes.string.isRequired
-}
+BrowseEntryFilesView.propTypes = {}
 export default BrowseEntryFilesView

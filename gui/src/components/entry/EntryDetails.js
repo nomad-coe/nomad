@@ -52,6 +52,8 @@ export const MethodMetadata = React.memo(({data}) => {
     addMethodQuantities(data.results.method, 'results.method')
   }
 
+  methodQuantities.push({quantity: 'entry_type', label: 'type'})
+
   return <Quantity flex>
     {methodQuantities.map(({...quantityProps}) => (
       <Quantity
@@ -177,7 +179,6 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
     <EntryButton
       {...props}
       entryId={data.entry_id}
-      uploadId={data.upload_id}
     />
   </Tooltip>
 })

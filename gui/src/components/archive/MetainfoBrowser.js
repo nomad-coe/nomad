@@ -21,7 +21,7 @@ import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
 import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title } from './Browser'
 import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
-import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName } from './metainfo'
+import { metainfoDef, resolveRef, vicinityGraph, rootSections, path as metainfoPath, packagePrefixes, defsByName, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef } from './metainfo'
 import * as d3 from 'd3'
 import blue from '@material-ui/core/colors/blue'
 import teal from '@material-ui/core/colors/teal'
@@ -104,7 +104,7 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
   const searchOptions = useMemo(() => {
     return Object.keys(defsByName).reduce((results, name) => {
       const defsForName = defsByName[name].filter(def => (
-        !def.extends_base_section && def.m_def !== 'SubSection' && (
+        !def.extends_base_section && def.m_def !== SubSectionMDef && (
           def._package.name.startsWith(config.packagePrefix) || def._package.name.startsWith('nomad'))
       ))
       results.push(...defsForName.map(def => {
@@ -154,13 +154,13 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
 })
 
 export function metainfoAdaptorFactory(obj) {
-  if (obj.m_def === 'Section') {
+  if (obj.m_def === SectionMDef) {
     return new SectionDefAdaptor(obj)
-  } else if (obj.m_def === 'SubSection') {
+  } else if (obj.m_def === SubSectionMDef) {
     return new SubSectionDefAdaptor(obj)
-  } else if (obj.m_def === 'Quantity') {
+  } else if (obj.m_def === QuantityMDef) {
     return new QuantityDefAdaptor(obj)
-  } else if (obj.m_def === 'Category') {
+  } else if (obj.m_def === CategoryMDef) {
     return new CategoryDefAdaptor(obj)
   } else {
     throw new Error('Unknown metainfo definition type')
@@ -619,13 +619,13 @@ DefinitionDetails.propTypes = {
 }
 
 const definitionLabels = {
-  'Section': 'section',
-  'Quantity': 'quantity',
-  'SubSection': 'sub section',
-  'Category': 'category'
+  [SectionMDef]: 'section',
+  [QuantityMDef]: 'quantity',
+  [SubSectionMDef]: 'sub section',
+  [CategoryMDef]: 'category'
 }
 
-export function ArchiveTitle({def, isDefinition, data, kindLabel, useName}) {
+export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actions}) {
   const color = isDefinition ? 'primary' : 'initial'
   let label = definitionLabels[def.m_def]
   if (def.extends_base_section) {
@@ -636,13 +636,14 @@ export function ArchiveTitle({def, isDefinition, data, kindLabel, useName}) {
     tooltip={def._qualifiedName || def.name}
     label={`${label}${isDefinition ? ' definition' : ''}`}
     color={color}
-    actions={(
+    actions={actions ||
       <SourceJsonDialogButton
+        buttonProps={{size: 'small'}}
         tooltip={`Show ${(kindLabel + ' ') || ' '}data as JSON`}
         title={`Underlying ${(kindLabel + ' ') || ' '}data as JSON`}
         data={data || def}
       />
-    )}
+    }
   />
 }
 ArchiveTitle.propTypes = ({
@@ -650,7 +651,11 @@ ArchiveTitle.propTypes = ({
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
   kindLabel: PropTypes.string,
-  useName: PropTypes.bool
+  useName: PropTypes.bool,
+  actions: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 })
 
 export function DefinitionLabel({def, isDefinition, ...props}) {
@@ -685,13 +690,13 @@ const useVicinityGraphStyles = makeStyles(theme => ({
 
 export function VicinityGraph({def}) {
   const linkColors = {
-    'Quantity': purple[500],
+    [QuantityMDef]: purple[500],
     '_none': grey[700]
   }
   const nodeColors = {
-    'Quantity': lime[500],
-    'Section': blue[500],
-    'Category': teal[500]
+    [QuantityMDef]: lime[500],
+    [SectionMDef]: blue[500],
+    [CategoryMDef]: teal[500]
   }
   const graph = useMemo(() => {
     const graph = vicinityGraph(def)
@@ -722,7 +727,7 @@ export function VicinityGraph({def}) {
       .attr('marker-end', d => `url(#arrowhead-${d.def.m_def || '_none'})`)
       .attr('stroke', d => linkColors[d.def.m_def || '_none'])
       .on('click', d => {
-        if (d.def.m_def === 'Quantity') {
+        if (d.def.m_def === QuantityMDef) {
           const path = metainfoPath(d.def)
           if (path) {
             history.push(`/metainfo/${path}`)

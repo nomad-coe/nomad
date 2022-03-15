@@ -30,6 +30,7 @@ import { useKeycloak } from 'react-keycloak'
 import axios from 'axios'
 import { useErrors } from './errors'
 import * as searchQuantities from '../searchQuantities.json'
+import { NorthApi } from './north/northApi'
 
 export class DoesNotExist extends Error {
   constructor(msg) {
@@ -271,9 +272,7 @@ class Api {
 
   async doHttpRequest(method, path, body, config) {
     const noLoading = config?.noLoading
-    if (!noLoading) {
-      this.onStartLoading()
-    }
+    this.onStartLoading(!noLoading)
     const auth = await this.authHeaders()
     config = config || {}
     config.params = config.params || {}
@@ -301,9 +300,7 @@ class Api {
       }
       handleApiError(errors)
     } finally {
-      if (!noLoading) {
-        this.onFinishLoading()
-      }
+      this.onFinishLoading(!noLoading)
     }
   }
 
@@ -377,6 +374,7 @@ export const APIProvider = React.memo(({
   const setLoading = useSetLoading()
   const api = useState(new Api(keycloak, setLoading))[0]
   const [user, setUser] = useState()
+  const [info, setInfo] = useState()
 
   // Update user whenever keycloak instance changes
   useEffect(() => {
@@ -385,10 +383,17 @@ export const APIProvider = React.memo(({
     }
   }, [keycloak, setUser])
 
+  // Get info only once
+  useEffect(() => {
+    api.get('/info').then(setInfo).catch(() => {})
+  }, [api])
+
   const value = useMemo(() => ({
     api: api,
-    user: user
-  }), [api, user])
+    northApi: user ? new NorthApi(api, `users/${user.preferred_username}`) : null,
+    user: user,
+    info: info
+  }), [api, user, info])
 
   return <apiContext.Provider value={value}>
     {children}

@@ -95,6 +95,8 @@ def raw_files_infra():
     config.fs.tmp = '.volumes/test_fs/tmp'
     config.fs.staging = '.volumes/test_fs/staging'
     config.fs.public = '.volumes/test_fs/public'
+    config.fs.staging_external = os.path.abspath(config.fs.staging)
+    config.fs.public_external = os.path.abspath(config.fs.public)
     config.fs.prefix_size = 2
     clear_raw_files()
 

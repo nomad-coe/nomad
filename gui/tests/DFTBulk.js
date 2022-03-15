@@ -40,6 +40,7 @@ const common = {
   datasets: [{dataset_id: 'Mock dataset', dataset_name: 'Mock dataset'}],
   mainfile: 'vasp.xml',
   formula: 'Si2',
+  quantities: [],
   upload_name: 'a mock upload',
   entries: 1,
   main_author: 'Lauri_Himanen_ID',

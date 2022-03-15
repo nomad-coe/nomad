@@ -32,7 +32,7 @@ from nomad import utils, config, files
 from nomad.files import StagingUploadFiles, UploadBundle, is_safe_relative_path
 from nomad.processing import Upload, Entry, ProcessAlreadyRunning, ProcessStatus, MetadataEditRequestHandler
 from nomad.utils import strip
-from nomad.search import search
+from nomad.search import search, refresh as search_refresh
 
 from .auth import create_user_dependency, generate_upload_token
 from ..models import (
@@ -119,6 +119,8 @@ class UploadProcData(ProcData):
     entries: int = Field(
         0,
         description='The number of identified entries in this upload.')
+    upload_files_server_path: Optional[str] = Field(
+        None, description='The path to the uploads files on the server.')
 
 
 class EntryProcData(ProcData):
@@ -628,6 +630,7 @@ async def get_upload_rawdir_path(
     '''
     # Get upload
     upload = _get_upload_with_read_access(upload_id, user, include_others=True)
+    upload_files = None
     try:
         # Get upload files
         upload_files = upload.upload_files
@@ -687,7 +690,8 @@ async def get_upload_rawdir_path(
 
         return response
     except Exception:
-        upload_files.close()
+        if upload_files:
+            upload_files.close()
         raise
 
 
@@ -922,7 +926,10 @@ async def put_upload_raw_path(
 
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            entry = upload.put_file_and_process_local(upload_path, path)
+            reprocess_settings = dict(
+                index_invidiual_entries=True, reprocess_existing_entries=True)
+            entry = upload.put_file_and_process_local(
+                upload_path, path, reprocess_settings=reprocess_settings)
             if upload.process_status == ProcessStatus.FAILURE:
                 # Should only happen if we fail to put the file, match the file, or to *initiate*
                 # entry processing - i.e. normally, this shouldn't happen, not even with
@@ -930,6 +937,8 @@ async def put_upload_raw_path(
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f'Failed to put and process: {upload.errors[0]}')
+
+            search_refresh()
 
             archive = None
             if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
@@ -1762,6 +1771,12 @@ def _upload_to_pydantic(upload: Upload) -> UploadProcData:
     ''' Converts the mongo db object to an UploadProcData object. '''
     pydantic_upload = UploadProcData.from_orm(upload)
     pydantic_upload.entries = upload.total_entries_count
+    try:
+        pydantic_upload.upload_files_server_path = upload.upload_files.external_os_path
+    except KeyError:
+        # In case the files are missing for one reason or another
+        pass
+
     return pydantic_upload
 
 

@@ -246,7 +246,8 @@ def gui_config():
         with open(env_js_file, 'wt') as f:
             f.write(f'''
 window.nomadEnv = {{
-    'appBase': '{config.services.api_base_path}',
+    'appBase': '{config.services.api_base_path.rstrip("/")}',
+    'northBase': '{config.services.api_base_path.rstrip("/")}/north',
     'keycloakBase': 'https://nomad-lab.eu/fairdi/keycloak/auth/',
     'keycloakRealm': '{config.keycloak.realm_name}',
     'keycloakClientId': '{config.keycloak.client_id}',

@@ -218,7 +218,7 @@ SourceApiCall.propTypes = {
 }
 
 export const SourceJsonDialogButton = React.memo(function SourceJsonDialogButton({description, data, ...props}) {
-  return <DialogButton title="Json" tooltip="Json data" size="small" {...props}>
+  return <DialogButton title="Json" tooltip="Json data" {...props}>
     {description && <React.Fragment>
       <Markdown text={description} />
       <SourceDialogDivider />

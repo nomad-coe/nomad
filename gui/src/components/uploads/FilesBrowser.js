@@ -45,7 +45,7 @@ const useFolderStyles = makeStyles(theme => ({
 
   },
   tags: {
-    textTransform: 'uppercase',
+    // textTransform: 'uppercase',
     marginLeft: theme.spacing(1)
   },
   info: {
@@ -63,7 +63,7 @@ const useFolderStyles = makeStyles(theme => ({
   }
 }))
 
-function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info}) {
+function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info, path}) {
   const classes = useFolderStyles()
   const handleToggle = event => {
     event.stopPropagation()
@@ -90,7 +90,7 @@ function FileOrFolder({onToggle, open, hasChildren, children, name, parser, info
         {parser && <Typography variant="caption">mainfile</Typography>}
       </div>}
       <div className={classes.tags}>
-        {parser && <Chip size="small" label={parser} color="primary" />}
+        {parser && <Chip size="small" label={parser} color="default" />}
       </div>
     </div>
     <Collapse in={open} className={classes.children}>
@@ -105,6 +105,8 @@ FileOrFolder.propTypes = {
   hasChildren: PropTypes.bool,
   children: PropTypes.arrayOf(PropTypes.object),
   name: PropTypes.string,
+  path: PropTypes.string,
+  uploadId: PropTypes.string,
   parser: PropTypes.string,
   info: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
@@ -158,7 +160,7 @@ export default function FilesBrower({uploadId, disabled}) {
         .forEach(item => {
           resultsByPath[`${path}/${item.name}`] = item
           if (item.parser_name) {
-            item.parser = item.parser_name.replace('parsers/', '')
+            item.parser = item.parser_name.replace('parsers/', '').replace('archive', 'nomad')
           }
         })
       setRenderCounter(renderCounter => renderCounter + 1)
@@ -197,6 +199,8 @@ export default function FilesBrower({uploadId, disabled}) {
     const mapContent = item => renderFileOrFolder(`${pathPrefix}${item.name}`, item)
     const props = {
       key: path,
+      path: path,
+      uploadId: uploadId,
       hasChildren: !is_file,
       open: data?.open,
       children: data?.directory_metadata?.content?.map(mapContent),

@@ -63,7 +63,7 @@ app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
 app.mount(f'{app_base}/dcat', dcat_app)
 app.mount(f'{app_base}/optimade', optimade_app)
-app.mount(app_base, WSGIMiddleware(flask_app))
+app.mount(app_base, WSGIMiddleware(flask_app))  # type: ignore
 
 
 @app.on_event('startup')

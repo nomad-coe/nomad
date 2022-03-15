@@ -28,11 +28,11 @@ import TutorialsPage from '../aitoolkit/TutorialsPage'
 import ReproducePage from '../aitoolkit/ReproducePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
-import UploadPage from '../uploads/UploadPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
 import UserdataPage, { help as userdataHelp } from '../UserdataPage'
 import APIs from '../APIs'
 import SearchPageEntries, {help as searchEntriesHelp} from '../search/SearchPageEntries'
+import NorthPage, {help as NORTHHelp} from '../north/NorthPage'
 // import SearchPageMaterials, {help as searchMaterialsHelp} from '../search/SearchPageMaterials'
 import { aitoolkitEnabled, appBase, oasis, encyclopediaBase } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
@@ -41,6 +41,8 @@ import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
 import DatasetsPage, { help as datasetsHelp } from '../dataset/DatasetsPage'
 import ResolveDOI from '../dataset/ResolveDOI'
 import { DatatableExamples } from '../datatable/DatatableExamples'
+import {EditQuantityExamples} from '../editQuantity/EditQuantityExamples'
+import UploadPage from '../uploads/UploadPage'
 
 /**
  * Each route is an object with possible nested sub routes. Therefore, each object only
@@ -75,7 +77,7 @@ const entryRoutes = [
     path: 'entry',
     routes: [
       {
-        path: 'id/:uploadId/:entryId',
+        path: 'id/:entryId',
         breadcrumb: 'Entry',
         component: EntryPage,
         help: {
@@ -84,24 +86,19 @@ const entryRoutes = [
         },
         routes: [
           {
-            path: 'raw',
+            path: 'files',
             exact: true,
-            breadcrumb: 'Raw data files'
+            breadcrumb: 'Files'
           },
           {
-            path: 'browse',
+            path: 'data',
             exact: true,
-            breadcrumb: 'Browse files'
-          },
-          {
-            path: 'archive',
-            exact: true,
-            breadcrumb: 'Processed data'
+            breadcrumb: 'Data'
           },
           {
             path: 'logs',
             exact: true,
-            breadcrumb: 'Processing logs'
+            breadcrumb: 'Logs'
           }
         ]
       },
@@ -153,10 +150,16 @@ const uploadRoutes = [
     routes: [
       {
         path: 'id/:uploadId',
-        exact: true,
         breadcrumb: 'Upload',
         component: UploadPage,
-        routes: entryRoutes
+        routes: [
+          {
+            path: 'files',
+            exact: true,
+            breadcrumb: 'Files'
+          },
+          ...entryRoutes
+        ]
       }
     ]
   }
@@ -301,6 +304,17 @@ export const routes = [
         path: 'reproduce',
         title: 'Artificial Intelligence Toolkit',
         component: ReproducePage
+      },
+      {
+        path: 'north',
+        menu: 'NOMAD Remote Tools Hub',
+        tooltip: 'Browse the list of available remote tools.',
+        breadcrumb: 'NOMAD Remote Tools Hub',
+        help: {
+          title: 'NOMAD Remote Tools help page',
+          content: NORTHHelp
+        },
+        component: NorthPage
       }
     ]
   },
@@ -350,6 +364,10 @@ export const routes = [
   {
     path: 'dev/datatable',
     render: () => <DatatableExamples />
+  },
+  {
+    path: 'dev/editquantity',
+    render: () => <EditQuantityExamples />
   }
 ]
 
@@ -469,13 +487,30 @@ RouteButton.propTypes = {
  * @param {elementType} component The component to use to render the button. Default is Button.
  */
 export const EntryButton = React.forwardRef((props, ref) => {
-  const {uploadId, entryId, ...moreProps} = props
-  const path = `entry/id/${uploadId}/${entryId}`
+  const {entryId, ...moreProps} = props
+  const path = `entry/id/${entryId}`
   return <RouteButton path={path} {...moreProps} ref={ref} />
 })
 EntryButton.propTypes = {
-  uploadId: PropTypes.string.isRequired,
   entryId: PropTypes.string.isRequired
+}
+
+/**
+ * A button that allows to navigate to the entry page's archive view under the current route prefix.
+ * @param {string} uploadId
+ * @param {string} entryId
+ * @param {string} path
+ * @param {elementType} component The component to use to render the button. Default is Button.
+ */
+export const ArchiveButton = React.forwardRef((props, ref) => {
+  const {uploadId, entryId, path, ...moreProps} = props
+  const routePath = `entry/id/${entryId}/data/${path}`
+  return <RouteButton path={routePath} {...moreProps} ref={ref} />
+})
+ArchiveButton.propTypes = {
+  uploadId: PropTypes.string.isRequired,
+  entryId: PropTypes.string.isRequired,
+  path: PropTypes.string
 }
 
 /**

@@ -38,6 +38,7 @@ gui/src/searchQuantities.json
 gui/src/toolkitMetadata.json
 gui/src/unitsData.js
 gui/src/parserMetadata.js
+gui/src/northTools.json
 gui/.editorconfig
 gui/.pnp.cjs
 gui/.yarn/

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useState } from 'react'
+import React, { useContext, useMemo, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip,
@@ -26,14 +26,20 @@ import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import DeleteIcon from '@material-ui/icons/Delete'
+import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import FolderIcon from '@material-ui/icons/FolderOutlined'
 import FileIcon from '@material-ui/icons/InsertDriveFileOutlined'
+import ReloadIcon from '@material-ui/icons/Replay'
 import RecognizedFileIcon from '@material-ui/icons/InsertChartOutlinedTwoTone'
 import Dropzone from 'react-dropzone'
 import Download from '../entry/Download'
 import Quantity from '../Quantity'
 import FilePreview from './FilePreview'
 import { archiveAdaptorFactory } from './ArchiveBrowser'
+import H5Web from '../visualization/H5Web'
+import NorthLaunchButton from '../north/NorthLaunchButton'
+import { useTools } from '../north/NorthPage'
+import { EntryButton } from '../nav/Routes'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
@@ -118,6 +124,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
 
   const handleDrop = (files) => {
+    if (!files[0]?.name) {
+      return // Not dropping a file, but something else. Ignore.
+    }
     const formData = new FormData() // eslint-disable-line no-undef
     formData.append('file', files[0])
     browser.blockUntilProcessed({
@@ -172,7 +181,14 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
             label="folder"
             tooltip={path}
             actions={
-              <Grid container justifyContent="space-between" wrap="nowrap" spacing={0}>
+              <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+                <Grid item>
+                  <IconButton size="small" onClick={() => browser.update(lane)}>
+                    <Tooltip title="reload directory contents">
+                      <ReloadIcon/>
+                    </Tooltip>
+                  </IconButton>
+                </Grid>
                 <Grid item>
                   <Download
                     component={IconButton} disabled={false} size="small"
@@ -230,7 +246,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
                   icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
                   itemKey={element.name} key={path ? path + '/' + element.name : element.name}
                   highlighted={element.name === highlightedItem}
-                  chip={element.parser_name && element.parser_name.replace('parsers/', '')}
+                  chip={element.parser_name && element.parser_name.replace('parsers/', '').replace('archive', 'nomad')}
                 >
                   {element.name}
                 </Item>
@@ -253,7 +269,7 @@ RawDirectoryContent.propTypes = {
   editable: PropTypes.bool.isRequired
 }
 
-class RawFileAdaptor extends Adaptor {
+export class RawFileAdaptor extends Adaptor {
   constructor(uploadId, path, data, editable) {
     super()
     this.uploadId = uploadId
@@ -267,14 +283,28 @@ class RawFileAdaptor extends Adaptor {
         const response = await api.get(`entries/${this.data.entry_id}/archive`)
         this.data.archive = response.data.archive
       }
-
       return archiveAdaptorFactory(this.data.archive)
+    } else if (key === 'h5web') {
+      return new H5WebAdaptor(this.uploadId, this.path)
     }
   }
   render() {
     return <RawFileContent
       uploadId={this.uploadId} path={this.path} data={this.data} editable={this.editable}
       key={this.path}/>
+  }
+}
+
+class H5WebAdaptor extends Adaptor {
+  constructor(uploadId, path) {
+    super()
+    this.uploadId = uploadId
+    this.path = path
+  }
+  render() {
+    return <Box width="80vw" height="100%">
+      <H5Web upload_id={this.uploadId} filename={this.path}/>
+    </Box>
   }
 }
 
@@ -286,6 +316,15 @@ function RawFileContent({uploadId, path, data, editable}) {
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
+  const allNorthTools = useTools()
+  const applicableNorthTools = useMemo(() => {
+    const fileExtension = path.split('.').pop().toLowerCase()
+    return Object.keys(allNorthTools)
+      .filter(key => {
+        const tool = allNorthTools[key]
+        return tool.file_extensions && tool.file_extensions.includes(fileExtension)
+      })
+  }, [allNorthTools, path])
 
   const handleDeleteFile = () => {
     setOpenConfirmDeleteFileDialog(false)
@@ -329,7 +368,7 @@ function RawFileContent({uploadId, path, data, editable}) {
     <Content
       key={path}
       display="flex" flexDirection="column" height="100%"
-      paddingTop={0} paddingBottom={0} maxWidth={600} minWidth={600}
+      paddingTop={0} paddingBottom={0} maxWidth="initial"
     >
       <Box paddingTop={1}>
         <Title
@@ -337,7 +376,14 @@ function RawFileContent({uploadId, path, data, editable}) {
           label="file"
           tooltip={path}
           actions={
-            <Grid container justifyContent="space-between" wrap="nowrap" spacing={0}>
+            <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+              {data.entry_id && (
+                <Grid item>
+                  <EntryButton entryId={data.entry_id} component={IconButton} size="small">
+                    <NavigateIcon />
+                  </EntryButton>
+                </Grid>
+              )}
               <Grid item>
                 <Download
                   component={IconButton} disabled={false} size="small"
@@ -379,14 +425,20 @@ function RawFileContent({uploadId, path, data, editable}) {
         { data.parser_name && <Quantity quantity="parser" data={{parser: data.parser_name}} />}
         { data.parser_name && <Quantity quantity="entryId" data={{entryId: data.entry_id}} noWrap withClipboard />}
       </Compartment>
-      {data.entry_id && <Compartment>
-        <Item itemKey="archive">processed data</Item>
-      </Compartment>}
-      <Box marginTop={2}/>
-      <Box flexGrow={1} overflow="hidden">
+      {data.entry_id && (
+        <Compartment title="more">
+          <Item itemKey="archive"><Typography>processed data</Typography></Item>
+        </Compartment>
+      )}
+      {applicableNorthTools.length > 0 && (
+        <Compartment title="tools">
+          <NorthLaunchButton uploadId={uploadId} path={path} tools={applicableNorthTools} />
+        </Compartment>
+      )}
+      <Compartment title="preview">
         <FilePreview uploadId={uploadId} path={path} size={data.size}/>
-      </Box>
-      <Box paddingBottom={1}/>
+      </Compartment>
+
     </Content>)
 }
 RawFileContent.propTypes = {

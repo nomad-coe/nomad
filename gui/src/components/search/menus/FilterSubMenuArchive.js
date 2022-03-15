@@ -21,7 +21,7 @@ import clsx from 'clsx'
 import { FilterSubMenu } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
 import { Box, Collapse, makeStyles } from '@material-ui/core'
-import { rootSections, resolveRef } from '../../archive/metainfo'
+import { rootSections, resolveRef, SectionMDef, SubSectionMDef } from '../../archive/metainfo'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import { useSearchContext } from '../SearchContext'
@@ -87,7 +87,7 @@ const Definition = React.memo(function Definition({def, name, path, className}) 
     setOpen(open => !open)
   }, [setOpen])
 
-  const hasChildren = def.m_def === 'Section' && def._allProperties.length
+  const hasChildren = def.m_def === SectionMDef && def._allProperties.length
 
   const icon = useMemo(() => {
     const iconProps = {
@@ -129,7 +129,7 @@ const Definition = React.memo(function Definition({def, name, path, className}) 
         <Definition
           key={def.name}
           name={def.name}
-          def={def.m_def === 'SubSection' ? resolveRef(def.sub_section) : def}
+          def={def.m_def === SubSectionMDef ? resolveRef(def.sub_section) : def}
           path={childPathPrefix + def.name} />
       ))}
     </Collapse>
@@ -157,10 +157,10 @@ const FilterSubMenuArchive = React.memo(({
       }
       defsSet.add(def)
       options.push({value: fullName})
-      if (def.m_def === 'SubSection' && def.sub_section) {
+      if (def.m_def === SubSectionMDef && def.sub_section) {
         def = resolveRef(def.sub_section)
       }
-      if (def.m_def === 'Section') {
+      if (def.m_def === SectionMDef) {
         def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName))
       }
     }

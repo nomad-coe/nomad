@@ -529,6 +529,17 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         '''
         raise NotImplementedError()
 
+    @property
+    def external_os_path(self):
+        '''
+        Full path to where the upload files of this class are stored on the server.
+        This is equal to `self.os_path` if no external path substitutes for staging
+        and public area are configured. This is helpful, when nomad is run in a container
+        and the mounted path used by nomad are different from the actual paths on the
+        host server.
+        '''
+        raise NotImplementedError()
+
     @classmethod
     def base_folder_for(cls, upload_id: str) -> str:
         '''
@@ -678,6 +689,13 @@ class StagingUploadFiles(UploadFiles):
     @classmethod
     def file_area(cls):
         return config.fs.staging
+
+    @property
+    def external_os_path(self):
+        if not config.fs.staging_external:
+            return self.os_path
+
+        return self.os_path.replace(config.fs.staging, config.fs.staging_external)
 
     def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
         return self
@@ -1122,6 +1140,13 @@ class PublicUploadFiles(UploadFiles):
     @classmethod
     def file_area(cls):
         return config.fs.public
+
+    @property
+    def external_os_path(self):
+        if not config.fs.public_external:
+            return self.os_path
+
+        self.os_path.replace(config.fs.public, config.fs.public_external)
 
     def close(self):
         if self._raw_zip_file is not None:

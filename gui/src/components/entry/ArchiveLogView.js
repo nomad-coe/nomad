@@ -25,6 +25,7 @@ import { maxLogsToShow } from '../../config'
 import Page from '../Page'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
+import { useEntryContext } from './EntryContext'
 
 const useLogEntryStyles = makeStyles(theme => ({
   warning: {
@@ -82,7 +83,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function ArchiveLogView(props) {
   const classes = useStyles()
-  const {entryId} = props
+  const {entryId} = useEntryContext()
   const {api} = useApi()
   const {raiseError} = useErrors()
 
@@ -131,6 +132,4 @@ export default function ArchiveLogView(props) {
     </Page>
   )
 }
-ArchiveLogView.propTypes = {
-  entryId: PropTypes.string.isRequired
-}
+ArchiveLogView.propTypes = {}

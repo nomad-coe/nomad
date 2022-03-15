@@ -326,3 +326,20 @@ export class Quantity {
     )
   }
 }
+
+/**
+ * Convenience function for converting values to another unit system. Primarily
+ * you can work with just the Unit and Quantity -classes, but sometimes it is
+ * cleaner to call this function directly instead.
+ *
+ * @param {*} value The values to convert. Can be scalar or multi-dimensional.
+ * @param {*} unit Current unit as a string or an Unit object
+ * @param {object} targetUnit The target unit
+ * @returns
+ */
+export function convertUnit(value, unit, targetUnit) {
+  if (value === undefined || isNaN(value) || targetUnit === undefined || unit === undefined) return undefined
+  const quantity = new Quantity(value, unit)
+  const converted = quantity.to(targetUnit)
+  return converted.value
+}

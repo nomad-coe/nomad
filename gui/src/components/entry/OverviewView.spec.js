@@ -27,17 +27,27 @@ import {
   expectLatticeParameters
 } from './conftest'
 import OverviewView from './OverviewView'
+import EntryContext from './EntryContext'
+
+beforeAll(() => {
+  startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
+})
+
+afterAll(() => {
+  closeAPI()
+})
 
 test('correctly renders metadata and all properties', async () => {
-  startAPI('tests.states.entry.dft', 'tests/data/entry/dft')
+  render(<EntryContext entryId={'dft_bulk'}>
+    <OverviewView />
+  </EntryContext>)
+
+  // Wait to load the entry metadata, i.e. wait for some of the text to appear
+  await screen.findByText('VASP')
 
   // We read the JSON archive corresponding to the tested API entry. Using this
   // data makes writing assertions much easier.
   const index = (await readArchive('../../../tests/states/archives/dft.json'))[1]
-  render(<OverviewView entryId={index.entry_id} uploadId={index.upload_id} />)
-
-  // Wait to load the entry metadata, i.e. wait for some of the text to appear
-  await screen.findByText('VASP')
 
   // Check if all method quantities are shown (on the left)
   expectQuantity('results.method.simulation.program_name', 'VASP')
@@ -86,23 +96,14 @@ test('correctly renders metadata and all properties', async () => {
   expect(screen.getByText('Bulk modulus')).toBeInTheDocument()
   expect(screen.getByText('Shear modulus')).toBeInTheDocument()
 
-  // Check if all visualization placeholders are shown
-  const dosPhononPlaceholder = screen.getByTestId('dos-phonon-placeholder')
-  expect(dosPhononPlaceholder).toBeInTheDocument()
-  const bsPhononPlaceholder = screen.getByTestId('bs-phonon-placeholder')
-  expect(bsPhononPlaceholder).toBeInTheDocument()
-  const heatCapacityPlaceholder = screen.getByTestId('heat-capacity-placeholder')
-  expect(heatCapacityPlaceholder).toBeInTheDocument()
-  const energyFreePlaceholder = screen.getByTestId('energy-free-placeholder')
-  expect(energyFreePlaceholder).toBeInTheDocument()
-  const dosElectronicPlaceholder = screen.getByTestId('dos-electronic-placeholder')
-  expect(dosElectronicPlaceholder).toBeInTheDocument()
-  const bsElectronicPlaceholder = screen.getByTestId('bs-electronic-placeholder')
-  expect(bsElectronicPlaceholder).toBeInTheDocument()
-  const energyVolumeCurvePlaceholder = screen.getByTestId('energy-volume-curve-placeholder')
-  expect(energyVolumeCurvePlaceholder).toBeInTheDocument()
-
   // Check if all placeholders disappear
+  const dosPhononPlaceholder = screen.queryByTestId('dos-phonon-placeholder')
+  const bsPhononPlaceholder = screen.queryByTestId('bs-phonon-placeholder')
+  const heatCapacityPlaceholder = screen.queryByTestId('heat-capacity-placeholder')
+  const energyFreePlaceholder = screen.queryByTestId('energy-free-placeholder')
+  const dosElectronicPlaceholder = screen.queryByTestId('dos-electronic-placeholder')
+  const bsElectronicPlaceholder = screen.queryByTestId('bs-electronic-placeholder')
+  const energyVolumeCurvePlaceholder = screen.queryByTestId('energy-volume-curve-placeholder')
   await waitFor(() => { expect(dosElectronicPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(bsElectronicPlaceholder).not.toBeInTheDocument() })
   await waitFor(() => { expect(dosPhononPlaceholder).not.toBeInTheDocument() })
@@ -142,6 +143,4 @@ test('correctly renders metadata and all properties', async () => {
   expect(within(shearModulus).getByText('Type')).toBeInTheDocument()
   expect(within(shearModulus).getByText('Value (GPa)')).toBeInTheDocument()
   expect(within(shearModulus).getByText('voigt_reuss_hill_average')).toBeInTheDocument()
-
-  closeAPI()
 })

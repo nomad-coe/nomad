@@ -19,14 +19,14 @@
 import React, { useContext, useRef, useLayoutEffect, useMemo, useState, useCallback, createRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Card, CardContent, Box, Typography, Grid, Chip, Tooltip, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@material-ui/core'
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, IconButton } from '@material-ui/core'
 import grey from '@material-ui/core/colors/grey'
-import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import classNames from 'classnames'
 import { useLocation, useRouteMatch, Link } from 'react-router-dom'
 import { ErrorHandler } from '../ErrorHandler'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import NavigateIcon from '@material-ui/icons/ArrowRight'
 
 function escapeBadPathChars(s) {
   return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
@@ -142,14 +142,31 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   })
 
   const [render, setRender] = useState(0)
-  const update = useCallback(() => {
+  const update = useCallback((lane) => {
+    if (lane) {
+      const index = lanes.current.indexOf(lane)
+      if (index >= 0) {
+        lanes.current.splice(index)
+      }
+    } else if (lanes.current.length > 0) {
+      lanes.current.splice(-1)
+    }
+    // If all lanes got updated, remove all data from the root adaptor to force reload
+    if (lanes.current.length === 0) {
+      adaptor.data = undefined
+    }
     setRender(current => current + 1)
-  }, [setRender])
+  }, [setRender, adaptor])
   const [, setInternalRender] = useState(0)
   const internalUpdate = useCallback(() => {
     setInternalRender(current => current + 1)
   }, [setInternalRender])
   const lanes = useRef(null)
+
+  // do no reuse the lanes if the adaptor has changed, e.g. due to updated archive data
+  useEffect(() => {
+    lanes.current = null
+  }, [adaptor])
 
   useEffect(() => {
     if (!url) {
@@ -160,46 +177,57 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     const segments = ['root'].concat(pathname.substring(url.length).split('/').filter(segment => segment))
 
     async function computeLanes() {
-      lanes.current = lanes.current || []
-      if (lanes.current.length > segments.length) {
-        // New path is shorter than the old path
-        lanes.current = lanes.current.slice(0, segments.length)
-        lanes.current[lanes.current.length - 1].next = null
-      }
+      const oldLanes = lanes.current
+      const newLanes = []
       for (let index = 0; index < segments.length; index++) {
         const segment = unescapeBadPathChars(segments[index])
-        if (lanes.current.length > index) {
-          if (lanes.current[index].key === segment) {
-            // reuse the existing lane (incl. its adaptor and data)
-            if (lanes.current[index].adaptor.needToFetchData()) {
-              await lanes.current[index].adaptor.fetchData(api)
-              lanes.current[index].fetchDataCounter += 1
-            }
-            continue
-          } else {
-            // the path diverges, start to use new lanes from now on
-            lanes.current = lanes.current.slice(0, index)
+        const prev = index === 0 ? null : newLanes[index - 1]
+        let lane
+
+        if (oldLanes && oldLanes[index]?.key === segment) {
+          // reuse the existing lane (incl. its adaptor and data)
+          lane = oldLanes[index]
+          lane.next = null
+        } else {
+          // create new lane
+          lane = {
+            index: index,
+            key: segment,
+            path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
+            next: null,
+            prev: prev,
+            fetchDataCounter: 0,
+            update: update
           }
-        }
-        const prev = index === 0 ? null : lanes.current[index - 1]
-        const lane = {
-          index: index,
-          key: segment,
-          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
-          adaptor: prev ? await prev.adaptor.itemAdaptor(segment, api) : adaptor,
-          next: null,
-          fetchDataCounter: 0,
-          update: update
+          if (!prev) {
+            lane.adaptor = adaptor
+          } else {
+            try {
+              lane.adaptor = await prev.adaptor.itemAdaptor(segment, api)
+            } catch (error) {
+              console.log(error)
+              lane.error = `The item "${segment}" does not exist.`
+            }
+          }
         }
         if (prev) {
           prev.next = lane
         }
-        if (lane.adaptor.needToFetchData()) {
-          await lane.adaptor.fetchData(api)
-          lane.fetchDataCounter += 1
+        if (!lane.error && lane.adaptor.needToFetchData()) {
+          try {
+            await lane.adaptor.fetchData(api)
+            lane.fetchDataCounter += 1
+          } catch (error) {
+            console.log(error)
+            lane.error = `Could not fetch data for "${segment}". Bad path provided?`
+          }
         }
-        lanes.current.push(lane)
+        if (lane.error) {
+          break // Ignore subsequent segments/lanes
+        }
+        newLanes.push(lane)
       }
+      lanes.current = newLanes
     }
     computeLanes().then(() => internalUpdate())
   }, [lanes, url, pathname, adaptor, render, update, internalUpdate, api, raiseError])
@@ -207,7 +235,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
   const contextValue = useMemo(() => ({
     lanes: lanes,
     update: update,
-    blockUntilProcessed: undefined // Will be set when creating component
+    blockUntilProcessed: undefined // Will be set when creating WaitForProcessingDialog component
   }), [lanes, update])
 
   if (url === undefined) {
@@ -224,7 +252,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           <div className={classes.lanesContainer} ref={outerRef} >
             <div className={classes.lanes} ref={innerRef} >
               {lanes.current && lanes.current.map((lane, index) => (
-                <Lane key={index} lane={lane} />
+                <Lane key={lane.key} lane={lane} />
               ))}
             </div>
           </div>
@@ -241,6 +269,11 @@ Browser.propTypes = ({
 export default Browser
 
 export const laneContext = React.createContext()
+
+export const useLane = () => {
+  return useContext(laneContext)
+}
+
 const useLaneStyles = makeStyles(theme => ({
   root: {
     width: 'min-content',
@@ -253,7 +286,8 @@ const useLaneStyles = makeStyles(theme => ({
     overflowY: 'scroll'
   },
   error: {
-    margin: theme.spacing(1)
+    margin: theme.spacing(1),
+    minWidth: 300
   }
 }))
 function Lane({lane}) {
@@ -262,6 +296,12 @@ function Lane({lane}) {
   const { key, adaptor, next, fetchDataCounter } = lane
   lane.containerRef = containerRef
   const content = useMemo(() => {
+    if (lane.error) {
+      return <div className={classes.error}>
+        <Typography variant="h6" color="error">ERROR</Typography>
+        <Typography color="error">{lane.error}</Typography>
+      </div>
+    }
     if (!adaptor) {
       return ''
     }
@@ -336,27 +376,78 @@ const useItemStyles = makeStyles(theme => ({
   }
 }))
 
+export const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
+  const lane = useContext(laneContext)
+  if (lane) {
+    return <Link
+      {...props}
+      to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
+    />
+  } else {
+    // If this is used in a non Browser context
+    return ''
+  }
+})
+ItemLink.propTypes = {
+  itemKey: PropTypes.string.isRequired
+}
+
+export function ItemButton({itemKey, ...props}) {
+  // ItemButtons are often used in clickable context and we should stop the propagation
+  // of click events to prevent unwanted behavior.
+  const handleClick = useCallback((event) => {
+    event.stopPropagation()
+  }, [])
+  return (
+    <div onClick={handleClick}>
+      <IconButton {...props} component={ItemLink} itemKey={itemKey}>
+        <NavigateIcon />
+      </IconButton>
+    </div>
+  )
+}
+ItemButton.propTypes = {
+  itemKey: PropTypes.string.isRequired
+}
+
 export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-  const isSelected = selected === itemKey
+  const isSelected = itemKey && selected === itemKey
   if (disabled) {
-    return <div className={classNames(classes.childContainer, classes.disabled)}>{children}</div>
+    return <Grid
+      container spacing={0} alignItems="center" wrap="nowrap"
+      style={{padding: 0, margin: 0}}
+    >
+      {icon && <Grid item className={classes.rightPaddedItem}>
+        {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
+      </Grid>}
+      <Grid item className={classNames(classes.childContainer, classes.disabled, classes.rightPaddedItem)}>
+        <Typography noWrap>{children}</Typography>
+      </Grid>
+      {actions && <Grid item>
+        {actions}
+      </Grid>}
+    </Grid>
   }
-  return <Link
+
+  return <ItemLink
     className={classNames(
       classes.root,
       isSelected ? classes.rootSelected : highlighted ? classes.rootUnSelectedHighlighted : classes.rootUnSelected
     )}
-    to={`${lane.path}/${encodeURI(escapeBadPathChars(itemKey))}`}
+    itemKey={itemKey}
   >
-    <Grid container spacing={0} alignItems="center" wrap="nowrap" style={{padding: 0, margin: 0}}>
+    <Grid
+      container spacing={0} alignItems="center" wrap="nowrap"
+      style={{padding: 0, margin: 0}}
+    >
       {icon && <Grid item className={classes.rightPaddedItem}>
         {React.createElement(icon, {fontSize: 'small', className: classes.icon})}
       </Grid>}
       <Grid item className={classNames(classes.childContainer, classes.rightPaddedItem)}>
-        <Typography noWrap>{children}</Typography>
+        {children}
       </Grid>
       {chip && (
         <Grid item className={classes.rightPaddedItem}>
@@ -366,18 +457,18 @@ export function Item({children, itemKey, disabled, highlighted, icon, actions, c
       {actions && <Grid item className={classes.rightPaddedItem}>
         {actions}
       </Grid>}
-      <Grid item style={{padding: 0}}>
-        <ArrowRightIcon padding="0"/>
-      </Grid>
+      {itemKey && <Grid item style={{padding: 0}}>
+        <NavigateIcon padding="0"/>
+      </Grid>}
     </Grid>
-  </Link>
+  </ItemLink>
 }
 Item.propTypes = ({
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ]).isRequired,
-  itemKey: PropTypes.string.isRequired,
+  itemKey: PropTypes.string,
   disabled: PropTypes.bool,
   highlighted: PropTypes.bool,
   icon: PropTypes.elementType,
@@ -385,7 +476,9 @@ Item.propTypes = ({
   actions: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ])
+  ]),
+  open: PropTypes.bool,
+  onClick: PropTypes.func
 })
 
 export function Content(props) {

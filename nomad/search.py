@@ -561,7 +561,7 @@ def validate_api_query(
         normalizer = quantity.annotation.normalizer
         if normalizer:
             value = normalizer(value)
-        return Q('match', **{quantity.search_field: value})
+        return Q(quantity.annotation.es_query, **{quantity.search_field: value})
 
     def validate_query(query: Query) -> EsQuery:
         return validate_api_query(

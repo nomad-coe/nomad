@@ -15,28 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { atom, useRecoilState, useRecoilValue } from 'recoil'
-import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton } from '@material-ui/core'
+import { Box, FormGroup, FormControlLabel, Checkbox, TextField, Typography, makeStyles, Tooltip, IconButton, useTheme, Grid } from '@material-ui/core'
 import { useRouteMatch, useHistory } from 'react-router-dom'
 import Autocomplete from '@material-ui/lab/Autocomplete'
-import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext } from './Browser'
-import { resolveRef, rootSections } from './metainfo'
+import Browser, { Item, Content, Compartment, Adaptor, formatSubSectionName, laneContext, useLane } from './Browser'
+import { RawFileAdaptor } from './FileBrowser'
+import { isEditable, metainfoDef, QuantityMDef, removeSubSection, resolveRef, rootSections, SectionMDef, SubSectionMDef } from './metainfo'
 import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './MetainfoBrowser'
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { Quantity as Q, useUnits } from '../../units'
+import { Quantity as Q, useUnits, getUnitByName } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
 import classNames from 'classnames'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
-import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
+import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
 import { Download } from '../entry/Download'
+import SectionEditor from './SectionEditor'
+import { useEntryContext } from '../entry/EntryContext'
+import SaveIcon from '@material-ui/icons/Save'
+import AddIcon from '@material-ui/icons/AddCircle'
+import CodeIcon from '@material-ui/icons/Code'
+import DeleteIcon from '@material-ui/icons/Delete'
+import { getLineStyles } from '../../utils'
+import Plot from '../visualization/Plot'
 
 export const configState = atom({
   key: 'config',
@@ -66,6 +75,20 @@ ArchiveBrowser.propTypes = ({
   data: PropTypes.object.isRequired
 })
 export default ArchiveBrowser
+
+export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
+  const {editable, archiveHasChanges, saveArchive} = useEntryContext()
+  return <React.Fragment>
+    {editable &&
+      <IconButton
+        disabled={!archiveHasChanges} color="primary"
+        onClick={saveArchive}
+      >
+        <SaveIcon/>
+      </IconButton>
+    }
+  </React.Fragment>
+})
 
 function ArchiveConfigForm({searchOptions, data}) {
   const [config, setConfig] = useRecoilState(configState)
@@ -151,6 +174,7 @@ function ArchiveConfigForm({searchOptions, data}) {
         <SourceApiDialogButton maxWidth="lg" fullWidth>
           <SourceApiCall />
         </SourceApiDialogButton>
+        <ArchiveSaveButton/>
       </FormGroup>
     </Box>
   )
@@ -193,7 +217,7 @@ function archiveSearchOptions(data) {
       }
       options.push(option)
 
-      if (childDef.m_def === 'SubSection') {
+      if (childDef.m_def === SubSectionMDef) {
         const sectionDef = resolveRef(childDef.sub_section)
         if (Array.isArray(child) && child.length > 0 && child[0]) {
           if (child.length > 1) {
@@ -220,9 +244,15 @@ class ArchiveAdaptor extends Adaptor {
   }
 
   adaptorFactory(obj, def, parent, context) {
-    if (def.m_def === 'Section') {
+    context = context || this.context
+    if (def.m_def === SectionMDef) {
+      if (obj.m_def) {
+        // Override the def given by the schema with the potentially more specific
+        // def given by the data
+        def = metainfoDef(obj.m_def)
+      }
       return new SectionAdaptor(obj, def, parent, context || this.context)
-    } else if (def.m_def === 'Quantity') {
+    } else if (def.m_def === QuantityMDef) {
       if (def.type.type_kind === 'reference') {
         return new ReferenceAdaptor(obj, def, parent, context || this.context)
       } else {
@@ -241,20 +271,29 @@ class ArchiveAdaptor extends Adaptor {
 }
 
 class SectionAdaptor extends ArchiveAdaptor {
-  itemAdaptor(key) {
+  async itemAdaptor(key, api) {
     const [name, index] = key.split(':')
     const property = this.def._properties[name]
     const value = this.e[name]
     if (!property) {
       return super.itemAdaptor(key)
-    } else if (property.m_def === 'SubSection') {
+    } else if (property.m_def === SubSectionMDef) {
       const sectionDef = resolveRef(property.sub_section)
+      let subSectionAdaptor
+      let subSectionIndex = -1
       if (property.repeats) {
-        return this.adaptorFactory(value[parseInt(index || 0)], sectionDef, this.e)
+        subSectionIndex = parseInt(index || 0)
+        subSectionAdaptor = this.adaptorFactory(value[subSectionIndex], sectionDef, this.e)
       } else {
-        return this.adaptorFactory(value, sectionDef, this.e)
+        subSectionAdaptor = this.adaptorFactory(value, sectionDef, this.e)
       }
-    } else if (property.m_def === 'Quantity') {
+      subSectionAdaptor.parentRelation = {
+        parent: this.e,
+        subSectionDef: property,
+        subSectionIndex: subSectionIndex
+      }
+      return subSectionAdaptor
+    } else if (property.m_def === QuantityMDef) {
       // References: sections and quantities
       if (property.type.type_kind === 'reference') {
         let reference = null
@@ -275,16 +314,37 @@ class SectionAdaptor extends ArchiveAdaptor {
           return this.adaptorFactory(reference, property, this.e)
         }
         const resolvedDef = resolveRef(property.type.type_data)
-        return this.adaptorFactory(resolved, resolvedDef, this.e)
+        const context = {
+          ...this.context,
+          isReferenced: true
+        }
+        if (reference.includes('#')) {
+          const [url] = reference.split('#')
+          if (url !== '') {
+            context.archive = this.context.archive.resources[url]
+          }
+        }
+        return this.adaptorFactory(resolved, resolvedDef, this.e, context)
       }
       // Regular quantities
+      if (property.m_annotations?.browser) {
+        if (property.m_annotations.browser[0].adaptor === 'RawFileAdaptor') {
+          const uploadId = this.context.archive.metadata.upload_id
+          const path = this.e[property.name]
+          const response = await api.get(`uploads/${uploadId}/rawdir/${path}`)
+          return new RawFileAdaptor(uploadId, path, response.file_metadata, false)
+        }
+      }
       return this.adaptorFactory(value, property, this.e)
     } else {
       throw new Error('Unknown metainfo meta definition')
     }
   }
   render() {
-    return <Section section={this.e} def={this.def} parent={this.parent} />
+    return <Section
+      section={this.e}
+      def={this.def}
+      parent={this.parent} parentRelation={this.parentRelation} />
   }
 }
 
@@ -305,6 +365,11 @@ function QuantityItemPreview({value, def}) {
   if (def.type.type_kind === 'reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
+    </Box>
+  }
+  if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+    return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
+      <Typography component="span">rich text</Typography>
     </Box>
   }
   if (def.shape.length > 0) {
@@ -384,6 +449,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def}) {
     } else {
       return <Number value={finalValue} exp={16} variant="body1" unit={finalUnit}/>
     }
+  } else if (def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
+    return <div dangerouslySetInnerHTML={{ __html: finalValue }}/>
   } else {
     if (Array.isArray(finalValue)) {
       return <ul style={{margin: 0}}>
@@ -402,114 +469,233 @@ QuantityValue.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-function Section({section, def, parent}) {
+function Section({section, def, parentRelation}) {
+  const {editable, handleArchiveChanged} = useEntryContext() || {}
   const config = useRecoilValue(configState)
+  const [showJson, setShowJson] = useState(false)
+  const lane = useLane()
+  const history = useHistory()
+
+  const sectionIsEditable = useMemo(() => {
+    return editable && isEditable(def) && !lane.adaptor.context.isReferenced
+  }, [editable, def, lane])
+
+  const actions = useMemo(() => {
+    if (!sectionIsEditable) {
+      return <SourceJsonDialogButton
+        buttonProps={{size: 'small'}}
+        tooltip={`Show section data as JSON`}
+        title={`Underlying section data as JSON`}
+        data={section}
+      />
+    }
+
+    const handleDelete = () => {
+      removeSubSection(
+        parentRelation.parent,
+        parentRelation.subSectionDef,
+        parentRelation.subSectionIndex)
+      handleArchiveChanged()
+      history.push(lane.prev.path)
+    }
+
+    return <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+      <Grid item>
+        <IconButton onClick={() => setShowJson(value => !value)} size="small">
+          <CodeIcon />
+        </IconButton>
+      </Grid>
+      <Grid item>
+        <IconButton onClick={handleDelete} size="small">
+          <DeleteIcon />
+        </IconButton>
+      </Grid>
+    </Grid>
+  }, [setShowJson, sectionIsEditable, parentRelation, lane, history, handleArchiveChanged, section])
+
+  const renderQuantity = useCallback(quantityDef => {
+    const key = quantityDef.name
+    const disabled = section[key] === undefined
+    if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
+      return <ReferenceValuesList key={key} quantityDef={quantityDef} />
+    }
+    return (
+      <Item key={key} itemKey={key} disabled={disabled}>
+        <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
+          <Typography component="span">
+            <Box fontWeight="bold" component="span">
+              {quantityDef.name}
+            </Box>
+          </Typography>{!disabled &&
+            <span>&nbsp;=&nbsp;
+              <QuantityItemPreview
+                value={section[quantityDef.name]}
+                def={quantityDef}
+              />
+            </span>
+          }
+        </Box>
+      </Item>
+    )
+  }, [section])
 
   if (!section) {
     console.error('section is not available')
     return ''
   }
 
-  const filter = config.showCodeSpecific ? def => true : def => !def.name.startsWith('x_')
-  let sub_sections = def._allProperties.filter(prop => prop.m_def === 'SubSection')
+  const filter = config.showCodeSpecific ? def => !def.virtual : def => !def.virtual && !def.name.startsWith('x_')
+  let sub_sections = def._allProperties.filter(prop => prop.m_def === SubSectionMDef)
   if (def.name === 'EntryArchive') {
     // put the most abstract data (last added data) first, e.g. results, metadata, workflow, run
     sub_sections = [...def.sub_sections]
     sub_sections.reverse()
   }
-  const quantities = def._allProperties.filter(prop => prop.m_def === 'Quantity')
-  return <Content>
-    <ArchiveTitle def={def} data={section} kindLabel="section" />
-    <Overview section={section} def={def}/>
+  const quantities = def._allProperties.filter(prop => prop.m_def === QuantityMDef)
+
+  const subSectionCompartment = (
     <Compartment title="sub sections">
       {sub_sections
-        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined)
+        .filter(subSectionDef => section[subSectionDef.name] || config.showAllDefined || sectionIsEditable)
         .filter(filter)
         .map(subSectionDef => {
-          const key = subSectionDef.name
-          const disabled = section[key] === undefined
-          if (!disabled && subSectionDef.repeats && section[key].length > 1) {
-            return <SubSectionList
-              key={subSectionDef.name}
-              subSectionDef={subSectionDef}
-              disabled={disabled}
-            />
-          } else {
-            return <Item key={key} itemKey={key} disabled={disabled}>
-              <Typography component="span">
-                <Box fontWeight="bold" component="span">
-                  {formatSubSectionName(subSectionDef.name)}
-                </Box>
-              </Typography>
-            </Item>
-          }
+          return <SubSection
+            key={subSectionDef.name}
+            subSectionDef={subSectionDef}
+            section={section}
+            editable={sectionIsEditable}
+          />
         })
       }
     </Compartment>
-    <Compartment title="quantities">
-      {quantities
-        .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
-        .filter(filter)
-        .map(quantityDef => {
-          const key = quantityDef.name
-          const disabled = section[key] === undefined
-          if (!disabled && quantityDef.type.type_kind === 'reference' && quantityDef.shape.length === 1) {
-            return <ReferenceValuesList key={key} quantityDef={quantityDef} />
-          }
-          return (
-            <Item key={key} itemKey={key} disabled={disabled}>
-              <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
-                <Typography component="span">
-                  <Box fontWeight="bold" component="span">
-                    {quantityDef.name}
-                  </Box>
-                </Typography>{!disabled &&
-                  <span>&nbsp;=&nbsp;
-                    <QuantityItemPreview
-                      value={section[quantityDef.name]}
-                      def={quantityDef}
-                    />
-                  </span>
-                }
-              </Box>
-            </Item>
-          )
-        })
-      }
-    </Compartment>
+  )
+
+  let contents
+  if (sectionIsEditable) {
+    contents = <React.Fragment>
+      {quantities.length > 0 && (
+        <Compartment title="quantities">
+          <SectionEditor sectionDef={def} section={section} showJson={showJson} />
+          <Box marginTop={2}>
+            {quantities
+              .filter(filter)
+              .filter(quantityDef => !quantityDef.m_annotations?.eln)
+              .map(renderQuantity)
+            }
+          </Box>
+        </Compartment>
+      )}
+      {subSectionCompartment}
+    </React.Fragment>
+  } else {
+    contents = <React.Fragment>
+      {subSectionCompartment}
+      <Compartment title="quantities">
+        {quantities
+          .filter(quantityDef => section[quantityDef.name] !== undefined || config.showAllDefined)
+          .filter(filter)
+          .map(renderQuantity)
+        }
+      </Compartment>
+    </React.Fragment>
+  }
+  return <Content>
+    <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions} />
+    <Overview section={section} def={def}/>
+    {contents}
     <Meta def={def} />
   </Content>
 }
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
-  parent: PropTypes.any
+  subSection: PropTypes.object,
+  parentRelation: PropTypes.object
 })
 
-function SubSectionList({subSectionDef}) {
-  const lane = useContext(laneContext)
-  const label = useMemo(() => {
-    let key = subSectionDef.more?.label_quantity
-    if (!key) {
-      const sectionDef = resolveRef(subSectionDef.sub_section)
-      key = sectionDef.more?.label_quantity
-      if (!key) {
-        key = ['name', 'type', 'id'].find(key => (
-          sectionDef._properties[key] && sectionDef._properties[key].m_def === 'Quantity'
-        ))
-      }
+function SubSection({subSectionDef, section, editable}) {
+  const {handleArchiveChanged} = useEntryContext() || {}
+  const lane = useLane()
+  const history = useHistory()
+  const { label, getItemLabel } = useMemo(() => {
+    const sectionDef = resolveRef(subSectionDef.sub_section)
+    let itemLabelKey = sectionDef.more?.label_quantity
+    if (!itemLabelKey) {
+      itemLabelKey = ['name', 'type', 'id'].find(key => (
+        sectionDef._properties[key] && sectionDef._properties[key].m_def === QuantityMDef
+      ))
     }
-    return item => {
-      return key && item[key]
+    const labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
+    const getItemLabel = item => {
+      if (labelQuantity) {
+        const value = item[itemLabelKey]
+        if (value) {
+          return <QuantityValue value={item[itemLabelKey]} def={labelQuantity}/>
+        }
+      } else if (itemLabelKey) {
+        return item[itemLabelKey]
+      }
+      return null
+    }
+    return {
+      label: formatSubSectionName(subSectionDef.name),
+      getItemLabel: getItemLabel
     }
   }, [subSectionDef])
-  const values = useMemo(() => lane.adaptor.e[subSectionDef.name].map(label), [lane.adaptor.e, subSectionDef.name, label])
-  return <PropertyValuesList
-    values={values}
-    label={formatSubSectionName(subSectionDef.name) || 'list'} />
+
+  const handleAdd = useCallback(() => {
+    let subSectionKey = subSectionDef.name
+    if (subSectionDef.repeats) {
+      let values = section[subSectionDef.name]
+      if (!values) {
+        values = []
+        section[subSectionDef.name] = values
+      }
+      values.push({})
+      if (values.length > 1) {
+        subSectionKey += `:${values.length - 1}`
+      }
+    } else {
+      section[subSectionDef.name] = {}
+    }
+    handleArchiveChanged()
+    history.push(`${lane.path}/${subSectionKey}`)
+  }, [subSectionDef, section, lane, history, handleArchiveChanged])
+
+  const values = section[subSectionDef.name]
+  const showList = subSectionDef.repeats && values && values.length > 1
+  const actions = editable && (subSectionDef.repeats || !values) && (
+    <Box marginRight={!showList && values ? -1 : 2}>
+      <IconButton onClick={handleAdd} size="small">
+        <AddIcon style={{fontSize: 20}} />
+      </IconButton>
+    </Box>
+  )
+
+  if (showList) {
+    return <PropertyValuesList
+      label={label || 'list'} actions={actions}
+      values={(section[subSectionDef.name] || []).map(getItemLabel)}
+    />
+  } else {
+    return (
+      <Item
+        itemKey={subSectionDef.name} disabled={!values}
+        actions={actions}
+      >
+        <Typography component="span">
+          <Box fontWeight="bold" component="span">
+            {label}
+          </Box>
+        </Typography>
+      </Item>
+    )
+  }
 }
-SubSectionList.propTypes = ({
-  subSectionDef: PropTypes.object.isRequired
+SubSection.propTypes = ({
+  subSectionDef: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  editable: PropTypes.bool
 })
 
 function ReferenceValuesList({quantityDef}) {
@@ -524,7 +710,17 @@ ReferenceValuesList.propTypes = ({
 })
 
 const usePropertyValuesListStyles = makeStyles(theme => ({
+  root: {
+    margin: `0 -${theme.spacing(1)}px`,
+    padding: `0 ${theme.spacing(1)}px`,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    wrap: 'nowrap',
+    alignItems: 'center'
+  },
   title: {
+    flexGrow: 1,
     color: theme.palette.text.primary,
     textDecoration: 'none',
     margin: `0 -${theme.spacing(1)}px`,
@@ -541,43 +737,122 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
     '&:hover': {
       backgroundColor: grey[300]
     }
-  }
+  },
+  actions: {}
 }))
-function PropertyValuesList({label, values}) {
+function PropertyValuesList({label, values, actions}) {
   const classes = usePropertyValuesListStyles()
   const [open, setOpen] = useState(false)
   const lane = useContext(laneContext)
   const selected = lane.next && lane.next.key
-
-  return <div>
-    <Typography onClick={() => setOpen(!open)} className={classNames(
-      classes.title,
-      (!open && selected && selected.startsWith(label + ':')) ? classes.selected : classes.unSelected
-    )}>
-      {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
-      <span>{label}</span>
-    </Typography>
+  const showSelected = !open && selected && selected.startsWith(label + ':')
+  return <React.Fragment>
+    <div className={classNames(
+      classes.root, showSelected ? classes.selected : classes.unSelected)}
+    >
+      <Typography onClick={() => setOpen(!open)} className={classes.title}>
+        {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
+        <span>{label}</span>
+      </Typography>
+      {actions && <div className={classes.actions}>
+        {actions}
+      </div>}
+    </div>
     {open &&
       <div>
         {values.map((item, index) => (
           <Item key={index} itemKey={`${label}:${index}`}>
-            <Box component="span" marginLeft={2}>
-              <Typography component="span">{item || index}</Typography>
+            <Box display="flex" flexDirection="row" flexGrow={1}>
+              <Box component="span" marginLeft={2}>
+                <Typography component="span">{item || index}</Typography>
+              </Box>
             </Box>
           </Item>
         ))}
       </div>
     }
-  </div>
+  </React.Fragment>
 }
 PropertyValuesList.propTypes = ({
   label: PropTypes.string.isRequired,
-  values: PropTypes.arrayOf(PropTypes.string).isRequired
+  values: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onAdd: PropTypes.func,
+  onRemove: PropTypes.func,
+  actions: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node
+  ])
 })
 
+const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
+  const theme = useTheme()
+  const units = useUnits()
+
+  const [data, layout] = useMemo(() => {
+    const toUnit = quantityDef => {
+      const value = section[quantityDef.name]
+      const unit = quantityDef.unit
+      return unit ? getUnitByName(quantityDef.unit).toSystem(units) : [value, unit]
+    }
+    const [xValues, xUnit] = toUnit(sectionDef._properties[plot.x])
+    const [yValues, yUnit] = toUnit(sectionDef._properties[plot.y])
+
+    const data = [
+      {
+        x: xValues,
+        y: yValues,
+        type: 'scatter',
+        mode: 'lines',
+        line: getLineStyles(1, theme)
+      }
+    ]
+
+    const layout = {
+      yaxis: {
+        title: {
+          text: yUnit ? `${plot.y} (${yUnit})` : plot.y
+        }
+      },
+      xaxis: {
+        title: {
+          text: yUnit ? `${plot.x} (${xUnit})` : plot.x
+        }
+      }
+    }
+
+    return [data, layout]
+  }, [section, plot, sectionDef, theme, units])
+
+  return <Box minWidth={500}>
+    <Plot
+      data={data}
+      layout={layout}
+      floatTitle={title}
+      fixedMargins={true}
+    />
+  </Box>
+})
+XYPlot.propTypes = {
+  plot: PropTypes.object.isRequired,
+  section: PropTypes.object.isRequired,
+  sectionDef: PropTypes.object.isRequired,
+  title: PropTypes.string
+}
+
 function Quantity({value, def}) {
+  const {prev} = useLane()
   return <Content>
     <ArchiveTitle def={def} data={value} kindLabel="value" />
+    {def.m_annotations?.plot && (
+      <Compartment title="plot">
+        <XYPlot
+          section={prev.adaptor.e}
+          sectionDef={prev.adaptor.def}
+          plot={def.m_annotations?.plot[0]}
+          title={def.name}
+        />
+      </Compartment>
+    )}
     <Compartment title="value">
       <QuantityValue
         value={value}
@@ -596,11 +871,12 @@ function Reference({value, def}) {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [loading, setLoading] = useState(true)
-  const {data, update} = useContext(laneContext)
+  const {adaptor, update} = useContext(laneContext)
+  const archive = adaptor.context.archive
   useEffect(() => {
     const url = value.split('#')[0]
-    const upload_id = data.metadata.upload_id
-    if (data.resources[url]) {
+    const upload_id = archive.metadata.upload_id
+    if (archive.resources[url]) {
       setLoading(false)
       return
     }
@@ -612,11 +888,11 @@ function Reference({value, def}) {
 
     api.get(`uploads/${upload_id}/${url.slice('../upload/'.length)}`)
       .then(response => {
-        data.resources[url] = response.data.archive
+        archive.resources[url] = response.data.archive
         update()
       })
       .catch(raiseError)
-  }, [api, data.metadata.upload_id, data.resources, raiseError, setLoading, update, value])
+  }, [api, archive.metadata.upload_id, archive.resources, raiseError, setLoading, update, value])
 
   if (loading) {
     return <Content>

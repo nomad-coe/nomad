@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, {useContext, useMemo, useState} from 'react'
+import React, {useMemo, useState} from 'react'
 import PropTypes from 'prop-types'
 import { Paper, Link } from '@material-ui/core'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
@@ -26,11 +26,19 @@ import {
   DatatableToolbar, DatatableToolbarActions } from '../datatable/Datatable'
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import Quantity from '../Quantity'
-import {uploadPageContext} from './UploadPage'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import {pluralize} from '../../utils'
+import { useUploadContext } from './UploadContext'
 
 const columns = [
+  {
+    key: 'entry_name',
+    label: 'Name',
+    align: 'left',
+    sortable: false,
+    render: entry => <Quantity quantity={'entry_name'} noWrap noLabel placeholder="unnamed" data={entry} />
+  },
+  {key: 'entry_type', align: 'left', sortable: false, label: 'Type'},
   {
     key: 'mainfile',
     align: 'left',
@@ -44,7 +52,13 @@ const columns = [
   },
   {key: 'parser_name', align: 'left'},
   {key: 'process_status', align: 'left'},
-  {key: 'complete_time', align: 'left', sortable: false},
+  {
+    label: 'Modified',
+    key: 'complete_time',
+    align: 'left',
+    sortable: false,
+    render: entry => new Date(entry.complete_time).toLocaleString()
+  },
   {key: 'comment', sortable: false, align: 'left'},
   {
     key: 'references',
@@ -83,14 +97,16 @@ const columns = [
 addColumnDefaults(columns)
 
 const defaultSelectedColumns = [
+  'entry_name',
+  'entry_type',
   'mainfile',
-  'parser_name',
-  'process_status']
+  'complete_time'
+]
 
 export default function ProcessingTable(props) {
   const [selected, setSelected] = useState([])
   const {pagination, customTitle} = props
-  const {upload, isWriter} = useContext(uploadPageContext)
+  const {upload, isWriter} = useUploadContext()
 
   const selectedQuery = useMemo(() => {
     if (selected === 'all') {

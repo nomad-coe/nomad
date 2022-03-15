@@ -39,6 +39,8 @@ test('unit conversion works both ways for each compatible unit', async () => {
 })
 
 test.each([
+  ['kelvin', 'kelvin'], // Same
+  ['kelvin', 'celsius'], // Different
   ['J', 'eV'], // Abbreviated
   ['joule', 'electron_volt'], // Non-abbreviated
   ['m/s', 'angstrom/femtosecond'], // Division
@@ -49,7 +51,8 @@ test.each([
 ]
 )('complex conversions', async (unitA, unitB) => {
   const a = new Quantity(1, unitA)
-  a.to(unitB)
+  const b = a.to(unitB)
+  expect(b.value).not.toBeNaN()
 })
 
 test.each([
