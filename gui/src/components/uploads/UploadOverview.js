@@ -308,16 +308,18 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-function UploadOverview() {
+function UploadOverview(props) {
   const classes = useStyles()
+  const { uploadId: propsUploadId } = props
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {
-    uploadId, setUpload, hasUpload, error, update, upload, isProcessing, apiData,
+    uploadId: contextUploadId, setUpload, hasUpload, error, update, upload, isProcessing, apiData,
     isWriter, pagination, setPagination, data, deleteClicked, setDeleteClicked} = useUploadContext()
   const [uploading, setUploading] = useState(null)
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
+  let uploadId = propsUploadId || contextUploadId
 
   const handleDrop = (files) => {
     const formData = new FormData() // eslint-disable-line no-undef
@@ -408,9 +410,9 @@ function UploadOverview() {
           </WithButton>
         </Grid>
         <Grid>
-          <EditMembersDialog/>
+          <EditMembersDialog disabled={!isWriter}/>
           <UploadDownloadButton tooltip="Download files" query={{'upload_id': uploadId}} />
-          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
             <Tooltip title="Reprocess">
               <ReprocessIcon />
             </Tooltip>
@@ -418,7 +420,7 @@ function UploadOverview() {
           <SourceApiDialogButton maxWidth="lg" fullWidth>
             <SourceApiCall {...apiData} />
           </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked}>
+          <IconButton disabled={isPublished || !isWriter} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
             <Tooltip title="Delete the upload">
               <DeleteIcon />
             </Tooltip>
@@ -535,6 +537,9 @@ function UploadOverview() {
       </Stepper>
     </Page>
   )
+}
+UploadOverview.propTypes = {
+  uploadId: PropTypes.string
 }
 
 export default UploadOverview

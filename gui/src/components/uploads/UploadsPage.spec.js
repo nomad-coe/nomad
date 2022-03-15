@@ -23,12 +23,12 @@ import {
   startAPI,
   closeAPI
 } from '../conftest'
-import UploadPage from './UploadPage'
+import UploadOverview from './UploadOverview'
 import { within } from '@testing-library/dom'
 
 test('Render upload page: published|not reader|not writer', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId="dft_upload"/>)
+  render(<UploadOverview uploadId="dft_upload"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -66,14 +66,14 @@ test.each([
   ]
 ])('Render upload page: error message due to %s', async (name, state, snapshot, uploadId, msg) => {
   startAPI(state, snapshot)
-  render(<UploadPage uploadId={uploadId}/>)
+  render(<UploadOverview uploadId={uploadId}/>)
   await screen.findByText(msg)
   closeAPI()
 })
 
 test('Render upload page: multiple entries', async () => {
   startAPI('tests.states.uploads.multiple_entries', 'tests/data/uploads/multiple_entries')
-  render(<UploadPage uploadId="dft_upload_1"/>)
+  render(<UploadOverview uploadId="dft_upload_1"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -102,7 +102,7 @@ test('Render upload page: multiple entries', async () => {
 
 test('Render upload page: one entry', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId="dft_upload"/>)
+  render(<UploadOverview uploadId="dft_upload"/>)
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
