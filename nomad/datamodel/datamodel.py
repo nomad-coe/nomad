@@ -38,6 +38,7 @@ from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.measurements import Measurement  # noqa
+from .metainfo.tabulartree import TabularTree  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -692,6 +693,8 @@ class EntryArchive(metainfo.MSection):
         sub_section=Results,
         categories=[FastAccess],
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
+
+    tabular_tree = metainfo.SubSection(sub_section=TabularTree, repeats=False)
 
 
 m_package.__init_metainfo__()
