@@ -78,11 +78,6 @@ test('Render upload page: multiple entries', async () => {
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
-  expect(screen.queryByTestId('step-prepare-and-upload-your-files')).toBeInTheDocument()
-  expect(screen.queryByTestId('step-process-data')).toBeInTheDocument()
-  expect(screen.queryByTestId('step-edit-author-metadata')).toBeNull()
-  expect(screen.queryByTestId('step-publish')).toBeNull()
-
   // Test if the table header is rendered correctly
   expect(screen.queryByText('6 entries')).toBeInTheDocument()
   expect(screen.queryByTestId('table-pagination')).toBeInTheDocument()
@@ -111,6 +106,12 @@ test('Render upload page: one entry', async () => {
 
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
+
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).not.toBeInTheDocument()
+  expect(screen.queryByText('This upload has already been published.')).not.toBeInTheDocument()
 
   // Test if the table title is rendered correctly
   expect(screen.queryByText('1 entry')).toBeInTheDocument()
