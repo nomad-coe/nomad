@@ -159,16 +159,14 @@ def parser_metadata():
     import yaml
     import os
     import os.path
+    from glob import glob
 
     parsers_metadata = {}
-    parsers_path = 'dependencies/parsers'
-    for parser_dir in os.listdir(parsers_path):
-        parser_path = os.path.join(parsers_path, parser_dir)
-        parser_metadata_file = os.path.join(parser_path, 'metadata.yaml')
-        if os.path.exists(parser_metadata_file):
-            with open(parser_metadata_file) as f:
-                parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
-            parsers_metadata[parser_dir] = parser_metadata
+    parsers_path = './dependencies/parsers'
+    for parser_metadata_file in sorted(glob(f'{parsers_path}/**/metadata.yaml', recursive=True)):
+        with open(parser_metadata_file) as f:
+            parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+        parsers_metadata[os.path.basename(os.path.dirname(parser_metadata_file))] = parser_metadata
 
     parsers_metadata = {
         key: parsers_metadata[key]
@@ -219,66 +217,89 @@ def update_parser_readmes(parser):
     generic_fn = './README.parsers.md'
     parser_path = './dependencies/parsers/'
 
-    for num, ddir in enumerate(sorted(glob(parser_path + '*/')), start=1):
-        if parser is not None and parser != ddir.split(os.sep)[-2]:
-            print(f'Skip {ddir}')
-            continue
+    # Open general template
+    with open(generic_fn, 'r') as generic:  # read only
+        generic_contents = generic.read()
 
-        _, parser_dirname = os.path.split(ddir)
-        print('{} Working on {}' .format(num, parser_dirname))
+    # Replace the comment at the top of the gereral template
+    generic_contents = re.sub(
+        rf'\*\*\*Note:\*\* This is a general README file for NOMAD parsers, '
+        rf'consult the README of specific parser projects for more detailed '
+        rf'information!\*\n\n', '', generic_contents)
 
-        # Open general template
-        with open(generic_fn, 'r') as generic:  # read only
-            body = generic.read()
+    def open_metadata(path):
+        # read local yaml metadata file
+        with open(path, 'r') as metadata_f:
+            try:
+                metadata = yaml.load(metadata_f, Loader=yaml.FullLoader)
+            except Exception as e:
+                print(f'Error reading metadata.yaml: {e}')
+                metadata = None
+        return metadata
 
-        # Open local YAML metadata file
-        local_mdata = ddir + 'metadata.yaml'
-        with open(local_mdata, 'r') as mdata_f:
-            mdata = yaml.load(mdata_f, Loader=yaml.FullLoader)
-            if mdata.get('codeName', '').strip() == '':
-                mdata['codeName'] = os.path.basename(os.path.dirname(ddir))
-            if 'preamble' not in mdata:
-                mdata['preamble'] = ''
+    def replace(metadata, contents, path):
+        # replace placelder in contents with metadata values
+        for key in metadata.keys():
+            replace = metadata.get(key)
+            if replace is None:
+                continue
+            print(f'\tReplacing {key} with {replace}')
+            contents = re.sub(rf'\${key}\$', replace, contents)
+
+        # save file
+        with open(path, 'w') as f:
+            f.write(contents.strip())
+            f.write('\n')
+
+    for local_readme in sorted(glob(f'{parser_path}/*/{local_fn}')):
+        parser_dir = os.path.dirname(local_readme)
+        project_name = os.path.basename(parser_dir)
+        print(f'Working on {parser_dir}')
+
+        contents = generic_contents
+        # if metadata file under the parser directory exists, it is a single parser project
+        single = os.path.isfile(os.path.join(parser_dir, 'metadata.yaml'))
+
+        if single:
+            metadata = open_metadata(os.path.join(parser_dir, 'metadata.yaml'))
+            # git path is given by nomad-parser-codename
+            metadata['gitPath'] = f'nomad-parser-{project_name}'
+            parser_header, parser_specs = '', ''
+        else:
+            # replace header for the single parser with that for a group of parsers
+            parser_header_re = r'(\nThis is a NOMAD parser[\s\S]+?Archive format\.\n)'
+            parser_header = re.search(parser_header_re, contents).group(1)
+            group_header = 'This is a collection of the NOMAD parsers for the following $codeName$ codes:\n\n$parserList$'
+            contents = re.sub(parser_header_re, group_header, contents)
+            # remove individual parser specs
+            parser_specs_re = r'(For \$codeLabel\$ please provide[\s\S]+?\$tableOfFiles\$)\n\n'
+            parser_specs = re.search(parser_specs_re, contents).group(1)
+            contents = re.sub(parser_specs_re, '', contents)
+            metadata = dict(
+                gitPath=f'{project_name}-parsers',
+                parserGitUrl=f'https://github.com/nomad-coe/{project_name}-parsers.git',
+                parserSpecific='')
+        if metadata.get('codeName', '').strip() == '':
+            metadata['codeName'] = project_name
+        if 'preamble' not in metadata:
+            metadata['preamble'] = ''
+
+        # if this is a group of parser, find all individdual parsers and write the
+        # parser specs
+        parser_list = ''
+        for index, local_metadata in enumerate(sorted(glob(f'{parser_dir}/*/*/metadata.yaml'))):
+            metadata_parser = open_metadata(local_metadata)
+            # contents is simply the parser header and specs
+            contents_parser = f'{parser_header}\n{parser_specs}'
+            replace(metadata_parser, contents_parser, os.path.join(os.path.dirname(local_metadata), local_fn))
+            # add the codename to the list of parsers for the group header
+            codelabel = metadata_parser.get('codeLabel', os.path.basename(os.path.dirname(local_metadata)))
+            codeurl = metadata_parser.get('codeUrl', '')
+            parser_list = rf'{parser_list}{index + 1}. [{codelabel}]({codeurl})\n'
+        metadata['parserList'] = parser_list.strip()
 
         # Find & Replace Parser`s metadata on its README file
-        local_readme = ddir + local_fn
-        with open(local_readme, 'w') as local:
-            for key in mdata.keys():
-                ignore = ['codeLabelStyle', 'parserDirName']
-                if key in ignore:
-                    continue
-
-                find = r'\$' + key + r'\$'
-                replace = mdata[key]
-                print(f'\tReplacing {key} with {replace}')
-
-                if key == 'parserSpecific':
-                    if mdata[key] != '':
-                        replace = r'## Parser Specific\n' + replace
-
-                body = re.sub(find, replace, body)
-
-            # Extra: to replace the codeName (there's no YAML key for this)
-            key = 'codeName'
-            print('\tReplacing', key)
-            find = r'\$' + key + r'\$'
-            replace = parser_dirname
-            body = re.sub(find, replace, body)
-
-            # Extra: to replace the comment at the top of the gereral template
-            find = (
-                r'\*\*\*Note:\*\* This is a general README file for NOMAD parsers, '
-                r'consult the README of specific parser projects for more detailed '
-                r'information!\*\n\n')
-            replace = ''
-            print('\tReplacing the top comment')
-            # print('\t', find, ' -> ', replace)
-            body = re.sub(find, replace, body)
-
-            # save file
-            local.seek(0)  # go to the top
-            local.write(body.strip())
-            local.truncate()
+        replace(metadata, contents, local_readme)
 
 
 @dev.command(help='Adds a few pieces of data to NOMAD.')

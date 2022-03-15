@@ -1,111 +1,3 @@
-[submodule "dependencies/parsers/vasp"]
-	path = dependencies/parsers/vasp
-	url = https://github.com/nomad-coe/nomad-parser-vasp.git
-	branch = master
-[submodule "dependencies/parsers/exciting"]
-	path = dependencies/parsers/exciting
-	url = https://github.com/nomad-coe/nomad-parser-exciting.git
-	branch = master
-[submodule "dependencies/parsers/fhi-aims"]
-	path = dependencies/parsers/fhi-aims
-	url = https://github.com/nomad-coe/nomad-parser-fhi-aims.git
-	branch = master
-[submodule "dependencies/parsers/cp2k"]
-	path = dependencies/parsers/cp2k
-	url = https://github.com/nomad-coe/nomad-parser-cp2k.git
-	branch = master
-[submodule "dependencies/parsers/crystal"]
-	path = dependencies/parsers/crystal
-	url = https://github.com/nomad-coe/nomad-parser-crystal.git
-	branch = master
-[submodule "dependencies/parsers/cpmd"]
-	path = dependencies/parsers/cpmd
-	url = https://github.com/nomad-coe/nomad-parser-cpmd.git
-	branch = master
-[submodule "dependencies/parsers/nwchem"]
-	path = dependencies/parsers/nwchem
-	url = https://github.com/nomad-coe/nomad-parser-nwchem.git
-	branch = master
-[submodule "dependencies/parsers/bigdft"]
-	path = dependencies/parsers/bigdft
-	url = https://github.com/nomad-coe/nomad-parser-bigdft.git
-	branch = master
-[submodule "dependencies/parsers/wien2k"]
-	path = dependencies/parsers/wien2k
-	url = https://github.com/nomad-coe/nomad-parser-wien2k.git
-	branch = master
-[submodule "dependencies/parsers/band"]
-	path = dependencies/parsers/band
-	url = https://github.com/nomad-coe/nomad-parser-band.git
-	branch = master
-[submodule "dependencies/parsers/gaussian"]
-	path = dependencies/parsers/gaussian
-	url = https://github.com/nomad-coe/nomad-parser-gaussian.git
-	branch = master
-[submodule "dependencies/parsers/quantum-espresso"]
-	path = dependencies/parsers/quantum-espresso
-	url = https://github.com/nomad-coe/nomad-parser-quantum-espresso.git
-	branch = master
-[submodule "dependencies/parsers/abinit"]
-	path = dependencies/parsers/abinit
-	url = https://github.com/nomad-coe/nomad-parser-abinit.git
-	branch = master
-[submodule "dependencies/parsers/orca"]
-	path = dependencies/parsers/orca
-	url = https://github.com/nomad-coe/nomad-parser-orca.git
-	branch = master
-[submodule "dependencies/parsers/castep"]
-	path = dependencies/parsers/castep
-	url = https://github.com/nomad-coe/nomad-parser-castep.git
-	branch = master
-[submodule "dependencies/parsers/dl-poly"]
-	path = dependencies/parsers/dl-poly
-	url = https://github.com/nomad-coe/nomad-parser-dl-poly.git
-	branch = master
-[submodule "dependencies/parsers/lib-atoms"]
-	path = dependencies/parsers/lib-atoms
-	url = https://github.com/nomad-coe/nomad-parser-lib-atoms.git
-	branch = master
-[submodule "dependencies/parsers/octopus"]
-	path = dependencies/parsers/octopus
-	url = https://github.com/nomad-coe/nomad-parser-octopus.git
-	branch = master
-[submodule "dependencies/parsers/phonopy"]
-	path = dependencies/parsers/phonopy
-	url = https://github.com/nomad-coe/nomad-parser-phonopy.git
-	branch = master
-[submodule "dependencies/parsers/gpaw"]
-	path = dependencies/parsers/gpaw
-	url = https://github.com/nomad-coe/nomad-parser-gpaw.git
-	branch = master
-[submodule "dependencies/parsers/atk"]
-	path = dependencies/parsers/atk
-	url = https://github.com/nomad-coe/nomad-parser-atk.git
-	branch = master
-[submodule "dependencies/parsers/gulp"]
-	path = dependencies/parsers/gulp
-	url = https://github.com/nomad-coe/nomad-parser-gulp.git
-	branch = master
-[submodule "dependencies/parsers/siesta"]
-	path = dependencies/parsers/siesta
-	url = https://github.com/nomad-coe/nomad-parser-siesta.git
-	branch = master
-[submodule "dependencies/parsers/elk"]
-	path = dependencies/parsers/elk
-	url = https://github.com/nomad-coe/nomad-parser-elk.git
-	branch = master
-[submodule "dependencies/parsers/elastic"]
-	path = dependencies/parsers/elastic
-	url = https://github.com/nomad-coe/nomad-parser-elastic.git
-	branch = master
-[submodule "dependencies/parsers/gamess"]
-	path = dependencies/parsers/gamess
-	url = https://github.com/nomad-coe/nomad-parser-gamess.git
-	branch = master
-[submodule "dependencies/parsers/turbomole"]
-	path = dependencies/parsers/turbomole
-	url = https://github.com/nomad-coe/nomad-parser-turbomole.git
-	branch = master
 [submodule "dependencies/parsers/mpes"]
 	path = dependencies/parsers/mpes
 	url = https://github.com/nomad-coe/nomad-parser-mpes.git
@@ -113,74 +5,6 @@
 [submodule "dependencies/parsers/aptfim"]
 	path = dependencies/parsers/aptfim
 	url = https://github.com/nomad-coe/nomad-parser-aptfim.git
-	branch = master
-[submodule "dependencies/parsers/dmol3"]
-	path = dependencies/parsers/dmol3
-	url = https://github.com/nomad-coe/nomad-parser-dmol3.git
-	branch = master
-[submodule "dependencies/parsers/fleur"]
-	path = dependencies/parsers/fleur
-	url = https://github.com/nomad-coe/nomad-parser-fleur.git
-	branch = master
-[submodule "dependencies/parsers/molcas"]
-	path = dependencies/parsers/molcas
-	url = https://github.com/nomad-coe/nomad-parser-molcas.git
-	branch = master
-[submodule "dependencies/parsers/qbox"]
-	path = dependencies/parsers/qbox
-	url = https://github.com/nomad-coe/nomad-parser-qbox.git
-	branch = master
-[submodule "dependencies/parsers/onetep"]
-	path = dependencies/parsers/onetep
-	url = https://github.com/nomad-coe/nomad-parser-onetep.git
-	branch = master
-[submodule "dependencies/parsers/namd"]
-    path = dependencies/parsers/namd
-	url = https://github.com/nomad-coe/nomad-parser-namd.git
-	branch = master
-[submodule "dependencies/parsers/charmm"]
-    path = dependencies/parsers/charmm
-	url = https://github.com/nomad-coe/nomad-parser-charmm.git
-	branch = master
-[submodule "dependencies/parsers/dftbplus"]
-    path = dependencies/parsers/dftbplus
-	url = https://github.com/nomad-coe/nomad-parser-dftbplus.git
-	branch = master
-[submodule "dependencies/parsers/asap"]
-    path = dependencies/parsers/asap
-	url = https://github.com/nomad-coe/nomad-parser-asap.git
-	branch = master
-[submodule "dependencies/parsers/fplo"]
-    path = dependencies/parsers/fplo
-	url = https://github.com/nomad-coe/nomad-parser-fplo.git
-	branch = master
-[submodule "dependencies/parsers/mopac"]
-    path = dependencies/parsers/mopac
-	url = https://github.com/nomad-coe/nomad-parser-mopac.git
-	branch = master
-[submodule "dependencies/parsers/amber"]
-    path = dependencies/parsers/amber
-	url = https://github.com/nomad-coe/nomad-parser-amber.git
-	branch = master
-[submodule "dependencies/parsers/gromacs"]
-    path = dependencies/parsers/gromacs
-	url = https://github.com/nomad-coe/nomad-parser-gromacs.git
-	branch = master
-[submodule "dependencies/parsers/gromos"]
-    path = dependencies/parsers/gromos
-	url = https://github.com/nomad-coe/nomad-parser-gromos.git
-	branch = master
-[submodule "dependencies/parsers/lammps"]
-    path = dependencies/parsers/lammps
-	url = https://github.com/nomad-coe/nomad-parser-lammps.git
-	branch = master
-[submodule "dependencies/parsers/openkim"]
-    path = dependencies/parsers/openkim
-	url = https://github.com/nomad-coe/nomad-parser-openkim.git
-	branch = master
-[submodule "dependencies/parsers/tinker"]
-    path = dependencies/parsers/tinker
-	url = https://github.com/nomad-coe/nomad-parser-tinker.git
 	branch = master
 [submodule "dependencies/materia"]
 	path = gui/materia
@@ -195,24 +19,9 @@
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
-[submodule "dependencies/parsers/fhi-vibes"]
-	path = dependencies/parsers/fhi-vibes
-	url = https://github.com/nomad-coe/nomad-parser-fhi-vibes.git
-[submodule "dependencies/parsers/lobster"]
-	path = dependencies/parsers/lobster
-	url = https://github.com/ondracka/nomad_parser_lobster.git
 [submodule "dependencies/parsers/xps"]
 	path = dependencies/parsers/xps
 	url = https://github.com/nomad-coe/nomad-parser-xps.git
-[submodule "dependencies/parsers/aflow"]
-	path = dependencies/parsers/aflow
-	url = https://github.com/nomad-coe/nomad-parser-aflow.git
-[submodule "dependencies/parsers/mp"]
-	path = dependencies/parsers/mp
-	url = https://github.com/nomad-coe/nomad-parser-mp.git
-[submodule "dependencies/parsers/asr"]
-	path = dependencies/parsers/asr
-	url = https://github.com/nomad-coe/nomad-parser-asr.git
 [submodule "dependencies/nomad-remote-tools-hub"]
 	path = dependencies/nomad-remote-tools-hub
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git
@@ -220,12 +29,15 @@
 	path = dependencies/parsers/nexus
 	url = https://github.com/nomad-coe/nomad-parser-nexus.git
 	branch = master
-[submodule "dependencies/parsers/psi4"]
-	path = dependencies/parsers/psi4
-	url = https://github.com/nomad-coe/nomad-parser-psi4.git
-[submodule "dependencies/parsers/yambo"]
-	path = dependencies/parsers/yambo
-	url = https://github.com/nomad-coe/nomad-parser-yambo.git
 [submodule "gui/crystcif-parse"]
 	path = gui/crystcif-parse
 	url = https://github.com/stur86/crystcif-parse.git
+[submodule "dependencies/parsers/electronic"]
+	path = dependencies/parsers/electronic
+	url = https://github.com/nomad-coe/electronic-parsers.git
+[submodule "dependencies/parsers/atomistic"]
+	path = dependencies/parsers/atomistic
+	url = https://github.com/nomad-coe/atomistic-parsers.git
+[submodule "dependencies/parsers/workflow"]
+	path = dependencies/parsers/workflow
+	url = https://github.com/nomad-coe/workflow-parsers.git

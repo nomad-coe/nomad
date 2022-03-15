@@ -61,6 +61,6 @@ def test_common_metainfo():
 
 def test_vasp_metainfo():
     from nomad.datamodel.metainfo.simulation.run import Run
-    from vaspparser.metainfo import m_env  # pylint: disable=unused-import
+    from electronicparsers.vasp.metainfo import m_env  # pylint: disable=unused-import
     run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities

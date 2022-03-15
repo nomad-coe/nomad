@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Dict, Any, List
+from typing import List
 import os
 import logging
 import numpy as np
@@ -21,7 +21,6 @@ import re
 from ase.data import chemical_symbols
 
 from nomad.datamodel import EntryArchive
-from nomad.parsing import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import Method
@@ -30,21 +29,20 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics)
 
 
-class BasicParser(FairdiParser):
+class BasicParser:
     '''
     Defines a fairdi parser that parse basic quantities for sections method, system and
     single_configuration_calculation.
 
     Arguments:
-        specifications: dictionary that will be passed on to  FairdiParser
+        code_name: name of the code
         units_mapping: dictionary of nomad units for basic quantities such as length
         auxiliary_files: re pattern to match auxilliary files from mainfile. If no files
             are found will match files in working directory.
         kwargs: metainfo_key: re pattern pairs used to parse quantity
     '''
-    def __init__(self, specifications: Dict[str, Any], **kwargs):
-        super().__init__(**specifications)
-        self.specifications = specifications
+    def __init__(self, code_name: str, **kwargs):
+        self.code_name = code_name
         self.units_mapping = kwargs.get('units_mapping', {})
         self.auxilliary_files = kwargs.get('auxilliary_files', '')
         self.mainfile_parser = TextParser()
@@ -129,7 +127,7 @@ class BasicParser(FairdiParser):
                     sections[n].m_parent.m_remove_sub_section(definition, n)
 
         sec_run = self.archive.m_create(Run)
-        sec_run.program = Program(name=self.specifications.get('code_name', ''))
+        sec_run.program = Program(name=self.code_name)
 
         energy_unit = self.units_mapping.get('energy', 1.0)
         length_unit = self.units_mapping.get('length', 1.0)
