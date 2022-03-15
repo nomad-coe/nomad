@@ -666,7 +666,7 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
             return False
 
         def parse(self, mainfile: str, archive: EntryArchive, logger=None):
-            pass
+            archive.metadata.comment = archive.metadata.mainfile_key or 'parent'
 
     # Register it
     test_parser = ParentChildParser()
@@ -686,6 +686,9 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
         assert upload.process_status == ProcessStatus.SUCCESS
         assert upload.total_entries_count == len(children) + 1
         assert set([e.mainfile_key for e in upload.successful_entries]) == set([None, *children])
+        for entry in upload.successful_entries:
+            metadata = entry.full_entry_metadata(upload)
+            assert metadata.comment == entry.mainfile_key or 'parent'
 
     upload.process_upload(file_operation=dict(op='DELETE', path=example_filename))
     upload.block_until_complete()
