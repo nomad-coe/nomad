@@ -654,8 +654,8 @@ def test_ems_data(proc_infra, test_user):
     upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
 
     additional_keys = ['results.method.method_name', 'results.material.elements']
-    assert upload.total_entries_count == 2
-    assert len(upload.successful_entries) == 2
+    assert upload.total_entries_count == 1
+    assert len(upload.successful_entries) == 1
 
     with upload.entries_metadata() as entries:
         assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
