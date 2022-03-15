@@ -18,12 +18,15 @@ Although the above query object has an empty query.
 
 The query object is constructed only. To access the desired data, users need to perform two operations manually.
 
-### Fetch
+### Synchronous Interface
+
+#### Fetch
 
 The fetch process is carried out **synchronously**. Users can call
 
 ```python
-number_of_entries = query.fetch()
+# number_of_entries = query.fetch(1000) # fetch 1000 entries
+number_of_entries = query.fetch()  # fetch at most results_max entries
 ```
 
 to perform the fetch process to fetch up to `results_max` entries. An indicative number `n` can be provided `fetch(n)`
@@ -40,12 +43,13 @@ print(query.upload_list())
 If applicable, it is possible to fetch a large number of entries first and then perform a second fetch by using some
 upload ID in the first fetch result as the `after` argument so that some middle segment can be downloaded.
 
-### Download
+#### Download
 
 After fetching the qualified uploads, the desired data can be downloaded **asynchronously**. One can call
 
 ```python
-results = query.download()
+# results = query.download(1000) # download 1000 entries
+results = query.download()  # download all fetched entries if fetched otherwise fetch and download up to `results_max` entries
 ```
 
 to download up to `results_max` entries. The downloaded results are returned as a list. Alternatively, it is possible to
@@ -71,6 +75,27 @@ while True:
 
 There is no retry mechanism in the download process. If any uploads fail to be downloaded due to server error, it is
 kept in the list otherwise removed.
+
+### Asynchronous Interface
+
+Some applications, such as Jupyter Notebook, may run a global/top level event loop. To query data in those environments,
+one can use the asynchronous interface.
+
+```python
+number_of_entries = await query.async_fetch()  # indicative number n applies: async_fetch(n)
+results = await query.async_download()  # indicative number n applies: async_download(n)
+```
+
+Alternatively, if one wants to use the asynchronous interface, it is necessary to patch the global event loop to allow
+nested loops.
+
+To do so, one can add the following at the beginning of the notebook.
+
+```python
+import nest_asyncio
+
+nest_asyncio.apply()
+```
 
 ## A Complete Rundown
 
