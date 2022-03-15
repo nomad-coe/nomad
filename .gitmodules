@@ -1,11 +1,3 @@
-[submodule "dependencies/parsers/mpes"]
-	path = dependencies/parsers/mpes
-	url = https://github.com/nomad-coe/nomad-parser-mpes.git
-	branch = master
-[submodule "dependencies/parsers/aptfim"]
-	path = dependencies/parsers/aptfim
-	url = https://github.com/nomad-coe/nomad-parser-aptfim.git
-	branch = master
 [submodule "dependencies/materia"]
 	path = gui/materia
 	url = https://github.com/nomad-coe/materia
@@ -19,9 +11,6 @@
 [submodule "dependencies/parsers/example"]
 	path = dependencies/parsers/example
 	url = https://github.com/nomad-coe/nomad-parser-example.git
-[submodule "dependencies/parsers/xps"]
-	path = dependencies/parsers/xps
-	url = https://github.com/nomad-coe/nomad-parser-xps.git
 [submodule "dependencies/nomad-remote-tools-hub"]
 	path = dependencies/nomad-remote-tools-hub
 	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git

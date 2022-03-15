@@ -25,12 +25,8 @@ from nomad.datamodel import results
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from xpsparser import XPSParser
 from eelsdbparser import EELSDBParser
 from nexusparser import NexusParser
-# TODO
-# from mpesparser import MPESParser
-# from aptfimparser import APTFIMParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -490,10 +486,7 @@ parsers = [
         name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
         mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon.+yaml)')
     ),
-    # MPESParser(),
-    # APTFIMParser(),
     EELSDBParser(),
-    XPSParser(),
     NexusParser(),
     ArchiveParser()
 ]
