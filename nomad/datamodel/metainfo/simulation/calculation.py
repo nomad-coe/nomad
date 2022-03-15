@@ -310,7 +310,7 @@ class Energy(MSection):
         energy calculated with the functional stored in XC_functional.
         ''')
 
-    # TODO Could potential be generalized for other energy types
+    # TODO Remove this should use xc.potential
     xc_potential = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -335,6 +335,7 @@ class Energy(MSection):
         energy.
         ''')
 
+    # TODO remove this or electrostatic
     coulomb = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -526,6 +527,38 @@ class Forces(MSection):
         description='''
         Contains the value and information regarding the forces on the atoms
         corresponding to the minus gradient of energy_T0.
+        ''')
+
+    enthalpy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the calculated enthalpy per cell i.e. energy_total + pressure * volume.
+        ''')
+
+    entropy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule / kelvin',
+        description='''
+        Value of the entropy.
+        ''')
+
+    chemical_potential = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the chemical potential.
+        ''')
+
+    internal = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the internal energy.
         ''')
 
     contributions = SubSection(
@@ -1129,6 +1162,7 @@ class Multipoles(MSection):
     higher_order = SubSection(sub_section=MultipolesEntry.m_def, repeats=True)
 
 
+# TODO remove this section
 class Thermodynamics(MSection):
     '''
     Section containing results related to a thermodynamics calculation.
@@ -1562,6 +1596,37 @@ class BaseCalculation(MSection):
         Stores the value of the total spin moment operator $S^2$ for the converged
         wavefunctions calculated with the XC_method. It can be used to calculate the spin
         contamination in spin-unrestricted calculations.
+        ''')
+
+    pressure = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='pascal',
+        description='''
+        Value of the pressure of the system.
+        ''')
+
+    temperature = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kelvin',
+        description='''
+        Value of the temperature of the system at which the properties are calculated.
+        ''')
+
+    time_physical = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        unit='second',
+        description='''
+        The elapsed time with respect to the start of the simulation.
+        ''')
+
+    time_step = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        The number of time steps with respect to the start of the simulation.
         ''')
 
     energy = SubSection(sub_section=Energy.m_def, categories=[FastAccess])
