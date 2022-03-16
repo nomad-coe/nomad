@@ -331,6 +331,7 @@ DeleteAction.propTypes = {
 
 function EditMembersDialog({...props}) {
   const classes = useStyles()
+  const {disabled} = props
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {upload, setUpload} = useContext(uploadPageContext)
@@ -409,7 +410,7 @@ function EditMembersDialog({...props}) {
 
   return <editMembersDialogContext.Provider value={contextValue}>
     <React.Fragment>
-      <IconButton onClick={handleOpenDialog}>
+      <IconButton onClick={handleOpenDialog} disabled={disabled} data-testid='edit-members-action'>
         <Tooltip title="Manage upload members">
           <MembersIcon/>
         </Tooltip>
@@ -453,6 +454,9 @@ function EditMembersDialog({...props}) {
       </Dialog>}
     </React.Fragment>
   </editMembersDialogContext.Provider>
+}
+EditMembersDialog.propTypes = {
+  disabled: PropTypes.bool
 }
 
 export default EditMembersDialog
