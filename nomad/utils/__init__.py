@@ -150,6 +150,21 @@ def decode_handle_id(handle_str: str):
     return result
 
 
+def generate_entry_id(upload_id: str, mainfile: str, mainfile_key: str = None) -> str:
+    '''
+    Generates an id for an entry.
+    Arguments:
+        upload_id: The id of the upload
+        mainfile: The mainfile path (relative to the raw directory).
+        mainfile_key: Optional additional key for mainfiles that represent many entries.
+    Returns:
+        The generated entry id
+    '''
+    if mainfile_key:
+        return hash(upload_id, mainfile, mainfile_key)
+    return hash(upload_id, mainfile)
+
+
 def hash(*args, length: int = default_hash_len) -> str:
     ''' Creates a websafe hash of the given length based on the repr of the given arguments. '''
     hash = hashlib.sha512()

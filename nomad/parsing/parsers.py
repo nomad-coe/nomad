@@ -25,8 +25,6 @@ from nomad.datamodel import EntryArchive, EntryMetadata, results
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 
-from eelsdbparser import EELSDBParser
-from nexusparser import NexusParser
 
 try:
     # these packages are not available without parsing extra, which is ok, if the
@@ -549,8 +547,20 @@ parsers = [
         name='parsers/phonopy', code_name='Phonopy', code_homepage='https://phonopy.github.io/phonopy/',
         mainfile_name_re=(r'(.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon.+yaml)')
     ),
-    EELSDBParser(),
-    NexusParser(),
+    MatchingParserInterface(
+        'eelsdbparser.EELSDBParser',
+        name='parsers/eels', code_name='eels', code_homepage='https://eelsdb.eu/',
+        domain='ems',
+        mainfile_mime_re=r'application/json',
+        mainfile_contents_re=(r'https://eelsdb.eu/spectra')
+    ),
+    MatchingParserInterface(
+        'nexusparser.NexusParser',
+        name='parsers/nexus', code_name='NEXUS', code_homepage='https://www.nexus.eu/',
+        mainfile_mime_re=r'(application/.*)|(text/.*)',
+        mainfile_name_re=(r'.*\.nxs'),
+        supported_compressions=['gz', 'bz2', 'xz']
+    ),
     ArchiveParser()
 ]
 

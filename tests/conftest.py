@@ -41,7 +41,6 @@ from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
 from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo
 from nomad.processing import ProcessStatus
-from nomad.processing.data import generate_entry_id
 from nomad.app.main import app
 from nomad.utils.exampledata import ExampleData
 
@@ -643,7 +642,7 @@ def oasis_publishable_upload(
         bundle_info['upload_id'] += suffix
         bundle_info['upload']['_id'] += suffix
         for entry_dict in bundle_info['entries']:
-            entry_dict['_id'] = generate_entry_id(
+            entry_dict['_id'] = utils.generate_entry_id(
                 upload_id + suffix, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
             entry_dict['upload_id'] += suffix
 
@@ -662,7 +661,7 @@ def oasis_publishable_upload(
                     archive_dict = data[entry_id].to_dict()
                     section_metadata = archive_dict['metadata']
                     section_metadata['upload_id'] += suffix
-                    new_entry_id = generate_entry_id(
+                    new_entry_id = utils.generate_entry_id(
                         section_metadata['upload_id'],
                         section_metadata['mainfile'],
                         section_metadata.get('mainfile_key'))

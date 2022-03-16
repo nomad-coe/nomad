@@ -42,6 +42,7 @@ from structlog.processors import StackInfoRenderer, format_exc_info, TimeStamper
 import requests
 from fastapi.exceptions import RequestValidationError
 from pydantic.error_wrappers import ErrorWrapper
+import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
 from nomad.files import (
@@ -52,16 +53,14 @@ from nomad.processing.base import (
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
-from nomad.metainfo import Context, MSection, Quantity, MetainfoReferenceError
 from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EditableUserMetadata, AuthLevel)
+    EditableUserMetadata, AuthLevel, ServerContext)
 from nomad.archive import (
     write_partial_archive_to_mongo, delete_partial_archives_from_mongo)
 from nomad.app.v1.models import (
     MetadataEditRequest, And, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired)
 from nomad.search import update_metadata as es_update_metadata
-import validators
 
 section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow.name
@@ -125,20 +124,6 @@ def keys_exist(data: Dict[str, Any], required_keys: Iterable[str], error_message
         for sub_key in key.split('.'):
             assert sub_key in current, error_message.replace('{key}', key)
             current = current[sub_key]
-
-
-def generate_entry_id(upload_id: str, mainfile: str, mainfile_key: str) -> str:
-    '''
-    Generates an id for an entry.
-    Arguments:
-        upload_id: The id of the upload
-        mainfile: The mainfile path (relative to the raw directory).
-    Returns:
-        The generated entry id
-    '''
-    if mainfile_key:
-        return utils.hash(upload_id, mainfile, mainfile_key)
-    return utils.hash(upload_id, mainfile)
 
 
 class MetadataEditRequestHandler:
@@ -1273,7 +1258,7 @@ class Upload(Proc):
         kwargs.setdefault('upload_create_time', datetime.utcnow())
         super().__init__(**kwargs)
         self._upload_files: UploadFiles = None
-        self.archive_context = UploadContext(self)
+        self.archive_context = ServerContext(self)
 
     @classmethod
     def get(cls, id: str) -> 'Upload':
@@ -1569,7 +1554,7 @@ class Upload(Proc):
 
             mainfile_keys_including_main_entry: List[str] = [None] + (mainfile_keys or [])  # type: ignore
             for mainfile_key in mainfile_keys_including_main_entry:
-                entry_id = generate_entry_id(self.upload_id, target_path, mainfile_key)
+                entry_id = utils.generate_entry_id(self.upload_id, target_path, mainfile_key)
                 entry = old_entries_dict.get(entry_id)
                 if entry:
                     # Entry already exists. Reset it and the parser_name attribute
@@ -1767,7 +1752,7 @@ class Upload(Proc):
 
                 with utils.timer(logger, 'matching completed'):
                     for mainfile, mainfile_key, parser in self.match_mainfiles(path_filter):
-                        entry_id = generate_entry_id(self.upload_id, mainfile, mainfile_key)
+                        entry_id = utils.generate_entry_id(self.upload_id, mainfile, mainfile_key)
 
                         try:
                             entry = Entry.get(entry_id)
@@ -2313,7 +2298,7 @@ class Upload(Proc):
                 # Check referential consistency
                 assert entry_dict['upload_id'] == self.upload_id, (
                     'Mismatching upload_id in entry definition')
-                expected_entry_id = generate_entry_id(
+                expected_entry_id = utils.generate_entry_id(
                     self.upload_id, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
                 assert entry_dict['_id'] == expected_entry_id, (
                     'Provided entry id does not match generated value')
@@ -2414,62 +2399,3 @@ class Upload(Proc):
 
     def __str__(self):
         return 'upload %s upload_id%s' % (super().__str__(), self.upload_id)
-
-
-class UploadContext(Context):
-    def __init__(self, upload: Upload):
-        self.upload = upload
-
-    def get_reference(self, section: MSection, quantity_def: Quantity, value: Any) -> str:
-        if not isinstance(value, MSection):
-            return super().get_reference(section, quantity_def, value)
-
-        section_root: MSection = section.m_root()
-        value_root: MSection = value.m_root()
-        if section_root == value_root or section_root.m_context != value_root.m_context:
-            return super().get_reference(section, quantity_def, value)
-
-        entry_id = cast(EntryArchive, value_root).metadata.entry_id
-        if entry_id is None:
-            raise MetainfoReferenceError()
-
-        return f'../upload/archive/{entry_id}#{super().get_reference(section, quantity_def, value)}'
-
-    def _resolve_mainfile(self, mainfile: str, mainfile_key: str = None) -> str:
-        return generate_entry_id(self.upload.upload_id, mainfile, mainfile_key)
-
-    def _get_archive(self, entry_id: str) -> EntryArchive:
-        try:
-            archive_dict = self.upload.upload_files.read_archive(entry_id)[entry_id].to_dict()
-        except KeyError:
-            raise MetainfoReferenceError(f'archive does not exist {entry_id}')
-
-        return EntryArchive.m_from_dict(archive_dict)
-
-    def normalize_reference(self, url: str) -> str:
-        api_url, archive_ref = self.split_url(url)
-
-        if url.startswith('../upload/archive/mainfile'):
-            mainfile = api_url.replace('../upload/archive/mainfile', '')
-            entry_id = self._resolve_mainfile(mainfile)
-            return f'../upload/archive/{entry_id}#{archive_ref}'
-
-        return super().normalize_reference(url)
-
-    def resolve_archive(self, url: str) -> MSection:
-        archive_url, _ = self.split_url(url)
-
-        if not url.startswith('../upload/archive/'):
-            return super().resolve_archive(url)
-
-        id_part = archive_url.replace('../upload/archive/', '')
-
-        if id_part.startswith('mainfile/'):
-            entry_id = self._resolve_mainfile(id_part.replace('mainfile/', ''))
-        else:
-            entry_id = id_part
-
-        return self._get_archive(entry_id)
-
-    def raw_file(self, file_path: str, *args, **kwargs):
-        return self.upload.upload_files.raw_file(file_path, *args, **kwargs)

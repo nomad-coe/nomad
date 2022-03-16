@@ -112,6 +112,8 @@ def get_template_dft() -> EntryArchive:
 def get_template_eels() -> EntryArchive:
     """Returns a basic archive template for an EELS experiment.
     """
+    # Ensure that the eels schema is loaded
+    from eelsdbparser import eelsdb_parser  # pylint: disable=unused-import
     dct_data = yaml.safe_load(strip(f'''
         results:
             properties:

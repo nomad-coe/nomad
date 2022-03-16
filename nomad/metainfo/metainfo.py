@@ -36,6 +36,7 @@ import jmespath
 import base64
 import importlib
 import email.utils
+from urllib.parse import urlsplit, urlunsplit
 
 from nomad.units import ureg as units
 
@@ -479,7 +480,7 @@ class Reference(DataType):
         if isinstance(value, (str, int, dict)):
             context = cast(MSection, section.m_root()).m_context
             if context and isinstance(value, str):
-                value = context.normalize_reference(value)
+                value = context.normalize_reference(section, value)
             return MProxy(value, m_proxy_section=section, m_proxy_quantity=quantity_def)
 
         if isinstance(value, MProxy):
@@ -501,7 +502,7 @@ class Reference(DataType):
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
         context = cast(MSection, section.m_root()).m_context
         if context is not None:
-            return context.get_reference(section, quantity_def, value)
+            return context.create_reference(section, quantity_def, value)
 
         return value.m_path()
 
@@ -553,9 +554,10 @@ class _File(DataType):
         if not isinstance(value, str):
             raise TypeError('Files need to be given as URL strings')
 
-        context = cast(MSection, section.m_root()).m_context
+        root_section: MSection = section.m_root()
+        context = cast(MSection, root_section).m_context
         if context:
-            return context.normalize_reference(value)
+            return context.normalize_reference(root_section, value)
 
         return value
 
@@ -721,14 +723,6 @@ class Context():
     multiple hiearchies (e.g. archives) with references.
     '''
 
-    def split_url(self, url):
-        ''' Splits the given reference url into the archive url and the archive ref.'''
-        parts = url.split('#')
-        if len(parts) == 1:
-            return parts[0], None
-
-        return parts
-
     def warning(self, event, **kwargs):
         '''
         Used to log (or otherwise handle) warning that are issued, e.g. while serializaton,
@@ -736,19 +730,23 @@ class Context():
         '''
         pass
 
-    def get_reference(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> str:
+    def create_reference(self, section: 'MSection', quantity_def: 'Quantity', value: 'MSection') -> str:
         '''
-        Returns a reference for the given value based on the given context. Allows
-        sub-classes to build references across resources, if necessary.
+        Returns a reference for the given target section (value) based on the given context.
+        Allows sub-classes to build references across resources, if necessary.
 
         Raises: MetainfoReferenceError
         '''
         return value.m_path()
 
-    def normalize_reference(self, url: str) -> str:
+    def normalize_reference(self, source: 'MSection', url: str) -> str:
         '''
-        Rewrites the url into a normlaized form. E.g., it replaces `..` with absolute paths,
+        Rewrites the url into a normalized form. E.g., it replaces `..` with absolute paths,
         or replaces mainfiles with ids, etc.
+
+        Arguments:
+            source: The source section or root section of the source of the reference.
+            url: The reference to normalize.
 
         Raises: MetainfoReferenceError
         '''
@@ -762,12 +760,6 @@ class Context():
         Raises: MetainfoReferenceError
         '''
         raise NotImplementedError()
-
-    def raw_file(self, file_path: str, *args, **kwargs):
-        '''
-        Opens a raw-file. Uses the same interface as Python's buildin open.
-        '''
-        return open(file_path, *args, **kwargs)
 
 
 class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclass of collections.abs.Mapping
@@ -1685,13 +1677,42 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         loaded from JSON, and turns it into a proper section, i.e. instance of the given
         section class.
         '''
+        return MSection.from_dict(dct, cls=cls)
+
+    @staticmethod
+    def from_dict(
+        dct: Dict[str, Any],
+        cls: Type[MSectionBound] = None,
+        m_context: Context = None,
+        **kwargs
+    ) -> MSectionBound:
+        ''' Creates a section from the given serializable data dictionary.
+
+        This is the 'opposite' of :func:`m_to_dict`. It is similar to the classmethod
+        `m_from_dict`, but does not require a specific class. You can provide a class
+        through the optional parameter. Otherwise, the section definition is read from
+        the `m_def` key in the section data.
+        '''
+
+        # first try to find a m_def in the data
         if 'm_def' in dct:
-            # Replace the given cls with to potentially more specific and derived class
-            # specified in the data
-            package_name, section_name = dct['m_def'].rsplit('.', 1)
-            module = importlib.import_module(package_name)
-            cls = getattr(module, section_name)
-        section = cls()
+            m_def = dct['m_def']
+            if '#' in m_def:
+                # interpret as URL with section definition reference
+                assert m_context is not None, 'Context is required to resolve m_def URL'
+                def_archive = m_context.resolve_archive(m_def)
+                def_path = urlsplit(m_def).fragment
+                section_def = def_archive.m_resolve(def_path, cls=Section)
+                cls = cast(Type[MSectionBound], section_def.section_cls)
+            else:
+                # interpret as python class name
+                package_name, section_name = dct['m_def'].rsplit('.', 1)
+                module = importlib.import_module(package_name)
+                cls = getattr(module, section_name)
+
+        assert cls is not None, 'Section definition or cls needs to be known'
+
+        section = cls(m_context=m_context, **kwargs)
         section.m_update_from_dict(dct)
         return section
 
@@ -1827,11 +1848,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         '''
         section: 'MSection' = self
 
-        parts = url.split('#', maxsplit=1)
-        if len(parts) == 1:
-            path = parts[0]
+        if '#' not in url:
+            path = url
+
         else:
-            api, path = parts
+            url_parts = urlsplit(url)
+            path = url_parts.fragment
+            api = urlunsplit(url_parts[0:4] + ('',))
+
             if not path.startswith('/'):
                 path = f'/{path}'
 
@@ -1845,7 +1869,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     section = context.resolve_archive(api)
                 except NotImplementedError:
                     raise MetainfoReferenceError(
-                        f'The attached resource does not support references with api part')
+                        f'The attached context ({context}) does not support references with api part')
 
         if path.startswith('/'):
             section = section.m_root()

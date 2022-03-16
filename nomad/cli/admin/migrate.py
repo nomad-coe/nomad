@@ -26,7 +26,6 @@ from pymongo.database import Database, Collection
 from pymongo.cursor import Cursor
 from nomad import utils
 from nomad.processing import ProcessStatus, Upload, Entry
-from nomad.processing.data import generate_entry_id
 from nomad.datamodel import Dataset
 from nomad.parsing.parsers import parser_dict
 
@@ -329,7 +328,7 @@ def _convert_mongo_upload(
 def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_problems: bool, logger):
     _convert_mongo_proc(entry_dict)
     # Validate the id and possibly fix problems
-    generated_entry_id = generate_entry_id(
+    generated_entry_id = utils.generate_entry_id(
         entry_dict['upload_id'], entry_dict['mainfile'], entry_dict.get('mainfile_key'))
     if entry_dict['_id'] != generated_entry_id:
         if not fix_problems:
