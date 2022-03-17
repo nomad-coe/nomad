@@ -1028,7 +1028,7 @@ class Entry(Proc):
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             if not config.process.reuse_parser:
-                if isinstance(parser, parsing.FairdiParser):
+                if isinstance(parser, parsing.MatchingParserInterface):
                     try:
                         parser = parser.__class__()
                     except Exception as e:
