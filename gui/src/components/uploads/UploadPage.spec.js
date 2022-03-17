@@ -119,7 +119,7 @@ test('Render upload page: one entry', async () => {
   closeAPI()
 })
 
-test('Render upload page: authenticated', async () => {
+test('Render upload page: published and authenticated', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published', 'test', 'password')
   render(<UploadPage uploadId="dft_upload"/>)
 
@@ -132,8 +132,11 @@ test('Render upload page: authenticated', async () => {
   expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
   expect(screen.queryByText('This upload has already been published.')).toBeInTheDocument()
 
-  // Test if the table title is rendered correctly
-  expect(screen.queryByText('1 entry')).toBeInTheDocument()
+  expect(screen.getByTestId('edit-members-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-download-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
+  expect(screen.getByTestId('source-api-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
 
   closeAPI()
 })
