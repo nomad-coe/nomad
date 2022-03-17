@@ -39,9 +39,11 @@ import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import searchQuantities from '../searchQuantities'
 import '@testing-library/jest-dom/extend-expect' // Adds convenient expect-methods
+import { keycloakBase } from '../config'
 const fs = require('fs')
 const crypto = require('crypto')
 const { execSync } = require('child_process')
+const keycloakURL = `${keycloakBase}realms/fairdi_nomad_test/protocol/openid-connect/token`
 
 /*****************************************************************************/
 // Renders
@@ -49,15 +51,79 @@ const { execSync } = require('child_process')
 // Mocked keycloak setup. The real keycloak does not work within the test
 // environment because access to the test realm is limited. Inspired by:
 // https://stackoverflow.com/questions/63627652/testing-pages-secured-by-react-keycloak
-const mockKeycloak = {
+let mockKeycloak = {
   init: jest.fn().mockResolvedValue(true),
   updateToken: jest.fn(),
   login: jest.fn(),
   logout: jest.fn(),
   register: jest.fn(),
   accountManagement: jest.fn(),
-  createLoginUrl: jest.fn()
+  createLoginUrl: jest.fn(),
+  loadUserInfo: jest.fn(),
+  authenticated: false,
+  token: '',
+  refreshToken: ''
 }
+
+const getRefreshToken = (username, password) => {
+  let command = `curl -X POST ${keycloakURL} \\
+    -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
+    -d 'username=${username}&grant_type=password&password=${password}&client_id=nomad_gui_dev'`
+  let response = require('child_process').execSync(command).toString()
+  response = JSON.parse(response)
+  if (response.error !== undefined) return {}
+  mockKeycloak.login = (username ? () => login(username, password) : jest.fn())
+  mockKeycloak.loadUserInfo = (username ? () => loadUserInfo(username) : jest.fn())
+  return response
+}
+
+const updateToken = (refresh_token) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let command = `curl -X POST ${keycloakURL} \\
+    -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
+    -d 'refresh_token=${refresh_token}&grant_type=refresh_token&client_id=nomad_gui_dev'`
+      let response = require('child_process').execSync(command).toString()
+      response = JSON.parse(response)
+      if (response.error !== undefined) return {}
+      let authenticated = response.access_token !== undefined
+      mockKeycloak.updateToken = (authenticated ? () => updateToken(response.refresh_token) : jest.fn())
+      mockKeycloak.authenticated = authenticated
+      mockKeycloak.token = (authenticated ? response.access_token : '')
+      mockKeycloak.refreshToken = (authenticated ? response.refresh_token : '')
+      resolve(response)
+    } catch (error) {
+      reject(new Error(error))
+    }
+  })
+}
+
+const loadUserInfo = (username) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const user = {
+        'sub': '68878af7-6845-46c0-b2c1-250d4d8eb470',
+        'email_verified': true,
+        'name': 'Markus Scheidgen',
+        'preferred_username': username,
+        'given_name': 'Markus',
+        'family_name': 'Scheidgen',
+        'email': 'markus.scheidgen@fhi-berlin.de'
+      }
+      resolve(user)
+    } catch (error) {
+      reject(new Error(error))
+    }
+  })
+}
+
+const login = (username, password) => {
+  if (username === undefined) return
+  let response = getRefreshToken(username, password)
+  let authenticated = response.access_token !== undefined
+  if (authenticated) updateToken(response.refresh_token)
+}
+
 export const KeycloakProviderMock = (props) => {
   const { children } = props
   return (
@@ -231,11 +297,12 @@ if (!fs.existsSync(`../${configPath}`)) {
     with other NOMAD installations.
   `)
 }
-export function startAPI(state, path) {
+export function startAPI(state, path, username = '', password = '') {
   const jsonPath = `${path}.json`
   responseCapture[jsonPath] = {}
 
   // Prepare API state for reading responses directly from it.
+  login(username, password)
   if (readMode === 'api') {
     // Prepare the test state
     const splits = state.split('.')

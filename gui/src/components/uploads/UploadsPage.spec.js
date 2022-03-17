@@ -118,3 +118,22 @@ test('Render upload page: one entry', async () => {
 
   closeAPI()
 })
+
+test('Render upload page: authenticated', async () => {
+  startAPI('tests.states.uploads.published', 'tests/data/uploads/published', 'test', 'password')
+  render(<UploadPage uploadId="dft_upload"/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
+  expect(screen.queryByText('This upload has already been published.')).toBeInTheDocument()
+
+  // Test if the table title is rendered correctly
+  expect(screen.queryByText('1 entry')).toBeInTheDocument()
+
+  closeAPI()
+})

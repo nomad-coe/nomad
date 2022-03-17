@@ -135,14 +135,14 @@ class Api {
     if (this.keycloak.token) {
       return new Promise((resolve, reject) => {
         this.keycloak.updateToken()
-          .success(() => {
+          .then(() => {
             resolve({
               headers: {
                 'Authorization': `Bearer ${this.keycloak.token}`
               }
             })
           })
-          .error(() => {
+          .catch(() => {
             reject(new ApiError())
           })
       })
@@ -379,7 +379,9 @@ export const APIProvider = React.memo(({
   // Update user whenever keycloak instance changes
   useEffect(() => {
     if (keycloak.authenticated) {
-      keycloak.loadUserInfo().success(setUser)
+      keycloak.loadUserInfo().then(response => {
+        setUser(response)
+      })
     }
   }, [keycloak, setUser])
 
