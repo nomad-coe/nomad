@@ -82,8 +82,8 @@ pip install nomad-lab
 Clone the parser project and install it in development mode:
 
 ```
-git clone $parserGitUrl$ nomad-parser-$codeName$
-pip install -e nomad-parser-$codeName$
+git clone $parserGitUrl$ $gitPath$
+pip install -e $gitPath$
 ```
 
 Running the parser now, will use the parser's Python code from the clone project.
