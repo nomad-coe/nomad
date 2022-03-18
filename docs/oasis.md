@@ -185,6 +185,7 @@ A few things to notice:
 - The NOMAD images we use are tagged `stable`. This could be replaced with concrete version tags.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent
 indefinite restarts.
+- When the elasticsearch version gets upgraded between different NOMAD version (e.g. NOMAD v1.0.6 introduced elasticsearch 7.x), you should be able to simply restart the elasticsearch containers. Docker will pull the new image. At least elasticsearch 7.x should be compatible with indices created in version 6.0 or later.
 
 ### nomad.yaml
 

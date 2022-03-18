@@ -46,6 +46,9 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v1.0.6
+- upgraded to Elasticsearch 7.x
+
 ### v1.0.4
 - tabular data schema
 
