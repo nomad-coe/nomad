@@ -257,6 +257,9 @@ export function isReference(property) {
 }
 
 export function path(nameOrDef) {
+  if (nameOrDef?.name === 'energies') {
+    console.log(nameOrDef)
+  }
   let def
   if (typeof nameOrDef === 'string') {
     def = defsByName[nameOrDef] && defsByName[nameOrDef].find(def => true)

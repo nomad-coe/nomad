@@ -338,7 +338,7 @@ function EditMetaDataDialog({...props}) {
   }, [])
 
   const createNewDatasets = useCallback(() => {
-    const promises = actions.filter(action => action.create_dataset).map(action => api.post(`/datasets`, {dataset_name: action.create_dataset}))
+    const promises = actions.filter(action => action.create_dataset).map(action => api.post(`/datasets/`, {dataset_name: action.create_dataset}))
     return Promise.all(promises)
   }, [api, actions])
 

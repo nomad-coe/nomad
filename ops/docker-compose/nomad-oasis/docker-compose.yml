@@ -6,10 +6,24 @@ x-common-variables: &nomad_backend_env
     NOMAD_MONGO_HOST: mongo
 
 services:
+    # keycloak user management
+    keycloak:
+        restart: always
+        image: jboss/keycloak:16.1.1
+        container_name: nomad_oasis_keycloak
+        environment:
+            - PROXY_ADDRESS_FORWARDING=true
+            - KEYCLOAK_FRONTEND_URL=http://localhost/keycloak/auth
+        volumes:
+            - keycloak:/opt/jboss/keycloak/standalone/data
+        # Uncomment to get access to the admin console.
+        # ports:
+        #   - 8080:8080
+
     # broker for celery
     rabbitmq:
         restart: always
-        image: rabbitmq:3.7.17
+        image: rabbitmq:3.9.13
         container_name: nomad_oasis_rabbitmq
         environment:
             - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -17,28 +31,28 @@ services:
             - RABBITMQ_DEFAULT_PASS=rabbitmq
             - RABBITMQ_DEFAULT_VHOST=/
         volumes:
-            - nomad_oasis_rabbitmq:/var/lib/rabbitmq
+            - rabbitmq:/var/lib/rabbitmq
 
     # the search engine
     elastic:
         restart: always
-        image: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
         container_name: nomad_oasis_elastic
         environment:
             - discovery.type=single-node
         volumes:
-            - nomad_oasis_elastic:/usr/share/elasticsearch/data
+            - elastic:/usr/share/elasticsearch/data
 
     # the user data db
     mongo:
         restart: always
-        image: mongo:4
+        image: mongo:5.0.6
         container_name: nomad_oasis_mongo
         environment:
             - MONGO_DATA_DIR=/data/db
             - MONGO_LOG_DIR=/dev/null
         volumes:
-            - nomad_oasis_mongo:/data/db
+            - mongo:/data/db
         command: mongod --logpath=/dev/null # --quiet
 
     # nomad worker (processing)
@@ -53,9 +67,10 @@ services:
             - rabbitmq
             - elastic
             - mongo
+            - keycloak
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - ./.volumes/fs:/app/.volumes/fs
+            - files:/app/.volumes/fs
         command: python -m celery worker -l info -A nomad.processing -Q celery
 
     # nomad app (api + gui)
@@ -71,9 +86,10 @@ services:
             - rabbitmq
             - elastic
             - mongo
+            - keycloak
         volumes:
             - ./nomad.yaml:/app/nomad.yaml
-            - ./.volumes/fs:/app/.volumes/fs
+            - files:/app/.volumes/fs
         command: ./run.sh
 
     # nomad remote tools hub (JupyterHUB, e.g. for AI Toolkit)
@@ -109,16 +125,18 @@ services:
         links:
             - app
             - hub
+            - keycloak
         ports:
             - 80:80
 
 
-volumes:
-    nomad_oasis_mongo:
-    nomad_oasis_elastic:
-    nomad_oasis_rabbitmq:
-    nomad_oasis_files:
-
 networks:
     default:
         name: nomad_oasis_network
+
+valumes:
+    mongo:
+    elastic:
+    rabbitmq:
+    files:
+    keycloak:

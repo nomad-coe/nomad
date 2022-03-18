@@ -16,10 +16,12 @@
 # limitations under the License.
 #
 
+from typing import Any
 from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
+import orjson
 
 from nomad import config, utils
 
@@ -28,6 +30,13 @@ from .routers import users, entries, materials, auth, info, datasets, uploads, s
 
 
 logger = utils.get_logger(__name__)
+
+
+class ORJSONResponse(JSONResponse):
+    media_type = "application/json"
+
+    def render(self, content: Any) -> bytes:
+        return orjson.dumps(content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # type: ignore
 
 
 app = FastAPI(
@@ -41,7 +50,8 @@ app = FastAPI(
     description=utils.strip(f'''
         Please visit the [API section of the NOMAD documentation]({config.api_url(True, 'docs/api.html')})
         for a introduction and examples.
-    '''))
+    '''),
+    default_response_class=ORJSONResponse)
 
 app.add_middleware(
     CORSMiddleware,

@@ -30,7 +30,7 @@ services:
     # broker for celery
     rabbitmq:
         restart: 'no'
-        image: rabbitmq:3.7.17
+        image: rabbitmq:3.9.13
         container_name: nomad_rabbitmq
         environment:
             - RABBITMQ_ERLANG_COOKIE=SWQOKODSQALRPCLNMEQG
@@ -45,13 +45,14 @@ services:
     # the search engine
     elastic:
         restart: 'no'
-        image: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
         container_name: nomad_elastic
         environment:
             - cluster.routing.allocation.disk.threshold_enabled=true
             - cluster.routing.allocation.disk.watermark.flood_stage=1gb
             - cluster.routing.allocation.disk.watermark.low=4gb
             - cluster.routing.allocation.disk.watermark.high=2gb
+            - discovery.type=single-node
         ports:
             - 9200:9200
         volumes:
@@ -60,7 +61,7 @@ services:
     # the user data db
     mongo:
         restart: 'no'
-        image: mongo:4
+        image: mongo:5.0.6
         container_name: nomad_mongo
         environment:
             - MONGO_DATA_DIR=/data/db

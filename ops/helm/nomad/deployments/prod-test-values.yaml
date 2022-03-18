@@ -1,5 +1,5 @@
 version:
-  label: "v1.0.0"
+  label: "1.0.6"
   isBeta: true
   usesBetaData: true
   officialUrl: "https://nomad-lab.eu/prod/rae/gui"
@@ -28,7 +28,7 @@ worker:
   nomadNodeType: "prod-worker"
 
 elastic:
-  host: elasticsearch.elasticsearch.svc.cluster.local
+  host: elasticsearch.elasticsearch-7.svc.cluster.local
   port: 9200
 
 mongo:
