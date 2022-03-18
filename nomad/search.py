@@ -34,7 +34,7 @@ partially implemented.
 
 from typing import Union, List, Iterable, Any, cast, Dict, Iterator, Generator, Callable
 import json
-import elasticsearch
+import elasticsearch.helpers
 from elasticsearch.exceptions import TransportError, RequestError
 from elasticsearch_dsl import Q, A, Search
 from elasticsearch_dsl.query import Query as EsQuery
@@ -226,13 +226,13 @@ def update_metadata(
             yield dict(
                 doc=entry_doc,
                 _id=entry_metadata.entry_id,
-                _type=entry_index.doc_type.name,
                 _index=entry_index.index_name,
                 _op_type='update')
 
     updates = list(elastic_updates())
     _, failed = elasticsearch.helpers.bulk(
         infrastructure.elastic_client, updates, stats_only=True)
+    failed = cast(int, failed)
 
     if update_materials:
         # TODO update the matrials index at least for v1
@@ -894,9 +894,9 @@ def _es_to_api_aggregation(
             entries = None
             if 'entries' in es_bucket:
                 if longest_nested_key:
-                    entries = [{longest_nested_key: item['_source']} for item in es_bucket.entries.hits.hits]
+                    entries = [{longest_nested_key: item['_source'].to_dict()} for item in es_bucket.entries.hits.hits]
                 else:
-                    entries = [item['_source'] for item in es_bucket.entries.hits.hits]
+                    entries = [item['_source'].to_dict() for item in es_bucket.entries.hits.hits]
 
             # By default ES returns values of 0 and 1 for terms aggregation
             # targeting boolean values. Here we transform them into True/False
@@ -1047,7 +1047,7 @@ def search(
     if order_field != doc_type.id_field:
         sort[doc_type.id_field] = pagination.order.value
     search = search.sort(sort)
-    search = search.extra(size=pagination.page_size)
+    search = search.extra(size=pagination.page_size, track_total_hits=True)
 
     if pagination.page_offset:
         search = search.extra(**{'from': pagination.page_offset})
@@ -1124,7 +1124,7 @@ def search(
 
     # pagination
     next_page_after_value = None
-    if 0 < len(es_response.hits) < es_response.hits.total and len(es_response.hits) >= pagination.page_size:
+    if 0 < len(es_response.hits) < es_response.hits.total.value and len(es_response.hits) >= pagination.page_size:
         last = es_response.hits[-1]
         if order_field == doc_type.id_field:
             next_page_after_value = last[doc_type.id_field]
@@ -1135,7 +1135,7 @@ def search(
             after_value = last.meta.sort[0]
             next_page_after_value = '%s:%s' % (after_value, last[doc_type.id_field])
     pagination_response = PaginationResponse(
-        total=es_response.hits.total,
+        total=es_response.hits.total.value,
         next_page_after_value=next_page_after_value,
         **pagination.dict())
 
