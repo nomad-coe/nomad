@@ -52,9 +52,9 @@ def assert_search_upload(
         index=config.elastic.entries_index, body=body)['hits']
 
     if size != -1:
-        assert search_results['total'] == size
+        assert search_results['total']['value'] == size
 
-    if search_results['total'] > 0:
+    if search_results['total']['value'] > 0:
         for hit in search_results['hits']:
             hit = utils.flat(hit['_source'])
             for key, value in kwargs.items():
