@@ -55,27 +55,7 @@ def parse(
     if hasattr(parser, 'backend_factory'):
         setattr(parser, 'backend_factory', backend_factory)
 
-    entry_archives = []
-    for mainfile_key in mainfile_keys:
-        entry_archive = datamodel.EntryArchive()
-        metadata = entry_archive.m_create(datamodel.EntryMetadata)
-        metadata.mainfile = mainfile_path
-        metadata.mainfile_key = mainfile_key
-        cwd = os.getcwd()
-        try:
-            mainfile_path = os.path.abspath(mainfile_path)
-            os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
-            parser.parse(mainfile_path, entry_archive, logger=logger)
-        except Exception as e:
-            logger.error('parsing was not successful', exc_info=e)
-            raise e
-        finally:
-            os.chdir(cwd)
-
-        if metadata.domain is None:
-            metadata.domain = parser.domain
-
-        entry_archives.append(entry_archive)
+    entry_archives = parsers.run_parser(mainfile_path, parser, mainfile_keys, logger)
 
     logger.info('ran parser')
     return entry_archives

@@ -731,6 +731,7 @@ class Entry(Proc):
         self._upload: Upload = None
         self._upload_files: StagingUploadFiles = None
         self._proc_logs: List[Any] = None
+        self._child_entries: List['Entry'] = []
 
         self._entry_metadata: EntryMetadata = None
         self._perform_index = True
@@ -851,7 +852,7 @@ class Entry(Proc):
             self._apply_metadata_from_mongo(upload, entry_metadata)
             return entry_metadata
         except KeyError:
-            # Due hard processing failures, it might be possible that an entry might not
+            # Due to hard processing failures, it might be possible that an entry might not
             # have an archive. Return the metadata that is available.
             if self._entry_metadata is not None:
                 return self._entry_metadata
@@ -919,8 +920,16 @@ class Entry(Proc):
 
     def _process_entry_local(self):
         logger = self.get_logger()
-        if self.upload is None:
-            logger.error('upload does not exist')
+        assert self.upload is not None, 'upload does not exist'
+        assert self.mainfile_key is None, 'cannot process a child entry, only the parent entry'
+
+        # Get child entries, if any
+        self._child_entries = list(Entry.objects(
+            upload_id=self.upload_id, mainfile=self.mainfile, mainfile_key__ne=None))
+        for child_entry in self._child_entries:
+            child_entry._upload = self.upload  # Optimization
+            child_entry.process_status = ProcessStatus.RUNNING
+            child_entry.set_last_status_message('Parent entry processing')
 
         # Load the reprocess settings from the upload, and apply defaults
         settings = config.reprocess.customize(self.upload.reprocess_settings)
@@ -947,23 +956,20 @@ class Entry(Proc):
                 self.warnings = ['no matching parser found during processing']
                 parser = parser_dict[self.parser_name]
 
-            if parser is not None:
-                should_parse = True
-                parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
-                if parser_changed:
-                    if not settings.use_original_parser:
-                        logger.info(
-                            'different parser matches during process, use new parser',
-                            parser=parser.name)
-                        self.parser_name = parser.name  # Parser renamed
-            else:
-                should_parse = False
-                logger.error('could not determine a parser for this entry')
-                self.errors = ['could not determine a parser for this entry']
+            assert parser is not None, 'could not determine a parser for this entry'
+            should_parse = True
+            parser_changed = self.parser_name != parser.name and parser_dict[self.parser_name].name != parser.name
+            if parser_changed:
+                if not settings.use_original_parser:
+                    logger.info(
+                        'different parser matches during process, use new parser',
+                        parser=parser.name)
+                    self.parser_name = parser.name  # Parser renamed
 
         if should_parse:
             self.set_last_status_message('Initializing metadata')
-            self._initialize_metadata_for_processing()
+            for entry in self._main_and_child_entries():
+                entry._initialize_metadata_for_processing()
 
             if len(self._entry_metadata.files) >= config.auxfile_cutoff:
                 self.warning(
@@ -971,8 +977,10 @@ class Entry(Proc):
                     'Have you placed many mainfiles in the same directory?')
 
             self.parsing()
-            self.normalizing()
-            self.archiving()
+            for entry in self._main_and_child_entries():
+                entry.normalizing()
+                entry.archiving()
+
         elif self.upload.published:
             self.set_last_status_message('Preserving entry data')
             try:
@@ -984,7 +992,32 @@ class Entry(Proc):
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)
                 raise
 
+    def _main_and_child_entries(self) -> Iterable['Entry']:
+        yield self
+        for child_entry in self._child_entries:
+            yield child_entry
+
+    def on_success(self):
+        # Mark any child entries as successfully completed (necessary because the child entries
+        # are not processed the normal way)
+        for child_entry in self._child_entries:
+            child_entry.errors = []
+            child_entry.process_status = ProcessStatus.SUCCESS
+            child_entry.last_status_message = 'Process process_entry completed successfully'
+            child_entry.save()
+
     def on_fail(self):
+        self._on_fail()
+        # Mark any child entries as failed (necessary because the child entries
+        # are not processed the normal way)
+        for child_entry in self._child_entries:
+            child_entry.errors = self.errors
+            child_entry.process_status = ProcessStatus.FAILURE
+            child_entry.last_status_message = f'Process process_entry failed: {self.errors[-1]}'
+            child_entry._on_fail()
+            child_entry.save()
+
+    def _on_fail(self):
         # in case of failure, create a minimum set of metadata and mark
         # processing failure
         try:
@@ -1035,7 +1068,6 @@ class Entry(Proc):
         context = dict(step=self.parser_name)
         logger = self.get_logger(**context)
         parser = parser_dict[self.parser_name]
-        self._entry_metadata.parser_name = self.parser_name
 
         with utils.timer(logger, 'parser executed', input_size=self.mainfile_file.size):
             if not config.process.reuse_parser:
@@ -1047,7 +1079,14 @@ class Entry(Proc):
                             'could not re-create parser instance',
                             exc_info=e, error=str(e), **context)
             try:
-                parser.parse(self.mainfile_file.os_path, self._parser_results, logger=logger)
+                if self._child_entries:
+                    child_archives = {}
+                    for child_entry in self._child_entries:
+                        child_archives[child_entry.mainfile_key] = child_entry._parser_results
+                    kwargs = dict(child_archives=child_archives)
+                else:
+                    kwargs = {}
+                parser.parse(self.mainfile_file.os_path, self._parser_results, logger=logger, **kwargs)
 
             except Exception as e:
                 raise ProcessFailure('parser failed with exception', exc_info=e, error=str(e), **context)
@@ -1516,12 +1555,13 @@ class Upload(Proc):
             e.entry_id: e
             for e in Entry.objects(upload_id=self.upload_id, mainfile=target_path)}
         entry_ids_to_delete = set(old_entries_dict.keys())
-        rv: Entry = None
+        main_entry: Entry = None
         if parser:
             metadata_handler = MetadataEditRequestHandler(
                 self.get_logger(), self.main_author_user, staging_upload_files, self.upload_id)
 
-            for mainfile_key in mainfile_keys:
+            mainfile_keys_including_main_entry: List[str] = [None] + (mainfile_keys or [])  # type: ignore
+            for mainfile_key in mainfile_keys_including_main_entry:
                 entry_id = generate_entry_id(self.upload_id, target_path, mainfile_key)
                 entry = old_entries_dict.get(entry_id)
                 if entry:
@@ -1543,12 +1583,13 @@ class Upload(Proc):
                     for quantity_name, mongo_value in entry_metadata.items():
                         setattr(entry, quantity_name, mongo_value)
                     entry.save()
-                # process locally
-                self.set_last_status_message('Processing')
-                entry.process_entry_local()
 
                 if not mainfile_key:
-                    rv = entry  # This is the main entry
+                    main_entry = entry  # This is the main entry
+
+            # process locally
+            self.set_last_status_message('Processing')
+            main_entry.process_entry_local()
 
         # Delete existing unmatched entries
         if entry_ids_to_delete:
@@ -1556,7 +1597,7 @@ class Upload(Proc):
             for entry_id in entry_ids_to_delete:
                 search.delete_entry(entry_id=entry_id, update_materials=True)
                 old_entries_dict[entry_id].delete()
-        return rv
+        return main_entry
 
     @property
     def upload_files(self) -> UploadFiles:
@@ -1679,7 +1720,8 @@ class Upload(Proc):
                     parser, mainfile_keys = match_parser(
                         staging_upload_files.raw_file_object(path_info.path).os_path)
                     if parser is not None:
-                        for mainfile_key in mainfile_keys:
+                        mainfile_keys_including_main_entry: List[str] = [None] + (mainfile_keys or [])  # type: ignore
+                        for mainfile_key in mainfile_keys_including_main_entry:
                             yield path_info.path, mainfile_key, parser
                 except Exception as e:
                     self.get_logger().error(
@@ -1774,7 +1816,7 @@ class Upload(Proc):
 
         except Exception as e:
             # try to remove the staging copy in failure case
-            logger.error('failed to trigger processing of all entries', exc_info=e)
+            logger.error('failed to perform matching', exc_info=e)
             if self.published:
                 self._cleanup_staging_files()
             raise
@@ -1790,7 +1832,7 @@ class Upload(Proc):
             next_entries: List[Entry] = None
             with utils.timer(logger, 'entries processing called'):
                 # Determine what the next level is and which entries belongs to this level
-                for entry in Entry.objects(upload_id=self.upload_id):
+                for entry in Entry.objects(upload_id=self.upload_id, mainfile_key=None):
                     parser = parser_dict.get(entry.parser_name)
                     if parser:
                         level = parser.level

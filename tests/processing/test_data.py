@@ -17,7 +17,7 @@
 #
 
 from nomad.datamodel.datamodel import EntryArchive
-from typing import Generator, Tuple
+from typing import Generator, Tuple, Dict
 import pytest
 import os.path
 import re
@@ -657,6 +657,7 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
     # Create a dummy parser which creates child entries
     class ParentChildParser(Parser):
         name = 'parsers/parentchild'
+        creates_children = True
 
         def is_mainfile(
                 self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
@@ -665,8 +666,12 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
                 return set([line.strip() for line in decoded_buffer.split('\n')[1:] if line.strip()])
             return False
 
-        def parse(self, mainfile: str, archive: EntryArchive, logger=None):
-            archive.metadata.comment = archive.metadata.mainfile_key or 'parent'
+        def parse(
+                self, mainfile: str, archive: EntryArchive, logger=None,
+                child_archives: Dict[str, EntryArchive] = None):
+            archive.metadata.comment = 'parent'
+            for mainfile_key, child_archive in child_archives.items():
+                child_archive.metadata.comment = mainfile_key
 
     # Register it
     test_parser = ParentChildParser()
@@ -688,7 +693,7 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
         assert set([e.mainfile_key for e in upload.successful_entries]) == set([None, *children])
         for entry in upload.successful_entries:
             metadata = entry.full_entry_metadata(upload)
-            assert metadata.comment == entry.mainfile_key or 'parent'
+            assert metadata.comment == (entry.mainfile_key or 'parent')
 
     upload.process_upload(file_operation=dict(op='DELETE', path=example_filename))
     upload.block_until_complete()

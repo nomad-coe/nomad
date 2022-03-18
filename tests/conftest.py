@@ -584,13 +584,13 @@ def internal_example_user_metadata(example_user_metadata) -> dict:
 def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
     ''' Provides a parsed entry in the form of an EntryArchive. '''
     parser, mainfile = example_mainfile
-    return test_parsing.run_parser(parser, mainfile)
+    return test_parsing.run_singular_parser(parser, mainfile)
 
 
 @pytest.fixture(scope='session')
 def parsed_ems() -> EntryArchive:
     ''' Provides a parsed experiment in the form of a EntryArchive. '''
-    return test_parsing.run_parser('parsers/eels', 'tests/data/parsers/eels.json')
+    return test_parsing.run_singular_parser('parsers/eels', 'tests/data/parsers/eels.json')
 
 
 @pytest.fixture(scope='session')
