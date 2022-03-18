@@ -83,7 +83,7 @@ python tests:
   services:
     - name: rabbitmq:3.9.13
       alias: rabbitmq
-    - name: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
+    - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
       alias: elastic
       # fix issue with running elastic in gitlab ci runner:
       # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214

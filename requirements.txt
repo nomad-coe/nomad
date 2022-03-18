@@ -19,7 +19,7 @@ pytz==2021.1
 aniso8601==7.0.0
 ase==3.19.0
 python-keycloak==0.26.1
-elasticsearch-dsl==6.4.0
+elasticsearch-dsl==7.4.0
 pydantic==1.8.2
 jmespath==0.10.0
 httpx==0.22.0
@@ -47,7 +47,7 @@ bitarray==2.3.5
 # [infrastructure]
 optimade[mongo]==0.14.0
 structlog==20.1.0
-elasticsearch==6.4.0
+elasticsearch==7.17.1
 msgpack==0.5.6
 celery[redis]==4.4.7
 mongoengine==0.19.1

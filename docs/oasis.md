@@ -100,7 +100,7 @@ services:
     # the search engine
     elastic:
         restart: always
-        image: docker.elastic.co/elasticsearch/elasticsearch:6.8.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
         container_name: nomad_oasis_elastic
         environment:
             - discovery.type=single-node
