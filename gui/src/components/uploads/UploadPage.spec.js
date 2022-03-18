@@ -25,6 +25,7 @@ import {
 } from '../conftest'
 import { within } from '@testing-library/dom'
 import UploadPage from './UploadPage'
+import {fireEvent, waitFor} from '@testing-library/react'
 
 test('Render upload page: published|not reader|not writer', async () => {
   startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
@@ -137,6 +138,32 @@ test('Render upload page: published and authenticated', async () => {
   expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
   expect(screen.getByTestId('source-api-action')).toBeEnabled()
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
+
+  closeAPI()
+})
+
+test('Render upload page: members dialog', async () => {
+  startAPI('tests.states.uploads.published', 'tests/data/uploads/members-dialog-published', 'test', 'password')
+  render(<UploadPage uploadId="dft_upload"/>)
+
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Open the members dialog
+  fireEvent.click(screen.getByTestId('edit-members-action'))
+  await waitFor(() =>
+    expect(screen.queryByText('Main author')).toBeInTheDocument()
+  )
+
+  let dialog = screen.getByTestId('edit-members-dialog')
+  expect(within(dialog).queryByText('Affiliation')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Role')).toBeInTheDocument()
+
+  let rows = within(dialog).queryAllByTestId('datatable-row')
+  expect(within(rows[0]).queryByText('Main author')).toBeInTheDocument()
+  expect(within(rows[0]).queryByText('Markus Scheidgen')).toBeInTheDocument()
+  expect(within(rows[0]).getByTestId('member-delete-button')).toBeInTheDocument()
+  expect(within(rows[0]).getByTestId('member-delete-button')).toBeDisabled()
 
   closeAPI()
 })
