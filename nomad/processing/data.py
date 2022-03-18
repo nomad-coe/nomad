@@ -926,10 +926,17 @@ class Entry(Proc):
         # Get child entries, if any
         self._child_entries = list(Entry.objects(
             upload_id=self.upload_id, mainfile=self.mainfile, mainfile_key__ne=None))
-        for child_entry in self._child_entries:
-            child_entry._upload = self.upload  # Optimization
-            child_entry.process_status = ProcessStatus.RUNNING
-            child_entry.set_last_status_message('Parent entry processing')
+        if self._child_entries:
+            for child_entry in self._child_entries:
+                # Set status of child entries to running and do some optimizations
+                child_entry._upload = self.upload
+                child_entry._perform_index = False
+                child_entry.process_status = ProcessStatus.RUNNING
+            Entry._collection.update_many(
+                {'upload_id': self.upload_id, 'mainfile': self.mainfile, 'mainfile_key': {'$exists': True}},
+                {'$set': {
+                    'process_status': ProcessStatus.RUNNING,
+                    'last_status_message': 'Parent entry processing'}})
 
         # Load the reprocess settings from the upload, and apply defaults
         settings = config.reprocess.customize(self.upload.reprocess_settings)
