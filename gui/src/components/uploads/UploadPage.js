@@ -355,6 +355,7 @@ function UploadPage() {
       })
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
+          history.push(getUrl('uploads', location))
           return
         }
         if (!hasUpload && error.apiMessage) {
@@ -363,17 +364,15 @@ function UploadPage() {
           raiseError(error)
         }
       })
-  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData])
+  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData, location, history])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(fetchData(), 1000)
       return () => clearInterval(interval)
-    } else if (deleteClicked) {
-      history.push(getUrl('uploads', location))
     }
-  }, [fetchData, isProcessing, deleteClicked, history, location])
+  }, [fetchData, isProcessing])
 
   // initial fetching of upload data
   useEffect(fetchData(), [fetchData])
