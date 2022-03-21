@@ -57,6 +57,7 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
       })
       .catch((error) => {
         if (error instanceof DoesNotExist && deleteClicked) {
+          history.push(getUrl('uploads', location))
           return
         }
         if (!hasUpload && error.apiMessage) {
@@ -65,17 +66,15 @@ const UploadContext = React.memo(function UploadContext({uploadId, children}) {
           raiseError(error)
         }
       })
-  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData])
+  }, [api, hasUpload, uploadId, pagination, deleteClicked, raiseError, setData, setApiData, history, location])
 
   // constant fetching of upload data when necessary
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(fetchData(), 1000)
       return () => clearInterval(interval)
-    } else if (deleteClicked) {
-      history.push(getUrl('uploads', location))
     }
-  }, [fetchData, isProcessing, deleteClicked, history, location])
+  }, [fetchData, isProcessing])
 
   // initial fetching of upload data
   useEffect(fetchData(), [fetchData])

@@ -47,9 +47,16 @@ contributing, and API reference.
 
 Omitted versions are plain bugfix releases with only minor changes and fixes.
 
+### v1.0.6
+- upgraded to Elasticsearch 7.x
+
+### v1.0.4
+- tabular data schema
+
 ### v1.0.3
 - refactored DCAT to use fast api, added DOIs
 - refactored ArchiveQuery client
+- documentation and fixes for Oasis with keycloak
 - many minor GUI bugfixes
 
 ### v1.0.0

@@ -44,7 +44,7 @@ export default function ResolveDOI() {
     })
     let { doi } = doiMatch.params
 
-    api.get('/datasets', {doi: doi})
+    api.get('/datasets/', {doi: doi})
       .then(response => {
         if (response.pagination.total >= 1) {
           const dataset_id = response.data[0].dataset_id

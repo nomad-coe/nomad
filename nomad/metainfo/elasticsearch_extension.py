@@ -449,8 +449,6 @@ class Index():
         self.index_config_key = index_config_key
 
     def __elasticsearch_operation(self, name: str, *args, **kwargs):
-        if 'doc_type' not in kwargs:
-            kwargs['doc_type'] = self.doc_type.name
         if 'index' not in kwargs:
             kwargs['index'] = self.index_name
 
@@ -493,15 +491,12 @@ class Index():
                         }
                     }
                 },
-                'mappings': {
-                    self.doc_type.name: self.doc_type.mapping
-                }
+                'mappings': self.doc_type.mapping
             })
             logger.info('elasticsearch index created')
         elif upsert:
             self.elastic_client.indices.put_mapping(
                 index=self.index_name,
-                doc_type=self.doc_type.name,
                 body=self.doc_type.mapping)
             logger.info('elasticsearch index updated')
         else:

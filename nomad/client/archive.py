@@ -79,7 +79,7 @@ class ArchiveQuery:
         required (dict): required properties
         url (str): server url, if not specified, the default official NOMAD one is used
         after (str): specify the starting upload id to query, if users have knowledge of uploads,
-                     they may wish to start from a specific upload, default: ''
+            they may wish to start from a specific upload, default: ''
         results_max (int): maximum results to query, default: 1000
         page_size (int): size of page in each query, default: 100
         username (str): username for authenticated access, default: ''
@@ -88,10 +88,11 @@ class ArchiveQuery:
         sleep_time (float): sleep time for retry, default: 1.
     '''
 
-    def __init__(self, owner: str = 'visible', query: dict = None, required: dict = None,
-                 url: str = None, after: str = None, results_max: int = 1000, page_size: int = 10,
-                 username: str = None, password: str = None, retry: int = 4, sleep_time: float = 4,
-                 from_api: bool = False):
+    def __init__(
+            self, owner: str = 'visible', query: dict = None, required: dict = None,
+            url: str = None, after: str = None, results_max: int = 1000, page_size: int = 10,
+            username: str = None, password: str = None, retry: int = 4, sleep_time: float = 4,
+            from_api: bool = False):
         self._owner: str = owner
         self._required = required if required else dict(run='*')
         self._query_list: List[dict] = []
@@ -110,7 +111,7 @@ class ArchiveQuery:
         self._from_api: bool = from_api
 
         self._oidc = KeycloakOpenID(
-            server_url=config.keycloak.server_url, realm_name=config.keycloak.realm_name,
+            server_url=config.keycloak.public_server_url, realm_name=config.keycloak.realm_name,
             client_id=config.keycloak.client_id)
 
         # noinspection PyTypeChecker
@@ -342,8 +343,9 @@ class ArchiveQuery:
         semaphore = Semaphore(30)
 
         async with httpx.AsyncClient(timeout=Timeout(timeout=300)) as session:
-            tasks = [asyncio.create_task(self._acquire(upload, session, semaphore)) for upload in
-                     self._uploads[:num_upload]]
+            tasks = [asyncio.create_task(
+                self._acquire(
+                    upload, session, semaphore)) for upload in self._uploads[:num_upload]]
             results = await asyncio.gather(*tasks)
 
         # flatten 2D list
@@ -380,8 +382,8 @@ class ArchiveQuery:
 
             self._uploads.remove(upload)
 
-            result = [EntryArchive.m_from_dict(result['archive']) for result in
-                      response_json['data']]
+            result = [EntryArchive.m_from_dict(
+                result['archive']) for result in response_json['data']]
 
             if not result:
                 print(f'No result returned for id {upload[0]}, is the query proper?')
@@ -431,6 +433,37 @@ class ArchiveQuery:
         print('Downloading required data...')
 
         return asyncio.run(self._download_async(number))
+
+    async def async_fetch(self, number: int = 0) -> int:
+        '''
+        Asynchronous interface for use in a running event loop.
+        '''
+
+        print('Fetching remote uploads...')
+
+        return await self._fetch_async(number)
+
+    async def async_download(self, number: int = 0) -> List[EntryArchive]:
+        '''
+        Asynchronous interface for use in a running event loop.
+        '''
+
+        pending_size: int = sum([count for _, count in self._uploads])
+
+        # download all at once
+        if number == 0:
+            number = pending_size
+
+        if number == 0:
+            # empty list, fetch as many as possible
+            number = await self.async_fetch()
+        elif pending_size < number:
+            # if not sufficient fetched entries, fetch first
+            await self.async_fetch(number - pending_size)
+
+        print('Downloading required data...')
+
+        return await self._download_async(number)
 
     def upload_list(self) -> List[Tuple[str, int]]:
         return self._uploads
