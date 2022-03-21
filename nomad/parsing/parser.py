@@ -279,7 +279,7 @@ class MatchingParserInterface(MatchingParser):
                 raise e
         return self._mainfile_parser
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         self.mainfile_parser.parse(mainfile, archive, logger)
 
 
