@@ -896,7 +896,7 @@ async def put_upload_raw_path(
 
     if create_directory:
         full_path = os.path.join(path, create_directory)
-        if not is_safe_relative_path(path):
+        if '/' in create_directory or not is_safe_relative_path(path):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Bad directory name specified.')
