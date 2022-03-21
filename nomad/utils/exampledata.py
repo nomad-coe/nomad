@@ -132,6 +132,10 @@ class ExampleData:
                 assert not upload_dict.get('publish_time')
         if 'main_author' not in upload_dict and 'main_author' in self.entry_defaults:
             upload_dict['main_author'] = self.entry_defaults['main_author']
+        if 'coauthors' not in upload_dict and 'coauthors' in self.entry_defaults:
+            upload_dict['coauthors'] = self.entry_defaults['coauthors']
+        if 'reviewers' not in upload_dict and 'reviewers' in self.entry_defaults:
+            upload_dict['reviewers'] = self.entry_defaults['reviewers']
         self.uploads[upload_id] = upload_dict
 
     def create_entry(

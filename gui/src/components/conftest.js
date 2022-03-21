@@ -71,7 +71,7 @@ const getRefreshToken = (username, password) => {
     -d 'username=${username}&grant_type=password&password=${password}&client_id=nomad_gui_dev'`
   let response = require('child_process').execSync(command).toString()
   response = JSON.parse(response)
-  if (response.error !== undefined) return {}
+  if (response.error !== undefined) throw Error(response.error)
   mockKeycloak.login = (username ? () => login(username, password) : jest.fn())
   mockKeycloak.loadUserInfo = (username ? () => loadUserInfo(username) : jest.fn())
   return response
@@ -98,18 +98,49 @@ const updateToken = (refresh_token) => {
   })
 }
 
+const testUsers = {
+  'test': {
+    'sub': '68878af7-6845-46c0-b2c1-250d4d8eb470',
+    'email_verified': true,
+    'name': 'Markus Scheidgen',
+    'preferred_username': 'test',
+    'given_name': 'Markus',
+    'family_name': 'Scheidgen',
+    'email': 'markus.scheidgen@fhi-berlin.de'
+  },
+  'scooper': {
+    'sub': 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6',
+    'email_verified': true,
+    'name': 'Sheldon Cooper',
+    'preferred_username': 'scooper',
+    'given_name': 'Sheldon',
+    'family_name': 'Cooper',
+    'email': 'sheldon.cooper@nomad-coe.eu'
+  },
+  'ttester': {
+    'sub': '54cb1f64-f84e-4815-9ade-440ce0b5430f',
+    'email_verified': true,
+    'name': 'Test Tester',
+    'preferred_username': 'ttester',
+    'given_name': 'Test',
+    'family_name': 'Tester',
+    'email': 'test@nomad-coe.eu'
+  },
+  'admin': {
+    'sub': 'c97facc2-92ec-4fa6-80cf-a08ed957255b',
+    'email_verified': true,
+    'name': 'Admin Administrator',
+    'preferred_username': 'admin',
+    'given_name': 'Admin',
+    'family_name': 'Administrator',
+    'email': 'markus.scheidgen@physik.hu-berlin.de'
+  }
+}
+
 const loadUserInfo = (username) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const user = {
-        'sub': '68878af7-6845-46c0-b2c1-250d4d8eb470',
-        'email_verified': true,
-        'name': 'Markus Scheidgen',
-        'preferred_username': username,
-        'given_name': 'Markus',
-        'family_name': 'Scheidgen',
-        'email': 'markus.scheidgen@fhi-berlin.de'
-      }
+      const user = testUsers[username]
       resolve(user)
     } catch (error) {
       reject(new Error(error))
@@ -118,10 +149,17 @@ const loadUserInfo = (username) => {
 }
 
 const login = (username, password) => {
-  if (username === undefined) return
+  if ((username === undefined || username === '') && (password === undefined || password === '')) return
   let response = getRefreshToken(username, password)
   let authenticated = response.access_token !== undefined
   if (authenticated) updateToken(response.refresh_token)
+}
+
+const logout = () => {
+  mockKeycloak.updateToken = jest.fn()
+  mockKeycloak.authenticated = false
+  mockKeycloak.token = ''
+  mockKeycloak.refreshToken = ''
 }
 
 export const KeycloakProviderMock = (props) => {
@@ -412,6 +450,8 @@ function hashRequest(req) {
  * cleared.
  */
 export function closeAPI() {
+  logout()
+
   // Tear down the test state when running a live API
   if (readMode === 'api') {
     execSync(`

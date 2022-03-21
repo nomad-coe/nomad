@@ -27,7 +27,9 @@ def published():
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
-    data = ExampleData(main_author=main_author)
+    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
@@ -48,7 +50,9 @@ def published_with_embargo():
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
-    data = ExampleData(main_author=main_author)
+    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=3)
@@ -69,7 +73,9 @@ def unpublished():
     '''
     infrastructure.setup()
     main_author = infrastructure.keycloak.get_user(username='test')
-    data = ExampleData(main_author=main_author)
+    coauthors = [infrastructure.keycloak.get_user(username='scooper').user_id]
+    reviewers = [infrastructure.keycloak.get_user(username='ttester').user_id]
+    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
