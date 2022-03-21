@@ -26,6 +26,7 @@ import importlib
 
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.metainfo import Package
 
 
 class Parser(metaclass=ABCMeta):
@@ -307,6 +308,13 @@ class ArchiveParser(MatchingParser):
         if metadata_data is not None:
             # Setting metadata in this way is not supported (any more)
             del(archive_data[EntryArchive.metadata.name])
+
+        # ensure that definitions are parsed first to make them available for the
+        # parsing itself.
+        if 'definitions' in archive_data:
+            archive.definitions = Package.m_from_dict(
+                archive_data['definitions'], m_context=archive.m_context)
+            del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)
 

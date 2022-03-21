@@ -16,9 +16,10 @@
 # limitations under the License.
 #
 
-from typing import Tuple
+from typing import Tuple, Dict
 from urllib.parse import urljoin, urlsplit, urlunsplit
 import re
+import json
 
 from nomad import utils, config
 from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
@@ -35,39 +36,12 @@ class Context(MetainfoContext):
         if self.installation_url is None:
             self.installation_url = config.api_url(api='api/v1')
 
+        self.archives: Dict[str, MSection] = {}
+        self.urls: Dict[MSection, str] = {}
+
     @property
     def upload_id(self):
         return None
-
-    def parse_url(self, url) -> Tuple[str, str, str, str]:
-        url_parts = urlsplit(url)
-        path = url_parts.path
-        fragment = url_parts.fragment
-        if fragment == '':
-            fragment = None
-
-        fragment = self._normalize_fragment(fragment)
-
-        if path == '':
-            return None, None, None, fragment
-
-        path_match = re.match(r'^../upload/archive/([A-Za-z0-9_]+)$', path)
-        if path_match:
-            return None, None, path_match.group(1), fragment
-
-        path_match = re.match(r'^../uploads/([A-Za-z0-9_]+)/archive/([A-Za-z0-9_]+)$', path)
-        if path_match:
-            return None, path_match.group(1), path_match.group(2), fragment
-
-        path_match = re.search(r'/api/v1/uploads/([A-Za-z0-9_]+)/archive/([A-Za-z0-9_]+)$', path)
-        if path_match:
-            installation_url = urlunsplit((
-                url_parts.scheme, url_parts.netloc,
-                url_parts.path.replace(path_match.group(0), ''), '', '',))
-
-            return installation_url, path_match.group(1), path_match.group(2), fragment
-
-        raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
 
     def _get_ids(self, root: MSection) -> Tuple[str, str]:
         if not isinstance(root, EntryArchive):
@@ -86,6 +60,9 @@ class Context(MetainfoContext):
 
         if source_root == target_root:
             return f'#{fragment}'
+
+        if target_root in self.urls:
+            return f'{self.urls[target_root]}#{fragment}'
 
         upload_id, entry_id = self._get_ids(target_root)
         assert entry_id is not None, 'Only archives with entry_id can be referenced'
@@ -135,11 +112,64 @@ class Context(MetainfoContext):
             self._normalize_fragment(url_parts.fragment),))
 
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+        ''' Loads the archive for the given identification. '''
         raise NotImplementedError()
 
-    def resolve_archive(self, url: str) -> MSection:
-        installation_url, upload_id, entry_id, _ = self.parse_url(url)
-        return self.load_archive(entry_id, upload_id, installation_url)
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
+        ''' Loads a raw file based on the given upload and path. Interprets is as metainfo data. '''
+        raise NotImplementedError()
+
+    def _parse_url(self, url: str) -> Tuple[str, str, str, str]:
+        installation_url = self.installation_url
+        upload_id = self.upload_id
+
+        url_match = re.match(r'^../upload/(archive|raw)/([^\?]+)$', url)
+        if url_match:
+            kind = url_match.group(1)
+            path = url_match.group(2)
+            return installation_url, upload_id, kind, path
+
+        url_match = re.match(r'^../uploads/([A-Za-z0-9_]+)/(archive|raw)/([^\?]+)$', url)
+        if url_match:
+            upload_id = url_match.group(1)
+            kind = url_match.group(2)
+            path = url_match.group(3)
+            return installation_url, upload_id, kind, path
+
+        url_match = re.search(r'/api/v1/uploads/([A-Za-z0-9_]+)/(archive|raw)/([^\?]+)$', url)
+        if url_match:
+            installation_url = url.replace(url_match.group(0), '')
+            upload_id = url_match.group(1)
+            kind = url_match.group(2)
+            path = url_match.group(3)
+            return installation_url, upload_id, kind, path
+
+        raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
+
+    def load_url(self, url: str) -> MSection:
+        installation_url, upload_id, kind, path = self._parse_url(url)
+        if kind == 'archive':
+            if path.startswith('mainfile/'):
+                entry_id = utils.generate_entry_id(upload_id, path.replace('mainfile/', ''))
+            elif '/' in path:
+                raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
+            else:
+                entry_id = path
+
+            return self.load_archive(entry_id, upload_id, installation_url)
+
+        if kind == 'raw':
+            return self.load_raw_file(path, upload_id, installation_url)
+
+        raise MetainfoReferenceError(f'the url {url} is not a valid metainfo reference')
+
+    def resolve_archive_url(self, url: str) -> MSection:
+        if url not in self.archives:
+            archive = self.load_url(url)
+            self.archives[url] = archive
+            self.urls[archive] = url
+
+        return self.archives[url]
 
 
 class ServerContext(Context):
@@ -157,27 +187,47 @@ class ServerContext(Context):
         if self.upload:
             return self.upload.upload_id
 
-    def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+    def _get_upload_files(self, upload_id: str, installation_url: str):
         if installation_url and self.installation_url != installation_url:
             raise NotImplementedError()
 
-        if self.upload_files:
-            upload_files = self.upload_files
+        if self.upload_files and self.upload_files.upload_id == upload_id:
+            return self.upload_files
         else:
             # delayed import, context is part of datamodel which should be available in
             # base install, files however requires [insfrastructure].
             # TODO move server context to some infrastructure package!
             from nomad import files
-            upload_files = files.UploadFiles.get(upload_id)
+            return files.UploadFiles.get(upload_id)
+
+    def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+        upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
             archive_dict = upload_files.read_archive(entry_id)[entry_id].to_dict()
         except KeyError:
             raise MetainfoReferenceError(f'archive does not exist {entry_id}')
 
-        return EntryArchive.m_from_dict(archive_dict)
+        return EntryArchive.m_from_dict(archive_dict, m_context=self)
+
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> EntryArchive:
+        upload_files = self._get_upload_files(upload_id, installation_url)
+
+        try:
+            with upload_files.raw_file(path, 'rt') as f:
+                archive_data = json.load(f)
+        except Exception:
+            raise MetainfoReferenceError(f'Could not load {path}.')
+
+        if 'm_def' not in archive_data:
+            return EntryArchive.m_from_dict(archive_data, m_context=self)
+        else:
+            return MSection.from_dict(archive_data, m_context=self)
 
 
 class ClientContext(Context):
     def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+        raise NotImplementedError()
+
+    def load_raw_file(self, path: str, upload_id: str, installation_url: str) -> MSection:
         raise NotImplementedError()
