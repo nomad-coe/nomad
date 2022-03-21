@@ -17,10 +17,10 @@
 #
 
 import os.path
-from typing import Dict
+from typing import Tuple, List, Dict
 
 from nomad import config
-from nomad.datamodel import results
+from nomad.datamodel import EntryArchive, EntryMetadata, results
 
 from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
@@ -48,7 +48,7 @@ except ImportError:
     pass
 
 
-def match_parser(mainfile_path: str, strict=True) -> Parser:
+def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tuple[Parser, List[str]]:
     '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
@@ -60,12 +60,17 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
     Arguments:
         mainfile_path: Path to the mainfile
         strict: Only match strict parsers, e.g. no artificial parsers for missing or empty entries.
+        parser_name: Optional, to force the matching to test only a specific parser
 
-    Returns: The parser, or None if no parser could be matched.
+    Returns:
+        A tuple (`parser`, `mainfile_keys`). The `parser` is the matched parser, and
+        `mainfile_keys` defines the keys to use for child entries, if any. If there are
+        no child entries, `mainfile_keys` will be None. If no parser matches, we return
+        (None, None).
     '''
     mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
-        return None
+        return None, None
 
     with open(mainfile_path, 'rb') as f:
         compression, open_compressed = _compressions.get(f.read(3), (None, open))
@@ -91,12 +96,27 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
                 decoded_buffer = buffer.decode(encoding)
             except Exception:
                 pass
-
-    for parser in parsers:
+    if parser_name:
+        parser = parser_dict.get(parser_name)
+        assert parser is not None, f'parser by the name `{parser_name}` does not exist'
+        parsers_to_check = [parser]
+    else:
+        parsers_to_check = parsers
+    for parser in parsers_to_check:
         if strict and isinstance(parser, (MissingParser, EmptyParser)):
             continue
 
-        if parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression):
+        match_result = parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression)
+        if match_result:
+            if type(match_result) == set:
+                assert parser.creates_children, 'Illegal return value - parser does not specify `creates_children`'
+                for mainfile_key in match_result:  # type: ignore
+                    assert mainfile_key and type(mainfile_key) == str, (
+                        f'Child keys must be strings, got {type(mainfile_key)}')
+                mainfile_keys = sorted(match_result)  # type: ignore
+            else:
+                mainfile_keys = None
+
             # potentially convert the file
             if encoding in ['iso-8859-1']:
                 try:
@@ -109,9 +129,52 @@ def match_parser(mainfile_path: str, strict=True) -> Parser:
                         text_file.write(content)
 
             # TODO: deal with multiple possible parser specs
-            return parser
+            return parser, mainfile_keys
 
-    return None
+    return None, None
+
+
+def run_parser(
+        mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None, logger=None) -> List[EntryArchive]:
+    '''
+    Parses a file, given the path, the parser, and mainfile_keys, as returned by
+    :func:`match_parser`, and returns the resulting EntryArchive objects. Parsers that have
+    `create_children == False` (the most common case) will generate a list with a single entry,
+    for parsers that create children the list will consist of the main entry followed by the
+    child entries. The returned archive objects will have minimal metadata.
+    '''
+    entry_archive = EntryArchive()
+    metadata = entry_archive.m_create(EntryMetadata)
+    metadata.mainfile = mainfile_path
+    entry_archives = [entry_archive]
+    if mainfile_keys:
+        child_archives = {}
+        for mainfile_key in mainfile_keys:
+            child_archive = EntryArchive()
+            child_metadata = child_archive.m_create(EntryMetadata)
+            child_metadata.mainfile = mainfile_path
+            child_metadata.mainfile_key = mainfile_key
+            child_archives[mainfile_key] = child_archive
+            entry_archives.append(child_archive)
+        kwargs = dict(child_archives=child_archives)
+    else:
+        kwargs = {}
+
+    cwd = os.getcwd()
+    try:
+        mainfile_path = os.path.abspath(mainfile_path)
+        os.chdir(os.path.abspath(os.path.dirname(mainfile_path)))
+        parser.parse(mainfile_path, entry_archive, logger=logger, **kwargs)
+    except Exception as e:
+        if logger:
+            logger.error('parsing was not successful', exc_info=e)
+        raise e
+    finally:
+        os.chdir(cwd)
+    for entry_archive in entry_archives:
+        if entry_archive.metadata.domain is None:
+            entry_archive.metadata.domain = parser.domain
+    return entry_archives
 
 
 parsers = [

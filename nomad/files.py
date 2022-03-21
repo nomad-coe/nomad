@@ -1048,7 +1048,7 @@ class StagingUploadFiles(UploadFiles):
         nomad's logic about what is part of an entry and what not. The mainfile
         is the first element, the rest is sorted.
         Arguments:
-            mainfile: The mainfile relative to upload
+            mainfile: The mainfile path relative to upload
             with_mainfile: Do include the mainfile, default is True
         '''
         mainfile_object = self._raw_dir.join_file(mainfile)
@@ -1061,9 +1061,11 @@ class StagingUploadFiles(UploadFiles):
 
         file_count = 0
         aux_files: List[str] = []
-        for filename in os.listdir(entry_dir):
-            if filename != mainfile_basename and os.path.isfile(os.path.join(entry_dir, filename)):
-                aux_files.append(os.path.join(entry_relative_dir, filename))
+        dir_elements = os.listdir(entry_dir)
+        dir_elements.sort()
+        for dir_element in dir_elements:
+            if dir_element != mainfile_basename and os.path.isfile(os.path.join(entry_dir, dir_element)):
+                aux_files.append(os.path.join(entry_relative_dir, dir_element))
                 file_count += 1
 
             if with_cutoff and file_count > config.auxfile_cutoff:
@@ -1079,11 +1081,13 @@ class StagingUploadFiles(UploadFiles):
         else:
             return aux_files
 
-    def entry_hash(self, mainfile: str) -> str:
+    def entry_hash(self, mainfile: str, mainfile_key: str) -> str:
         '''
         Calculates a hash for the given entry based on file contents and aux file contents.
         Arguments:
-            mainfile: The mainfile path relative to the upload that identifies the entry in the folder structure.
+            mainfile: The mainfile path relative to the upload that identifies the entry in
+                the folder structure.
+            mainfile_key: The mainfile_key of the entry (if any)
         Returns:
             The calculated hash
         Raises:
@@ -1094,7 +1098,8 @@ class StagingUploadFiles(UploadFiles):
             with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
                 for data in iter(lambda: f.read(65536), b''):
                     hash.update(data)
-
+        if mainfile_key:
+            hash.update(mainfile_key.encode('utf8'))
         return utils.make_websave(hash)
 
     def files_to_bundle(

@@ -351,7 +351,10 @@ class EntryMetadata(metainfo.MSection):
         entry_create_time: The time that the entry was created
         last_edit_time: The date and time the user metadata was last edited.
         parser_name: The NOMAD parser used for the last processing.
-        mainfile: The upload relative mainfile path.
+        mainfile: The path to the mainfile from the root directory of the uploaded files.
+        mainfile_key: Key used to differentiate between different *child entries* of an entry.
+            For parent entries and entries that do not have any children, the value should
+            be empty.
         files: A list of all files, relative to upload.
         pid: The unique, sequentially enumerated, integer PID that was used in the legacy
             NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
@@ -458,6 +461,15 @@ class EntryMetadata(metainfo.MSection):
     mainfile = metainfo.Quantity(
         type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The path to the mainfile from the root directory of the uploaded files',
+        a_elasticsearch=PathSearch())
+
+    mainfile_key = metainfo.Quantity(
+        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        description='''
+            Key used to differentiate between different *child entries* of an entry.
+            For parent entries and entries that do not have any children, the value should
+            be empty.
+        ''',
         a_elasticsearch=PathSearch())
 
     files = metainfo.Quantity(

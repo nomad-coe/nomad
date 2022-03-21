@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List
+from typing import List, Set, Dict, Union
 from abc import ABCMeta, abstractmethod
 import re
 import os
@@ -35,6 +35,7 @@ class Parser(metaclass=ABCMeta):
     '''
     name = "parsers/parser"
     level = 0
+    creates_children = False
     '''
     Level 0 parsers are run first, then level 1, and so on. Normally the value should be 0,
     use higher values only when a parser depends on other parsers.
@@ -46,9 +47,24 @@ class Parser(metaclass=ABCMeta):
     @abstractmethod
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> bool:
+            compression: str = None) -> Union[bool, Set[str]]:
         '''
-        Checks if a file is a mainfile for the parsers.
+        Checks if a file is a mainfile for the parser. Should return True or a set of
+        *keys* (non-empty strings) if it is a mainfile, otherwise a falsey value.
+
+        The option to return a set of keys should only be used by parsers that have
+        `creates_children == True`. These create multiple entries for one mainfile, namely
+        a *main* entry and some number of *child* entries. Most parsers, however, have
+        `creates_children == False` and thus only generate a main entry, no child entries,
+        and these should thus just return a boolean value.
+
+        If the return value is a set of keys, a main entry will be created when parsing,
+        plus one child entry for each key in the returned set. The key value will be stored
+        in the field `mainfile_key` of the corresponding child entry. Main entries have
+        `mainfile_key == None`.
+
+        The combination (`upload_id`, `mainfile`, `mainfile_key`) uniquely identifies an entry
+        (regardless of it's a main entry or child entry).
 
         Arguments:
             filename: The filesystem path to the mainfile
@@ -59,7 +75,12 @@ class Parser(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(
+            self,
+            mainfile: str,
+            archive: EntryArchive,
+            logger=None,
+            child_archives: Dict[str, EntryArchive] = None) -> None:
         '''
         Runs the parser on the given mainfile and populates the result in the given
         archive root_section. It allows to be run repeatedly for different mainfiles.
@@ -69,6 +90,8 @@ class Parser(metaclass=ABCMeta):
             archive: An instance of the section :class:`EntryArchive`. It might contain
                 a section ``metadata`` with information about the entry.
             logger: A optional logger
+            child_archives: a dictionary with {mainfile_key : EntryArchive} for each child,
+                for the parse function to populate with data.
         '''
         pass
 
@@ -85,10 +108,20 @@ class Parser(metaclass=ABCMeta):
         pass
 
     @classmethod
-    def main(cls, mainfile):
+    def main(cls, mainfile, mainfile_keys: List[str] = None):
         archive = EntryArchive()
         archive.m_create(EntryMetadata)
-        cls().parse(mainfile, archive)  # pylint: disable=no-value-for-parameter
+        if mainfile_keys:
+            child_archives = {}
+            for mainfile_key in mainfile_keys:
+                child_archive = EntryArchive()
+                child_archive.m_create(EntryMetadata)
+                child_archives[mainfile_key] = child_archive
+            kwargs = dict(child_archives=child_archives)
+        else:
+            kwargs = {}
+
+        cls().parse(mainfile, archive, **kwargs)  # pylint: disable=no-value-for-parameter
         return archive
 
 
@@ -118,7 +151,7 @@ class BrokenParser(Parser):
 
         return False
 
-    def parse(self, mainfile: str, archive, logger=None):
+    def parse(self, mainfile: str, archive, logger=None, child_archives=None):
         raise Exception('Failed on purpose.')
 
 
@@ -214,7 +247,7 @@ class MatchingParser(Parser):
 
         return True
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         raise NotImplementedError()
 
     def __repr__(self):
@@ -259,7 +292,7 @@ class ArchiveParser(MatchingParser):
             mainfile_mime_re='.*',
             mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         if mainfile.endswith('.json'):
             import json
             with open(mainfile, 'rt') as f:
@@ -288,5 +321,5 @@ class MissingParser(MatchingParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None):
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
         raise Exception('The code %s is not yet supported.' % self.code_name)

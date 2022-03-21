@@ -581,16 +581,18 @@ def create_test_upload_files(
     for archive in archives:
         # create a copy of the given template files for each archive
         mainfile = archive.metadata.mainfile
+        mainfile_key = archive.metadata.mainfile_key
         assert mainfile is not None, 'Archives to create test upload must have a mainfile'
         target = upload_raw_files.join_file(os.path.dirname(mainfile)).os_path
-        if os.path.exists(target):
-            for file_ in os.listdir(source):
-                shutil.copy(os.path.join(source, file_), target)
-        else:
-            shutil.copytree(source, target)
-        os.rename(
-            os.path.join(target, os.path.basename(template_mainfile)),
-            os.path.join(target, os.path.basename(mainfile)))
+        if not mainfile_key:
+            if os.path.exists(target):
+                for file_ in os.listdir(source):
+                    shutil.copy(os.path.join(source, file_), target)
+            else:
+                shutil.copytree(source, target)
+            os.rename(
+                os.path.join(target, os.path.basename(template_mainfile)),
+                os.path.join(target, os.path.basename(mainfile)))
 
         # create an archive "file" for each archive
         entry_id = archive.metadata.entry_id

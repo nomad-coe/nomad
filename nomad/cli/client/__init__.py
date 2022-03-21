@@ -139,18 +139,19 @@ def local(ctx, entry_id, show_archive, show_metadata, skip_normalizers, not_stri
 
     with LocalEntryProcessing(entry_id, auth=auth, **kwargs) as local:
         print(f'Data being saved to .volumes/fs/tmp/repro_{entry_id} if not already there')
-        entry_archive = local.parse(strict=not not_strict)
+        entry_archives = local.parse(strict=not not_strict)
 
-        if not skip_normalizers:
-            local.normalize_all(entry_archive=entry_archive)
+        for entry_archive in entry_archives:
+            if not skip_normalizers:
+                local.normalize_all(entry_archive=entry_archive)
 
-        if show_archive:
-            json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
+            if show_archive:
+                json.dump(entry_archive.m_to_dict(), sys.stdout, indent=2)
 
-        if show_metadata:
-            metadata = entry_archive.metadata
-            metadata.apply_archvie_metadata(entry_archive)
-            json.dump(metadata.m_to_dict(), sys.stdout, indent=4)
+            if show_metadata:
+                metadata = entry_archive.metadata
+                metadata.apply_archvie_metadata(entry_archive)
+                json.dump(metadata.m_to_dict(), sys.stdout, indent=4)
 
 
 @client.command(

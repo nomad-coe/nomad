@@ -80,7 +80,7 @@ class BasicParser:
             parser.logger = self.logger
             self.auxilliary_parsers.append(parser)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         '''
         Triggers parsing of mainfile and writing parsed quantities to archive.
         '''

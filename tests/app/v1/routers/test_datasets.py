@@ -29,7 +29,7 @@ from nomad.utils.exampledata import ExampleData
 
 from tests.conftest import admin_user_id
 
-from .test_entries import data as example_entries  # pylint: disable=unused-import
+from tests.conftest import example_data  # pylint: disable=unused-import
 from .common import assert_response
 
 '''
@@ -220,7 +220,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
     pytest.param('another test dataset', 'foreign', None, ['id_01', 'id_02'], 'test_user', 200, id='foreign-entries')
 ])
 def test_post_datasets(
-        client, data, example_entries, test_user, test_user_auth, other_test_user,
+        client, data, example_data, test_user, test_user_auth, other_test_user,
         other_test_user_auth, dataset_name, dataset_type, query, entries, user, status_code):
     dataset = {'dataset_name': dataset_name, 'dataset_type': dataset_type}
     if query is not None:

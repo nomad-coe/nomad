@@ -44,7 +44,7 @@ class EmptyParser(MatchingParser):
     '''
     name = "parsers/empty"
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         run = archive.m_create(Run)
         run.program = Program(name=self.code_name)
 
@@ -65,7 +65,7 @@ class TemplateParser(Parser):
             compression: str = None) -> bool:
         return filename.endswith('template.json')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         # tell tests about received logger
         if logger is not None:
             logger.debug('received logger')
@@ -99,7 +99,7 @@ class ChaosParser(Parser):
             compression: str = None) -> bool:
         return filename.endswith('chaos.json')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         chaos_json = json.load(open(mainfile, 'r'))
         if isinstance(chaos_json, str):
             chaos = chaos_json
@@ -153,7 +153,7 @@ class GenerateRandomParser(TemplateParser):
             compression: str = None) -> bool:
         return os.path.basename(filename).startswith('random_')
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None) -> None:
+    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
         file_dir = os.path.dirname(os.path.abspath(__file__))
         relative_template_file = "random_template.json"
         template_file = os.path.normpath(os.path.join(file_dir, relative_template_file))

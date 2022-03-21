@@ -127,6 +127,7 @@ class EntryProcData(ProcData):
     entry_id: str = Field()
     entry_create_time: datetime = Field()
     mainfile: str = Field()
+    mainfile_key: Optional[str] = Field()
     upload_id: str = Field()
     parser_name: str = Field()
     entry_metadata: Optional[dict] = Field()
@@ -644,15 +645,17 @@ async def get_upload_rawdir_path(
                 'embargoed' if upload.embargo_length else 'public'))
 
         if upload_files.raw_path_is_file(path):
+            # Path denotes a file
             response.file_metadata = RawDirFileMetadata(
                 name=os.path.basename(path),
                 size=upload_files.raw_file_size(path))
             if include_entry_info:
-                entry: Entry = Entry.objects(upload_id=upload_id, mainfile=path).first()
+                entry: Entry = Entry.objects(upload_id=upload_id, mainfile=path, mainfile_key=None).first()
                 if entry:
                     response.file_metadata.entry_id = entry.entry_id
                     response.file_metadata.parser_name = entry.parser_name
         else:
+            # Path denotes a directory
             start = pagination.get_simple_index()
             end = start + pagination.page_size
             directory_list = upload_files.raw_directory_list(path)
@@ -674,7 +677,10 @@ async def get_upload_rawdir_path(
                         path_to_element[path_info.path] = element
 
             if include_entry_info and content:
-                for entry in Entry.objects(upload_id=upload_id, mainfile__in=path_to_element.keys()):
+                for entry in Entry.objects(
+                        upload_id=upload_id,
+                        mainfile__in=path_to_element.keys(),
+                        mainfile_key=None):
                     element = path_to_element[entry.mainfile]
                     element.entry_id = entry.entry_id
                     element.parser_name = entry.parser_name
@@ -1044,15 +1050,19 @@ async def get_upload_entry_archive_mainfile(
         mainfile: str = Path(
             ...,
             description='The mainfile path within the upload\'s raw files.'),
+        mainfile_key: Optional[str] = FastApiQuery(
+            None,
+            description='The mainfile_key, for accessing child entries.'),
         user: User = Depends(create_user_dependency(required=False))):
     '''
     For the upload specified by `upload_id`, gets the full archive of a single entry that
     is identified by the given `mainfile`.
     '''
     _get_upload_with_read_access(upload_id, user, include_others=True)
-    return await answer_entry_archive_request(
-        dict(upload_id=upload_id, mainfile=mainfile),
-        required='*', user=user)
+    query = dict(upload_id=upload_id, mainfile=mainfile)
+    if mainfile_key:
+        query.update(mainfile_key=mainfile_key)
+    return await answer_entry_archive_request(query, required='*', user=user)
 
 
 @router.get(

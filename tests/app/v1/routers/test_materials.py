@@ -28,7 +28,7 @@ from .common import (
     perform_metadata_test, perform_owner_test, owner_test_parameters,
     post_query_test_parameters, get_query_test_parameters, pagination_test_parameters,
     aggregation_test_parameters)
-from tests.conftest import example_data as data  # pylint: disable=unused-import
+from tests.conftest import example_data  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -53,7 +53,7 @@ program_name = 'entries.results.method.simulation.program_name'
     'aggregation, total, size, status_code, user',
     aggregation_test_parameters(
         entity_id='material_id', material_prefix='', entry_prefix='entries.', total=6))
-def test_materials_aggregations(client, data, test_user_auth, aggregation, total, size, status_code, user):
+def test_materials_aggregations(client, example_data, test_user_auth, aggregation, total, size, status_code, user):
     headers = {}
     if user == 'test_user':
         headers = test_user_auth
@@ -82,7 +82,7 @@ def test_materials_aggregations(client, data, test_user_auth, aggregation, total
 @pytest.mark.parametrize(
     'query,agg_data,total,status_code',
     aggregation_exclude_from_search_test_parameters(resource='materials', total_per_entity=3, total=6))
-def test_materials_aggregations_exclude_from_search(client, data, query, agg_data, total, status_code):
+def test_materials_aggregations_exclude_from_search(client, example_data, query, agg_data, total, status_code):
     aggs, types, lengths = agg_data
     response_json = perform_materials_metadata_test(
         client, owner='visible',
@@ -110,7 +110,7 @@ def test_materials_aggregations_exclude_from_search(client, data, query, agg_dat
     pytest.param({'include': [program_name]}, 200, id='include-id')
 ])
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_materials_required(client, data, required, status_code, http_method):
+def test_materials_required(client, example_data, required, status_code, http_method):
     response_json = perform_materials_metadata_test(
         client, required=required, pagination={'page_size': 1}, status_code=status_code, http_method=http_method)
 
@@ -127,7 +127,7 @@ def test_materials_required(client, data, required, status_code, http_method):
     pytest.param('id_01', {'exclude': ['n_elements']}, 200, id='exclude'),
     pytest.param('id_01', {'exclude': ['material_id', 'n_elements']}, 200, id='exclude-id')
 ])
-def test_material_metadata(client, data, material_id, required, status_code):
+def test_material_metadata(client, example_data, material_id, required, status_code):
     response = client.get('materials/%s?%s' % (material_id, urlencode(required, doseq=True)))
     response_json = assert_metadata_response(response, status_code=status_code)
 
@@ -164,7 +164,7 @@ def test_material_metadata(client, data, material_id, required, status_code):
         pytest.param({'entry_id': 'id_01'}, 422, 0, id='not-material-quantity'),
         pytest.param({'entries.material_id': 'id_01'}, 422, 0, id='not-entry-quantity')
     ])
-def test_materials_post_query(client, data, query, status_code, total):
+def test_materials_post_query(client, example_data, query, status_code, total):
     response_json = perform_materials_metadata_test(
         client, query=query, status_code=status_code, total=total,
         http_method='post')
@@ -188,7 +188,7 @@ def test_materials_post_query(client, data, query, status_code, total):
 
 @pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
     'material_id', total=6, material_prefix='', entry_prefix='entries.'))
-def test_materials_get_query(client, data, query, status_code, total):
+def test_materials_get_query(client, example_data, query, status_code, total):
     assert 'entries.upload_create_time' in material_entry_type.quantities
 
     response_json = perform_materials_metadata_test(
@@ -215,24 +215,27 @@ def test_materials_get_query(client, data, query, status_code, total):
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('owner, user, status_code, total', owner_test_parameters(total=6))
+@pytest.mark.parametrize(
+    'owner, user, status_code, total_entries, total_mainfiles, total_materials',
+    owner_test_parameters())
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_materials_metadata_test, id='metadata')])
 def test_materials_owner(
-        client, data, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
+        client, example_data, test_user_auth, other_test_user_auth, admin_user_auth,
+        owner, user, status_code, total_entries, total_mainfiles, total_materials,
+        http_method, test_method):
 
     perform_owner_test(
         client, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method)
+        owner, user, status_code, total_materials, http_method, test_method)
 
 
 @pytest.mark.parametrize('pagination, response_pagination, status_code', pagination_test_parameters(
     elements='elements', n_elements='n_elements', crystal_system='symmetry.crystal_system',
     total=6))
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_materials_pagination(client, data, pagination, response_pagination, status_code, http_method):
+def test_materials_pagination(client, example_data, pagination, response_pagination, status_code, http_method):
     response_json = perform_materials_metadata_test(
         client, pagination=pagination, status_code=status_code, http_method=http_method)
 

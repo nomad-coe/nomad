@@ -21,10 +21,10 @@ import pytest
 import os
 from shutil import copyfile
 
-from nomad import utils, files, datamodel
-from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad import utils, files
+from nomad.datamodel import EntryArchive
 from nomad.parsing import BrokenParser
-from nomad.parsing.parsers import parser_dict, match_parser
+from nomad.parsing.parsers import parser_dict, match_parser, run_parser
 from nomad.utils import dump_json
 
 parser_examples = [
@@ -119,38 +119,35 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
     assert previous_wd == current_wd
 
 
-def run_parser(parser_name, mainfile):
+def run_singular_parser(parser_name, mainfile):
+    ''' Runs a singular parser (a parser which creates no child entries) and adds metadata. '''
     parser = parser_dict[parser_name]
-    entry_archive = EntryArchive()
-    metadata = entry_archive.m_create(EntryMetadata)
-    parser.parse(mainfile, entry_archive, logger=utils.get_logger(__name__))
-    if metadata.domain is None:
-        metadata.domain = parser.domain
-
-    return add_metadata(entry_archive, parser_name=parser_name)
+    assert not parser.creates_children
+    archives = run_parser(mainfile, parser, logger=utils.get_logger(__name__))
+    return add_metadata(archives[0], parser_name=parser_name)
 
 
 @pytest.fixture
 def parsed_vasp_example() -> EntryArchive:
-    return run_parser(
+    return run_singular_parser(
         'parsers/vasp', 'dependencies/parsers/vasp/test/examples/xml/perovskite.xml')
 
 
 @pytest.fixture
 def parsed_template_example() -> EntryArchive:
-    return run_parser(
+    return run_singular_parser(
         'parsers/template', 'tests/data/templates/template.json')
 
 
 def parse_file(parser_name_and_mainfile) -> EntryArchive:
     parser_name, mainfile = parser_name_and_mainfile
-    return run_parser(parser_name, mainfile)
+    return run_singular_parser(parser_name, mainfile)
 
 
 @pytest.fixture(params=parser_examples, ids=lambda spec: '%s-%s' % spec)
 def parsed_example(request) -> EntryArchive:
     parser_name, mainfile = request.param
-    result = run_parser(parser_name, mainfile)
+    result = run_singular_parser(parser_name, mainfile)
     return result
 
 
@@ -167,7 +164,7 @@ def add_metadata(entry_archive: EntryArchive, **kwargs) -> EntryArchive:
 @pytest.mark.parametrize('parser_name, mainfile', parser_examples)
 def test_parser(parser_name, mainfile, assert_parser_result):
     previous_wd = os.getcwd()  # Get Working directory before parsing.
-    parsed_example = run_parser(parser_name, mainfile)
+    parsed_example = run_singular_parser(parser_name, mainfile)
     assert_parser_result(parsed_example)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
@@ -176,7 +173,7 @@ def test_parser(parser_name, mainfile, assert_parser_result):
 def test_broken_xml_vasp(assert_parser_result):
     parser_name, mainfile = 'parsers/vasp', 'tests/data/parsers/vasp/broken.xml'
     previous_wd = os.getcwd()  # Get Working directory before parsing.
-    parsed_example = run_parser(parser_name, mainfile)
+    parsed_example = run_singular_parser(parser_name, mainfile)
     assert_parser_result(parsed_example, has_warnings=True)
     # Check that cwd has not changed.
     assert_parser_dir_unchanged(previous_wd, current_wd=os.getcwd())
@@ -197,7 +194,7 @@ def test_match(raw_files, with_latin_1_file, no_warn):
     matched_mainfiles = {}
     for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
         mainfile = path_info.path
-        parser = match_parser(upload_files.raw_file_object(mainfile).os_path)
+        parser, _mainfile_keys = match_parser(upload_files.raw_file_object(mainfile).os_path)
         if parser is not None and not isinstance(parser, BrokenParser):
             matched_mainfiles[mainfile] = parser
 
@@ -214,14 +211,14 @@ def parser_in_dir(dir):
             if 'test' not in file_path:
                 continue
 
-            parser = match_parser(file_path)
+            parser, mainfile_keys = match_parser(file_path)
             if parser is not None:
-
                 try:
-                    archive = datamodel.EntryArchive()
-                    parser.parse(file_path, entry_archive=archive)
+                    archives = run_parser(file_path, parser, mainfile_keys)
+
                     # check if the result can be dumped
-                    dump_json(archive.m_to_dict())
+                    for archive in archives:
+                        dump_json(archive.m_to_dict())
                 except Exception as e:
                     print(file_path, parser, 'FAILURE', e)
                     import traceback
