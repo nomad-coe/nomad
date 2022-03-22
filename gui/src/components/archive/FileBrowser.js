@@ -153,7 +153,8 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     setOpenCreateDirDialog(false)
     const dirName = createDirName.current.value
     if (dirName) {
-      api.put(`/uploads/${uploadId}/raw/${encodedPath}?create_directory=${encodeURIComponent(dirName)}`)
+      const fullPath = encodedPath + (encodedPath ? '/' : '') + encodeURIComponent(dirName)
+      api.post(`/uploads/${uploadId}/raw-create-dir/${fullPath}`)
         .then(() => {
           browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
           browser.update()

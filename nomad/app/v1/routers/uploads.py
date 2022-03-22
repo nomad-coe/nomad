@@ -812,7 +812,7 @@ async def get_upload_raw_path(
 
 @router.put(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
-    summary='Upload a raw file or folder to the specified path (directory) in the specified upload.',
+    summary='Upload a raw file to the specified path (directory) in the specified upload.',
     response_class=StreamingResponse,
     responses=create_responses(
         _put_raw_file_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -835,12 +835,6 @@ async def put_upload_raw_path(
             None,
             description=strip('''
             Specifies the name of the file, when using method 2.''')),
-        create_directory: str = FastApiQuery(
-            None,
-            description=strip('''
-            Used to create a new, empty directory inside the directory specified by `path`.
-            The parameter value defines the name of the new directory.''')
-        ),
         wait_for_processing: bool = FastApiQuery(
             False,
             description=strip('''
@@ -853,8 +847,7 @@ async def put_upload_raw_path(
             `wait_for_processing` (**USE WITH CARE**).''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Use to upload a file or create a new directory in the directory specified by `path` in
-    the the upload specified by `upload_id`.
+    Upload a file to the directory specified by `path` in the the upload specified by `upload_id`.
 
     When uploading a zip or tar archive, it will first be extracted, and the content will be
     *merged* with the existing content, i.e. new files are added, and if there is a collision
@@ -894,126 +887,108 @@ async def put_upload_raw_path(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Bad path provided.')
 
-    if create_directory:
-        full_path = os.path.join(path, create_directory)
-        if '/' in create_directory or not is_safe_relative_path(path):
+    upload_path, method = await _get_file_if_provided(
+        upload_id, request, file, local_path, file_name, user)
+
+    if not upload_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='No upload file provided.')
+
+    is_compressed = files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path)
+
+    if not wait_for_processing:
+        # Process on worker (normal case)
+        if is_compressed:
+            # Uploading an compressed file -> reprocess the entire target directory
+            path_filter = path
+        else:
+            # Uploading a single file -> reprocess only the file
+            path_filter = os.path.join(path, os.path.basename(upload_path))
+
+        try:
+            upload.process_upload(
+                file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
+                path_filter=path_filter)
+        except ProcessAlreadyRunning:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Bad directory name specified.')
+                detail='The upload is currently blocked by another process.')
+
+        if request.headers.get('Accept') == 'application/json':
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=_upload_to_pydantic(upload))
+            response_text = response.json()
+            media_type = 'application/json'
+        else:
+            response_text = _thank_you_message
+            media_type = 'text/plain'
+    else:
+        # Process locally
+        if is_compressed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='`wait_for_processing` can only be used with single files, not with compressed files.')
+
+        full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            upload.staging_upload_files.raw_create_directory(full_path)
+            reprocess_settings = dict(
+                index_invidiual_entries=True, reprocess_existing_entries=True)
+            entry = upload.put_file_and_process_local(
+                upload_path, path, reprocess_settings=reprocess_settings)
+            if upload.process_status == ProcessStatus.FAILURE:
+                # Should only happen if we fail to put the file, match the file, or to *initiate*
+                # entry processing - i.e. normally, this shouldn't happen, not even with
+                # an badly formatted/unparsable mainfile.
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Failed to put and process: {upload.errors[0]}')
+
+            search_refresh()
+
+            archive = None
+            if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
+                # NOTE: We can't rely on ES to get the metadata for the entry, since it may
+                # not have had enough time to update its index etc. For now, we will just
+                # ignore this, as we do not need it.
+                entry_metadata = dict(
+                    upload_id=upload_id,
+                    entry_id=entry.entry_id,
+                    parser_name=entry.parser_name)
+                archive = (await answer_entry_archive_request(
+                    dict(upload_id=upload_id, mainfile=full_path),
+                    required='*', user=user,
+                    entry_metadata=entry_metadata))['data']['archive']
+
+            response = PutRawFileResponse(
+                upload_id=upload_id,
+                data=_upload_to_pydantic(upload),
+                processing=ProcessingData(
+                    upload_id=upload_id,
+                    path=full_path,
+                    entry_id=entry.entry_id if entry else None,
+                    parser_name=entry.parser_name if entry else None,
+                    entry=_entry_to_pydantic(entry) if entry else None,
+                    archive=archive))
+            response_text = response.json()
+            media_type = 'application/json'
+
+        except HTTPException:
+            raise
+        except ProcessAlreadyRunning:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The upload is currently being processed, operation not allowed.')
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'Failed to create directory: {e}')
-        response = PutRawFileResponse(
-            upload_id=upload_id,
-            data=_upload_to_pydantic(upload))
-        response_text = response.json()
-        media_type = 'application/json'
-    else:
-        upload_path, method = await _get_file_if_provided(
-            upload_id, request, file, local_path, file_name, user)
-
-        if not upload_path:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='No upload file provided.')
-
-        is_compressed = files.zipfile.is_zipfile(upload_path) or files.tarfile.is_tarfile(upload_path)
-
-        if not wait_for_processing:
-            # Process on worker (normal case)
-            if is_compressed:
-                # Uploading an compressed file -> reprocess the entire target directory
-                path_filter = path
-            else:
-                # Uploading a single file -> reprocess only the file
-                path_filter = os.path.join(path, os.path.basename(upload_path))
-
+                detail=f'Unexpected exception occurred: {e}')
+        finally:
             try:
-                upload.process_upload(
-                    file_operation=dict(op='ADD', path=upload_path, target_dir=path, temporary=(method != 0)),
-                    path_filter=path_filter)
-            except ProcessAlreadyRunning:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='The upload is currently blocked by another process.')
-
-            if request.headers.get('Accept') == 'application/json':
-                response = PutRawFileResponse(
-                    upload_id=upload_id,
-                    data=_upload_to_pydantic(upload))
-                response_text = response.json()
-                media_type = 'application/json'
-            else:
-                response_text = _thank_you_message
-                media_type = 'text/plain'
-        else:
-            # Process locally
-            if is_compressed:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='`wait_for_processing` can only be used with single files, not with compressed files.')
-
-            full_path = os.path.join(path, os.path.basename(upload_path))
-            try:
-                reprocess_settings = dict(
-                    index_invidiual_entries=True, reprocess_existing_entries=True)
-                entry = upload.put_file_and_process_local(
-                    upload_path, path, reprocess_settings=reprocess_settings)
-                if upload.process_status == ProcessStatus.FAILURE:
-                    # Should only happen if we fail to put the file, match the file, or to *initiate*
-                    # entry processing - i.e. normally, this shouldn't happen, not even with
-                    # an badly formatted/unparsable mainfile.
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f'Failed to put and process: {upload.errors[0]}')
-
-                search_refresh()
-
-                archive = None
-                if entry and entry.process_status == ProcessStatus.SUCCESS and include_archive:
-                    # NOTE: We can't rely on ES to get the metadata for the entry, since it may
-                    # not have had enough time to update its index etc. For now, we will just
-                    # ignore this, as we do not need it.
-                    entry_metadata = dict(
-                        upload_id=upload_id,
-                        entry_id=entry.entry_id,
-                        parser_name=entry.parser_name)
-                    archive = (await answer_entry_archive_request(
-                        dict(upload_id=upload_id, mainfile=full_path),
-                        required='*', user=user,
-                        entry_metadata=entry_metadata))['data']['archive']
-
-                response = PutRawFileResponse(
-                    upload_id=upload_id,
-                    data=_upload_to_pydantic(upload),
-                    processing=ProcessingData(
-                        upload_id=upload_id,
-                        path=full_path,
-                        entry_id=entry.entry_id if entry else None,
-                        parser_name=entry.parser_name if entry else None,
-                        entry=_entry_to_pydantic(entry) if entry else None,
-                        archive=archive))
-                response_text = response.json()
-                media_type = 'application/json'
-
-            except HTTPException:
-                raise
-            except ProcessAlreadyRunning:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail='The upload is currently being processed, operation not allowed.')
-            except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f'Unexpected exception occurred: {e}')
-            finally:
-                try:
-                    shutil.rmtree(os.path.dirname(upload_path))
-                except Exception:
-                    pass
+                shutil.rmtree(os.path.dirname(upload_path))
+            except Exception:
+                pass
 
     return StreamingResponse(create_stream_from_string(response_text), media_type=media_type)
 
@@ -1058,6 +1033,47 @@ async def delete_upload_raw_path(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently blocked by another process.')
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/raw-create-dir/{path:path}', tags=[raw_tag],
+    summary='Create a new empty directory with the specified path in the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(
+        _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_raw_create_dir_path(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Create a new empty directory in the specified upload. The `path` should be the full path
+    to the new directory (i.e. ending with the name of the new directory). The api call returns
+    immediately (no processing is neccessary).
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    if not path or not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+    if upload.staging_upload_files.raw_path_exists(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Path `{path}` already exists.')
+    try:
+        upload.staging_upload_files.raw_create_directory(path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Failed to create directory: {e}')
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 
