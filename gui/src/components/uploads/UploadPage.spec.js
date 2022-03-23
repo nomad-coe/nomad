@@ -64,6 +64,24 @@ const testUnpublishedWritePermissions = async () => {
   expect(screen.getByTestId('publish-upload-button')).toBeEnabled()
 }
 
+const testEmbargoedPublishesWritePermissions = async () => {
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
+
+  expect(screen.getByTestId('edit-members-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-download-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
+  expect(screen.getByTestId('source-api-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
+  expect(screen.getByTestId('edit-metadata-button')).toBeEnabled()
+  expect(screen.getByText('Lift Embargo')).toBeEnabled()
+}
+
 const testReadOnlyPermissions = async () => {
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
@@ -131,9 +149,16 @@ test.each([
     '',
     ''
   ], [
-    'Published and logged in as reviewer',
+    'Unpublished and logged in as reviewer',
     'tests.states.uploads.unpublished',
     'tests/data/uploads/unpublished',
+    'dft_upload',
+    'ttester',
+    'password'
+  ], [
+    'Published with embargo and logged in as reviewer',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo',
     'dft_upload',
     'ttester',
     'password'
@@ -199,9 +224,32 @@ test('Render upload page: multiple entries', async () => {
 
 test.each([
   [
+    'Published with embargo and logged in as main author',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo',
+    'dft_upload',
+    'test',
+    'password'
+  ], [
+    'Published with embargo and logged in as coauthor',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo',
+    'dft_upload',
+    'scooper',
+    'password'
+  ]
+])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
+  startAPI(state, snapshot, username, password)
+  render(<UploadPage uploadId={uploadId}/>)
+  await testEmbargoedPublishesWritePermissions()
+  closeAPI()
+})
+
+test.each([
+  [
     'unpublished, not authenticated',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished-not-authenticated',
+    'tests/data/uploads/unpublished-not-writer',
     'dft_upload',
     '',
     '',
@@ -210,22 +258,29 @@ test.each([
   [
     'unpublished, logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.unpublished',
-    'tests/data/uploads/unpublished-not-authenticated',
+    'tests/data/uploads/unpublished-not-writer',
     'dft_upload',
     'admin',
     'password',
     'You do not have access to the specified upload - not published yet.'
   ],
   [
-    'published with embargo, not reader or writer',
+    'published with embargo, not authenticated',
     'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo',
+    'tests/data/uploads/published_with_embargo-not-writer',
     'dft_upload',
     '',
     '',
     'You do not have access to the specified upload - published with embargo.'
-  ],
-  [
+  ], [
+    'published with embargo, logged in as neither reviewer nor coauthor or main author',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo-not-writer',
+    'dft_upload',
+    'admin',
+    'password',
+    'You do not have access to the specified upload - published with embargo.'
+  ], [
     'unknown upload_id',
     'tests.states.uploads.published',
     'tests/data/uploads/not_exists',
