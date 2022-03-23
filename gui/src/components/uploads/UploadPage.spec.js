@@ -26,48 +26,145 @@ import {
 import { within } from '@testing-library/dom'
 import UploadPage from './UploadPage'
 
-test('Render upload page: published|not reader|not writer', async () => {
-  startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId="dft_upload"/>)
-
+const testPublishedWritePermissions = async () => {
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
-  expect(screen.getByTestId('edit-members-action')).toBeDisabled()
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
+  expect(screen.queryByText('This upload has already been published.')).toBeInTheDocument()
+
+  expect(screen.getByTestId('edit-members-action')).toBeEnabled()
   expect(screen.getByTestId('upload-download-action')).toBeEnabled()
   expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
   expect(screen.getByTestId('source-api-action')).toBeEnabled()
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
+}
 
+const testUnpublishedWritePermissions = async () => {
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if the table title is rendered correctly
+  expect(screen.queryByText('1 entry')).toBeInTheDocument()
+
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
+
+  expect(screen.getByTestId('edit-members-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-download-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-reprocess-action')).toBeEnabled()
+  expect(screen.getByTestId('source-api-action')).toBeEnabled()
+  expect(screen.getByTestId('upload-delete-action')).toBeEnabled()
+  expect(screen.getByTestId('edit-metadata-button')).toBeEnabled()
+  expect(screen.getByTestId('publish-upload-button')).toBeEnabled()
+}
+
+const testReadOnlyPermissions = async () => {
+  // Wait to load the page, i.e. wait for some text to appear
+  await screen.findByText('unnamed upload')
+
+  // Test if the table title is rendered correctly
+  expect(screen.queryByText('1 entry')).toBeInTheDocument()
+
+  // Test if only the first two steps are shown
+  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
+  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
+  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).not.toBeInTheDocument()
+
+  expect(screen.queryByTestId('edit-members-action')).toBeDisabled()
+  expect(screen.queryByTestId('upload-download-action')).toBeEnabled()
+  expect(screen.queryByTestId('upload-reprocess-action')).toBeDisabled()
+  expect(screen.queryByTestId('source-api-action')).toBeEnabled()
+  expect(screen.queryByTestId('upload-delete-action')).toBeDisabled()
+  expect(screen.queryByTestId('edit-metadata-button')).not.toBeInTheDocument()
+  expect(screen.queryByTestId('publish-upload-button')).not.toBeInTheDocument()
+}
+
+test.each([
+  [
+    'Published and logged in as main author',
+    'tests.states.uploads.published',
+    'tests/data/uploads/published',
+    'dft_upload',
+    'test',
+    'password'
+  ], [
+    'Published and logged in as coauthor',
+    'tests.states.uploads.published',
+    'tests/data/uploads/published',
+    'dft_upload',
+    'scooper',
+    'password'
+  ]
+])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
+  startAPI(state, snapshot, username, password)
+  render(<UploadPage uploadId={uploadId}/>)
+  await testPublishedWritePermissions()
   closeAPI()
 })
 
 test.each([
   [
-    'unpublished, not reader or writer',
+    'Published and logged in as reviewer',
+    'tests.states.uploads.published',
+    'tests/data/uploads/published',
+    'dft_upload',
+    'ttester',
+    'password'
+  ], [
+    'Published and logged in as neither reviewer nor coauthor or main author',
+    'tests.states.uploads.published',
+    'tests/data/uploads/published',
+    'dft_upload',
+    'admin',
+    'password'
+  ], [
+    'Published and not authenticated',
+    'tests.states.uploads.published',
+    'tests/data/uploads/published',
+    'dft_upload',
+    '',
+    ''
+  ], [
+    'Published and logged in as reviewer',
     'tests.states.uploads.unpublished',
     'tests/data/uploads/unpublished',
     'dft_upload',
-    'You do not have access to the specified upload - not published yet.'
-  ],
-  [
-    'published with embargo, not reader or writer',
-    'tests.states.uploads.published_with_embargo',
-    'tests/data/uploads/published_with_embargo',
-    'dft_upload',
-    'You do not have access to the specified upload - published with embargo.'
-  ],
-  [
-    'unknown upload_id',
-    'tests.states.uploads.published',
-    'tests/data/uploads/not_exists',
-    'a_not_exists_upload_ID',
-    'The specified upload_id was not found.'
+    'ttester',
+    'password'
   ]
-])('Render upload page: error message due to %s', async (name, state, snapshot, uploadId, msg) => {
-  startAPI(state, snapshot)
+])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
+  startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
-  await screen.findByText(msg)
+  await testReadOnlyPermissions()
+  closeAPI()
+})
+
+test.each([
+  [
+    'Unpublished and logged in as main author',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/unpublished',
+    'dft_upload',
+    'test',
+    'password'
+  ], [
+    'Unpublished and logged in as coauthor',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/unpublished',
+    'dft_upload',
+    'scooper',
+    'password'
+  ]
+])('Upload page: %s', async (name, state, snapshot, uploadId, username, password) => {
+  startAPI(state, snapshot, username, password)
+  render(<UploadPage uploadId={uploadId}/>)
+  await testUnpublishedWritePermissions()
   closeAPI()
 })
 
@@ -100,43 +197,46 @@ test('Render upload page: multiple entries', async () => {
   closeAPI()
 })
 
-test('Render upload page: one entry', async () => {
-  startAPI('tests.states.uploads.published', 'tests/data/uploads/published')
-  render(<UploadPage uploadId="dft_upload"/>)
-
-  // Wait to load the page, i.e. wait for some text to appear
-  await screen.findByText('unnamed upload')
-
-  // Test if only the first two steps are shown
-  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
-  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
-  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).not.toBeInTheDocument()
-  expect(screen.queryByText('This upload has already been published.')).not.toBeInTheDocument()
-
-  // Test if the table title is rendered correctly
-  expect(screen.queryByText('1 entry')).toBeInTheDocument()
-
-  closeAPI()
-})
-
-test('Render upload page: published and authenticated', async () => {
-  startAPI('tests.states.uploads.published', 'tests/data/uploads/published', 'test', 'password')
-  render(<UploadPage uploadId="dft_upload"/>)
-
-  // Wait to load the page, i.e. wait for some text to appear
-  await screen.findByText('unnamed upload')
-
-  // Test if only the first two steps are shown
-  expect(screen.queryByText('Prepare and upload your files')).toBeInTheDocument()
-  expect(screen.queryByText('Processing completed, 1/1 entries processed')).toBeInTheDocument()
-  expect(screen.queryByText('You can either select and edit individual entries from the list above, or edit all entries at once.')).toBeInTheDocument()
-  expect(screen.queryByText('This upload has already been published.')).toBeInTheDocument()
-
-  expect(screen.getByTestId('edit-members-action')).toBeEnabled()
-  expect(screen.getByTestId('upload-download-action')).toBeEnabled()
-  expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
-  expect(screen.getByTestId('source-api-action')).toBeEnabled()
-  expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
-
+test.each([
+  [
+    'unpublished, not authenticated',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/unpublished-not-authenticated',
+    'dft_upload',
+    '',
+    '',
+    'You do not have access to the specified upload - not published yet.'
+  ],
+  [
+    'unpublished, logged in as neither reviewer nor coauthor or main author',
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/unpublished-not-authenticated',
+    'dft_upload',
+    'admin',
+    'password',
+    'You do not have access to the specified upload - not published yet.'
+  ],
+  [
+    'published with embargo, not reader or writer',
+    'tests.states.uploads.published_with_embargo',
+    'tests/data/uploads/published_with_embargo',
+    'dft_upload',
+    '',
+    '',
+    'You do not have access to the specified upload - published with embargo.'
+  ],
+  [
+    'unknown upload_id',
+    'tests.states.uploads.published',
+    'tests/data/uploads/not_exists',
+    'a_not_exist_upload_ID',
+    '',
+    '',
+    'The specified upload_id was not found.'
+  ]
+])('Render upload page: error message due to %s', async (name, state, snapshot, uploadId, username, password, msg) => {
+  startAPI(state, snapshot, username, password)
+  render(<UploadPage uploadId={uploadId}/>)
+  await screen.findByText(msg)
   closeAPI()
 })

@@ -62,7 +62,7 @@ const testWritePermissions = async () => {
   expect(within(rows[2]).getByTestId('member-delete-button')).toBeEnabled()
 }
 
-const testReadPermissions = async () => {
+const testReadOnlyPermissions = async () => {
   // Wait to load the page, i.e. wait for some text to appear
   await screen.findByText('unnamed upload')
 
@@ -116,7 +116,7 @@ test.each([
     'ttester',
     'password'
   ], [
-    'Published and logged in as neither reviewer nor writer',
+    'Published and logged in as neither reviewer nor coauthor or main author',
     'tests.states.uploads.published',
     'tests/data/uploads/members-dialog-published',
     'dft_upload',
@@ -140,6 +140,6 @@ test.each([
 ])('Members dialog: %s', async (name, state, snapshot, uploadId, username, password) => {
   startAPI(state, snapshot, username, password)
   render(<UploadPage uploadId={uploadId}/>)
-  await testReadPermissions()
+  await testReadOnlyPermissions()
   closeAPI()
 })

@@ -243,6 +243,7 @@ function PublishUpload({upload, onPublish}) {
               size="small" variant="contained"
               onClick={() => setOpenConfirmDialog(true)} color="primary"
               disabled={upload.process_running}
+              data-testid='publish-upload-button'
             >
               {buttonLabel}
             </Button>
