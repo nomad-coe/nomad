@@ -812,7 +812,7 @@ async def get_upload_raw_path(
 
 @router.put(
     '/{upload_id}/raw/{path:path}', tags=[raw_tag],
-    summary='Upload a raw file or folder to the specified path (directory) in the specified upload.',
+    summary='Upload a raw file to the specified path (directory) in the specified upload.',
     response_class=StreamingResponse,
     responses=create_responses(
         _put_raw_file_response, _upload_not_found, _not_authorized_to_upload, _bad_request),
@@ -847,15 +847,16 @@ async def put_upload_raw_path(
             `wait_for_processing` (**USE WITH CARE**).''')),
         user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
     '''
-    Uploads a file to a specified path within the upload identified by `upload_id`.
-    If the file is a zip or tar archive, it will first be extracted, and the content will be
-    *merged* into the path, i.e. new files are added, and if there is a collision
+    Upload a file to the directory specified by `path` in the the upload specified by `upload_id`.
+
+    When uploading a zip or tar archive, it will first be extracted, and the content will be
+    *merged* with the existing content, i.e. new files are added, and if there is a collision
     (an old file with the same path and name as one of the new files), the old file will
     be overwritten, but the rest of the old files will remain untouched. If the file is not
     a zip or tar archive, the file will just be uploaded as it is, overwriting the existing
     file if there is one.
 
-    The `path` is interpreted as a directory. The empty string gives the "root" directory.
+    The `path` should denote a directory. The empty string gives the "root" directory.
 
     If a single file is uploaded (i.e. not a zip or tar archive), it is possible to specify
     `wait_for_processing`. This means that the file (and only this file) will be matched and
@@ -1032,6 +1033,47 @@ async def delete_upload_raw_path(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='The upload is currently blocked by another process.')
+
+    return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
+
+
+@router.post(
+    '/{upload_id}/raw-create-dir/{path:path}', tags=[raw_tag],
+    summary='Create a new empty directory with the specified path in the specified upload.',
+    response_model=UploadProcDataResponse,
+    responses=create_responses(
+        _upload_not_found, _not_authorized_to_upload, _bad_request),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True)
+async def post_upload_raw_create_dir_path(
+        upload_id: str = Path(
+            ...,
+            description='The unique id of the upload.'),
+        path: str = Path(
+            ...,
+            description='The path within the upload raw files.'),
+        user: User = Depends(create_user_dependency(required=True, upload_token_auth_allowed=True))):
+    '''
+    Create a new empty directory in the specified upload. The `path` should be the full path
+    to the new directory (i.e. ending with the name of the new directory). The api call returns
+    immediately (no processing is neccessary).
+    '''
+    upload = _get_upload_with_write_access(upload_id, user, include_published=False)
+
+    if not path or not is_safe_relative_path(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Bad path provided.')
+    if upload.staging_upload_files.raw_path_exists(path):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Path `{path}` already exists.')
+    try:
+        upload.staging_upload_files.raw_create_directory(path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Failed to create directory: {e}')
 
     return UploadProcDataResponse(upload_id=upload_id, data=_upload_to_pydantic(upload))
 

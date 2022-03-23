@@ -725,6 +725,10 @@ class StagingUploadFiles(UploadFiles):
             return False
         return os.path.isfile(os.path.join(self._raw_dir.os_path, path))
 
+    def raw_create_directory(self, path: str):
+        assert path and is_safe_relative_path(path), 'Bad path provided'
+        os.makedirs(os.path.join(self._raw_dir.os_path, path))
+
     def raw_directory_list(
             self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):

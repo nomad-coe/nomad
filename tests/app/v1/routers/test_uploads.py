@@ -19,6 +19,7 @@
 import pytest
 import io
 import os
+import requests
 import time
 import zipfile
 from datetime import datetime
@@ -1105,6 +1106,33 @@ def test_put_upload_raw_path(
                 assert (processing['archive'] is None) == (not query_args.get('include_archive'))
         else:
             assert not processing
+
+
+@pytest.mark.parametrize('user, upload_id, path, expected_status_code', [
+    pytest.param(
+        'test_user', 'id_published_w', 'test_content/newdir', 401, id='published'),
+    pytest.param(
+        None, 'id_unpublished_w', 'test_content/newdir', 401, id='no-credentials'),
+    pytest.param(
+        'other_test_user', 'id_unpublished_w', 'test_content/newdir', 401, id='no-access'),
+    pytest.param(
+        'admin_user', 'id_unpublished_w', 'test_content/newdir', 200, id='admin-access'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', 'test_content/test_embargo_entry/newdir', 200, id='ok'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', 'test_content/chars?! "\'@#$%&\\()[]{}=+`´^~*,.;:|<>', 200, id='special-chars'),
+    pytest.param(
+        'test_user', 'id_unpublished_w', 'test_content/test_embargo_entry/mainfile.json/newdir', 400, id='bad-path')])
+def test_post_upload_raw_create_dir_path(
+        client, proc_infra, example_data_writeable, test_auth_dict,
+        user, upload_id, path, expected_status_code):
+    user_auth, _token = test_auth_dict[user]
+    response = client.post(f'uploads/{upload_id}/raw-create-dir/{requests.utils.quote(path)}', headers=user_auth)
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        upload = Upload.get(upload_id)
+        assert upload.upload_files.raw_path_exists(path)
+        assert not upload.upload_files.raw_path_is_file(path)
 
 
 @pytest.mark.parametrize('user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles', [

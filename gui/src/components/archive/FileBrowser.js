@@ -15,16 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useContext, useMemo, useState } from 'react'
+import React, { useContext, useMemo, useState, useRef } from 'react'
 import { useHistory } from 'react-router-dom'
 import PropTypes from 'prop-types'
-import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip,
+import { makeStyles, Typography, IconButton, Box, Grid, Button, Tooltip, TextField,
   Dialog, DialogContent, DialogContentText } from '@material-ui/core'
 import DialogActions from '@material-ui/core/DialogActions'
 import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Compartment } from './Browser'
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder'
 import DeleteIcon from '@material-ui/icons/Delete'
 import NavigateIcon from '@material-ui/icons/MoreHoriz'
 import FolderIcon from '@material-ui/icons/FolderOutlined'
@@ -40,6 +41,7 @@ import H5Web from '../visualization/H5Web'
 import NorthLaunchButton from '../north/NorthLaunchButton'
 import { useTools } from '../north/NorthPage'
 import { EntryButton } from '../nav/Routes'
+import { useErrors } from '../errors'
 
 const FileBrowser = React.memo(({uploadId, path, rootTitle, highlightedItem = null, editable = false}) => {
   const adaptor = new RawDirectoryAdaptor(uploadId, path, rootTitle, highlightedItem, editable)
@@ -122,6 +124,9 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
   const { api } = useApi()
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
+  const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
+  const createDirName = useRef()
+  const { raiseError } = useErrors()
 
   const handleDrop = (files) => {
     if (!files[0]?.name) {
@@ -142,6 +147,20 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
         browser.update()
       }
     })
+  }
+
+  const handleCreateDir = () => {
+    setOpenCreateDirDialog(false)
+    const dirName = createDirName.current.value
+    if (dirName) {
+      const fullPath = encodedPath + (encodedPath ? '/' : '') + encodeURIComponent(dirName)
+      api.post(`/uploads/${uploadId}/raw-create-dir/${fullPath}`)
+        .then(() => {
+          browser.lanes.current.forEach(lane => lane.adaptor?.onFilesUpdated(uploadId, path))
+          browser.update()
+        })
+        .catch(raiseError)
+    }
   }
 
   const handleDeleteDir = () => {
@@ -212,6 +231,36 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
                           </Tooltip>
                         </IconButton>
                       </Dropzone>
+                    </Grid>
+                }
+                {
+                  editable &&
+                    <Grid item>
+                      <IconButton size="small" onClick={() => setOpenCreateDirDialog(true)}>
+                        <Tooltip title="create new folder">
+                          <CreateNewFolderIcon />
+                        </Tooltip>
+                      </IconButton>
+                      <Dialog
+                        open={openCreateDirDialog}
+                        onClose={() => setOpenCreateDirDialog(false)}
+                      >
+                        <DialogContent>
+                          <DialogContentText>Name of new directory:</DialogContentText>
+                          <TextField
+                            autoFocus
+                            inputRef={createDirName}
+                            onKeyPress={(event) => {
+                              if (event.key === 'Enter') {
+                                handleCreateDir()
+                              }
+                            }}/>
+                        </DialogContent>
+                        <DialogActions>
+                          <Button onClick={() => setOpenCreateDirDialog(false)}>Cancel</Button>
+                          <Button onClick={() => handleCreateDir()}>OK</Button>
+                        </DialogActions>
+                      </Dialog>
                     </Grid>
                 }
                 {
