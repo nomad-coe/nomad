@@ -2871,6 +2871,12 @@ class SubSection(Property):
             raise NotImplementedError()
 
         if self.repeats:
+            if isinstance(value, (list, set)):
+                obj.m_get_sub_sections(self).clear()
+                for item in value:
+                    obj.m_add_sub_section(self, item)
+                return
+
             if value is not None:
                 raise NotImplementedError('Cannot set a repeating sub section directly, modify the list, e.a. via append.')
 

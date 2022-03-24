@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Set, Dict, Union
+from typing import List, Iterable, Dict, Union
 from abc import ABCMeta, abstractmethod
 import re
 import os
@@ -48,7 +48,7 @@ class Parser(metaclass=ABCMeta):
     @abstractmethod
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> Union[bool, Set[str]]:
+            compression: str = None) -> Union[bool, Iterable[str]]:
         '''
         Checks if a file is a mainfile for the parser. Should return True or a set of
         *keys* (non-empty strings) if it is a mainfile, otherwise a falsey value.
@@ -207,7 +207,7 @@ class MatchingParser(Parser):
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> bool:
+            compression: str = None) -> Union[bool, Iterable[str]]:
 
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
