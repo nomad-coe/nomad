@@ -1331,6 +1331,58 @@ class MolecularDynamics(MSection):
         Indicates if calculation contains thermodynamic data.
         ''')
 
+    ensemble_properties = SubSection(sub_section=SectionProxy('EnsembleProperties'), repeats=False)
+
+
+class EnsembleProperties(MSection):
+    '''
+    Describes any observable calculated from an ensemble average.
+    '''
+
+    m_def = Section(validate=False)
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Label of the observable.
+        ''')
+
+    types = Quantity(
+        type=np.dtype(str),
+        shape=[],
+        description='''
+        List of types for multi-component functions.
+        ''')
+
+    variables_name = Quantity(
+        type=np.dtype(str),
+        shape=[],
+        description='''
+        Name/description of the independent variables along which the observable is defined.
+        ''')
+
+    bins = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Bins along which the observable is calculated (i.e., values of the variables).
+        ''')
+
+    values = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Values of the observables.
+        ''')
+
+    n_smooth = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of bins over which the running average was computed for `values'.
+        ''')
+
 
 class SinglePoint(MSection):
     '''
