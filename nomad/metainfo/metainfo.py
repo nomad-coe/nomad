@@ -468,6 +468,23 @@ class _QuantityType(DataType):
             (value, quantity_def))
 
     def deserialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
+        if isinstance(value, dict):
+            if 'type_kind' not in value:
+                raise MetainfoError(f'{value} is not a valid quantity type specification.')
+
+            type_kind, type_data = value['type_kind'], value.get('type_data')
+            if type_kind == 'python':
+                return _primitive_type_names[type_data]
+            if type_kind == 'Enum':
+                return MEnum(*type_data)
+            if type_kind == 'reference':
+                return Reference(SectionProxy(type_data))
+            if type_kind == 'Any':
+                return Any
+            if type_kind in ['numpy', 'custom']:
+                raise NotImplementedError()
+            raise MetainfoError(f'{type_kind} is not a valid quantity type kind.')
+
         if value in _primitive_type_names:
             return _primitive_type_names[value]
 
@@ -626,10 +643,10 @@ class SectionReference(Reference):
         return super().set_normalize(section, quantity_def, value)
 
     def serialize(self, section: 'MSection', quantity_def: 'Quantity', value: Any) -> Any:
-        # First we try to use a Python name to serialize
+        # First we try to use a potentially available Python name to serialize
         if isinstance(value, Section):
-            pkg = value.m_parent
-            if isinstance(pkg, Package) and pkg.name != '*':
+            pkg: MSection = value.m_root()
+            if isinstance(pkg, Package) and pkg.name not in [None, '*']:
                 return f'{pkg.name}.{value.name}'
 
         # Default back to URL
@@ -1466,7 +1483,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         return self.m_def == definition or definition in self.m_def.all_base_sections
 
     def m_to_dict(
-            self, with_meta: bool = False,
+            self, with_meta: bool = False, with_root_def: bool = False,
             include_defaults: bool = False,
             include_derived: bool = False,
             resolve_references: bool = False,
@@ -1487,6 +1504,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 position in its parent. The section definition will always be included
                 if the sub section definition references a base section and the concrete
                 sub section is derived from this base section.
+            with_root_def: Include the m_def for the top-level section. This allows to
+                identify the used "schema" based on the root section definition.
             include_defaults: Include default values of unset quantities.
             include_derived: Include values of derived quantities.
             resolve_references:
@@ -1718,14 +1737,15 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                     annotations[annotation_name] = annotation_value
                 if len(annotations) > 0:
                     yield 'm_annotations', annotations
-            else:
-                if self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
-                    # The sub section definition's section def is different from our
-                    # own section def. We are probably a specialized derived section
-                    # from the base section that was used in the sub section def. To allow
-                    # clients to recognize the concrete section def, we force the export
-                    # of the section def.
-                    yield 'm_def', m_def_reference()
+            elif with_root_def:
+                yield 'm_def', m_def_reference()
+            elif self.m_parent and self.m_parent_sub_section.sub_section != self.m_def:
+                # The sub section definition's section def is different from our
+                # own section def. We are probably a specialized derived section
+                # from the base section that was used in the sub section def. To allow
+                # clients to recognize the concrete section def, we force the export
+                # of the section def.
+                yield 'm_def', m_def_reference()
 
             # quantities
             sec_path = self.m_path()

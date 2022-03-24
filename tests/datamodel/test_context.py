@@ -17,6 +17,7 @@
 #
 import pytest
 import json
+import re
 
 from nomad import utils, files, processing
 from nomad.metainfo.metainfo import MSection
@@ -163,7 +164,59 @@ def test_resolve_archive(context, url):
                 'm_def': '../upload/raw/schema.archive.json#/definitions/section_definitions/0'
             }
         }
-    }, id='intra-upload-raw')
+    }, id='intra-upload-raw'),
+    pytest.param({
+        'schema.json': {
+            'm_def': 'nomad.metainfo.metainfo.Package',
+            'section_definitions': [
+                {
+                    "base_sections": [
+                        "nomad.datamodel.data.EntryData"
+                    ],
+                    "name": "Chemical"
+                },
+                {
+                    "base_sections": [
+                        "nomad.datamodel.data.EntryData"
+                    ],
+                    "name": "Sample",
+                    "quantities": [
+                        {
+                            "name": "chemicals",
+                            "shape": ["*"],
+                            "type": {
+                                "type_kind": "reference",
+                                "type_data": "#/section_definitions/0"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        'chemical.archive.json': {
+            'definitions': {
+                'section_definitions': [
+                    {
+                        "base_sections": [
+                            "../upload/raw/schema.json#/section_definitions/0"
+                        ],
+                        "name": "MyChemical"
+                    }
+                ]
+            },
+            'data': {
+                'm_def': '#/definitions/section_definitions/0'
+            }
+        },
+        'sample.archive.json': {
+            'data': {
+                'm_def': '../upload/raw/schema.json#/section_definitions/1',
+                'chemicals': [
+                    '../upload/archive/mainfile/chemical.archive.json#/data'
+                ]
+            }
+        }
+    }, id='mixed-references')
 ])
 def test_custom_schema(upload_contents, raw_files):
     upload_files = files.StagingUploadFiles('test_upload', create=True)
@@ -176,6 +229,9 @@ def test_custom_schema(upload_contents, raw_files):
     parser = ArchiveParser()
 
     for file_name, content in upload_contents.items():
+        if not re.match(r'.*.archive.json', file_name):
+            continue
+
         entry_id = utils.generate_entry_id('test_upload', file_name)
         archive = EntryArchive(m_context=context, metadata=EntryMetadata(
             upload_id='test_upload', entry_id=entry_id, mainfile=file_name))
