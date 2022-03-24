@@ -27,7 +27,6 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, validator
 import os.path
 import io
-import asyncio
 import json
 import orjson
 from pydantic.main import create_model
@@ -70,7 +69,7 @@ archive_required_documentation = strip('''
 The `required` part allows you to specify what parts of the requested archives
 should be returned. The NOMAD Archive is a hierarchical data format and
 you can *require* certain branches (i.e. *sections*) in the hierarchy.
-By specifying certain sections with specific contents or all contents (via
+By specifing certain sections with specific contents or all contents (via
 the directive `"*"`), you can determine what sections and what quantities should
 be returned. The default is the whole archive, i.e., `"*"`.
 
@@ -374,12 +373,12 @@ async def post_entries_metadata_query(
     certain search criteria (`query` and `owner`). All parameters (including `query`, `owner`)
     are optional. Look at the body schema or parameter documentation for more details.
 
-    By default, the *empty* search (that returns everything) is performed. Only a small
+    By default the *empty* search (that returns everything) is performed. Only a small
     page of the search results are returned at a time; use `pagination` in subsequent
-    requests to retrieve more data. Each entry has a lot of different *metadata*, use
+    requests to retrive more data. Each entry has a lot of different *metadata*, use
     `required` to limit the data that is returned.
 
-    The `statistics` and `aggregations` keys will further allow returning statistics
+    The `statistics` and `aggregations` keys will further allow to return statistics
     and aggregated data over all search results.
     '''
 
@@ -425,7 +424,7 @@ async def get_entries_metadata(
     return res
 
 
-def _do_exhaustive_search(owner: Owner, query: Query, include: List[str], user: User) -> Iterator[Dict[str, Any]]:
+def _do_exaustive_search(owner: Owner, query: Query, include: List[str], user: User) -> Iterator[Dict[str, Any]]:
     page_after_value = None
     while True:
         response = perform_search(
@@ -443,7 +442,7 @@ def _do_exhaustive_search(owner: Owner, query: Query, include: List[str], user: 
             break
 
 
-class _Uploads:
+class _Uploads():
     '''
     A helper class that caches subsequent access to upload files the same upload.
     '''
@@ -527,9 +526,8 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
     if response.pagination.total > config.max_entry_download:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f'The maximum number of entries ({config.max_entry_download}) in a single '
-                f'download has been exceeded ({response.pagination.total}).'))
+            detail='The limit of maximum number of entries in a single download (%d) has been exeeded (%d).' % (
+                config.max_entry_download, response.pagination.total))
 
     files_params = Files() if files is None else files
     search_includes = ['entry_id', 'upload_id', 'mainfile']
@@ -538,7 +536,7 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
         # a generator of File objects to create the streamed zip from
         def download_items_generator():
             # go through all entries that match the query
-            for entry_metadata in _do_exhaustive_search(owner, query, include=search_includes, user=user):
+            for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
                 upload_id = entry_metadata['upload_id']
                 mainfile = entry_metadata['mainfile']
                 entry_metadata['mainfile'] = os.path.join(upload_id, mainfile)
@@ -685,70 +683,58 @@ def _validate_required(required: ArchiveRequired) -> RequiredReader:
     try:
         return RequiredReader(required)
     except RequiredValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=[dict(msg=e.msg, loc=['required'] + e.loc)])
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=[dict(
+            msg=e.msg, loc=['required'] + e.loc)])
 
 
-async def _read_archive_for_entry(entry_metadata, required):
-    entry_id, upload_id = entry_metadata['entry_id'], entry_metadata['upload_id']
-
-    try:
-        # have to make reader local as it is not thread safe
-        required_reader = _validate_required(required)
-    except RequiredValidationError as e:
-        raise e
-
-    uploads = _Uploads()
-
-    try:
-        archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
-
-        uploads.close()
-
-        return {
-            'entry_id': entry_id,
-            'upload_id': upload_id,
-            'parser_name': entry_metadata['parser_name'],
-            'archive': archive_data
-        }
-    except KeyError as e:
-        logger.error('missing archive', exc_info=e, entry_id=entry_id)
-
-        uploads.close()
-
-        return None
-
-
-async def _answer_entries_archive_request(
+def _answer_entries_archive_request(
         owner: Owner, query: Query, pagination: MetadataPagination, required: ArchiveRequired,
         user: User):
+
     if owner == Owner.all_:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=strip(
-                '''The owner=all is not allowed for this operation as it will search for entries
-                                  that you might now be allowed to access.'''))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=strip('''
+            The owner=all is not allowed for this operation as it will search for entries
+            that you might now be allowed to access.
+            '''))
 
     if required is None:
         required = '*'
 
+    required_reader = _validate_required(required)
+
     search_response = perform_search(
-        owner=owner, query=query, pagination=pagination,
+        owner=owner, query=query,
+        pagination=pagination,
         required=MetadataRequired(include=['entry_id', 'upload_id', 'parser_name']),
         user_id=user.user_id if user is not None else None)
 
-    tasks = [_read_archive_for_entry(entry_metadata, required) for entry_metadata in
-             search_response.data]
+    uploads = _Uploads()
+    response_data = {}
+    for entry_metadata in search_response.data:
+        entry_id, upload_id = entry_metadata['entry_id'], entry_metadata['upload_id']
 
-    response_data = await asyncio.gather(*tasks)
+        archive_data = None
+
+        try:
+            archive_data = _read_archive(entry_metadata, uploads, required_reader)['archive']
+        except KeyError as e:
+            logger.error('missing archive', exc_info=e, entry_id=entry_id)
+            continue
+
+        response_data[entry_id] = {
+            'entry_id': entry_id,
+            'upload_id': upload_id,
+            'parser_name': entry_metadata['parser_name'],
+            'archive': archive_data}
+
+    uploads.close()
 
     return EntriesArchiveResponse(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
         required=required,
-        data=[i for i in response_data if i])
+        data=list(response_data.values()))
 
 
 _entries_archive_docstring = strip('''
@@ -771,7 +757,7 @@ _entries_archive_docstring = strip('''
 async def post_entries_archive_query(
         request: Request, data: EntriesArchive, user: User = Depends(create_user_dependency())):
 
-    return await _answer_entries_archive_request(
+    return _answer_entries_archive_request(
         owner=data.owner, query=data.query, pagination=data.pagination,
         required=data.required, user=user)
 
@@ -791,7 +777,7 @@ async def get_entries_archive_query(
         pagination: MetadataPagination = Depends(metadata_pagination_parameters),
         user: User = Depends(create_user_dependency())):
 
-    res = await _answer_entries_archive_request(
+    res = _answer_entries_archive_request(
         owner=with_query.owner, query=with_query.query, pagination=pagination,
         required=None, user=user)
     res.pagination.populate_urls(request)
@@ -819,8 +805,8 @@ def _answer_entries_archive_download_request(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f'The limit of maximum number of entries in a single download '
-                f'({config.max_entry_download}) has been exceeded ({response.pagination.total}).'))
+                'The limit of maximum number of entries in a single download (%d) has been '
+                'exeeded (%d).' % (config.max_entry_download, response.pagination.total)))
 
     uploads = _Uploads()
     manifest = []
@@ -831,7 +817,7 @@ def _answer_entries_archive_download_request(
     # a generator of StreamedFile objects to create the zipstream from
     def streamed_files():
         # go through all entries that match the query
-        for entry_metadata in _do_exhaustive_search(owner, query, include=search_includes, user=user):
+        for entry_metadata in _do_exaustive_search(owner, query, include=search_includes, user=user):
             path = os.path.join(entry_metadata['upload_id'], '%s.json' % entry_metadata['entry_id'])
             try:
                 archive_data = _read_archive(entry_metadata, uploads, required_reader)
@@ -1045,7 +1031,7 @@ async def get_entry_raw_file(
     return StreamingResponse(raw_file_content, media_type=mime_type)
 
 
-async def answer_entry_archive_request(
+def answer_entry_archive_request(
         query: Dict[str, Any], required: ArchiveRequired, user: User, entry_metadata=None):
     required_reader = _validate_required(required)
 
@@ -1100,7 +1086,7 @@ async def get_entry_archive(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    return await answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
 
 
 @router.get(
@@ -1114,7 +1100,7 @@ async def get_entry_archive_download(
     '''
     Returns the full archive for the given `entry_id`.
     '''
-    response = await answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
+    response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
     return response['data']['archive']
 
 
@@ -1134,7 +1120,7 @@ async def post_entry_archive_query(
     Returns a partial archive for the given `entry_id` based on the `required` specified
     in the body.
     '''
-    return await answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
+    return answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
 
 
 def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
@@ -1142,7 +1128,7 @@ def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index
     entry_ids: List[str] = []
     upload_ids: Set[str] = set()
     with utils.timer(logger, 'edit query executed'):
-        all_entries = _do_exhaustive_search(
+        all_entries = _do_exaustive_search(
             owner=Owner.user, query=query, include=['entry_id', 'upload_id'], user=user)
 
         for entry_dict in all_entries:
@@ -1339,8 +1325,7 @@ async def post_entry_metadata_edit(
                 if doi_ds is not None and not user.is_admin:
                     data.success = False
                     data.message = (data.message if data.message else '') + (
-                        f'Edit would remove entries '
-                        f'from a dataset with DOI ({doi_ds.dataset_name}) ')
+                        'Edit would remove entries from a dataset with DOI (%s) ' % doi_ds.dataset_name)
                     has_error = True
 
     # stop here, if client just wants to verify its actions
@@ -1382,10 +1367,10 @@ async def post_entries_edit(
     Updates the metadata of the specified entries.
 
     **Note:**
-      - Only admins can edit some fields.
+      - Only admins can edit some of the fields.
       - Only entry level attributes (like `comment`, `references` etc.) can be set using
         this endpoint; upload level attributes (like `upload_name`, `coauthors`, embargo
-        settings, etc.) need to be set through the endpoint **uploads/upload_id/edit**.
+        settings, etc) need to be set through the endpoint **uploads/upload_id/edit**.
       - If the upload is published, the only operation permitted using this endpoint is to
         edit the entries in datasets that where created by the current user.
     '''
@@ -1396,5 +1381,5 @@ async def post_entries_edit(
     except RequestValidationError as e:
         raise  # A problem which we have handled explicitly. Fastapi does json conversion.
     except Exception as e:
-        # The upload is processing or some kind of unexpected error has occurred
+        # The upload is processing or some kind of unexpected error has occured
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

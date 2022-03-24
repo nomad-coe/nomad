@@ -26,7 +26,7 @@ import json
 from nomad import utils, config
 from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference
 from nomad.datamodel import EntryArchive
-from nomad.archive.storage import TOCPacker, _decode, _toc_entries_per_block
+from nomad.archive.storage import TOCPacker
 from nomad.archive import (
     write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive,
     write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
@@ -147,10 +147,12 @@ def test_write_archive_single(example_uuid, example_entry):
     toc_packer.pack(example_entry)
     assert archive['data'][example_uuid]['toc'] == toc_packer.toc
 
-    toc = _unpack(packed_archive, _decode(archive['toc_pos']))
+    toc = _unpack(packed_archive, ArchiveReader._decode_position(archive['toc_pos']))
     assert example_uuid in toc
-    assert _unpack(packed_archive, _decode(toc[example_uuid][0])) == toc_packer.toc
-    assert _unpack(packed_archive, _decode(toc[example_uuid][1])) == example_entry
+    assert _unpack(
+        packed_archive, ArchiveReader._decode_position(toc[example_uuid][0])) == toc_packer.toc
+    assert _unpack(
+        packed_archive, ArchiveReader._decode_position(toc[example_uuid][1])) == example_entry
 
 
 def test_write_archive_multi(example_uuid, example_entry):
@@ -201,7 +203,7 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
 
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
 def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
-    archive_size = _toc_entries_per_block * 2 + 23
+    archive_size = ArchiveReader.toc_block_size_entries * 2 + 23
     f = BytesIO()
     write_archive(
         f, archive_size,
@@ -213,10 +215,10 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
         if use_blocked_toc:
             reader._load_toc_block(0)
             assert reader._toc.get(create_example_uuid(0)) is not None
-            assert len(reader._toc) == _toc_entries_per_block
+            assert len(reader._toc) == ArchiveReader.toc_block_size_entries
             reader._load_toc_block(archive_size - 1)
             assert reader._toc.get(create_example_uuid(archive_size - 1)) is not None
-            assert len(reader._toc) > _toc_entries_per_block
+            assert len(reader._toc) > ArchiveReader.toc_block_size_entries
 
         for i in range(0, archive_size):
             reader.get(create_example_uuid(i)) is not None
@@ -442,7 +444,7 @@ def test_required_reader(archive, required, error, resolve_inplace):
     assert error is None
     results = required_reader.read(archive_reader, 'entry_id')
 
-    assert_required_results(results, required_reader._required, archive)
+    assert_required_results(results, required_reader.required, archive)
 
 
 def assert_required_results(

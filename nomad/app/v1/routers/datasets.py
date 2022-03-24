@@ -32,7 +32,7 @@ from nomad.doi import DOI
 from nomad.search import search, update_by_query
 
 from .auth import create_user_dependency
-from .entries import _do_exhaustive_search
+from .entries import _do_exaustive_search
 from ..utils import create_responses, parameter_dependency_from_model
 from ..models import (
     Pagination, PaginationResponse, MetadataPagination, Query, HTTPExceptionModel,
@@ -259,7 +259,7 @@ async def post_datasets(
         if es_query is None:
             empty = True
         else:
-            entries = _do_exhaustive_search(
+            entries = _do_exaustive_search(
                 owner=Owner.user, query=es_query, user=user, include=['entry_id'])
             entry_ids = [entry['entry_id'] for entry in entries]
             mongo_query = {'_id': {'$in': entry_ids}}
@@ -316,7 +316,7 @@ async def delete_dataset(
     # delete dataset from entries in mongo and elastic
     # TODO this should be part of a new edit API
     es_query = cast(Query, {'datasets.dataset_id': dataset_id})
-    entries = _do_exhaustive_search(
+    entries = _do_exaustive_search(
         owner=Owner.user, query=es_query, user=user,
         include=['entry_id'])
     entry_ids = [entry['entry_id'] for entry in entries]
