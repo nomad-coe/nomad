@@ -551,7 +551,7 @@ class EntryMetadata(metainfo.MSection):
         a_elasticsearch=Elasticsearch())
 
     external_db = metainfo.Quantity(
-        type=metainfo.MEnum('EELS Data Base', 'Materials Project', 'AFLOW', 'OQMD'),
+        type=metainfo.MEnum('EELS Data Base', 'Materials Project', 'AFLOW', 'OQMD', 'Kyoto Phonopy Database'),
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
         a_elasticsearch=Elasticsearch(material_entry_type))
