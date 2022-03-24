@@ -44,7 +44,7 @@ const LoginLogout = React.memo(function LoginLogout(props) {
   const {keycloak} = useKeycloak()
   const {variant, color} = props
 
-  if (keycloak.authenticated) {
+  if (keycloak?.authenticated) {
     return (
       <div className={classes.root}>
         <Typography color="primary" variant="body1">
@@ -69,6 +69,7 @@ const LoginLogout = React.memo(function LoginLogout(props) {
           className={classes.button} variant={variant} color={color}
           startIcon={<LoginIcon/>}
           onClick={() => keycloak.login()}
+          data-testid='login-register-button'
         >Login / Register</Button>
       </div>
     )

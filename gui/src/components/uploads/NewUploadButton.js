@@ -41,7 +41,7 @@ export default function NewUploadButton({...props}) {
       })
   }
 
-  return <Button variant="contained" onClick={handleClick} disabled={clicked} role='new-upload-button' {...props}>
+  return <Button variant="contained" onClick={handleClick} disabled={clicked} {...props}>
     Create a new upload
   </Button>
 }

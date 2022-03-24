@@ -284,6 +284,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
             active={order_by === column.key}
             direction={order_by === column.key ? order : 'asc'}
             onClick={createSortHandler(column)}
+            data-testid={`sortable_${column.key}`}
           >
             {column.label || column.key}
             {order_by === column.key ? (

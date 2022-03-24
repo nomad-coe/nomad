@@ -21,6 +21,17 @@ from nomad.utils.exampledata import ExampleData
 from .archives.create_archives import archive_dft_bulk
 
 
+def empty():
+    '''
+    State published upload containing one entry
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    data.save()
+
+
 def published():
     '''
     State published upload containing one entry
@@ -107,6 +118,50 @@ def multiple_entries():
             upload_id=upload_id,
             entry_id=entry_id,
             mainfile=f'vasp_{i}.xml',
+            entry_archive=archive_dft_bulk()
+        )
+
+    data.save()
+
+
+def multiple_uploads():
+    '''
+    State published upload containing multiple entries
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    for i in range(1, 12):
+        upload_id = f'dft_upload_{i}'
+        data.create_upload(upload_id=upload_id, published=(i % 2 == 0), embargo_length=0)
+        entry_id = f'dft_bulk_{i}'
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=entry_id,
+            mainfile=f'vasp.xml',
+            entry_archive=archive_dft_bulk()
+        )
+
+    data.save()
+
+
+def maximum_unpublished():
+    '''
+    State published upload containing multiple entries
+    '''
+    infrastructure.setup()
+    main_author = infrastructure.keycloak.get_user(username='test')
+    data = ExampleData(main_author=main_author)
+
+    for i in range(1, 11):
+        upload_id = f'dft_upload_{i}'
+        data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
+        entry_id = f'dft_bulk_{i}'
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=entry_id,
+            mainfile=f'vasp.xml',
             entry_archive=archive_dft_bulk()
         )
 
