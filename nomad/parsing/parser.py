@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Set, Dict, Union
+from typing import List, Iterable, Dict, Union
 from abc import ABCMeta, abstractmethod
 import re
 import os
@@ -26,6 +26,7 @@ import importlib
 
 from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
+from nomad.metainfo import Package
 
 
 class Parser(metaclass=ABCMeta):
@@ -47,7 +48,7 @@ class Parser(metaclass=ABCMeta):
     @abstractmethod
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> Union[bool, Set[str]]:
+            compression: str = None) -> Union[bool, Iterable[str]]:
         '''
         Checks if a file is a mainfile for the parser. Should return True or a set of
         *keys* (non-empty strings) if it is a mainfile, otherwise a falsey value.
@@ -206,7 +207,7 @@ class MatchingParser(Parser):
 
     def is_mainfile(
             self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> bool:
+            compression: str = None) -> Union[bool, Iterable[str]]:
 
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
@@ -307,6 +308,13 @@ class ArchiveParser(MatchingParser):
         if metadata_data is not None:
             # Setting metadata in this way is not supported (any more)
             del(archive_data[EntryArchive.metadata.name])
+
+        # ensure that definitions are parsed first to make them available for the
+        # parsing itself.
+        if 'definitions' in archive_data:
+            archive.definitions = Package.m_from_dict(
+                archive_data['definitions'], m_context=archive.m_context)
+            del archive_data['definitions']
 
         archive.m_update_from_dict(archive_data)
 

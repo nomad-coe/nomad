@@ -31,8 +31,8 @@ from nomad.archive import read_partial_archive_from_mongo
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.parsing.parser import Parser
 from nomad.parsing import parsers
+from nomad.datamodel import ServerContext
 from nomad.processing import Upload, Entry, ProcessStatus
-from nomad.processing.data import UploadContext, generate_entry_id
 from nomad.search import search, refresh as search_refresh
 from nomad.utils.exampledata import ExampleData
 
@@ -42,8 +42,8 @@ from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
 def test_generate_entry_id():
-    assert generate_entry_id('an_upload_id', 'a/mainfile/path', None) == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
-    assert generate_entry_id('an_upload_id', 'a/mainfile/path', 'child1') == 'di12O5zSSb0Al9ipG6BBp_I0JYgd'
+    assert utils.generate_entry_id('an_upload_id', 'a/mainfile/path', None) == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
+    assert utils.generate_entry_id('an_upload_id', 'a/mainfile/path', 'child1') == 'di12O5zSSb0Al9ipG6BBp_I0JYgd'
 
 
 def test_send_mail(mails, monkeypatch):
@@ -808,9 +808,7 @@ def test_skip_matching(proc_infra, test_user):
     pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
     pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')])
 def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
-    monkeypatch.setattr(
-        'nomad.processing.data.UploadContext._resolve_mainfile',
-        lambda *args, **kwargs: 'test_id')
+    monkeypatch.setattr('nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id')
 
     from nomad.datamodel.metainfo import simulation
 
@@ -829,7 +827,7 @@ def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkey
     upload = Upload.objects(upload_id='test_id').first()
     assert upload is not None
 
-    context = UploadContext(upload)
+    context = ServerContext(upload=upload)
     test_archive = EntryArchive(m_context=context)
 
     test_archive.run.append(simulation.Run())

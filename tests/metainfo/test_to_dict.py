@@ -85,6 +85,21 @@ def test_m_from_dict(example):
     assert Root.m_from_dict(example.m_to_dict()).m_to_dict() == expected_root
 
 
+@pytest.mark.parametrize('metainfo_data', [
+    pytest.param({
+        'm_def': 'nomad.metainfo.metainfo.Package',
+        'name': 'test.Package',
+        'section_definitions': [
+            {
+                'name': 'MySection'
+            }
+        ]
+    }, id='python')
+])
+def test_from_dict(metainfo_data):
+    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True) == metainfo_data
+
+
 def test_with_meta(example):
     assert example.m_to_dict(with_meta=True) == dict(
         m_def='tests.metainfo.test_to_dict.Root',

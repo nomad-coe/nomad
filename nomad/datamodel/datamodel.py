@@ -736,6 +736,7 @@ class EntryArchive(metainfo.MSection):
         a_elasticsearch=Elasticsearch(auto_include_subsections=True))
 
     tabular_tree = metainfo.SubSection(sub_section=TabularTree, repeats=False)
+    definitions = metainfo.SubSection(sub_section=metainfo.Package)
 
 
 m_package.__init_metainfo__()

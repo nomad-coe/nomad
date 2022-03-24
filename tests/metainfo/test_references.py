@@ -20,8 +20,7 @@ import pytest
 
 from nomad.metainfo import (
     MSection, Quantity, SubSection, MProxy, Reference, QuantityReference, File,
-    MetainfoReferenceError)
-from nomad.metainfo.metainfo import Context
+    MetainfoReferenceError, Package as MetainfoPackage, Context)
 
 
 class Referenced(MSection):
@@ -113,14 +112,14 @@ def test_section_proxy(example_data):
     example_data.referencing.section_reference = MProxy(
         'doesnotexist',
         m_proxy_section=example_data.referencing,
-        m_proxy_quantity=Referencing.section_reference)
+        m_proxy_type=Referencing.section_reference.type)
     with pytest.raises(MetainfoReferenceError):
         example_data.referencing.section_reference.str_quantity
 
     example_data.referencing.section_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_quantity=Referencing.section_reference)
+        m_proxy_type=Referencing.section_reference.type)
 
     assert_data(example_data)
 
@@ -129,14 +128,14 @@ def test_quantity_proxy(example_data):
     example_data.referencing.quantity_reference = MProxy(
         'doesnotexist',
         m_proxy_section=example_data.referencing,
-        m_proxy_quantity=Referencing.section_reference)
+        m_proxy_type=Referencing.section_reference.type)
     with pytest.raises(MetainfoReferenceError):
         example_data.referencing.quantity_reference
 
     example_data.referencing.quantity_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_quantity=Referencing.section_reference)
+        m_proxy_type=Referencing.section_reference.type)
     assert example_data.referencing.quantity_reference == 'test_value'
 
     assert_data(example_data)
@@ -195,7 +194,7 @@ def test_quantity_references_serialize():
 ])
 def test_reference_urls(example_data, url, value):
     class MyContext(Context):
-        def resolve_archive(self, url):
+        def resolve_archive_url(self, url):
             if url == '../upload/archive/my_entry_id':
                 return example_data
             if url == '../upload/archive/mainfile/my/main/file':
@@ -224,3 +223,36 @@ def test_file_references(example_data):
     example_data.referencing.file_reference = '../upload/raw/a_file.txt'
 
     assert example_data.referencing.file_reference == '../upload/raw/a_file.txt'
+
+
+def test_def_reference():
+    definitions = MetainfoPackage.m_from_dict({
+        'section_definitions': [
+            {
+                'name': 'TestSection',
+                'quantities': [
+                    {
+                        'name': 'test_quantity',
+                        'type': 'str'
+                    }
+                ]
+            }
+        ]
+    })
+
+    class TestContext(Context):
+
+        def resolve_archive_url(self, url):
+            assert url == 'definitions'
+            return definitions
+
+    data = {
+        'm_def': 'definitions#section_definitions/0',
+        'test_quantity': 'TestValue'
+    }
+
+    result = MSection.from_dict(data, m_context=TestContext())
+
+    assert result.m_to_dict() == {
+        'test_quantity': 'TestValue'
+    }
