@@ -572,7 +572,7 @@ export const onKeycloakEvent = (keycloak) => {
         })
     } else {
       // Not authenticated. Remove the cookie.
-      cookies.remove('Authorization')
+      cookies.remove('Authorization', {path: path})
     }
   }
 }
