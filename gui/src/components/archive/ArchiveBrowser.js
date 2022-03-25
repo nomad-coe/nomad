@@ -28,7 +28,7 @@ import { ArchiveTitle, metainfoAdaptorFactory, DefinitionLabel } from './Metainf
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { Quantity as Q, useUnits, getUnitByName } from '../../units'
+import { Quantity as Q, useUnits } from '../../units'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import grey from '@material-ui/core/colors/grey'
