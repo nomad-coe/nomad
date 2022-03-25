@@ -90,9 +90,23 @@ test('Render uploads page: sort by upload create time', async () => {
   expect(rows.length).toBe(10)
   expect(within(datatableBody).queryByText('dft_upload_1')).not.toBeInTheDocument()
 
-  // Test the order of uploads: by default is Upload create time
+  // Test the order of uploads: by default is descending upload create time
   for (let i = 0; i < 10; i++) {
     expect(within(rows[i]).queryByText(`dft_upload_${11 - i}`)).toBeInTheDocument()
+    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
+  }
+
+  // Test the order of uploads: ascending sort by upload create time
+  fireEvent.click(screen.queryByTestId('sortable_upload_create_time'))
+  rows = screen.queryAllByTestId('datatable-row')
+  expect(rows.length).toBe(10)
+  await waitFor(() =>
+    expect(within(rows[9]).queryByText(`dft_upload_10`)).toBeInTheDocument()
+  )
+
+  expect(within(datatableBody).queryByText('dft_upload_11')).not.toBeInTheDocument()
+  for (let i = 0; i < 10; i++) {
+    expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
     expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
   }
 
