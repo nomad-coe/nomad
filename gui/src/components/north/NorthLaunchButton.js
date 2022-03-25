@@ -37,7 +37,7 @@ const NorthLaunchButton = React.memo(function NorthLaunchButton({tools, ...props
       {toolsData
         .map((tool, index) => (
           <div key={tool.name}>
-            <NorthTool {...tool} {...props} />
+            <NorthTool tool={tool} {...props} />
             {index !== Object.keys(toolsData).length - 1 && <Divider/>}
           </div>
         ))}
