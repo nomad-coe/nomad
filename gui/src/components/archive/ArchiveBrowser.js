@@ -792,7 +792,12 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
     const toUnit = quantityDef => {
       const value = section[quantityDef.name]
       const unit = quantityDef.unit
-      return unit ? getUnitByName(quantityDef.unit).toSystem(units) : [value, unit]
+      if (unit) {
+        const quantity = new Q(value, quantityDef.unit).toSystem(units)
+        return [quantity.value, quantity.unit.label]
+      } else {
+        return [value, unit]
+      }
     }
     const [xValues, xUnit] = toUnit(sectionDef._properties[plot.x])
     const [yValues, yUnit] = toUnit(sectionDef._properties[plot.y])

@@ -173,8 +173,8 @@ class Context(MetainfoContext):
 
 
 class ServerContext(Context):
-    def __init__(self, *args, upload=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, upload=None):
+        super().__init__()
         self.upload = upload
 
     @property
@@ -223,6 +223,9 @@ class ServerContext(Context):
             return EntryArchive.m_from_dict(archive_data, m_context=self)
         else:
             return MSection.from_dict(archive_data, m_context=self)
+
+    def raw_file(self, *args, **kwargs):
+        return self.upload_files.raw_file(*args, **kwargs)
 
 
 class ClientContext(Context):
