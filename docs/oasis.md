@@ -103,6 +103,7 @@ services:
         image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
         container_name: nomad_oasis_elastic
         environment:
+            - ES_JAVA_OPTS=-Xms512m -Xmx512m
             - discovery.type=single-node
         volumes:
             - nomad_oasis_elastic:/usr/share/elasticsearch/data

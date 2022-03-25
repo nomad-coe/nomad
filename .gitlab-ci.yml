@@ -86,9 +86,10 @@ python tests:
       alias: rabbitmq
     - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
       alias: elastic
-      # fix issue with running elastic in gitlab ci runner:
-      # https://gitlab.com/gitlab-org/gitlab-ce/issues/42214
-      command: [ "bin/elasticsearch", "-Ediscovery.type=single-node" ]
+      command:
+        - bash
+        - "-c"
+        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
     - name: mongo:5.0.6
       alias: mongo
   variables:
@@ -102,6 +103,8 @@ python tests:
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
     NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
   script:
+    - sleep 5
+    - curl http://elastic:9200/_cat/health
     - cd /app
     - ls /builds
     - python -m pytest --cov=nomad -sv tests
