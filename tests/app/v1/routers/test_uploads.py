@@ -683,8 +683,8 @@ def test_get_upload_entry(
         200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
     pytest.param(dict(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux',
-        ignore_mime_type=True),
-        200, 'application/octet-stream', 'content', id='unpublished-file-ignore_mime_type'),
+        set_browser_download_headers=True),
+        200, 'application/octet-stream', 'content', id='unpublished-file-set_browser_download_headers'),
     pytest.param(dict(
         user='other_test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
@@ -696,8 +696,8 @@ def test_get_upload_entry(
         200, 'text/plain; charset=utf-8', 'method', id='published-file'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json',
-        ignore_mime_type=True),
-        200, 'application/octet-stream', 'method', id='published-file-ignore_mime_type'),
+        set_browser_download_headers=True),
+        200, 'application/octet-stream', 'method', id='published-file-set_browser_download_headers'),
     pytest.param(dict(
         user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
@@ -783,10 +783,10 @@ def test_get_upload_raw_path(
     re_pattern = args.get('re_pattern', None)
     offset = args.get('offset', None)
     length = args.get('length', None)
-    ignore_mime_type = args.get('ignore_mime_type', None)
+    set_browser_download_headers = args.get('set_browser_download_headers', None)
     user_auth, __token = test_auth_dict[user]
     query_args = dict(
-        ignore_mime_type=ignore_mime_type,
+        set_browser_download_headers=set_browser_download_headers,
         compress=compress,
         re_pattern=re_pattern,
         offset=offset,

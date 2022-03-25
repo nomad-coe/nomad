@@ -40,7 +40,7 @@ from ..models import (
     Files, files_parameters, WithQuery, MetadataEditRequest)
 from .entries import EntryArchiveResponse, answer_entry_archive_request
 from ..utils import (
-    parameter_dependency_from_model, create_responses, DownloadItem,
+    parameter_dependency_from_model, create_responses, DownloadItem, browser_download_headers,
     create_download_stream_zipped, create_download_stream_raw_file, create_stream_from_string)
 
 router = APIRouter()
@@ -735,11 +735,10 @@ async def get_upload_raw_path(
                 Set if compressed files should be decompressed before streaming the
                 content (that is: if there are compressed files *within* the raw files).
                 Note, only some compression formats are supported.''')),
-        ignore_mime_type: bool = FastApiQuery(
+        set_browser_download_headers: bool = FastApiQuery(
             False,
             description=strip('''
-                Sets the mime type specified in the response headers to `application/octet-stream`
-                instead of trying to determine the actual mime type.''')),
+                Sets the response headers to signal to browsers to download the data.''')),
         user: User = Depends(create_user_dependency(required=False, signature_token_auth_allowed=True))):
     '''
     For the upload specified by `upload_id`, gets the raw file or directory content located
@@ -784,12 +783,16 @@ async def get_upload_raw_path(
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=strip('''
                         Invalid length provided. Should be greater than 0, or -1 if the remainder
                         of the file should be read.'''))
-                if ignore_mime_type or not (offset == 0 and length == -1):
+                if set_browser_download_headers or not (offset == 0 and length == -1):
                     media_type = 'application/octet-stream'
                 else:
                     media_type = upload_files.raw_file_mime_type(path)
                 content = create_download_stream_raw_file(
                     upload_files, path, offset, length, decompress)
+            if set_browser_download_headers:
+                return StreamingResponse(content, headers=browser_download_headers(
+                    filename=os.path.basename(path),
+                    media_type=media_type))
             return StreamingResponse(content, media_type=media_type)
         else:
             # Directory
@@ -803,6 +806,10 @@ async def get_upload_raw_path(
                 download_item, upload_files,
                 re_pattern=files_params.re_pattern, recursive=True,
                 create_manifest_file=False, compress=True)
+            if set_browser_download_headers:
+                return StreamingResponse(content, headers=browser_download_headers(
+                    (upload.upload_id if not path else os.path.basename(path.rstrip('/'))) + '.zip',
+                    media_type='application/zip'))
             return StreamingResponse(content, media_type='application/zip')
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)

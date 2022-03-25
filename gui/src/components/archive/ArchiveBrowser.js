@@ -165,8 +165,7 @@ function ArchiveConfigForm({searchOptions, data}) {
         </Tooltip>
         {entryId && <Download
           tooltip="download the archive"
-          url={`entries/${entryId}/archive/download`}
-          fileName={`${entryId}.json`}
+          url={`entries/${entryId}/archive/download?set_browser_download_headers=true`}
           component={IconButton}
         >
           <DownloadIcon />

@@ -23,6 +23,7 @@ import {
   useRecoilState
 } from 'recoil'
 import PropTypes from 'prop-types'
+import Cookies from 'universal-cookie'
 import { apiBase, globalLoginRequired } from '../config'
 import { Box, makeStyles, Typography } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
@@ -555,3 +556,23 @@ export const withApi = (Component) => React.forwardRef((props, ref) => {
   const {raiseError} = useErrors()
   return <Component ref={ref} {...apiProps} raiseError={raiseError} {...props} />
 })
+
+export const onKeycloakEvent = (keycloak) => {
+  const cookies = new Cookies()
+  const path = new URL(apiBase).pathname
+  return () => {
+    // Will be called whenever a keycloak event occurs
+    if (keycloak.authenticated) {
+      // Authenticated. Set authentication cookie
+      cookies.set('Authorization', 'Bearer ' + keycloak.token,
+        {
+          path: path,
+          expires: new Date((keycloak.tokenParsed.exp + keycloak.timeSkew) * 1000),
+          sameSite: 'strict'
+        })
+    } else {
+      // Not authenticated. Remove the cookie.
+      cookies.remove('Authorization')
+    }
+  }
+}

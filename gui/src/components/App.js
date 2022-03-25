@@ -29,7 +29,7 @@ import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
-import { APIProvider, GlobalLoginRequired } from './api'
+import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
 
 const keycloak = Keycloak({
   url: keycloakBase,
@@ -39,7 +39,7 @@ const keycloak = Keycloak({
 
 export default function App() {
   return (
-    <KeycloakProvider keycloak={keycloak} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
+    <KeycloakProvider keycloak={keycloak} onEvent={onKeycloakEvent(keycloak)} initConfig={{ onLoad: 'check-sso', 'checkLoginIframe': false, promiseType: 'native' }} LoadingComponent={<div />}>
       <RecoilRoot>
         <APIProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>

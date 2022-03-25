@@ -45,7 +45,7 @@ from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
 from ..utils import (
-    create_download_stream_zipped, create_download_stream_raw_file,
+    create_download_stream_zipped, create_download_stream_raw_file, browser_download_headers,
     DownloadItem, create_responses)
 from ..models import (
     Aggregation, Pagination, PaginationResponse, MetadataPagination, TermsAggregation,
@@ -555,7 +555,9 @@ def _answer_entries_raw_request(owner: Owner, query: Query, files: Files, user: 
             recursive=False,
             create_manifest_file=True,
             compress=files_params.compress)
-        return StreamingResponse(content, media_type='application/zip')
+        return StreamingResponse(content, headers=browser_download_headers(
+            filename='raw_files.zip',
+            media_type='application/zip'))
     except Exception as e:
         logger.error('exception while streaming download', exc_info=e)
         raise
@@ -839,7 +841,9 @@ def _answer_entries_archive_download_request(
     try:
         # create the streaming response with zip file contents
         content = create_zipstream(streamed_files(), compress=files_params.compress)
-        return StreamingResponse(content, media_type='application/zip')
+        return StreamingResponse(content, headers=browser_download_headers(
+            filename='archives.zip',
+            media_type='application/zip'))
     finally:
         uploads.close()
 
@@ -1096,12 +1100,20 @@ async def get_entry_archive(
     responses=create_responses(_bad_id_response, _archive_download_response))
 async def get_entry_archive_download(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.'),
+        set_browser_download_headers: bool = QueryParameter(
+            False, description=strip('''
+                Sets the response headers to signal to browsers to download the data.''')),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Returns the full archive for the given `entry_id`.
     '''
     response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
-    return response['data']['archive']
+    archive = response['data']['archive']
+    if set_browser_download_headers:
+        return StreamingResponse(
+            io.BytesIO(json.dumps(archive, indent=2).encode()),
+            headers=browser_download_headers(filename=f'{entry_id}.json'))
+    return archive
 
 
 @router.post(

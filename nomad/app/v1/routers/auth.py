@@ -19,10 +19,11 @@
 import hmac
 import hashlib
 import uuid
+import requests
 from typing import Callable, cast
 from inspect import Parameter, signature
 from functools import wraps
-from fastapi import APIRouter, Depends, Query as FastApiQuery, HTTPException, status
+from fastapi import APIRouter, Depends, Query as FastApiQuery, Request, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import jwt
@@ -69,7 +70,7 @@ def create_user_dependency(
         if basic_auth_allowed:
             user = _get_user_basic_auth(kwargs.get('form_data'))
         if not user and bearer_token_auth_allowed:
-            user = _get_user_bearer_token_auth(kwargs.get('bearer_token'))
+            user = _get_user_bearer_token_auth(kwargs.get('bearer_token'), kwargs.get('request'))
         if not user and upload_token_auth_allowed:
             user = _get_user_upload_token_auth(kwargs.get('token'))
         if not user and signature_token_auth_allowed:
@@ -109,6 +110,11 @@ def create_user_dependency(
                 name='bearer_token',
                 annotation=str,
                 default=Depends(oauth2_scheme),
+                kind=Parameter.KEYWORD_ONLY))
+        new_parameters.append(
+            Parameter(
+                name='request',
+                annotation=Request,
                 kind=Parameter.KEYWORD_ONLY))
     if upload_token_auth_allowed:
         new_parameters.append(
@@ -159,11 +165,20 @@ def _get_user_basic_auth(form_data: OAuth2PasswordRequestForm) -> User:
     return None
 
 
-def _get_user_bearer_token_auth(bearer_token: str) -> User:
+def _get_user_bearer_token_auth(bearer_token: str, request: Request) -> User:
     '''
     Verifies bearer_token (throwing exception if illegal value provided) and returns the
     corresponding user object, or None, if no bearer_token provided.
     '''
+    if not bearer_token and request:
+        auth_cookie = request.cookies.get('Authorization')
+        if auth_cookie:
+            try:
+                auth_cookie = requests.utils.unquote(auth_cookie)  # type: ignore
+                if auth_cookie.startswith('Bearer '):
+                    bearer_token = auth_cookie[7:]
+            except Exception:
+                pass
     if bearer_token:
         try:
             user = cast(datamodel.User, infrastructure.keycloak.tokenauth(bearer_token))
