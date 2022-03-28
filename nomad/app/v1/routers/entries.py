@@ -1100,20 +1100,21 @@ async def get_entry_archive(
     responses=create_responses(_bad_id_response, _archive_download_response))
 async def get_entry_archive_download(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.'),
-        set_browser_download_headers: bool = QueryParameter(
+        ignore_mime_type: bool = QueryParameter(
             False, description=strip('''
-                Sets the response headers to signal to browsers to download the data.''')),
+                Sets the mime type specified in the response headers to `application/octet-stream`
+                instead of the actual mime type (i.e. `application/json`).''')),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Returns the full archive for the given `entry_id`.
     '''
     response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=user)
     archive = response['data']['archive']
-    if set_browser_download_headers:
-        return StreamingResponse(
-            io.BytesIO(json.dumps(archive, indent=2).encode()),
-            headers=browser_download_headers(filename=f'{entry_id}.json'))
-    return archive
+    return StreamingResponse(
+        io.BytesIO(json.dumps(archive, indent=2).encode()),
+        headers=browser_download_headers(
+            filename=f'{entry_id}.json',
+            media_type='application/octet-stream' if ignore_mime_type else 'application/json'))
 
 
 @router.post(

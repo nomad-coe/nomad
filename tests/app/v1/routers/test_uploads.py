@@ -33,7 +33,7 @@ from tests.test_files import (
 from tests.test_search import assert_search_upload
 from tests.processing.test_edit_metadata import (
     assert_metadata_edited, all_coauthor_metadata, all_admin_metadata)
-from tests.app.v1.routers.common import assert_response
+from tests.app.v1.routers.common import assert_response, assert_browser_download_headers
 from nomad import config, files, infrastructure
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
@@ -683,8 +683,8 @@ def test_get_upload_entry(
         200, 'text/plain; charset=utf-8', 'content', id='unpublished-file'),
     pytest.param(dict(
         user='test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux',
-        set_browser_download_headers=True),
-        200, 'application/octet-stream', 'content', id='unpublished-file-set_browser_download_headers'),
+        ignore_mime_type=True),
+        200, 'application/octet-stream', 'content', id='unpublished-file-ignore_mime_type'),
     pytest.param(dict(
         user='other_test_user', upload_id='id_unpublished', path='test_content/id_unpublished_1/1.aux'),
         401, None, None, id='unpublished-file-unauthorized'),
@@ -696,8 +696,8 @@ def test_get_upload_entry(
         200, 'text/plain; charset=utf-8', 'method', id='published-file'),
     pytest.param(dict(
         user='test_user', upload_id='id_published', path='test_content/subdir/test_entry_01/mainfile.json',
-        set_browser_download_headers=True),
-        200, 'application/octet-stream', 'method', id='published-file-set_browser_download_headers'),
+        ignore_mime_type=True),
+        200, 'application/octet-stream', 'method', id='published-file-ignore_mime_type'),
     pytest.param(dict(
         user='admin_user', upload_id='id_published', path='test_content/subdir/test_entry_01/1.aux'),
         200, 'text/plain; charset=utf-8', 'content', id='published-file-admin-auth'),
@@ -783,10 +783,10 @@ def test_get_upload_raw_path(
     re_pattern = args.get('re_pattern', None)
     offset = args.get('offset', None)
     length = args.get('length', None)
-    set_browser_download_headers = args.get('set_browser_download_headers', None)
+    ignore_mime_type = args.get('ignore_mime_type', None)
     user_auth, __token = test_auth_dict[user]
     query_args = dict(
-        set_browser_download_headers=set_browser_download_headers,
+        ignore_mime_type=ignore_mime_type,
         compress=compress,
         re_pattern=re_pattern,
         offset=offset,
@@ -798,8 +798,12 @@ def test_get_upload_raw_path(
 
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        mime_type = response.headers.get('content-type')
-        assert mime_type == expected_mime_type
+        mime_type = response.headers.get('Content-Type')
+        if not path:
+            expected_filename = upload_id + '.zip'
+        else:
+            expected_filename = os.path.basename(path.rstrip('/')) + ('.zip' if mime_type == 'application/zip' else '')
+        assert_browser_download_headers(response, expected_mime_type, expected_filename)
         if mime_type == 'application/zip':
             if expected_content:
                 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:

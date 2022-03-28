@@ -413,7 +413,7 @@ function UploadOverview(props) {
           <EditMembersDialog disabled={!isWriter}/>
           <Download
             component={IconButton} tooltip="Download files"
-            url={`uploads/${uploadId}/raw/?compress=true&set_browser_download_headers=true`}
+            url={`uploads/${uploadId}/raw/?compress=true`}
             data-testid='upload-download-action'
           >
             <DownloadIcon />

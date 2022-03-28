@@ -183,7 +183,7 @@ function RawDirectoryContent({uploadId, path, title, highlightedItem, editable})
     return <Content key={path}><Typography>loading ...</Typography></Content>
   } else {
     // Data loaded
-    const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true&set_browser_download_headers=true`
+    const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?compress=true`
     return (
       <Dropzone
         disabled={!editable}
@@ -360,7 +360,7 @@ function RawFileContent({uploadId, path, data, editable}) {
   const { api } = useApi()
   const [openConfirmDeleteFileDialog, setOpenConfirmDeleteFileDialog] = useState(false)
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
-  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?set_browser_download_headers=true`
+  const downloadUrl = `uploads/${uploadId}/raw/${encodedPath}?ignore_mime_type=true`
   const allNorthTools = useTools()
   const applicableNorthTools = useMemo(() => {
     const fileExtension = path.split('.').pop().toLowerCase()

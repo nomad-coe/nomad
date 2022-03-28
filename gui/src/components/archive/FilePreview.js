@@ -261,7 +261,7 @@ function FilePreviewText({uploadId, path}) {
           offset: contents?.length || 0,
           length: 16 * 1024,
           decompress: true,
-          set_browser_download_headers: true
+          ignore_mime_type: true
         },
         {transformResponse: []})
         .then(contents => {

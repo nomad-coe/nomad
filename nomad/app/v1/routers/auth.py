@@ -70,11 +70,11 @@ def create_user_dependency(
         if basic_auth_allowed:
             user = _get_user_basic_auth(kwargs.get('form_data'))
         if not user and bearer_token_auth_allowed:
-            user = _get_user_bearer_token_auth(kwargs.get('bearer_token'), kwargs.get('request'))
+            user = _get_user_bearer_token_auth(kwargs.get('bearer_token'))
         if not user and upload_token_auth_allowed:
             user = _get_user_upload_token_auth(kwargs.get('token'))
         if not user and signature_token_auth_allowed:
-            user = _get_user_signature_token_auth(kwargs.get('signature_token'))
+            user = _get_user_signature_token_auth(kwargs.get('signature_token'), kwargs.get('request'))
 
         if required and not user:
             raise HTTPException(
@@ -111,11 +111,6 @@ def create_user_dependency(
                 annotation=str,
                 default=Depends(oauth2_scheme),
                 kind=Parameter.KEYWORD_ONLY))
-        new_parameters.append(
-            Parameter(
-                name='request',
-                annotation=Request,
-                kind=Parameter.KEYWORD_ONLY))
     if upload_token_auth_allowed:
         new_parameters.append(
             Parameter(
@@ -133,6 +128,11 @@ def create_user_dependency(
                 default=FastApiQuery(
                     None,
                     description='Signature token used to sign download urls.'),
+                kind=Parameter.KEYWORD_ONLY))
+        new_parameters.append(
+            Parameter(
+                name='request',
+                annotation=Request,
                 kind=Parameter.KEYWORD_ONLY))
 
     # Create a wrapper around user_dependency, and set the signature on it
@@ -165,20 +165,11 @@ def _get_user_basic_auth(form_data: OAuth2PasswordRequestForm) -> User:
     return None
 
 
-def _get_user_bearer_token_auth(bearer_token: str, request: Request) -> User:
+def _get_user_bearer_token_auth(bearer_token: str) -> User:
     '''
     Verifies bearer_token (throwing exception if illegal value provided) and returns the
     corresponding user object, or None, if no bearer_token provided.
     '''
-    if not bearer_token and request:
-        auth_cookie = request.cookies.get('Authorization')
-        if auth_cookie:
-            try:
-                auth_cookie = requests.utils.unquote(auth_cookie)  # type: ignore
-                if auth_cookie.startswith('Bearer '):
-                    bearer_token = auth_cookie[7:]
-            except Exception:
-                pass
     if bearer_token:
         try:
             user = cast(datamodel.User, infrastructure.keycloak.tokenauth(bearer_token))
@@ -218,7 +209,7 @@ def _get_user_upload_token_auth(upload_token: str) -> User:
     return None
 
 
-def _get_user_signature_token_auth(signature_token: str) -> User:
+def _get_user_signature_token_auth(signature_token: str, request: Request) -> User:
     '''
     Verifies the signature token (throwing exception if illegal value provided) and returns the
     corresponding user object, or None, if no upload_token provided.
@@ -239,6 +230,21 @@ def _get_user_signature_token_auth(signature_token: str) -> User:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Invalid token.')
+    elif request:
+        auth_cookie = request.cookies.get('Authorization')
+        if auth_cookie:
+            try:
+                auth_cookie = requests.utils.unquote(auth_cookie)  # type: ignore
+                if auth_cookie.startswith('Bearer '):
+                    cookie_bearer_token = auth_cookie[7:]
+                    user = cast(datamodel.User, infrastructure.keycloak.tokenauth(cookie_bearer_token))
+                    return user
+            except infrastructure.KeycloakError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
+            except Exception:
+                pass
 
     return None
 
